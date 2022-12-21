@@ -1,0 +1,39 @@
+run:
+  allow-parallel-runners: true
+  go: '1.18'
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - depguard
+    - forbidigo
+    - gofumpt
+    - gocyclo
+    - gocognit
+    - misspell
+    - unconvert
+    - tparallel
+    - govet
+    - staticcheck
+
+linters-settings:
+  depguard:
+    list-type: blacklist
+    include-go-root: false
+    packages:
+      - github.com/gofrs/uuid -> this should be changed by pkg from google
+  forbidigo:
+    forbid:
+      - 'spew\.Dump'
+      - 'errors\.Cause'
+      - 'errors\.WithMessage'
+      - 'errors\.WithMessagef'
+      - 'errors\.Wrap'
+      - 'errors\.Wrapf'
+  gofumpt:
+    lang-version: "1.18"
+  gocognit:
+    min-complexity: 38
+  gocyclo:
+    min-complexity: 27
