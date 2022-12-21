@@ -38,3 +38,36 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 .PHONY: api
 api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
+
+DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
+
+.PHONY: up
+up:
+	$(DOCKER_COMPOSE_CMD) up -d redis postgres
+
+.PHONY: down
+down:
+	$(DOCKER_COMPOSE_CMD) down --remove-orphans
+
+.PHONY: up-test
+up-test:
+	$(DOCKER_COMPOSE_CMD) up -d test_postgres
+
+$(BIN)/platformid-migrate:
+	$(BUILD_CMD) ./cmd/migrate
+
+$(BIN)/install-goose: go.mod go.sum
+	$(GO) install github.com/pressly/goose/v3
+
+$(BIN)/golangci-lint: go.mod go.sum
+	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint
+
+.PHONY: db/migrate
+db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and apply migrations.
+	sh -c '$(BIN)/migrate'
+
+
+lint: $(BIN)/golangci-lint
+	  $(BIN)/golangci-lint run
+
+.PHONY: lint

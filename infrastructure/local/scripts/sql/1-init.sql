@@ -1,0 +1,3 @@
+CREATE DATABASE platformid;
+CREATE USER polygonid WITH ENCRYPTED PASSWORD 'polygonid';
+ALTER USER polygonid SUPERUSER;
