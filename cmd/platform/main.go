@@ -9,8 +9,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"github.com/polygonid/polygonid-api/sh-id-platform/internal/api"
-	"github.com/polygonid/polygonid-api/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/api"
+	"github.com/polygonid/sh-id-platform/internal/config"
 )
 
 func main() {
@@ -20,6 +20,7 @@ func main() {
 	}
 
 	mux := echo.New()
+	api.RegisterStatic(mux)
 	api.RegisterHandlers(mux, api.NewStrictHandler(&api.Server{}, nil))
 
 	server := &http.Server{

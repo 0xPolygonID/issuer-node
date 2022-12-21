@@ -3,6 +3,10 @@ package api
 import (
 	"context"
 	"math/rand"
+	"net/http"
+	"os"
+
+	"github.com/labstack/echo/v4"
 )
 
 type Server struct{}
@@ -29,4 +33,24 @@ func (s *Server) Random(_ context.Context, _ RandomRequestObject) (RandomRespons
 		Random500JSONResponse{N500JSONResponse{Message: &randomMessages[i]}},
 	}
 	return randomResponses[rand.Intn(len(randomResponses))], nil
+}
+
+func documentation(ctx echo.Context) error {
+	f, err := os.ReadFile("api/spec.html")
+	if err != nil {
+		return ctx.String(http.StatusNotFound, "not found")
+	}
+	return ctx.HTMLBlob(http.StatusOK, f)
+}
+
+func RegisterStatic(e *echo.Echo) {
+	e.GET("/", documentation)
+	e.GET("/static/docs/api/api.yaml", func(ctx echo.Context) error {
+		f, err := os.ReadFile("api/api.yaml")
+		if err != nil {
+			return ctx.String(http.StatusNotFound, "not found")
+		}
+
+		return ctx.HTMLBlob(http.StatusOK, f)
+	})
 }
