@@ -28,6 +28,13 @@ $(BIN)/platformid-migrate:
 $(BIN)/install-goose: go.mod go.sum
 	$(GO) install github.com/pressly/goose/v3
 
+$(BIN)/golangci-lint: go.mod go.sum
+	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint
+
 .PHONY: db/migrate
 db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and apply migrations.
 	sh -c '$(BIN)/migrate'
+
+
+lint: $(BIN)/golangci-lint
+	  $(BIN)/golangci-lint run
