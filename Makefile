@@ -38,3 +38,5 @@ db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and 
 
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
+
+.PHONY: lint
