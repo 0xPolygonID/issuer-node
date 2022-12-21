@@ -25,14 +25,14 @@ paths:
         - Section 1
       responses:
         '201':
-          description: Account updated.
+          description: Updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pong'
         '500':
           $ref: '#/components/responses/500'
-  /v1/status:
+  /status:
     get:
       summary: Healthcheck
       operationId: Health
@@ -43,6 +43,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/500'
+  /random:
+    get:
+      summary: Return random responses and status codes
+      operationId: Random
+      description: This endpoint returns random responses with no sense
+      tags:
+        - Section 1
+      responses:
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '402':
+          $ref: '#/components/responses/402'
+        '407':
+          $ref: '#/components/responses/407'
         '500':
           $ref: '#/components/responses/500'
 
@@ -72,6 +90,30 @@ components:
           type: string
           example: 'Something happen'
   responses:
+    '400':
+      description: 'Bad Request'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '401':
+      description: 'Unauthorized'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '402':
+      description: 'Payment Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '407':
+      description: 'Proxy Authentication Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
     '500':
       description: 'Internal Server error'
       content:
