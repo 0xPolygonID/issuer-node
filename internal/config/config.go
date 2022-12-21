@@ -11,7 +11,7 @@ import (
 )
 
 type Configuration struct {
-	ServerPort string `mapstructure:"ServerPort"`
+	ServerPort string
 }
 
 func Load(path string) (*Configuration, error) {
