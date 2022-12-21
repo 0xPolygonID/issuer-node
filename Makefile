@@ -10,11 +10,6 @@ LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 DOCKER_COMPOSE_CMD := docker-compose -p polygonid -f $(DOCKER_COMPOSE_FILE)
 
-SCHEMA_DB_NAME := schema-$(shell date +"%s")
-SCHEMA_DB_URL := "postgres://postgres:postgres@localhost:5432/$(SCHEMA_DB_NAME)?sslmode=disable"
-SCHEMA_FILE_PATH := ./internal/db/schema/schema.sql
-MIGRATION_PATH := ./internal/db/schema/migrations/
-
 .PHONY: build
 build:
 	$(BUILD_CMD) ./cmd/...
