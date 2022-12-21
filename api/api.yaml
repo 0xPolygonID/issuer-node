@@ -1,0 +1,80 @@
+openapi: 3.1.0
+info:
+  title: Self Hosted ID Platform
+  description: |
+    Documentation for the Self Hosted ID Platform
+  version: 0.1.0
+
+servers:
+  - description: Local
+    url: http://127.0.0.1
+
+tags:
+  - name: Section 1
+    description: Section 1 endpoints
+  - name: Section 2
+    description: Section 2 endpoints
+
+paths:
+  /ping:
+    get:
+      summary: Play Ping Pong
+      operationId: Ping
+      description: Thanks to this endpoint you can play ping pong
+      tags:
+        - Section 1
+      responses:
+        '201':
+          description: Account updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pong'
+        '500':
+          $ref: '#/components/responses/500'
+  /v1/status:
+    get:
+      summary: Healthcheck
+      operationId: Health
+      responses:
+        '200':
+          description: All services are running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/500'
+
+components:
+  schemas:
+    Pong:
+      type: object
+      properties:
+        response:
+          type: string
+    Health:
+      type: object
+      required:
+        - db
+        - cache
+      properties:
+        db:
+          type: boolean
+          example: true
+        cache:
+          type: boolean
+          example: true
+    GenericErrorMessage:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Something happen'
+  responses:
+    '500':
+      description: 'Internal Server error'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
