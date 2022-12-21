@@ -13,6 +13,11 @@ import (
 
 type Configuration struct {
 	ServerPort string
+	Database   Database `mapstructure:"Database"`
+}
+
+type Database struct {
+	Url string
 }
 
 func Load(path string) (*Configuration, error) {
@@ -61,5 +66,6 @@ func getFlags() {
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
 	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
+	_ = viper.BindEnv("Database.Url", "SH_ID_PLATFORM_DATABASE_URL")
 	viper.AutomaticEnv()
 }
