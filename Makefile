@@ -66,7 +66,7 @@ $(BIN)/golangci-lint: go.mod go.sum
 db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and apply migrations.
 	sh -c '$(BIN)/migrate'
 
-
+.PHONY: lint
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
 

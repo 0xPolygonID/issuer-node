@@ -28,6 +28,18 @@ type Pong struct {
 	Response *string `json:"response,omitempty"`
 }
 
+// N400 defines model for 400.
+type N400 = GenericErrorMessage
+
+// N401 defines model for 401.
+type N401 = GenericErrorMessage
+
+// N402 defines model for 402.
+type N402 = GenericErrorMessage
+
+// N407 defines model for 407.
+type N407 = GenericErrorMessage
+
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
 
@@ -36,8 +48,11 @@ type ServerInterface interface {
 	// Play Ping Pong
 	// (GET /ping)
 	Ping(ctx echo.Context) error
+	// Return random responses and status codes
+	// (GET /random)
+	Random(ctx echo.Context) error
 	// Healthcheck
-	// (GET /v1/status)
+	// (GET /status)
 	Health(ctx echo.Context) error
 }
 
@@ -52,6 +67,15 @@ func (w *ServerInterfaceWrapper) Ping(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshalled arguments
 	err = w.Handler.Ping(ctx)
+	return err
+}
+
+// Random converts echo context to params.
+func (w *ServerInterfaceWrapper) Random(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.Random(ctx)
 	return err
 }
 
@@ -93,9 +117,18 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	}
 
 	router.GET(baseURL+"/ping", wrapper.Ping)
-	router.GET(baseURL+"/v1/status", wrapper.Health)
+	router.GET(baseURL+"/random", wrapper.Random)
+	router.GET(baseURL+"/status", wrapper.Health)
 
 }
+
+type N400JSONResponse GenericErrorMessage
+
+type N401JSONResponse GenericErrorMessage
+
+type N402JSONResponse GenericErrorMessage
+
+type N407JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
 
@@ -118,6 +151,58 @@ func (response Ping201JSONResponse) VisitPingResponse(w http.ResponseWriter) err
 type Ping500JSONResponse struct{ N500JSONResponse }
 
 func (response Ping500JSONResponse) VisitPingResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RandomRequestObject struct {
+}
+
+type RandomResponseObject interface {
+	VisitRandomResponse(w http.ResponseWriter) error
+}
+
+type Random400JSONResponse struct{ N400JSONResponse }
+
+func (response Random400JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Random401JSONResponse struct{ N401JSONResponse }
+
+func (response Random401JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Random402JSONResponse struct{ N402JSONResponse }
+
+func (response Random402JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(402)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Random407JSONResponse struct{ N407JSONResponse }
+
+func (response Random407JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(407)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Random500JSONResponse struct{ N500JSONResponse }
+
+func (response Random500JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -154,8 +239,11 @@ type StrictServerInterface interface {
 	// Play Ping Pong
 	// (GET /ping)
 	Ping(ctx context.Context, request PingRequestObject) (PingResponseObject, error)
+	// Return random responses and status codes
+	// (GET /random)
+	Random(ctx context.Context, request RandomRequestObject) (RandomResponseObject, error)
 	// Healthcheck
-	// (GET /v1/status)
+	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
 }
 
@@ -189,6 +277,29 @@ func (sh *strictHandler) Ping(ctx echo.Context) error {
 		return err
 	} else if validResponse, ok := response.(PingResponseObject); ok {
 		return validResponse.VisitPingResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// Random operation middleware
+func (sh *strictHandler) Random(ctx echo.Context) error {
+	var request RandomRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.Random(ctx.Request().Context(), request.(RandomRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Random")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(RandomResponseObject); ok {
+		return validResponse.VisitRandomResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("Unexpected response type: %T", response)
 	}
