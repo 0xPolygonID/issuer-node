@@ -3,6 +3,8 @@ module github.com/polygonid/polygonid-api/sh-id-platform
 go 1.19
 
 require (
+	github.com/lib/pq v1.10.6
+	github.com/pressly/goose/v3 v3.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
