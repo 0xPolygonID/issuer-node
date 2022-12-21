@@ -1,0 +1,29 @@
+name: Checks
+
+on:
+  push:
+    paths:
+      - '**/*.go'
+      - '*.go'
+      - '.github/**'
+
+jobs:
+  test:
+    name: Test codebase
+    runs-on: ubuntu-latest
+    services:
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - run: go test -v ./...
