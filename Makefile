@@ -8,7 +8,7 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
-DOCKER_COMPOSE_CMD := docker-compose -p polygonid -f $(DOCKER_COMPOSE_FILE)
+DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
 
 .PHONY: build
 build:
@@ -33,8 +33,6 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 .PHONY: api
 api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
-
-DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
 
 .PHONY: up
 up:
