@@ -9,8 +9,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"github.com/polygonid/polygonid-api/sh-id-platform/internal/api"
-	"github.com/polygonid/polygonid-api/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/api"
+	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func main() {
@@ -19,8 +22,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	repo := repositories.NewIdentity(db.NewSqlx(cfg.Database.Url))
+	service := services.NewIdentity(repo)
+
 	mux := echo.New()
-	api.RegisterHandlers(mux, api.NewStrictHandler(&api.Server{}, nil))
+	api.RegisterStatic(mux)
+	api.RegisterHandlers(mux, api.NewStrictHandler(api.NewServer(service), nil))
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
