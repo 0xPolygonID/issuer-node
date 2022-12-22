@@ -12,7 +12,7 @@ import (
 )
 
 type Configuration struct {
-	ServerPort string
+	ServerPort int
 	Database   Database `mapstructure:"Database"`
 }
 

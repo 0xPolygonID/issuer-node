@@ -9,5 +9,5 @@ import (
 func TestConfig(t *testing.T) {
 	configuration, err := Load(".")
 	assert.NoError(t, err)
-	assert.Equal(t, "3001", configuration.ServerPort)
+	assert.Equal(t, 3001, configuration.ServerPort)
 }

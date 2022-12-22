@@ -8,6 +8,32 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
+DOCKER_COMPOSE_CMD := docker-compose -p polygonid -f $(DOCKER_COMPOSE_FILE)
+
+.PHONY: build
+build:
+	$(BUILD_CMD) ./cmd/...
+
+.PHONY: clean
+clean: ## Go clean
+	$(GO) clean ./...
+
+.PHONY: test
+test:
+	$(GO) test -v ./...
+
+.PHONY: test-race
+test-race:
+	$(GO) test -v --race ./...
+
+$(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API files.
+	go get github.com/deepmap/oapi-codegen/cmd/oapi-codegen
+	$(GO) install github.com/deepmap/oapi-codegen/cmd/oapi-codegen
+
+.PHONY: api
+api: $(BIN)/oapi-codegen
+	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
+
 DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
 
 .PHONY: up
@@ -35,7 +61,7 @@ $(BIN)/golangci-lint: go.mod go.sum
 db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and apply migrations.
 	sh -c '$(BIN)/migrate'
 
-
+.PHONY: lint
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
 
