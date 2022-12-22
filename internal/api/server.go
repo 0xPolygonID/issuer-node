@@ -7,9 +7,18 @@ import (
 	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/polygonid/sh-id-platform/internal/indentity/core/ports"
 )
 
-type Server struct{}
+type Server struct {
+	indentityService ports.IndentityService
+}
+
+func NewServer(indentityService ports.IndentityService) *Server {
+	return &Server{
+		indentityService: indentityService,
+	}
+}
 
 func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
 	return Health200JSONResponse{
