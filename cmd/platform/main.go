@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,8 +14,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/indentity/core/services"
-	"github.com/polygonid/sh-id-platform/internal/indentity/repositories"
 )
 
 func main() {

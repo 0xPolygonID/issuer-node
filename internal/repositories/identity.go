@@ -1,8 +1,8 @@
 package repositories
 
 import (
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/indentity/core/ports"
 )
 
 type identity struct {

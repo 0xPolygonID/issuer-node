@@ -2,12 +2,12 @@ package api
 
 import (
 	"context"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"math/rand"
 	"net/http"
 	"os"
 
 	"github.com/labstack/echo/v4"
-	"github.com/polygonid/sh-id-platform/internal/indentity/core/ports"
 )
 
 type Server struct {
