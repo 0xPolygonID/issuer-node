@@ -6,7 +6,8 @@
 package: api
 generate:
   models: true
-  echo-server: true
+  echo-server: false
+  chi-server: true
   strict-server: true
   embedded-spec: false
 output-options:

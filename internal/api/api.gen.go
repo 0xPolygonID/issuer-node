@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/go-chi/chi/v5"
 )
 
 // GenericErrorMessage defines model for GenericErrorMessage.
@@ -47,79 +47,193 @@ type N500 = GenericErrorMessage
 type ServerInterface interface {
 	// Play Ping Pong
 	// (GET /ping)
-	Ping(ctx echo.Context) error
+	Ping(w http.ResponseWriter, r *http.Request)
 	// Return random responses and status codes
 	// (GET /random)
-	Random(ctx echo.Context) error
+	Random(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
 	// (GET /status)
-	Health(ctx echo.Context) error
+	Health(w http.ResponseWriter, r *http.Request)
 }
 
-// ServerInterfaceWrapper converts echo contexts to parameters.
+// ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
-	Handler ServerInterface
+	Handler            ServerInterface
+	HandlerMiddlewares []MiddlewareFunc
+	ErrorHandlerFunc   func(w http.ResponseWriter, r *http.Request, err error)
 }
 
-// Ping converts echo context to params.
-func (w *ServerInterfaceWrapper) Ping(ctx echo.Context) error {
-	var err error
+type MiddlewareFunc func(http.Handler) http.Handler
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Ping(ctx)
-	return err
-}
+// Ping operation middleware
+func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-// Random converts echo context to params.
-func (w *ServerInterfaceWrapper) Random(ctx echo.Context) error {
-	var err error
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Ping(w, r)
+	})
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Random(ctx)
-	return err
-}
-
-// Health converts echo context to params.
-func (w *ServerInterfaceWrapper) Health(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Health(ctx)
-	return err
-}
-
-// This is a simple interface which specifies echo.Route addition functions which
-// are present on both echo.Echo and echo.Group, since we want to allow using
-// either of them for path registration
-type EchoRouter interface {
-	CONNECT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	DELETE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	GET(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	HEAD(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	OPTIONS(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	PATCH(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	POST(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	PUT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	TRACE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-}
-
-// RegisterHandlers adds each server route to the EchoRouter.
-func RegisterHandlers(router EchoRouter, si ServerInterface) {
-	RegisterHandlersWithBaseURL(router, si, "")
-}
-
-// Registers handlers, and prepends BaseURL to the paths, so that the paths
-// can be served under a prefix.
-func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL string) {
-
-	wrapper := ServerInterfaceWrapper{
-		Handler: si,
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
 	}
 
-	router.GET(baseURL+"/ping", wrapper.Ping)
-	router.GET(baseURL+"/random", wrapper.Random)
-	router.GET(baseURL+"/status", wrapper.Health)
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
+// Random operation middleware
+func (siw *ServerInterfaceWrapper) Random(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Random(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Health operation middleware
+func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+type UnescapedCookieParamError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *UnescapedCookieParamError) Error() string {
+	return fmt.Sprintf("error unescaping cookie parameter '%s'", e.ParamName)
+}
+
+func (e *UnescapedCookieParamError) Unwrap() error {
+	return e.Err
+}
+
+type UnmarshallingParamError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *UnmarshallingParamError) Error() string {
+	return fmt.Sprintf("Error unmarshalling parameter %s as JSON: %s", e.ParamName, e.Err.Error())
+}
+
+func (e *UnmarshallingParamError) Unwrap() error {
+	return e.Err
+}
+
+type RequiredParamError struct {
+	ParamName string
+}
+
+func (e *RequiredParamError) Error() string {
+	return fmt.Sprintf("Query argument %s is required, but not found", e.ParamName)
+}
+
+type RequiredHeaderError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *RequiredHeaderError) Error() string {
+	return fmt.Sprintf("Header parameter %s is required, but not found", e.ParamName)
+}
+
+func (e *RequiredHeaderError) Unwrap() error {
+	return e.Err
+}
+
+type InvalidParamFormatError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *InvalidParamFormatError) Error() string {
+	return fmt.Sprintf("Invalid format for parameter %s: %s", e.ParamName, e.Err.Error())
+}
+
+func (e *InvalidParamFormatError) Unwrap() error {
+	return e.Err
+}
+
+type TooManyValuesForParamError struct {
+	ParamName string
+	Count     int
+}
+
+func (e *TooManyValuesForParamError) Error() string {
+	return fmt.Sprintf("Expected one value for %s, got %d", e.ParamName, e.Count)
+}
+
+// Handler creates http.Handler with routing matching OpenAPI spec.
+func Handler(si ServerInterface) http.Handler {
+	return HandlerWithOptions(si, ChiServerOptions{})
+}
+
+type ChiServerOptions struct {
+	BaseURL          string
+	BaseRouter       chi.Router
+	Middlewares      []MiddlewareFunc
+	ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
+// HandlerFromMux creates http.Handler with routing matching OpenAPI spec based on the provided mux.
+func HandlerFromMux(si ServerInterface, r chi.Router) http.Handler {
+	return HandlerWithOptions(si, ChiServerOptions{
+		BaseRouter: r,
+	})
+}
+
+func HandlerFromMuxWithBaseURL(si ServerInterface, r chi.Router, baseURL string) http.Handler {
+	return HandlerWithOptions(si, ChiServerOptions{
+		BaseURL:    baseURL,
+		BaseRouter: r,
+	})
+}
+
+// HandlerWithOptions creates http.Handler with additional options
+func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handler {
+	r := options.BaseRouter
+
+	if r == nil {
+		r = chi.NewRouter()
+	}
+	if options.ErrorHandlerFunc == nil {
+		options.ErrorHandlerFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	}
+	wrapper := ServerInterfaceWrapper{
+		Handler:            si,
+		HandlerMiddlewares: options.Middlewares,
+		ErrorHandlerFunc:   options.ErrorHandlerFunc,
+	}
+
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/ping", wrapper.Ping)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/random", wrapper.Random)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/status", wrapper.Health)
+	})
+
+	return r
 }
 
 type N400JSONResponse GenericErrorMessage
@@ -247,84 +361,104 @@ type StrictServerInterface interface {
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
 }
 
-type StrictHandlerFunc func(ctx echo.Context, args interface{}) (interface{}, error)
+type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
 
 type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
 
+type StrictHTTPServerOptions struct {
+	RequestErrorHandlerFunc  func(w http.ResponseWriter, r *http.Request, err error)
+	ResponseErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
 func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
-	return &strictHandler{ssi: ssi, middlewares: middlewares}
+	return &strictHandler{ssi: ssi, middlewares: middlewares, options: StrictHTTPServerOptions{
+		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		},
+		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		},
+	}}
+}
+
+func NewStrictHandlerWithOptions(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc, options StrictHTTPServerOptions) ServerInterface {
+	return &strictHandler{ssi: ssi, middlewares: middlewares, options: options}
 }
 
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+	options     StrictHTTPServerOptions
 }
 
 // Ping operation middleware
-func (sh *strictHandler) Ping(ctx echo.Context) error {
+func (sh *strictHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	var request PingRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Ping(ctx.Request().Context(), request.(PingRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Ping(ctx, request.(PingRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "Ping")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PingResponseObject); ok {
-		return validResponse.VisitPingResponse(ctx.Response())
+		if err := validResponse.VisitPingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // Random operation middleware
-func (sh *strictHandler) Random(ctx echo.Context) error {
+func (sh *strictHandler) Random(w http.ResponseWriter, r *http.Request) {
 	var request RandomRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Random(ctx.Request().Context(), request.(RandomRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Random(ctx, request.(RandomRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "Random")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RandomResponseObject); ok {
-		return validResponse.VisitRandomResponse(ctx.Response())
+		if err := validResponse.VisitRandomResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // Health operation middleware
-func (sh *strictHandler) Health(ctx echo.Context) error {
+func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 	var request HealthRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Health(ctx.Request().Context(), request.(HealthRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Health(ctx, request.(HealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "Health")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(HealthResponseObject); ok {
-		return validResponse.VisitHealthResponse(ctx.Response())
+		if err := validResponse.VisitHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }

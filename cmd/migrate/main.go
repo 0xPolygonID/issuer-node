@@ -1,21 +1,28 @@
 package main
 
 import (
-	"log"
+	"context"
+	"os"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db/schema"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 func main() {
 	cfg, err := config.Load("internal/config")
 	if err != nil {
-		log.Fatal(err)
+		log.Error(context.Background(), "cannot load config", err)
 	}
-	log.Println(cfg.Database.Url)
+	// Context with log
+	// TODO: Load log params from config
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
+	log.Debug(ctx, "database", "url", cfg.Database.Url)
+
 	if err := schema.Migrate(cfg.Database.Url); err != nil {
-		log.Fatal(err)
+		log.Error(ctx, "error migrating database", err)
+		return
 	}
 
-	log.Println("migration done!")
+	log.Info(ctx, "migration done!")
 }

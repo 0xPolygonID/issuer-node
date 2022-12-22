@@ -31,6 +31,10 @@ func NewContext(ctx context.Context, level int, format int, source bool, w io.Wr
 	return slog.NewContext(ctx, slog.New(opts.NewTextHandler(w)))
 }
 
+func CopyFromContext(orig, dest context.Context) context.Context {
+	return slog.NewContext(dest, slog.FromContext(orig))
+}
+
 func With(ctx context.Context, args ...any) context.Context {
 	return slog.NewContext(ctx, slog.FromContext(ctx).With(args...))
 }

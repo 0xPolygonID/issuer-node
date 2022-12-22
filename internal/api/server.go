@@ -6,7 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/labstack/echo/v4"
+	"github.com/go-chi/chi/v5"
+	"github.com/polygonid/sh-id-platform/internal/log"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
@@ -28,7 +29,8 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	}, nil
 }
 
-func (s *Server) Ping(_ context.Context, _ PingRequestObject) (PingResponseObject, error) {
+func (s *Server) Ping(ctx context.Context, _ PingRequestObject) (PingResponseObject, error) {
+	log.Info(ctx, "ping")
 	return Ping201JSONResponse{Response: ToPointer("pong")}, nil
 }
 
@@ -45,22 +47,26 @@ func (s *Server) Random(_ context.Context, _ RandomRequestObject) (RandomRespons
 	return randomResponses[rand.Intn(len(randomResponses))], nil
 }
 
-func documentation(ctx echo.Context) error {
-	f, err := os.ReadFile("api/spec.html")
-	if err != nil {
-		return ctx.String(http.StatusNotFound, "not found")
-	}
-	return ctx.HTMLBlob(http.StatusOK, f)
+func RegisterStatic(mux *chi.Mux) {
+	mux.Get("/", documentation)
+	mux.Get("/static/docs/api/api.yaml", swagger)
 }
 
-func RegisterStatic(e *echo.Echo) {
-	e.GET("/", documentation)
-	e.GET("/static/docs/api/api.yaml", func(ctx echo.Context) error {
-		f, err := os.ReadFile("api/api.yaml")
-		if err != nil {
-			return ctx.String(http.StatusNotFound, "not found")
-		}
+func documentation(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api/spec.html", w)
+}
 
-		return ctx.HTMLBlob(http.StatusOK, f)
-	})
+func swagger(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api/api.yaml", w)
+}
+
+func writeFile(path string, w http.ResponseWriter) {
+	f, err := os.ReadFile(path)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("not found"))
+	}
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(f)
 }
