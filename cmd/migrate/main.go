@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/polygonid/polygonid-api/sh-id-platform/internal/config"
-	"github.com/polygonid/polygonid-api/sh-id-platform/internal/db/schema"
+	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/db/schema"
 )
 
 func main() {
