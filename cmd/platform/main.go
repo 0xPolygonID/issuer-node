@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,7 +11,9 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func main() {
