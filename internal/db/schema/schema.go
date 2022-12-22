@@ -17,18 +17,18 @@ func Migrate(databaseURL string) error {
 	// setup database
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
-		return fmt.Errorf("error open connection with database: %+v", err.Error())
+		return fmt.Errorf("error open connection with database: %w", err)
 	}
 
 	defer db.Close()
 
 	goose.SetBaseFS(embedMigrations)
 	if err := goose.SetDialect("postgres"); err != nil {
-		return fmt.Errorf("error setting dialect: %+v", err.Error())
+		return fmt.Errorf("error setting dialect: %w", err)
 	}
 
 	if err := goose.Up(db, "migrations"); err != nil {
-		return fmt.Errorf("error trying to run migrations: %+v", err.Error())
+		return fmt.Errorf("error trying to run migrations: %w", err)
 	}
 
 	return nil
