@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -34,6 +35,11 @@ func main() {
 	service := services.NewIdentity(repo)
 
 	mux := chi.NewRouter()
+	mux.Use(
+		middleware.RequestID,
+		middleware.Logger,
+		middleware.Recoverer,
+	)
 	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(service), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
