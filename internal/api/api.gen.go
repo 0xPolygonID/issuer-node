@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
+	"github.com/go-chi/chi/v5"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
-	"github.com/labstack/echo/v4"
 )
 
 // CreateClaimRequest defines model for CreateClaimRequest.
@@ -128,168 +128,328 @@ type CreateClaimJSONRequestBody = CreateClaimRequest
 type ServerInterface interface {
 	// Play Ping Pong
 	// (GET /ping)
-	Ping(ctx echo.Context) error
+	Ping(w http.ResponseWriter, r *http.Request)
 	// Return random responses and status codes
 	// (GET /random)
-	Random(ctx echo.Context) error
+	Random(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
 	// (GET /status)
-	Health(ctx echo.Context) error
+	Health(w http.ResponseWriter, r *http.Request)
 	// Create Identity
 	// (POST /v1/identities)
-	CreateIdentity(ctx echo.Context) error
+	CreateIdentity(w http.ResponseWriter, r *http.Request)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
-	CreateClaim(ctx echo.Context, identifier PathIdentifier) error
+	CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Revocation Status
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
-	GetRevocationStatus(ctx echo.Context, identifier PathIdentifier, nonce PathNonce) error
+	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
-	RevokeClaim(ctx echo.Context, identifier PathIdentifier, nonce PathNonce) error
+	RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 }
 
-// ServerInterfaceWrapper converts echo contexts to parameters.
+// ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
-	Handler ServerInterface
+	Handler            ServerInterface
+	HandlerMiddlewares []MiddlewareFunc
+	ErrorHandlerFunc   func(w http.ResponseWriter, r *http.Request, err error)
 }
 
-// Ping converts echo context to params.
-func (w *ServerInterfaceWrapper) Ping(ctx echo.Context) error {
-	var err error
+type MiddlewareFunc func(http.Handler) http.Handler
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Ping(ctx)
-	return err
-}
+// Ping operation middleware
+func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-// Random converts echo context to params.
-func (w *ServerInterfaceWrapper) Random(ctx echo.Context) error {
-	var err error
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Ping(w, r)
+	})
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Random(ctx)
-	return err
-}
-
-// Health converts echo context to params.
-func (w *ServerInterfaceWrapper) Health(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.Health(ctx)
-	return err
-}
-
-// CreateIdentity converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateIdentity(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.CreateIdentity(ctx)
-	return err
-}
-
-// CreateClaim converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateClaim(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, ctx.Param("identifier"), &identifier)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter identifier: %s", err))
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
 	}
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.CreateClaim(ctx, identifier)
-	return err
+	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetRevocationStatus converts echo context to params.
-func (w *ServerInterfaceWrapper) GetRevocationStatus(ctx echo.Context) error {
+// Random operation middleware
+func (siw *ServerInterfaceWrapper) Random(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Random(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Health operation middleware
+func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateIdentity operation middleware
+func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateIdentity(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateClaim operation middleware
+func (siw *ServerInterfaceWrapper) CreateClaim(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var err error
+
 	// ------------- Path parameter "identifier" -------------
 	var identifier PathIdentifier
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, ctx.Param("identifier"), &identifier)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter identifier: %s", err))
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateClaim(w, r, identifier)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetRevocationStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetRevocationStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
 	}
 
 	// ------------- Path parameter "nonce" -------------
 	var nonce PathNonce
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "nonce", runtime.ParamLocationPath, ctx.Param("nonce"), &nonce)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "nonce", runtime.ParamLocationPath, chi.URLParam(r, "nonce"), &nonce)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter nonce: %s", err))
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
 	}
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.GetRevocationStatus(ctx, identifier, nonce)
-	return err
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRevocationStatus(w, r, identifier, nonce)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// RevokeClaim converts echo context to params.
-func (w *ServerInterfaceWrapper) RevokeClaim(ctx echo.Context) error {
+// RevokeClaim operation middleware
+func (siw *ServerInterfaceWrapper) RevokeClaim(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
 	var err error
+
 	// ------------- Path parameter "identifier" -------------
 	var identifier PathIdentifier
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, ctx.Param("identifier"), &identifier)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter identifier: %s", err))
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
 	}
 
 	// ------------- Path parameter "nonce" -------------
 	var nonce PathNonce
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "nonce", runtime.ParamLocationPath, ctx.Param("nonce"), &nonce)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "nonce", runtime.ParamLocationPath, chi.URLParam(r, "nonce"), &nonce)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter nonce: %s", err))
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
 	}
 
-	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.RevokeClaim(ctx, identifier, nonce)
-	return err
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeClaim(w, r, identifier, nonce)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// This is a simple interface which specifies echo.Route addition functions which
-// are present on both echo.Echo and echo.Group, since we want to allow using
-// either of them for path registration
-type EchoRouter interface {
-	CONNECT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	DELETE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	GET(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	HEAD(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	OPTIONS(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	PATCH(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	POST(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	PUT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	TRACE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
+type UnescapedCookieParamError struct {
+	ParamName string
+	Err       error
 }
 
-// RegisterHandlers adds each server route to the EchoRouter.
-func RegisterHandlers(router EchoRouter, si ServerInterface) {
-	RegisterHandlersWithBaseURL(router, si, "")
+func (e *UnescapedCookieParamError) Error() string {
+	return fmt.Sprintf("error unescaping cookie parameter '%s'", e.ParamName)
 }
 
-// Registers handlers, and prepends BaseURL to the paths, so that the paths
-// can be served under a prefix.
-func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL string) {
+func (e *UnescapedCookieParamError) Unwrap() error {
+	return e.Err
+}
 
+type UnmarshallingParamError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *UnmarshallingParamError) Error() string {
+	return fmt.Sprintf("Error unmarshalling parameter %s as JSON: %s", e.ParamName, e.Err.Error())
+}
+
+func (e *UnmarshallingParamError) Unwrap() error {
+	return e.Err
+}
+
+type RequiredParamError struct {
+	ParamName string
+}
+
+func (e *RequiredParamError) Error() string {
+	return fmt.Sprintf("Query argument %s is required, but not found", e.ParamName)
+}
+
+type RequiredHeaderError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *RequiredHeaderError) Error() string {
+	return fmt.Sprintf("Header parameter %s is required, but not found", e.ParamName)
+}
+
+func (e *RequiredHeaderError) Unwrap() error {
+	return e.Err
+}
+
+type InvalidParamFormatError struct {
+	ParamName string
+	Err       error
+}
+
+func (e *InvalidParamFormatError) Error() string {
+	return fmt.Sprintf("Invalid format for parameter %s: %s", e.ParamName, e.Err.Error())
+}
+
+func (e *InvalidParamFormatError) Unwrap() error {
+	return e.Err
+}
+
+type TooManyValuesForParamError struct {
+	ParamName string
+	Count     int
+}
+
+func (e *TooManyValuesForParamError) Error() string {
+	return fmt.Sprintf("Expected one value for %s, got %d", e.ParamName, e.Count)
+}
+
+// Handler creates http.Handler with routing matching OpenAPI spec.
+func Handler(si ServerInterface) http.Handler {
+	return HandlerWithOptions(si, ChiServerOptions{})
+}
+
+type ChiServerOptions struct {
+	BaseURL          string
+	BaseRouter       chi.Router
+	Middlewares      []MiddlewareFunc
+	ErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
+// HandlerFromMux creates http.Handler with routing matching OpenAPI spec based on the provided mux.
+func HandlerFromMux(si ServerInterface, r chi.Router) http.Handler {
+	return HandlerWithOptions(si, ChiServerOptions{
+		BaseRouter: r,
+	})
+}
+
+func HandlerFromMuxWithBaseURL(si ServerInterface, r chi.Router, baseURL string) http.Handler {
+	return HandlerWithOptions(si, ChiServerOptions{
+		BaseURL:    baseURL,
+		BaseRouter: r,
+	})
+}
+
+// HandlerWithOptions creates http.Handler with additional options
+func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handler {
+	r := options.BaseRouter
+
+	if r == nil {
+		r = chi.NewRouter()
+	}
+	if options.ErrorHandlerFunc == nil {
+		options.ErrorHandlerFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+	}
 	wrapper := ServerInterfaceWrapper{
-		Handler: si,
+		Handler:            si,
+		HandlerMiddlewares: options.Middlewares,
+		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	router.GET(baseURL+"/ping", wrapper.Ping)
-	router.GET(baseURL+"/random", wrapper.Random)
-	router.GET(baseURL+"/status", wrapper.Health)
-	router.POST(baseURL+"/v1/identities", wrapper.CreateIdentity)
-	router.POST(baseURL+"/v1/:identifier/claims", wrapper.CreateClaim)
-	router.GET(baseURL+"/v1/:identifier/claims/revocation/status/:nonce", wrapper.GetRevocationStatus)
-	router.POST(baseURL+"/v1/:identifier/claims/revoke/:nonce", wrapper.RevokeClaim)
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/ping", wrapper.Ping)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/random", wrapper.Random)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/status", wrapper.Health)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/{identifier}/claims", wrapper.CreateClaim)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/claims/revocation/status/{nonce}", wrapper.GetRevocationStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/{identifier}/claims/revoke/{nonce}", wrapper.RevokeClaim)
+	})
 
+	return r
 }
 
 type N400JSONResponse GenericErrorMessage
@@ -568,190 +728,215 @@ type StrictServerInterface interface {
 	RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error)
 }
 
-type StrictHandlerFunc func(ctx echo.Context, args interface{}) (interface{}, error)
+type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
 
 type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
 
+type StrictHTTPServerOptions struct {
+	RequestErrorHandlerFunc  func(w http.ResponseWriter, r *http.Request, err error)
+	ResponseErrorHandlerFunc func(w http.ResponseWriter, r *http.Request, err error)
+}
+
 func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
-	return &strictHandler{ssi: ssi, middlewares: middlewares}
+	return &strictHandler{ssi: ssi, middlewares: middlewares, options: StrictHTTPServerOptions{
+		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		},
+		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		},
+	}}
+}
+
+func NewStrictHandlerWithOptions(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc, options StrictHTTPServerOptions) ServerInterface {
+	return &strictHandler{ssi: ssi, middlewares: middlewares, options: options}
 }
 
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+	options     StrictHTTPServerOptions
 }
 
 // Ping operation middleware
-func (sh *strictHandler) Ping(ctx echo.Context) error {
+func (sh *strictHandler) Ping(w http.ResponseWriter, r *http.Request) {
 	var request PingRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Ping(ctx.Request().Context(), request.(PingRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Ping(ctx, request.(PingRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "Ping")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PingResponseObject); ok {
-		return validResponse.VisitPingResponse(ctx.Response())
+		if err := validResponse.VisitPingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // Random operation middleware
-func (sh *strictHandler) Random(ctx echo.Context) error {
+func (sh *strictHandler) Random(w http.ResponseWriter, r *http.Request) {
 	var request RandomRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Random(ctx.Request().Context(), request.(RandomRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Random(ctx, request.(RandomRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "Random")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RandomResponseObject); ok {
-		return validResponse.VisitRandomResponse(ctx.Response())
+		if err := validResponse.VisitRandomResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // Health operation middleware
-func (sh *strictHandler) Health(ctx echo.Context) error {
+func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 	var request HealthRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.Health(ctx.Request().Context(), request.(HealthRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Health(ctx, request.(HealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "Health")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(HealthResponseObject); ok {
-		return validResponse.VisitHealthResponse(ctx.Response())
+		if err := validResponse.VisitHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // CreateIdentity operation middleware
-func (sh *strictHandler) CreateIdentity(ctx echo.Context) error {
+func (sh *strictHandler) CreateIdentity(w http.ResponseWriter, r *http.Request) {
 	var request CreateIdentityRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateIdentity(ctx.Request().Context(), request.(CreateIdentityRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateIdentity(ctx, request.(CreateIdentityRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateIdentity")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateIdentityResponseObject); ok {
-		return validResponse.VisitCreateIdentityResponse(ctx.Response())
+		if err := validResponse.VisitCreateIdentityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // CreateClaim operation middleware
-func (sh *strictHandler) CreateClaim(ctx echo.Context, identifier PathIdentifier) error {
+func (sh *strictHandler) CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	var request CreateClaimRequestObject
 
 	request.Identifier = identifier
 
 	var body CreateClaimJSONRequestBody
-	if err := ctx.Bind(&body); err != nil {
-		return err
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateClaim(ctx.Request().Context(), request.(CreateClaimRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateClaim(ctx, request.(CreateClaimRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "CreateClaim")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateClaimResponseObject); ok {
-		return validResponse.VisitCreateClaimResponse(ctx.Response())
+		if err := validResponse.VisitCreateClaimResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // GetRevocationStatus operation middleware
-func (sh *strictHandler) GetRevocationStatus(ctx echo.Context, identifier PathIdentifier, nonce PathNonce) error {
+func (sh *strictHandler) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	var request GetRevocationStatusRequestObject
 
 	request.Identifier = identifier
 	request.Nonce = nonce
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRevocationStatus(ctx.Request().Context(), request.(GetRevocationStatusRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRevocationStatus(ctx, request.(GetRevocationStatusRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetRevocationStatus")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRevocationStatusResponseObject); ok {
-		return validResponse.VisitGetRevocationStatusResponse(ctx.Response())
+		if err := validResponse.VisitGetRevocationStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
 
 // RevokeClaim operation middleware
-func (sh *strictHandler) RevokeClaim(ctx echo.Context, identifier PathIdentifier, nonce PathNonce) error {
+func (sh *strictHandler) RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	var request RevokeClaimRequestObject
 
 	request.Identifier = identifier
 	request.Nonce = nonce
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.RevokeClaim(ctx.Request().Context(), request.(RevokeClaimRequestObject))
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeClaim(ctx, request.(RevokeClaimRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "RevokeClaim")
 	}
 
-	response, err := handler(ctx, request)
+	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
-		return err
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeClaimResponseObject); ok {
-		return validResponse.VisitRevokeClaimResponse(ctx.Response())
+		if err := validResponse.VisitRevokeClaimResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
 	} else if response != nil {
-		return fmt.Errorf("Unexpected response type: %T", response)
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-	return nil
 }
