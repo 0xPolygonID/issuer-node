@@ -97,3 +97,8 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
 	return nil, nil
 }
+
+// PublishState is the controller to publish the state on-chain
+func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
+	return nil, nil
+}
