@@ -17,9 +17,9 @@ func main() {
 	// Context with log
 	// TODO: Load log params from config
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
-	log.Debug(ctx, "database", "url", cfg.Database.Url)
+	log.Debug(ctx, "database", "url", cfg.Database.URL)
 
-	if err := schema.Migrate(cfg.Database.Url); err != nil {
+	if err := schema.Migrate(cfg.Database.URL); err != nil {
 		log.Error(ctx, "error migrating database", err)
 		return
 	}

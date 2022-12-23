@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/go-chi/chi/v5"
-	_ "github.com/lib/pq"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -17,6 +16,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -29,7 +30,7 @@ func main() {
 	// TODO: Load log params from config
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
 
-	repo := repositories.NewIdentity(db.NewSqlx(cfg.Database.Url))
+	repo := repositories.NewIdentity(db.NewSqlx(cfg.Database.URL))
 	service := services.NewIdentity(repo)
 
 	mux := chi.NewRouter()

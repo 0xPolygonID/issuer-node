@@ -9,12 +9,14 @@ type identity struct {
 	db *db.Sqlx
 }
 
-func NewIdentity(db *db.Sqlx) ports.IndentityRepository {
+// NewIdentity returns a ports.IndentityRepository database implementation
+func NewIdentity(dbConn *db.Sqlx) ports.IndentityRepository {
 	return &identity{
-		db: db,
+		db: dbConn,
 	}
 }
 
+// Save saves something.
 func (i *identity) Save() error {
 	return nil
 }
