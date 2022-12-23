@@ -17,7 +17,7 @@ linters:
     - gci
     - gocognit
     - gocyclo
-#    - gocritic
+    - gocritic
     - gosimple
     - gofumpt
     - gomnd
