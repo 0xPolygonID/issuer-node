@@ -1,25 +1,30 @@
 package config
 
 import (
+	"context"
 	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
+// Configuration holds the project configuration
 type Configuration struct {
 	ServerPort int
 	Database   Database `mapstructure:"Database"`
 }
 
+// Database has the database configuration
 type Database struct {
-	Url string
+	URL string
 }
 
+// Load loads the configuraion from a file
 func Load(path string) (*Configuration, error) {
 	getFlags()
 	bindEnv()
@@ -59,13 +64,13 @@ func getFlags() {
 	pflag.Parse()
 
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		fmt.Printf("Error parsing flags: %s", err.Error())
+		log.Error(context.Background(), "parsing config flags", err)
 	}
 }
 
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
 	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
-	_ = viper.BindEnv("Database.Url", "SH_ID_PLATFORM_DATABASE_URL")
+	_ = viper.BindEnv("Database.URL", "SH_ID_PLATFORM_DATABASE_URL")
 	viper.AutomaticEnv()
 }

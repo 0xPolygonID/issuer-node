@@ -1,17 +1,20 @@
 package schema
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"fmt"
 
-	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
+// Migrate runs migrations on the databaseURL
 func Migrate(databaseURL string) error {
 	var db *sql.DB
 	// setup database
@@ -19,8 +22,11 @@ func Migrate(databaseURL string) error {
 	if err != nil {
 		return fmt.Errorf("error open connection with database: %w", err)
 	}
-
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Error(context.Background(), "closing database", err)
+		}
+	}()
 
 	goose.SetBaseFS(embedMigrations)
 	if err := goose.SetDialect("postgres"); err != nil {
