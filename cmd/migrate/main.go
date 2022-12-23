@@ -15,8 +15,7 @@ func main() {
 		log.Error(context.Background(), "cannot load config", err)
 	}
 	// Context with log
-	// TODO: Load log params from config
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
+	ctx := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
 	log.Debug(ctx, "database", "url", cfg.Database.URL)
 
 	if err := schema.Migrate(cfg.Database.URL); err != nil {

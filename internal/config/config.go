@@ -17,11 +17,32 @@ import (
 type Configuration struct {
 	ServerPort int
 	Database   Database `mapstructure:"Database"`
+	Runtime    Runtime  `mapstructure:"Runtime"`
 }
 
 // Database has the database configuration
+// URL: The database connection string
 type Database struct {
 	URL string
+}
+
+// Runtime holds runtime configurations
+//
+// LogLevel: The minimum log level to show on logs. Values can be
+//
+//	 -4: Debug
+//		0: Info
+//		4: Warning
+//		8: Error
+//	 The default log level is debug
+//
+// LogMode: Log mode is the format of the log. It can be text or json
+// 1: JSON
+// 2: Text
+// The default log formal is JSON
+type Runtime struct {
+	LogLevel int `mapstructure:"LogLevel"`
+	LogMode  int `mapstructure:"LogMode"`
 }
 
 // Load loads the configuraion from a file
@@ -44,8 +65,15 @@ func Load(path string) (*Configuration, error) {
 		viper.SetConfigName("config")
 		viper.SetConfigType("toml")
 	}
-
-	config := new(Configuration)
+	const defDBPort = 5432
+	config := &Configuration{
+		ServerPort: defDBPort,
+		Database:   Database{},
+		Runtime: Runtime{
+			LogLevel: log.LevelDebug,
+			LogMode:  log.OutputText,
+		},
+	}
 
 	if err := viper.ReadInConfig(); err == nil {
 		if err := viper.Unmarshal(config); err != nil {
