@@ -1,6 +1,8 @@
 package db
 
 import (
+	"log"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -9,10 +11,12 @@ type Sqlx struct {
 }
 
 func NewSqlx(datasource string) *Sqlx {
-	//db, err := sqlx.Connect("postgres", datasource)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	db, err := sqlx.Connect("postgres", datasource)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	return &Sqlx{}
+	return &Sqlx{
+		DB: db,
+	}
 }

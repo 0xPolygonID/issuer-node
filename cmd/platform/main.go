@@ -1,33 +1,40 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
+	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
+
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func main() {
 	cfg, err := config.Load("internal/config")
 	if err != nil {
-		log.Fatal(err)
+		log.Error(context.Background(), "cannot load config", err)
+		return
 	}
+	// Context with log
+	// TODO: Load log params from config
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
 
 	repo := repositories.NewIdentity(db.NewSqlx(cfg.Database.Url))
 	service := services.NewIdentity(repo)
 
-	mux := echo.New()
+	mux := chi.NewRouter()
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(service), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
-	api.RegisterHandlers(mux, api.NewStrictHandler(api.NewServer(service), nil))
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
@@ -38,10 +45,16 @@ func main() {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatalf("Error starting http server: %w", err)
+			log.Error(ctx, "Starting http server", err)
 		}
 	}()
 
 	<-quit
-	log.Info("Shutting down")
+	log.Info(ctx, "Shutting down")
+}
+
+func middlewares(ctx context.Context) []api.StrictMiddlewareFunc {
+	return []api.StrictMiddlewareFunc{
+		api.LogMiddleware(ctx),
+	}
 }
