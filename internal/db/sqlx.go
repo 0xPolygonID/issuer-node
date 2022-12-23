@@ -11,7 +11,7 @@ type Sqlx struct {
 }
 
 func NewSqlx(datasource string) *Sqlx {
-	db, err := sqlx.Connect("postgress", datasource)
+	db, err := sqlx.Connect("postgres", datasource)
 	if err != nil {
 		log.Fatal(err)
 	}
