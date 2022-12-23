@@ -78,18 +78,22 @@ func writeFile(path string, w http.ResponseWriter) {
 	_, _ = w.Write(f)
 }
 
+// CreateIdentity is create identity controller
 func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error) {
 	return nil, nil
 }
 
+// CreateClaim is claim creation controller
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
 	return nil, nil
 }
 
+// RevokeClaim is the revocation claim controller
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
 	return nil, nil
 }
 
+// GetRevocationStatus is the controller to get revocation status
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
 	return nil, nil
 }
