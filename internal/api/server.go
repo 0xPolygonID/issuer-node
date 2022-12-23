@@ -64,3 +64,19 @@ func RegisterStatic(e *echo.Echo) {
 		return ctx.HTMLBlob(http.StatusOK, f)
 	})
 }
+
+func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error) {
+	return nil, nil
+}
+
+func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
+	return nil, nil
+}
+
+func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
+	return nil, nil
+}
+
+func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
+	return nil, nil
+}
