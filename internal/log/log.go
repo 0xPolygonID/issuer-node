@@ -7,14 +7,15 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+// Log configuration constants
 const (
-	LevelDebug = int(slog.LevelDebug) // LevelDebug debug level
-	LevelInfo  = int(slog.LevelInfo)  // LevelInfo info level
-	LevelWarn  = int(slog.LevelWarn)  // LevelWarn warning level
-	LevelErr   = int(slog.LevelError) // LevelErr error level
+	LevelDebug = int(slog.LevelDebug) // debug level
+	LevelInfo  = int(slog.LevelInfo)  // info level
+	LevelWarn  = int(slog.LevelWarn)  //  warning level
+	LevelErr   = int(slog.LevelError) //  error level
 
-	JSONOutput = 1 // JSONOutput Log output will be json format
-	TextOutput = 2 // TextOutput log output will be text format
+	JSONOutput = 1 // Log output will be json format
+	TextOutput = 2 //  log output will be text format
 )
 
 // NewContext returns a context with an injected logger.
