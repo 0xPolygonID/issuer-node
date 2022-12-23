@@ -14,6 +14,10 @@ tags:
     description: Section 1 endpoints
   - name: Section 2
     description: Section 2 endpoints
+  - name: Identity
+    description: Collection of endpoints related to Identity
+  - name: Claim
+    description: Collection of endpoints related to Claims
 
 paths:
   /ping:
@@ -63,6 +67,93 @@ paths:
           $ref: '#/components/responses/407'
         '500':
           $ref: '#/components/responses/500'
+#identity:
+  /v1/identities:
+    post:
+      summary: Create Identity
+      operationId: CreateIdentity
+      description: Endpoint to create an identity
+      tags:
+        - Identity
+      responses:
+        '201':
+          description: Identity created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateIdentityResponse'
+        '500':
+          $ref: '#/components/responses/500-CreateIdentity'
+#claims:
+  /v1/{identifier}/claims:
+    post:
+      summary: Create Claim
+      operationId: CreateClaim
+      description: Endpoint to create a Claim
+      tags:
+        - Claim
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClaimRequest'
+      responses:
+        '201':
+          description: Claim created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateClaimResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+  /v1/{identifier}/claims/revoke/{nonce}:
+    post:
+      summary: Revoke Claim
+      operationId: RevokeClaim
+      description: Endpoint to revoke a claim
+      tags:
+        - Claim
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeClaimResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+  /v1/{identifier}/claims/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status
+      operationId: GetRevocationStatus
+      description: Endpoint to get the revocation status
+      tags:
+        - Claim
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationStatusResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 
 components:
   schemas:
@@ -89,6 +180,181 @@ components:
         message:
           type: string
           example: 'Something happen'
+
+    #identity
+    CreateIdentityResponse:
+      type: object
+      required:
+        - identity
+        - relay
+        - immutable
+        - status
+      properties:
+        identifier:
+          type: string
+        relay:
+          type: string
+        immutable:
+          type: boolean
+        state:
+          type: object
+          required:
+            - stateID
+            - identifier
+            - status
+            - modifiedAt
+            - createdAt
+          properties:
+            stateID:
+              type: integer
+              format: int64
+              x-go-json-ignore: true
+            identifier:
+              type: string
+              x-go-json-ignore: true
+            state:
+              type: string
+            rootOfRoots:
+              type: string
+            claimsTreeRoot:
+              type: string
+            revocationTreeRoot:
+              type: string
+            blockTimestamp:
+              type: integer
+            blockNumber:
+              type: integer
+            txID:
+              type: string
+            previousState:
+              type: string
+            status:
+              type: string
+            modifiedAt:
+              type: string
+              format: date-time
+            createdAt:
+              type: string
+              format: date-time
+
+    #claims
+    CreateClaimRequest:
+      type: object
+      required:
+        - credentialSchema
+        - type
+        - credentialSubject
+        - expiration
+        - version
+        - subjectPosition
+        - merklizedRootPosition
+      properties:
+        credentialSchema:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+        credentialSubject:
+          type: string
+          format: json
+          x-omitempty: false
+        expiration:
+          type: integer
+          format: int64
+        version:
+          type: integer
+          format: uint32
+        revNonce:
+          type: integer
+          format: uint64
+        subjectPosition:
+          type: string
+        merklizedRootPosition:
+          type: string
+
+    CreateClaimResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+
+    RevokeClaimResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          x-omitempty: false
+          example: pending
+
+    RevocationStatusResponse:
+      type: object
+      required:
+        - issuer
+        - mtp
+      properties:
+        issuer:
+          type: object
+          properties:
+            state:
+              type: string
+            rootOfRoots:
+              type: string
+            claimsTreeRoot:
+              type: string
+            revocationTreeRoot:
+              type: string
+        mtp:
+          type: object
+          required:
+            - existence
+          properties:
+            existence:
+              type: boolean
+            nodeAux:
+              type: object
+              properties:
+                key:
+                  type: string
+                  x-go-type: merkletree.Hash
+                  x-go-type-import:
+                    name: Hash
+                    path: github.com/iden3/go-merkletree-sql
+                value:
+                  type: string
+                  x-go-type: merkletree.Hash
+                  x-go-type-import:
+                    name: Hash
+                    path: github.com/iden3/go-merkletree-sql
+
+
+  parameters:
+    pathIdentifier:
+      name: identifier
+      in: path
+      required: true
+      description: Identity identifier
+      schema:
+        type: string
+        x-go-type: core.DID
+        x-go-type-import:
+          name: uuid
+          path: github.com/iden3/go-iden3-core
+    pathNonce:
+      name: nonce
+      in: path
+      required: true
+      description: Claim nonce
+      schema:
+        type: integer
+        format: int64
+
+
   responses:
     '400':
       description: 'Bad Request'
@@ -120,3 +386,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GenericErrorMessage'
+    '500-CreateIdentity':
+      description: 'Internal Server error'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              requestID:
+                type: string
+              code:
+                type: integer
+              error:
+                type: string
