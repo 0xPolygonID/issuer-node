@@ -23,6 +23,13 @@ type Health struct {
 	Db    bool `json:"db"`
 }
 
+// Identity defines model for Identity.
+type Identity struct {
+	Identifier *string `json:"identifier,omitempty"`
+	Immutable  *bool   `json:"immutable,omitempty"`
+	Relay      *string `json:"relay,omitempty"`
+}
+
 // Pong defines model for Pong.
 type Pong struct {
 	Response *string `json:"response,omitempty"`
@@ -45,6 +52,9 @@ type N500 = GenericErrorMessage
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Return a new Indentity
+	// (POST /identity)
+	CreateIdentity(ctx echo.Context) error
 	// Play Ping Pong
 	// (GET /ping)
 	Ping(ctx echo.Context) error
@@ -59,6 +69,15 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// CreateIdentity converts echo context to params.
+func (w *ServerInterfaceWrapper) CreateIdentity(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.CreateIdentity(ctx)
+	return err
 }
 
 // Ping converts echo context to params.
@@ -116,6 +135,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.POST(baseURL+"/identity", wrapper.CreateIdentity)
 	router.GET(baseURL+"/ping", wrapper.Ping)
 	router.GET(baseURL+"/random", wrapper.Random)
 	router.GET(baseURL+"/status", wrapper.Health)
@@ -131,6 +151,22 @@ type N402JSONResponse GenericErrorMessage
 type N407JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
+
+type CreateIdentityRequestObject struct {
+}
+
+type CreateIdentityResponseObject interface {
+	VisitCreateIdentityResponse(w http.ResponseWriter) error
+}
+
+type CreateIdentity201JSONResponse Identity
+
+func (response CreateIdentity201JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
 
 type PingRequestObject struct {
 }
@@ -236,6 +272,9 @@ func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// Return a new Indentity
+	// (POST /identity)
+	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
 	// Play Ping Pong
 	// (GET /ping)
 	Ping(ctx context.Context, request PingRequestObject) (PingResponseObject, error)
@@ -258,6 +297,29 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// CreateIdentity operation middleware
+func (sh *strictHandler) CreateIdentity(ctx echo.Context) error {
+	var request CreateIdentityRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateIdentity(ctx.Request().Context(), request.(CreateIdentityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateIdentity")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(CreateIdentityResponseObject); ok {
+		return validResponse.VisitCreateIdentityResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
 }
 
 // Ping operation middleware

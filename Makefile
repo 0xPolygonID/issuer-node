@@ -36,7 +36,7 @@ api: $(BIN)/oapi-codegen
 
 .PHONY: up
 up:
-	$(DOCKER_COMPOSE_CMD) up -d redis postgres
+	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
 
 .PHONY: down
 down:

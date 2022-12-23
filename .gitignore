@@ -6,6 +6,7 @@ bin/
 *.dll
 *.so
 *.dylib
+infrastructure/local/.vault
 
 # Test binary, built with `go test -c`
 *.test

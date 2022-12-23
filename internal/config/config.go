@@ -14,10 +14,17 @@ import (
 type Configuration struct {
 	ServerPort int
 	Database   Database `mapstructure:"Database"`
+	KeyStore   KeyStore `mapstructure:"KeyStore"`
 }
 
 type Database struct {
 	Url string
+}
+
+type KeyStore struct {
+	Address              string
+	Token                string
+	PluginIden3MountPath string
 }
 
 func Load(path string) (*Configuration, error) {

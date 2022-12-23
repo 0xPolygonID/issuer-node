@@ -64,3 +64,15 @@ func RegisterStatic(e *echo.Echo) {
 		return ctx.HTMLBlob(http.StatusOK, f)
 	})
 }
+
+func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error) {
+	identity, err := s.indentityService.Create(ctx, "http://localhost:3001")
+	if err != nil {
+		return nil, err
+	}
+	return CreateIdentity201JSONResponse{
+		Identifier: &identity.Identifier,
+		Immutable:  &identity.Immutable,
+		Relay:      &identity.Relay,
+	}, nil
+}

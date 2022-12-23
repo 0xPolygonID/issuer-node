@@ -64,6 +64,21 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /identity:
+    post:
+      summary: Return a new Indentity
+      operationId: CreateIdentity
+      description: This endpoint returns a new Identity
+      tags:
+        - Identity
+      responses:
+        '201':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Identity'
+
 components:
   schemas:
     Pong:
@@ -89,6 +104,18 @@ components:
         message:
           type: string
           example: 'Something happen'
+    Identity:
+      type: object
+      properties:
+        identifier:
+          type: string
+          exaample: 1234567890
+        relay:
+          type: string
+          exaample: 1234567890
+        immutable:
+          type: boolean
+          exaample: true
   responses:
     '400':
       description: 'Bad Request'

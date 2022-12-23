@@ -2,3 +2,8 @@ ServerPort = "3001"
 
 [Database]
     Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
+
+[KeyStore]
+    Address="http://localhost:8200"
+    Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
+    PluginIden3MountPath="iden3"
