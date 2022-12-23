@@ -14,20 +14,20 @@ const (
 	LevelWarn  = int(slog.LevelWarn)  //  warning level
 	LevelErr   = int(slog.LevelError) //  error level
 
-	JSONOutput = 1 // Log output will be json format
-	TextOutput = 2 //  log output will be text format
+	OutputJSON = 1 // Log output will be json format
+	OutputText = 2 //  log output will be text format
 )
 
 // NewContext returns a context with an injected logger.
-func NewContext(ctx context.Context, level, format int, source bool, w io.Writer) context.Context {
+func NewContext(ctx context.Context, level, format int, w io.Writer) context.Context {
 	l := slog.LevelVar{}
 	l.Set(slog.Level(level))
 
 	opts := slog.HandlerOptions{
-		AddSource: source,
+		AddSource: false,
 		Level:     &l,
 	}
-	if format == JSONOutput {
+	if format == OutputJSON {
 		return slog.NewContext(ctx, slog.New(opts.NewJSONHandler(w)))
 	}
 	return slog.NewContext(ctx, slog.New(opts.NewTextHandler(w)))

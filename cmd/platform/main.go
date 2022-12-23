@@ -27,8 +27,7 @@ func main() {
 		return
 	}
 	// Context with log
-	// TODO: Load log params from config
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
+	ctx := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
 
 	repo := repositories.NewIdentity(db.NewSqlx(cfg.Database.URL))
 	service := services.NewIdentity(repo)
