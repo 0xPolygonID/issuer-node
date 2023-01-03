@@ -7,6 +7,7 @@ bin/
 *.so
 *.dylib
 infrastructure/local/.vault
+.fleet
 
 # Test binary, built with `go test -c`
 *.test
@@ -16,3 +17,5 @@ infrastructure/local/.vault
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+.DS_STORE

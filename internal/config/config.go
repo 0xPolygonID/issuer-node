@@ -27,7 +27,8 @@ type KeyStore struct {
 	PluginIden3MountPath string
 }
 
-func Load(path string) (*Configuration, error) {
+// Load -
+func Load(fileName string) (*Configuration, error) {
 	getFlags()
 	bindEnv()
 	pathFlag := viper.GetString("config")
@@ -42,9 +43,13 @@ func Load(path string) (*Configuration, error) {
 		viper.SetConfigType(ext)
 	} else {
 		// Read default config file.
-		viper.AddConfigPath(path)
-		viper.SetConfigName("config")
+		viper.AddConfigPath(getWorkingDirectory())
 		viper.SetConfigType("toml")
+		if fileName == "" {
+			viper.SetConfigName("config")
+		} else {
+			viper.SetConfigName(fileName)
+		}
 	}
 
 	config := new(Configuration)
@@ -75,4 +80,10 @@ func bindEnv() {
 	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
 	_ = viper.BindEnv("Database.Url", "SH_ID_PLATFORM_DATABASE_URL")
 	viper.AutomaticEnv()
+}
+
+func getWorkingDirectory() string {
+	dir, _ := os.Getwd()
+	path := strings.Split(dir, "sh-id-platform")
+	return path[0] + "sh-id-platform/"
 }

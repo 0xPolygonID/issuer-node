@@ -44,5 +44,8 @@ func (isr *identityState) Save(ctx context.Context, conn db.Querier, state domai
 		state.PreviousState,
 		state.Status,
 	)
-	return fmt.Errorf("failed insert new state record: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed insert new state record: %w", err)
+	}
+	return nil
 }
