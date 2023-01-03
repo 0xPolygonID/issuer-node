@@ -53,13 +53,13 @@ func (imts *IdentityMerkleTrees) AddEntry(ctx context.Context, entry *merkletree
 
 	index, value, err := entry.HiHv()
 	if err != nil {
-		fmt.Printf("cannot get Index and Value from entry: %v", marshalEntry())
+		fmt.Println(fmt.Sprintf("cannot get Index and Value from entry: %v", marshalEntry()))
 		return fmt.Errorf("cannot get Index and Value from entry: %w", err)
 	}
 
 	err = imts.Trees[MerkleTreeTypeClaims].Add(ctx, index.BigInt(), value.BigInt())
 	if err != nil {
-		fmt.Printf("cannot add entry to claims merkle tree: %v", marshalEntry())
+		fmt.Println(fmt.Printf("cannot add entry to claims merkle tree: %v", marshalEntry()))
 		return fmt.Errorf("cannot add entry to claims merkle tree: %w", err)
 	}
 	return nil

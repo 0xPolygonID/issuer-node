@@ -1,20 +1,21 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
-
+	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
@@ -22,28 +23,31 @@ import (
 func main() {
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Fatal(err)
+		log.Error(context.Background(), "cannot load config", err)
 	}
 
-	storage, err := db.NewStorage(cfg.Database.Url)
+	// Context with log
+	ctx := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
+
+	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(context.Background(), "cannot connect to database", err)
 	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Fatal("cannot init vault client: ", err)
+		log.Error(context.Background(), "cannot init vault client: ", err)
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Errorf("cannot create BabyJubJub key provider: %+v", err)
+		log.Error(ctx, "cannot create BabyJubJub key provider: %+v", err)
 	}
 
 	keyStore := kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Errorf("cannot register BabyJubJub key provider: %+v", err)
+		log.Error(ctx, "cannot register BabyJubJub key provider: %+v", err)
 	}
 
 	identityRepo := repositories.NewIdentity(storage.Pgx)
@@ -54,9 +58,9 @@ func main() {
 
 	service := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 
-	mux := echo.New()
+	mux := chi.NewRouter()
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, service), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
-	api.RegisterHandlers(mux, api.NewStrictHandler(api.NewServer(service), nil))
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
@@ -66,11 +70,18 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
+		log.Info(ctx, fmt.Sprintf("server started on port:%d", cfg.ServerPort))
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatalf("Error starting http server: %w", err)
+			log.Error(ctx, "Starting http server", err)
 		}
 	}()
 
 	<-quit
-	log.Info("Shutting down")
+	log.Info(ctx, "Shutting down")
+}
+
+func middlewares(ctx context.Context) []api.StrictMiddlewareFunc {
+	return []api.StrictMiddlewareFunc{
+		api.LogMiddleware(ctx),
+	}
 }

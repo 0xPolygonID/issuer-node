@@ -7,9 +7,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgtype"
-
 	core "github.com/iden3/go-iden3-core"
+	"github.com/jackc/pgtype"
 )
 
 // CoreClaim is an alias for the core.Claim struct

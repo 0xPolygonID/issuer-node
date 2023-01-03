@@ -9,6 +9,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
+// IndentityRepository is the interface implemented by the identity service
 type IndentityRepository interface {
 	Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error
 	GetByID(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.Identity, error)

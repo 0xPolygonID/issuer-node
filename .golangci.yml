@@ -17,23 +17,53 @@ linters:
     - govet
     - staticcheck
 
+
 linters-settings:
   depguard:
     list-type: blacklist
     include-go-root: false
     packages:
       - github.com/gofrs/uuid -> this should be changed by pkg from google
+  errcheck:
+    exclude-functions:
+      - db.Close()
+
   forbidigo:
     forbid:
       - 'spew\.Dump'
-      - 'errors\.Cause'
-      - 'errors\.WithMessage'
-      - 'errors\.WithMessagef'
-      - 'errors\.Wrap'
-      - 'errors\.Wrapf'
+#      - '^fmt\.Print.*$'
+  gci:
+    custom-order: true
+    skip-generated: true
+    sections:
+      - standard
+      - default
+      - prefix(github.com/polygonid/sh-id-platform)
+      - blank
+      - dot
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
   gofumpt:
     lang-version: "1.18"
   gocognit:
     min-complexity: 38
   gocyclo:
     min-complexity: 31
+  revive:
+    enable-all-rules: false
+    rules:
+      - name: argument-limit
+        severity: warning
+        disabled: false
+        arguments: [ 6 ]
+      - name: exported
+        severity: warning
+        disabled: false
+
+
+issues:
+  exclude-use-default: false

@@ -5,11 +5,13 @@ go 1.19
 require (
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/ethereum/go-ethereum v1.10.26
+	github.com/go-chi/chi/v5 v5.0.7
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/vault/api v1.8.2
 	github.com/iden3/go-iden3-core v0.1.1-0.20221219095955-92aedd7d12fa
 	github.com/iden3/go-iden3-crypto v0.0.13
+	github.com/iden3/go-merkletree-sql v1.0.2
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-schema-processor v0.2.1-0.20221202150832-91826307609c
@@ -17,7 +19,6 @@ require (
 	github.com/jackc/pgtype v1.12.0
 	github.com/jackc/pgx/v4 v4.17.0
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/labstack/echo/v4 v4.9.1
 	github.com/labstack/gommon v0.4.0
 	github.com/lib/pq v1.10.6
 	github.com/mr-tron/base58 v1.2.0
@@ -26,6 +27,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
+	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15
 )
 
 require (
@@ -69,7 +71,6 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/getkin/kin-openapi v0.107.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.7 // indirect
 	github.com/go-critic/go-critic v0.6.5 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/swag v0.21.1 // indirect
@@ -138,6 +139,7 @@ require (
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.6 // indirect
 	github.com/kyoh86/exportloopref v0.1.8 // indirect
+	github.com/labstack/echo/v4 v4.9.1 // indirect
 	github.com/ldez/gomoddirectives v0.2.3 // indirect
 	github.com/ldez/tagliatelle v0.3.1 // indirect
 	github.com/leonklingele/grouper v1.1.0 // indirect
@@ -224,7 +226,6 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
