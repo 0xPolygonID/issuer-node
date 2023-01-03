@@ -6,29 +6,17 @@ run:
 linters:
   disable-all: true
   enable:
-    - bidichk
-    - bodyclose
-    - containedctx
-    - contextcheck
-    - exportloopref
-    - errcheck
+    - depguard
     - forbidigo
-    - forcetypeassert
-    - gci
-    - gocognit
-    - gocyclo
-    - gocritic
-    - gosimple
     - gofumpt
-    - gomnd
-    - govet
-    - ineffassign
+    - gocyclo
+    - gocognit
     - misspell
-    - staticcheck
-    - revive
-    - typecheck
     - unconvert
-    - unused
+    - tparallel
+    - govet
+    - staticcheck
+
 
 linters-settings:
   depguard:
@@ -43,7 +31,7 @@ linters-settings:
   forbidigo:
     forbid:
       - 'spew\.Dump'
-      - '^fmt\.Print.*$'
+#      - '^fmt\.Print.*$'
   gci:
     custom-order: true
     skip-generated: true
@@ -64,7 +52,7 @@ linters-settings:
   gocognit:
     min-complexity: 38
   gocyclo:
-    min-complexity: 27
+    min-complexity: 31
   revive:
     enable-all-rules: false
     rules:

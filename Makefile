@@ -36,7 +36,7 @@ api: $(BIN)/oapi-codegen
 
 .PHONY: up
 up:
-	$(DOCKER_COMPOSE_CMD) up -d redis postgres
+	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
 
 .PHONY: down
 down:
@@ -62,5 +62,3 @@ db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and 
 .PHONY: lint
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
-
-.PHONY: lint

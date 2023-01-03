@@ -35,24 +35,10 @@ type CreateClaimResponse struct {
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
-	Identifier *string `json:"identifier,omitempty"`
-	Immutable  bool    `json:"immutable"`
-	Relay      string  `json:"relay"`
-	State      *struct {
-		BlockNumber        *int      `json:"blockNumber,omitempty"`
-		BlockTimestamp     *int      `json:"blockTimestamp,omitempty"`
-		ClaimsTreeRoot     *string   `json:"claimsTreeRoot,omitempty"`
-		CreatedAt          time.Time `json:"createdAt"`
-		Identifier         string    `json:"-"`
-		ModifiedAt         time.Time `json:"modifiedAt"`
-		PreviousState      *string   `json:"previousState,omitempty"`
-		RevocationTreeRoot *string   `json:"revocationTreeRoot,omitempty"`
-		RootOfRoots        *string   `json:"rootOfRoots,omitempty"`
-		State              *string   `json:"state,omitempty"`
-		StateID            int64     `json:"-"`
-		Status             string    `json:"status"`
-		TxID               *string   `json:"txID,omitempty"`
-	} `json:"state,omitempty"`
+	Identifier *string        `json:"identifier,omitempty"`
+	Immutable  bool           `json:"immutable"`
+	Relay      string         `json:"relay"`
+	State      *IdentityState `json:"state,omitempty"`
 }
 
 // GenericErrorMessage defines model for GenericErrorMessage.
@@ -64,6 +50,23 @@ type GenericErrorMessage struct {
 type Health struct {
 	Cache bool `json:"cache"`
 	Db    bool `json:"db"`
+}
+
+// IdentityState defines model for IdentityState.
+type IdentityState struct {
+	BlockNumber        *int      `json:"blockNumber,omitempty"`
+	BlockTimestamp     *int      `json:"blockTimestamp,omitempty"`
+	ClaimsTreeRoot     *string   `json:"claimsTreeRoot,omitempty"`
+	CreatedAt          time.Time `json:"createdAt"`
+	Identifier         string    `json:"-"`
+	ModifiedAt         time.Time `json:"modifiedAt"`
+	PreviousState      *string   `json:"previousState,omitempty"`
+	RevocationTreeRoot *string   `json:"revocationTreeRoot,omitempty"`
+	RootOfRoots        *string   `json:"rootOfRoots,omitempty"`
+	State              *string   `json:"state,omitempty"`
+	StateID            int64     `json:"-"`
+	Status             string    `json:"status"`
+	TxID               *string   `json:"txID,omitempty"`
 }
 
 // Pong defines model for Pong.

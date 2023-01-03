@@ -213,45 +213,48 @@ components:
         immutable:
           type: boolean
         state:
-          type: object
-          required:
-            - stateID
-            - identifier
-            - status
-            - modifiedAt
-            - createdAt
-          properties:
-            stateID:
-              type: integer
-              format: int64
-              x-go-json-ignore: true
-            identifier:
-              type: string
-              x-go-json-ignore: true
-            state:
-              type: string
-            rootOfRoots:
-              type: string
-            claimsTreeRoot:
-              type: string
-            revocationTreeRoot:
-              type: string
-            blockTimestamp:
-              type: integer
-            blockNumber:
-              type: integer
-            txID:
-              type: string
-            previousState:
-              type: string
-            status:
-              type: string
-            modifiedAt:
-              type: string
-              format: date-time
-            createdAt:
-              type: string
-              format: date-time
+          $ref: '#/components/schemas/IdentityState'
+
+    IdentityState:
+      type: object
+      required:
+        - stateID
+        - identifier
+        - status
+        - modifiedAt
+        - createdAt
+      properties:
+        stateID:
+          type: integer
+          format: int64
+          x-go-json-ignore: true
+        identifier:
+          type: string
+          x-go-json-ignore: true
+        state:
+          type: string
+        rootOfRoots:
+          type: string
+        claimsTreeRoot:
+          type: string
+        revocationTreeRoot:
+          type: string
+        blockTimestamp:
+          type: integer
+        blockNumber:
+          type: integer
+        txID:
+          type: string
+        previousState:
+          type: string
+        status:
+          type: string
+        modifiedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
 
     PublishStateResponse:
       type: object
