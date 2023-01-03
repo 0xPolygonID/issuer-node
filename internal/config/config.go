@@ -13,6 +13,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
+const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
+
 // Configuration holds the project configuration
 type Configuration struct {
 	ServerUrl  string
@@ -70,6 +72,7 @@ func Load(fileName string) (*Configuration, error) {
 	} else {
 		// Read default config file.
 		viper.AddConfigPath(getWorkingDirectory())
+		viper.AddConfigPath(CIConfigPath)
 		viper.SetConfigType("toml")
 		if fileName == "" {
 			viper.SetConfigName("config")
