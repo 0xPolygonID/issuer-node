@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
-
 	"github.com/go-chi/chi/v5"
 
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
