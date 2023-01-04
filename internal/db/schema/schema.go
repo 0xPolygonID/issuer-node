@@ -8,6 +8,7 @@ import (
 
 	"github.com/pressly/goose/v3"
 
+	_ "github.com/lib/pq"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
