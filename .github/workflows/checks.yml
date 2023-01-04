@@ -21,12 +21,12 @@ jobs:
     container:
       image: vault:latest
       volumes:
-        - ./.vault/config:/vault/config
-        - ./.vault/policies:/vault/policies
-        - ./.vault/data:/vault/data
-        - ./.vault/file:/vault/file:rw
-        - ./.vault/scripts:/vault/scripts
-        - ./.vault/plugins:/vault/plugins
+        - ./infrastructure/local/.vault/config:/vault/config
+        - ./infrastructure/local/.vault/policies:/vault/policies
+        - ./infrastructure/local/.vault/data:/vault/data
+        - ./infrastructure/local/.vault/file:/vault/file:rw
+        - ./infrastructure/local/.vault/scripts:/vault/scripts
+        - ./infrastructure/local/.vault/plugins:/vault/plugins
       ports:
         - 8200:8200
       env:
