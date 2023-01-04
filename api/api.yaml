@@ -20,22 +20,6 @@ tags:
     description: Collection of endpoints related to Claims
 
 paths:
-  /ping:
-    get:
-      summary: Play Ping Pong
-      operationId: Ping
-      description: Thanks to this endpoint you can play ping pong
-      tags:
-        - Section 1
-      responses:
-        '201':
-          description: Updated.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pong'
-        '500':
-          $ref: '#/components/responses/500'
   /status:
     get:
       summary: Healthcheck
@@ -47,24 +31,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
-        '500':
-          $ref: '#/components/responses/500'
-  /random:
-    get:
-      summary: Return random responses and status codes
-      operationId: Random
-      description: This endpoint returns random responses with no sense
-      tags:
-        - Section 1
-      responses:
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '402':
-          $ref: '#/components/responses/402'
-        '407':
-          $ref: '#/components/responses/407'
         '500':
           $ref: '#/components/responses/500'
 #identity:

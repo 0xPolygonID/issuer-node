@@ -69,11 +69,6 @@ type IdentityState struct {
 	TxID               *string   `json:"txID,omitempty"`
 }
 
-// Pong defines model for Pong.
-type Pong struct {
-	Response *string `json:"response,omitempty"`
-}
-
 // PublishStateResponse defines model for PublishStateResponse.
 type PublishStateResponse struct {
 	Hex *string `json:"hex,omitempty"`
@@ -110,15 +105,6 @@ type PathNonce = int64
 // N400 defines model for 400.
 type N400 = GenericErrorMessage
 
-// N401 defines model for 401.
-type N401 = GenericErrorMessage
-
-// N402 defines model for 402.
-type N402 = GenericErrorMessage
-
-// N407 defines model for 407.
-type N407 = GenericErrorMessage
-
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
 
@@ -134,12 +120,6 @@ type CreateClaimJSONRequestBody = CreateClaimRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Play Ping Pong
-	// (GET /ping)
-	Ping(w http.ResponseWriter, r *http.Request)
-	// Return random responses and status codes
-	// (GET /random)
-	Random(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
@@ -168,36 +148,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
-
-// Ping operation middleware
-func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.Ping(w, r)
-	})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// Random operation middleware
-func (siw *ServerInterfaceWrapper) Random(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.Random(w, r)
-	})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
 
 // Health operation middleware
 func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request) {
@@ -454,12 +404,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/ping", wrapper.Ping)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/random", wrapper.Random)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
@@ -483,95 +427,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 
 type N400JSONResponse GenericErrorMessage
 
-type N401JSONResponse GenericErrorMessage
-
-type N402JSONResponse GenericErrorMessage
-
-type N407JSONResponse GenericErrorMessage
-
 type N500JSONResponse GenericErrorMessage
 
 type N500CreateIdentityJSONResponse struct {
 	Code      *int    `json:"code,omitempty"`
 	Error     *string `json:"error,omitempty"`
 	RequestID *string `json:"requestID,omitempty"`
-}
-
-type PingRequestObject struct {
-}
-
-type PingResponseObject interface {
-	VisitPingResponse(w http.ResponseWriter) error
-}
-
-type Ping201JSONResponse Pong
-
-func (response Ping201JSONResponse) VisitPingResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Ping500JSONResponse struct{ N500JSONResponse }
-
-func (response Ping500JSONResponse) VisitPingResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type RandomRequestObject struct {
-}
-
-type RandomResponseObject interface {
-	VisitRandomResponse(w http.ResponseWriter) error
-}
-
-type Random400JSONResponse struct{ N400JSONResponse }
-
-func (response Random400JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random401JSONResponse struct{ N401JSONResponse }
-
-func (response Random401JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random402JSONResponse struct{ N402JSONResponse }
-
-func (response Random402JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(402)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random407JSONResponse struct{ N407JSONResponse }
-
-func (response Random407JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(407)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random500JSONResponse struct{ N500JSONResponse }
-
-func (response Random500JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
 }
 
 type HealthRequestObject struct {
@@ -759,12 +620,6 @@ func (response RevokeClaim500JSONResponse) VisitRevokeClaimResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Play Ping Pong
-	// (GET /ping)
-	Ping(ctx context.Context, request PingRequestObject) (PingResponseObject, error)
-	// Return random responses and status codes
-	// (GET /random)
-	Random(ctx context.Context, request RandomRequestObject) (RandomResponseObject, error)
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
@@ -813,54 +668,6 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
-}
-
-// Ping operation middleware
-func (sh *strictHandler) Ping(w http.ResponseWriter, r *http.Request) {
-	var request PingRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.Ping(ctx, request.(PingRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Ping")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(PingResponseObject); ok {
-		if err := validResponse.VisitPingResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
-	}
-}
-
-// Random operation middleware
-func (sh *strictHandler) Random(w http.ResponseWriter, r *http.Request) {
-	var request RandomRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.Random(ctx, request.(RandomRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Random")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(RandomResponseObject); ok {
-		if err := validResponse.VisitRandomResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
-	}
 }
 
 // Health operation middleware
