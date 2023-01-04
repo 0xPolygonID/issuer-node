@@ -35,6 +35,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: go test -v ./...
+      - run: make tests
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432

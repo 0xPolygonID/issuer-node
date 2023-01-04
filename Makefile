@@ -18,8 +18,8 @@ build:
 clean: ## Go clean
 	$(GO) clean ./...
 
-.PHONY: test
-test:
+.PHONY: tests
+tests:
 	$(GO) test -v ./...
 
 .PHONY: test-race
