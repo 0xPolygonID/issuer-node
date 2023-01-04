@@ -29,7 +29,7 @@ jobs:
           - ./.vault/plugins:/vault/plugins
         ports:
           - 8200:8200
-        environment:
+        env:
           - VAULT_ADDR=http://0.0.0.0:8200
           - VAULT_API_ADDR=http://0.0.0.0:8200
           - VAULT_ADDRESS=http://0.0.0.0:8200
