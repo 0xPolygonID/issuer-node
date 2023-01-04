@@ -4,6 +4,8 @@ import (
 	"context"
 	"os"
 
+	_ "github.com/lib/pq"
+
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db/schema"
 	"github.com/polygonid/sh-id-platform/internal/log"

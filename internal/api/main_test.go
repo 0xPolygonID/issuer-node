@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	core "github.com/iden3/go-iden3-core"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
 
@@ -105,4 +107,35 @@ func lookupVaultURL() string {
 		return ""
 	}
 	return con
+}
+
+type KMSMock struct{}
+
+func (kpm *KMSMock) RegisterKeyProvider(kt kms.KeyType, kp kms.KeyProvider) error {
+	return nil
+}
+
+func (kpm *KMSMock) CreateKey(kt kms.KeyType, identity *core.DID) (kms.KeyID, error) {
+	var key kms.KeyID
+	return key, nil
+}
+
+func (kpm *KMSMock) PublicKey(keyID kms.KeyID) ([]byte, error) {
+	var pubKey []byte
+	return pubKey, nil
+}
+
+func (kpm *KMSMock) Sign(ctx context.Context, keyID kms.KeyID, data []byte) ([]byte, error) {
+	var signed []byte
+	return signed, nil
+}
+
+func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity core.DID) ([]kms.KeyID, error) {
+	var keys []kms.KeyID
+	return keys, nil
+}
+
+func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity core.DID) (kms.KeyID, error) {
+	var key kms.KeyID
+	return key, nil
 }

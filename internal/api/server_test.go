@@ -19,7 +19,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState(storage.Pgx)
 	mtRepo := repositories.NewIdentityMerkleTreeRepository(storage.Pgx)
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	server := NewServer(&cfg, identityService)
 	handler := getHandler(context.Background(), server)
 

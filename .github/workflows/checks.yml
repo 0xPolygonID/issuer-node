@@ -18,23 +18,6 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-    container:
-      image: vault:latest
-      volumes:
-        - ${{ github.workspace }}/infrastructure/local/.vault/config:/vault/config
-        - ${{ github.workspace }}/infrastructure/local/.vault/policies:/vault/policies
-        - ${{ github.workspace }}/infrastructure/local/.vault/data:/vault/data
-        - ${{ github.workspace }}/infrastructure/local/.vault/file:/vault/file:rw
-        - ${{ github.workspace }}/infrastructure/local/.vault/scripts:/vault/scripts
-        - ${{ github.workspace }}/infrastructure/local/.vault/plugins:/vault/plugins
-      ports:
-        - 8200:8200
-      env:
-        VAULT_ADDR: http://0.0.0.0:8200
-        VAULT_API_ADDR: http://0.0.0.0:8200
-        VAULT_ADDRESS: http://0.0.0.0:8200
-#        cap_add:
-#          - IPC_LOCK
     steps:
       - uses: actions/checkout@v3
 
@@ -57,4 +40,3 @@ jobs:
       - run: go test -v ./...
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
-          VAULT_TEST_URL: http://vault:8200

@@ -29,10 +29,10 @@ type identity struct {
 	claimsRepository        ports.ClaimsRepository
 	storage                 *db.Storage
 	mtservice               ports.MtService
-	kms                     *kms.KMS
+	kms                     kms.KKMType
 }
 
-func NewIdentity(kms *kms.KMS, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, storage *db.Storage) ports.IndentityService {
+func NewIdentity(kms kms.KKMType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, storage *db.Storage) ports.IndentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -298,7 +298,7 @@ func newAuthClaim(key *babyjub.PublicKey) (*core.Claim, error) {
 		core.WithRevocationNonce(revNonce))
 }
 
-func bjjPubKey(keyMS *kms.KMS, keyID kms.KeyID) (*babyjub.PublicKey, error) {
+func bjjPubKey(keyMS kms.KKMType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	keyBytes, err := keyMS.PublicKey(keyID)
 	if err != nil {
 		return nil, fmt.Errorf("can't get bytes from public key: %w", err)
