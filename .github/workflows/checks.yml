@@ -54,7 +54,7 @@ jobs:
 
       - name: Configure vault
         run: ./infrastructure/local/.vault/scripts/init.sh
-      - run: make test
+      - run: go test -v ./...
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
           VAULT_TEST_URL: http://vault:8200
