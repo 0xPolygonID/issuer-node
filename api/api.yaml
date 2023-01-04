@@ -25,11 +25,20 @@ paths:
       summary: Get the documentation
       operationId: GetDocumentation
       x-internal: true
+      responses:
+        200:
+          description: success and returns the documentation in HTML format
+
+
   /static/docs/api/api.yaml:
     get:
       summary: Get the documentation yaml file
       operationId: GetYaml
       x-internal: true
+      responses:
+        200:
+          description: success and returns the documentation in Yaml format
+
 
   /ping:
     get:
