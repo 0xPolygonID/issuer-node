@@ -21,12 +21,12 @@ jobs:
     container:
       image: vault:latest
       volumes:
-        - ./infrastructure/local/.vault/config:/vault/config
-        - ./infrastructure/local/.vault/policies:/vault/policies
-        - ./infrastructure/local/.vault/data:/vault/data
-        - ./infrastructure/local/.vault/file:/vault/file:rw
-        - ./infrastructure/local/.vault/scripts:/vault/scripts
-        - ./infrastructure/local/.vault/plugins:/vault/plugins
+        - ${{ github.workspace }}/infrastructure/local/.vault/config:/vault/config
+        - ${{ github.workspace }}/infrastructure/local/.vault/policies:/vault/policies
+        - ${{ github.workspace }}/infrastructure/local/.vault/data:/vault/data
+        - ${{ github.workspace }}/infrastructure/local/.vault/file:/vault/file:rw
+        - ${{ github.workspace }}/infrastructure/local/.vault/scripts:/vault/scripts
+        - ${{ github.workspace }}/infrastructure/local/.vault/plugins:/vault/plugins
       ports:
         - 8200:8200
       env:
