@@ -35,7 +35,6 @@ jobs:
         VAULT_ADDRESS: http://0.0.0.0:8200
 #        cap_add:
 #          - IPC_LOCK
-      command: ./vault/scripts/init.sh
     steps:
       - uses: actions/checkout@v3
 
