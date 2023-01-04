@@ -37,16 +37,12 @@ func testMain(m *testing.M) int {
 		conn = "postgres://postgres:postgres@localhost:5435"
 	}
 
-	connVault := lookupVaultURL()
-	if connVault == "" {
-		connVault = "http://localhost:8300"
-	}
 	cfg = config.Configuration{
 		Database: config.Database{
-			URL: "postgres://postgres:postgres@localhost:5435",
+			URL: conn,
 		},
 		KeyStore: config.KeyStore{
-			Address:              connVault,
+			Address:              "http://localhost:8300",
 			Token:                "hvs.YxU2dLZljGpqLyPYu6VeYJde",
 			PluginIden3MountPath: "iden3",
 		},
@@ -95,14 +91,6 @@ func middlewares(ctx context.Context) []StrictMiddlewareFunc {
 
 func lookupPostgresURL() string {
 	con, ok := os.LookupEnv("POSTGRES_TEST_DATABASE")
-	if !ok {
-		return ""
-	}
-	return con
-}
-
-func lookupVaultURL() string {
-	con, ok := os.LookupEnv("VAULT_TEST_URL")
 	if !ok {
 		return ""
 	}
