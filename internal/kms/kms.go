@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type KKMType interface {
+type KMSType interface {
 	RegisterKeyProvider(kt KeyType, kp KeyProvider) error
 	CreateKey(kt KeyType, identity *core.DID) (KeyID, error)
 	PublicKey(keyID KeyID) ([]byte, error)
