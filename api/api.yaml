@@ -40,22 +40,6 @@ paths:
           description: success and returns the documentation in Yaml format
 
 
-  /ping:
-    get:
-      summary: Play Ping Pong
-      operationId: Ping
-      description: Thanks to this endpoint you can play ping pong
-      tags:
-        - Section 1
-      responses:
-        '201':
-          description: Updated.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pong'
-        '500':
-          $ref: '#/components/responses/500'
   /status:
     get:
       summary: Healthcheck
@@ -193,11 +177,6 @@ paths:
 
 components:
   schemas:
-    Pong:
-      type: object
-      properties:
-        response:
-          type: string
     Health:
       type: object
       required:

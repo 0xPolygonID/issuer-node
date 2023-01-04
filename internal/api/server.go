@@ -11,7 +11,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -45,12 +44,6 @@ func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestOb
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
-}
-
-// Ping is a method
-func (s *Server) Ping(ctx context.Context, _ PingRequestObject) (PingResponseObject, error) {
-	log.Info(ctx, "ping")
-	return Ping201JSONResponse{Response: ToPointer("pong")}, nil
 }
 
 // Random is a method
