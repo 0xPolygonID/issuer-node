@@ -9,6 +9,6 @@ generate:
   echo-server: false
   chi-server: true
   strict-server: true
-  embedded-spec: false
+  embedded-spec: true
 output-options:
   user-templates:

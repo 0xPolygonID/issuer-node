@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 
@@ -33,6 +34,30 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 		Cache: true,
 		Db:    false,
 	}, nil
+}
+
+// GetDocumentation this method will be overridden in the main function
+func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestObject) (GetDocumentationResponseObject, error) {
+	return nil, nil
+}
+
+// GetYaml this method will be overridden in the main function
+func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
+	return nil, nil
+}
+
+// Random is a method
+func (s *Server) Random(_ context.Context, _ RandomRequestObject) (RandomResponseObject, error) {
+	randomMessages := []string{"might", "rays", "bicycle", "use", "certainly", "chicken", "tie", "rain", "tent"}
+	i := rand.Intn(len(randomMessages))
+	randomResponses := []RandomResponseObject{
+		Random400JSONResponse{N400JSONResponse{Message: &randomMessages[i]}},
+		Random401JSONResponse{N401JSONResponse{Message: &randomMessages[i]}},
+		Random402JSONResponse{N402JSONResponse{Message: &randomMessages[i]}},
+		Random407JSONResponse{N407JSONResponse{Message: &randomMessages[i]}},
+		Random500JSONResponse{N500JSONResponse{Message: &randomMessages[i]}},
+	}
+	return randomResponses[rand.Intn(len(randomResponses))], nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

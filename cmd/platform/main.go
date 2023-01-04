@@ -8,8 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
+
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -58,7 +60,14 @@ func main() {
 
 	service := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 
+	spec, err := api.GetSwagger()
+	if err != nil {
+		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
+		os.Exit(1)
+	}
+	spec.Servers = nil
 	mux := chi.NewRouter()
+	mux.Use(middleware.OapiRequestValidator(spec))
 	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, service), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
