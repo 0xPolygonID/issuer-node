@@ -35,7 +35,6 @@ jobs:
           - VAULT_ADDRESS=http://0.0.0.0:8200
 #        cap_add:
 #          - IPC_LOCK
-        command: ./vault/scripts/init.sh
     steps:
       - uses: actions/checkout@v3
 
@@ -53,6 +52,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Configure vault
+        run: ./vault/scripts/init.sh
       - run: make test
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
