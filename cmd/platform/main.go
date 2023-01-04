@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
 
