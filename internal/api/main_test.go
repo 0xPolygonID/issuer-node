@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-
 	"github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -31,12 +30,21 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) int {
+	conn := lookupPostgresURL()
+	if conn == "" {
+		conn = "postgres://postgres:postgres@localhost:5435"
+	}
+
+	connVault := lookupVaultURL()
+	if connVault == "" {
+		connVault = "http://localhost:8300"
+	}
 	cfg = config.Configuration{
 		Database: config.Database{
 			URL: "postgres://postgres:postgres@localhost:5435",
 		},
 		KeyStore: config.KeyStore{
-			Address:              "http://localhost:8300",
+			Address:              connVault,
 			Token:                "hvs.YxU2dLZljGpqLyPYu6VeYJde",
 			PluginIden3MountPath: "iden3",
 		},
@@ -81,4 +89,20 @@ func middlewares(ctx context.Context) []StrictMiddlewareFunc {
 	return []StrictMiddlewareFunc{
 		LogMiddleware(ctx),
 	}
+}
+
+func lookupPostgresURL() string {
+	con, ok := os.LookupEnv("POSTGRES_TEST_DATABASE")
+	if !ok {
+		return ""
+	}
+	return con
+}
+
+func lookupVaultURL() string {
+	con, ok := os.LookupEnv("VAULT_TEST_URL")
+	if !ok {
+		return ""
+	}
+	return con
 }

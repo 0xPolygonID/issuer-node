@@ -6,6 +6,36 @@ jobs:
   test:
     name: Test codebase
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      vault:
+        image: vault:latest
+        volumes:
+          - ./.vault/config:/vault/config
+          - ./.vault/policies:/vault/policies
+          - ./.vault/data:/vault/data
+          - ./.vault/file:/vault/file:rw
+          - ./.vault/scripts:/vault/scripts
+          - ./.vault/plugins:/vault/plugins
+        ports:
+          - 8200:8200
+        environment:
+          - VAULT_ADDR=http://0.0.0.0:8200
+          - VAULT_API_ADDR=http://0.0.0.0:8200
+          - VAULT_ADDRESS=http://0.0.0.0:8200
+        cap_add:
+          - IPC_LOCK
+        command: ./vault/scripts/init.sh
     steps:
       - uses: actions/checkout@v3
 
@@ -23,4 +53,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: go test -v ./...
+      - run: make test
+        env:
+          POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
+          VAULT_TEST_URL: http://vault:8200
