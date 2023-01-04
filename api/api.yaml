@@ -20,6 +20,17 @@ tags:
     description: Collection of endpoints related to Claims
 
 paths:
+  /:
+    get:
+      summary: Get the documentation
+      operationId: GetDocumentation
+      x-internal: true
+  /static/docs/api/api.yaml:
+    get:
+      summary: Get the documentation yaml file
+      operationId: GetYaml
+      x-internal: true
+
   /ping:
     get:
       summary: Play Ping Pong
@@ -356,7 +367,6 @@ components:
                   x-go-type-import:
                     name: Hash
                     path: github.com/iden3/go-merkletree-sql
-
 
   parameters:
     pathIdentifier:

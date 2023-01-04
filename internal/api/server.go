@@ -7,10 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
-
 	"github.com/go-chi/chi/v5"
 
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -36,6 +35,16 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 		Cache: true,
 		Db:    false,
 	}, nil
+}
+
+// GetDocumentation this method will be overridden in the main function
+func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestObject) (GetDocumentationResponseObject, error) {
+	return nil, nil
+}
+
+// GetYaml this method will be overridden in the main function
+func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
+	return nil, nil
 }
 
 // Ping is a method
