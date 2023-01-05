@@ -9,6 +9,15 @@ import (
 	"github.com/pkg/errors"
 )
 
+type KMSType interface {
+	RegisterKeyProvider(kt KeyType, kp KeyProvider) error
+	CreateKey(kt KeyType, identity *core.DID) (KeyID, error)
+	PublicKey(keyID KeyID) ([]byte, error)
+	Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error)
+	KeysByIdentity(ctx context.Context, identity core.DID) ([]KeyID, error)
+	LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID) (KeyID, error)
+}
+
 // KeyProvider describes the interface that key providers should match.
 type KeyProvider interface {
 	// New generates random key.
@@ -23,8 +32,7 @@ type KeyProvider interface {
 	// LinkToIdentity links unbound key to identity.
 	// KeyID can be changed after linking.
 	// Returning new KeyID.
-	LinkToIdentity(ctx context.Context, keyID KeyID,
-		identity core.DID) (KeyID, error)
+	LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID) (KeyID, error)
 }
 
 // KMS stores keys and secrets

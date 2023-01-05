@@ -18,8 +18,8 @@ build:
 clean: ## Go clean
 	$(GO) clean ./...
 
-.PHONY: test
-test:
+.PHONY: tests
+tests:
 	$(GO) test -v ./...
 
 .PHONY: test-race
@@ -44,7 +44,9 @@ down:
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_CMD) up -d test_postgres
+	$(DOCKER_COMPOSE_CMD) up -d test_postgres test_vault
+
+
 
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate

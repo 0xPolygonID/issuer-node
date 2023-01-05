@@ -7,23 +7,23 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-type Storages struct {
+type Storage struct {
 	Pgx *pgxpool.Pool
 }
 
-func NewStorage(connectionString string) (*Storages, error) {
+func NewStorage(connectionString string) (*Storage, error) {
 	pgxConn, err := pgxpool.Connect(context.Background(), connectionString)
 	if err != nil {
 		return nil, err
 	}
-	return &Storages{
+	return &Storage{
 		Pgx: pgxConn,
 	}, nil
 }
 
 // Close all connections to database
-func (s *Storages) Close() error {
-	log.Info("pgx are closing connection")
+func (s *Storage) Close() error {
+	log.Info("pgx is closing connection")
 	s.Pgx.Close()
 	return nil
 }
