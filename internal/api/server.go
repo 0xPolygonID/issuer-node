@@ -11,6 +11,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -47,7 +48,7 @@ func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResp
 }
 
 // Random is a method
-func (s *Server) Random(_ context.Context, _ RandomRequestObject) (RandomResponseObject, error) {
+func (s *Server) Random(ctx context.Context, _ RandomRequestObject) (RandomResponseObject, error) {
 	randomMessages := []string{"might", "rays", "bicycle", "use", "certainly", "chicken", "tie", "rain", "tent"}
 	i := rand.Intn(len(randomMessages))
 	randomResponses := []RandomResponseObject{
@@ -57,6 +58,7 @@ func (s *Server) Random(_ context.Context, _ RandomRequestObject) (RandomRespons
 		Random407JSONResponse{N407JSONResponse{Message: &randomMessages[i]}},
 		Random500JSONResponse{N500JSONResponse{Message: &randomMessages[i]}},
 	}
+	log.Info(ctx, "A random response")
 	return randomResponses[rand.Intn(len(randomResponses))], nil
 }
 
