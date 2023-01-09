@@ -6,6 +6,18 @@ jobs:
   test:
     name: Test codebase
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v3
 
@@ -23,4 +35,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: go test -v ./...
+      - run: make tests-ga
+        env:
+          POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432

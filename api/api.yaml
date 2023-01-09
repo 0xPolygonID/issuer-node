@@ -20,22 +20,26 @@ tags:
     description: Collection of endpoints related to Claims
 
 paths:
-  /ping:
+  /:
     get:
-      summary: Play Ping Pong
-      operationId: Ping
-      description: Thanks to this endpoint you can play ping pong
-      tags:
-        - Section 1
+      summary: Get the documentation
+      operationId: GetDocumentation
+      x-internal: true
       responses:
-        '201':
-          description: Updated.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pong'
-        '500':
-          $ref: '#/components/responses/500'
+        200:
+          description: success and returns the documentation in HTML format
+
+
+  /static/docs/api/api.yaml:
+    get:
+      summary: Get the documentation yaml file
+      operationId: GetYaml
+      x-internal: true
+      responses:
+        200:
+          description: success and returns the documentation in Yaml format
+
+
   /status:
     get:
       summary: Healthcheck
@@ -173,11 +177,6 @@ paths:
 
 components:
   schemas:
-    Pong:
-      type: object
-      properties:
-        response:
-          type: string
     Health:
       type: object
       required:
@@ -213,45 +212,48 @@ components:
         immutable:
           type: boolean
         state:
-          type: object
-          required:
-            - stateID
-            - identifier
-            - status
-            - modifiedAt
-            - createdAt
-          properties:
-            stateID:
-              type: integer
-              format: int64
-              x-go-json-ignore: true
-            identifier:
-              type: string
-              x-go-json-ignore: true
-            state:
-              type: string
-            rootOfRoots:
-              type: string
-            claimsTreeRoot:
-              type: string
-            revocationTreeRoot:
-              type: string
-            blockTimestamp:
-              type: integer
-            blockNumber:
-              type: integer
-            txID:
-              type: string
-            previousState:
-              type: string
-            status:
-              type: string
-            modifiedAt:
-              type: string
-              format: date-time
-            createdAt:
-              type: string
-              format: date-time
+          $ref: '#/components/schemas/IdentityState'
+
+    IdentityState:
+      type: object
+      required:
+        - stateID
+        - identifier
+        - status
+        - modifiedAt
+        - createdAt
+      properties:
+        stateID:
+          type: integer
+          format: int64
+          x-go-json-ignore: true
+        identifier:
+          type: string
+          x-go-json-ignore: true
+        state:
+          type: string
+        rootOfRoots:
+          type: string
+        claimsTreeRoot:
+          type: string
+        revocationTreeRoot:
+          type: string
+        blockTimestamp:
+          type: integer
+        blockNumber:
+          type: integer
+        txID:
+          type: string
+        previousState:
+          type: string
+        status:
+          type: string
+        modifiedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
 
     PublishStateResponse:
       type: object
@@ -353,7 +355,6 @@ components:
                   x-go-type-import:
                     name: Hash
                     path: github.com/iden3/go-merkletree-sql
-
 
   parameters:
     pathIdentifier:

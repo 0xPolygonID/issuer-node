@@ -4,13 +4,20 @@
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
@@ -35,24 +42,10 @@ type CreateClaimResponse struct {
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
-	Identifier *string `json:"identifier,omitempty"`
-	Immutable  bool    `json:"immutable"`
-	Relay      string  `json:"relay"`
-	State      *struct {
-		BlockNumber        *int      `json:"blockNumber,omitempty"`
-		BlockTimestamp     *int      `json:"blockTimestamp,omitempty"`
-		ClaimsTreeRoot     *string   `json:"claimsTreeRoot,omitempty"`
-		CreatedAt          time.Time `json:"createdAt"`
-		Identifier         string    `json:"-"`
-		ModifiedAt         time.Time `json:"modifiedAt"`
-		PreviousState      *string   `json:"previousState,omitempty"`
-		RevocationTreeRoot *string   `json:"revocationTreeRoot,omitempty"`
-		RootOfRoots        *string   `json:"rootOfRoots,omitempty"`
-		State              *string   `json:"state,omitempty"`
-		StateID            int64     `json:"-"`
-		Status             string    `json:"status"`
-		TxID               *string   `json:"txID,omitempty"`
-	} `json:"state,omitempty"`
+	Identifier *string        `json:"identifier,omitempty"`
+	Immutable  bool           `json:"immutable"`
+	Relay      string         `json:"relay"`
+	State      *IdentityState `json:"state,omitempty"`
 }
 
 // GenericErrorMessage defines model for GenericErrorMessage.
@@ -66,9 +59,21 @@ type Health struct {
 	Db    bool `json:"db"`
 }
 
-// Pong defines model for Pong.
-type Pong struct {
-	Response *string `json:"response,omitempty"`
+// IdentityState defines model for IdentityState.
+type IdentityState struct {
+	BlockNumber        *int      `json:"blockNumber,omitempty"`
+	BlockTimestamp     *int      `json:"blockTimestamp,omitempty"`
+	ClaimsTreeRoot     *string   `json:"claimsTreeRoot,omitempty"`
+	CreatedAt          time.Time `json:"createdAt"`
+	Identifier         string    `json:"-"`
+	ModifiedAt         time.Time `json:"modifiedAt"`
+	PreviousState      *string   `json:"previousState,omitempty"`
+	RevocationTreeRoot *string   `json:"revocationTreeRoot,omitempty"`
+	RootOfRoots        *string   `json:"rootOfRoots,omitempty"`
+	State              *string   `json:"state,omitempty"`
+	StateID            int64     `json:"-"`
+	Status             string    `json:"status"`
+	TxID               *string   `json:"txID,omitempty"`
 }
 
 // PublishStateResponse defines model for PublishStateResponse.
@@ -131,12 +136,15 @@ type CreateClaimJSONRequestBody = CreateClaimRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Play Ping Pong
-	// (GET /ping)
-	Ping(w http.ResponseWriter, r *http.Request)
+	// Get the documentation
+	// (GET /)
+	GetDocumentation(w http.ResponseWriter, r *http.Request)
 	// Return random responses and status codes
 	// (GET /random)
 	Random(w http.ResponseWriter, r *http.Request)
+	// Get the documentation yaml file
+	// (GET /static/docs/api/api.yaml)
+	GetYaml(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
@@ -166,12 +174,12 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// Ping operation middleware
-func (siw *ServerInterfaceWrapper) Ping(w http.ResponseWriter, r *http.Request) {
+// GetDocumentation operation middleware
+func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.Ping(w, r)
+		siw.Handler.GetDocumentation(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -187,6 +195,21 @@ func (siw *ServerInterfaceWrapper) Random(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Random(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetYaml operation middleware
+func (siw *ServerInterfaceWrapper) GetYaml(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetYaml(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -451,10 +474,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/ping", wrapper.Ping)
+		r.Get(options.BaseURL+"/", wrapper.GetDocumentation)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/random", wrapper.Random)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/static/docs/api/api.yaml", wrapper.GetYaml)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
@@ -494,29 +520,19 @@ type N500CreateIdentityJSONResponse struct {
 	RequestID *string `json:"requestID,omitempty"`
 }
 
-type PingRequestObject struct {
+type GetDocumentationRequestObject struct {
 }
 
-type PingResponseObject interface {
-	VisitPingResponse(w http.ResponseWriter) error
+type GetDocumentationResponseObject interface {
+	VisitGetDocumentationResponse(w http.ResponseWriter) error
 }
 
-type Ping201JSONResponse Pong
-
-func (response Ping201JSONResponse) VisitPingResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
+type GetDocumentation200Response struct {
 }
 
-type Ping500JSONResponse struct{ N500JSONResponse }
-
-func (response Ping500JSONResponse) VisitPingResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
+func (response GetDocumentation200Response) VisitGetDocumentationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
 }
 
 type RandomRequestObject struct {
@@ -569,6 +585,21 @@ func (response Random500JSONResponse) VisitRandomResponse(w http.ResponseWriter)
 	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
+}
+
+type GetYamlRequestObject struct {
+}
+
+type GetYamlResponseObject interface {
+	VisitGetYamlResponse(w http.ResponseWriter) error
+}
+
+type GetYaml200Response struct {
+}
+
+func (response GetYaml200Response) VisitGetYamlResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
 }
 
 type HealthRequestObject struct {
@@ -756,12 +787,15 @@ func (response RevokeClaim500JSONResponse) VisitRevokeClaimResponse(w http.Respo
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Play Ping Pong
-	// (GET /ping)
-	Ping(ctx context.Context, request PingRequestObject) (PingResponseObject, error)
+	// Get the documentation
+	// (GET /)
+	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
 	// Return random responses and status codes
 	// (GET /random)
 	Random(ctx context.Context, request RandomRequestObject) (RandomResponseObject, error)
+	// Get the documentation yaml file
+	// (GET /static/docs/api/api.yaml)
+	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
@@ -812,23 +846,23 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// Ping operation middleware
-func (sh *strictHandler) Ping(w http.ResponseWriter, r *http.Request) {
-	var request PingRequestObject
+// GetDocumentation operation middleware
+func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request) {
+	var request GetDocumentationRequestObject
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.Ping(ctx, request.(PingRequestObject))
+		return sh.ssi.GetDocumentation(ctx, request.(GetDocumentationRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Ping")
+		handler = middleware(handler, "GetDocumentation")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(PingResponseObject); ok {
-		if err := validResponse.VisitPingResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetDocumentationResponseObject); ok {
+		if err := validResponse.VisitGetDocumentationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -853,6 +887,30 @@ func (sh *strictHandler) Random(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RandomResponseObject); ok {
 		if err := validResponse.VisitRandomResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetYaml operation middleware
+func (sh *strictHandler) GetYaml(w http.ResponseWriter, r *http.Request) {
+	var request GetYamlRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetYaml(ctx, request.(GetYamlRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetYaml")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetYamlResponseObject); ok {
+		if err := validResponse.VisitGetYamlResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1017,4 +1075,109 @@ func (sh *strictHandler) RevokeClaim(w http.ResponseWriter, r *http.Request, ide
 	} else if response != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
+}
+
+// Base64 encoded, gzipped, json marshaled Swagger object
+var swaggerSpec = []string{
+
+	"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",
+}
+
+// GetSwagger returns the content of the embedded swagger specification file
+// or error if failed to decode
+func decodeSpec() ([]byte, error) {
+	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
+	if err != nil {
+		return nil, fmt.Errorf("error base64 decoding spec: %s", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(zipped))
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %s", err)
+	}
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(zr)
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %s", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var rawSpec = decodeSpecCached()
+
+// a naive cached of a decoded swagger spec
+func decodeSpecCached() func() ([]byte, error) {
+	data, err := decodeSpec()
+	return func() ([]byte, error) {
+		return data, err
+	}
+}
+
+// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
+func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
+	var res = make(map[string]func() ([]byte, error))
+	if len(pathToFile) > 0 {
+		res[pathToFile] = rawSpec
+	}
+
+	return res
+}
+
+// GetSwagger returns the Swagger specification corresponding to the generated code
+// in this file. The external references of Swagger specification are resolved.
+// The logic of resolving external references is tightly connected to "import-mapping" feature.
+// Externally referenced files must be embedded in the corresponding golang packages.
+// Urls can be supported but this task was out of the scope.
+func GetSwagger() (swagger *openapi3.T, err error) {
+	var resolvePath = PathToRawSpec("")
+
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		var pathToFile = url.String()
+		pathToFile = path.Clean(pathToFile)
+		getSpec, ok := resolvePath[pathToFile]
+		if !ok {
+			err1 := fmt.Errorf("path not found: %s", pathToFile)
+			return nil, err1
+		}
+		return getSpec()
+	}
+	var specData []byte
+	specData, err = rawSpec()
+	if err != nil {
+		return
+	}
+	swagger, err = loader.LoadFromData(specData)
+	if err != nil {
+		return
+	}
+	return
 }

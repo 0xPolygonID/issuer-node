@@ -8,32 +8,65 @@ import (
 	"os/signal"
 	"syscall"
 
+	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/go-chi/chi/v5"
+	_ "github.com/lib/pq"
 	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-
-	_ "github.com/lib/pq"
 )
 
 func main() {
-	cfg, err := config.Load("internal/config")
+	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", err)
-		return
 	}
+
 	// Context with log
-	// TODO: Load log params from config
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.JSONOutput, false, os.Stdout)
+	ctx := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
 
-	repo := repositories.NewIdentity(db.NewSqlx(cfg.Database.URL))
-	service := services.NewIdentity(repo)
+	storage, err := db.NewStorage(cfg.Database.URL)
+	if err != nil {
+		log.Error(context.Background(), "cannot connect to database", err)
+	}
 
+	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+	if err != nil {
+		log.Error(context.Background(), "cannot init vault client: ", err)
+	}
+
+	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
+	if err != nil {
+		log.Error(ctx, "cannot create BabyJubJub key provider: %+v", err)
+	}
+
+	keyStore := kms.NewKMS()
+	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
+	if err != nil {
+		log.Error(ctx, "cannot register BabyJubJub key provider: %+v", err)
+	}
+
+	identityRepo := repositories.NewIdentity(storage.Pgx)
+	claimsRepo := repositories.NewClaims(storage.Pgx)
+	identityStateRepo := repositories.NewIdentityState(storage.Pgx)
+	mtRepo := repositories.NewIdentityMerkleTreeRepository(storage.Pgx)
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+
+	service := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+
+	spec, err := api.GetSwagger()
+	if err != nil {
+		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
+		os.Exit(1)
+	}
+	spec.Servers = nil
 	mux := chi.NewRouter()
 	mux.Use(
 		middleware.RequestID,
@@ -41,6 +74,8 @@ func main() {
 		middleware.Recoverer,
 	)
 	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(service), middlewares(ctx)), mux)
+	mux.Use(middleware.OapiRequestValidator(spec))
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, service), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
 	server := &http.Server{
@@ -51,6 +86,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
+		log.Info(ctx, fmt.Sprintf("server started on port:%d", cfg.ServerPort))
 		if err := server.ListenAndServe(); err != nil {
 			log.Error(ctx, "Starting http server", err)
 		}

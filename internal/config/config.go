@@ -13,19 +13,50 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
+const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
+
 // Configuration holds the project configuration
 type Configuration struct {
+	ServerUrl  string
 	ServerPort int
 	Database   Database `mapstructure:"Database"`
+	KeyStore   KeyStore `mapstructure:"KeyStore"`
+	Runtime    Runtime  `mapstructure:"Runtime"`
 }
 
 // Database has the database configuration
+// URL: The database connection string
 type Database struct {
 	URL string
 }
 
+type KeyStore struct {
+	Address              string
+	Token                string
+	PluginIden3MountPath string
+}
+
+// Runtime holds runtime configurations
+//
+// LogLevel: The minimum log level to show on logs. Values can be
+//
+//	 -4: Debug
+//		0: Info
+//		4: Warning
+//		8: Error
+//	 The default log level is debug
+//
+// LogMode: Log mode is the format of the log. It can be text or json
+// 1: JSON
+// 2: Text
+// The default log formal is JSON
+type Runtime struct {
+	LogLevel int `mapstructure:"LogLevel"`
+	LogMode  int `mapstructure:"LogMode"`
+}
+
 // Load loads the configuraion from a file
-func Load(path string) (*Configuration, error) {
+func Load(fileName string) (*Configuration, error) {
 	getFlags()
 	bindEnv()
 	pathFlag := viper.GetString("config")
@@ -40,12 +71,24 @@ func Load(path string) (*Configuration, error) {
 		viper.SetConfigType(ext)
 	} else {
 		// Read default config file.
-		viper.AddConfigPath(path)
-		viper.SetConfigName("config")
+		viper.AddConfigPath(getWorkingDirectory())
+		viper.AddConfigPath(CIConfigPath)
 		viper.SetConfigType("toml")
+		if fileName == "" {
+			viper.SetConfigName("config")
+		} else {
+			viper.SetConfigName(fileName)
+		}
 	}
-
-	config := new(Configuration)
+	const defDBPort = 5432
+	config := &Configuration{
+		ServerPort: defDBPort,
+		Database:   Database{},
+		Runtime: Runtime{
+			LogLevel: log.LevelDebug,
+			LogMode:  log.OutputText,
+		},
+	}
 
 	if err := viper.ReadInConfig(); err == nil {
 		if err := viper.Unmarshal(config); err != nil {
@@ -70,7 +113,14 @@ func getFlags() {
 
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
+	_ = viper.BindEnv("ServerUrl", "SH_ID_PLATFORM_SERVER_URL")
 	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
 	_ = viper.BindEnv("Database.URL", "SH_ID_PLATFORM_DATABASE_URL")
 	viper.AutomaticEnv()
+}
+
+func getWorkingDirectory() string {
+	dir, _ := os.Getwd()
+	path := strings.Split(dir, "sh-id-platform")
+	return path[0] + "sh-id-platform/"
 }
