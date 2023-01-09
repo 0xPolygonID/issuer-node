@@ -22,6 +22,10 @@ clean: ## Go clean
 tests:
 	$(GO) test -v ./...
 
+.PHONY: tests-ga
+tests-ga:
+	TEST_MODE="GA" $(GO) test -v ./...
+
 .PHONY: test-race
 test-race:
 	$(GO) test -v --race ./...
