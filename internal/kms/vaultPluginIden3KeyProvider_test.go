@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"path"
 	"sort"
@@ -21,8 +20,7 @@ import (
 
 func TestVaultPluginBJJProvider_Ethereum(t *testing.T) {
 	if os.Getenv("TEST_MODE") == "GA" {
-		fmt.Println("SKIPPED")
-		t.Skip()
+		t.Skip("SKIPPED")
 	}
 
 	vaultCli, mountPath := setupPluginBJJProvider(t)
@@ -31,7 +29,7 @@ func TestVaultPluginBJJProvider_Ethereum(t *testing.T) {
 		return keyPathT{keyID: kID.ID, mountPath: mountPath}
 	}
 
-	keysPath := path.Join(mountPath, randString(6))
+	keysPath := path.Join(mountPath, randString(t, 6))
 	kp, err := NewVaultPluginIden3KeyProvider(vaultCli, keysPath, KeyTypeEthereum)
 	require.NoError(t, err)
 	ctx := context.Background()
@@ -53,7 +51,7 @@ func TestVaultPluginBJJProvider_Ethereum(t *testing.T) {
 	require.Equal(t, newKey.Type, KeyTypeEthereum)
 
 	// link key to identity
-	did := randomDID()
+	did := randomDID(t)
 
 	require.NoError(t, err)
 
@@ -108,52 +106,41 @@ func TestVaultPluginBJJProvider_Ethereum(t *testing.T) {
 	require.Equal(t, wantKeyIDs, keyIDs)
 }
 
-func randString(ln int) string {
+func randString(t *testing.T, ln int) string {
+	t.Helper()
 	bs := make([]byte, ln)
 	_, err := rand.Read(bs)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 	return hex.EncodeToString(bs)
 }
 
-func randomDID() core.DID {
+func randomDID(t *testing.T) core.DID {
+	t.Helper()
 	typ, err := core.BuildDIDType(core.DIDMethodIden3, core.Polygon, core.Mumbai)
 	var genesis [27]byte
-	if err != nil {
-		panic(err)
-	}
-
+	require.NoError(t, err)
 	_, err = rand.Read(genesis[:])
-	if err != nil {
-		panic(err)
-	}
-
+	require.NoError(t, err)
 	id := core.NewID(typ, genesis)
-
 	did, err := core.ParseDIDFromID(id)
-	if err != nil {
-		panic(err)
-	}
-
+	require.NoError(t, err)
 	return *did
 }
 
 func setupPluginBJJProvider(t *testing.T) (vaultCli *api.Client, mountPath string) {
+	t.Helper()
 	var err error
-
 	vaultCli, err = providers.NewVaultClient(testVaultConfig(t))
 	require.NoError(t, err)
-
 	mountPath = cfg.PluginIden3MountPath
 	if mountPath == "" {
 		t.Skip("IDEN3 plugin mount path is not set")
 	}
-
 	return
 }
 
 func getETHPrivateKey(t testing.TB, cli *api.Client, keyPath keyPathT) *ecdsa.PrivateKey {
+	t.Helper()
 	secret, err := cli.Logical().Read(keyPath.private())
 	require.NoError(t, err)
 	data, err := getSecretData(secret)

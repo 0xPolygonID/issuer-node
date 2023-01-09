@@ -3,7 +3,6 @@ package kms
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"os"
 	"strings"
@@ -66,8 +65,7 @@ func TestVaultBJJKeyProvider_PublicKey(t *testing.T) {
 
 func TestBJJKeyProvider_NoIdentity(t *testing.T) {
 	if os.Getenv("TEST_MODE") == "GA" {
-		fmt.Println("SKIPPED")
-		t.Skip()
+		t.Skip("SKIPPED")
 	}
 
 	k := testKMSSetup(t)
@@ -118,6 +116,7 @@ func TestBJJKeyProvider_NoIdentity(t *testing.T) {
 }
 
 func testBJJKeyContent(t testing.TB, k TestKMS, keyID KeyID) babyjub.PrivateKey {
+	t.Helper()
 	sec, err := k.VaultCli.Logical().Read("secret/data/" + keyID.ID)
 	require.NoError(t, err)
 	require.Len(t, sec.Data["data"], 2)
@@ -140,6 +139,7 @@ func testBJJKeyContent(t testing.TB, k TestKMS, keyID KeyID) babyjub.PrivateKey 
 }
 
 func testBoundedBJJKey(t *testing.T, k TestKMS, keyID KeyID, identity core.DID) {
+	t.Helper()
 	privKey := testBJJKeyContent(t, k, keyID)
 
 	// Try to bind already bounded key to other identity: expect error
