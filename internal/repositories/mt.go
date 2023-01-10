@@ -8,14 +8,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-type identityMerkleTreeRepository struct {
-	conn db.Querier
-}
+type identityMerkleTreeRepository struct{}
 
-func NewIdentityMerkleTreeRepository(conn db.Querier) ports.IdentityMerkleTreeRepository {
-	return &identityMerkleTreeRepository{
-		conn: conn,
-	}
+func NewIdentityMerkleTreeRepository() ports.IdentityMerkleTreeRepository {
+	return &identityMerkleTreeRepository{}
 }
 
 func (mt *identityMerkleTreeRepository) Save(ctx context.Context, conn db.Querier, identifier string, mtType uint16) (*domain.IdentityMerkleTree, error) {

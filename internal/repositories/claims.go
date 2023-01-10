@@ -20,14 +20,10 @@ const duplicateViolationErrorCode = "23505"
 // ErrClaimDuplication claim duplication error
 var ErrClaimDuplication = errors.New("claim duplication error")
 
-type claims struct {
-	conn db.Querier
-}
+type claims struct{}
 
-func NewClaims(conn db.Querier) ports.ClaimsRepository {
-	return &claims{
-		conn: conn,
-	}
+func NewClaims() ports.ClaimsRepository {
+	return &claims{}
 }
 
 func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error) {

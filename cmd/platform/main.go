@@ -58,10 +58,10 @@ func main() {
 		panic(err)
 	}
 
-	identityRepo := repositories.NewIdentity(storage.Pgx)
-	claimsRepo := repositories.NewClaims(storage.Pgx)
-	identityStateRepo := repositories.NewIdentityState(storage.Pgx)
-	mtRepo := repositories.NewIdentityMerkleTreeRepository(storage.Pgx)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
 	service := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
