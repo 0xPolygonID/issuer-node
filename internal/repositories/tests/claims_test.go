@@ -15,7 +15,7 @@ import (
 
 func TestRevoke(t *testing.T) {
 	// given
-	claimsRepo := repositories.NewClaims(storage.Pgx)
+	claimsRepo := repositories.NewClaims()
 	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -72,7 +72,7 @@ func TestGetByRevocationNonce(t *testing.T) {
 		Status:          nil,
 	})
 
-	claimsRepo := repositories.NewClaims(storage.Pgx)
+	claimsRepo := repositories.NewClaims()
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := core.ParseDID(idStr)
 		assert.NoError(t, err)

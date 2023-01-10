@@ -20,19 +20,16 @@ import (
 const duplicateViolationErrorCode = "23505"
 
 // ErrClaimDuplication claim duplication error
-var ErrClaimDuplication = errors.New("claim duplication error")
+var (
+	ErrClaimDuplication = errors.New("claim duplication error")
+	// ErrClaimDoesNotExist claim does not exist
+	ErrClaimDoesNotExist = errors.New("claim does not exist")
+)
 
-// ErrClaimDoesNotExist claim does not exist
-var ErrClaimDoesNotExist = errors.New("claim does not exist")
+type claims struct{}
 
-type claims struct {
-	conn db.Querier
-}
-
-func NewClaims(conn db.Querier) ports.ClaimsRepository {
-	return &claims{
-		conn: conn,
-	}
+func NewClaims() ports.ClaimsRepository {
+	return &claims{}
 }
 
 func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error) {

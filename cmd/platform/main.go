@@ -35,13 +35,13 @@ func main() {
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
-		log.Error(context.Background(), "cannot connect to database", err)
+		log.Error(ctx, "cannot connect to database", err)
 		panic(err)
 	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Error(context.Background(), "cannot init vault client: ", err)
+		log.Error(ctx, "cannot init vault client: ", err)
 		panic(err)
 	}
 
@@ -58,10 +58,10 @@ func main() {
 		panic(err)
 	}
 
-	identityRepo := repositories.NewIdentity(storage.Pgx)
-	claimsRepo := repositories.NewClaims(storage.Pgx)
-	identityStateRepo := repositories.NewIdentityState(storage.Pgx)
-	mtRepo := repositories.NewIdentityMerkleTreeRepository(storage.Pgx)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
 	service := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)

@@ -55,8 +55,8 @@ type Fixture struct {
 func NewFixture(storage *db.Storage) *Fixture {
 	return &Fixture{
 		storage:            storage,
-		identityRepository: repositories.NewIdentity(storage.Pgx),
-		claimRepository:    repositories.NewClaims(storage.Pgx),
+		identityRepository: repositories.NewIdentity(),
+		claimRepository:    repositories.NewClaims(),
 	}
 }
 

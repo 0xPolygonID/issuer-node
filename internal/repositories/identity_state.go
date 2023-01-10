@@ -9,14 +9,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-type identityState struct {
-	conn db.Querier
-}
+type identityState struct{}
 
-func NewIdentityState(conn db.Querier) ports.IdentityStateRepository {
-	return &identityState{
-		conn: conn,
-	}
+func NewIdentityState() ports.IdentityStateRepository {
+	return &identityState{}
 }
 
 func (isr *identityState) Save(ctx context.Context, conn db.Querier, state domain.IdentityState) error {

@@ -67,7 +67,7 @@ type KeyID struct {
 
 // NewKMS create new KMS
 func NewKMS() *KMS {
-	k := &KMS{make(map[KeyType]KeyProvider)}
+	k := &KMS{registry: make(map[KeyType]KeyProvider)}
 	return k
 }
 
