@@ -35,13 +35,13 @@ func main() {
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
-		log.Error(context.Background(), "cannot connect to database", err)
+		log.Error(ctx, "cannot connect to database", err)
 		panic(err)
 	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Error(context.Background(), "cannot init vault client: ", err)
+		log.Error(ctx, "cannot init vault client: ", err)
 		panic(err)
 	}
 
