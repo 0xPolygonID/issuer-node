@@ -157,3 +157,17 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 	log.Errorf("error saving the claim: %v", err.Error())
 	return uuid.Nil, fmt.Errorf("error saving the claim: %v", err)
 }
+
+func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
+	_, err := conn.Exec(ctx, `INSERT INTO revocation (identifier, nonce, version, status, description) VALUES($1, $2, $3, $4, $5)`,
+		revocation.Identifier,
+		revocation.Nonce,
+		revocation.Version,
+		revocation.Status,
+		revocation.Description)
+	if err != nil {
+		return fmt.Errorf("error revoking the claim: %v", err)
+	}
+
+	return nil
+}
