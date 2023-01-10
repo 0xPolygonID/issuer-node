@@ -1,10 +1,10 @@
 package providers
 
 import (
+	"errors"
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/pkg/errors"
 )
 
 // HTTPClientTimeout http client timeout TODO: move to config
@@ -25,7 +25,7 @@ func NewVaultClient(address, token string) (*api.Client, error) {
 
 	client, err := api.NewClient(config)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, err
 	}
 
 	client.SetToken(token)

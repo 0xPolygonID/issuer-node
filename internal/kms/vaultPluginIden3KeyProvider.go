@@ -227,7 +227,13 @@ func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyTy
 		return nil, err
 	}
 
-	return &vaultPluginIden3KeyProvider{keyType, vaultCli, parts[0], keysPathPrefix, keyNameRE}, nil
+	return &vaultPluginIden3KeyProvider{
+			keyType:        keyType,
+			vaultCli:       vaultCli,
+			keysMountPath:  parts[0],
+			keysPathPrefix: keysPathPrefix,
+			keyNameRE:      keyNameRE},
+		nil
 }
 
 // create random key in vault
