@@ -14,10 +14,10 @@ import (
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
-	identityRepo := repositories.NewIdentity(storage.Pgx)
-	claimsRepo := repositories.NewClaims(storage.Pgx)
-	identityStateRepo := repositories.NewIdentityState(storage.Pgx)
-	mtRepo := repositories.NewIdentityMerkleTreeRepository(storage.Pgx)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	server := NewServer(&cfg, identityService)
