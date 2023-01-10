@@ -8,8 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
+	oapiMiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/lib/pq"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
@@ -26,6 +27,7 @@ func main() {
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", err)
+		panic(err)
 	}
 
 	// Context with log
@@ -34,22 +36,26 @@ func main() {
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
 		log.Error(context.Background(), "cannot connect to database", err)
+		panic(err)
 	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
 		log.Error(context.Background(), "cannot init vault client: ", err)
+		panic(err)
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
 		log.Error(ctx, "cannot create BabyJubJub key provider: %+v", err)
+		panic(err)
 	}
 
 	keyStore := kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
 		log.Error(ctx, "cannot register BabyJubJub key provider: %+v", err)
+		panic(err)
 	}
 
 	identityRepo := repositories.NewIdentity(storage.Pgx)
@@ -67,7 +73,12 @@ func main() {
 	}
 	spec.Servers = nil
 	mux := chi.NewRouter()
-	mux.Use(middleware.OapiRequestValidator(spec))
+	mux.Use(
+		chiMiddleware.RequestID,
+		log.ChiMiddleware(ctx),
+		chiMiddleware.Recoverer,
+		oapiMiddleware.OapiRequestValidator(spec),
+	)
 	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, service), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
