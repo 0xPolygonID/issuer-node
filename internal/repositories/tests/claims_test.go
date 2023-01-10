@@ -1,21 +1,21 @@
-package repositories
+package tests
 
 import (
 	"context"
 	"testing"
 
-	core "github.com/iden3/go-iden3-core"
-
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestRevoke(t *testing.T) {
 	// given
-	claimsRepo := NewClaims(storage.Pgx)
+	claimsRepo := repositories.NewClaims(storage.Pgx)
 	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -49,7 +49,7 @@ func TestRevoke(t *testing.T) {
 
 func TestGetByRevocationNonce(t *testing.T) {
 	fixture := tests.NewFixture(storage)
-	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
+	idStr := "did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW"
 	identity := &domain.Identity{
 		Identifier: idStr,
 		Relay:      "relay_mock",
@@ -57,7 +57,7 @@ func TestGetByRevocationNonce(t *testing.T) {
 	}
 	fixture.CreateIdentity(t, identity)
 	idClaim, _ := uuid.NewUUID()
-	fixture.CreateClaims(t, &domain.Claim{
+	fixture.CreateClaim(t, &domain.Claim{
 		ID:              idClaim,
 		Identifier:      &idStr,
 		Issuer:          idStr,
@@ -72,13 +72,27 @@ func TestGetByRevocationNonce(t *testing.T) {
 		Status:          nil,
 	})
 
-	claimsRepo := NewClaims(storage.Pgx)
+	claimsRepo := repositories.NewClaims(storage.Pgx)
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := core.ParseDID(idStr)
 		assert.NoError(t, err)
-		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
+		c, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
 		assert.NoError(t, err)
-		assert.NotNil(t, r)
+		assert.NotNil(t, c)
+		coreClaimValue, err := c.CoreClaim.Value()
+		assert.NoError(t, err)
+		assert.Equal(t, idClaim, c.ID)
+		assert.Equal(t, &idStr, c.Identifier)
+		assert.Equal(t, "ca938857241db9451ea329256b9c06e5", c.SchemaHash)
+		assert.Equal(t, "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld", c.SchemaURL)
+		assert.Equal(t, "AuthBJJCredential", c.SchemaType)
+		assert.Equal(t, "", c.OtherIdentifier)
+		assert.Equal(t, int64(0), c.Expiration)
+		assert.Equal(t, uint32(0), c.Version)
+		assert.Equal(t, domain.RevNonceUint64(0), c.RevNonce)
+		assert.Equal(t, `["0","0","0","0","0","0","0","0"]`, coreClaimValue)
+
+		assert.Nil(t, c.Status)
 	})
 
 	t.Run("should not get revocation wrong nonce", func(t *testing.T) {

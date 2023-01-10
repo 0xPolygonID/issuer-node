@@ -4,9 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 var queries = []string{
@@ -45,12 +47,16 @@ VALUES
 }
 
 type Fixture struct {
-	storage *db.Storage
+	storage            *db.Storage
+	identityRepository ports.IndentityRepository
+	claimRepository    ports.ClaimsRepository
 }
 
 func NewFixture(storage *db.Storage) *Fixture {
 	return &Fixture{
-		storage: storage,
+		storage:            storage,
+		identityRepository: repositories.NewIdentity(storage.Pgx),
+		claimRepository:    repositories.NewClaims(storage.Pgx),
 	}
 }
 
