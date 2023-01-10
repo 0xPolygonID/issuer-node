@@ -155,7 +155,7 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 	}
 
 	log.Errorf("error saving the claim: %v", err.Error())
-	return uuid.Nil, fmt.Errorf("error saving the claim: %v", err)
+	return uuid.Nil, fmt.Errorf("error saving the claim: %w", err)
 }
 
 func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
@@ -166,7 +166,7 @@ func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain
 		revocation.Status,
 		revocation.Description)
 	if err != nil {
-		return fmt.Errorf("error revoking the claim: %v", err)
+		return fmt.Errorf("error revoking the claim: %w", err)
 	}
 
 	return nil
