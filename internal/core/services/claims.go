@@ -12,7 +12,7 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/api"
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -80,7 +80,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.ClaimRequest, nonce uint
 
 	var expirationTime *time.Time
 	if claimReq.Expiration != nil {
-		expirationTime = api.ToPointer(time.Unix(*claimReq.Expiration, 0))
+		expirationTime = common.ToPointer(time.Unix(*claimReq.Expiration, 0))
 	}
 
 	issuanceDate := time.Now()
