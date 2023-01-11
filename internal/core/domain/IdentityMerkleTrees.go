@@ -1,4 +1,4 @@
-package mt
+package domain
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
@@ -23,9 +22,9 @@ const (
 )
 
 type IdentityMerkleTrees struct {
-	identifier *core.DID
+	Identifier *core.DID
 	Trees      []*merkletree.MerkleTree
-	ImtModels  []*domain.IdentityMerkleTree
+	ImtModels  []*IdentityMerkleTree
 }
 
 var (
@@ -73,23 +72,23 @@ func (imts *IdentityMerkleTrees) ClaimsTree() (*merkletree.MerkleTree, error) {
 	return imts.Trees[MerkleTreeTypeClaims], nil
 }
 
-// BindToIdentifier swaps temporary identifier for real one in IdentityMerkleTree models
+// BindToIdentifier swaps temporary Identifier for real one in IdentityMerkleTree models
 func (imts *IdentityMerkleTrees) BindToIdentifier(conn db.Querier, identifier *core.DID) error {
-	if imts.identifier != nil {
-		return errors.New("can't change not empty identifier")
+	if imts.Identifier != nil {
+		return errors.New("can't change not empty Identifier")
 	}
 	if len(imts.ImtModels) < mtTypesCount {
 		return errorMsgNotCreated
 	}
-	imts.identifier = identifier
+	imts.Identifier = identifier
 	for _, mtType := range mtTypes {
 		imts.ImtModels[mtType].Identifier = identifier.String()
 	}
 	return nil
 }
 
-func (imts *IdentityMerkleTrees) GetMtModels() []*domain.IdentityMerkleTree {
-	result := make([]*domain.IdentityMerkleTree, 0)
+func (imts *IdentityMerkleTrees) GetMtModels() []*IdentityMerkleTree {
+	result := make([]*IdentityMerkleTree, 0)
 	for _, mtType := range mtTypes {
 		result = append(result, imts.ImtModels[mtType])
 	}
