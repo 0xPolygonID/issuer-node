@@ -11,13 +11,10 @@ import (
 )
 
 type identity struct {
-	conn db.Querier
 }
 
-func NewIdentity(conn db.Querier) ports.IndentityRepository {
-	return &identity{
-		conn: conn,
-	}
+func NewIdentity() ports.IndentityRepository {
+	return &identity{}
 }
 
 func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error {

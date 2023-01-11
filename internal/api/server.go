@@ -17,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -83,7 +84,7 @@ func writeFile(path string, w http.ResponseWriter) {
 
 // CreateIdentity is created identity controller
 func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error) {
-	identity, err := s.identityService.Create(ctx, fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort))
+	identity, err := s.indentityService.Create(ctx, fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort))
 	if err != nil {
 		return nil, err
 	}
