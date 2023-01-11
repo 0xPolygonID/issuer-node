@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
 
@@ -58,7 +57,9 @@ func main() {
 	mtRepo := repositories.NewIdentityMerkleTreeRepository(storage.Pgx)
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
-	service := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, storage)
+	schemaService := services.NewSchema(storage)
 
 	spec, err := api.GetSwagger()
 	if err != nil {
@@ -67,8 +68,8 @@ func main() {
 	}
 	spec.Servers = nil
 	mux := chi.NewRouter()
-	mux.Use(middleware.OapiRequestValidator(spec))
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, service), middlewares(ctx)), mux)
+	//mux.Use(middleware.OapiRequestValidator(spec))
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
 	server := &http.Server{

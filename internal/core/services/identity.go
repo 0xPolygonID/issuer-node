@@ -1,8 +1,11 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/url"
@@ -15,11 +18,16 @@ import (
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/jackc/pgx/v4"
+
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
+	"github.com/polygonid/sh-id-platform/pkg/primitive"
 )
 
 type identity struct {
@@ -66,6 +74,101 @@ func (i *identity) Create(ctx context.Context, hostURL string) (*domain.Identity
 		return nil, fmt.Errorf("can't get identity: %w", err)
 	}
 	return identityDB, nil
+}
+
+func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error) {
+	keyID, err := i.GetKeyIDFromAuthClaim(ctx, authClaim)
+	if err != nil {
+		return nil, err
+	}
+
+	bjjSigner, err := primitive.NewBJJSigner(i.kms, keyID)
+	if err != nil {
+		return nil, err
+	}
+	bjjVerifier := &primitive.BJJVerifier{}
+
+	bbjSuite := babyjubjub.New(suite.WithSigner(bjjSigner),
+		suite.WithVerifier(bjjVerifier))
+
+	circuitSigner := signer.New(bbjSuite)
+
+	var issuerMTP verifiable.Iden3SparseMerkleProof
+	err = authClaim.MTPProof.AssignTo(&issuerMTP)
+	if err != nil {
+		return nil, err
+	}
+
+	signtureBytes, err := circuitSigner.Sign(babyjubjub.SignatureType, claimEntry)
+	if err != nil {
+		return nil, err
+	}
+
+	// followed https://w3c-ccg.github.io/ld-proofs/
+	var proof verifiable.BJJSignatureProof2021
+	proof.Type = babyjubjub.SignatureType
+	proof.Signature = hex.EncodeToString(signtureBytes)
+	issuerMTP.IssuerData.AuthCoreClaim, err = authClaim.CoreClaim.Get().Hex()
+	if err != nil {
+		return nil, err
+	}
+
+	proof.IssuerData = issuerMTP.IssuerData
+	proof.IssuerData.MTP = issuerMTP.MTP
+
+	proof.CoreClaim, err = claimEntry.Hex()
+	if err != nil {
+		return nil, err
+	}
+
+	return &proof, nil
+}
+
+// GetKeyIDFromAuthClaim finds BJJ KeyID of auth claim
+// in registered key providers
+func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context,
+	authClaim *domain.Claim) (kms.KeyID, error) {
+
+	var keyID kms.KeyID
+
+	if authClaim.Identifier == nil {
+		return keyID, errors.New("identifier is empty in auth claim")
+	}
+
+	identity, err := core.ParseDID(*authClaim.Identifier)
+	if err != nil {
+		return keyID, err
+	}
+
+	entry := authClaim.CoreClaim.Get()
+	bjjClaim := entry.RawSlotsAsInts()
+
+	var publicKey babyjub.PublicKey
+	publicKey.X = bjjClaim[2]
+	publicKey.Y = bjjClaim[3]
+
+	compPubKey := publicKey.Compress()
+
+	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
+	if err != nil {
+		return keyID, err
+	}
+
+	for _, keyID = range keyIDs {
+		if keyID.Type != kms.KeyTypeBabyJubJub {
+			continue
+		}
+
+		pubKeyBytes, err := i.kms.PublicKey(keyID)
+		if err != nil {
+			return keyID, err
+		}
+		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
+			return keyID, nil
+		}
+	}
+
+	return keyID, errors.New("private key not found")
 }
 
 func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string) (*core.DID, *big.Int, error) {
