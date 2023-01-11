@@ -42,6 +42,7 @@ func TestMtGetByIdentifierAndTypes(t *testing.T) {
 		assert.Equal(t, 1, len(mts))
 	})
 
+	// when and then
 	t.Run("should not get the mt", func(t *testing.T) {
 		did, err := core.ParseDID("did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW")
 		assert.NoError(t, err)
@@ -69,6 +70,7 @@ func TestMtGetById(t *testing.T) {
 		assert.Equal(t, mt.ID, mts.ID)
 	})
 
+	// when and then
 	t.Run("should not get the mt", func(t *testing.T) {
 		mts, err := repo.GetByID(context.Background(), storage.Pgx, uint64(11))
 		assert.Error(t, err)
