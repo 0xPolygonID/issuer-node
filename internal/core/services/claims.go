@@ -23,10 +23,10 @@ type claim struct {
 	RHSUrl     string
 	Host       string
 	icRepo     ports.ClaimsRepository
-	storage    *db.Storages
+	storage    *db.Storage
 }
 
-func NewClaim(rhsEnabled bool, rhsUrl string, host string, repo ports.ClaimsRepository, storage *db.Storages) ports.ClaimsService {
+func NewClaim(rhsEnabled bool, rhsUrl string, host string, repo ports.ClaimsRepository, storage *db.Storage) ports.ClaimsService {
 	return &claim{
 		RHSEnabled: rhsEnabled,
 		RHSUrl:     rhsUrl,

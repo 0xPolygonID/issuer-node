@@ -11,7 +11,6 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 )
 
-// TODO: Evaluate if this should be here
 // CredentialRequest is a model for credential creation
 type CredentialRequest struct {
 	CredentialSchema      string          `json:"credentialSchema"`
@@ -74,8 +73,7 @@ func CreateCredential(issuer *core.DID, req CredentialRequest, schema jsonSuite.
 // RandInt64 generate random uint64
 func RandInt64() (uint64, error) {
 	var buf [8]byte
-	// TODO: this was changed because revocation nonce is cut in dart / js if number is too big
-	_, err := rand.Read(buf[:4]) // was rand.Read(buf[:])
+	_, err := rand.Read(buf[:4])
 
 	return binary.LittleEndian.Uint64(buf[:]), err
 }

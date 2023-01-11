@@ -21,12 +21,12 @@ var (
 
 // BJJSinger represents signer with BJJ key
 type BJJSinger struct {
-	kms   *kms.KMS
+	kms   kms.KMSType
 	keyID kms.KeyID
 }
 
 // NewBJJSigner creates new instance oj BJJ signer
-func NewBJJSigner(keyMS *kms.KMS, keyID kms.KeyID) (*BJJSinger, error) {
+func NewBJJSigner(keyMS kms.KMSType, keyID kms.KeyID) (*BJJSinger, error) {
 	if keyID.Type != kms.KeyTypeBabyJubJub {
 		return nil, errors.New("wrong key type")
 	}

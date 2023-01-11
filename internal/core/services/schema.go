@@ -16,10 +16,10 @@ import (
 )
 
 type schema struct {
-	storage *db.Storages
+	storage *db.Storage
 }
 
-func NewSchema(storage *db.Storages) ports.SchemaService {
+func NewSchema(storage *db.Storage) ports.SchemaService {
 	return &schema{storage: storage}
 }
 

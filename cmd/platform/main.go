@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	oapiMiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/lib/pq"
@@ -79,10 +78,9 @@ func main() {
 		chiMiddleware.RequestID,
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
-		oapiMiddleware.OapiRequestValidator(spec),
+		//oapiMiddleware.OapiRequestValidator(spec),
 	)
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, service), middlewares(ctx)), mux)
-	//mux.Use(middleware.OapiRequestValidator(spec))
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
 	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 

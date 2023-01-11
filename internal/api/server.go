@@ -17,7 +17,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
-	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -84,7 +83,7 @@ func writeFile(path string, w http.ResponseWriter) {
 
 // CreateIdentity is created identity controller
 func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error) {
-	identity, err := s.indentityService.Create(ctx, fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort))
+	identity, err := s.identityService.Create(ctx, fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort))
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +149,6 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	fmt.Println(coreClaim)
 	claim, err := domain.FromClaimer(coreClaim, claimReq.CredentialSchema, credentialType)
 	if err != nil {
 		log.Error(ctx, "Can not obtain the claim from claimer", err)
