@@ -6,7 +6,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/lib/pq"
 
@@ -18,7 +20,11 @@ import (
 const duplicateViolationErrorCode = "23505"
 
 // ErrClaimDuplication claim duplication error
-var ErrClaimDuplication = errors.New("claim duplication error")
+var (
+	ErrClaimDuplication = errors.New("claim duplication error")
+	// ErrClaimDoesNotExist claim does not exist
+	ErrClaimDoesNotExist = errors.New("claim does not exist")
+)
 
 type claims struct{}
 
@@ -166,4 +172,58 @@ func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain
 	}
 
 	return nil
+}
+
+func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *core.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error) {
+	claim := domain.Claim{}
+	row := conn.QueryRow(
+		ctx,
+		`SELECT id,
+				   issuer,
+				   schema_hash,
+				   schema_type,
+				   schema_url,
+				   other_identifier,
+				   expiration,
+				   updatable,
+				   version,
+				   rev_nonce,
+				   signature_proof,
+				   mtp_proof,
+				   data,
+				   claims.identifier,
+				   identity_state,
+				   credential_status,
+				   core_claim
+			FROM claims
+			LEFT JOIN identity_states ON claims.identity_state = identity_states.state
+			WHERE claims.identifier = $1
+			  AND claims.rev_nonce = $2`, identifier.String(), revocationNonce)
+	err := row.Scan(&claim.ID,
+		&claim.Issuer,
+		&claim.SchemaHash,
+		&claim.SchemaType,
+		&claim.SchemaURL,
+		&claim.OtherIdentifier,
+		&claim.Expiration,
+		&claim.Updatable,
+		&claim.Version,
+		&claim.RevNonce,
+		&claim.SignatureProof,
+		&claim.MTPProof,
+		&claim.Data,
+		&claim.Identifier,
+		&claim.IdentityState,
+		&claim.CredentialStatus,
+		&claim.CoreClaim)
+
+	if err != nil && err == pgx.ErrNoRows {
+		return nil, ErrClaimDoesNotExist
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting the claim by nonce: %w", err)
+	}
+
+	return &claim, nil
 }
