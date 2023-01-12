@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
@@ -93,4 +94,14 @@ func (imts *IdentityMerkleTrees) GetMtModels() []*IdentityMerkleTree {
 		result = append(result, imts.ImtModels[mtType])
 	}
 	return result
+}
+
+func (imts *IdentityMerkleTrees) RevokeClaim(ctx context.Context, revNonce *big.Int) error {
+	// Now it is hardcoded version 0, but later on, it could be changed when
+	// we introduce more cases with versioning
+	err := imts.Trees[MerkleTreeTypeRevocations].Add(ctx, revNonce, big.NewInt(0))
+	if err != nil {
+		return fmt.Errorf("cannot add revocation nonce: %d to revocation merkle tree: %w", revNonce, err)
+	}
+	return nil
 }

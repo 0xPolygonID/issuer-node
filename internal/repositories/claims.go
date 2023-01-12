@@ -231,7 +231,6 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error) {
 	var claim domain.Claim
 
-	// language=PostgreSQL
 	row := conn.QueryRow(ctx,
 		`SELECT claims.id,
 		   issuer,
@@ -281,4 +280,16 @@ func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, 
 	}
 
 	return &claim, err
+}
+
+func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error {
+	_, err := conn.Exec(ctx,
+		`	INSERT INTO revocation (identifier, nonce, version, status, description) 
+				VALUES($1, $2, $3, $4, $5)`,
+		revocation.Identifier,
+		revocation.Nonce,
+		revocation.Version,
+		revocation.Status,
+		revocation.Description)
+	return err
 }

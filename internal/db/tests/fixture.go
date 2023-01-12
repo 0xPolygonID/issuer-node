@@ -25,8 +25,13 @@ func NewFixture(storage *db.Storage) *Fixture {
 	}
 }
 
-func (f *Fixture) execQuery(t *testing.T, query string) {
+type ExecQueryParams struct {
+	Query     string
+	Arguments []interface{}
+}
+
+func (f *Fixture) ExecQuery(t *testing.T, params ExecQueryParams) {
 	t.Helper()
-	_, err := f.storage.Pgx.Exec(context.Background(), query)
+	_, err := f.storage.Pgx.Exec(context.Background(), params.Query, params.Arguments...)
 	assert.NoError(t, err)
 }
