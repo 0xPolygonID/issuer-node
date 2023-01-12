@@ -19,6 +19,7 @@ type schema struct {
 	storage *db.Storage
 }
 
+// NewSchema creates a new schema service
 func NewSchema(storage *db.Storage) ports.SchemaService {
 	return &schema{storage: storage}
 }
@@ -49,7 +50,6 @@ func (s *schema) LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, 
 
 // Process data and schema and create Index and Value slots
 func (s *schema) Process(ctx context.Context, schemaURL, credentialType string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
-
 	var parser processor.Parser
 	var validator processor.Validator
 	pr := &processor.Processor{}

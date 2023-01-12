@@ -121,10 +121,12 @@ func testBJJKeyContent(t testing.TB, k TestKMS, keyID KeyID) babyjub.PrivateKey 
 	require.NoError(t, err)
 	require.Len(t, sec.Data["data"], 2)
 
-	keyType := sec.Data["data"].(map[string]interface{})[jsonKeyType].(string)
+	keyType, ok := sec.Data["data"].(map[string]interface{})[jsonKeyType].(string)
+	require.Equal(t, ok, true)
 	require.Equal(t, string(KeyTypeBabyJubJub), keyType)
 
-	privKeyHex := sec.Data["data"].(map[string]interface{})[jsonKeyData].(string)
+	privKeyHex, ok := sec.Data["data"].(map[string]interface{})[jsonKeyData].(string)
+	require.Equal(t, ok, true)
 	privKeyBytes, err := hex.DecodeString(privKeyHex)
 	require.NoError(t, err)
 	var privKey babyjub.PrivateKey

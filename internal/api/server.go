@@ -126,6 +126,10 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 	claimReq := ports.NewClaimRequest(schema, did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
 
 	nonce, err := rand.Int64()
+	if err != nil {
+		log.Error(ctx, "Can not create a nonce", err)
+		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
 
 	vc, err := s.claimService.CreateVC(ctx, claimReq, nonce)
 	if err != nil {
@@ -133,7 +137,13 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
-	credentialType := fmt.Sprintf("%s#%s", schema.Metadata.Uris["jsonLdContext"].(string), request.Body.Type)
+	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
+	if !ok {
+		log.Warn(ctx, "invalid jsonLdContext")
+		return CreateClaim400JSONResponse{N400JSONResponse{Message: "invalid jsonLdContext"}}, nil
+	}
+
+	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, request.Body.Type)
 	mtRootPostion := common.DefineMerklizedRootPosition(schema.Metadata, claimReq.MerklizedRootPosition)
 
 	coreClaim, err := s.schemaService.Process(ctx, claimReq.CredentialSchema, credentialType, vc, &processor.CoreClaimOptions{
@@ -143,7 +153,6 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		SubjectPosition:       claimReq.SubjectPos,
 		Updatable:             false,
 	})
-
 	if err != nil {
 		log.Error(ctx, "Can not process the schema", err)
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil

@@ -4,10 +4,9 @@ import (
 	"context"
 
 	core "github.com/iden3/go-iden3-core"
+	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
-
-	jsonSuite "github.com/iden3/go-schema-processor/json"
 )
 
 // SchemaService is the interface implemented by the Schema service

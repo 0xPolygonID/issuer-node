@@ -11,6 +11,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+// ClaimRequest struct
 type ClaimRequest struct {
 	Schema                jsonSuite.Schema
 	DID                   *core.DID
@@ -23,10 +24,12 @@ type ClaimRequest struct {
 	MerklizedRootPosition string
 }
 
+// Validate ensures that a claim is correct
 func (c *ClaimRequest) Validate() error {
 	return nil
 }
 
+// NewClaimRequest returns a new claim object with the given parameters
 func NewClaimRequest(schema jsonSuite.Schema, did *core.DID, credentialSchema string, credentialSubject json.RawMessage, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *ClaimRequest {
 	var version uint32
 	var subject, merklizedRP string

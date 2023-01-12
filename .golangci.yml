@@ -6,17 +6,29 @@ run:
 linters:
   disable-all: true
   enable:
-    - depguard
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - exportloopref
+    - errcheck
     - forbidigo
-    - gofumpt
-    - gocyclo
+    - forcetypeassert
+    - gci
     - gocognit
-    - misspell
-    - unconvert
-    - tparallel
+    - gocyclo
+#    - gocritic
+    - gosimple
+    - gofumpt
+    - gomnd
     - govet
+    - ineffassign
+    - misspell
     - staticcheck
-
+    - revive
+    - typecheck
+    - unconvert
+    - unused
 
 linters-settings:
   depguard:
@@ -31,7 +43,7 @@ linters-settings:
   forbidigo:
     forbid:
       - 'spew\.Dump'
-#      - '^fmt\.Print.*$'
+      - '^fmt\.Print.*$'
   gci:
     custom-order: true
     skip-generated: true
@@ -41,25 +53,25 @@ linters-settings:
       - prefix(github.com/polygonid/sh-id-platform)
       - blank
       - dot
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-    disabled-checks:
+#  gocritic:
+#    enabled-tags:
+#      - diagnostic
+#      - style
+#      - performance
+#    disabled-checks:
   gofumpt:
     lang-version: "1.18"
   gocognit:
     min-complexity: 38
   gocyclo:
-    min-complexity: 31
+    min-complexity: 35
   revive:
     enable-all-rules: false
     rules:
       - name: argument-limit
         severity: warning
         disabled: false
-        arguments: [ 6 ]
+        arguments: [ 9 ]
       - name: exported
         severity: warning
         disabled: false

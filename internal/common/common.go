@@ -39,7 +39,6 @@ func ElemBytesCoreToMT(ebCore core.ElemBytes) merkletree.ElemBytes {
 // default merklized position is `index`
 // otherwise value from `position`
 func DefineMerklizedRootPosition(metadata *jsonSuite.SchemaMetadata, position string) string {
-
 	if metadata != nil && metadata.Serialization != nil {
 		return ""
 	}

@@ -40,6 +40,7 @@ type identity struct {
 	kms                     kms.KMSType
 }
 
+// NewIdentity creates a new identity
 func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, storage *db.Storage) ports.IndentityService {
 	return &identity{
 		identityRepository:      identityRepository,
@@ -99,7 +100,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 		return nil, err
 	}
 
-	signtureBytes, err := circuitSigner.Sign(babyjubjub.SignatureType, claimEntry)
+	signtureBytes, err := circuitSigner.Sign(ctx, babyjubjub.SignatureType, claimEntry)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +127,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 
 // GetKeyIDFromAuthClaim finds BJJ KeyID of auth claim
 // in registered key providers
-func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context,
-	authClaim *domain.Claim) (kms.KeyID, error) {
-
+func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
 	var keyID kms.KeyID
 
 	if authClaim.Identifier == nil {
@@ -277,7 +276,12 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't unmarshal the shema: %w", err)
 	}
 
-	credentialType := fmt.Sprintf("%s#%s", schema.Metadata.Uris["jsonLdContext"].(string), domain.AuthBJJCredential)
+	var jsonLdContext string
+	if jsonLdContext, ok = schema.Metadata.Uris["jsonLdContext"].(string); !ok {
+		return nil, nil, fmt.Errorf("invalid: %w", err)
+	}
+
+	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, domain.AuthBJJCredential)
 	claimID, err := uuid.NewUUID()
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't crate uuid: %w", err)
