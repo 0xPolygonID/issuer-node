@@ -2,6 +2,11 @@ package repositories
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/jackc/pgtype"
+
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -33,4 +38,42 @@ func (mt *identityMerkleTreeRepository) UpdateByID(ctx context.Context, conn db.
 	_, err := conn.Exec(ctx, `UPDATE identity_mts SET identifier = $1, type = $2 WHERE id = $3`,
 		imt.Identifier, imt.Type, imt.ID)
 	return err
+}
+
+func (mt *identityMerkleTreeRepository) GetByID(ctx context.Context, conn db.Querier, mtID uint64) (*domain.IdentityMerkleTree, error) {
+	var res domain.IdentityMerkleTree
+	row := conn.QueryRow(ctx, "SELECT id, identifier, type FROM identity_mts WHERE id = $1", mtID)
+	if err := row.Scan(&res.ID, &res.Identifier, &res.Type); err != nil {
+		return nil, fmt.Errorf("error getting merkle tree by id %w", err)
+	}
+	return &res, nil
+}
+
+func (mt *identityMerkleTreeRepository) GetByIdentifierAndTypes(ctx context.Context, conn db.Querier, identifier *core.DID, mtTypes []uint16) ([]domain.IdentityMerkleTree, error) {
+	var typesSQL pgtype.Int2Array
+	if err := typesSQL.Set(mtTypes); err != nil {
+		return nil, err
+	}
+
+	rows, err := conn.Query(ctx,
+		`SELECT id, identifier, type FROM identity_mts WHERE identifier = $1 AND type = ANY($2)`,
+		identifier.String(), typesSQL)
+	if err != nil {
+		return nil, err
+	}
+
+	trees := make([]domain.IdentityMerkleTree, 0, len(mtTypes))
+	for rows.Next() {
+		var tree domain.IdentityMerkleTree
+		if err = rows.Scan(&tree.ID, &tree.Identifier, &tree.Type); err != nil {
+			return nil, err
+		}
+		trees = append(trees, tree)
+	}
+
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	return trees, nil
 }
