@@ -10,6 +10,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+// CreateClaim fixture
 func (f *Fixture) CreateClaim(t *testing.T, claim *domain.Claim) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()

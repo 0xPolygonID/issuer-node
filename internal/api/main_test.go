@@ -7,10 +7,9 @@ import (
 	"os"
 	"testing"
 
-	core "github.com/iden3/go-iden3-core"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"

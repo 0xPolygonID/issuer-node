@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
+// Querier represents the set of persistence methods
 type Querier interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 	BeginFunc(ctx context.Context, f func(pgx.Tx) error) (err error)

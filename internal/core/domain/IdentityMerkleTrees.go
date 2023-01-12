@@ -9,6 +9,7 @@ import (
 	"github.com/iden3/go-merkletree-sql/v2"
 
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 	mtTypesCount        = 3
 )
 
+// IdentityMerkleTrees defines the merkle tree structure
 type IdentityMerkleTrees struct {
 	Identifier *core.DID
 	Trees      []*merkletree.MerkleTree
@@ -52,13 +54,13 @@ func (imts *IdentityMerkleTrees) AddEntry(ctx context.Context, entry *merkletree
 
 	index, value, err := entry.HiHv()
 	if err != nil {
-		fmt.Println(fmt.Sprintf("cannot get Index and Value from entry: %v", marshalEntry()))
+		log.Warn(ctx, fmt.Sprintf("cannot get Index and Value from entry: %v", marshalEntry()))
 		return fmt.Errorf("cannot get Index and Value from entry: %w", err)
 	}
 
 	err = imts.Trees[MerkleTreeTypeClaims].Add(ctx, index.BigInt(), value.BigInt())
 	if err != nil {
-		fmt.Println(fmt.Printf("cannot add entry to claims merkle tree: %v", marshalEntry()))
+		log.Warn(ctx, fmt.Sprintf("cannot add entry to claims merkle tree: %v", marshalEntry()))
 		return fmt.Errorf("cannot add entry to claims merkle tree: %w", err)
 	}
 	return nil
@@ -87,6 +89,7 @@ func (imts *IdentityMerkleTrees) BindToIdentifier(conn db.Querier, identifier *c
 	return nil
 }
 
+// GetMtModels returns a list of IdentityMerkleTree
 func (imts *IdentityMerkleTrees) GetMtModels() []*IdentityMerkleTree {
 	result := make([]*IdentityMerkleTree, 0)
 	for _, mtType := range mtTypes {

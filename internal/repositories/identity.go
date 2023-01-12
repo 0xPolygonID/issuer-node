@@ -10,9 +10,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-type identity struct {
-}
+type identity struct{}
 
+// NewIdentity TODO
 func NewIdentity() ports.IndentityRepository {
 	return &identity{}
 }

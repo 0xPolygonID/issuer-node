@@ -48,12 +48,10 @@ func (s *BJJSinger) Sign(ctx context.Context, data []byte) ([]byte, error) {
 }
 
 // BJJVerifier represents verifier with BJJ key
-type BJJVerifier struct {
-}
+type BJJVerifier struct{}
 
 // Verify verifies BJJ signature on data
 func (s *BJJVerifier) Verify(publicKey, data, signature []byte) error {
-
 	var sigComp babyjub.SignatureComp
 	if len(signature) != len(sigComp) {
 		return errors.WithStack(errorInvalidSignatureLength)

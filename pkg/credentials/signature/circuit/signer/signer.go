@@ -52,8 +52,7 @@ func New(signatureSuites ...SignatureSuite) *CircuitSigner {
 }
 
 // Sign returns SignatureProof for circuit verification
-func (signer *CircuitSigner) Sign(sigType string, claim *core.Claim) ([]byte, error) {
-
+func (signer *CircuitSigner) Sign(ctx context.Context, sigType string, claim *core.Claim) ([]byte, error) {
 	hashIndex, hashValue, err := claim.HiHv()
 	if err != nil {
 		return nil, err
@@ -69,12 +68,11 @@ func (signer *CircuitSigner) Sign(sigType string, claim *core.Claim) ([]byte, er
 		return nil, err
 	}
 
-	return suite.Sign(context.Background(), merkletree.SwapEndianness(commonHash.Bytes()))
+	return suite.Sign(ctx, merkletree.SwapEndianness(commonHash.Bytes()))
 }
 
 // getSignatureSuite returns signature suite based on signature type.
-func (signer *CircuitSigner) getSignatureSuite(
-	signatureType string) (SignatureSuite, error) {
+func (signer *CircuitSigner) getSignatureSuite(signatureType string) (SignatureSuite, error) {
 	for _, s := range signer.signatureSuites {
 		if s.Accept(signatureType) {
 			return s, nil

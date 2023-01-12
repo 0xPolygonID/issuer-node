@@ -26,6 +26,7 @@ type claim struct {
 	storage    *db.Storage
 }
 
+// NewClaim creates a new claim service
 func NewClaim(rhsEnabled bool, rhsUrl string, host string, repo ports.ClaimsRepository, storage *db.Storage) ports.ClaimsService {
 	return &claim{
 		RHSEnabled: rhsEnabled,
@@ -41,7 +42,7 @@ func (c *claim) CreateVC(ctx context.Context, claimReq *ports.ClaimRequest, nonc
 		return verifiable.W3CCredential{}, err
 	}
 
-	vCredential, err := c.newVerifiableCredential(claimReq, nonce) //create vc credential
+	vCredential, err := c.newVerifiableCredential(claimReq, nonce) // create vc credential
 	if err != nil {
 		return verifiable.W3CCredential{}, err
 	}
@@ -51,7 +52,6 @@ func (c *claim) CreateVC(ctx context.Context, claimReq *ports.ClaimRequest, nonc
 
 func (c *claim) Save(ctx context.Context, claim *domain.Claim) (*domain.Claim, error) {
 	id, err := c.icRepo.Save(ctx, c.storage.Pgx, claim)
-
 	if err != nil {
 		return nil, err
 	}
@@ -74,8 +74,11 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 }
 
 func (c *claim) newVerifiableCredential(claimReq *ports.ClaimRequest, nonce uint64) (verifiable.W3CCredential, error) {
-	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential,
-		claimReq.Schema.Metadata.Uris["jsonLdContext"].(string)}
+	jsonLdContext, ok := claimReq.Schema.Metadata.Uris["jsonLdContext"].(string)
+	if !ok {
+		return verifiable.W3CCredential{}, fmt.Errorf("invalid jsonLdContext type, expected string")
+	}
+	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, claimReq.Type}
 
 	var expirationTime *time.Time

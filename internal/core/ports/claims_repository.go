@@ -10,6 +10,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
+// ClaimsRepository is the interface that defines the available methods
 type ClaimsRepository interface {
 	Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error)
 	Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error

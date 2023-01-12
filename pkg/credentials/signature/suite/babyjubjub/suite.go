@@ -36,7 +36,6 @@ func (s *Suite) Accept(t string) bool {
 
 // GetDigest returns digest on provided data for signing
 func (s *Suite) GetDigest(data []byte) ([]byte, error) {
-
 	// check if data size more than 32 byte we need to do the hashing
 	bi := new(big.Int).SetBytes(merkletree.SwapEndianness(data))
 
