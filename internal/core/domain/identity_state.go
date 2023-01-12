@@ -16,6 +16,7 @@ const (
 	StatusFailed IdentityStatus = "failed"
 )
 
+// IdentityState struct
 type IdentityState struct {
 	StateID            int64          `json:"-"`
 	Identifier         string         `json:"-"`

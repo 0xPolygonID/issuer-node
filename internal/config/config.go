@@ -13,6 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
+// CIConfigPath variable contain the CI configuration path
 const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 
 // Configuration holds the project configuration
@@ -31,11 +32,13 @@ type Database struct {
 	URL string
 }
 
+// ReverseHashService contains the reverse hash service properties
 type ReverseHashService struct {
 	URL     string
 	Enabled bool
 }
 
+// KeyStore defines the keystore
 type KeyStore struct {
 	Address              string
 	Token                string

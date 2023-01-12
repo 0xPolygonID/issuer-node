@@ -28,6 +28,7 @@ var (
 
 type claims struct{}
 
+// NewClaims returns a new claim repository
 func NewClaims() ports.ClaimsRepository {
 	return &claims{}
 }

@@ -2,6 +2,7 @@ package domain
 
 import core "github.com/iden3/go-iden3-core"
 
+// Identity struct
 type Identity struct {
 	Identifier string
 	Relay      string

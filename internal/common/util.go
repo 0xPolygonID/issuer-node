@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	core "github.com/iden3/go-iden3-core"
@@ -26,7 +27,12 @@ type CredentialRequest struct {
 // CreateCredential is util to create a Verifiable credential
 func CreateCredential(issuer *core.DID, req CredentialRequest, schema jsonSuite.Schema) (verifiable.W3CCredential, error) {
 	var cred verifiable.W3CCredential
-	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, schema.Metadata.Uris["jsonLdContext"].(string)}
+
+	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
+	if !ok {
+		return verifiable.W3CCredential{}, fmt.Errorf("invalid jsonLdContext, expected string")
+	}
+	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, req.Type}
 

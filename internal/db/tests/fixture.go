@@ -11,12 +11,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
+// Fixture - Handle testing fixture configuration
 type Fixture struct {
 	storage            *db.Storage
 	identityRepository ports.IndentityRepository
 	claimRepository    ports.ClaimsRepository
 }
 
+// NewFixture - constructor
 func NewFixture(storage *db.Storage) *Fixture {
 	return &Fixture{
 		storage:            storage,
@@ -25,11 +27,13 @@ func NewFixture(storage *db.Storage) *Fixture {
 	}
 }
 
+// ExecQueryParams - handle the query and the argumens for that query.
 type ExecQueryParams struct {
 	Query     string
 	Arguments []interface{}
 }
 
+// ExecQuery - Execute a query for testing purpose.
 func (f *Fixture) ExecQuery(t *testing.T, params ExecQueryParams) {
 	t.Helper()
 	_, err := f.storage.Pgx.Exec(context.Background(), params.Query, params.Arguments...)

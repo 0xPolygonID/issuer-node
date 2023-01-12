@@ -78,7 +78,7 @@ func (v *vaultPluginIden3KeyProvider) LinkToIdentity(_ context.Context, keyID Ke
 func (v *vaultPluginIden3KeyProvider) Sign(_ context.Context, keyID KeyID, dataToSign []byte) ([]byte, error) {
 	switch keyID.Type {
 	case KeyTypeBabyJubJub:
-		if len(dataToSign) > 32 {
+		if len(dataToSign) > defaultLength {
 			return nil, errors.New("data to sign is too large")
 		}
 
@@ -215,7 +215,7 @@ func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyTy
 		return nil, errors.New("keys path cannot be empty")
 	}
 	var keysPathPrefix string
-	parts := strings.SplitN(keysPath, "/", 2)
+	parts := strings.SplitN(keysPath, "/", partsNumber)
 	if len(parts) > 1 {
 		keysPathPrefix = parts[1]
 	}
@@ -232,7 +232,8 @@ func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyTy
 			vaultCli:       vaultCli,
 			keysMountPath:  parts[0],
 			keysPathPrefix: keysPathPrefix,
-			keyNameRE:      keyNameRE},
+			keyNameRE:      keyNameRE,
+		},
 		nil
 }
 

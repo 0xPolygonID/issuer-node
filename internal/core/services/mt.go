@@ -10,6 +10,7 @@ import (
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/mr-tron/base58"
 	"github.com/pkg/errors"
+
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -38,6 +39,7 @@ type mtService struct {
 	imtRepo ports.IdentityMerkleTreeRepository
 }
 
+// NewIdentityMerkleTrees generates a new merkle tree service
 func NewIdentityMerkleTrees(imtRepo ports.IdentityMerkleTreeRepository) ports.MtService {
 	return &mtService{
 		imtRepo: imtRepo,

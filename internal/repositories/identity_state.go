@@ -11,6 +11,7 @@ import (
 
 type identityState struct{}
 
+// NewIdentityState returns a new identity state repository
 func NewIdentityState() ports.IdentityStateRepository {
 	return &identityState{}
 }

@@ -12,6 +12,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db/schema"
 )
 
+const (
+	defaultTimeOut = 40
+)
+
+// NewTestStorage tests the storage
 func NewTestStorage(cfg *config.Configuration) (*db.Storage, func(), error) {
 	noopTeardown := func() {}
 	if cfg.Database.URL == "" {
@@ -24,7 +29,7 @@ func NewTestStorage(cfg *config.Configuration) (*db.Storage, func(), error) {
 		return nil, noopTeardown, fmt.Errorf("connection string is invalid: %v", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeOut*time.Second)
 	defer cancel()
 
 	storage, err := db.NewStorage(cfg.Database.URL)
@@ -42,10 +47,10 @@ func NewTestStorage(cfg *config.Configuration) (*db.Storage, func(), error) {
 	}
 
 	teardown := func() {
-		storage.Close()
+		_ = storage.Close()
 	}
 
-	storage.Close()
+	_ = storage.Close()
 
 	storage, err = db.NewStorage(tempURL.String())
 	if err != nil {

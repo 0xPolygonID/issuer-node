@@ -30,7 +30,6 @@ func TestServer_CreateIdentity(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response CreateIdentityResponseObject
 		httpCode int
 	}
 	type testConfig struct {

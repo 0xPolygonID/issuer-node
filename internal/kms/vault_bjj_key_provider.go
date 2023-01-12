@@ -8,9 +8,8 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/iden3/go-iden3-crypto/babyjub"
-
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/utils"
 )
 
@@ -20,6 +19,11 @@ type vaultBJJKeyProvider struct {
 	reIdenKeyPathHex *regexp.Regexp // RE of key path bounded to identity
 	reAnonKeyPathHex *regexp.Regexp // RE of key path not bounded to identity
 }
+
+const (
+	defaultLength = 32
+	partsNumber   = 2
+)
 
 // NewVaultBJJKeyProvider creates new key provider for BabyJubJub keys stored
 // in vault
@@ -51,7 +55,7 @@ func (v *vaultBJJKeyProvider) LinkToIdentity(_ context.Context, keyID KeyID, ide
 	}
 
 	ss := v.reAnonKeyPathHex.FindStringSubmatch(keyID.ID)
-	if len(ss) != 2 {
+	if len(ss) != partsNumber {
 		return keyID, errors.New("key ID does not looks like unbound")
 	}
 
@@ -66,7 +70,7 @@ func (v *vaultBJJKeyProvider) LinkToIdentity(_ context.Context, keyID KeyID, ide
 // Sign signs *big.Int using poseidon algorithm.
 // data should be a little-endian bytes representation of *big.Int.
 func (v *vaultBJJKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) ([]byte, error) {
-	if len(data) > 32 {
+	if len(data) > defaultLength {
 		return nil, errors.New("data to sign is too large")
 	}
 
@@ -126,7 +130,7 @@ func (v *vaultBJJKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	if ss == nil {
 		ss = v.reIdenKeyPathHex.FindStringSubmatch(keyID.ID)
 	}
-	if len(ss) != 2 {
+	if len(ss) != partsNumber {
 		return nil, errors.New("unable to get public key from key ID")
 	}
 
@@ -180,7 +184,7 @@ func (v *vaultBJJKeyProvider) privateKey(keyID KeyID) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(val) != 32 {
+	if len(val) != defaultLength {
 		return nil, errors.New("incorrect private key")
 	}
 

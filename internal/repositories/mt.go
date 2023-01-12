@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgtype"
-
 	core "github.com/iden3/go-iden3-core"
+	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -15,6 +14,7 @@ import (
 
 type identityMerkleTreeRepository struct{}
 
+// NewIdentityMerkleTreeRepository returns a new identityMerkleTreeRepository
 func NewIdentityMerkleTreeRepository() ports.IdentityMerkleTreeRepository {
 	return &identityMerkleTreeRepository{}
 }

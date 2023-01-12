@@ -5,8 +5,10 @@ import (
 	"strconv"
 )
 
+// RevNonceUint64 uint64 alias
 type RevNonceUint64 uint64
 
+// Value TODO
 func (r RevNonceUint64) Value() (driver.Value, error) {
 	return strconv.FormatUint(uint64(r), 10), nil
 }
@@ -21,6 +23,7 @@ const (
 	RevPublished RevStatus = 1
 )
 
+// Revocation struct
 type Revocation struct {
 	ID          int64          `json:"-"`
 	Identifier  string         `json:"identifier"`

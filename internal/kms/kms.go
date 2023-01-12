@@ -9,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// KMSType represents the KMS interface
+// revive:disable-next-line
 type KMSType interface {
 	RegisterKeyProvider(kt KeyType, kp KeyProvider) error
 	CreateKey(kt KeyType, identity *core.DID) (KeyID, error)

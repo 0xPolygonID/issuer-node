@@ -14,16 +14,16 @@ import (
 // CoreClaim is an alias for the core.Claim struct
 type CoreClaim core.Claim
 
+// Claim struct
 type Claim struct {
-	ID              uuid.UUID `json:"-"`
-	Identifier      *string   `json:"identifier"`
-	Issuer          string    `json:"issuer"`
-	SchemaHash      string    `json:"schema_hash"`
-	SchemaURL       string    `json:"schema_url"`
-	SchemaType      string    `json:"schema_type"`
-	OtherIdentifier string    `json:"other_identifier"`
-	Expiration      int64     `json:"expiration"`
-	// TODO(illia-korotia): delete from db but left in struct.
+	ID               uuid.UUID       `json:"-"`
+	Identifier       *string         `json:"identifier"`
+	Issuer           string          `json:"issuer"`
+	SchemaHash       string          `json:"schema_hash"`
+	SchemaURL        string          `json:"schema_url"`
+	SchemaType       string          `json:"schema_type"`
+	OtherIdentifier  string          `json:"other_identifier"`
+	Expiration       int64           `json:"expiration"`
 	Updatable        bool            `json:"updatable"`
 	Version          uint32          `json:"version"`
 	RevNonce         RevNonceUint64  `json:"rev_nonce"`
@@ -38,6 +38,7 @@ type Claim struct {
 	HIndex           string          `json:"-"`
 }
 
+// FromClaimer TODO
 func FromClaimer(claim *core.Claim, schemaURL, schemaType string) (*Claim, error) {
 	otherIdentifier := ""
 	id, err := claim.GetID()
@@ -89,10 +90,14 @@ func (c CoreClaim) Value() (driver.Value, error) {
 	return string(jsonStr), err
 }
 
+// Scan TODO
 func (c *CoreClaim) Scan(value interface{}) error {
-	s := value.(string)
+	valueStr, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("invalid value type, expected string")
+	}
 	var claim core.Claim
-	err := json.Unmarshal([]byte(s), &claim)
+	err := json.Unmarshal([]byte(valueStr), &claim)
 	if err != nil {
 		return err
 	}

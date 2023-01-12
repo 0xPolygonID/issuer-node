@@ -9,6 +9,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+// CreateIdentity creates a new identity
 func (f *Fixture) CreateIdentity(t *testing.T, identity *domain.Identity) {
 	t.Helper()
 	assert.NoError(t, f.identityRepository.Save(context.Background(), f.storage.Pgx, identity))

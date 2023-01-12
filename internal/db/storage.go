@@ -7,10 +7,12 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
+// Storage defines the postgres storage
 type Storage struct {
 	Pgx *pgxpool.Pool
 }
 
+// NewStorage creates and returns a new Pgx storage connection
 func NewStorage(connectionString string) (*Storage, error) {
 	pgxConn, err := pgxpool.Connect(context.Background(), connectionString)
 	if err != nil {
