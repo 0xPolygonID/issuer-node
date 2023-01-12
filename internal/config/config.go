@@ -17,17 +17,23 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl  string
-	ServerPort int
-	Database   Database `mapstructure:"Database"`
-	KeyStore   KeyStore `mapstructure:"KeyStore"`
-	Runtime    Runtime  `mapstructure:"Runtime"`
+	ServerUrl          string
+	ServerPort         int
+	Database           Database           `mapstructure:"Database"`
+	KeyStore           KeyStore           `mapstructure:"KeyStore"`
+	Runtime            Runtime            `mapstructure:"Runtime"`
+	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService"`
 }
 
 // Database has the database configuration
 // URL: The database connection string
 type Database struct {
 	URL string
+}
+
+type ReverseHashService struct {
+	URL     string
+	Enabled bool
 }
 
 type KeyStore struct {

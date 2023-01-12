@@ -227,3 +227,58 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 
 	return &claim, nil
 }
+
+func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error) {
+	var claim domain.Claim
+
+	// language=PostgreSQL
+	row := conn.QueryRow(ctx,
+		`SELECT claims.id,
+		   issuer,
+		   schema_hash,
+		   schema_type,
+		   schema_url,
+		   other_identifier,
+		   expiration,
+		   updatable,
+		   claims.version,
+		   rev_nonce,
+		   mtp_proof,
+		   signature_proof,
+		   data,
+		   claims.identifier,
+		   identity_state,
+		   credential_status,
+		   revoked,
+		   core_claim
+		FROM claims
+		WHERE claims.identifier=$1  
+				AND ( claims.other_identifier = $1 or claims.other_identifier = '') 
+				AND claims.schema_hash = $2 
+				AND claims.revoked = false`, subject.String(), schemaHash)
+
+	err := row.Scan(&claim.ID,
+		&claim.Issuer,
+		&claim.SchemaHash,
+		&claim.SchemaType,
+		&claim.SchemaHash,
+		&claim.OtherIdentifier,
+		&claim.Expiration,
+		&claim.Updatable,
+		&claim.Version,
+		&claim.RevNonce,
+		&claim.MTPProof,
+		&claim.SignatureProof,
+		&claim.Data,
+		&claim.Identifier,
+		&claim.IdentityState,
+		&claim.CredentialStatus,
+		&claim.Revoked,
+		&claim.CoreClaim)
+
+	if err == pgx.ErrNoRows {
+		return nil, ErrClaimDoesNotExist
+	}
+
+	return &claim, err
+}

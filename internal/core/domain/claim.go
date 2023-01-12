@@ -99,3 +99,8 @@ func (c *CoreClaim) Scan(value interface{}) error {
 	*c = CoreClaim(claim)
 	return nil
 }
+
+// Get returns the value of the core claim
+func (c *CoreClaim) Get() *core.Claim {
+	return (*core.Claim)(c)
+}

@@ -53,24 +53,6 @@ paths:
                 $ref: '#/components/schemas/Health'
         '500':
           $ref: '#/components/responses/500'
-  /random:
-    get:
-      summary: Return random responses and status codes
-      operationId: Random
-      description: This endpoint returns random responses with no sense
-      tags:
-        - Section 1
-      responses:
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '402':
-          $ref: '#/components/responses/402'
-        '407':
-          $ref: '#/components/responses/407'
-        '500':
-          $ref: '#/components/responses/500'
 #identity:
   /v1/identities:
     post:
@@ -191,6 +173,8 @@ components:
           example: true
     GenericErrorMessage:
       type: object
+      required:
+        - message
       properties:
         message:
           type: string
@@ -268,10 +252,6 @@ components:
         - credentialSchema
         - type
         - credentialSubject
-        - expiration
-        - version
-        - subjectPosition
-        - merklizedRootPosition
       properties:
         credentialSchema:
           type: string
@@ -364,10 +344,6 @@ components:
       description: Identity identifier
       schema:
         type: string
-        x-go-type: core.DID
-        x-go-type-import:
-          name: uuid
-          path: github.com/iden3/go-iden3-core
     pathNonce:
       name: nonce
       in: path

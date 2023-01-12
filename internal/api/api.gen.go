@@ -19,7 +19,6 @@ import (
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql"
 )
 
@@ -27,12 +26,12 @@ import (
 type CreateClaimRequest struct {
 	CredentialSchema      string          `json:"credentialSchema"`
 	CredentialSubject     json.RawMessage `json:"credentialSubject"`
-	Expiration            int64           `json:"expiration"`
-	MerklizedRootPosition string          `json:"merklizedRootPosition"`
+	Expiration            *int64          `json:"expiration,omitempty"`
+	MerklizedRootPosition *string         `json:"merklizedRootPosition,omitempty"`
 	RevNonce              *uint64         `json:"revNonce,omitempty"`
-	SubjectPosition       string          `json:"subjectPosition"`
+	SubjectPosition       *string         `json:"subjectPosition,omitempty"`
 	Type                  string          `json:"type"`
-	Version               uint32          `json:"version"`
+	Version               *uint32         `json:"version,omitempty"`
 }
 
 // CreateClaimResponse defines model for CreateClaimResponse.
@@ -50,7 +49,7 @@ type CreateIdentityResponse struct {
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
-	Message *string `json:"message,omitempty"`
+	Message string `json:"message"`
 }
 
 // Health defines model for Health.
@@ -104,22 +103,13 @@ type RevokeClaimResponse struct {
 }
 
 // PathIdentifier defines model for pathIdentifier.
-type PathIdentifier = core.DID
+type PathIdentifier = string
 
 // PathNonce defines model for pathNonce.
 type PathNonce = int64
 
 // N400 defines model for 400.
 type N400 = GenericErrorMessage
-
-// N401 defines model for 401.
-type N401 = GenericErrorMessage
-
-// N402 defines model for 402.
-type N402 = GenericErrorMessage
-
-// N407 defines model for 407.
-type N407 = GenericErrorMessage
 
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
@@ -139,9 +129,6 @@ type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Return random responses and status codes
-	// (GET /random)
-	Random(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
@@ -180,21 +167,6 @@ func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDocumentation(w, r)
-	})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// Random operation middleware
-func (siw *ServerInterfaceWrapper) Random(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.Random(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -477,9 +449,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/", wrapper.GetDocumentation)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/random", wrapper.Random)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/static/docs/api/api.yaml", wrapper.GetYaml)
 	})
 	r.Group(func(r chi.Router) {
@@ -506,12 +475,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 
 type N400JSONResponse GenericErrorMessage
 
-type N401JSONResponse GenericErrorMessage
-
-type N402JSONResponse GenericErrorMessage
-
-type N407JSONResponse GenericErrorMessage
-
 type N500JSONResponse GenericErrorMessage
 
 type N500CreateIdentityJSONResponse struct {
@@ -533,58 +496,6 @@ type GetDocumentation200Response struct {
 func (response GetDocumentation200Response) VisitGetDocumentationResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
-}
-
-type RandomRequestObject struct {
-}
-
-type RandomResponseObject interface {
-	VisitRandomResponse(w http.ResponseWriter) error
-}
-
-type Random400JSONResponse struct{ N400JSONResponse }
-
-func (response Random400JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random401JSONResponse struct{ N401JSONResponse }
-
-func (response Random401JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random402JSONResponse struct{ N402JSONResponse }
-
-func (response Random402JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(402)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random407JSONResponse struct{ N407JSONResponse }
-
-func (response Random407JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(407)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type Random500JSONResponse struct{ N500JSONResponse }
-
-func (response Random500JSONResponse) VisitRandomResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
 }
 
 type GetYamlRequestObject struct {
@@ -790,9 +701,6 @@ type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Return random responses and status codes
-	// (GET /random)
-	Random(ctx context.Context, request RandomRequestObject) (RandomResponseObject, error)
 	// Get the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
@@ -863,30 +771,6 @@ func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetDocumentationResponseObject); ok {
 		if err := validResponse.VisitGetDocumentationResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
-	}
-}
-
-// Random operation middleware
-func (sh *strictHandler) Random(w http.ResponseWriter, r *http.Request) {
-	var request RandomRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.Random(ctx, request.(RandomRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Random")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(RandomResponseObject); ok {
-		if err := validResponse.VisitRandomResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1080,34 +964,32 @@ func (sh *strictHandler) RevokeClaim(w http.ResponseWriter, r *http.Request, ide
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"/zvvX7ZUGwAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
