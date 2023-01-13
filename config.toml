@@ -9,7 +9,7 @@ ServerUrl = "http://localhost"
     LogMode = 2
 [KeyStore]
     Address="http://localhost:8200"
-    Token="hvs.Bo9PRe6TAv7t8MH7lf69m9oD"
+    Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
     PluginIden3MountPath="iden3"
 [ReverseHashService]
     URL="http://localhost:3001"

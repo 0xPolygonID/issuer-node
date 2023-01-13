@@ -113,6 +113,27 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+  /v1/{identifier}/claims/{id}:
+    get:
+      summary: Get Claim
+      operationId: GetClaim
+      description: Endpoint to retrieve a created Claim
+      tags:
+        - Claim
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathClaim'
+      responses:
+        '200':
+          description: Claim found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetClaimResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
   /v1/{identifier}/claims/revoke/{nonce}:
     post:
       summary: Revoke Claim
@@ -130,8 +151,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
   /v1/{identifier}/claims/revocation/status/{nonce}:
@@ -286,6 +307,65 @@ components:
           type: string
           x-omitempty: false
 
+    GetClaimResponse:
+      type: object
+      required:
+        - id
+        - "@context"
+        - type
+        - credentialSubject
+        - credentialStatus
+        - issuer
+        - credentialSchema
+        - proof
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        "@context":
+          type: array
+          x-omitempty: false
+          items:
+            type: string
+        type:
+          type: array
+          x-omitempty: false
+          items:
+            type: string
+        expiration:
+          type: string
+          format: date-time
+        issuanceDate:
+          type: string
+          format: date-time
+        credentialSubject:
+          type: object
+          x-omitempty: false
+        credentialStatus:
+          type: null
+        issuer:
+          type: string
+          x-omitempty: false
+        credentialSchema:
+          $ref: '#/components/schemas/CredentialSchema'
+          x-omitempty: false
+        proof:
+          type: null
+
+    CredentialSchema:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+
+
     RevokeClaimResponse:
       type: object
       required:
@@ -344,6 +424,13 @@ components:
       description: Identity identifier
       schema:
         type: string
+    pathClaim:
+      name: id
+      in: path
+      required: true
+      description: Claim identifier
+      schema:
+        type: string
     pathNonce:
       name: nonce
       in: path
@@ -369,6 +456,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '402':
       description: 'Payment Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '404':
+      description: 'Not found'
       content:
         application/json:
           schema:

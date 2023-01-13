@@ -3,20 +3,21 @@ package ports
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	core "github.com/iden3/go-iden3-core"
+	jsonSuite "github.com/iden3/go-schema-processor/json"
+	"github.com/iden3/go-schema-processor/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
 // ClaimRequest struct
 type ClaimRequest struct {
-	Schema                string
+	Schema                jsonSuite.Schema
 	DID                   *core.DID
 	CredentialSchema      string
 	CredentialSubject     json.RawMessage
-	Expiration            *time.Time
+	Expiration            *int64
 	Type                  string
 	Version               uint32
 	SubjectPos            string
@@ -56,4 +57,5 @@ func NewClaimRequest(schema string, did *core.DID, credentialSchema string, cred
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *ClaimRequest) (*domain.Claim, error)
+	Revoke(ctx context.Context, id string, nonce uint64, description string) error
 }

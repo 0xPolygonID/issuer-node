@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -127,7 +125,18 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 // RevokeClaim is the revocation claim controller
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
-	return nil, nil
+	if err := s.claimService.Revoke(ctx, request.Identifier, uint64(request.Nonce), ""); err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return RevokeClaim404JSONResponse{N404JSONResponse{
+				Message: "the claim does not exist",
+			}}, nil
+		}
+
+		return RevokeClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RevokeClaim202JSONResponse{
+		Status: "pending",
+	}, nil
 }
 
 // GetRevocationStatus is the controller to get revocation status
@@ -137,5 +146,9 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 
 // PublishState is the controller to publish the state on-chain
 func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
+	return nil, nil
+}
+
+func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
 	return nil, nil
 }

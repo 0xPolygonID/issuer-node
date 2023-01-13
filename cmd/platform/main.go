@@ -63,6 +63,7 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, storage, mtService)
 	schemaService := services.NewSchema(storage)
 	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, schemaService, identityService, storage)
 
