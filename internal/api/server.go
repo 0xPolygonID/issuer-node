@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,15 +9,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/processor"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/rand"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -111,111 +106,24 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 // CreateClaim is claim creation controller
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
-	if request.Identifier == "" {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: "Invalid request identifier"}}, nil
-	}
-
 	did, err := core.ParseDID(request.Identifier)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	schema, err := s.schemaService.LoadSchema(ctx, request.Body.CredentialSchema)
-	if err != nil {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-	}
+	claimReq := ports.NewClaimRequest(request.Body.CredentialSchema, did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
 
-	claimReq := ports.NewClaimRequest(schema, did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
-
-	nonce, err := rand.Int64()
+	resp, err := s.claimService.CreateClaim(ctx, claimReq)
 	if err != nil {
-		log.Error(ctx, "Can not create a nonce", err)
+		if errors.Is(err, services.ErrJSONLdContext) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-
-	vc, err := s.claimService.CreateVC(ctx, claimReq, nonce)
-	if err != nil {
-		log.Error(ctx, "Can not create a claim", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
-	if !ok {
-		log.Warn(ctx, "invalid jsonLdContext")
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: "invalid jsonLdContext"}}, nil
-	}
-
-	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, request.Body.Type)
-	mtRootPostion := common.DefineMerklizedRootPosition(schema.Metadata, claimReq.MerklizedRootPosition)
-
-	coreClaim, err := s.schemaService.Process(ctx, claimReq.CredentialSchema, credentialType, vc, &processor.CoreClaimOptions{
-		RevNonce:              nonce,
-		MerklizedRootPosition: mtRootPostion,
-		Version:               claimReq.Version,
-		SubjectPosition:       claimReq.SubjectPos,
-		Updatable:             false,
-	})
-	if err != nil {
-		log.Error(ctx, "Can not process the schema", err)
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-	}
-
-	claim, err := domain.FromClaimer(coreClaim, claimReq.CredentialSchema, credentialType)
-	if err != nil {
-		log.Error(ctx, "Can not obtain the claim from claimer", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	authClaim, err := s.claimService.GetAuthClaim(ctx, did)
-	if err != nil {
-		log.Error(ctx, "Can not retrieve the auth claim", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-
-	}
-
-	proof, err := s.identityService.SignClaimEntry(ctx, authClaim,
-		coreClaim)
-	if err != nil {
-		log.Error(ctx, "Can not sign claim entry", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	issuerDIDString := did.String()
-	claim.Identifier = &issuerDIDString
-	claim.Issuer = issuerDIDString
-
-	proof.IssuerData.CredentialStatus = s.claimService.GetRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
-
-	jsonSignatureProof, err := json.Marshal(proof)
-	if err != nil {
-		log.Error(ctx, "Can not encode the json signature proof", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	err = claim.SignatureProof.Set(jsonSignatureProof)
-	if err != nil {
-		log.Error(ctx, "Can not set the json signature proof", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	err = claim.Data.Set(vc)
-	if err != nil {
-		log.Error(ctx, "Can not set the credential", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	err = claim.CredentialStatus.Set(vc.CredentialStatus)
-	if err != nil {
-		log.Error(ctx, "Can not set the credential status", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	claimResp, err := s.claimService.Save(ctx, claim)
-	if err != nil {
-		log.Error(ctx, "Can not save the claim", err)
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	return CreateClaim201JSONResponse{Id: claimResp.ID.String()}, nil
+	return CreateClaim201JSONResponse{Id: resp.ID.String()}, nil
 }
 
 // RevokeClaim is the revocation claim controller
@@ -244,6 +152,7 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	return nil, nil
 }
 
+// GetClaim is the controller to get a client.
 func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
 	return nil, nil
 }
