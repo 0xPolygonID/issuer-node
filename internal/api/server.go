@@ -230,3 +230,7 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
 	return nil, nil
 }
+
+func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
+	return nil, nil
+}
