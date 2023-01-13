@@ -19,9 +19,10 @@ func TestServer_CreateIdentity(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
-	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, storage)
 	schemaService := services.NewSchema(storage)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, schemaService, identityService, storage)
+
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
 
