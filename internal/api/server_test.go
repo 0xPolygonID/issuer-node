@@ -143,8 +143,8 @@ func TestServer_RevokeClaim(t *testing.T) {
 			did:   idStr,
 			nonce: int64(1231323),
 			expected: expected{
-				httpCode: 400,
-				response: RevokeClaim400JSONResponse{N400JSONResponse{
+				httpCode: 404,
+				response: RevokeClaim404JSONResponse{N404JSONResponse{
 					Message: "the claim does not exist",
 				}},
 			},
@@ -166,28 +166,23 @@ func TestServer_RevokeClaim(t *testing.T) {
 			url := fmt.Sprintf("/v1/%s/claims/revoke/%d", tc.did, tc.nonce)
 			req, _ := http.NewRequest("POST", url, nil)
 			handler.ServeHTTP(rr, req)
-
 			assert.Equal(t, tc.expected.httpCode, rr.Code)
 
-			resp202, ok := tc.expected.response.(RevokeClaim202JSONResponse)
-			if ok {
+			switch v := tc.expected.response.(type) {
+			case RevokeClaim202JSONResponse:
 				var response RevokeClaim202JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, resp202.Status, response.Status)
-			}
-
-			resp400, ok := tc.expected.response.(RevokeClaim400JSONResponse)
-			if ok {
-				var response RevokeClaim400JSONResponse
+				assert.Equal(t, response.Status, v.Status)
+			case RevokeClaim404JSONResponse:
+				var response RevokeClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, resp400.Message, response.Message)
-			}
-
-			resp500, ok := tc.expected.response.(RevokeClaim500JSONResponse)
-			if ok {
+				assert.Equal(t, response.Message, v.Message)
+			case RevokeClaim500JSONResponse:
 				var response RevokeClaim500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, resp500.Message, response.Message)
+				assert.Equal(t, response.Message, v.Message)
+			default:
+				t.Fail()
 			}
 		})
 	}
