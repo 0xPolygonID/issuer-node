@@ -69,3 +69,23 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier *cor
 
 	return &identity, err
 }
+
+func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []string, err error) {
+	rows, err := conn.Query(ctx, `SELECT identifier FROM identities`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var identifier string
+		err = rows.Scan(&identifier)
+		if err != nil {
+			return nil, err
+		}
+		identities = append(identities, identifier)
+	}
+
+	return identities, err
+}

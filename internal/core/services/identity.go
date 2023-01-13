@@ -170,6 +170,11 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 	return keyID, errors.New("private key not found")
 }
 
+// Get - returns all the identities
+func (i *identity) Get(ctx context.Context) (identities []string, err error) {
+	return i.identityRepository.Get(ctx, i.storage.Pgx)
+}
+
 func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string) (*core.DID, *big.Int, error) {
 	mts, err := i.mtservice.CreateIdentityMerkleTrees(ctx, tx)
 	if err != nil {

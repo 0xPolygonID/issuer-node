@@ -244,6 +244,21 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	return nil, nil
 }
 
+// GetClaim - is the controller to get a claim
 func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
 	return nil, nil
+}
+
+// GetIdentities is the controller to get identities
+func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error) {
+	var response GetIdentities200JSONResponse
+	var err error
+	response, err = s.identityService.Get(ctx)
+	if err != nil {
+		return GetIdentities500JSONResponse{N500JSONResponse{
+			Message: err.Error(),
+		}}, nil
+	}
+
+	return response, nil
 }
