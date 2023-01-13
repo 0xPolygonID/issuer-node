@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -149,6 +152,7 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	return nil, nil
 }
 
+// GetClaim is the controller to get a client.
 func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
 	return nil, nil
 }

@@ -3,21 +3,20 @@ package ports
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	core "github.com/iden3/go-iden3-core"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
 // ClaimRequest struct
 type ClaimRequest struct {
-	Schema                jsonSuite.Schema
+	Schema                string
 	DID                   *core.DID
 	CredentialSchema      string
 	CredentialSubject     json.RawMessage
-	Expiration            *int64
+	Expiration            *time.Time
 	Type                  string
 	Version               uint32
 	SubjectPos            string
