@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
 )
 
@@ -218,7 +220,18 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 // RevokeClaim is the revocation claim controller
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
-	return nil, nil
+	if err := s.claimService.Revoke(ctx, request.Identifier, uint64(request.Nonce), ""); err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return RevokeClaim404JSONResponse{N404JSONResponse{
+				Message: "the claim does not exist",
+			}}, nil
+		}
+
+		return RevokeClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RevokeClaim202JSONResponse{
+		Status: "pending",
+	}, nil
 }
 
 // GetRevocationStatus is the controller to get revocation status

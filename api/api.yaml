@@ -151,8 +151,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
   /v1/{identifier}/claims/revocation/status/{nonce}:
@@ -456,6 +456,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '402':
       description: 'Payment Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '404':
+      description: 'Not found'
       content:
         application/json:
           schema:

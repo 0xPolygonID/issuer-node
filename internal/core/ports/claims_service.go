@@ -63,4 +63,5 @@ type ClaimsService interface {
 	SendClaimOfferPushNotification(ctx context.Context, claim *domain.Claim) error
 	GetRevocationSource(issuerDID string, nonce uint64) interface{}
 	Save(ctx context.Context, claim *domain.Claim) (*domain.Claim, error)
+	Revoke(ctx context.Context, id string, nonce uint64, description string) error
 }

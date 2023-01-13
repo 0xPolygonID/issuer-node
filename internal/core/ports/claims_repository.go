@@ -14,6 +14,7 @@ import (
 type ClaimsRepository interface {
 	Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error)
 	Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error
+	RevokeNonce(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error
 	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *core.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error)
 	FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error)
 }

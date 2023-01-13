@@ -111,3 +111,37 @@ func TestGetByRevocationNonce(t *testing.T) {
 		assert.Nil(t, r)
 	})
 }
+
+func TestRevokeNonce(t *testing.T) {
+	// given
+	claimsRepo := repositories.NewClaims()
+	idStr := "did:polygonid:polygon:mumbai:2qNWrZ4Z7iZPvDusp32sWXGMHvAL9RoTqgPEEXvS9q"
+	identity := &domain.Identity{
+		Identifier: idStr,
+		Relay:      "relay_mock",
+		Immutable:  false,
+	}
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	// when and then
+	t.Run("should save the revocation nonce", func(t *testing.T) {
+		assert.NoError(t, claimsRepo.RevokeNonce(context.Background(), storage.Pgx, &domain.Revocation{
+			Identifier:  idStr,
+			Nonce:       domain.RevNonceUint64(123),
+			Version:     uint32(1),
+			Status:      domain.RevPending,
+			Description: "a description",
+		}))
+	})
+
+	t.Run("should not save the revocation", func(t *testing.T) {
+		assert.Error(t, claimsRepo.RevokeNonce(context.Background(), storage.Pgx, &domain.Revocation{
+			Identifier:  "123",
+			Nonce:       domain.RevNonceUint64(123),
+			Version:     uint32(1),
+			Status:      domain.RevPending,
+			Description: "a description",
+		}))
+	})
+}
