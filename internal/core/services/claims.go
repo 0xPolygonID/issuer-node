@@ -29,8 +29,15 @@ var (
 	ErrProcessSchema = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
 )
 
+// ClaimCfg claim service configuration
+type ClaimCfg struct {
+	RHSEnabled bool // ReverseHash Enabled
+	RHSUrl     string
+	Host       string
+}
+
 type claim struct {
-	cfg         claimConfig
+	cfg         ClaimCfg
 	icRepo      ports.ClaimsRepository
 	schemaSrv   ports.SchemaService
 	identitySrv ports.IndentityService
@@ -39,16 +46,18 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, storage *db.Storage, cfgFns ...claimsConfigFunc) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
 	s := &claim{
+		cfg: ClaimCfg{
+			RHSEnabled: cfg.RHSEnabled,
+			RHSUrl:     cfg.RHSUrl,
+			Host:       cfg.Host,
+		},
 		icRepo:      repo,
 		schemaSrv:   schemaSrv,
 		identitySrv: idenSrv,
 		mtService:   mtService,
 		storage:     storage,
-	}
-	for _, cfgFn := range cfgFns {
-		cfgFn(&s.cfg)
 	}
 	return s
 }

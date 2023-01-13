@@ -70,8 +70,12 @@ func main() {
 		identityService,
 		mtService,
 		storage,
-		services.WithHost(cfg.ServerUrl),
-		services.WithReverseHashEnabled(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL))
+		services.ClaimCfg{
+			RHSEnabled: cfg.ReverseHashService.Enabled,
+			RHSUrl:     cfg.ReverseHashService.URL,
+			Host:       cfg.ServerUrl,
+		},
+	)
 
 	spec, err := api.GetSwagger()
 	if err != nil {
