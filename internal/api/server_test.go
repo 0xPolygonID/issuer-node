@@ -207,7 +207,7 @@ func TestServer_GetClaim(t *testing.T) {
 
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
-	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
+	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
 	identity := &domain.Identity{
 		Identifier: idStr,
