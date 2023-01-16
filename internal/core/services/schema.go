@@ -3,12 +3,14 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	core "github.com/iden3/go-iden3-core"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/loaders"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -84,4 +86,42 @@ func (s *schema) Process(ctx context.Context, schemaURL, credentialType string, 
 // GetLoader returns corresponding loader (according to url schema)
 func (s *schema) GetLoader(_url string) processor.SchemaLoader {
 	return &loaders.HTTP{URL: _url}
+}
+
+// FromClaimModelToW3CCredential JSON-LD response base on claim
+func (s *schema) FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.W3CCredential, error) {
+	var cred verifiable.W3CCredential
+
+	err := json.Unmarshal(claim.Data.Bytes, &cred)
+	if err != nil {
+		return nil, err
+	}
+	if claim.CredentialStatus.Status == pgtype.Null {
+		return nil, fmt.Errorf("credential status is not set")
+	}
+
+	proofs := make([]interface{}, 0)
+
+	var signatureProof *verifiable.BJJSignatureProof2021
+	if claim.SignatureProof.Status != pgtype.Null {
+		err = claim.SignatureProof.AssignTo(&signatureProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, signatureProof)
+	}
+
+	var mtpProof *verifiable.Iden3SparseMerkleProof
+
+	if claim.MTPProof.Status != pgtype.Null {
+		err = claim.MTPProof.AssignTo(&mtpProof)
+		if err != nil {
+			return nil, err
+		}
+		proofs = append(proofs, mtpProof)
+
+	}
+	cred.Proof = proofs
+
+	return &cred, nil
 }
