@@ -7,10 +7,12 @@ ServerUrl = "http://localhost"
 [Runtime]
     LogLevel = -4
     LogMode = 2
+
 [KeyStore]
     Address="http://localhost:8200"
-    Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
+    Token="{{vault token}}"
     PluginIden3MountPath="iden3"
+
 [ReverseHashService]
     URL="http://localhost:3001"
     Enabled= false
