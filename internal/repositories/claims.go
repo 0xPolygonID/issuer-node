@@ -296,7 +296,7 @@ func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *d
 }
 
 // GetByID get claim by id
-func (c *claims) GetByID(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error) {
+func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error) {
 	claim := domain.Claim{}
 	// language=PostgreSQL
 	err := conn.QueryRow(ctx,

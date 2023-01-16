@@ -175,12 +175,10 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 
 	claim, err := s.claimService.GetByID(ctx, did, clID)
 	if err != nil {
-		switch err {
-		case services.ErrClaimNotFound:
+		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetClaim404JSONResponse{N404JSONResponse{err.Error()}}, nil
-		default:
-			return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 		}
+		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
 	return GetClaim200JSONResponse{

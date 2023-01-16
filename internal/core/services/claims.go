@@ -187,29 +187,28 @@ func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description
 	var claim *domain.Claim
 	claim, err = c.icRepo.GetByRevocationNonce(ctx, c.storage.Pgx, did, domain.RevNonceUint64(nonce))
 
-	switch {
-	case errors.Is(err, repositories.ErrClaimDoesNotExist):
-		// Claim does not exist. No need to update it.
-		return err
-	case err != nil:
-		return fmt.Errorf("error getting the claim by revocation nonce: %w", err)
-	default:
-		claim.Revoked = true
-		_, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
-		if err != nil {
-			return fmt.Errorf("error saving the claim: %w", err)
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return err
 		}
+		return fmt.Errorf("error getting the claim by revocation nonce: %w", err)
+	}
+
+	claim.Revoked = true
+	_, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
+	if err != nil {
+		return fmt.Errorf("error saving the claim: %w", err)
 	}
 
 	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
 }
 
 func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error) {
-	claim, err := c.icRepo.GetByID(ctx, c.storage.Pgx, issID, id)
-	switch {
-	case errors.Is(err, repositories.ErrClaimDoesNotExist):
-		return nil, ErrClaimNotFound
-	case err != nil:
+	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return nil, ErrClaimNotFound
+		}
 		return nil, err
 	}
 

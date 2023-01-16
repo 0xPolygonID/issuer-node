@@ -290,7 +290,9 @@ func TestServer_GetClaim(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
-	claimID, _ := uuid.NewUUID()
+	claimID, err := uuid.NewUUID()
+	require.NoError(t, err)
+
 	nonce := int64(123)
 	revNonce := domain.RevNonceUint64(nonce)
 
@@ -446,21 +448,21 @@ func TestServer_GetClaim(t *testing.T) {
 				var responseCredentialStatus verifiable.CredentialStatus
 				var responseCredentialSubject, tcCredentialSubject credentialSubject
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				require.Equal(t, response.Id, v.Id)
-				require.Equal(t, len(response.Context), len(v.Context))
-				require.EqualValues(t, response.Context, v.Context)
-				require.EqualValues(t, response.CredentialSchema, v.CredentialSchema)
-				require.NoError(t, mapstructure.Decode(response.CredentialSubject, &responseCredentialSubject))
-				require.NoError(t, mapstructure.Decode(v.CredentialSubject, &tcCredentialSubject))
-				require.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-				require.InDelta(t, response.IssuanceDate.Unix(), v.IssuanceDate.Unix(), 30)
-				require.Equal(t, response.Type, v.Type)
-				require.NoError(t, mapstructure.Decode(response.CredentialStatus, &responseCredentialStatus))
+				assert.Equal(t, response.Id, v.Id)
+				assert.Equal(t, len(response.Context), len(v.Context))
+				assert.EqualValues(t, response.Context, v.Context)
+				assert.EqualValues(t, response.CredentialSchema, v.CredentialSchema)
+				assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &responseCredentialSubject))
+				assert.NoError(t, mapstructure.Decode(v.CredentialSubject, &tcCredentialSubject))
+				assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+				assert.InDelta(t, response.IssuanceDate.Unix(), v.IssuanceDate.Unix(), 30)
+				assert.Equal(t, response.Type, v.Type)
+				assert.NoError(t, mapstructure.Decode(response.CredentialStatus, &responseCredentialStatus))
 				credentialStatusTC, ok := v.CredentialStatus.(verifiable.CredentialStatus)
 				require.True(t, ok)
-				require.EqualValues(t, responseCredentialStatus, credentialStatusTC)
-				require.Equal(t, response.Expiration, v.Expiration)
-				require.Equal(t, response.Issuer, v.Issuer)
+				assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
+				assert.Equal(t, response.Expiration, v.Expiration)
+				assert.Equal(t, response.Issuer, v.Issuer)
 
 			case GetClaim400JSONResponse:
 				var response RevokeClaim404JSONResponse
