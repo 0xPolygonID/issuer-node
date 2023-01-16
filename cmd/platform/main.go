@@ -64,7 +64,18 @@ func main() {
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	schemaService := services.NewSchema(storage)
-	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, schemaService, identityService, mtService, storage)
+	claimsService := services.NewClaim(
+		claimsRepo,
+		schemaService,
+		identityService,
+		mtService,
+		storage,
+		services.ClaimCfg{
+			RHSEnabled: cfg.ReverseHashService.Enabled,
+			RHSUrl:     cfg.ReverseHashService.URL,
+			Host:       cfg.ServerUrl,
+		},
+	)
 
 	spec, err := api.GetSwagger()
 	if err != nil {
@@ -78,7 +89,6 @@ func main() {
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
 	)
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
 	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 

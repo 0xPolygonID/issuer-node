@@ -30,7 +30,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	schemaService := services.NewSchema(storage)
-	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, schemaService, identityService, mtService, storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
 
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
@@ -77,7 +81,11 @@ func TestServer_RevokeClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	schemaService := services.NewSchema(storage)
-	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, schemaService, identityService, mtService, storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
 
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
@@ -191,6 +199,67 @@ func TestServer_RevokeClaim(t *testing.T) {
 			default:
 				t.Fail()
 			}
+		})
+	}
+}
+
+func TestServer_GetIdentities(t *testing.T) {
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	schemaService := services.NewSchema(storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	handler := getHandler(context.Background(), server)
+
+	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
+	idStr2 := "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"
+	identity1 := &domain.Identity{
+		Identifier: idStr1,
+		Relay:      "relay_mock",
+		Immutable:  false,
+	}
+	identity2 := &domain.Identity{
+		Identifier: idStr2,
+		Relay:      "relay_mock",
+		Immutable:  false,
+	}
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity1)
+	fixture.CreateIdentity(t, identity2)
+
+	type expected struct {
+		httpCode int
+	}
+	type testConfig struct {
+		name     string
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "should return all the entities",
+			expected: expected{
+				httpCode: 200,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, _ := http.NewRequest("GET", "/v1/identities", nil)
+			handler.ServeHTTP(rr, req)
+
+			var response GetIdentities200JSONResponse
+			assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			assert.Equal(t, tc.expected.httpCode, rr.Code)
+			assert.True(t, len(response) >= 2)
 		})
 	}
 }

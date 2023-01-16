@@ -70,6 +70,24 @@ paths:
                 $ref: '#/components/schemas/CreateIdentityResponse'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
+    get:
+      summary: Get Identities
+      operationId: GetIdentities
+      description: Endpoint to get all the identities
+      tags:
+        - Identity
+      responses:
+        '200':
+          description: all good
+          content:
+            application/json:
+              schema:
+                type: array
+                x-omitempty: false
+                items:
+                  type: string
+        '500':
+          $ref: '#/components/responses/500'
   /v1/identities/state:
     post:
       summary: Publish State On-Chain

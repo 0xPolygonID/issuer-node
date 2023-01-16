@@ -27,13 +27,18 @@ import (
 var (
 	ErrJSONLdContext = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
 	ErrProcessSchema = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
-	ErrClaimNotFound = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim
+	ErrClaimNotFound = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim 	// ErrProcessSchema Cannot process schema
 )
 
+// ClaimCfg claim service configuration
+type ClaimCfg struct {
+	RHSEnabled bool // ReverseHash Enabled
+	RHSUrl     string
+	Host       string
+}
+
 type claim struct {
-	RHSEnabled  bool
-	RHSUrl      string
-	Host        string
+	cfg         ClaimCfg
 	icRepo      ports.ClaimsRepository
 	schemaSrv   ports.SchemaService
 	identitySrv ports.IndentityService
@@ -42,17 +47,20 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(rhsEnabled bool, rhsUrl string, host string, repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, storage *db.Storage) ports.ClaimsService {
-	return &claim{
-		RHSEnabled:  rhsEnabled,
-		RHSUrl:      rhsUrl,
-		Host:        host,
+func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+	s := &claim{
+		cfg: ClaimCfg{
+			RHSEnabled: cfg.RHSEnabled,
+			RHSUrl:     cfg.RHSUrl,
+			Host:       cfg.Host,
+		},
 		icRepo:      repo,
 		schemaSrv:   schemaSrv,
 		identitySrv: idenSrv,
 		mtService:   mtService,
 		storage:     storage,
 	}
+	return s
 }
 
 func (c *claim) CreateClaim(ctx context.Context, req *ports.ClaimRequest) (*domain.Claim, error) {
@@ -269,7 +277,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.ClaimRequest, jsonLdCont
 
 	issuanceDate := time.Now()
 	return verifiable.W3CCredential{
-		ID:                fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(c.Host, "/"), vcID),
+		ID:                fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(c.cfg.Host, "/"), vcID),
 		Context:           credentialCtx,
 		Type:              credentialType,
 		Expiration:        claimReq.Expiration,
@@ -285,20 +293,20 @@ func (c *claim) newVerifiableCredential(claimReq *ports.ClaimRequest, jsonLdCont
 }
 
 func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} {
-	if c.RHSEnabled {
+	if c.cfg.RHSEnabled {
 		return &verifiable.RHSCredentialStatus{
-			ID:              fmt.Sprintf("%s/node", strings.TrimSuffix(c.RHSUrl, "/")),
+			ID:              fmt.Sprintf("%s/node", strings.TrimSuffix(c.cfg.RHSUrl, "/")),
 			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
 			RevocationNonce: nonce,
 			StatusIssuer: &verifiable.CredentialStatus{
-				ID:              buildRevocationURL(c.Host, issuerDID, nonce),
+				ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce),
 				Type:            verifiable.SparseMerkleTreeProof,
 				RevocationNonce: nonce,
 			},
 		}
 	}
 	return &verifiable.CredentialStatus{
-		ID:              buildRevocationURL(c.Host, issuerDID, nonce),
+		ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce),
 		Type:            verifiable.SparseMerkleTreeProof,
 		RevocationNonce: nonce,
 	}
