@@ -13,4 +13,5 @@ import (
 type IndentityService interface {
 	Create(ctx context.Context, hostURL string) (*domain.Identity, error)
 	SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error)
+	Get(ctx context.Context) (identities []string, err error)
 }
