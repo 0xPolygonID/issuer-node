@@ -838,6 +838,15 @@ func (response GetClaim400JSONResponse) VisitGetClaimResponse(w http.ResponseWri
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetClaim404JSONResponse struct{ N404JSONResponse }
+
+func (response GetClaim404JSONResponse) VisitGetClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetClaim500JSONResponse struct{ N500JSONResponse }
 
 func (response GetClaim500JSONResponse) VisitGetClaimResponse(w http.ResponseWriter) error {
@@ -1199,8 +1208,9 @@ var swaggerSpec = []string{
 	"OCk6l8HbbjviDyCvnJbdDitAEPc800rI8zH0MJOeTiWfrVUAKwK53/vYEzenDb8Dx4/2+Wg7eg8y+0+z",
 	"CqrPab1taPf09GymRaMk3AW6o+Ur1Y7Bc2GAHrf28uZtaGF2x8Y2VMN+JD8eoE2Kw8XGySCCaLDYtE4q",
 	"v5oCZy9KgYfDxeGCUijqunA+hgDnzyCAs+opdeGRJeNKgAQtGaxsuF3NG9hjqhvzN4q50/Wqad97Axjc",
-	"DepH5DdK+sGAm5n2xdUh37X1o6DEHBNLmeEZTrUuZnF8evbH9GR6Mj21WPoFdyXvgNoKc4rAU0M1/xyh",
-	"HrShCwue7RM8Cwheiizzw2LRCCMJmeWgFu3e1S/Y9LpPWe/S9Vv1ahXDtv8FAAD//w+VHrO+IgAA",
+	"DepH5GOS/g34YQrEIDnMTPs666LU9eujoMQcKUuZ4RlOtS5mcXx69sf0ZHoyPbW4+wV3Je+A2mp0isDT",
+	"SDX/dKEetGEOC57tEzwLCF6KLPPDYtEIIwmZ5asW7T7XL9j0xU9Z79L1ZvVqFRu3/wUAAP//CUILLeoi",
+	"AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
