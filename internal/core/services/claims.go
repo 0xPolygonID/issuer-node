@@ -25,9 +25,9 @@ import (
 )
 
 var (
-	// ErrJSONLdContext Field jsonLdContext must be a string
-	ErrJSONLdContext = errors.New("jsonLdContext must be a string")
-	ErrProcessSchema = errors.New("cannot process schema") // ErrProcessSchema Cannot process schema
+	ErrJSONLdContext = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrProcessSchema = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
+	ErrClaimNotFound = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim
 )
 
 type claim struct {
@@ -151,6 +151,63 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.ClaimRequest) (*doma
 	return claimResp, err
 }
 
+func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description string) error {
+	did, err := core.ParseDID(id)
+	if err != nil {
+		return fmt.Errorf("error parsing did: %w", err)
+	}
+
+	rID := new(big.Int).SetUint64(nonce)
+	revocation := domain.Revocation{
+		Identifier:  id,
+		Nonce:       domain.RevNonceUint64(nonce),
+		Version:     0,
+		Status:      0,
+		Description: description,
+	}
+
+	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return fmt.Errorf("error gettting merkles trees: %w", err)
+	}
+
+	err = identityTrees.RevokeClaim(ctx, rID)
+	if err != nil {
+		return fmt.Errorf("error revoking the claim: %w", err)
+	}
+
+	var claim *domain.Claim
+	claim, err = c.icRepo.GetByRevocationNonce(ctx, c.storage.Pgx, did, domain.RevNonceUint64(nonce))
+
+	switch {
+	case errors.Is(err, repositories.ErrClaimDoesNotExist):
+		// Claim does not exist. No need to update it.
+		return err
+	case err != nil:
+		return fmt.Errorf("error getting the claim by revocation nonce: %w", err)
+	default:
+		claim.Revoked = true
+		_, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
+		if err != nil {
+			return fmt.Errorf("error saving the claim: %w", err)
+		}
+	}
+
+	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
+}
+
+func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error) {
+	claim, err := c.icRepo.GetByID(ctx, c.storage.Pgx, issID, id)
+	switch {
+	case errors.Is(err, repositories.ErrClaimDoesNotExist):
+		return nil, ErrClaimNotFound
+	case err != nil:
+		return nil, err
+	}
+
+	return c.schemaSrv.FromClaimModelToW3CCredential(*claim)
+}
+
 func (c *claim) createVC(claimReq *ports.ClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
 	if err := claimReq.Validate(); err != nil {
 		return verifiable.W3CCredential{}, err
@@ -250,49 +307,4 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} 
 func buildRevocationURL(host, issuerDID string, nonce uint64) string {
 	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
-}
-
-func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description string) error {
-	did, err := core.ParseDID(id)
-	if err != nil {
-		return fmt.Errorf("error parsing did: %w", err)
-	}
-
-	rID := new(big.Int).SetUint64(nonce)
-	revocation := domain.Revocation{
-		Identifier:  id,
-		Nonce:       domain.RevNonceUint64(nonce),
-		Version:     0,
-		Status:      0,
-		Description: description,
-	}
-
-	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return fmt.Errorf("error gettting merkles trees: %w", err)
-	}
-
-	err = identityTrees.RevokeClaim(ctx, rID)
-	if err != nil {
-		return fmt.Errorf("error revoking the claim: %w", err)
-	}
-
-	var claim *domain.Claim
-	claim, err = c.icRepo.GetByRevocationNonce(ctx, c.storage.Pgx, did, domain.RevNonceUint64(nonce))
-
-	switch {
-	case errors.Is(err, repositories.ErrClaimDoesNotExist):
-		// Claim does not exist. No need to update it.
-		return err
-	case err != nil:
-		return fmt.Errorf("error getting the claim by revocation nonce: %w", err)
-	default:
-		claim.Revoked = true
-		_, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
-		if err != nil {
-			return fmt.Errorf("error saving the claim: %w", err)
-		}
-	}
-
-	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
 }

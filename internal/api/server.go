@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -154,5 +155,47 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 
 // GetClaim is the controller to get a client.
 func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
-	return nil, nil
+	if request.Identifier == "" {
+		return GetClaim400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+	}
+
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return GetClaim400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+
+	if request.Id == "" {
+		return GetClaim400JSONResponse{N400JSONResponse{"can not proceed with an empty claim id"}}, nil
+	}
+
+	clID, err := uuid.Parse(request.Id)
+	if err != nil {
+		return GetClaim400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+	}
+
+	claim, err := s.claimService.GetByID(ctx, did, clID)
+	if err != nil {
+		switch err {
+		case services.ErrClaimNotFound:
+			return GetClaim404JSONResponse{N404JSONResponse{err.Error()}}, nil
+		default:
+			return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
+		}
+	}
+
+	return GetClaim200JSONResponse{
+		Context: claim.Context,
+		CredentialSchema: CredentialSchema{
+			claim.CredentialSchema.ID,
+			claim.CredentialSchema.Type,
+		},
+		CredentialStatus:  claim.CredentialStatus,
+		CredentialSubject: claim.CredentialSubject,
+		Expiration:        claim.Expiration,
+		Id:                claim.ID,
+		IssuanceDate:      claim.IssuanceDate,
+		Issuer:            claim.Issuer,
+		Proof:             claim.Proof,
+		Type:              claim.Type,
+	}, nil
 }
