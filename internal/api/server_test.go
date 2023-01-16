@@ -206,7 +206,11 @@ func TestServer_GetIdentities(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	schemaService := services.NewSchema(storage)
-	claimsService := services.NewClaim(cfg.ReverseHashService.Enabled, cfg.ReverseHashService.URL, cfg.ServerUrl, claimsRepo, schemaService, identityService, mtService, storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
 
