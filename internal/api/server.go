@@ -112,7 +112,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	claimReq := ports.NewClaimRequest(request.Body.CredentialSchema, did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
+	claimReq := ports.NewClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
 
 	resp, err := s.claimService.CreateClaim(ctx, claimReq)
 	if err != nil {
@@ -120,6 +120,12 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateClaim422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrMalformedURL) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil

@@ -2,22 +2,19 @@ package ports
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
-
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
 // ClaimRequest struct
 type ClaimRequest struct {
-	Schema                string
 	DID                   *core.DID
-	CredentialSchema      string
-	CredentialSubject     json.RawMessage
+	Schema                string
+	CredentialSubject     map[string]any
 	Expiration            *time.Time
 	Type                  string
 	Version               uint32
@@ -25,17 +22,11 @@ type ClaimRequest struct {
 	MerklizedRootPosition string
 }
 
-// Validate ensures that a claim is correct
-func (c *ClaimRequest) Validate() error {
-	return nil
-}
-
 // NewClaimRequest returns a new claim object with the given parameters
-func NewClaimRequest(schema string, did *core.DID, credentialSchema string, credentialSubject json.RawMessage, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *ClaimRequest {
+func NewClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *ClaimRequest {
 	req := &ClaimRequest{
-		Schema:            schema,
 		DID:               did,
-		CredentialSchema:  credentialSchema,
+		Schema:            credentialSchema,
 		CredentialSubject: credentialSubject,
 		Type:              typ,
 	}

@@ -42,7 +42,7 @@ func testMain(m *testing.M) int {
 		},
 		KeyStore: config.KeyStore{
 			Address:              "http://localhost:8300",
-			Token:                "hvs.YxU2dLZljGpqLyPYu6VeYJde",
+			Token:                "hvs.TUxhxUvzCcviQSfRsdcwuWWA",
 			PluginIden3MountPath: "iden3",
 		},
 	}
