@@ -59,5 +59,6 @@ func NewClaimRequest(schema string, did *core.DID, credentialSchema string, cred
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *ClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id string, nonce uint64, description string) error
+	GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error)
 }

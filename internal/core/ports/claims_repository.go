@@ -18,4 +18,5 @@ type ClaimsRepository interface {
 	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *core.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error)
 	GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error)
 	FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error)
+	GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID) ([]*domain.Claim, error)
 }
