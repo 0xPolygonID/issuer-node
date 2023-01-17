@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -319,13 +320,6 @@ func TestServer_GetClaim(t *testing.T) {
 		expected expected
 	}
 
-	type credentialKYCSubject struct {
-		Id           string `json:"id"`
-		Birthday     uint64 `json:"birthday"`
-		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
-	}
-
 	for _, tc := range []testConfig{
 		{
 			name:    "should get an error non existing claimID",
@@ -400,25 +394,9 @@ func TestServer_GetClaim(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetClaim200JSONResponse:
-				var response GetClaim200JSONResponse
-				var responseCredentialStatus verifiable.CredentialStatus
-				var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
+				var response GetClaimResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Id, v.Id)
-				assert.Equal(t, len(response.Context), len(v.Context))
-				assert.EqualValues(t, response.Context, v.Context)
-				assert.EqualValues(t, response.CredentialSchema, v.CredentialSchema)
-				assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &responseCredentialSubject))
-				assert.NoError(t, mapstructure.Decode(v.CredentialSubject, &tcCredentialSubject))
-				assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-				assert.InDelta(t, response.IssuanceDate.Unix(), v.IssuanceDate.Unix(), 30)
-				assert.Equal(t, response.Type, v.Type)
-				assert.NoError(t, mapstructure.Decode(response.CredentialStatus, &responseCredentialStatus))
-				credentialStatusTC, ok := v.CredentialStatus.(verifiable.CredentialStatus)
-				require.True(t, ok)
-				assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
-				assert.Equal(t, response.Expiration, v.Expiration)
-				assert.Equal(t, response.Issuer, v.Issuer)
+				validateClaim(t, response, GetClaimResponse(v))
 
 			case GetClaim400JSONResponse:
 				var response GetClaim404JSONResponse
@@ -440,12 +418,16 @@ func TestServer_GetClaim(t *testing.T) {
 }
 
 func TestServer_GetClaims(t *testing.T) {
+	if os.Getenv("TEST_MODE") == "GA" {
+		t.Skip("SKIPPED")
+	}
+
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
 	schemaService := services.NewSchema(storage)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -463,24 +445,19 @@ func TestServer_GetClaims(t *testing.T) {
 	defaultClaimVC, err := server.schemaService.FromClaimModelToW3CCredential(*defaultClaim)
 	assert.NoError(t, err)
 
-	emtpyIdentityStr := "did:polygonid:polygon:mumbai:2qLQGgjpP5Yq7r7jbRrQZbWy8ikADvxamSLB7CqR4F"
+	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com")
+	require.NoError(t, err)
+
+	defaultClaimMultipleClaims := fixture.GetDefaultAuthClaimOfIssuer(t, identityMultipleClaims.Identifier)
+	defaultClaimMultipleClaimsVC, err := server.schemaService.FromClaimModelToW3CCredential(*defaultClaimMultipleClaims)
+	assert.NoError(t, err)
+
+	claim := fixture.NewClaim(t, defaultClaimMultipleClaimsVC.Issuer)
+	_ = fixture.CreateClaim(t, claim)
+
+	emptyIdentityStr := "did:polygonid:polygon:mumbai:2qLQGgjpP5Yq7r7jbRrQZbWy8ikADvxamSLB7CqR4F"
 
 	handler := getHandler(context.Background(), server)
-
-	type credentialKYCSubject struct {
-		Id           string `json:"id"`
-		Birthday     uint64 `json:"birthday"`
-		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
-	}
-
-	type credentialBJJSubject struct {
-		Type string `json:"type"`
-		X    string `json:"x"`
-		Y    string `json:"y"`
-	}
-
-	credentialSubjectTypes := []string{"AuthBJJCredential", "KYCAgeCredential"}
 
 	type expected struct {
 		response GetClaimsResponseObject
@@ -507,7 +484,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get 0 claims",
-			did:  emtpyIdentityStr,
+			did:  emptyIdentityStr,
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      0,
@@ -545,6 +522,59 @@ func TestServer_GetClaims(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "should get the default claim plus another one that has been created",
+			did:  identityMultipleClaims.Identifier,
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      2,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Id:      defaultClaimMultipleClaimsVC.ID,
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						CredentialSchema: CredentialSchema{
+							"https://schema.iden3.io/core/json/auth.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: 0,
+						},
+						CredentialSubject: map[string]interface{}{
+							"type": "AuthBJJCredential",
+							"x":    defaultClaimMultipleClaimsVC.CredentialSubject["x"],
+							"y":    defaultClaimMultipleClaimsVC.CredentialSubject["y"],
+						},
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "AuthBJJCredential"},
+					},
+					GetClaimResponse{
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
+						CredentialSchema: CredentialSchema{
+							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: uint64(claim.RevNonce),
+						},
+						CredentialSubject: map[string]interface{}{
+							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+							"birthday":     float64(19960424),
+							"documentType": float64(2),
+							"type":         "KYCAgeCredential",
+						},
+						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -556,38 +586,10 @@ func TestServer_GetClaims(t *testing.T) {
 			switch v := tc.expected.response.(type) {
 			case GetClaims200JSONResponse:
 				var response GetClaims200JSONResponse
-				var responseCredentialStatus verifiable.CredentialStatus
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, len(response), tc.expected.len)
 				for i := range response {
-					assert.Equal(t, response[i].Id, v[i].Id)
-					assert.Equal(t, len(response[i].Context), len(v[i].Context))
-					assert.EqualValues(t, response[i].Context, v[i].Context)
-					assert.EqualValues(t, response[i].CredentialSchema, v[i].CredentialSchema)
-					assert.InDelta(t, response[i].IssuanceDate.Unix(), v[i].IssuanceDate.Unix(), 30)
-					assert.Equal(t, response[i].Type, v[i].Type)
-					assert.Equal(t, response[i].Expiration, v[i].Expiration)
-					assert.Equal(t, response[i].Issuer, v[i].Issuer)
-					credentialSubjectType, ok := v[i].CredentialSubject["type"]
-					require.True(t, ok)
-					assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
-					if credentialSubjectType == "AuthBJJCredential" {
-						var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
-						assert.NoError(t, mapstructure.Decode(response[i].CredentialSubject, &responseCredentialSubject))
-						assert.NoError(t, mapstructure.Decode(v[i].CredentialSubject, &tcCredentialSubject))
-						assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-					} else {
-						var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
-						assert.NoError(t, mapstructure.Decode(response[i].CredentialSubject, &responseCredentialSubject))
-						assert.NoError(t, mapstructure.Decode(v[i].CredentialSubject, &tcCredentialSubject))
-						assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-					}
-
-					assert.NoError(t, mapstructure.Decode(response[i].CredentialStatus, &responseCredentialStatus))
-					responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
-					credentialStatusTC, ok := v[i].CredentialStatus.(verifiable.CredentialStatus)
-					require.True(t, ok)
-					assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
+					validateClaim(t, response[i], v[i])
 				}
 			case GetClaims400JSONResponse:
 				var response GetClaims400JSONResponse
@@ -602,4 +604,52 @@ func TestServer_GetClaims(t *testing.T) {
 			}
 		})
 	}
+}
+
+func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
+	var responseCredentialStatus verifiable.CredentialStatus
+
+	credentialSubjectTypes := []string{"AuthBJJCredential", "KYCAgeCredential"}
+
+	type credentialKYCSubject struct {
+		Id           string `json:"id"`
+		Birthday     uint64 `json:"birthday"`
+		DocumentType uint64 `json:"documentType"`
+		Type         string `json:"type"`
+	}
+
+	type credentialBJJSubject struct {
+		Type string `json:"type"`
+		X    string `json:"x"`
+		Y    string `json:"y"`
+	}
+
+	assert.Equal(t, resp.Id, tc.Id)
+	assert.Equal(t, len(resp.Context), len(tc.Context))
+	assert.EqualValues(t, resp.Context, tc.Context)
+	assert.EqualValues(t, resp.CredentialSchema, tc.CredentialSchema)
+	assert.InDelta(t, resp.IssuanceDate.Unix(), tc.IssuanceDate.Unix(), 30)
+	assert.Equal(t, resp.Type, tc.Type)
+	assert.Equal(t, resp.Expiration, tc.Expiration)
+	assert.Equal(t, resp.Issuer, tc.Issuer)
+	credentialSubjectType, ok := tc.CredentialSubject["type"]
+	require.True(t, ok)
+	assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
+	if credentialSubjectType == "AuthBJJCredential" {
+		var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
+		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
+		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+	} else {
+		var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
+		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
+		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+	}
+
+	assert.NoError(t, mapstructure.Decode(resp.CredentialStatus, &responseCredentialStatus))
+	responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
+	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
+	require.True(t, ok)
+	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
 }
