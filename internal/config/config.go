@@ -1,13 +1,10 @@
 package config
 
 import (
-	"context"
-	"flag"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -111,17 +108,17 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
-func getFlags() error {
-	pflag.StringP("config", "c", "", "Specify the configuration file location.")
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	pflag.Parse()
-
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		log.Error(context.Background(), "parsing config flags", err)
-		return err
-	}
-	return nil
-}
+//func getFlags() error {
+//	pflag.StringP("config", "c", "", "Specify the configuration file location.")
+//	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+//	pflag.Parse()
+//
+//	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+//		log.Error(context.Background(), "parsing config flags", err)
+//		return err
+//	}
+//	return nil
+//}
 
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
