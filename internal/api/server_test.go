@@ -421,7 +421,7 @@ func TestServer_GetClaim(t *testing.T) {
 				assert.Equal(t, response.Issuer, v.Issuer)
 
 			case GetClaim400JSONResponse:
-				var response RevokeClaim404JSONResponse
+				var response GetClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			case GetClaim404JSONResponse:
@@ -590,11 +590,11 @@ func TestServer_GetClaims(t *testing.T) {
 					assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
 				}
 			case GetClaims400JSONResponse:
-				var response RevokeClaim404JSONResponse
+				var response GetClaims400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			case GetClaims500JSONResponse:
-				var response GetClaim404JSONResponse
+				var response GetClaims500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			default:
