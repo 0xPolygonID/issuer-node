@@ -69,7 +69,7 @@ func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSr
 // 1.- Creates document
 // 2.- Signature proof
 // 3.- MerkelTree proof
-func (c *claim) CreateClaim(ctx context.Context, req *ports.ClaimRequest) (*domain.Claim, error) {
+func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
 		log.Warn(ctx, "validating create claim request", "req", req)
 		return nil, err
@@ -225,7 +225,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*ve
 	return c.schemaSrv.FromClaimModelToW3CCredential(*claim)
 }
 
-func (c *claim) createVC(claimReq *ports.ClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+func (c *claim) createVC(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
 	vCredential, err := c.newVerifiableCredential(claimReq, jsonLdContext, nonce) // create vc credential
 	if err != nil {
 		return verifiable.W3CCredential{}, err
@@ -253,14 +253,14 @@ func (c *claim) getAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
-func (c *claim) guardCreateClaimRequest(req *ports.ClaimRequest) error {
+func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 	if _, err := url.ParseRequestURI(req.Schema); err != nil {
 		return ErrMalformedURL
 	}
 	return nil
 }
 
-func (c *claim) newVerifiableCredential(claimReq *ports.ClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
 	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, claimReq.Type}
 

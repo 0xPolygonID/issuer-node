@@ -10,8 +10,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
-// ClaimRequest struct
-type ClaimRequest struct {
+// CreateClaimRequest struct
+type CreateClaimRequest struct {
 	DID                   *core.DID
 	Schema                string
 	CredentialSubject     map[string]any
@@ -22,9 +22,9 @@ type ClaimRequest struct {
 	MerklizedRootPosition string
 }
 
-// NewClaimRequest returns a new claim object with the given parameters
-func NewClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *ClaimRequest {
-	req := &ClaimRequest{
+// NewCreateClaimRequest returns a new claim object with the given parameters
+func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *CreateClaimRequest {
+	req := &CreateClaimRequest{
 		DID:               did,
 		Schema:            credentialSchema,
 		CredentialSubject: credentialSubject,
@@ -48,7 +48,7 @@ func NewClaimRequest(did *core.DID, credentialSchema string, credentialSubject m
 
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
-	CreateClaim(ctx context.Context, claimReq *ClaimRequest) (*domain.Claim, error)
+	CreateClaim(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id string, nonce uint64, description string) error
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error)
 }
