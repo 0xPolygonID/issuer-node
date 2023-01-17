@@ -186,7 +186,7 @@ func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description
 
 	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
 	if err != nil {
-		return fmt.Errorf("error getting merkles trees: %w", err)
+		return fmt.Errorf("error getting merkle trees: %w", err)
 	}
 
 	err = identityTrees.RevokeClaim(ctx, rID)
