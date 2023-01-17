@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -26,23 +27,30 @@ var (
 	keyStore       *kms.KMS
 )
 
-func TestMain(m *testing.M) {
-	os.Exit(testMain(m))
-}
+//func TestMain(m *testing.M) {
+//	os.Exit(testMain(m))
+//}
 
-func testMain(m *testing.M) int {
+func TestMain(m *testing.M) {
 	ctx := context.Background()
 	conn := lookupPostgresURL()
 	if conn == "" {
 		conn = "postgres://postgres:postgres@localhost:5435"
 	}
 
-	cfg = config.Configuration{
+	cfg1, err := config.Load("")
+	if err != nil {
+		log.Error(context.Background(), "cannot load config", err)
+		panic(err)
+	}
+
+	fmt.Println(cfg1.KeyStore.Address)
+	cfg := config.Configuration{
 		Database: config.Database{
 			URL: conn,
 		},
 		KeyStore: config.KeyStore{
-			Address:              "http://localhost:8300",
+			Address:              cfg1.KeyStore.Address,
 			Token:                "hvs.YxU2dLZljGpqLyPYu6VeYJde",
 			PluginIden3MountPath: "iden3",
 		},
@@ -51,30 +59,31 @@ func testMain(m *testing.M) int {
 	defer teardown()
 	if err != nil {
 		log.Error(ctx, "failed to acquire test database: %+v", err)
-		return 1
+		// return 1
 	}
 	storage = s
 
 	vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
 		log.Error(ctx, "failed to acquire vault client: %+v", err)
-		return 1
+		// return 1
 	}
 
 	bjjKeyProvider, err = kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
 		log.Error(ctx, "failed to create Iden3 Key Provider: %+v", err)
-		return 1
+		// return 1
 	}
 
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
 		log.Error(ctx, "failed to register Key Provider: %+v", err)
-		return 1
+		// return 1
 	}
 
-	return m.Run()
+	// return m.Run()
+	m.Run()
 }
 
 func getHandler(ctx context.Context, server *Server) http.Handler {
