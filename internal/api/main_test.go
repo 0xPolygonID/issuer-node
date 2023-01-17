@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -15,6 +14,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 )
 
@@ -31,6 +31,7 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) int {
+	ctx := context.Background()
 	conn := lookupPostgresURL()
 	if conn == "" {
 		conn = "postgres://postgres:postgres@localhost:5435"
@@ -49,27 +50,27 @@ func testMain(m *testing.M) int {
 	s, teardown, err := tests.NewTestStorage(&cfg)
 	defer teardown()
 	if err != nil {
-		log.Println("failed to acquire test database")
+		log.Error(ctx, "failed to acquire test database: %+v", err)
 		return 1
 	}
 	storage = s
 
 	vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Println("failed to acquire vault client")
+		log.Error(ctx, "failed to acquire vault client: %+v", err)
 		return 1
 	}
 
 	bjjKeyProvider, err = kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Println("failed to create Iden3 Key Provider")
+		log.Error(ctx, "failed to create Iden3 Key Provider: %+v", err)
 		return 1
 	}
 
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Println("failed to register Key Provider")
+		log.Error(ctx, "failed to register Key Provider: %+v", err)
 		return 1
 	}
 

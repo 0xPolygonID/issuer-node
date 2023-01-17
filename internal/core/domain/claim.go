@@ -7,8 +7,11 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/jackc/pgtype"
+
+	"github.com/polygonid/sh-id-platform/internal/common"
 )
 
 // CoreClaim is an alias for the core.Claim struct
@@ -108,4 +111,14 @@ func (c *CoreClaim) Scan(value interface{}) error {
 // Get returns the value of the core claim
 func (c *CoreClaim) Get() *core.Claim {
 	return (*core.Claim)(c)
+}
+
+// BuildTreeState returns circuits.TreeState structure
+func BuildTreeState(state, claimsTreeRoot, revocationTreeRoot, rootOfRoots *string) (circuits.TreeState, error) {
+	return circuits.TreeState{
+		State:          common.StrMTHex(state),
+		ClaimsRoot:     common.StrMTHex(claimsTreeRoot),
+		RevocationRoot: common.StrMTHex(revocationTreeRoot),
+		RootOfRoots:    common.StrMTHex(rootOfRoots),
+	}, nil
 }

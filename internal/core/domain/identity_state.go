@@ -1,6 +1,12 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/iden3/go-circuits"
+
+	"github.com/polygonid/sh-id-platform/internal/common"
+)
 
 // IdentityStatus represents type for state Status
 type IdentityStatus string
@@ -31,4 +37,19 @@ type IdentityState struct {
 	Status             IdentityStatus `json:"status,omitempty"`
 	ModifiedAt         time.Time      `json:"modified_at,omitempty"`
 	CreatedAt          time.Time      `json:"created_at,omitempty"`
+}
+
+// ToTreeState returns circuits.TreeState structure
+func (i *IdentityState) ToTreeState() (circuits.TreeState, error) {
+	return BuildTreeState(i.State, i.ClaimsTreeRoot, i.RevocationTreeRoot, i.RootOfRoots)
+}
+
+// TreeState returns
+func (i *IdentityState) TreeState() circuits.TreeState {
+	return circuits.TreeState{
+		State:          common.StrMTHex(i.State),
+		ClaimsRoot:     common.StrMTHex(i.ClaimsTreeRoot),
+		RevocationRoot: common.StrMTHex(i.RevocationTreeRoot),
+		RootOfRoots:    common.StrMTHex(i.RootOfRoots),
+	}
 }

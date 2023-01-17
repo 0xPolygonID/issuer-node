@@ -63,22 +63,3 @@ services:
     cap_add:
       - IPC_LOCK
     command: ./vault/scripts/init.sh
-
-  test_vault:
-    image: vault:latest
-    volumes:
-      - ./.vault/config:/vault/config
-      - ./.vault/policies:/vault/policies
-      - ./.vault/data:/vault/data
-      - ./.vault/file:/vault/file:rw
-      - ./.vault/scripts:/vault/scripts
-      - ./.vault/plugins:/vault/plugins
-    ports:
-      - 8300:8200
-    environment:
-      - VAULT_ADDR=http://0.0.0.0:8200
-      - VAULT_API_ADDR=http://0.0.0.0:8200
-      - VAULT_ADDRESS=http://0.0.0.0:8200
-    cap_add:
-      - IPC_LOCK
-    command: ./vault/scripts/init.sh

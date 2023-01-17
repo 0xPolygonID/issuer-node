@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
 
@@ -37,27 +38,29 @@ type ClaimCfg struct {
 }
 
 type claim struct {
-	cfg         ClaimCfg
-	icRepo      ports.ClaimsRepository
-	schemaSrv   ports.SchemaService
-	identitySrv ports.IndentityService
-	mtService   ports.MtService
-	storage     *db.Storage
+	cfg                     ClaimCfg
+	icRepo                  ports.ClaimsRepository
+	schemaSrv               ports.SchemaService
+	identitySrv             ports.IndentityService
+	mtService               ports.MtService
+	identityStateRepository ports.IdentityStateRepository
+	storage                 *db.Storage
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
 			RHSUrl:     cfg.RHSUrl,
 			Host:       cfg.Host,
 		},
-		icRepo:      repo,
-		schemaSrv:   schemaSrv,
-		identitySrv: idenSrv,
-		mtService:   mtService,
-		storage:     storage,
+		icRepo:                  repo,
+		schemaSrv:               schemaSrv,
+		identitySrv:             idenSrv,
+		mtService:               mtService,
+		identityStateRepository: identityStateRepository,
+		storage:                 storage,
 	}
 	return s
 }
@@ -302,4 +305,53 @@ func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description
 	}
 
 	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
+}
+
+func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
+	did, err := core.ParseDID(id)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing did: %w", err)
+	}
+
+	rID := new(big.Int).SetUint64(nonce)
+	revocationStatus := &verifiable.RevocationStatus{}
+
+	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	revocationStatus.Issuer.State = state.State
+	revocationStatus.Issuer.ClaimsTreeRoot = state.ClaimsTreeRoot
+	revocationStatus.Issuer.RevocationTreeRoot = state.RevocationTreeRoot
+	revocationStatus.Issuer.RootOfRoots = state.RootOfRoots
+
+	if state.RevocationTreeRoot == nil {
+		var mtp *merkletree.Proof
+		mtp, err = merkletree.NewProofFromData(false, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		revocationStatus.MTP = *mtp
+		return revocationStatus, nil
+	}
+
+	revocationTreeHash, err := merkletree.NewHashFromHex(*state.RevocationTreeRoot)
+	if err != nil {
+		return nil, err
+	}
+	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	// revocation / non revocation MTP for the latest identity state
+	proof, err := identityTrees.GenerateRevocationProof(ctx, rID, revocationTreeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	revocationStatus.MTP = *proof
+
+	return revocationStatus, nil
 }

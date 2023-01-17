@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -29,7 +32,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
@@ -80,7 +83,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
@@ -210,7 +213,7 @@ func TestServer_GetIdentities(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
 
@@ -255,6 +258,87 @@ func TestServer_GetIdentities(t *testing.T) {
 			assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 			assert.Equal(t, tc.expected.httpCode, rr.Code)
 			assert.True(t, len(response) >= 2)
+		})
+	}
+}
+
+func TestServer_GetRevocationStatus(t *testing.T) {
+	if os.Getenv("TEST_MODE") == "GA" {
+		t.Skip("SKIPPED")
+	}
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	schemaService := services.NewSchema(storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "https://host.com",
+	}
+
+	identity, err := identityService.Create(ctx, "http://localhost:3001")
+	assert.NoError(t, err)
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	handler := getHandler(context.Background(), server)
+
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	did, _ := core.ParseDID(identity.Identifier)
+	credentialSubject := `{
+        "id": "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+        "birthday": 19960424,
+        "documentType": 2
+    }`
+	typeC := "KYCAgeCredential"
+	expiration := int64(12345)
+	// cVersion := uint32(0)
+	// subjectPos := "0"
+	merklizedRootPosition := "value"
+	claim, err := claimsService.CreateClaim(context.Background(), ports.NewClaimRequest(schema, did, schema, json.RawMessage(credentialSubject), &expiration, typeC, nil, nil, &merklizedRootPosition))
+	assert.NoError(t, err)
+
+	type expected struct {
+		httpCode int
+	}
+	type testConfig struct {
+		name     string
+		nonce    int64
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:  "should get revocation status",
+			nonce: int64(claim.RevNonce),
+			expected: expected{
+				httpCode: 200,
+			},
+		},
+
+		{
+			name:  "should get revocation status wrong nonce",
+			nonce: 123456,
+			expected: expected{
+				httpCode: 200,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/%s/claims/revocation/status/%d", identity.Identifier, tc.nonce)
+			req, _ := http.NewRequest("GET", url, nil)
+			handler.ServeHTTP(rr, req)
+
+			var response GetRevocationStatus200JSONResponse
+			assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			assert.Equal(t, tc.expected.httpCode, rr.Code)
+			assert.NotNil(t, response.Issuer.ClaimsTreeRoot)
+			assert.NotNil(t, response.Issuer.State)
+			assert.NotNil(t, response.Mtp.Existence)
+			assert.NotNil(t, response.Mtp.Siblings)
 		})
 	}
 }
