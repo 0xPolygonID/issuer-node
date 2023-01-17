@@ -36,7 +36,7 @@ var (
 type ClaimCfg struct {
 	RHSEnabled bool // ReverseHash Enabled
 	RHSUrl     string
-	Host       string
+	Host       string // Must be an url. ex: http://host.org
 }
 
 type claim struct {

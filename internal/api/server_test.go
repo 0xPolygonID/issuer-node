@@ -209,6 +209,9 @@ func TestServer_RevokeClaim(t *testing.T) {
 }
 
 func TestServer_CreateClaim(t *testing.T) {
+	if os.Getenv("TEST_MODE") == "GA" {
+		t.Skip("Skipped. Cannot run hashicorp vault in ga")
+	}
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
 
 	identityRepo := repositories.NewIdentity()
@@ -221,7 +224,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	schemaService := services.NewSchema(storage)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
-		Host:       "http://host", // Todo.. pq peta si no es mandatory
+		Host:       "http://host",
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
 
