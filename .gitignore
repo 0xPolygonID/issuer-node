@@ -24,3 +24,6 @@ infrastructure/local/.vault/file
 # vendor/
 
 .DS_STORE
+
+
+config.toml

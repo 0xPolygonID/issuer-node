@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
 
@@ -58,5 +59,6 @@ func NewClaimRequest(schema string, did *core.DID, credentialSchema string, cred
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *ClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id string, nonce uint64, description string) error
+	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error)
 	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
 }

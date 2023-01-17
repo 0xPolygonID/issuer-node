@@ -294,3 +294,53 @@ func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *d
 		revocation.Description)
 	return err
 }
+
+// GetByID get claim by id
+func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error) {
+	claim := domain.Claim{}
+	// language=PostgreSQL
+	err := conn.QueryRow(ctx,
+		`SELECT id,
+       				issuer,
+       				schema_hash,
+       				schema_type,
+       				schema_url,
+       				other_identifier,
+       				expiration,
+       				updatable,
+       				version,
+        			rev_nonce,
+       				signature_proof,
+       				mtp_proof,
+       				data,
+       				claims.identifier,
+        			identity_state,
+       				credential_status,
+       				core_claim
+        FROM claims
+        WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(),
+		claimID).Scan(
+		&claim.ID,
+		&claim.Issuer,
+		&claim.SchemaHash,
+		&claim.SchemaType,
+		&claim.SchemaURL,
+		&claim.OtherIdentifier,
+		&claim.Expiration,
+		&claim.Updatable,
+		&claim.Version,
+		&claim.RevNonce,
+		&claim.SignatureProof,
+		&claim.MTPProof,
+		&claim.Data,
+		&claim.Identifier,
+		&claim.IdentityState,
+		&claim.CredentialStatus,
+		&claim.CoreClaim)
+
+	if err != nil && err == pgx.ErrNoRows {
+		return nil, ErrClaimDoesNotExist
+	}
+
+	return &claim, err
+}

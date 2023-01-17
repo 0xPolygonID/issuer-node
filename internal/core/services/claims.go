@@ -28,6 +28,7 @@ import (
 var (
 	ErrJSONLdContext = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
 	ErrProcessSchema = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
+	ErrClaimNotFound = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim 	// ErrProcessSchema Cannot process schema
 )
 
 // ClaimCfg claim service configuration
@@ -161,6 +162,111 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.ClaimRequest) (*doma
 	return claimResp, err
 }
 
+func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description string) error {
+	did, err := core.ParseDID(id)
+	if err != nil {
+		return fmt.Errorf("error parsing did: %w", err)
+	}
+
+	rID := new(big.Int).SetUint64(nonce)
+	revocation := domain.Revocation{
+		Identifier:  id,
+		Nonce:       domain.RevNonceUint64(nonce),
+		Version:     0,
+		Status:      0,
+		Description: description,
+	}
+
+	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return fmt.Errorf("error gettting merkles trees: %w", err)
+	}
+
+	err = identityTrees.RevokeClaim(ctx, rID)
+	if err != nil {
+		return fmt.Errorf("error revoking the claim: %w", err)
+	}
+
+	var claim *domain.Claim
+	claim, err = c.icRepo.GetByRevocationNonce(ctx, c.storage.Pgx, did, domain.RevNonceUint64(nonce))
+
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return err
+		}
+		return fmt.Errorf("error getting the claim by revocation nonce: %w", err)
+	}
+
+	claim.Revoked = true
+	_, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
+	if err != nil {
+		return fmt.Errorf("error saving the claim: %w", err)
+	}
+
+	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
+}
+
+func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error) {
+	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return nil, ErrClaimNotFound
+		}
+		return nil, err
+	}
+
+	return c.schemaSrv.FromClaimModelToW3CCredential(*claim)
+}
+
+func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
+	did, err := core.ParseDID(id)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing did: %w", err)
+	}
+
+	rID := new(big.Int).SetUint64(nonce)
+	revocationStatus := &verifiable.RevocationStatus{}
+
+	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	revocationStatus.Issuer.State = state.State
+	revocationStatus.Issuer.ClaimsTreeRoot = state.ClaimsTreeRoot
+	revocationStatus.Issuer.RevocationTreeRoot = state.RevocationTreeRoot
+	revocationStatus.Issuer.RootOfRoots = state.RootOfRoots
+
+	if state.RevocationTreeRoot == nil {
+		var mtp *merkletree.Proof
+		mtp, err = merkletree.NewProofFromData(false, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		revocationStatus.MTP = *mtp
+		return revocationStatus, nil
+	}
+
+	revocationTreeHash, err := merkletree.NewHashFromHex(*state.RevocationTreeRoot)
+	if err != nil {
+		return nil, err
+	}
+	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	// revocation / non revocation MTP for the latest identity state
+	proof, err := identityTrees.GenerateRevocationProof(ctx, rID, revocationTreeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	revocationStatus.MTP = *proof
+
+	return revocationStatus, nil
+}
+
 func (c *claim) createVC(claimReq *ports.ClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
 	if err := claimReq.Validate(); err != nil {
 		return verifiable.W3CCredential{}, err
@@ -260,98 +366,4 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} 
 func buildRevocationURL(host, issuerDID string, nonce uint64) string {
 	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
-}
-
-func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description string) error {
-	did, err := core.ParseDID(id)
-	if err != nil {
-		return fmt.Errorf("error parsing did: %w", err)
-	}
-
-	rID := new(big.Int).SetUint64(nonce)
-	revocation := domain.Revocation{
-		Identifier:  id,
-		Nonce:       domain.RevNonceUint64(nonce),
-		Version:     0,
-		Status:      0,
-		Description: description,
-	}
-
-	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return fmt.Errorf("error gettting merkles trees: %w", err)
-	}
-
-	err = identityTrees.RevokeClaim(ctx, rID)
-	if err != nil {
-		return fmt.Errorf("error revoking the claim: %w", err)
-	}
-
-	var claim *domain.Claim
-	claim, err = c.icRepo.GetByRevocationNonce(ctx, c.storage.Pgx, did, domain.RevNonceUint64(nonce))
-
-	switch {
-	case errors.Is(err, repositories.ErrClaimDoesNotExist):
-		// Claim does not exist. No need to update it.
-		return err
-	case err != nil:
-		return fmt.Errorf("error getting the claim by revocation nonce: %w", err)
-	default:
-		claim.Revoked = true
-		_, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
-		if err != nil {
-			return fmt.Errorf("error saving the claim: %w", err)
-		}
-	}
-
-	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
-}
-
-func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
-	did, err := core.ParseDID(id)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing did: %w", err)
-	}
-
-	rID := new(big.Int).SetUint64(nonce)
-	revocationStatus := &verifiable.RevocationStatus{}
-
-	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return nil, err
-	}
-
-	revocationStatus.Issuer.State = state.State
-	revocationStatus.Issuer.ClaimsTreeRoot = state.ClaimsTreeRoot
-	revocationStatus.Issuer.RevocationTreeRoot = state.RevocationTreeRoot
-	revocationStatus.Issuer.RootOfRoots = state.RootOfRoots
-
-	if state.RevocationTreeRoot == nil {
-		var mtp *merkletree.Proof
-		mtp, err = merkletree.NewProofFromData(false, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-		revocationStatus.MTP = *mtp
-		return revocationStatus, nil
-	}
-
-	revocationTreeHash, err := merkletree.NewHashFromHex(*state.RevocationTreeRoot)
-	if err != nil {
-		return nil, err
-	}
-	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return nil, err
-	}
-
-	// revocation / non revocation MTP for the latest identity state
-	proof, err := identityTrees.GenerateRevocationProof(ctx, rID, revocationTreeHash)
-	if err != nil {
-		return nil, err
-	}
-
-	revocationStatus.MTP = *proof
-
-	return revocationStatus, nil
 }
