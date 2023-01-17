@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/mitchellh/mapstructure"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,6 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 

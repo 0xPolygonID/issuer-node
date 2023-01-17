@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
+
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
