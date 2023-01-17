@@ -66,7 +66,9 @@ type Runtime struct {
 
 // Load loads the configuraion from a file
 func Load(fileName string) (*Configuration, error) {
-	getFlags()
+	//if err := getFlags(); err != nil {
+	//	return nil, err
+	//}
 	bindEnv()
 	pathFlag := viper.GetString("config")
 	if _, err := os.Stat(pathFlag); err == nil {
@@ -81,7 +83,6 @@ func Load(fileName string) (*Configuration, error) {
 	} else {
 		// Read default config file.
 		viper.AddConfigPath(getWorkingDirectory())
-		viper.AddConfigPath(CIConfigPath)
 		viper.SetConfigType("toml")
 		if fileName == "" {
 			viper.SetConfigName("config")
@@ -89,10 +90,10 @@ func Load(fileName string) (*Configuration, error) {
 			viper.SetConfigName(fileName)
 		}
 	}
-	const defDBPort = 5432
+	// const defDBPort = 5432
 	config := &Configuration{
-		ServerPort: defDBPort,
-		Database:   Database{},
+		// ServerPort: defDBPort,
+		Database: Database{},
 		Runtime: Runtime{
 			LogLevel: log.LevelDebug,
 			LogMode:  log.OutputText,
@@ -110,14 +111,16 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
-func getFlags() {
+func getFlags() error {
 	pflag.StringP("config", "c", "", "Specify the configuration file location.")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
 		log.Error(context.Background(), "parsing config flags", err)
+		return err
 	}
+	return nil
 }
 
 func bindEnv() {
