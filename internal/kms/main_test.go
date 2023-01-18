@@ -28,12 +28,6 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) int {
-	//cfg = config.KeyStore{
-	//	Address:              "http://localhost:8200",
-	//	Token:                "hvs.YxU2dLZljGpqLyPYu6VeYJde",
-	//	PluginIden3MountPath: "iden3",
-	//}
-
 	configForTesting, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", err)
