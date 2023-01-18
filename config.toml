@@ -1,0 +1,18 @@
+ServerPort = "3001"
+ServerUrl = "http://localhost"
+
+[Database]
+    Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
+
+[Runtime]
+    LogLevel = -4
+    LogMode = 2
+
+[KeyStore]
+    Address="http://localhost:8200"
+    Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
+    PluginIden3MountPath="iden3"
+
+[ReverseHashService]
+    URL="http://localhost:3001"
+    Enabled= false

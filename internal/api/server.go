@@ -88,14 +88,20 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	claimReq := ports.NewClaimRequest(request.Body.CredentialSchema, did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
 
-	resp, err := s.claimService.CreateClaim(ctx, claimReq)
+	resp, err := s.claimService.CreateClaim(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateClaim422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrMalformedURL) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -121,7 +127,35 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 
 // GetRevocationStatus is the controller to get revocation status
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
-	return nil, nil
+	response := GetRevocationStatus200JSONResponse{}
+	var err error
+
+	rs, err := s.claimService.GetRevocationStatus(ctx, request.Identifier, uint64(request.Nonce))
+	if err != nil {
+		return GetRevocationStatus500JSONResponse{N500JSONResponse{
+			Message: err.Error(),
+		}}, nil
+	}
+
+	response.Issuer.State = rs.Issuer.State
+	response.Issuer.RevocationTreeRoot = rs.Issuer.RevocationTreeRoot
+	response.Issuer.RootOfRoots = rs.Issuer.RootOfRoots
+	response.Issuer.ClaimsTreeRoot = rs.Issuer.ClaimsTreeRoot
+	response.Mtp.Existence = rs.MTP.Existence
+
+	if rs.MTP.NodeAux != nil {
+		key := rs.MTP.NodeAux.Key.String()
+		value := rs.MTP.NodeAux.Value.String()
+		response.Mtp.NodeAux.Key = &key
+		response.Mtp.NodeAux.Value = &value
+	}
+	response.Mtp.Existence = rs.MTP.Existence
+	siblings := make([]string, 0)
+	for _, s := range rs.MTP.AllSiblings() {
+		siblings = append(siblings, s.String())
+	}
+	response.Mtp.Siblings = &siblings
+	return response, err
 }
 
 // PublishState is the controller to publish the state on-chain

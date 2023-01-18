@@ -1,13 +1,10 @@
 package config
 
 import (
-	"context"
-	"flag"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -66,7 +63,9 @@ type Runtime struct {
 
 // Load loads the configuraion from a file
 func Load(fileName string) (*Configuration, error) {
-	getFlags()
+	//if err := getFlags(); err != nil {
+	//	return nil, err
+	//}
 	bindEnv()
 	pathFlag := viper.GetString("config")
 	if _, err := os.Stat(pathFlag); err == nil {
@@ -89,10 +88,10 @@ func Load(fileName string) (*Configuration, error) {
 			viper.SetConfigName(fileName)
 		}
 	}
-	const defDBPort = 5432
+	// const defDBPort = 5432
 	config := &Configuration{
-		ServerPort: defDBPort,
-		Database:   Database{},
+		// ServerPort: defDBPort,
+		Database: Database{},
 		Runtime: Runtime{
 			LogLevel: log.LevelDebug,
 			LogMode:  log.OutputText,
@@ -110,15 +109,17 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
-func getFlags() {
-	pflag.StringP("config", "c", "", "Specify the configuration file location.")
-	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	pflag.Parse()
-
-	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		log.Error(context.Background(), "parsing config flags", err)
-	}
-}
+//func getFlags() error {
+//	pflag.StringP("config", "c", "", "Specify the configuration file location.")
+//	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+//	pflag.Parse()
+//
+//	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
+//		log.Error(context.Background(), "parsing config flags", err)
+//		return err
+//	}
+//	return nil
+//}
 
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")

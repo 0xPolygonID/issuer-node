@@ -122,6 +122,8 @@ paths:
                 $ref: '#/components/schemas/CreateClaimResponse'
         '400':
           $ref: '#/components/responses/400'
+        '422':
+          $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
     get:
@@ -314,8 +316,7 @@ components:
           type: string
           x-omitempty: false
         credentialSubject:
-          type: string
-          format: json
+          type: object
           x-omitempty: false
         expiration:
           type: integer
@@ -438,21 +439,27 @@ components:
           properties:
             existence:
               type: boolean
+            siblings:
+              type: array
+              x-omitempty: false
+              items:
+                type: string
+
             nodeAux:
               type: object
               properties:
                 key:
                   type: string
-                  x-go-type: merkletree.Hash
-                  x-go-type-import:
-                    name: Hash
-                    path: github.com/iden3/go-merkletree-sql
+#                  x-go-type: merkletree.Hash
+#                  x-go-type-import:
+#                    name: Hash
+#                    path: github.com/iden3/go-merkletree-sql/v2
                 value:
                   type: string
-                  x-go-type: merkletree.Hash
-                  x-go-type-import:
-                    name: Hash
-                    path: github.com/iden3/go-merkletree-sql
+#                  x-go-type: merkletree.Hash
+#                  x-go-type-import:
+#                    name: Hash
+#                    path: github.com/iden3/go-merkletree-sql/v2
 
   parameters:
     pathIdentifier:
@@ -506,6 +513,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '407':
       description: 'Proxy Authentication Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '422':
+      description: 'Unprocessable Content'
       content:
         application/json:
           schema:

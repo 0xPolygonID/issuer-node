@@ -78,7 +78,7 @@ func (i *identity) Create(ctx context.Context, hostURL string) (*domain.Identity
 }
 
 func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error) {
-	keyID, err := i.GetKeyIDFromAuthClaim(ctx, authClaim)
+	keyID, err := i.getKeyIDFromAuthClaim(ctx, authClaim)
 	if err != nil {
 		return nil, err
 	}
@@ -125,9 +125,9 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
-// GetKeyIDFromAuthClaim finds BJJ KeyID of auth claim
+// getKeyIDFromAuthClaim finds BJJ KeyID of auth claim
 // in registered key providers
-func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
+func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
 	var keyID kms.KeyID
 
 	if authClaim.Identifier == nil {
@@ -143,8 +143,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 	bjjClaim := entry.RawSlotsAsInts()
 
 	var publicKey babyjub.PublicKey
-	publicKey.X = bjjClaim[2]
-	publicKey.Y = bjjClaim[3]
+	publicKey.X, publicKey.Y = bjjClaim[2], bjjClaim[3]
 
 	compPubKey := publicKey.Compress()
 

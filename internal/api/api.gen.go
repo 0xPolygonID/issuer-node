@@ -19,19 +19,18 @@ import (
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
-	"github.com/iden3/go-merkletree-sql"
 )
 
 // CreateClaimRequest defines model for CreateClaimRequest.
 type CreateClaimRequest struct {
-	CredentialSchema      string          `json:"credentialSchema"`
-	CredentialSubject     json.RawMessage `json:"credentialSubject"`
-	Expiration            *int64          `json:"expiration,omitempty"`
-	MerklizedRootPosition *string         `json:"merklizedRootPosition,omitempty"`
-	RevNonce              *uint64         `json:"revNonce,omitempty"`
-	SubjectPosition       *string         `json:"subjectPosition,omitempty"`
-	Type                  string          `json:"type"`
-	Version               *uint32         `json:"version,omitempty"`
+	CredentialSchema      string                 `json:"credentialSchema"`
+	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
+	Expiration            *int64                 `json:"expiration,omitempty"`
+	MerklizedRootPosition *string                `json:"merklizedRootPosition,omitempty"`
+	RevNonce              *uint64                `json:"revNonce,omitempty"`
+	SubjectPosition       *string                `json:"subjectPosition,omitempty"`
+	Type                  string                 `json:"type"`
+	Version               *uint32                `json:"version,omitempty"`
 }
 
 // CreateClaimResponse defines model for CreateClaimResponse.
@@ -72,9 +71,6 @@ type GetClaimResponse struct {
 	Type              []string               `json:"type"`
 }
 
-// GetClaimsResponse defines model for GetClaimsResponse.
-type GetClaimsResponse = []GetClaimResponse
-
 // Health defines model for Health.
 type Health struct {
 	Cache bool `json:"cache"`
@@ -114,9 +110,10 @@ type RevocationStatusResponse struct {
 	Mtp struct {
 		Existence bool `json:"existence"`
 		NodeAux   *struct {
-			Key   *merkletree.Hash `json:"key,omitempty"`
-			Value *merkletree.Hash `json:"value,omitempty"`
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
 		} `json:"nodeAux,omitempty"`
+		Siblings *[]string `json:"siblings"`
 	} `json:"mtp"`
 }
 
@@ -139,6 +136,9 @@ type N400 = GenericErrorMessage
 
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
+
+// N422 defines model for 422.
+type N422 = GenericErrorMessage
 
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
@@ -173,9 +173,6 @@ type ServerInterface interface {
 	// Publish State On-Chain
 	// (POST /v1/identities/state)
 	PublishState(w http.ResponseWriter, r *http.Request)
-	// Get Claims
-	// (GET /v1/{identifier}/claims)
-	GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -280,32 +277,6 @@ func (siw *ServerInterfaceWrapper) PublishState(w http.ResponseWriter, r *http.R
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PublishState(w, r)
-	})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetClaims operation middleware
-func (siw *ServerInterfaceWrapper) GetClaims(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetClaims(w, r, identifier)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -578,9 +549,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities/state", wrapper.PublishState)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/claims", wrapper.GetClaims)
-	})
-	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/claims", wrapper.CreateClaim)
 	})
 	r.Group(func(r chi.Router) {
@@ -599,6 +567,8 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 type N400JSONResponse GenericErrorMessage
 
 type N404JSONResponse GenericErrorMessage
+
+type N422JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
 
@@ -738,41 +708,6 @@ func (response PublishState500JSONResponse) VisitPublishStateResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetClaimsRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-}
-
-type GetClaimsResponseObject interface {
-	VisitGetClaimsResponse(w http.ResponseWriter) error
-}
-
-type GetClaims200JSONResponse GetClaimsResponse
-
-func (response GetClaims200JSONResponse) VisitGetClaimsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetClaims400JSONResponse struct{ N400JSONResponse }
-
-func (response GetClaims400JSONResponse) VisitGetClaimsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetClaims500JSONResponse struct{ N500JSONResponse }
-
-func (response GetClaims500JSONResponse) VisitGetClaimsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type CreateClaimRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Body       *CreateClaimJSONRequestBody
@@ -796,6 +731,15 @@ type CreateClaim400JSONResponse struct{ N400JSONResponse }
 func (response CreateClaim400JSONResponse) VisitCreateClaimResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClaim422JSONResponse struct{ N422JSONResponse }
+
+func (response CreateClaim422JSONResponse) VisitCreateClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -946,9 +890,6 @@ type StrictServerInterface interface {
 	// Publish State On-Chain
 	// (POST /v1/identities/state)
 	PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error)
-	// Get Claims
-	// (GET /v1/{identifier}/claims)
-	GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error)
@@ -1137,32 +1078,6 @@ func (sh *strictHandler) PublishState(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetClaims operation middleware
-func (sh *strictHandler) GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request GetClaimsRequestObject
-
-	request.Identifier = identifier
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetClaims(ctx, request.(GetClaimsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetClaims")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetClaimsResponseObject); ok {
-		if err := validResponse.VisitGetClaimsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
-	}
-}
-
 // CreateClaim operation middleware
 func (sh *strictHandler) CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	var request CreateClaimRequestObject
@@ -1280,36 +1195,35 @@ func (sh *strictHandler) GetClaim(w http.ResponseWriter, r *http.Request, identi
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"rebG6r8AAAD//74eajV0JAAA",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

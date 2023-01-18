@@ -69,6 +69,7 @@ func main() {
 		schemaService,
 		identityService,
 		mtService,
+		identityStateRepo,
 		storage,
 		services.ClaimCfg{
 			RHSEnabled: cfg.ReverseHashService.Enabled,
