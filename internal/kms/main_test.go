@@ -1,7 +1,6 @@
 package kms
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 )
 
@@ -28,13 +26,7 @@ func TestMain(m *testing.M) {
 }
 
 func testMain(m *testing.M) int {
-	configForTesting, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		panic(err)
-	}
-
-	cfg = configForTesting.KeyStore
+	cfg = config.VaultTest()
 	return m.Run()
 }
 
@@ -44,7 +36,7 @@ func testKMSSetup(t testing.TB) TestKMS {
 	k := TestKMS{t: t}
 	var err error
 
-	k.VaultCli, err = providers.NewVaultClient(testVaultConfig(t))
+	k.VaultCli, err = providers.NewVaultClient(cfg.Address, cfg.Token)
 	require.NoError(t, err)
 
 	k.KMS = NewKMS()
@@ -57,18 +49,6 @@ func testKMSSetup(t testing.TB) TestKMS {
 
 	t.Cleanup(k.Close)
 	return k
-}
-
-func testVaultConfig(t testing.TB) (vaultAddr, vaultToken string) {
-	vaultAddr = cfg.Address
-	vaultToken = cfg.Token
-	if vaultAddr == "" {
-		t.Skip("vault address is not configured")
-	}
-	if vaultToken == "" {
-		t.Skip("vault token is not configured")
-	}
-	return
 }
 
 // Close cleans up Vault on test complete.

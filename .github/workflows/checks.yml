@@ -6,26 +6,17 @@ jobs:
   test:
     name: Test codebase
     runs-on: ubuntu-latest
- #   services:
- #     postgres:
- #       image: postgres
- #       env:
- #         POSTGRES_PASSWORD: postgres
- #       options: >-
- #         --health-cmd pg_isready
- #         --health-interval 10s
- #         --health-timeout 5s
- #         --health-retries 5
- #       ports:
- #         - 5432:5432
     steps:
-      - uses: isbang/compose-action@v1.4.1
+      - uses: actions/checkout@v3
+      - name: Docker Compose
+        uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
         with:
-          compose-file: "./infrastructure/local/docker-compose.yml"
-          services: postgres vault
+          compose-file: './infrastructure/local/docker-compose.yml'
+          services: |
+             postgres
+             vault
 
       - uses: actions/checkout@v3
-
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -37,9 +28,11 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/go-build
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
+          restore-keys: | 
             ${{ runner.os }}-go-
 
-      - run: make tests-ga
+      - run: |
+          make tests
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
+
