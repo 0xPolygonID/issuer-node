@@ -10,7 +10,7 @@ ServerUrl = "http://localhost"
 
 [KeyStore]
     Address="http://localhost:8200"
-    Token="YxU2dLZljGpqLyPYu6VeYJde"
+    Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
     PluginIden3MountPath="iden3"
 
 [ReverseHashService]
