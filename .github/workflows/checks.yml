@@ -33,6 +33,9 @@ jobs:
             ${{ runner.os }}-go-
 
       - run: |
+          ls -la ${GITHUB_WORKSPACE}/infrastructure/local/ 
+          ls -la ${GITHUB_WORKSPACE}/infrastructure/local/.vault
+          ls -la ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data
           cat ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
           make tests
         env:
