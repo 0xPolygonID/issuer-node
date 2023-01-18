@@ -345,6 +345,72 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 	return &claim, err
 }
 
+// GetAllByIssuerID returns all the claims of the given issuer
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+				   issuer,
+				   schema_hash,
+				   schema_url,
+				   schema_type,
+				   other_identifier,
+				   expiration,
+				   updatable,
+				   claims.version,
+				   rev_nonce,
+				   signature_proof,
+				   mtp_proof,
+				   data,
+				   claims.identifier,
+				   identity_state,
+				   identity_states.status,
+				   credential_status,
+				   core_claim
+			FROM claims
+			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+			WHERE claims.identifier = $1`
+
+	rows, err := conn.Query(ctx, query, identifier.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return processClaims(rows)
+}
+
+func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
+	defer rows.Close()
+
+	claims := make([]*domain.Claim, 0)
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaURL,
+			&claim.SchemaType,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.SignatureProof,
+			&claim.MTPProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.Status,
+			&claim.CredentialStatus,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, &claim)
+	}
+
+	return claims, rows.Err()
+}
+
 func (c *claims) ListByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows

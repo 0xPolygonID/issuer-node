@@ -10,10 +10,6 @@ servers:
     url: http://127.0.0.1
 
 tags:
-  - name: Section 1
-    description: Section 1 endpoints
-  - name: Section 2
-    description: Section 2 endpoints
   - name: Identity
     description: Collection of endpoints related to Identity
   - name: Claim
@@ -28,8 +24,6 @@ paths:
       responses:
         200:
           description: success and returns the documentation in HTML format
-
-
   /static/docs/api/api.yaml:
     get:
       summary: Get the documentation yaml file
@@ -38,7 +32,6 @@ paths:
       responses:
         200:
           description: success and returns the documentation in Yaml format
-
 
   /status:
     get:
@@ -133,6 +126,26 @@ paths:
           $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
+    get:
+      summary: Get Claims
+      operationId: GetClaims
+      description: Endpoint to retrieve claims
+      tags:
+        - Claim
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Claims found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetClaimsResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/{identifier}/claims/{id}:
     get:
       summary: Get Claim
@@ -348,6 +361,11 @@ components:
         id:
           type: string
           x-omitempty: false
+
+    GetClaimsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GetClaimResponse'
 
     GetClaimResponse:
       type: object

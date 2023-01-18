@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -435,52 +436,7 @@ func TestServer_GetClaim(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
-	claimID, err := uuid.NewUUID()
-	require.NoError(t, err)
-
-	nonce := int64(123)
-	revNonce := domain.RevNonceUint64(nonce)
-
-	claim := &domain.Claim{
-		ID:              claimID,
-		Identifier:      &idStr,
-		Issuer:          idStr,
-		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
-		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
-		SchemaType:      "AuthBJJCredential",
-		OtherIdentifier: "",
-		Expiration:      0,
-		Version:         0,
-		RevNonce:        revNonce,
-		CoreClaim:       domain.CoreClaim{},
-		Status:          nil,
-	}
-	vc := verifiable.W3CCredential{
-		ID:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claimID),
-		Context:      []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-		Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-		IssuanceDate: common.ToPointer(time.Now().UTC()),
-		CredentialSubject: map[string]interface{}{
-			"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-			"birthday":     19960424,
-			"documentType": 2,
-			"type":         "KYCAgeCredential",
-		},
-		CredentialStatus: verifiable.CredentialStatus{
-			ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", idStr, revNonce),
-			Type:            "SparseMerkleTreeProof",
-			RevocationNonce: uint64(nonce),
-		},
-		Issuer: idStr,
-		CredentialSchema: verifiable.CredentialSchema{
-			ID:   "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-			Type: "JsonSchemaValidator2018",
-		},
-	}
-
-	require.NoError(t, claim.CredentialStatus.Set(vc.CredentialStatus))
-	require.NoError(t, claim.Data.Set(vc))
-
+	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
 	query := tests.ExecQueryParams{
@@ -508,13 +464,6 @@ func TestServer_GetClaim(t *testing.T) {
 		expected expected
 	}
 
-	type credentialSubject struct {
-		Id           string `json:"id"`
-		Birthday     uint64 `json:"birthday"`
-		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
-	}
-
 	for _, tc := range []testConfig{
 		{
 			name:    "should get an error non existing claimID",
@@ -530,7 +479,7 @@ func TestServer_GetClaim(t *testing.T) {
 		{
 			name:    "should get an error the given did has no entry for claimID",
 			did:     idStrWithoutClaims,
-			claimID: claimID,
+			claimID: claim.ID,
 			expected: expected{
 				httpCode: 404,
 				response: GetClaim404JSONResponse{N404JSONResponse{
@@ -541,7 +490,7 @@ func TestServer_GetClaim(t *testing.T) {
 		{
 			name:    "should get an error wrong did invalid format",
 			did:     ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
-			claimID: claimID,
+			claimID: claim.ID,
 			expected: expected{
 				httpCode: 400,
 				response: GetClaim400JSONResponse{N400JSONResponse{
@@ -552,7 +501,7 @@ func TestServer_GetClaim(t *testing.T) {
 		{
 			name:    "should get the claim",
 			did:     idStr,
-			claimID: claimID,
+			claimID: claim.ID,
 			expected: expected{
 				httpCode: 200,
 				response: GetClaim200JSONResponse{
@@ -562,9 +511,9 @@ func TestServer_GetClaim(t *testing.T) {
 						"JsonSchemaValidator2018",
 					},
 					CredentialStatus: verifiable.CredentialStatus{
-						ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", idStr, revNonce),
+						ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", idStr, claim.RevNonce),
 						Type:            "SparseMerkleTreeProof",
-						RevocationNonce: uint64(nonce),
+						RevocationNonce: uint64(claim.RevNonce),
 					},
 					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
@@ -572,7 +521,7 @@ func TestServer_GetClaim(t *testing.T) {
 						"documentType": float64(2),
 						"type":         "KYCAgeCredential",
 					},
-					Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claimID),
+					Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
 					IssuanceDate: common.ToPointer(time.Now().UTC()),
 					Issuer:       idStr,
 					Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -589,28 +538,12 @@ func TestServer_GetClaim(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetClaim200JSONResponse:
-				var response GetClaim200JSONResponse
-				var responseCredentialStatus verifiable.CredentialStatus
-				var responseCredentialSubject, tcCredentialSubject credentialSubject
+				var response GetClaimResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Id, v.Id)
-				assert.Equal(t, len(response.Context), len(v.Context))
-				assert.EqualValues(t, response.Context, v.Context)
-				assert.EqualValues(t, response.CredentialSchema, v.CredentialSchema)
-				assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &responseCredentialSubject))
-				assert.NoError(t, mapstructure.Decode(v.CredentialSubject, &tcCredentialSubject))
-				assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-				assert.InDelta(t, response.IssuanceDate.Unix(), v.IssuanceDate.Unix(), 30)
-				assert.Equal(t, response.Type, v.Type)
-				assert.NoError(t, mapstructure.Decode(response.CredentialStatus, &responseCredentialStatus))
-				credentialStatusTC, ok := v.CredentialStatus.(verifiable.CredentialStatus)
-				require.True(t, ok)
-				assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
-				assert.Equal(t, response.Expiration, v.Expiration)
-				assert.Equal(t, response.Issuer, v.Issuer)
+				validateClaim(t, response, GetClaimResponse(v))
 
 			case GetClaim400JSONResponse:
-				var response RevokeClaim404JSONResponse
+				var response GetClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			case GetClaim404JSONResponse:
@@ -619,6 +552,198 @@ func TestServer_GetClaim(t *testing.T) {
 				assert.Equal(t, response.Message, v.Message)
 			case GetClaim500JSONResponse:
 				var response GetClaim500JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, response.Message, v.Message)
+			default:
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestServer_GetClaims(t *testing.T) {
+	if os.Getenv("TEST_MODE") == "GA" {
+		t.Skip("SKIPPED")
+	}
+
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	schemaService := services.NewSchema(storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+
+	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	fixture := tests.NewFixture(storage)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+
+	ctx := context.Background()
+	identity, err := server.identityService.Create(ctx, "https://localhost.com")
+	require.NoError(t, err)
+
+	defaultClaim := fixture.GetDefaultAuthClaimOfIssuer(t, identity.Identifier)
+	defaultClaimVC, err := server.schemaService.FromClaimModelToW3CCredential(*defaultClaim)
+	assert.NoError(t, err)
+
+	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com")
+	require.NoError(t, err)
+
+	defaultClaimMultipleClaims := fixture.GetDefaultAuthClaimOfIssuer(t, identityMultipleClaims.Identifier)
+	defaultClaimMultipleClaimsVC, err := server.schemaService.FromClaimModelToW3CCredential(*defaultClaimMultipleClaims)
+	assert.NoError(t, err)
+
+	claim := fixture.NewClaim(t, defaultClaimMultipleClaimsVC.Issuer)
+	_ = fixture.CreateClaim(t, claim)
+
+	emptyIdentityStr := "did:polygonid:polygon:mumbai:2qLQGgjpP5Yq7r7jbRrQZbWy8ikADvxamSLB7CqR4F"
+
+	handler := getHandler(context.Background(), server)
+
+	type expected struct {
+		response GetClaimsResponseObject
+		len      int
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		did      string
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "should get an error wrong did invalid format",
+			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: GetClaims400JSONResponse{N400JSONResponse{
+					Message: "invalid did",
+				}},
+			},
+		},
+		{
+			name: "should get 0 claims",
+			did:  emptyIdentityStr,
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      0,
+				response: GetClaims200JSONResponse{},
+			},
+		},
+		{
+			name: "should get the default claim for a did that has no created claims",
+			did:  identity.Identifier,
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      1,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Id:      defaultClaimVC.ID,
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						CredentialSchema: CredentialSchema{
+							"https://schema.iden3.io/core/json/auth.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identity.Identifier, 0),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: 0,
+						},
+						CredentialSubject: map[string]interface{}{
+							"type": "AuthBJJCredential",
+							"x":    defaultClaimVC.CredentialSubject["x"],
+							"y":    defaultClaimVC.CredentialSubject["y"],
+						},
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identity.Identifier,
+						Type:         []string{"VerifiableCredential", "AuthBJJCredential"},
+					},
+				},
+			},
+		},
+		{
+			name: "should get the default claim plus another one that has been created",
+			did:  identityMultipleClaims.Identifier,
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      2,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Id:      defaultClaimMultipleClaimsVC.ID,
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						CredentialSchema: CredentialSchema{
+							"https://schema.iden3.io/core/json/auth.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: 0,
+						},
+						CredentialSubject: map[string]interface{}{
+							"type": "AuthBJJCredential",
+							"x":    defaultClaimMultipleClaimsVC.CredentialSubject["x"],
+							"y":    defaultClaimMultipleClaimsVC.CredentialSubject["y"],
+						},
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "AuthBJJCredential"},
+					},
+					GetClaimResponse{
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
+						CredentialSchema: CredentialSchema{
+							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: uint64(claim.RevNonce),
+						},
+						CredentialSubject: map[string]interface{}{
+							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+							"birthday":     float64(19960424),
+							"documentType": float64(2),
+							"type":         "KYCAgeCredential",
+						},
+						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/%s/claims", tc.did)
+			req, _ := http.NewRequest("GET", url, nil)
+			handler.ServeHTTP(rr, req)
+			assert.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch v := tc.expected.response.(type) {
+			case GetClaims200JSONResponse:
+				var response GetClaims200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, len(response), tc.expected.len)
+				for i := range response {
+					validateClaim(t, response[i], v[i])
+				}
+			case GetClaims400JSONResponse:
+				var response GetClaims400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, response.Message, v.Message)
+			case GetClaims500JSONResponse:
+				var response GetClaims500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			default:
@@ -708,4 +833,52 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 			assert.NotNil(t, response.Mtp.Siblings)
 		})
 	}
+}
+
+func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
+	var responseCredentialStatus verifiable.CredentialStatus
+
+	credentialSubjectTypes := []string{"AuthBJJCredential", "KYCAgeCredential"}
+
+	type credentialKYCSubject struct {
+		Id           string `json:"id"`
+		Birthday     uint64 `json:"birthday"`
+		DocumentType uint64 `json:"documentType"`
+		Type         string `json:"type"`
+	}
+
+	type credentialBJJSubject struct {
+		Type string `json:"type"`
+		X    string `json:"x"`
+		Y    string `json:"y"`
+	}
+
+	assert.Equal(t, resp.Id, tc.Id)
+	assert.Equal(t, len(resp.Context), len(tc.Context))
+	assert.EqualValues(t, resp.Context, tc.Context)
+	assert.EqualValues(t, resp.CredentialSchema, tc.CredentialSchema)
+	assert.InDelta(t, resp.IssuanceDate.Unix(), tc.IssuanceDate.Unix(), 30)
+	assert.Equal(t, resp.Type, tc.Type)
+	assert.Equal(t, resp.Expiration, tc.Expiration)
+	assert.Equal(t, resp.Issuer, tc.Issuer)
+	credentialSubjectType, ok := tc.CredentialSubject["type"]
+	require.True(t, ok)
+	assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
+	if credentialSubjectType == "AuthBJJCredential" {
+		var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
+		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
+		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+	} else {
+		var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
+		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
+		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+	}
+
+	assert.NoError(t, mapstructure.Decode(resp.CredentialStatus, &responseCredentialStatus))
+	responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
+	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
+	require.True(t, ok)
+	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
 }
