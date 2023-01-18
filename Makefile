@@ -48,7 +48,7 @@ down:
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_CMD) up -d test_postgres test_vault
+	$(DOCKER_COMPOSE_CMD) up -d test_postgres vault
 
 
 

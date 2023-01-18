@@ -421,21 +421,27 @@ components:
           properties:
             existence:
               type: boolean
+            siblings:
+              type: array
+              x-omitempty: false
+              items:
+                type: string
+
             nodeAux:
               type: object
               properties:
                 key:
                   type: string
-                  x-go-type: merkletree.Hash
-                  x-go-type-import:
-                    name: Hash
-                    path: github.com/iden3/go-merkletree-sql
+#                  x-go-type: merkletree.Hash
+#                  x-go-type-import:
+#                    name: Hash
+#                    path: github.com/iden3/go-merkletree-sql/v2
                 value:
                   type: string
-                  x-go-type: merkletree.Hash
-                  x-go-type-import:
-                    name: Hash
-                    path: github.com/iden3/go-merkletree-sql
+#                  x-go-type: merkletree.Hash
+#                  x-go-type-import:
+#                    name: Hash
+#                    path: github.com/iden3/go-merkletree-sql/v2
 
   parameters:
     pathIdentifier:

@@ -151,7 +151,35 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 
 // GetRevocationStatus is the controller to get revocation status
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
-	return nil, nil
+	response := GetRevocationStatus200JSONResponse{}
+	var err error
+
+	rs, err := s.claimService.GetRevocationStatus(ctx, request.Identifier, uint64(request.Nonce))
+	if err != nil {
+		return GetRevocationStatus500JSONResponse{N500JSONResponse{
+			Message: err.Error(),
+		}}, nil
+	}
+
+	response.Issuer.State = rs.Issuer.State
+	response.Issuer.RevocationTreeRoot = rs.Issuer.RevocationTreeRoot
+	response.Issuer.RootOfRoots = rs.Issuer.RootOfRoots
+	response.Issuer.ClaimsTreeRoot = rs.Issuer.ClaimsTreeRoot
+	response.Mtp.Existence = rs.MTP.Existence
+
+	if rs.MTP.NodeAux != nil {
+		key := rs.MTP.NodeAux.Key.String()
+		value := rs.MTP.NodeAux.Value.String()
+		response.Mtp.NodeAux.Key = &key
+		response.Mtp.NodeAux.Value = &value
+	}
+	response.Mtp.Existence = rs.MTP.Existence
+	siblings := make([]string, 0)
+	for _, s := range rs.MTP.AllSiblings() {
+		siblings = append(siblings, s.String())
+	}
+	response.Mtp.Siblings = &siblings
+	return response, err
 }
 
 // PublishState is the controller to publish the state on-chain

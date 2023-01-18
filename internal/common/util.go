@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
@@ -8,8 +9,11 @@ import (
 	"time"
 
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-merkletree-sql/v2"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/verifiable"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // CredentialRequest is a model for credential creation
@@ -82,4 +86,18 @@ func RandInt64() (uint64, error) {
 	_, err := rand.Read(buf[:4])
 
 	return binary.LittleEndian.Uint64(buf[:]), err
+}
+
+// StrMTHex string to merkle tree hash
+func StrMTHex(s *string) *merkletree.Hash {
+	if s == nil {
+		return &merkletree.HashZero
+	}
+
+	h, err := merkletree.NewHashFromHex(*s)
+	if err != nil {
+		log.Info(context.Background(), "can't parse hex string %s", *s)
+		return &merkletree.HashZero
+	}
+	return h
 }
