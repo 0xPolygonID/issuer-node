@@ -12,7 +12,7 @@ jobs:
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
         with:
           compose-file: './infrastructure/local/docker-compose.yml'
-          up-flags: "--exit-code-from=vault --abort-on-container-exit"
+          #up-flags: "--exit-code-from=vault --abort-on-container-exit"
           services: |
             postgres 
             vault
