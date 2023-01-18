@@ -24,7 +24,9 @@ jobs:
         uses: isbang/compose-action@v1.4.1
         with:
           compose-file: './infrastructure/local/docker-compose.yml'
-          services: postgres vault
+          services: |
+            postgres 
+            vault
 
       - uses: actions/checkout@v3
       - name: Set up Go
