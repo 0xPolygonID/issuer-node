@@ -80,6 +80,7 @@ func Load(fileName string) (*Configuration, error) {
 	} else {
 		// Read default config file.
 		viper.AddConfigPath(getWorkingDirectory())
+		viper.AddConfigPath(CIConfigPath)
 		viper.SetConfigType("toml")
 		if fileName == "" {
 			viper.SetConfigName("config")
