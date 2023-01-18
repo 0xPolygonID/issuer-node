@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: isbang/compose-action@v1.4.1
         with:
-          compose-file: "${GITHUB_WORKSPACE}/infrastructure/local/docker-compose.yml"
+          compose-file: "../../infrastructure/local/docker-compose.yml"
           services: postgres vault
 
       - uses: actions/checkout@v3
