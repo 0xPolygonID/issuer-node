@@ -2,6 +2,7 @@ package services_tests
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	core "github.com/iden3/go-iden3-core"
@@ -14,7 +15,10 @@ import (
 )
 
 func Test_identityState_UpdateIdentityClaims(t *testing.T) {
-	// given
+	if os.Getenv("TEST_MODE") == "GA" {
+		t.Skip("Skipped. Cannot run hashicorp vault in ga")
+	}
+
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
