@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/labstack/gommon/log"
 )
 
 // Storage defines the postgres storage
@@ -25,7 +24,6 @@ func NewStorage(connectionString string) (*Storage, error) {
 
 // Close all connections to database
 func (s *Storage) Close() error {
-	log.Info("pgx is closing connection")
 	s.Pgx.Close()
 	return nil
 }

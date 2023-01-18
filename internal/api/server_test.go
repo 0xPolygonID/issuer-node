@@ -22,6 +22,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -60,11 +61,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, _ := http.NewRequest("POST", "/v1/identities", nil)
+			req, err := http.NewRequest("POST", "/v1/identities", nil)
+			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
 
 			var response CreateIdentityResponse
-			assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 			assert.NotNil(t, *response.State.ClaimsTreeRoot)
 			assert.NotNil(t, response.State.CreatedAt)
 			assert.NotNil(t, response.State.ModifiedAt)
@@ -101,7 +103,8 @@ func TestServer_RevokeClaim(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
-	idClaim, _ := uuid.NewUUID()
+	idClaim, err := uuid.NewUUID()
+	require.NoError(t, err)
 	nonce := int64(123)
 	revNonce := domain.RevNonceUint64(nonce)
 	fixture.CreateClaim(t, &domain.Claim{
@@ -174,7 +177,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			expected: expected{
 				httpCode: 500,
 				response: RevokeClaim500JSONResponse{N500JSONResponse{
-					Message: "error gettting merkles trees: not found",
+					Message: "error getting merkle trees: not found",
 				}},
 			},
 		},
@@ -182,7 +185,8 @@ func TestServer_RevokeClaim(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims/revoke/%d", tc.did, tc.nonce)
-			req, _ := http.NewRequest("POST", url, nil)
+			req, err := http.NewRequest(http.MethodPost, url, nil)
+			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
 			assert.Equal(t, tc.expected.httpCode, rr.Code)
 
@@ -200,7 +204,132 @@ func TestServer_RevokeClaim(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			default:
-				t.Fail()
+				require.Fail(t, "unexpected http response", tc.expected.httpCode)
+			}
+		})
+	}
+}
+
+func TestServer_CreateClaim(t *testing.T) {
+	if os.Getenv("TEST_MODE") == "GA" {
+		t.Skip("Skipped. Cannot run hashicorp vault in ga")
+	}
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	schemaService := services.NewSchema(storage)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	handler := getHandler(ctx, server)
+
+	iden, err := identityService.Create(ctx, "polygon-test")
+	require.NoError(t, err)
+	did := iden.Identifier
+
+	type expected struct {
+		response CreateClaimResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		did      string
+		body     CreateClaimRequest
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "Happy path",
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateClaim201JSONResponse{},
+				httpCode: http.StatusCreated,
+			},
+		},
+		{
+			name: "Wrong credential url",
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "wrong url",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "malformed url"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Unreachable well formed credential url",
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateClaim422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
+				httpCode: http.StatusUnprocessableEntity,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/%s/claims", tc.did)
+
+			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusCreated:
+				var response CreateClaimResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				_, err := uuid.Parse(response.Id)
+				assert.NoError(t, err)
+			case http.StatusBadRequest:
+				var response CreateClaim400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			case http.StatusUnprocessableEntity:
+				var response CreateClaim422JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			default:
+				require.Fail(t, "unexpected http status response", tc.expected.httpCode)
 			}
 		})
 	}
@@ -511,17 +640,16 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	did, _ := core.ParseDID(identity.Identifier)
-	credentialSubject := `{
-        "id": "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-        "birthday": 19960424,
-        "documentType": 2
-    }`
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
 	typeC := "KYCAgeCredential"
 	expiration := int64(12345)
-	// cVersion := uint32(0)
-	// subjectPos := "0"
+
 	merklizedRootPosition := "value"
-	claim, err := claimsService.CreateClaim(context.Background(), ports.NewClaimRequest(schema, did, schema, json.RawMessage(credentialSubject), &expiration, typeC, nil, nil, &merklizedRootPosition))
+	claim, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition))
 	assert.NoError(t, err)
 
 	type expected struct {
