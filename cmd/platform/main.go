@@ -58,8 +58,9 @@ func main() {
 
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
-	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
@@ -78,6 +79,8 @@ func main() {
 		},
 	)
 
+	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+
 	spec, err := api.GetSwagger()
 	if err != nil {
 		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
@@ -90,7 +93,7 @@ func main() {
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
 	)
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService, identityStateService), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
 	server := &http.Server{

@@ -36,7 +36,7 @@ type identity struct {
 	identityStateRepository ports.IdentityStateRepository
 	claimsRepository        ports.ClaimsRepository
 	storage                 *db.Storage
-	mtservice               ports.MtService
+	mtService               ports.MtService
 	kms                     kms.KMSType
 }
 
@@ -47,7 +47,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		imtRepository:           imtRepository,
 		identityStateRepository: identityStateRepository,
 		claimsRepository:        claimsRepository,
-		mtservice:               mtservice,
+		mtService:               mtservice,
 		storage:                 storage,
 		kms:                     kms,
 	}
@@ -174,8 +174,57 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
 }
 
+// populate identity state with data needed to do generate new state.
+// Get Data from MT and previous state
+func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTrees, state, previousState *domain.IdentityState) error {
+	claimsTree, err := trees.ClaimsTree()
+	if err != nil {
+		return err
+	}
+
+	revTree, err := trees.RevsTree()
+	if err != nil {
+		return err
+	}
+
+	rootsTree, err := trees.RootsTree()
+	if err != nil {
+		return err
+	}
+
+	_, _, _, err = rootsTree.Get(ctx, claimsTree.Root().BigInt())
+	if err == merkletree.ErrKeyNotFound {
+		err = rootsTree.Add(ctx, claimsTree.Root().BigInt(), big.NewInt(0))
+		if err != nil {
+			return err
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	// calculate identity state
+	currentState, err := merkletree.HashElems(claimsTree.Root().BigInt(), revTree.Root().BigInt(), rootsTree.Root().BigInt())
+	if err != nil {
+		return err
+	}
+
+	hex := currentState.Hex()
+	state.State = &hex
+	claimTreeRootHex := claimsTree.Root().Hex()
+	state.ClaimsTreeRoot = &claimTreeRootHex
+	revTreeHex := revTree.Root().Hex()
+	state.RevocationTreeRoot = &revTreeHex
+	rootOfRootsTreeHex := rootsTree.Root().Hex()
+	state.RootOfRoots = &rootOfRootsTreeHex
+
+	state.PreviousState = previousState.State
+
+	return nil
+}
+
 func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string) (*core.DID, *big.Int, error) {
-	mts, err := i.mtservice.CreateIdentityMerkleTrees(ctx, tx)
+	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create identity markle tree: %w", err)
 	}
