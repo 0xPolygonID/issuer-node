@@ -84,6 +84,9 @@ func (is *identityState) UpdateIdentityClaims(ctx context.Context, did *core.DID
 			return err
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	return newState, err
 }
