@@ -564,7 +564,7 @@ func TestServer_GetClaims(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 	fixture := tests.NewFixture(storage)
 	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
@@ -737,54 +737,6 @@ func TestServer_GetClaims(t *testing.T) {
 	}
 }
 
-func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
-	var responseCredentialStatus verifiable.CredentialStatus
-
-	credentialSubjectTypes := []string{"AuthBJJCredential", "KYCAgeCredential"}
-
-	type credentialKYCSubject struct {
-		Id           string `json:"id"`
-		Birthday     uint64 `json:"birthday"`
-		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
-	}
-
-	type credentialBJJSubject struct {
-		Type string `json:"type"`
-		X    string `json:"x"`
-		Y    string `json:"y"`
-	}
-
-	assert.Equal(t, resp.Id, tc.Id)
-	assert.Equal(t, len(resp.Context), len(tc.Context))
-	assert.EqualValues(t, resp.Context, tc.Context)
-	assert.EqualValues(t, resp.CredentialSchema, tc.CredentialSchema)
-	assert.InDelta(t, resp.IssuanceDate.Unix(), tc.IssuanceDate.Unix(), 30)
-	assert.Equal(t, resp.Type, tc.Type)
-	assert.Equal(t, resp.Expiration, tc.Expiration)
-	assert.Equal(t, resp.Issuer, tc.Issuer)
-	credentialSubjectType, ok := tc.CredentialSubject["type"]
-	require.True(t, ok)
-	assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
-	if credentialSubjectType == "AuthBJJCredential" {
-		var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
-		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
-		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
-		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-	} else {
-		var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
-		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
-		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
-		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
-	}
-
-	assert.NoError(t, mapstructure.Decode(resp.CredentialStatus, &responseCredentialStatus))
-	responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
-	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
-	require.True(t, ok)
-	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
-}
-
 func TestServer_GetRevocationStatus(t *testing.T) {
 	if os.Getenv("TEST_MODE") == "GA" {
 		t.Skip("SKIPPED")
@@ -863,4 +815,52 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 			assert.NotNil(t, response.Mtp.Siblings)
 		})
 	}
+}
+
+func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
+	var responseCredentialStatus verifiable.CredentialStatus
+
+	credentialSubjectTypes := []string{"AuthBJJCredential", "KYCAgeCredential"}
+
+	type credentialKYCSubject struct {
+		Id           string `json:"id"`
+		Birthday     uint64 `json:"birthday"`
+		DocumentType uint64 `json:"documentType"`
+		Type         string `json:"type"`
+	}
+
+	type credentialBJJSubject struct {
+		Type string `json:"type"`
+		X    string `json:"x"`
+		Y    string `json:"y"`
+	}
+
+	assert.Equal(t, resp.Id, tc.Id)
+	assert.Equal(t, len(resp.Context), len(tc.Context))
+	assert.EqualValues(t, resp.Context, tc.Context)
+	assert.EqualValues(t, resp.CredentialSchema, tc.CredentialSchema)
+	assert.InDelta(t, resp.IssuanceDate.Unix(), tc.IssuanceDate.Unix(), 30)
+	assert.Equal(t, resp.Type, tc.Type)
+	assert.Equal(t, resp.Expiration, tc.Expiration)
+	assert.Equal(t, resp.Issuer, tc.Issuer)
+	credentialSubjectType, ok := tc.CredentialSubject["type"]
+	require.True(t, ok)
+	assert.Contains(t, credentialSubjectTypes, credentialSubjectType)
+	if credentialSubjectType == "AuthBJJCredential" {
+		var responseCredentialSubject, tcCredentialSubject credentialBJJSubject
+		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
+		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+	} else {
+		var responseCredentialSubject, tcCredentialSubject credentialKYCSubject
+		assert.NoError(t, mapstructure.Decode(resp.CredentialSubject, &responseCredentialSubject))
+		assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+		assert.EqualValues(t, responseCredentialSubject, tcCredentialSubject)
+	}
+
+	assert.NoError(t, mapstructure.Decode(resp.CredentialStatus, &responseCredentialStatus))
+	responseCredentialStatus.ID = strings.Replace(responseCredentialStatus.ID, "%3A", ":", -1)
+	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
+	require.True(t, ok)
+	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
 }

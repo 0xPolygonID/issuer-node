@@ -25,5 +25,4 @@ infrastructure/local/.vault/file
 
 .DS_STORE
 
-
-#config.toml
+config.toml
