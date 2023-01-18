@@ -32,11 +32,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: |
-          sleep 10s
-          ls -la
-          find ${GITHUB_WORKSPACE} -name init.out
-          cat ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
-          make tests
+      - run: make tests
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
