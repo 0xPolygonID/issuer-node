@@ -247,3 +247,13 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 
 	return response, nil
 }
+
+// UpdateClaimsStatus - updates the identity claims status
+func (s *Server) UpdateClaimsStatus(ctx context.Context, request UpdateClaimsStatusRequestObject) (UpdateClaimsStatusResponseObject, error) {
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return UpdateClaimsStatus400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+	_, err = s.identityStateService.UpdateIdentityClaims(ctx, did)
+	return nil, err
+}

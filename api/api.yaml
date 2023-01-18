@@ -199,6 +199,27 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/{identifier}/claims/status/update:
+    get:
+      summary: Update Claims Status
+      operationId: Update Claims Status
+      description: Endpoint to update claims status for an identifier
+      tags:
+        - Claim
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 
 components:
   schemas:

@@ -182,6 +182,9 @@ type ServerInterface interface {
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
+	// Update Claims Status
+	// (GET /v1/{identifier}/claims/status/update)
+	UpdateClaimsStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
@@ -382,6 +385,32 @@ func (siw *ServerInterfaceWrapper) RevokeClaim(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// UpdateClaimsStatus operation middleware
+func (siw *ServerInterfaceWrapper) UpdateClaimsStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateClaimsStatus(w, r, identifier)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetClaim operation middleware
 func (siw *ServerInterfaceWrapper) GetClaim(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -556,6 +585,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/claims/revoke/{nonce}", wrapper.RevokeClaim)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/claims/status/update", wrapper.UpdateClaimsStatus)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/claims/{id}", wrapper.GetClaim)
@@ -825,6 +857,41 @@ func (response RevokeClaim500JSONResponse) VisitRevokeClaimResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type UpdateClaimsStatusRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type UpdateClaimsStatusResponseObject interface {
+	VisitUpdateClaimsStatusResponse(w http.ResponseWriter) error
+}
+
+type UpdateClaimsStatus200JSONResponse GenericErrorMessage
+
+func (response UpdateClaimsStatus200JSONResponse) VisitUpdateClaimsStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClaimsStatus400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateClaimsStatus400JSONResponse) VisitUpdateClaimsStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateClaimsStatus500JSONResponse struct{ N500JSONResponse }
+
+func (response UpdateClaimsStatus500JSONResponse) VisitUpdateClaimsStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetClaimRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Id         PathClaim      `json:"id"`
@@ -899,6 +966,9 @@ type StrictServerInterface interface {
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error)
+	// Update Claims Status
+	// (GET /v1/{identifier}/claims/status/update)
+	UpdateClaimsStatus(ctx context.Context, request UpdateClaimsStatusRequestObject) (UpdateClaimsStatusResponseObject, error)
 	// Get Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error)
@@ -1165,6 +1235,32 @@ func (sh *strictHandler) RevokeClaim(w http.ResponseWriter, r *http.Request, ide
 	}
 }
 
+// UpdateClaimsStatus operation middleware
+func (sh *strictHandler) UpdateClaimsStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request UpdateClaimsStatusRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateClaimsStatus(ctx, request.(UpdateClaimsStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateClaimsStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateClaimsStatusResponseObject); ok {
+		if err := validResponse.VisitUpdateClaimsStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // GetClaim operation middleware
 func (sh *strictHandler) GetClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	var request GetClaimRequestObject
@@ -1195,35 +1291,36 @@ func (sh *strictHandler) GetClaim(w http.ResponseWriter, r *http.Request, identi
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"1geml6znKq9erUTj+r8AAAD//74nlcTvJAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
