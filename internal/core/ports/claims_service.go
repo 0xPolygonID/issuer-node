@@ -2,7 +2,6 @@ package ports
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,12 +11,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
-// ClaimRequest struct
-type ClaimRequest struct {
-	Schema                string
+// CreateClaimRequest struct
+type CreateClaimRequest struct {
 	DID                   *core.DID
-	CredentialSchema      string
-	CredentialSubject     json.RawMessage
+	Schema                string
+	CredentialSubject     map[string]any
 	Expiration            *time.Time
 	Type                  string
 	Version               uint32
@@ -25,17 +23,11 @@ type ClaimRequest struct {
 	MerklizedRootPosition string
 }
 
-// Validate ensures that a claim is correct
-func (c *ClaimRequest) Validate() error {
-	return nil
-}
-
-// NewClaimRequest returns a new claim object with the given parameters
-func NewClaimRequest(schema string, did *core.DID, credentialSchema string, credentialSubject json.RawMessage, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *ClaimRequest {
-	req := &ClaimRequest{
-		Schema:            schema,
+// NewCreateClaimRequest returns a new claim object with the given parameters
+func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *CreateClaimRequest {
+	req := &CreateClaimRequest{
 		DID:               did,
-		CredentialSchema:  credentialSchema,
+		Schema:            credentialSchema,
 		CredentialSubject: credentialSubject,
 		Type:              typ,
 	}
@@ -57,7 +49,7 @@ func NewClaimRequest(schema string, did *core.DID, credentialSchema string, cred
 
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
-	CreateClaim(ctx context.Context, claimReq *ClaimRequest) (*domain.Claim, error)
+	CreateClaim(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id string, nonce uint64, description string) error
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error)
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db/schema"
 	"github.com/polygonid/sh-id-platform/internal/log"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {

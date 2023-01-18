@@ -129,6 +129,8 @@ paths:
                 $ref: '#/components/schemas/CreateClaimResponse'
         '400':
           $ref: '#/components/responses/400'
+        '422':
+          $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
   /v1/{identifier}/claims/{id}:
@@ -301,8 +303,7 @@ components:
           type: string
           x-omitempty: false
         credentialSubject:
-          type: string
-          format: json
+          type: object
           x-omitempty: false
         expiration:
           type: integer
@@ -488,6 +489,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '407':
       description: 'Proxy Authentication Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '422':
+      description: 'Unprocessable Content'
       content:
         application/json:
           schema:
