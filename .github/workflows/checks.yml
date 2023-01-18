@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: isbang/compose-action@v1.4.1
         with:
-          compose-file: "../../infrastructure/local/docker-compose.yml"
+          compose-file: "./docker/docker-compose.yml"
           services: postgres vault
 
       - uses: actions/checkout@v3
