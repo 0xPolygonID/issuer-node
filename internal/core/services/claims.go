@@ -228,6 +228,26 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*ve
 	return c.schemaSrv.FromClaimModelToW3CCredential(*claim)
 }
 
+func (c *claim) GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error) {
+	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	w3Credentials := make([]*verifiable.W3CCredential, 0)
+	for _, cred := range claims {
+		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
+		if err != nil {
+			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
+			continue
+		}
+
+		w3Credentials = append(w3Credentials, w3Cred)
+	}
+
+	return w3Credentials, nil
+}
+
 func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
 	did, err := core.ParseDID(id)
 	if err != nil {

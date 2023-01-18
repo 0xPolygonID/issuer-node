@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-schema-processor/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -52,31 +53,6 @@ func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestOb
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
-}
-
-// RegisterStatic add method to the mux that are not documented in the API.
-func RegisterStatic(mux *chi.Mux) {
-	mux.Get("/", documentation)
-	mux.Get("/static/docs/api/api.yaml", swagger)
-}
-
-func documentation(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api/spec.html", w)
-}
-
-func swagger(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api/api.yaml", w)
-}
-
-func writeFile(path string, w http.ResponseWriter) {
-	f, err := os.ReadFile(path)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		_, _ = w.Write([]byte("not found"))
-	}
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(f)
 }
 
 // CreateIdentity is created identity controller
@@ -215,21 +191,26 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	return GetClaim200JSONResponse{
-		Context: claim.Context,
-		CredentialSchema: CredentialSchema{
-			claim.CredentialSchema.ID,
-			claim.CredentialSchema.Type,
-		},
-		CredentialStatus:  claim.CredentialStatus,
-		CredentialSubject: claim.CredentialSubject,
-		Expiration:        claim.Expiration,
-		Id:                claim.ID,
-		IssuanceDate:      claim.IssuanceDate,
-		Issuer:            claim.Issuer,
-		Proof:             claim.Proof,
-		Type:              claim.Type,
-	}, nil
+	return GetClaim200JSONResponse(toGetClaim200Response(claim)), nil
+}
+
+// GetClaims is the controller to get multiple claims of a determined identity
+func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error) {
+	if request.Identifier == "" {
+		return GetClaims400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+	}
+
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+
+	claims, err := s.claimService.GetAll(ctx, did)
+	if err != nil {
+		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
+	}
+
+	return toGetClaims200Response(claims), nil
 }
 
 // GetIdentities is the controller to get identities
@@ -244,4 +225,56 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 	}
 
 	return response, nil
+}
+
+// RegisterStatic add method to the mux that are not documented in the API.
+func RegisterStatic(mux *chi.Mux) {
+	mux.Get("/", documentation)
+	mux.Get("/static/docs/api/api.yaml", swagger)
+}
+
+func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
+	response := make(GetClaims200JSONResponse, len(claims))
+	for i := range claims {
+		response[i] = toGetClaim200Response(claims[i])
+	}
+
+	return response
+}
+
+func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
+	return GetClaimResponse{
+		Context: claim.Context,
+		CredentialSchema: CredentialSchema{
+			claim.CredentialSchema.ID,
+			claim.CredentialSchema.Type,
+		},
+		CredentialStatus:  claim.CredentialStatus,
+		CredentialSubject: claim.CredentialSubject,
+		Expiration:        claim.Expiration,
+		Id:                claim.ID,
+		IssuanceDate:      claim.IssuanceDate,
+		Issuer:            claim.Issuer,
+		Proof:             claim.Proof,
+		Type:              claim.Type,
+	}
+}
+
+func documentation(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api/spec.html", w)
+}
+
+func swagger(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api/api.yaml", w)
+}
+
+func writeFile(path string, w http.ResponseWriter) {
+	f, err := os.ReadFile(path)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte("not found"))
+	}
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(f)
 }
