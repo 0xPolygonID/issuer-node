@@ -34,7 +34,8 @@ jobs:
 
       - run: |
           sleep 10s
-          find . -name init.out
+          ls -la
+          find ${GITHUB_WORKSPACE} -name init.out
           cat ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
           make tests
         env:
