@@ -7,10 +7,6 @@ jobs:
     name: Test codebase
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-
 #      - uses: actions/checkout@v3
 #      - name: Docker Compose
 #        uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
@@ -39,7 +35,11 @@ jobs:
           make up-test
           ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault
           ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data
-          cat ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
+          cat ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
           make tests-ga
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
+
+      - uses: actions/checkout@v2
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
