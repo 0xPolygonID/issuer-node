@@ -35,6 +35,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - run: make tests-ga
+      - run: |
+          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault
+          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data
+          cat ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
+          make tests-ga
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
