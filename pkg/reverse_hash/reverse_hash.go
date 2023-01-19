@@ -11,8 +11,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-// StateHashes - handle hashes states.
-type StateHashes struct {
+// stateHashes - handle hashes states.
+type stateHashes struct {
 	State  merkletree.Hash
 	Claims merkletree.Hash
 	Rev    merkletree.Hash
@@ -95,46 +95,46 @@ func (rhsp *rhsPublisher) PushHashesToRHS(ctx context.Context, newState, prevSta
 	return err
 }
 
-func newStateHashesFromModel(inState *domain.IdentityState) (StateHashes, error) {
+func newStateHashesFromModel(inState *domain.IdentityState) (stateHashes, error) {
 	if inState == nil {
-		return StateHashes{}, errors.New("nil state")
+		return stateHashes{}, errors.New("nil state")
 	}
 
 	var err error
-	var outState StateHashes
+	var outState stateHashes
 	if inState.State != nil {
 		outState.State, err = HashFromString(inState.State)
 		if err != nil {
-			return StateHashes{}, err
+			return stateHashes{}, err
 		}
 	}
 	if inState.ClaimsTreeRoot != nil {
 		outState.Claims, err = HashFromString(inState.ClaimsTreeRoot)
 		if err != nil {
-			return StateHashes{}, err
+			return stateHashes{}, err
 		}
 	}
 
 	if inState.RevocationTreeRoot != nil {
 		outState.Rev, err = HashFromString(inState.RevocationTreeRoot)
 		if err != nil {
-			return StateHashes{}, err
+			return stateHashes{}, err
 		}
 	}
 
 	if inState.RootOfRoots != nil {
 		outState.Roots, err = HashFromString(inState.RootOfRoots)
 		if err != nil {
-			return StateHashes{}, err
+			return stateHashes{}, err
 		}
 	}
 
 	expectedState, err := merkletree.HashElems(outState.Claims.BigInt(), outState.Rev.BigInt(), outState.Roots.BigInt())
 	if err != nil {
-		return StateHashes{}, err
+		return stateHashes{}, err
 	}
 	if *expectedState != outState.State {
-		return StateHashes{}, errors.New("state hash is incorrect")
+		return stateHashes{}, errors.New("state hash is incorrect")
 	}
 
 	return outState, nil
