@@ -31,15 +31,18 @@ jobs:
           restore-keys: | 
             ${{ runner.os }}-go-
 
-      - run: |
-          make up-test
-          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault
-          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data
-          cat ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data/init.out
-          make tests-ga
-        env:
-          POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
+      - uses: actions/checkout@v2
+      - name: Dockerfile
+      - run : make up-test
 
       - uses: actions/checkout@v2
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
+
+      - run: |
+          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault
+          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data
+          make tests-ga
+        env:
+          POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
+
