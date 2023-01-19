@@ -47,6 +47,7 @@ services:
 
   vault:
     image: vault:latest
+    container_name: sh-id-platform-test-vault
     volumes:
       - ./.vault/config:/vault/config
       - ./.vault/policies:/vault/policies
