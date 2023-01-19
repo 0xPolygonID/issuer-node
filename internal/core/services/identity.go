@@ -235,7 +235,7 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 
 			err = i.rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
 			if err != nil {
-				log.Error(ctx, "%+v", err)
+				log.Error(ctx, "publishing hashes to RHS", err)
 				if i.ignoreRHSErrors {
 					err = nil
 				} else {
