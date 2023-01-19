@@ -35,20 +35,22 @@ type identity struct {
 	imtRepository           ports.IdentityMerkleTreeRepository
 	identityStateRepository ports.IdentityStateRepository
 	claimsRepository        ports.ClaimsRepository
+	revocationRepository    ports.RevocationRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
 	kms                     kms.KMSType
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, storage *db.Storage) ports.IndentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage) ports.IndentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
 		identityStateRepository: identityStateRepository,
 		claimsRepository:        claimsRepository,
-		mtService:               mtservice,
+		revocationRepository:    revocationRepository,
 		storage:                 storage,
+		mtService:               mtservice,
 		kms:                     kms,
 	}
 }
@@ -172,6 +174,93 @@ func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 // Get - returns all the identities
 func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
+}
+
+func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.IdentityState, error) {
+	newState := &domain.IdentityState{
+		Identifier: did.String(),
+		Status:     domain.StatusCreated,
+	}
+
+	err := i.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, did)
+			if err != nil {
+				return err
+			}
+
+			previousState, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, tx, did)
+			if err != nil {
+				return fmt.Errorf("error getting the identifier last state: %w", err)
+			}
+
+			lc, err := i.claimsRepository.GetAllByState(ctx, tx, did, nil)
+			if err != nil {
+				return fmt.Errorf("error getting the states: %w", err)
+			}
+
+			for i := range lc {
+				err = iTrees.AddClaim(ctx, &lc[i])
+				if err != nil {
+					return err
+				}
+			}
+
+			err = populateIdentityState(ctx, iTrees, newState, previousState)
+			if err != nil {
+				return err
+			}
+
+			err = i.update(ctx, tx, did, *newState)
+			if err != nil {
+				return err
+			}
+
+			_, err = i.revocationRepository.UpdateStatus(ctx, tx, did)
+			if err != nil {
+				return err
+			}
+
+			err = i.identityStateRepository.Save(ctx, tx, *newState)
+			if err != nil {
+				return fmt.Errorf("error saving new identity state: %w", err)
+			}
+
+			return err
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return newState, err
+}
+
+func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {
+	claims, err := i.claimsRepository.GetAllByState(ctx, conn, id, nil)
+	if err != nil {
+		return err
+	}
+
+	// do not have claims to process
+	if len(claims) == 0 {
+		return nil
+	}
+
+	for j := range claims {
+		var err error
+		claims[j].IdentityState = currentState.State
+
+		affected, err := i.claimsRepository.UpdateState(ctx, i.storage.Pgx, &claims[j])
+		if err != nil {
+			return fmt.Errorf("can't update claim: %w", err)
+		}
+		if affected == 0 {
+			return fmt.Errorf("claim has not been updated %v", claims[j])
+		}
+	}
+
+	return nil
 }
 
 // populate identity state with data needed to do generate new state.

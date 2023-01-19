@@ -33,17 +33,17 @@ func TestServer_CreateIdentity(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
-	schemaService := services.NewSchema(storage)
 	revocationRepository := repositories.NewRevocation()
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	schemaService := services.NewSchema(storage)
+
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -87,10 +87,9 @@ func TestServer_RevokeClaim(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
-	schemaService := services.NewSchema(storage)
 	revocationRepository := repositories.NewRevocation()
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	schemaService := services.NewSchema(storage)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -98,7 +97,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
@@ -227,8 +226,8 @@ func TestServer_CreateClaim(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	revocationRepository := repositories.NewRevocation()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
 	schemaService := services.NewSchema(storage)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -236,10 +235,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	revocationRepository := repositories.NewRevocation()
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
-
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(ctx, server)
 
 	iden, err := identityService.Create(ctx, "polygon-test")
@@ -350,16 +346,15 @@ func TestServer_GetIdentities(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
-	schemaService := services.NewSchema(storage)
 	revocationRepository := repositories.NewRevocation()
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	schemaService := services.NewSchema(storage)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
 
 	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
@@ -413,10 +408,9 @@ func TestServer_GetClaim(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
-	schemaService := services.NewSchema(storage)
 	revocationRepository := repositories.NewRevocation()
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	schemaService := services.NewSchema(storage)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -424,7 +418,7 @@ func TestServer_GetClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -572,7 +566,7 @@ func TestServer_GetClaims(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
 	schemaService := services.NewSchema(storage)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -580,9 +574,8 @@ func TestServer_GetClaims(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
 	fixture := tests.NewFixture(storage)
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 
 	ctx := context.Background()
 	identity, err := server.identityService.Create(ctx, "https://localhost.com")
@@ -763,10 +756,10 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
-	schemaService := services.NewSchema(storage)
 	revocationRepository := repositories.NewRevocation()
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	schemaService := services.NewSchema(storage)
+
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "https://host.com",
@@ -775,7 +768,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	identity, err := identityService.Create(ctx, "http://localhost:3001")
 	assert.NoError(t, err)
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
-	server := NewServer(&cfg, identityService, claimsService, schemaService, identityStateService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService)
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

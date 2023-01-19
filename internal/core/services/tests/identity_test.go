@@ -14,7 +14,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
-func Test_identityState_UpdateIdentityClaims(t *testing.T) {
+func Test_identity_UpdateState(t *testing.T) {
 	if os.Getenv("TEST_MODE") == "GA" {
 		t.Skip("Skipped. Cannot run hashicorp vault in ga")
 	}
@@ -27,7 +27,7 @@ func Test_identityState_UpdateIdentityClaims(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
 	schemaService := services.NewSchema(storage)
 
 	claimsConf := services.ClaimCfg{
@@ -43,8 +43,6 @@ func Test_identityState_UpdateIdentityClaims(t *testing.T) {
 		storage,
 		claimsConf,
 	)
-
-	identityStateService := services.NewIdentityState(identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
 
 	identity, err := identityService.Create(ctx, "http://localhost:3001")
 	assert.NoError(t, err)
@@ -93,7 +91,7 @@ func Test_identityState_UpdateIdentityClaims(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, tc.did)
-			identityState, err := identityStateService.UpdateIdentityClaims(ctx, tc.did)
+			identityState, err := identityService.UpdateState(ctx, tc.did)
 			if tc.shouldReturnErr {
 				assert.Error(t, err)
 			} else {

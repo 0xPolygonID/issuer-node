@@ -411,7 +411,7 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	return claims, rows.Err()
 }
 
-func (c *claims) ListByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows
 	if state == nil {
