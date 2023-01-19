@@ -76,3 +76,40 @@ WHERE identifier=$1 AND status = 'confirmed' ORDER BY state_id DESC LIMIT 1`, id
 
 	return &state, nil
 }
+
+// GetStatesByStatus returns states which are not transated
+func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier, status domain.IdentityStatus) ([]domain.IdentityState, error) {
+	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
+       tx_id, previous_state, status, modified_at, created_at 
+	FROM identity_states WHERE status = $1 and previous_state IS NOT NULL`, status)
+	if err != nil {
+		return nil, err
+	}
+
+	states := []domain.IdentityState{}
+	for rows.Next() {
+		var state domain.IdentityState
+		if err := rows.Scan(&state.StateID,
+			&state.Identifier,
+			&state.State,
+			&state.RootOfRoots,
+			&state.ClaimsTreeRoot,
+			&state.RevocationTreeRoot,
+			&state.BlockTimestamp,
+			&state.BlockNumber,
+			&state.TxID,
+			&state.PreviousState,
+			&state.Status,
+			&state.ModifiedAt,
+			&state.CreatedAt); err != nil {
+			return nil, err
+		}
+		states = append(states, state)
+	}
+
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	return states, nil
+}
