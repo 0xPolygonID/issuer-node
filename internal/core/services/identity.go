@@ -24,10 +24,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
 	"github.com/polygonid/sh-id-platform/pkg/primitive"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 type identity struct {
@@ -39,10 +41,13 @@ type identity struct {
 	storage                 *db.Storage
 	mtService               ports.MtService
 	kms                     kms.KMSType
+
+	ignoreRHSErrors bool
+	rhsPublisher    reverse_hash.RhsPublisher
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage) ports.IndentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IndentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -52,6 +57,8 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		storage:                 storage,
 		mtService:               mtservice,
 		kms:                     kms,
+		ignoreRHSErrors:         false,
+		rhsPublisher:            rhsPublisher,
 	}
 }
 
@@ -216,7 +223,7 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 				return err
 			}
 
-			_, err = i.revocationRepository.UpdateStatus(ctx, tx, did)
+			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, did)
 			if err != nil {
 				return err
 			}
@@ -224,6 +231,16 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 			err = i.identityStateRepository.Save(ctx, tx, *newState)
 			if err != nil {
 				return fmt.Errorf("error saving new identity state: %w", err)
+			}
+
+			err = i.rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
+			if err != nil {
+				log.Error(ctx, "publishing hashes to RHS", err)
+				if i.ignoreRHSErrors {
+					err = nil
+				} else {
+					return err
+				}
 			}
 
 			return err

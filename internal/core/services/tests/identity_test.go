@@ -12,6 +12,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 func Test_identity_UpdateState(t *testing.T) {
@@ -26,8 +27,8 @@ func Test_identity_UpdateState(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
 	schemaService := services.NewSchema(storage)
 
 	claimsConf := services.ClaimCfg{
@@ -102,6 +103,7 @@ func Test_identity_UpdateState(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.did.String(), identityState.Identifier)
 				assert.NotNil(t, identityState.State)
+				assert.Equal(t, domain.StatusCreated, identityState.Status)
 				assert.NotNil(t, identityState.StateID)
 				assert.Equal(t, previousStateIdentity.State, identityState.PreviousState)
 				assert.NotNil(t, identityState.RootOfRoots)

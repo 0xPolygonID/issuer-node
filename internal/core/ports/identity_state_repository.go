@@ -13,4 +13,5 @@ import (
 type IdentityStateRepository interface {
 	Save(ctx context.Context, conn db.Querier, state domain.IdentityState) error
 	GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.IdentityState, error)
+	GetStatesByStatus(ctx context.Context, conn db.Querier, status domain.IdentityStatus) ([]domain.IdentityState, error)
 }
