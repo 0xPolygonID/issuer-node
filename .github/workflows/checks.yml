@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/checkout@v2
       - name: Dockerfile
-      - run : make up-test
+        run : make up-test
 
       - uses: actions/checkout@v2
       - name: Setup upterm session
