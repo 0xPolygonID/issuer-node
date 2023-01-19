@@ -58,11 +58,12 @@ func main() {
 
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
-	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage)
 	schemaService := services.NewSchema(storage)
 	claimsService := services.NewClaim(
 		claimsRepo,

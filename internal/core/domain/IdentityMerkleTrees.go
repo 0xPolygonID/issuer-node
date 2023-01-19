@@ -115,3 +115,39 @@ func (imts *IdentityMerkleTrees) GenerateRevocationProof(ctx context.Context, no
 	proof, _, err := imts.Trees[MerkleTreeTypeRevocations].GenerateProof(ctx, nonce, root)
 	return proof, fmt.Errorf("cannot generate revocation proof: %w", err)
 }
+
+// AddClaim adds a Claim into the MerkleTree
+func (imts *IdentityMerkleTrees) AddClaim(ctx context.Context, c *Claim) error {
+	if len(imts.Trees) < mtTypesCount {
+		return errorMsgNotCreated
+	}
+
+	coreClaim := c.CoreClaim.Get()
+	hi, hv, err := coreClaim.HiHv()
+	if err != nil {
+		return fmt.Errorf("error getting index and value: %w", err)
+	}
+
+	err = imts.Trees[MerkleTreeTypeClaims].Add(ctx, hi, hv)
+	if err != nil {
+		return fmt.Errorf("cannot add entry to claims merkle tree: %w", err)
+	}
+
+	return nil
+}
+
+// RevsTree returns revocations merkle tree
+func (imts *IdentityMerkleTrees) RevsTree() (*merkletree.MerkleTree, error) {
+	if len(imts.Trees) < mtTypesCount {
+		return nil, errorMsgNotCreated
+	}
+	return imts.Trees[MerkleTreeTypeRevocations], nil
+}
+
+// RootsTree returns roots merkle tree
+func (imts *IdentityMerkleTrees) RootsTree() (*merkletree.MerkleTree, error) {
+	if len(imts.Trees) < mtTypesCount {
+		return nil, errorMsgNotCreated
+	}
+	return imts.Trees[MerkleTreeTypeRoots], nil
+}

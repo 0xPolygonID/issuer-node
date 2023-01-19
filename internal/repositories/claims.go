@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/gommon/log"
@@ -298,7 +299,6 @@ func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *d
 // GetByID get claim by id
 func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error) {
 	claim := domain.Claim{}
-	// language=PostgreSQL
 	err := conn.QueryRow(ctx,
 		`SELECT id,
        				issuer,
@@ -409,4 +409,102 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	}
 
 	return claims, rows.Err()
+}
+
+func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+	claims = make([]domain.Claim, 0)
+	var rows pgx.Rows
+	if state == nil {
+		rows, err = conn.Query(ctx,
+			`
+		SELECT id,
+			issuer,
+			schema_hash,
+			schema_url,
+			schema_type,
+			other_identifier,
+			expiration,
+			updatable,
+			version,
+			rev_nonce,
+			signature_proof,
+			mtp_proof,
+			data,
+			identifier,
+			identity_state,
+			NULL AS status,
+			credential_status,
+			core_claim 
+		FROM claims
+		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer
+		`, did.String())
+	} else {
+		rows, err = conn.Query(ctx, `
+		SELECT
+			id,
+			issuer,
+			schema_hash,
+			schema_url,
+			schema_type,
+			other_identifier,
+			expiration,
+			updatable,
+			version,
+			rev_nonce,
+			signature_proof,
+			mtp_proof,
+			data,
+			claims.identifier,
+			identity_state,
+			status,
+			credential_status,
+			core_claim 
+		FROM claims
+		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
+		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer
+		`, did.String(), state.Hex())
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaURL,
+			&claim.SchemaType,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.SignatureProof,
+			&claim.MTPProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.Status,
+			&claim.CredentialStatus,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, claim)
+	}
+
+	return claims, err
+}
+
+func (c *claims) UpdateState(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
+	query := "UPDATE claims SET identity_state = $1 WHERE id = $2 AND identifier = $3"
+	res, err := conn.Exec(ctx, query, *claim.IdentityState, claim.ID, claim.Identifier)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected(), nil
 }

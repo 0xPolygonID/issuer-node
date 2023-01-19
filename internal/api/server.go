@@ -278,3 +278,13 @@ func writeFile(path string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
 }
+
+// UpdateIdentityState - updates the identity state
+func (s *Server) UpdateIdentityState(ctx context.Context, request UpdateIdentityStateRequestObject) (UpdateIdentityStateResponseObject, error) {
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return UpdateIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+	_, err = s.identityService.UpdateState(ctx, did)
+	return nil, err
+}
