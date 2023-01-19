@@ -51,9 +51,12 @@ func Test_identity_UpdateState(t *testing.T) {
 	assert.NoError(t, err)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	did, _ := core.ParseDID(identity.Identifier)
-	did2, _ := core.ParseDID(identity2.Identifier)
-	did3, _ := core.ParseDID("did:polygonid:polygon:mumbai:2qD6cqGpLX2dibdFuKfrPxGiybi3wKa8RbR4onw49H")
+	did, err := core.ParseDID(identity.Identifier)
+	assert.NoError(t, err)
+	did2, err := core.ParseDID(identity2.Identifier)
+	assert.NoError(t, err)
+	did3, err := core.ParseDID("did:polygonid:polygon:mumbai:2qD6cqGpLX2dibdFuKfrPxGiybi3wKa8RbR4onw49H")
+	assert.NoError(t, err)
 	credentialSubject := map[string]any{
 		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 		"birthday":     19960424,
