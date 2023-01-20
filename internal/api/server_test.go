@@ -212,9 +212,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 }
 
 func TestServer_CreateClaim(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("Skipped. Cannot run hashicorp vault in ga")
-	}
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
 
 	identityRepo := repositories.NewIdentity()
@@ -549,10 +546,6 @@ func TestServer_GetClaim(t *testing.T) {
 }
 
 func TestServer_GetClaims(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("SKIPPED")
-	}
-
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -738,9 +731,6 @@ func TestServer_GetClaims(t *testing.T) {
 }
 
 func TestServer_GetRevocationStatus(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("SKIPPED")
-	}
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()

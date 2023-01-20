@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/hex"
-	"os"
 	"path"
 	"sort"
 	"testing"
@@ -19,10 +18,6 @@ import (
 )
 
 func TestVaultPluginBJJProvider_Ethereum(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("SKIPPED")
-	}
-
 	vaultCli, mountPath := setupPluginBJJProvider(t)
 
 	getKeyPath := func(kID KeyID) keyPathT {
@@ -130,12 +125,9 @@ func randomDID(t *testing.T) core.DID {
 func setupPluginBJJProvider(t *testing.T) (vaultCli *api.Client, mountPath string) {
 	t.Helper()
 	var err error
-	vaultCli, err = providers.NewVaultClient(testVaultConfig(t))
+	vaultCli, err = providers.NewVaultClient(cfg.Address, cfg.Token)
 	require.NoError(t, err)
 	mountPath = cfg.PluginIden3MountPath
-	if mountPath == "" {
-		t.Skip("IDEN3 plugin mount path is not set")
-	}
 	return
 }
 
