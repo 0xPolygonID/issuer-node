@@ -1,7 +1,6 @@
 # Export values
 echo "here"
 vault server -config=/vault/config/vault.json 1>&1 2>&1 &
-# cat /vault/data/init.out >&1
 
 # export VAULT_SKIP_VERIFY='true'
 
@@ -15,7 +14,6 @@ if [ ! -e "$FILE" ]; then
     vault operator init > /vault/data/init.out
 fi
 
-# cat /vault/data/init.out >&1
 UNSEAL_KEY_1=$(grep "Unseal Key 1" /vault/data/init.out | cut -c 15-)
 UNSEAL_KEY_2=$(grep "Unseal Key 2" /vault/data/init.out | cut -c 15-)
 UNSEAL_KEY_3=$(grep "Unseal Key 3" /vault/data/init.out | cut -c 15-)
@@ -54,6 +52,5 @@ vault secrets enable -path=iden3 vault-plugin-secrets-iden3
 echo "===== ENABLED IDEN3 ====="
 export vault_token="token:${TOKEN}"
 echo $vault_token
-echo "lala"
 
 tail -f /dev/null
