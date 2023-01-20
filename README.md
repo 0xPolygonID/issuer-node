@@ -21,7 +21,7 @@ Add or modify the key store configuration in the config.toml file:
 ```toml
 [KeyStore]
     Address="http://localhost:8200"
-    # In testing mode this value should be taken from ./infrastructure/local/.vault/data/init.out
+    # In testing mode this value should be taken from ./infrastructure/local/vault/data/init.out
     Token="hvs.YxU2dLZljGpqLyPYu6VeYJde" 
     PluginIden3MountPath="iden3"
 ```

@@ -213,7 +213,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 
 func TestServer_CreateClaim(t *testing.T) {
 	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("Skipped. Cannot run hashicorp .vault in ga")
+		t.Skip("Skipped. Cannot run hashicorp vault in ga")
 	}
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
 

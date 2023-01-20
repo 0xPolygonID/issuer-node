@@ -26,7 +26,7 @@ const (
 )
 
 // NewVaultBJJKeyProvider creates new key provider for BabyJubJub keys stored
-// in .vault
+// in vault
 func NewVaultBJJKeyProvider(vaultCli *api.Client, keyType KeyType) KeyProvider {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE +
@@ -159,7 +159,7 @@ func (v *vaultBJJKeyProvider) privateKey(keyID KeyID) ([]byte, error) {
 		return nil, err
 	}
 
-	// check key type stored in .vault is correct
+	// check key type stored in vault is correct
 	keyTypeI, ok := secData[jsonKeyType]
 	if !ok {
 		return nil, errors.New("key type not found")
