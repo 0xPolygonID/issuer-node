@@ -414,8 +414,6 @@ github.com/iden3/go-iden3-core v0.1.1-0.20221219095955-92aedd7d12fa h1:HtGAdPK6E
 github.com/iden3/go-iden3-core v0.1.1-0.20221219095955-92aedd7d12fa/go.mod h1:wJtcMK/bSazyW/JrQaRrbpUMgSMg79Pke3xgtfPxDnQ=
 github.com/iden3/go-iden3-crypto v0.0.13 h1:ixWRiaqDULNyIDdOWz2QQJG5t4PpNHkQk2P6GV94cok=
 github.com/iden3/go-iden3-crypto v0.0.13/go.mod h1:swXIv0HFbJKobbQBtsB50G7IHr6PbTowutSew/iBEoo=
-github.com/iden3/go-merkletree-sql v1.0.2 h1:R1VKrXQu2onBkGnM+M4VsuICIJG7MF8l3atB4WH7BCc=
-github.com/iden3/go-merkletree-sql v1.0.2/go.mod h1:NhLFvX01F/3QqS0FUkC6T2BXPksz+9EbRhKQ7abaBSE=
 github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1 h1:HkfV73HSKdcGJJK5VN918r3/r9kOQzmqi5UMIjUG5ow=
 github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1/go.mod h1:NP0HmjSbZkAXqBIkgv2syxopnVT6MWNe/PvkxdyfoyY=
 github.com/iden3/go-merkletree-sql/v2 v2.0.0 h1:7tMgHCUJCo0jxyM15fjCc7G9Dy0x2rmX+lwa8tqEfho=

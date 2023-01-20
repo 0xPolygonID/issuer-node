@@ -13,7 +13,6 @@ require (
 	github.com/iden3/go-circuits v0.1.1
 	github.com/iden3/go-iden3-core v0.1.1-0.20221219095955-92aedd7d12fa
 	github.com/iden3/go-iden3-crypto v0.0.13
-	github.com/iden3/go-merkletree-sql v1.0.2
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-schema-processor v0.2.1-0.20221202150832-91826307609c
@@ -23,10 +22,10 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/labstack/gommon v0.4.0
 	github.com/lib/pq v1.10.6
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mr-tron/base58 v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.7.0
-	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15
@@ -173,7 +172,6 @@ require (
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/moricho/tparallel v0.2.1 // indirect
@@ -228,6 +226,7 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect
 	github.com/stbenjam/no-sprintf-host-port v0.1.1 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
