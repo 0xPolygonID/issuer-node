@@ -31,9 +31,9 @@ jobs:
           restore-keys: | 
             ${{ runner.os }}-go-
 
-      - uses: actions/checkout@v2
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      #- uses: actions/checkout@v2
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
 
       - run: |
           make tests
