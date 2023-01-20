@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -178,7 +179,6 @@ func bindEnv() {
 }
 
 func getWorkingDirectory() string {
-	dir, _ := os.Getwd()
-	path := strings.Split(dir, "sh-id-platform")
-	return path[0] + "sh-id-platform/"
+	_, b, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(b), "../..") + "/"
 }
