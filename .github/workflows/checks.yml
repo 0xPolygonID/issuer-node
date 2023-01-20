@@ -36,7 +36,7 @@ jobs:
       #  uses: lhotari/action-upterm@v1
 
       - run: |
-          make tests-ga
+          make tests
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
 
