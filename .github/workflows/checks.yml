@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version-file: 'path/to/go.mod'
+          go-version-file: go.mod
           cache: true
 
       - run: make tests
