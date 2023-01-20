@@ -7,14 +7,14 @@ jobs:
     name: Test codebase
     runs-on: ubuntu-latest
     steps:
-#      - uses: actions/checkout@v3
-#      - name: Docker Compose
-#        uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
-#        with:
-#          compose-file: './infrastructure/local/docker-compose.yml'
-#          services: |
-#            postgres
-#            vault
+      - uses: actions/checkout@v3
+      - name: Docker Compose
+        uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
+        with:
+          compose-file: './infrastructure/local/docker-compose.yml'
+          services: |
+             postgres
+             vault
 
       - uses: actions/checkout@v3
       - name: Set up Go
@@ -35,13 +35,11 @@ jobs:
       - name: Dockerfile
         run : make up-test
 
-      - uses: actions/checkout@v2
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      #- uses: actions/checkout@v2
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
 
       - run: |
-          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault
-          ls ${GITHUB_WORKSPACE}/infrastructure/local/.vault/data
           make tests-ga
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
