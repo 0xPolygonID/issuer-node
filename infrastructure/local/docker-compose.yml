@@ -47,14 +47,14 @@ services:
 
   vault:
     image: vault:latest
-    container_name: sh-id-platform-test-vault
+    container_name: sh-id-platform-test-.vault
     volumes:
-      - ./vault/config:/vault/config
-      - ./vault/policies:/vault/policies
-      - ./vault/data:/vault/data
-      - ./vault/file:/vault/file:rw
-      - ./vault/scripts:/vault/scripts
-      - ./vault/plugins:/vault/plugins
+      - ./.vault/config:/.vault/config
+      - ./.vault/policies:/.vault/policies
+      - ./.vault/data:/.vault/data
+      - ./.vault/file:/.vault/file:rw
+      - ./.vault/scripts:/.vault/scripts
+      - ./.vault/plugins:/.vault/plugins
     ports:
       - 8200:8200
     environment:
@@ -63,4 +63,4 @@ services:
       - VAULT_ADDRESS=http://0.0.0.0:8200
     cap_add:
       - IPC_LOCK
-    command: ./vault/scripts/init.sh
+    command: ./.vault/scripts/init.sh

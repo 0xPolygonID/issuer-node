@@ -10,13 +10,13 @@ import (
 // HTTPClientTimeout http client timeout TODO: move to config
 const HTTPClientTimeout = 10 * time.Second
 
-// NewVaultClient checks vault configuration and creates new vault client
+// NewVaultClient checks .vault configuration and creates new .vault client
 func NewVaultClient(address, token string) (*api.Client, error) {
 	if address == "" {
-		return nil, errors.New("vault address is not specified")
+		return nil, errors.New(".vault address is not specified")
 	}
 	if token == "" {
-		return nil, errors.New("vault access token is not specified")
+		return nil, errors.New(".vault access token is not specified")
 	}
 
 	config := api.DefaultConfig()

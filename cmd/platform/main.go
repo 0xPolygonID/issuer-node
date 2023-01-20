@@ -39,7 +39,7 @@ func main() {
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", err)
+		log.Error(ctx, "cannot init .vault client: ", err)
 		panic(err)
 	}
 

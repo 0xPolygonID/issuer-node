@@ -63,10 +63,10 @@ func testVaultConfig(t testing.TB) (vaultAddr, vaultToken string) {
 	vaultAddr = cfg.Address
 	vaultToken = cfg.Token
 	if vaultAddr == "" {
-		t.Skip("vault address is not configured")
+		t.Skip(".vault address is not configured")
 	}
 	if vaultToken == "" {
-		t.Skip("vault token is not configured")
+		t.Skip(".vault token is not configured")
 	}
 	return
 }

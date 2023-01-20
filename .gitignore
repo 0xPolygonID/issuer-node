@@ -7,10 +7,10 @@ bin/
 *.so
 *.dylib
 
-infrastructure/local/vault/data
-infrastructure/local/vault/plugins
-infrastructure/local/vault/policies
-infrastructure/local/vault/file
+infrastructure/local/.vault/data
+infrastructure/local/.vault/plugins
+infrastructure/local/.vault/policies
+infrastructure/local/.vault/file
 
 .fleet
 

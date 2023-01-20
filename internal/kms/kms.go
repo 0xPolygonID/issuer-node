@@ -161,7 +161,7 @@ func (k *KMS) KeysByIdentity(ctx context.Context, identity core.DID) ([]KeyID, e
 // LinkToIdentity links unbound key to identity.
 // KeyID can be changed after linking.
 // Returning new KeyID.
-// Old key may be removed after vault. Not all key providers can support this
+// Old key may be removed after .vault. Not all key providers can support this
 // operation.
 func (k *KMS) LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID) (KeyID, error) {
 	kp, ok := k.registry[keyID.Type]

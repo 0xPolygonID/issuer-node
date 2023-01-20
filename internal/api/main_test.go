@@ -63,7 +63,7 @@ func TestMain(m *testing.M) {
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "failed to acquire vault client: %+v", err)
+		log.Error(ctx, "failed to acquire .vault client: %+v", err)
 		// return 1
 	}
 

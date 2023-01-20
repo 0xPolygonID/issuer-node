@@ -198,7 +198,7 @@ func (v *vaultPluginIden3KeyProvider) keyFileName(keyName string) string {
 }
 
 // NewVaultPluginIden3KeyProvider creates new key provider for BabyJubJub and
-// Ethereum keys stored in vault
+// Ethereum keys stored in .vault
 func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyType KeyType) (KeyProvider, error) {
 	var pubKeyLn uint64
 	switch keyType {
@@ -237,7 +237,7 @@ func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyTy
 		nil
 }
 
-// create random key in vault
+// create random key in .vault
 func newRandomKey(vaultCli *api.Client, keyPath keyPathT, keyType KeyType) error {
 	pluginKeyType, err := toPluginKeyType(keyType)
 	if err != nil {
