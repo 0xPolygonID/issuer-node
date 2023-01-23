@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"math/big"
-	"os"
 	"strings"
 	"testing"
 
@@ -64,10 +63,6 @@ func TestVaultBJJKeyProvider_PublicKey(t *testing.T) {
 }
 
 func TestBJJKeyProvider_NoIdentity(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("SKIPPED")
-	}
-
 	k := testKMSSetup(t)
 
 	keyID, err := k.KMS.CreateKey(KeyTypeBabyJubJub, nil)
