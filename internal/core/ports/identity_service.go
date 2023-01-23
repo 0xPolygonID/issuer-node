@@ -21,4 +21,5 @@ type IndentityService interface {
 	GetLatestStateByID(ctx context.Context, identifier *core.DID) (*domain.IdentityState, error)
 	GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error)
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
+	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 }

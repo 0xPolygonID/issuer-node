@@ -637,6 +637,21 @@ func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merklet
 	return mtpProof, nil
 }
 
+func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	var states []domain.IdentityState
+	var err error
+	err = i.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		states, err = i.identityStateRepository.GetStatesByStatus(ctx, tx, domain.StatusTransacted)
+
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return states, nil
+}
+
 // newAuthClaim generate BabyJubKeyTypeAuthorizeKSign claimL
 func newAuthClaim(key *babyjub.PublicKey) (*core.Claim, error) {
 	revNonce, err := common.RandInt64()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/google/uuid"
@@ -27,23 +28,25 @@ const (
 )
 
 type publisher struct {
-	storage            *db.Storage
-	identityService    ports.IndentityService
-	claimService       ports.ClaimsService
-	mtService          ports.MtService
-	kms                kms.KMSType
-	transactionService ports.TransactionService
+	storage             *db.Storage
+	identityService     ports.IndentityService
+	claimService        ports.ClaimsService
+	mtService           ports.MtService
+	kms                 kms.KMSType
+	transactionService  ports.TransactionService
+	confirmationTimeout time.Duration
 }
 
 // New - Constructor
-func New(storage *db.Storage, identityService ports.IndentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService) *publisher {
+func New(storage *db.Storage, identityService ports.IndentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, confirmationTimeout time.Duration) *publisher {
 	return &publisher{
-		identityService:    identityService,
-		claimService:       claimService,
-		storage:            storage,
-		mtService:          mtService,
-		kms:                kms,
-		transactionService: transactionService,
+		identityService:     identityService,
+		claimService:        claimService,
+		storage:             storage,
+		mtService:           mtService,
+		kms:                 kms,
+		transactionService:  transactionService,
+		confirmationTimeout: confirmationTimeout,
 	}
 }
 
@@ -348,5 +351,65 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 		return err
 	}
 
+	return nil
+}
+
+// CheckTransactionStatus - checks transaction status
+func (p *publisher) CheckTransactionStatus() {
+	ctx := context.Background()
+	// Get all issuers that have claims not included in any state
+	states, err := p.identityService.GetTransactedStates(ctx)
+	if err != nil {
+		log.Error(ctx, "Error during get transacted states", err)
+		return
+	}
+
+	// we shouldn't process states which go routines are still in progress
+
+	toCheck := []domain.IdentityState{}
+	for i := range states {
+		if time.Now().Unix() > states[i].ModifiedAt.Add(p.confirmationTimeout).Unix() {
+			toCheck = append(toCheck, states[i])
+		}
+	}
+
+	// 4. Calculate new states and publish them synchronously
+	for i := range toCheck {
+		err := p.checkStatus(ctx, &toCheck[i])
+		if err != nil {
+			log.Error(ctx, "Error during transaction check status", err, *states[i].State)
+			continue
+		}
+	}
+
+	log.Info(ctx, "Checker job finished")
+}
+
+func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {
+	// Get receipt and check status
+	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, *state.TxID)
+	if err != nil {
+		log.Error(ctx, "error during receipt receiving:", err, *state.TxID)
+		return fmt.Errorf("error during receipt receiving::%s - %w", *state.TxID, err)
+	}
+
+	// Check if transaction has enough confirmation blocks
+	confirmed, err := p.transactionService.CheckConfirmation(ctx, receipt)
+	if err != nil {
+		log.Error(ctx, fmt.Sprintf("transaction receipt is found, but confirmation is not checked - %s", *state.TxID), err)
+		return fmt.Errorf("transaction receipt is found, but confirmation is not checked:%s - %w", *state.TxID, err)
+	}
+
+	if !confirmed {
+		return fmt.Errorf("transaction receipt is found, but it is not confirmed yet - %s", *state.TxID)
+	}
+
+	err = p.updateIdentityStateTxStatus(ctx, state, receipt)
+	if err != nil {
+		log.Error(ctx, "error during identity state update: ", err)
+		return err
+	}
+
+	log.Info(ctx, "transaction status updated", "tx", *state.TxID)
 	return nil
 }
