@@ -113,25 +113,25 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "Can not process the schemaSrv", err)
+		log.Error(ctx, "cannot process the schemaSrv", err)
 		return nil, ErrProcessSchema
 	}
 
 	claim, err := domain.FromClaimer(coreClaim, req.SchemaURL, credentialType)
 	if err != nil {
-		log.Error(ctx, "Can not obtain the claim from claimer", err)
+		log.Error(ctx, "cannot obtain the claim from claimer", err)
 		return nil, err
 	}
 
 	authClaim, err := c.getAuthClaim(ctx, req.DID)
 	if err != nil {
-		log.Error(ctx, "Can not retrieve the auth claim", err)
+		log.Error(ctx, "cannot retrieve the auth claim", err)
 		return nil, err
 	}
 
 	proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
 	if err != nil {
-		log.Error(ctx, "Can not sign claim entry", err)
+		log.Error(ctx, "cannot sign claim entry", err)
 		return nil, err
 	}
 
@@ -143,30 +143,30 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 
 	jsonSignatureProof, err := json.Marshal(proof)
 	if err != nil {
-		log.Error(ctx, "Can not encode the json signature proof", err)
+		log.Error(ctx, "cannot encode the json signature proof", err)
 		return nil, err
 	}
 	err = claim.SignatureProof.Set(jsonSignatureProof)
 	if err != nil {
-		log.Error(ctx, "Can not set the json signature proof", err)
+		log.Error(ctx, "cannot set the json signature proof", err)
 		return nil, err
 	}
 
 	err = claim.Data.Set(vc)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential", err)
+		log.Error(ctx, "cannot set the credential", err)
 		return nil, err
 	}
 
 	err = claim.CredentialStatus.Set(vc.CredentialStatus)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential status", err)
+		log.Error(ctx, "cannot set the credential status", err)
 		return nil, err
 	}
 
 	claimResp, err := c.save(ctx, claim)
 	if err != nil {
-		log.Error(ctx, "Can not save the claim", err)
+		log.Error(ctx, "cannot save the claim", err)
 		return nil, err
 	}
 	return claimResp, err
