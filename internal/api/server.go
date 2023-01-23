@@ -24,16 +24,14 @@ type Server struct {
 	cfg             *config.Configuration
 	identityService ports.IndentityService
 	claimService    ports.ClaimsService
-	schemaService   ports.SchemaService
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IndentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IndentityService, claimsService ports.ClaimsService) *Server {
 	return &Server{
 		cfg:             cfg,
 		identityService: identityService,
 		claimService:    claimsService,
-		schemaService:   schemaService,
 	}
 }
 

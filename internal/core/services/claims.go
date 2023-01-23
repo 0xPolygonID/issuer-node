@@ -13,15 +13,17 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
+	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/processor"
+	"github.com/iden3/go-schema-processor/utils"
 	"github.com/iden3/go-schema-processor/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
 )
 
@@ -43,7 +45,6 @@ type ClaimCfg struct {
 type claim struct {
 	cfg                     ClaimCfg
 	icRepo                  ports.ClaimsRepository
-	schemaSrv               ports.SchemaService
 	identitySrv             ports.IndentityService
 	mtService               ports.MtService
 	identityStateRepository ports.IdentityStateRepository
@@ -51,7 +52,7 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IndentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IndentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -59,7 +60,6 @@ func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSr
 			Host:       cfg.Host,
 		},
 		icRepo:                  repo,
-		schemaSrv:               schemaSrv,
 		identitySrv:             idenSrv,
 		mtService:               mtService,
 		identityStateRepository: identityStateRepository,
@@ -84,13 +84,13 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, err
 	}
 
-	schema, err := c.schemaSrv.LoadSchema(ctx, req.Schema)
+	sch, err := schema.LoadSchema(ctx, req.SchemaURL)
 	if err != nil {
-		log.Error(ctx, "loading schema", err, "schema", req.Schema)
+		log.Error(ctx, "loading schemaSrv", err, "schemaSrv", req.SchemaURL)
 		return nil, ErrLoadingSchema
 	}
 
-	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
+	jsonLdContext, ok := sch.Metadata.Uris["jsonLdContext"].(string)
 	if !ok {
 		log.Error(ctx, "invalid jsonLdContext", ErrJSONLdContext)
 		return nil, ErrJSONLdContext
@@ -103,9 +103,9 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 	}
 
 	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, req.Type)
-	mtRootPostion := common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition)
+	mtRootPostion := defineMerklizedRootPosition(sch.Metadata, req.MerklizedRootPosition)
 
-	coreClaim, err := c.schemaSrv.Process(ctx, req.Schema, credentialType, vc, &processor.CoreClaimOptions{
+	coreClaim, err := schema.Process(ctx, req.SchemaURL, credentialType, vc, &processor.CoreClaimOptions{
 		RevNonce:              nonce,
 		MerklizedRootPosition: mtRootPostion,
 		Version:               req.Version,
@@ -113,11 +113,11 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "Can not process the schema", err)
+		log.Error(ctx, "Can not process the schemaSrv", err)
 		return nil, ErrProcessSchema
 	}
 
-	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
+	claim, err := domain.FromClaimer(coreClaim, req.SchemaURL, credentialType)
 	if err != nil {
 		log.Error(ctx, "Can not obtain the claim from claimer", err)
 		return nil, err
@@ -225,7 +225,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*ve
 		return nil, err
 	}
 
-	return c.schemaSrv.FromClaimModelToW3CCredential(*claim)
+	return schema.FromClaimModelToW3CCredential(*claim)
 }
 
 func (c *claim) GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error) {
@@ -236,7 +236,7 @@ func (c *claim) GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCre
 
 	w3Credentials := make([]*verifiable.W3CCredential, 0)
 	for _, cred := range claims {
-		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
+		w3Cred, err := schema.FromClaimModelToW3CCredential(*cred)
 		if err != nil {
 			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
 			continue
@@ -326,7 +326,7 @@ func (c *claim) getAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 }
 
 func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
-	if _, err := url.ParseRequestURI(req.Schema); err != nil {
+	if _, err := url.ParseRequestURI(req.SchemaURL); err != nil {
 		return ErrMalformedURL
 	}
 	return nil
@@ -365,7 +365,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, json
 		CredentialSubject: credentialSubject,
 		Issuer:            claimReq.DID.String(),
 		CredentialSchema: verifiable.CredentialSchema{
-			ID:   claimReq.Schema,
+			ID:   claimReq.SchemaURL,
 			Type: verifiable.JSONSchemaValidator2018,
 		},
 		CredentialStatus: cs,
@@ -395,4 +395,21 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} 
 func buildRevocationURL(host, issuerDID string, nonce uint64) string {
 	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
+}
+
+// defineMerklizedRootPosition define merkle root position for claim
+// If Serialization is available in metadata of schema, position is empty, claim should not be merklized
+// If metadata is empty:
+// default merklized position is `index`
+// otherwise value from `position`
+func defineMerklizedRootPosition(metadata *jsonSuite.SchemaMetadata, position string) string {
+	if metadata != nil && metadata.Serialization != nil {
+		return ""
+	}
+
+	if position != "" {
+		return position
+	}
+
+	return utils.MerklizedRootPositionIndex
 }

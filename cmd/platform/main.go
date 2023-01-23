@@ -66,10 +66,8 @@ func main() {
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(storage)
 	claimsService := services.NewClaim(
 		claimsRepo,
-		schemaService,
 		identityService,
 		mtService,
 		identityStateRepo,
@@ -93,7 +91,7 @@ func main() {
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
 	)
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService), middlewares(ctx)), mux)
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
 	server := &http.Server{
