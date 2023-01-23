@@ -89,3 +89,49 @@ func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []strin
 
 	return identities, err
 }
+
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context, conn db.Querier) (issuersIDs []*core.DID, err error) {
+	rows, err := conn.Query(ctx,
+		`WITH issuers_to_process AS
+(
+    SELECT  issuer 
+		FROM claims
+		WHERE identity_state ISNULL AND identifier = issuer
+			UNION
+		SELECT identifier FROM revocation where status = 0
+), transacted_issuers AS
+(
+    SELECT identifier from identity_states WHERE status = 'transacted'
+)
+
+SELECT issuer FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FROM transacted_issuers);
+`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	issuersIDs = make([]*core.DID, 0)
+
+	for rows.Next() {
+		var issuerIDStr string
+		err := rows.Scan(&issuerIDStr)
+		if err != nil {
+			return nil, err
+		}
+		var did *core.DID
+		did, err = core.ParseDID(issuerIDStr)
+		if err != nil {
+			return []*core.DID{}, err
+		}
+		issuersIDs = append(issuersIDs, did)
+
+	}
+
+	if rows.Err() != nil {
+		return nil, err
+	}
+
+	return issuersIDs, nil
+}

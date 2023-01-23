@@ -183,6 +183,74 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
 }
 
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
+}
+
+func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
+	if err != nil {
+		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+	}
+
+	return states, nil
+}
+
+func (i *identity) GetLatestStateByID(ctx context.Context, identifier *core.DID) (*domain.IdentityState, error) {
+	// check that identity exists in the db
+	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, identifier)
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		return nil, fmt.Errorf("state is not found for identifier: %s", identifier.String())
+	}
+	return state, nil
+}
+
+func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
+	var keyID kms.KeyID
+
+	if authClaim.Identifier == nil {
+		return keyID, errors.New("identifier is empty in auth claim")
+	}
+
+	identity, err := core.ParseDID(*authClaim.Identifier)
+	if err != nil {
+		return keyID, err
+	}
+
+	entry := authClaim.CoreClaim.Get()
+	bjjClaim := entry.RawSlotsAsInts()
+
+	var publicKey babyjub.PublicKey
+	publicKey.X = bjjClaim[2]
+	publicKey.Y = bjjClaim[3]
+
+	compPubKey := publicKey.Compress()
+
+	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
+	if err != nil {
+		return keyID, err
+	}
+
+	for _, keyID = range keyIDs {
+		if keyID.Type != kms.KeyTypeBabyJubJub {
+			continue
+		}
+
+		pubKeyBytes, err := i.kms.PublicKey(keyID)
+		if err != nil {
+			return keyID, err
+		}
+		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
+			return keyID, nil
+		}
+	}
+
+	return keyID, errors.New("private key not found")
+}
+
 func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.IdentityState, error) {
 	newState := &domain.IdentityState{
 		Identifier: did.String(),
@@ -251,6 +319,22 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 	}
 
 	return newState, err
+}
+
+func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error {
+	// save identity to store
+	err := i.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		affected, err := i.identityStateRepository.UpdateState(ctx, tx, state)
+		if err != nil {
+			return fmt.Errorf("can't save identity state; %w", err)
+		}
+		if affected == 0 {
+			return fmt.Errorf("identity state hasn't been updated")
+		}
+
+		return nil
+	})
+	return err
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {

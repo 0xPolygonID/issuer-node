@@ -508,3 +508,54 @@ func (c *claims) UpdateState(ctx context.Context, conn db.Querier, claim *domain
 	}
 	return res.RowsAffected(), nil
 }
+
+func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
+	query := "UPDATE claims SET mtp_proof = $1 WHERE id = $2 AND identifier = $3"
+	res, err := conn.Exec(ctx, query, claim.MTPProof, claim.ID, claim.Identifier)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected(), nil
+}
+
+// GetAuthClaimsForPublishing of all claims for identity
+func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier, identifier *core.DID, publishingState string, schemaHash string) ([]*domain.Claim, error) {
+	var err error
+	query := `SELECT claims.id,
+		issuer,
+       	schema_hash,
+       	schema_type,
+       	schema_url,
+       	other_identifier,
+       	expiration,
+       	updatable,
+       	claims.version,     
+		rev_nonce,
+       	signature_proof,
+       	mtp_proof,
+       	data,
+       	claims.identifier,    
+		identity_state,     
+		identity_states.status,
+       	credential_status,
+       	core_claim
+	FROM claims
+	LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+	LEFT JOIN revocation  ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier
+	WHERE claims.identifier = $1 
+			AND state != $2
+			AND claims.schema_hash = $3
+			AND revocation.nonce IS NULL `
+
+	rows, err := conn.Query(ctx, query, identifier.String(), publishingState, schemaHash)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, err := processClaims(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, nil
+}

@@ -10,7 +10,7 @@ require (
 	github.com/golangci/golangci-lint v1.50.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/vault/api v1.8.2
-	github.com/iden3/go-circuits v0.1.1
+	github.com/iden3/go-circuits v1.0.1-alpha.2.0.20221220201624-2e0df33ff6ab
 	github.com/iden3/go-iden3-core v0.1.1-0.20221219095955-92aedd7d12fa
 	github.com/iden3/go-iden3-crypto v0.0.13
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1

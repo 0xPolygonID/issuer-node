@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/iden3/go-circuits"
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
@@ -52,4 +53,14 @@ func (i *IdentityState) TreeState() circuits.TreeState {
 		RevocationRoot: common.StrMTHex(i.RevocationTreeRoot),
 		RootOfRoots:    common.StrMTHex(i.RootOfRoots),
 	}
+}
+
+// ContainsID check if states contains id
+func ContainsID(states []IdentityState, id *core.DID) bool {
+	for i := range states {
+		if states[i].Identifier == id.String() {
+			return true
+		}
+	}
+	return false
 }
