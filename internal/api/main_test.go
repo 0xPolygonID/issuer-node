@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -133,4 +134,9 @@ func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity core.DID) ([]km
 func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity core.DID) (kms.KeyID, error) {
 	var key kms.KeyID
 	return key, nil
+}
+
+// TODO: add package manager mocks
+func NewPackageManagerMock() *iden3comm.PackageManager {
+	return &iden3comm.PackageManager{}
 }

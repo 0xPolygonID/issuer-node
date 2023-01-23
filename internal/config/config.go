@@ -1,9 +1,11 @@
 package config
 
 import (
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -21,6 +23,8 @@ type Configuration struct {
 	KeyStore           KeyStore           `mapstructure:"KeyStore"`
 	Runtime            Runtime            `mapstructure:"Runtime"`
 	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService"`
+	Ethereum           Ethereum           `mapstructure:"Ethereum"`
+	Circuit            Circuit            `mapstructure:"Circuit"`
 }
 
 // Database has the database configuration
@@ -33,6 +37,26 @@ type Database struct {
 type ReverseHashService struct {
 	URL     string
 	Enabled bool
+}
+
+// Ethereum struct
+type Ethereum struct {
+	URL                    string
+	ContractAddress        string
+	DefaultGasLimit        int
+	ConfirmationTimeout    time.Duration
+	ConfirmationBlockCount int64
+	ReceiptTimeout         time.Duration
+	MinGasPrice            *big.Int
+	MaxGasPrice            *big.Int
+	RPCResponseTimeout     time.Duration
+	WaitReceiptCycleTime   time.Duration
+	WaitBlockCycleTime     time.Duration
+}
+
+// Circuit struct
+type Circuit struct {
+	Path string
 }
 
 // KeyStore defines the keystore

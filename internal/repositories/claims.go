@@ -345,6 +345,34 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 	return &claim, err
 }
 
+// GetLatestStateByIdentifier returns the latest confirmed state or genesis state.
+// Firstly try to return a 'confirmed' and non-genesis state.
+// If 'confirmed' and non-genesis state are not found. Return genesis state.
+func (c *claims) GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.IdentityState, error) {
+	row := conn.QueryRow(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, 
+       revocation_tree_root, block_timestamp, block_number, tx_id, previous_state, status, modified_at, created_at 
+FROM identity_states
+WHERE identifier=$1 AND status = 'confirmed' ORDER BY state_id DESC LIMIT 1`, identifier.String())
+	state := domain.IdentityState{}
+	if err := row.Scan(&state.StateID,
+		&state.Identifier,
+		&state.State,
+		&state.RootOfRoots,
+		&state.ClaimsTreeRoot,
+		&state.RevocationTreeRoot,
+		&state.BlockTimestamp,
+		&state.BlockNumber,
+		&state.TxID,
+		&state.PreviousState,
+		&state.Status,
+		&state.ModifiedAt,
+		&state.CreatedAt); err != nil {
+		return nil, err
+	}
+
+	return &state, nil
+}
+
 // GetAllByIssuerID returns all the claims of the given issuer
 func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
@@ -375,6 +403,85 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifi
 	}
 
 	return processClaims(rows)
+}
+
+// GetAllByIssuerIDWithFilters of all claims for identity
+func (c *claims) GetAllByIssuerIDWithFilters(ctx context.Context, conn db.Querier, identifier *core.DID, filterArg map[string]string) ([]*domain.Claim, error) {
+	var filter []interface{}
+
+	// language=PostgreSQL
+	query := `SELECT claims.id,
+				   issuer,
+				   schema_hash,
+				   schema_url,
+				   schema_type,
+				   other_identifier,
+				   expiration,
+				   updatable,
+				   claims.version,
+				   rev_nonce,
+				   signature_proof,
+				   mtp_proof,
+				   data,
+				   claims.identifier,
+				   identity_state,
+				   identity_states.status,
+				   credential_status,
+				   core_claim
+			FROM claims
+			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+			`
+	// add where part.
+	// default filter.
+	filter = append(filter, identifier.String())
+	query = fmt.Sprintf("%s WHERE claims.identifier = $%d", query, len(filter))
+
+	if filterArg["schemaHash"] != "" {
+		filter = append(filter, fmt.Sprintf("%s%%", filterArg["schemaHash"]))
+		query = fmt.Sprintf("%s and schema_hash like $%d", query, len(filter))
+	}
+	if filterArg["schemaType"] != "" {
+		filter = append(filter, fmt.Sprintf("%%%s%%", filterArg["schemaType"]))
+		query = fmt.Sprintf("%s and schema_type like $%d", query, len(filter))
+	}
+
+	// we can't use both these filters.
+	if filterArg["subject"] != "" && filterArg["self"] != "" {
+		return nil, errors.New("we can't used both filters 'subject' and 'self'")
+	}
+
+	if filterArg["subject"] != "" {
+		filter = append(filter, filterArg["subject"])
+		query = fmt.Sprintf("%s and other_identifier = $%d", query, len(filter))
+	}
+	if filterArg["self"] != "" {
+		query = fmt.Sprintf("%s and other_identifier = ''", query)
+	}
+
+	if filterArg["revoked"] != "" {
+		filter = append(filter, filterArg["revoked"])
+		query = fmt.Sprintf("%s and claims.revoked = $%d", query, len(filter))
+	}
+
+	if filterArg["query_field"] != "" {
+		// TODO: fix !!!!!
+		// "query_field":     field ,
+		//	"query_value":     reqQuery.Values[0].String(),
+		//	"query_operator": operator,
+		// filter = append(filter, filterArg["revoked"])
+		query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s'", query, filterArg["query_field"],
+			filterArg["query_value"])
+	}
+
+	// if revoked doesn't set - return both revoked and not revoked.
+	rows, err := conn.Query(ctx, query, filter...)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, err := processClaims(rows)
+
+	return claims, err
 }
 
 func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {

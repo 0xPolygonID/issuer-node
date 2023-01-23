@@ -10,9 +10,25 @@ ServerUrl = "http://localhost"
 
 [KeyStore]
     Address="http://localhost:8200"
-    Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
+    Token="hvs.Bo9PRe6TAv7t8MH7lf69m9oD"
     PluginIden3MountPath="iden3"
 
 [ReverseHashService]
     URL="http://localhost:3001"
     Enabled= false
+
+[Ethereum]
+    URL="https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89"
+    ContractAddress="0xf6781AD281d9892Df285cf86dF4F6eBec2042d71"
+#    DefaultGasLimit=600000
+#    ConfirmationTimeout="600s"
+#    ConfirmationBlockCount=5
+#    ReceiptTimeout="600s"
+#    MinGasPrice=0
+#    MaxGasPrice=0
+#    RPCResponseTimeout="5s"
+#    WaitReceiptCycleTime="30s"
+#    WaitBlockCycleTime="30s"
+
+[Circuit]
+    Path="./pkg/credentials/circuits"
