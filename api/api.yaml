@@ -512,29 +512,6 @@ components:
       type: string
       format: byte
 
-    CreateJWZRequest:
-      type: object
-      required:
-        - id
-        - type
-        - from
-        - to
-        - typ
-        - body
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-        from:
-          type: string
-        to:
-          type: string
-        typ:
-          type: string
-        body:
-          type: object
-
   parameters:
     pathIdentifier:
       name: identifier
