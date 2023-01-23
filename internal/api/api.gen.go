@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -20,6 +21,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
+
+// AgentResponse defines model for AgentResponse.
+type AgentResponse = []byte
 
 // CreateClaimRequest defines model for CreateClaimRequest.
 type CreateClaimRequest struct {
@@ -153,6 +157,12 @@ type N500CreateIdentity struct {
 	RequestID *string `json:"requestID,omitempty"`
 }
 
+// AgentTextBody defines parameters for Agent.
+type AgentTextBody = string
+
+// AgentTextRequestBody defines body for Agent for text/plain ContentType.
+type AgentTextRequestBody = AgentTextBody
+
 // CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
 
@@ -167,6 +177,9 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
+	// Agent
+	// (POST /v1/agent)
+	Agent(w http.ResponseWriter, r *http.Request)
 	// Get Identities
 	// (GET /v1/identities)
 	GetIdentities(w http.ResponseWriter, r *http.Request)
@@ -241,6 +254,21 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Agent operation middleware
+func (siw *ServerInterfaceWrapper) Agent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Agent(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -601,6 +629,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/agent", wrapper.Agent)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities", wrapper.GetIdentities)
 	})
 	r.Group(func(r chi.Router) {
@@ -694,6 +725,41 @@ func (response Health200JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 type Health500JSONResponse struct{ N500JSONResponse }
 
 func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentRequestObject struct {
+	Body *AgentTextRequestBody
+}
+
+type AgentResponseObject interface {
+	VisitAgentResponse(w http.ResponseWriter) error
+}
+
+type Agent200JSONResponse AgentResponse
+
+func (response Agent200JSONResponse) VisitAgentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Agent400JSONResponse struct{ N400JSONResponse }
+
+func (response Agent400JSONResponse) VisitAgentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Agent500JSONResponse struct{ N500JSONResponse }
+
+func (response Agent500JSONResponse) VisitAgentResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -1018,6 +1084,9 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
+	// Agent
+	// (POST /v1/agent)
+	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
 	// Get Identities
 	// (GET /v1/identities)
 	GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error)
@@ -1142,6 +1211,38 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(HealthResponseObject); ok {
 		if err := validResponse.VisitHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// Agent operation middleware
+func (sh *strictHandler) Agent(w http.ResponseWriter, r *http.Request) {
+	var request AgentRequestObject
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AgentTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Agent(ctx, request.(AgentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Agent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AgentResponseObject); ok {
+		if err := validResponse.VisitAgentResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1390,36 +1491,38 @@ func (sh *strictHandler) UpdateIdentityState(w http.ResponseWriter, r *http.Requ
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"PBb/BAAA///UxXoQhSgAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

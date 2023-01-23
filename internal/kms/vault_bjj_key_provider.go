@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"regexp"
 
@@ -211,4 +212,24 @@ func decodeBJJPrivateKey(key []byte) (babyjub.PrivateKey, error) {
 	}
 
 	return privKey, nil
+}
+
+// BJJDigest creates []byte digest for signing from *big.Int by marshaling
+// *big.Int to little-endian byte array.
+func BJJDigest(i *big.Int) []byte {
+	return utils.SwapEndianness(i.Bytes())
+}
+
+// DecodeBJJSignature converts byte array representation of BJJ signature
+// returned by Sign method to *babyjub.Signature.
+func DecodeBJJSignature(sigBytes []byte) (*babyjub.Signature, error) {
+	var sigComp babyjub.SignatureComp
+	if len(sigBytes) != len(sigComp) {
+		return nil, fmt.Errorf(
+			"unexpected signature length, got %v bytes, want %v",
+			len(sigBytes), len(sigComp))
+	}
+	copy(sigComp[:], sigBytes)
+	sig, err := sigComp.Decompress()
+	return sig, err
 }

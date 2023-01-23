@@ -2,17 +2,17 @@ ServerPort = "3001"
 ServerUrl = "http://localhost"
 
 [Database]
-    Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
+Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
 
 [Runtime]
-    LogLevel = -4
-    LogMode = 2
+LogLevel = -4
+LogMode = 2
 
 [KeyStore]
-    Address="http://localhost:8200"
-    Token="hvs.TUxhxUvzCcviQSfRsdcwuWWA"
-    PluginIden3MountPath="iden3"
+Address="http://localhost:8200"
+Token="hvs.Bo9PRe6TAv7t8MH7lf69m9oD"
+PluginIden3MountPath="iden3"
 
 [ReverseHashService]
-    URL="http://localhost:3001"
-    Enabled= false
+URL="http://localhost:3001"
+Enabled= false

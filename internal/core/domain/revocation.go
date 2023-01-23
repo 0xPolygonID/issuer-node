@@ -3,6 +3,11 @@ package domain
 import (
 	"database/sql/driver"
 	"strconv"
+
+	"github.com/iden3/go-circuits"
+	"github.com/iden3/go-schema-processor/verifiable"
+
+	"github.com/polygonid/sh-id-platform/internal/common"
 )
 
 // RevNonceUint64 uint64 alias
@@ -33,11 +38,12 @@ type Revocation struct {
 	Description string         `json:"description"`
 }
 
-//func RevocationStatusToTreeState(status verifiable.RevocationStatus) circuits.TreeState {
-//	return circuits.TreeState{
-//		State:          common.StrMTHex(status.Issuer.State),
-//		ClaimsRoot:     common.StrMTHex(status.Issuer.ClaimsTreeRoot),
-//		RevocationRoot: common.StrMTHex(status.Issuer.RevocationTreeRoot),
-//		RootOfRoots:    common.StrMTHex(status.Issuer.RootOfRoots),
-//	}
-//}
+// RevocationStatusToTreeState TBD
+func RevocationStatusToTreeState(status verifiable.RevocationStatus) circuits.TreeState {
+	return circuits.TreeState{
+		State:          common.StrMTHex(status.Issuer.State),
+		ClaimsRoot:     common.StrMTHex(status.Issuer.ClaimsTreeRoot),
+		RevocationRoot: common.StrMTHex(status.Issuer.RevocationTreeRoot),
+		RootOfRoots:    common.StrMTHex(status.Issuer.RootOfRoots),
+	}
+}

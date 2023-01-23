@@ -16,3 +16,19 @@ ServerUrl = "http://localhost"
 [ReverseHashService]
     URL="http://localhost:3001"
     Enabled= false
+
+[Ethereum]
+    URL="{{ethereum url}}"
+    ContractAddress="{{latest contract address}}"
+#    DefaultGasLimit=600000
+#    ConfirmationTimeout="600s"
+#    ConfirmationBlockCount=5
+#    ReceiptTimeout="600s"
+#    MinGasPrice=0
+#    MaxGasPrice=0
+#    RPCResponseTimeout="5s"
+#    WaitReceiptCycleTime="30s"
+#    WaitBlockCycleTime="30s"
+
+[Circuit]
+    Path="./pkg/credentials/circuits"
