@@ -23,5 +23,4 @@ type ClaimsRepository interface {
 	GetAllByIssuerIDWithFilters(ctx context.Context, conn db.Querier, identifier *core.DID, filterArg map[string]string) ([]*domain.Claim, error)
 	GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error)
 	UpdateState(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error)
-	GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.IdentityState, error)
 }

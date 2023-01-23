@@ -312,7 +312,7 @@ func (c *claim) getRevocationNonceMTP(ctx context.Context, did *core.DID, nonce 
 	revocationStatus := &verifiable.RevocationStatus{}
 
 	// current state of identity / the latest published on chain
-	state, err := c.icRepo.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
+	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
 	if err != nil {
 		return nil, err
 	}

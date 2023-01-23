@@ -345,34 +345,6 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 	return &claim, err
 }
 
-// GetLatestStateByIdentifier returns the latest confirmed state or genesis state.
-// Firstly try to return a 'confirmed' and non-genesis state.
-// If 'confirmed' and non-genesis state are not found. Return genesis state.
-func (c *claims) GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.IdentityState, error) {
-	row := conn.QueryRow(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, 
-       revocation_tree_root, block_timestamp, block_number, tx_id, previous_state, status, modified_at, created_at 
-FROM identity_states
-WHERE identifier=$1 AND status = 'confirmed' ORDER BY state_id DESC LIMIT 1`, identifier.String())
-	state := domain.IdentityState{}
-	if err := row.Scan(&state.StateID,
-		&state.Identifier,
-		&state.State,
-		&state.RootOfRoots,
-		&state.ClaimsTreeRoot,
-		&state.RevocationTreeRoot,
-		&state.BlockTimestamp,
-		&state.BlockNumber,
-		&state.TxID,
-		&state.PreviousState,
-		&state.Status,
-		&state.ModifiedAt,
-		&state.CreatedAt); err != nil {
-		return nil, err
-	}
-
-	return &state, nil
-}
-
 // GetAllByIssuerID returns all the claims of the given issuer
 func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
