@@ -16,6 +16,7 @@ import (
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -44,14 +45,14 @@ type ClaimCfg struct {
 type claim struct {
 	cfg                     ClaimCfg
 	icRepo                  ports.ClaimsRepository
-	identitySrv             ports.IndentityService
+	identitySrv             ports.IdentityService
 	mtService               ports.MtService
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IndentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -206,7 +207,7 @@ func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description
 	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
 }
 
-func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*verifiable.W3CCredential, error) {
+func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error) {
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
@@ -215,7 +216,131 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*ve
 		return nil, err
 	}
 
-	return schema.FromClaimModelToW3CCredential(*claim)
+	return claim, nil
+}
+
+func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (interface{}, error) {
+	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, fmt.Errorf("can not proceed with this identity, not found")
+	}
+	if req.Type == protocol.RevocationStatusRequestMessageType {
+		return c.getAgentRevocationStatus(ctx, req)
+	}
+
+	return c.getAgentCredential(ctx, req) // at this point the type is already validated
+}
+
+func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error) {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
+}
+
+func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*protocol.RevocationStatusResponseMessage, error) {
+	revData := &protocol.RevocationStatusRequestMessageBody{}
+	err := json.Unmarshal(basicMessage.Body, revData)
+	if err != nil {
+		return nil, fmt.Errorf("invalid revocation request body: %w", err)
+	}
+
+	revStatus, err := c.getRevocationNonceMTP(ctx, basicMessage.IssuerDID, revData.RevocationNonce)
+	if err != nil {
+		return nil, fmt.Errorf("failed get revocation nonce: %w", err)
+	}
+
+	return &protocol.RevocationStatusResponseMessage{
+		ID:       uuid.NewString(),
+		Type:     protocol.RevocationStatusResponseMessageType,
+		ThreadID: basicMessage.ThreadID,
+		Body:     protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus},
+		From:     basicMessage.UserDID.String(),
+		To:       basicMessage.IssuerDID.String(),
+	}, nil
+}
+
+func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*protocol.CredentialIssuanceMessage, error) {
+	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
+	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
+	if err != nil {
+		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
+	}
+
+	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, basicMessage.ClaimID)
+	if err != nil {
+		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
+	}
+
+	if claim.OtherIdentifier != basicMessage.UserDID.String() {
+		return nil, fmt.Errorf("claim doesn't relate to sender")
+	}
+
+	vc, err := c.schemaSrv.FromClaimModelToW3CCredential(*claim)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
+	}
+
+	return &protocol.CredentialIssuanceMessage{
+		ID:       uuid.NewString(),
+		Type:     protocol.CredentialIssuanceResponseMessageType,
+		ThreadID: basicMessage.ThreadID,
+		Body:     protocol.IssuanceMessageBody{Credential: *vc},
+		From:     basicMessage.UserDID.String(),
+		To:       basicMessage.IssuerDID.String(),
+	}, err
+}
+
+// getRevocationNonceMTP generates MTP proof for given nonce
+func (c *claim) getRevocationNonceMTP(ctx context.Context, did *core.DID, nonce uint64) (*verifiable.RevocationStatus, error) {
+	rID := new(big.Int).SetUint64(nonce)
+	revocationStatus := &verifiable.RevocationStatus{}
+
+	// current state of identity / the latest published on chain
+	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	revocationStatus.Issuer.State = state.State
+	revocationStatus.Issuer.ClaimsTreeRoot = state.ClaimsTreeRoot
+	revocationStatus.Issuer.RevocationTreeRoot = state.RevocationTreeRoot
+	revocationStatus.Issuer.RootOfRoots = state.RootOfRoots
+
+	if state.RevocationTreeRoot == nil {
+
+		var mtp *merkletree.Proof
+		mtp, err = merkletree.NewProofFromData(false, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		revocationStatus.MTP = *mtp
+		return revocationStatus, nil
+	}
+
+	revocationTreeHash, err := merkletree.NewHashFromHex(*state.RevocationTreeRoot)
+	if err != nil {
+		return nil, err
+	}
+	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return nil, err
+	}
+
+	// revocation / non revocation MTP for the latest identity state
+	proof, err := identityTrees.GenerateRevocationProof(ctx, rID, revocationTreeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	revocationStatus.MTP = *proof
+
+	return revocationStatus, nil
 }
 
 func (c *claim) GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error) {

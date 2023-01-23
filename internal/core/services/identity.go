@@ -47,7 +47,7 @@ type identity struct {
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IndentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -134,6 +134,15 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
+func (i *identity) Exists(ctx context.Context, identifier *core.DID) (bool, error) {
+	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	if err != nil {
+		return false, err
+	}
+
+	return identity != nil, nil
+}
+
 // getKeyIDFromAuthClaim finds BJJ KeyID of auth claim
 // in registered key providers
 func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
@@ -181,6 +190,65 @@ func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 // Get - returns all the identities
 func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
+}
+
+// GetLatestStateByID get latest identity state by identifier
+func (i *identity) GetLatestStateByID(ctx context.Context, identifier *core.DID) (*domain.IdentityState, error) {
+	// check that identity exists in the db
+	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, identifier)
+	if err != nil {
+		return nil, err
+	}
+	if state == nil {
+		return nil, fmt.Errorf("state is not found for identifier: %s",
+			identifier.String())
+	}
+	return state, nil
+}
+
+// GetKeyIDFromAuthClaim finds BJJ KeyID of auth claim
+// in registered key providers
+func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
+	var keyID kms.KeyID
+
+	if authClaim.Identifier == nil {
+		return keyID, errors.New("identifier is empty in auth claim")
+	}
+
+	identity, err := core.ParseDID(*authClaim.Identifier)
+	if err != nil {
+		return keyID, err
+	}
+
+	entry := authClaim.CoreClaim.Get()
+	bjjClaim := entry.RawSlotsAsInts()
+
+	var publicKey babyjub.PublicKey
+	publicKey.X = bjjClaim[2]
+	publicKey.Y = bjjClaim[3]
+
+	compPubKey := publicKey.Compress()
+
+	keyIDs, err := i.kms.KeysByIdentity(ctx, *identity)
+	if err != nil {
+		return keyID, err
+	}
+
+	for _, keyID = range keyIDs {
+		if keyID.Type != kms.KeyTypeBabyJubJub {
+			continue
+		}
+
+		pubKeyBytes, err := i.kms.PublicKey(keyID)
+		if err != nil {
+			return keyID, err
+		}
+		if bytes.Equal(pubKeyBytes, compPubKey[:]) {
+			return keyID, nil
+		}
+	}
+
+	return keyID, errors.New("private key not found")
 }
 
 func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.IdentityState, error) {

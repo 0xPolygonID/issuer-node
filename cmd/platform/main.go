@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 
@@ -18,7 +19,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -79,6 +82,28 @@ func main() {
 		},
 	)
 
+	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
+	if err != nil {
+		log.Error(ctx, "failed init ethereum client: %+v", err)
+		panic(err)
+	}
+
+	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
+	if err != nil {
+		log.Error(ctx, "failed init ethereum connect: %+v", err)
+		panic(err)
+	}
+
+	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
+
+	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepo, keyStore, storage, stateContract)
+
+	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
+	if err != nil {
+		log.Error(ctx, "failed init package protocol:  %+v", err)
+		panic(err)
+	}
+
 	spec, err := api.GetSwagger()
 	if err != nil {
 		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
@@ -91,7 +116,7 @@ func main() {
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
 	)
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService), middlewares(ctx)), mux)
+	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, packageManager), middlewares(ctx)), mux)
 	api.RegisterStatic(mux)
 
 	server := &http.Server{

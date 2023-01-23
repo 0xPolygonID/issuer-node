@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -37,21 +38,11 @@ func TestMain(m *testing.M) {
 		conn = "postgres://postgres:postgres@localhost:5435"
 	}
 
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		panic(err)
-	}
-
 	cfgForTesting := config.Configuration{
 		Database: config.Database{
 			URL: conn,
 		},
-		KeyStore: config.KeyStore{
-			Address:              cfg.KeyStore.Address,
-			Token:                cfg.KeyStore.Token,
-			PluginIden3MountPath: cfg.KeyStore.PluginIden3MountPath,
-		},
+		KeyStore: config.VaultTest(),
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
@@ -133,4 +124,9 @@ func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity core.DID) ([]km
 func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity core.DID) (kms.KeyID, error) {
 	var key kms.KeyID
 	return key, nil
+}
+
+// TODO: add package manager mocks
+func NewPackageManagerMock() *iden3comm.PackageManager {
+	return &iden3comm.PackageManager{}
 }
