@@ -13,7 +13,7 @@ import (
 
 // CreateClaimRequest struct
 type CreateClaimRequest struct {
-	DID                   *core.DID
+	DID                   core.DID
 	SchemaURL             string
 	CredentialSubject     map[string]any
 	Expiration            *time.Time
@@ -24,7 +24,7 @@ type CreateClaimRequest struct {
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *CreateClaimRequest {
+func NewCreateClaimRequest(did core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *CreateClaimRequest {
 	req := &CreateClaimRequest{
 		DID:               did,
 		SchemaURL:         credentialSchema,

@@ -15,7 +15,7 @@ import (
 
 // Process constructs a core.Claim entity from a verifiable credential
 // TODO: Test it
-func Process(ctx context.Context, schemaURL, credentialType string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
+func Process(ctx context.Context, loader processor.SchemaLoader, credentialType string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
 	var parser processor.Parser
 	var validator processor.Validator
 
@@ -23,7 +23,7 @@ func Process(ctx context.Context, schemaURL, credentialType string, credential v
 	validator = jsonSuite.Validator{}
 	parser = jsonSuite.Parser{}
 
-	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(getLoader(schemaURL)))
+	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(loader))
 
 	schema, _, err := pr.Load(ctx)
 	if err != nil {
@@ -48,8 +48,8 @@ func Process(ctx context.Context, schemaURL, credentialType string, credential v
 }
 
 // LoadSchema loads schema from url
-func LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, error) {
-	schemaBytes, _, err := load(ctx, url)
+func LoadSchema(ctx context.Context, loader loaders.Loader) (jsonSuite.Schema, error) {
+	schemaBytes, _, err := load(ctx, loader)
 	if err != nil {
 		return jsonSuite.Schema{}, err
 	}
@@ -60,16 +60,17 @@ func LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, error) {
 	return schema, err
 }
 
-// getLoader returns corresponding loader (according to url schema)
+// FactoryLoader returns corresponding loader (according to url schema)
 // By now, only http
-func getLoader(url string) processor.SchemaLoader {
+func FactoryLoader(url string) processor.SchemaLoader {
 	return &loaders.HTTP{URL: url}
 }
 
 // load returns schema content by url
-func load(ctx context.Context, schemaURL string) (schema []byte, extension string, err error) {
+func load(ctx context.Context, loader loaders.Loader) (schema []byte, extension string, err error) {
 	var schemaBytes []byte
-	schemaBytes, _, err = getLoader(schemaURL).Load(ctx)
+
+	schemaBytes, _, err = loader.Load(ctx)
 	if err != nil {
 		return nil, "", err
 	}

@@ -86,7 +86,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
+	req := ports.NewCreateClaimRequest(*did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition)
 
 	resp, err := s.claimService.CreateClaim(ctx, req)
 	if err != nil {

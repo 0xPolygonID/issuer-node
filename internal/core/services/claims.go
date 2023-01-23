@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -84,7 +83,8 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, err
 	}
 
-	sch, err := schema.LoadSchema(ctx, req.SchemaURL)
+	loader := schema.FactoryLoader(req.SchemaURL)
+	sch, err := schema.LoadSchema(ctx, loader)
 	if err != nil {
 		log.Error(ctx, "loading schemaSrv", err, "schemaSrv", req.SchemaURL)
 		return nil, ErrLoadingSchema
@@ -96,18 +96,16 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, ErrJSONLdContext
 	}
 
-	vc, err := c.createVC(req, jsonLdContext, nonce)
+	vc, err := c.createVC(req, jsonLdContext, domain.RevNonceUint64(nonce))
 	if err != nil {
 		log.Error(ctx, "creating verifiable credential", err)
 		return nil, err
 	}
 
 	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, req.Type)
-	mtRootPostion := defineMerklizedRootPosition(sch.Metadata, req.MerklizedRootPosition)
-
-	coreClaim, err := schema.Process(ctx, req.SchemaURL, credentialType, vc, &processor.CoreClaimOptions{
+	coreClaim, err := schema.Process(ctx, loader, credentialType, vc, &processor.CoreClaimOptions{
 		RevNonce:              nonce,
-		MerklizedRootPosition: mtRootPostion,
+		MerklizedRootPosition: defineMerklizedRootPosition(sch.Metadata, req.MerklizedRootPosition),
 		Version:               req.Version,
 		SubjectPosition:       req.SubjectPos,
 		Updatable:             false,
@@ -115,12 +113,6 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 	if err != nil {
 		log.Error(ctx, "cannot process the schemaSrv", err)
 		return nil, ErrProcessSchema
-	}
-
-	claim, err := domain.FromClaimer(coreClaim, req.SchemaURL, credentialType)
-	if err != nil {
-		log.Error(ctx, "cannot obtain the claim from claimer", err)
-		return nil, err
 	}
 
 	authClaim, err := c.getAuthClaim(ctx, req.DID)
@@ -134,19 +126,17 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		log.Error(ctx, "cannot sign claim entry", err)
 		return nil, err
 	}
+	proof.IssuerData.CredentialStatus = c.getRevocationSource(req.DID, authClaim.RevNonce)
 
+	claim, err := domain.FromClaimer(coreClaim, req.SchemaURL, credentialType)
+	if err != nil {
+		log.Error(ctx, "cannot obtain the claim from claimer", err)
+		return nil, err
+	}
 	issuerDIDString := req.DID.String()
 	claim.Identifier = &issuerDIDString
 	claim.Issuer = issuerDIDString
-
-	proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
-
-	jsonSignatureProof, err := json.Marshal(proof)
-	if err != nil {
-		log.Error(ctx, "cannot encode the json signature proof", err)
-		return nil, err
-	}
-	err = claim.SignatureProof.Set(jsonSignatureProof)
+	err = claim.SignatureProof.Set(proof)
 	if err != nil {
 		log.Error(ctx, "cannot set the json signature proof", err)
 		return nil, err
@@ -297,7 +287,7 @@ func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64
 	return revocationStatus, nil
 }
 
-func (c *claim) createVC(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+func (c *claim) createVC(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce domain.RevNonceUint64) (verifiable.W3CCredential, error) {
 	vCredential, err := c.newVerifiableCredential(claimReq, jsonLdContext, nonce) // create vc credential
 	if err != nil {
 		return verifiable.W3CCredential{}, err
@@ -311,13 +301,11 @@ func (c *claim) save(ctx context.Context, claim *domain.Claim) (*domain.Claim, e
 	if err != nil {
 		return nil, err
 	}
-
 	claim.ID = id
-
 	return claim, nil
 }
 
-func (c *claim) getAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error) {
+func (c *claim) getAuthClaim(ctx context.Context, did core.DID) (*domain.Claim, error) {
 	authHash, err := core.AuthSchemaHash.MarshalText()
 	if err != nil {
 		return nil, err
@@ -332,7 +320,7 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 	return nil
 }
 
-func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce domain.RevNonceUint64) (verifiable.W3CCredential, error) {
 	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, claimReq.Type}
 
@@ -353,7 +341,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, json
 		return verifiable.W3CCredential{}, err
 	}
 
-	cs := c.getRevocationSource(claimReq.DID.String(), nonce)
+	cs := c.getRevocationSource(claimReq.DID, nonce)
 
 	issuanceDate := time.Now()
 	return verifiable.W3CCredential{
@@ -372,27 +360,27 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, json
 	}, nil
 }
 
-func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} {
+func (c *claim) getRevocationSource(issuerDID core.DID, nonce domain.RevNonceUint64) interface{} {
 	if c.cfg.RHSEnabled {
 		return &verifiable.RHSCredentialStatus{
 			ID:              fmt.Sprintf("%s/node", strings.TrimSuffix(c.cfg.RHSUrl, "/")),
 			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
-			RevocationNonce: nonce,
+			RevocationNonce: uint64(nonce),
 			StatusIssuer: &verifiable.CredentialStatus{
-				ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce),
+				ID:              buildRevocationURL(c.cfg.Host, issuerDID.String(), nonce),
 				Type:            verifiable.SparseMerkleTreeProof,
-				RevocationNonce: nonce,
+				RevocationNonce: uint64(nonce),
 			},
 		}
 	}
 	return &verifiable.CredentialStatus{
-		ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce),
+		ID:              buildRevocationURL(c.cfg.Host, issuerDID.String(), nonce),
 		Type:            verifiable.SparseMerkleTreeProof,
-		RevocationNonce: nonce,
+		RevocationNonce: uint64(nonce),
 	}
 }
 
-func buildRevocationURL(host, issuerDID string, nonce uint64) string {
+func buildRevocationURL(host, issuerDID string, nonce domain.RevNonceUint64) string {
 	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
 }

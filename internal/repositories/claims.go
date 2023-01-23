@@ -230,7 +230,7 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 	return &claim, nil
 }
 
-func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error) {
+func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject core.DID, schemaHash string) (*domain.Claim, error) {
 	var claim domain.Claim
 
 	row := conn.QueryRow(ctx,
