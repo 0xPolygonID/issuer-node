@@ -27,6 +27,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/schema"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
@@ -45,7 +46,6 @@ var (
 type Proof struct {
 	claimSrv         ports.ClaimsService
 	revocationSrv    ports.RevocationService
-	schemaSrv        ports.SchemaService
 	identitySrv      ports.IdentityService
 	mtService        ports.MtService
 	claimsRepository ports.ClaimsRepository
@@ -55,11 +55,10 @@ type Proof struct {
 }
 
 // NewProofService init proof service
-func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, schemaSrv ports.SchemaService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *eth.State) ports.ProofService {
+func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *eth.State) ports.ProofService {
 	return &Proof{
 		claimSrv:         claimSrv,
 		revocationSrv:    revocationSrv,
-		schemaSrv:        schemaSrv,
 		identitySrv:      identitySrv,
 		mtService:        mtService,
 		claimsRepository: claimsRepository,
@@ -434,7 +433,7 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 		return circuits.Query{}, err
 	}
 
-	loader := p.schemaSrv.GetLoader(query.Context)
+	loader := schema.FactoryLoader(query.Context)
 
 	schema, _, err := loader.Load(ctx)
 	if err != nil {
@@ -480,7 +479,7 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 }
 
 func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL string, query ports.Query) (circuits.Query, error) {
-	loader := p.schemaSrv.GetLoader(jsonSchemaURL)
+	loader := schema.FactoryLoader(jsonSchemaURL)
 
 	parser := jsonSuite.Parser{}
 	pr := processor.InitProcessorOptions(&processor.Processor{},
@@ -549,7 +548,7 @@ func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.Issue
 }
 
 func (p *Proof) prepareAuthV2Circuit(ctx context.Context, identifier *core.DID, challenge *big.Int) (circuits.AuthV2Inputs, error) {
-	authClaim, err := p.claimSrv.GetAuthClaim(ctx, identifier)
+	authClaim, err := p.claimSrv.GetAuthClaim(ctx, *identifier)
 	if err != nil {
 		return circuits.AuthV2Inputs{}, err
 	}

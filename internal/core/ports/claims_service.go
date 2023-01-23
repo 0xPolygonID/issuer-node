@@ -118,5 +118,5 @@ type ClaimsService interface {
 	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
 	Agent(ctx context.Context, req *AgentRequest) (interface{}, error)
-	GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error)
+	GetAuthClaim(ctx context.Context, did core.DID) (*domain.Claim, error)
 }

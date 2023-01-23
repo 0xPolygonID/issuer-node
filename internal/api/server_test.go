@@ -353,7 +353,7 @@ func TestServer_GetIdentities(t *testing.T) {
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, storage, claimsConf)
-	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
+	server := NewServer(&cfg, identityService, claimsService, NewPackageManagerMock())
 	handler := getHandler(context.Background(), server)
 
 	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
@@ -417,7 +417,7 @@ func TestServer_GetClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
+	server := NewServer(&cfg, identityService, claimsService, NewPackageManagerMock())
 
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -570,7 +570,7 @@ func TestServer_GetClaims(t *testing.T) {
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, storage, claimsConf)
 
 	fixture := tests.NewFixture(storage)
-	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
+	server := NewServer(&cfg, identityService, claimsService, NewPackageManagerMock())
 
 	ctx := context.Background()
 	identity, err := server.identityService.Create(ctx, "https://localhost.com")
@@ -760,7 +760,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	identity, err := identityService.Create(ctx, "http://localhost:3001")
 	assert.NoError(t, err)
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, storage, claimsConf)
-	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
+	server := NewServer(&cfg, identityService, claimsService, NewPackageManagerMock())
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

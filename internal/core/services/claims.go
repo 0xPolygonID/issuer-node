@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -235,7 +236,7 @@ func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (interface{}
 	return c.getAgentCredential(ctx, req) // at this point the type is already validated
 }
 
-func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error) {
+func (c *claim) GetAuthClaim(ctx context.Context, did core.DID) (*domain.Claim, error) {
 	authHash, err := core.AuthSchemaHash.MarshalText()
 	if err != nil {
 		return nil, err
@@ -281,7 +282,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("claim doesn't relate to sender")
 	}
 
-	vc, err := c.schemaSrv.FromClaimModelToW3CCredential(*claim)
+	vc, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}

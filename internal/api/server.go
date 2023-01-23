@@ -19,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/schema"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -194,7 +195,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	w3c, err := s.schemaService.FromClaimModelToW3CCredential(*claim)
+	w3c, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		return GetClaim500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}

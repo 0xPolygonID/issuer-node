@@ -96,7 +96,7 @@ func main() {
 
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 
-	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepo, keyStore, storage, stateContract)
+	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepo, keyStore, storage, stateContract)
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
