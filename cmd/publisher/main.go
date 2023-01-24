@@ -9,14 +9,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
-
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
@@ -25,6 +21,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -35,9 +32,14 @@ func main() {
 		panic(err)
 	}
 
-	onchainfrecuency, err := time.ParseDuration(cfg.OnChainFrecuency)
+	onChainPublishStateFrecuency, err := time.ParseDuration(cfg.OnChainPublishStateFrecuency)
 	if err != nil {
-		panic("error converting on chain frecuency param")
+		panic("error converting onChainPublishStateFrecuency param")
+	}
+
+	onChainCheckStatusFrecuency, err := time.ParseDuration(cfg.OnChainCheckStatusFrecuency)
+	if err != nil {
+		panic("error converting onChainCheckStatusFrecuency param")
 	}
 
 	// Context with log
@@ -50,6 +52,13 @@ func main() {
 		panic(err)
 	}
 
+	defer func(storage *db.Storage) {
+		err := storage.Close()
+		if err != nil {
+			log.Error(ctx, "error closing database connection", err)
+		}
+	}(storage)
+
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
 		log.Error(ctx, "cannot init vault client: ", err)
@@ -58,26 +67,26 @@ func main() {
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Error(ctx, "cannot create BabyJubJub key provider: %+v", err)
+		log.Error(ctx, "cannot create BabyJubJub key provider", err)
 		panic(err)
 	}
 
 	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
 	if err != nil {
-		log.Error(ctx, "cannot create Ethereum key provider: %+v", err)
+		log.Error(ctx, "cannot create Ethereum key provider", err)
 		panic(err)
 	}
 
 	keyStore := kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Error(ctx, "cannot register BabyJubJub key provider: %w", err)
+		log.Error(ctx, "cannot register BabyJubJub key provider", err)
 		panic(err)
 	}
 
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
 	if err != nil {
-		log.Error(ctx, "cannot register Ethereum key provider:  %w", err)
+		log.Error(ctx, "cannot register Ethereum key provider", err)
 		panic(err)
 	}
 
@@ -105,7 +114,7 @@ func main() {
 		},
 	)
 
-	commonClient, err := ethclient.Dial(string(cfg.Ethereum.URL))
+	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {
 		panic("Error dialing with ethclient: " + err.Error())
 	}
@@ -126,9 +135,13 @@ func main() {
 	proofService := initProofService(cfg, circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
-
+	if err != nil {
+		log.Error(ctx, "error creating transaction service", err)
+		panic("error creating transaction service")
+	}
 	publisherGateway, err := gateways.NewPublisherEthGateway(cl, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
 	if err != nil {
+		log.Error(ctx, "error creating publish gateway", err)
 		panic("error creating publish gateway")
 	}
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
@@ -137,11 +150,11 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(onchainfrecuency)
+		ticker := time.NewTicker(onChainPublishStateFrecuency)
 		for {
 			select {
 			case <-ticker.C:
-				publisher.PublishState()
+				publisher.PublishState(ctx)
 			case <-ctx.Done():
 				log.Info(ctx, "finishing publish state job..")
 			}
@@ -149,11 +162,11 @@ func main() {
 	}(ctx)
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(onchainfrecuency)
+		ticker := time.NewTicker(onChainCheckStatusFrecuency)
 		for {
 			select {
 			case <-ticker.C:
-				publisher.CheckTransactionStatus()
+				publisher.CheckTransactionStatus(ctx)
 			case <-ctx.Done():
 				log.Info(ctx, "finishing check transaction status job..")
 			}
@@ -161,7 +174,7 @@ func main() {
 	}(ctx)
 
 	<-quit
-	fmt.Println("finishing app")
+	log.Info(ctx, "finishing app")
 	cancel()
 	log.Info(ctx, "Finshed")
 }

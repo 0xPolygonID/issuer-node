@@ -31,7 +31,8 @@ type Configuration struct {
 	Prover                       Prover             `mapstructure:"Prover"`
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
-	OnChainFrecuency             string             `mapstructure:"OnChainFrecuency"`
+	OnChainPublishStateFrecuency string             `mapstructure:"OnChainPublishStateFrecuency"`
+	OnChainCheckStatusFrecuency  string             `mapstructure:"OnChainCheckStatusFrecuency"`
 }
 
 // Database has the database configuration
@@ -61,6 +62,7 @@ type Ethereum struct {
 	WaitBlockCycleTime     time.Duration
 }
 
+// Prover struct
 type Prover struct {
 	ServerURL       string
 	ResponseTimeout time.Duration

@@ -12,14 +12,15 @@ import (
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/jackc/pgx/v4"
-	"github.com/polygonid/sh-id-platform/internal/db"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
+// PublisherGateway - Define the interface for publishers.
 type PublisherGateway interface {
 	PublishState(ctx context.Context, identifier *core.DID, latestState *merkletree.Hash, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error)
 }
@@ -51,9 +52,8 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 	}
 }
 
-func (p *publisher) PublishState() {
-	ctx := context.Background()
-
+func (p *publisher) PublishState(ctx context.Context) {
+	log.Info(ctx, "publish state job started")
 	// TODO: make snapshot
 	// make snapshot if rds was init
 
@@ -104,6 +104,8 @@ func (p *publisher) PublishState() {
 			continue
 		}
 	}
+
+	log.Info(ctx, "publish state job finished")
 }
 
 // PublishProof publishes new proof using the latest state
@@ -371,8 +373,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 }
 
 // CheckTransactionStatus - checks transaction status
-func (p *publisher) CheckTransactionStatus() {
-	ctx := context.Background()
+func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	// Get all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
@@ -398,7 +399,7 @@ func (p *publisher) CheckTransactionStatus() {
 		}
 	}
 
-	log.Info(ctx, "Checker job finished")
+	log.Info(ctx, "checker status job finished")
 }
 
 func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {

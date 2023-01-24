@@ -2,7 +2,8 @@ ServerPort = "3001"
 ServerUrl = "http://localhost"
 NativeProofGenerationEnabled = false
 PublishingKeyPath = "pbkey"
-OnChainFrecuency = "8s"
+OnChainPublishStateFrecuency = "2m"
+OnChainCheckStatusFrecuency = "10m"
 
 [Database]
 Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
@@ -22,7 +23,7 @@ Enabled= false
 
 [Ethereum]
 URL="https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89"
-ContractAddress="<contract_address>"
+ContractAddress="<contract-address>"
 DefaultGasLimit=600000
 ConfirmationTimeout="600s"
 ConfirmationBlockCount=5

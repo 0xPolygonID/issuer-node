@@ -13,12 +13,12 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
 // PublisherEthGateway interact with blockchain
@@ -116,8 +116,9 @@ func (pb *PublisherEthGateway) getAddressForTxInitiator() (ethCommon.Address, er
 		return ethCommon.Address{}, err
 	}
 	var pubKey *ecdsa.PublicKey
+	bytesPubKeyLen := 33
 	switch len(bytesPubKey) {
-	case 33:
+	case bytesPubKeyLen:
 		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
 	default:
 		pubKey, err = crypto.UnmarshalPubkey(bytesPubKey)
