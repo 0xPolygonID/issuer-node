@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -120,5 +121,44 @@ func BuildTreeState(state, claimsTreeRoot, revocationTreeRoot, rootOfRoots *stri
 		ClaimsRoot:     common.StrMTHex(claimsTreeRoot),
 		RevocationRoot: common.StrMTHex(revocationTreeRoot),
 		RootOfRoots:    common.StrMTHex(rootOfRoots),
+	}, nil
+}
+
+// GetBJJSignatureProof2021 TBD
+func (c *Claim) GetBJJSignatureProof2021() (*verifiable.BJJSignatureProof2021, error) {
+	var sigProof verifiable.BJJSignatureProof2021
+	err := c.SignatureProof.AssignTo(&sigProof)
+	if err != nil {
+		return &sigProof, err
+	}
+	return &sigProof, nil
+}
+
+// GetVerifiableCredential TBD
+func (c *Claim) GetVerifiableCredential() (verifiable.W3CCredential, error) {
+	var vc verifiable.W3CCredential
+	err := c.Data.AssignTo(&vc)
+	if err != nil {
+		return vc, err
+	}
+	return vc, nil
+}
+
+// GetCircuitIncProof TBD
+func (c *Claim) GetCircuitIncProof() (circuits.MTProof, error) {
+	var proof verifiable.Iden3SparseMerkleProof
+	err := c.MTPProof.AssignTo(&proof)
+	if err != nil {
+		return circuits.MTProof{}, err
+	}
+
+	return circuits.MTProof{
+		Proof: proof.MTP,
+		TreeState: circuits.TreeState{
+			State:          common.StrMTHex(proof.IssuerData.State.Value),
+			ClaimsRoot:     common.StrMTHex(proof.IssuerData.State.ClaimsTreeRoot),
+			RevocationRoot: common.StrMTHex(proof.IssuerData.State.RevocationTreeRoot),
+			RootOfRoots:    common.StrMTHex(proof.IssuerData.State.RootOfRoots),
+		},
 	}, nil
 }

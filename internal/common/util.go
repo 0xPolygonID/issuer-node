@@ -1,19 +1,19 @@
 package common
 
 import (
-	"context"
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
 	"time"
 
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/verifiable"
-
-	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // CredentialRequest is a model for credential creation
@@ -88,6 +88,28 @@ func RandInt64() (uint64, error) {
 	return binary.LittleEndian.Uint64(buf[:]), err
 }
 
+// CheckGenesisStateDID return nil if state is genesis state.
+func CheckGenesisStateDID(did *core.DID, state *big.Int) error {
+	stateHash, err := merkletree.NewHashFromBigInt(state)
+	if err != nil {
+		return err
+	}
+
+	t, err := core.BuildDIDType(did.Method, did.Blockchain, did.NetworkID)
+	if err != nil {
+		return err
+	}
+	DIDFromState, err := core.DIDGenesisFromIdenState(t, stateHash.BigInt())
+	if err != nil {
+		return err
+	}
+
+	if DIDFromState.String() != did.String() {
+		return fmt.Errorf("did from genesis state (%s) and provided (%s) don't match", DIDFromState.String(), did.String())
+	}
+	return nil
+}
+
 // StrMTHex string to merkle tree hash
 func StrMTHex(s *string) *merkletree.Hash {
 	if s == nil {
@@ -96,8 +118,38 @@ func StrMTHex(s *string) *merkletree.Hash {
 
 	h, err := merkletree.NewHashFromHex(*s)
 	if err != nil {
-		log.Info(context.Background(), "can't parse hex string %s", *s)
 		return &merkletree.HashZero
 	}
 	return h
+}
+
+// CompareMerkleTreeHash compare merkletree.Hash
+func CompareMerkleTreeHash(_state1, _state2 *merkletree.Hash) bool {
+	return bytes.Equal(_state1[:], _state2[:])
+}
+
+// ArrayStringToBigInt converts array of string to big int
+func ArrayStringToBigInt(s []string) ([]*big.Int, error) {
+	var o []*big.Int
+	for i := 0; i < len(s); i++ {
+		si, err := stringToBigInt(s[i])
+		if err != nil {
+			return o, nil
+		}
+		o = append(o, si)
+	}
+	return o, nil
+}
+
+func stringToBigInt(s string) (*big.Int, error) {
+	base := 10
+	if bytes.HasPrefix([]byte(s), []byte("0x")) {
+		base = 16
+		s = strings.TrimPrefix(s, "0x")
+	}
+	n, ok := new(big.Int).SetString(s, base)
+	if !ok {
+		return nil, fmt.Errorf("can not parse string to *big.Int: %s", s)
+	}
+	return n, nil
 }

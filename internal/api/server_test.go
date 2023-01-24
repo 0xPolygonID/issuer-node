@@ -45,7 +45,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -100,7 +100,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
@@ -219,9 +219,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 }
 
 func TestServer_CreateClaim(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("Skipped. Cannot run hashicorp vault in ga")
-	}
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
 
 	identityRepo := repositories.NewIdentity()
@@ -239,7 +236,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 	handler := getHandler(ctx, server)
 
 	iden, err := identityService.Create(ctx, "polygon-test")
@@ -359,7 +356,7 @@ func TestServer_GetIdentities(t *testing.T) {
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 	handler := getHandler(context.Background(), server)
 
 	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
@@ -424,7 +421,7 @@ func TestServer_GetClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -562,10 +559,6 @@ func TestServer_GetClaim(t *testing.T) {
 }
 
 func TestServer_GetClaims(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("SKIPPED")
-	}
-
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -582,7 +575,7 @@ func TestServer_GetClaims(t *testing.T) {
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
 	fixture := tests.NewFixture(storage)
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 
 	ctx := context.Background()
 	identity, err := server.identityService.Create(ctx, "https://localhost.com")
@@ -754,9 +747,6 @@ func TestServer_GetClaims(t *testing.T) {
 }
 
 func TestServer_GetRevocationStatus(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("SKIPPED")
-	}
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -776,7 +766,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	identity, err := identityService.Create(ctx, "http://localhost:3001")
 	assert.NoError(t, err)
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
-	server := NewServer(&cfg, identityService, claimsService, schemaService)
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

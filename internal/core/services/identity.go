@@ -47,7 +47,7 @@ type identity struct {
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IndentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -134,6 +134,15 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
+func (i *identity) Exists(ctx context.Context, identifier *core.DID) (bool, error) {
+	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	if err != nil {
+		return false, err
+	}
+
+	return identity != nil, nil
+}
+
 // getKeyIDFromAuthClaim finds BJJ KeyID of auth claim
 // in registered key providers
 func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
@@ -183,19 +192,7 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
 }
 
-func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
-	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
-}
-
-func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
-	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
-	if err != nil {
-		return nil, fmt.Errorf("error getting non transacted states: %w", err)
-	}
-
-	return states, nil
-}
-
+// GetLatestStateByID get latest identity state by identifier
 func (i *identity) GetLatestStateByID(ctx context.Context, identifier *core.DID) (*domain.IdentityState, error) {
 	// check that identity exists in the db
 	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, identifier)
@@ -203,11 +200,14 @@ func (i *identity) GetLatestStateByID(ctx context.Context, identifier *core.DID)
 		return nil, err
 	}
 	if state == nil {
-		return nil, fmt.Errorf("state is not found for identifier: %s", identifier.String())
+		return nil, fmt.Errorf("state is not found for identifier: %s",
+			identifier.String())
 	}
 	return state, nil
 }
 
+// GetKeyIDFromAuthClaim finds BJJ KeyID of auth claim
+// in registered key providers
 func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error) {
 	var keyID kms.KeyID
 
@@ -670,4 +670,17 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	}
 
 	return kms.DecodeBJJPubKey(keyBytes)
+}
+
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
+}
+
+func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
+	if err != nil {
+		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+	}
+
+	return states, nil
 }

@@ -225,7 +225,9 @@ func BJJDigest(i *big.Int) []byte {
 func DecodeBJJSignature(sigBytes []byte) (*babyjub.Signature, error) {
 	var sigComp babyjub.SignatureComp
 	if len(sigBytes) != len(sigComp) {
-		return nil, fmt.Errorf("unexpected signature length, got %v bytes, want %v", len(sigBytes), len(sigComp))
+		return nil, fmt.Errorf(
+			"unexpected signature length, got %v bytes, want %v",
+			len(sigBytes), len(sigComp))
 	}
 	copy(sigComp[:], sigBytes)
 	sig, err := sigComp.Decompress()

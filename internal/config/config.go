@@ -1,9 +1,14 @@
 package config
 
 import (
+	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -15,12 +20,16 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl          string
-	ServerPort         int
-	Database           Database           `mapstructure:"Database"`
-	KeyStore           KeyStore           `mapstructure:"KeyStore"`
-	Runtime            Runtime            `mapstructure:"Runtime"`
-	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService"`
+	ServerUrl                    string
+	ServerPort                   int
+	NativeProofGenerationEnabled bool
+	Database                     Database           `mapstructure:"Database"`
+	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
+	Runtime                      Runtime            `mapstructure:"Runtime"`
+	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
+	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
+	Prover                       Prover             `mapstructure:"Prover"`
+	Circuit                      Circuit            `mapstructure:"Circuit"`
 }
 
 // Database has the database configuration
@@ -33,6 +42,31 @@ type Database struct {
 type ReverseHashService struct {
 	URL     string
 	Enabled bool
+}
+
+// Ethereum struct
+type Ethereum struct {
+	URL                    string
+	ContractAddress        string
+	DefaultGasLimit        int
+	ConfirmationTimeout    time.Duration
+	ConfirmationBlockCount int64
+	ReceiptTimeout         time.Duration
+	MinGasPrice            *big.Int
+	MaxGasPrice            *big.Int
+	RPCResponseTimeout     time.Duration
+	WaitReceiptCycleTime   time.Duration
+	WaitBlockCycleTime     time.Duration
+}
+
+type Prover struct {
+	ServerURL       string
+	ResponseTimeout time.Duration
+}
+
+// Circuit struct
+type Circuit struct {
+	Path string
 }
 
 // KeyStore defines the keystore
@@ -109,6 +143,52 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
+// VaultTest returns the vault configuration to be used in tests.
+// The vault token is obtained from environment vars.
+// If there is not env var, it will try to parse the init.out file
+// created by local docker image provided for TESTING purposes.
+func VaultTest() KeyStore {
+	return KeyStore{
+		Address:              "http://localhost:8200",
+		Token:                lookupVaultToken(),
+		PluginIden3MountPath: "iden3",
+	}
+}
+
+func lookupVaultToken() string {
+	var err error
+	token, ok := os.LookupEnv("VAULT_TEST_TOKEN")
+	if !ok {
+		token, err = lookupVaultTokenFromFile("infrastructure/local/.vault/data/init.out")
+		if err != nil {
+			return ""
+		}
+	}
+	return token
+}
+
+// lookupVaultTokenFromFile parses the vault config file looking for the hvs token and returns it
+// pathVaultConfig MUST be a relative path starting from the root project folder
+// like "infrastructure/local/.vault/data/init.out"
+// This function MUST BE only used in tests.
+// NEVER share the hvs token in production mode.
+func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
+	r, err := regexp.Compile("hvs.[a-zA-Z0-9]{24}")
+	if err != nil {
+		return "", fmt.Errorf("wrong regexp: %w", err)
+	}
+	configFile := getWorkingDirectory() + pathVaultConfig
+	content, err := os.ReadFile(configFile)
+	if err != nil {
+		return "", err
+	}
+	matches := r.FindStringSubmatch(string(content))
+	if len(matches) != 1 {
+		return "", fmt.Errorf("expecting only one match parsing vault config. found %d", len(matches))
+	}
+	return matches[0], nil
+}
+
 //func getFlags() error {
 //	pflag.StringP("config", "c", "", "Specify the configuration file location.")
 //	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
@@ -130,7 +210,6 @@ func bindEnv() {
 }
 
 func getWorkingDirectory() string {
-	dir, _ := os.Getwd()
-	path := strings.Split(dir, "sh-id-platform")
-	return path[0] + "sh-id-platform/"
+	_, b, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(b), "../..") + "/"
 }

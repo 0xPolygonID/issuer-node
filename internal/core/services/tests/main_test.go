@@ -33,21 +33,11 @@ func TestMain(m *testing.M) {
 		conn = "postgres://postgres:postgres@localhost:5435"
 	}
 
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		panic(err)
-	}
-
 	cfgForTesting := config.Configuration{
 		Database: config.Database{
 			URL: conn,
 		},
-		KeyStore: config.KeyStore{
-			Address:              cfg.KeyStore.Address,
-			Token:                cfg.KeyStore.Token,
-			PluginIden3MountPath: cfg.KeyStore.PluginIden3MountPath,
-		},
+		KeyStore: config.VaultTest(),
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()

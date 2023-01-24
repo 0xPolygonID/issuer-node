@@ -14,6 +14,8 @@ tags:
     description: Collection of endpoints related to Identity
   - name: Claim
     description: Collection of endpoints related to Claims
+  - name: Agent
+    description: Collection of endpoints related to Mobile
 
 paths:
   /:
@@ -232,7 +234,31 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
-
+#agent
+  /v1/agent:
+    post:
+      summary: Agent
+      operationId: Agent
+      description: Mobile agent endpoint
+      tags:
+        - Agent
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: TBD
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
 components:
   schemas:
@@ -425,7 +451,6 @@ components:
           type: string
           x-omitempty: false
 
-
     RevokeClaimResponse:
       type: object
       required:
@@ -481,6 +506,11 @@ components:
 #                  x-go-type-import:
 #                    name: Hash
 #                    path: github.com/iden3/go-merkletree-sql/v2
+
+    #Agent
+    AgentResponse:
+      type: string
+      format: byte
 
   parameters:
     pathIdentifier:
