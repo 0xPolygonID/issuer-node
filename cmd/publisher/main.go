@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -42,7 +41,8 @@ func main() {
 	}
 
 	// Context with log
-	ctx := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
+	ctx1 := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
+	ctx, cancel := context.WithCancel(ctx1)
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -136,42 +136,33 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	wg := sync.WaitGroup{}
-	type T = struct{}
-	done := make(chan T)
-	wg.Add(2)
-	ok := true
-
-	go func() {
-		for ok {
-			publisher.PublishState()
-			time.Sleep(onchainfrecuency)
+	go func(ctx context.Context) {
+		ticker := time.NewTicker(onchainfrecuency)
+		for {
+			select {
+			case <-ticker.C:
+				publisher.PublishState()
+			case <-ctx.Done():
+				log.Info(ctx, "finishing publish state job..")
+			}
 		}
-		log.Info(ctx, "finishing publish state job..")
-		wg.Done()
-	}()
+	}(ctx)
 
-	go func() {
-		for ok {
-			publisher.CheckTransactionStatus()
-			time.Sleep(onchainfrecuency)
+	go func(ctx context.Context) {
+		ticker := time.NewTicker(onchainfrecuency)
+		for {
+			select {
+			case <-ticker.C:
+				publisher.CheckTransactionStatus()
+			case <-ctx.Done():
+				log.Info(ctx, "finishing check transaction status job..")
+			}
 		}
-		log.Info(ctx, "finishing check transaction status job..")
-		wg.Done()
-	}()
+	}(ctx)
 
-	go func() {
-		<-quit
-		fmt.Println("finishing app")
-		ok = false
-	}()
-
-	go func(wg *sync.WaitGroup) {
-		wg.Wait()
-		done <- struct{}{}
-	}(&wg)
-
-	<-done
+	<-quit
+	fmt.Println("finishing app")
+	cancel()
 	log.Info(ctx, "Finshed")
 }
 
