@@ -1,6 +1,8 @@
 ServerPort = "3001"
 ServerUrl = "http://localhost"
-NativeProofGenerationEnabled = true
+NativeProofGenerationEnabled = false
+PublishingKeyPath = "pbkey"
+OnChainFrecuency = "8s"
 
 [Database]
 Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
@@ -10,7 +12,7 @@ LogLevel = -4
 LogMode = 2
 
 [KeyStore]
-Address="http://localhost:8200"
+Address="http://localhost:8200/"
 Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
 PluginIden3MountPath="iden3"
 
@@ -20,7 +22,7 @@ Enabled= false
 
 [Ethereum]
 URL="https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89"
-ContractAddress="0xf6781AD281d9892Df285cf86dF4F6eBec2042d71"
+ContractAddress="<contract_address>"
 DefaultGasLimit=600000
 ConfirmationTimeout="600s"
 ConfirmationBlockCount=5
@@ -32,7 +34,7 @@ WaitReceiptCycleTime="30s"
 WaitBlockCycleTime="30s"
 
 [Prover]
-ServerURL=""
+ServerURL="http://localhost:8002"
 ResponseTimeout="600s"
 
 [Circuit]

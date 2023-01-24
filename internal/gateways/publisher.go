@@ -37,7 +37,7 @@ type publisher struct {
 }
 
 // NewPublisher - Constructor
-func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, confirmationTimeout time.Duration) *publisher {
+func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration) *publisher {
 	return &publisher{
 		identityService:     identityService,
 		claimService:        claimService,
@@ -46,6 +46,7 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 		kms:                 kms,
 		transactionService:  transactionService,
 		zkService:           zkService,
+		publisherGateway:    publisherGateway,
 		confirmationTimeout: confirmationTimeout,
 	}
 }
@@ -71,6 +72,7 @@ func (p *publisher) PublishState() {
 	}
 
 	// 3. Publish non -transacted states
+	log.Info(ctx, "Non transacted states", "states len", len(states))
 	for i := range states {
 		err = p.publishProof(ctx, states[i])
 		if err != nil {
@@ -138,6 +140,11 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 		return err
 	}
 
+	newTreeState, err := newState.ToTreeState()
+	if err != nil {
+		return err
+	}
+
 	authClaim, err := p.claimService.GetAuthClaimForPublishing(ctx, did, *newState.State)
 	if err != nil {
 		return err
@@ -148,17 +155,17 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 		return err
 	}
 
-	oldStateTree, err := latestState.ToTreeState()
+	oldTreeState, err := latestState.ToTreeState()
 	if err != nil {
 		return err
 	}
 
-	circuitAuthClaim, err := p.fillAuthClaimData(ctx, did, authClaim)
+	circuitAuthClaim, circuitAuthClaimNewStateIncProof, err := p.fillAuthClaimData(ctx, did, authClaim, newState)
 	if err != nil {
 		return err
 	}
 
-	hashOldAndNewStates, err := poseidon.Hash([]*big.Int{oldStateTree.State.BigInt(), newStateHash.BigInt()})
+	hashOldAndNewStates, err := poseidon.Hash([]*big.Int{oldTreeState.State.BigInt(), newStateHash.BigInt()})
 	if err != nil {
 		return err
 	}
@@ -177,15 +184,16 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 	isLatestStateGenesis := latestState.PreviousState == nil
 	stateTransitionInputs := circuits.StateTransitionInputs{
 		ID:                &did.ID,
-		NewState:          newStateHash,
-		OldTreeState:      oldStateTree,
+		NewTreeState:      newTreeState,
+		OldTreeState:      oldTreeState,
 		IsOldStateGenesis: isLatestStateGenesis,
 
 		AuthClaim:          circuitAuthClaim.Claim,
 		AuthClaimIncMtp:    circuitAuthClaim.IncProof.Proof,
 		AuthClaimNonRevMtp: circuitAuthClaim.NonRevProof.Proof,
 
-		Signature: signature,
+		AuthClaimNewStateIncMtp: circuitAuthClaimNewStateIncProof,
+		Signature:               signature,
 	}
 
 	jsonInputs, err := stateTransitionInputs.InputsMarshal()
@@ -230,10 +238,10 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 	return nil
 }
 
-func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID, authClaim *domain.Claim) (circuits.ClaimWithMTPProof, error) {
-	var authClaimData circuits.ClaimWithMTPProof
-
-	err := p.storage.Pgx.BeginFunc(
+func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID, authClaim *domain.Claim, newState domain.IdentityState) (
+	authClaimData *circuits.ClaimWithMTPProof, authClaimNewStateIncProof *merkletree.Proof, err error,
+) {
+	err = p.storage.Pgx.BeginFunc(
 		ctx, func(tx pgx.Tx) error {
 			var errIn error
 
@@ -264,7 +272,7 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID,
 				return errIn
 			}
 
-			authClaimData = circuits.ClaimWithMTPProof{
+			authClaimData = &circuits.ClaimWithMTPProof{
 				Claim: coreClaim,
 			}
 
@@ -276,18 +284,28 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID,
 			// revocation / non revocation MTP for the latest identity state
 			nonRevocationProof, errIn := identityTrees.
 				GenerateRevocationProof(ctx, new(big.Int).SetUint64(uint64(authClaim.RevNonce)), idState.TreeState().RevocationRoot)
+			if errIn != nil {
+				return errIn
+			}
 
 			authClaimData.NonRevProof = circuits.MTProof{
 				TreeState: idState.TreeState(),
 				Proof:     nonRevocationProof,
 			}
 
+			// proof that auth key is included in new state claims tree
+			authClaimNewStateIncProof, _, errIn = claimsTree.GenerateProof(ctx, hIndex, newState.TreeState().ClaimsRoot)
+			if errIn != nil {
+				return errIn
+			}
+
 			return errIn
 		})
+
 	if err != nil {
-		return authClaimData, err
+		return nil, nil, err
 	}
-	return authClaimData, nil
+	return authClaimData, authClaimNewStateIncProof, nil
 }
 
 // updateTransactionStatus update identity state with transaction status
@@ -375,7 +393,7 @@ func (p *publisher) CheckTransactionStatus() {
 	for i := range toCheck {
 		err := p.checkStatus(ctx, &toCheck[i])
 		if err != nil {
-			log.Error(ctx, "Error during transaction check status", err, *states[i].State)
+			log.Error(ctx, "Error during transaction check status", err, "state id", *states[i].State)
 			continue
 		}
 	}
@@ -387,7 +405,7 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 	// Get receipt and check status
 	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, *state.TxID)
 	if err != nil {
-		log.Error(ctx, "error during receipt receiving:", err, *state.TxID)
+		log.Error(ctx, "error during receipt receiving:", err, "state id", *state.TxID)
 		return fmt.Errorf("error during receipt receiving::%s - %w", *state.TxID, err)
 	}
 

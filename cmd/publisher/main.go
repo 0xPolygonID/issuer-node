@@ -4,6 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 
@@ -28,6 +34,11 @@ func main() {
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", err)
 		panic(err)
+	}
+
+	onchainfrecuency, err := time.ParseDuration(cfg.OnChainFrecuency)
+	if err != nil {
+		panic("error converting on chain frecuency param")
 	}
 
 	// Context with log
@@ -116,8 +127,52 @@ func main() {
 
 	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
 
-	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, cfg.Ethereum.ConfirmationTimeout)
-	publisher.PublishState()
+	publisherGateway, err := gateways.NewPublisherEthGateway(cl, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
+	if err != nil {
+		panic("error creating publish gateway")
+	}
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	wg := sync.WaitGroup{}
+	type T = struct{}
+	done := make(chan T)
+	wg.Add(2)
+	ok := true
+
+	go func() {
+		for ok {
+			publisher.PublishState()
+			time.Sleep(onchainfrecuency)
+		}
+		log.Info(ctx, "finishing publish state job..")
+		wg.Done()
+	}()
+
+	go func() {
+		for ok {
+			publisher.CheckTransactionStatus()
+			time.Sleep(onchainfrecuency)
+		}
+		log.Info(ctx, "finishing check transaction status job..")
+		wg.Done()
+	}()
+
+	go func() {
+		<-quit
+		fmt.Println("finishing app")
+		ok = false
+	}()
+
+	go func(wg *sync.WaitGroup) {
+		wg.Wait()
+		done <- struct{}{}
+	}(&wg)
+
+	<-done
+	log.Info(ctx, "Finshed")
 }
 
 func initProofService(config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {

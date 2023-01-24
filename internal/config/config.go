@@ -30,6 +30,8 @@ type Configuration struct {
 	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
 	Prover                       Prover             `mapstructure:"Prover"`
 	Circuit                      Circuit            `mapstructure:"Circuit"`
+	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
+	OnChainFrecuency             string             `mapstructure:"OnChainFrecuency"`
 }
 
 // Database has the database configuration
