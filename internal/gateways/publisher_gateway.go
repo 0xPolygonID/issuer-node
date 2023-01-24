@@ -106,7 +106,7 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *cor
 		maxGasPricePerFee = signedTx.GasFeeCap()
 		baseFee           = big.NewInt(0).Sub(maxGasPricePerFee, gasTip)
 	)
-	log.Debug(ctx, "Prices for tx '%s' Basefee: %s; Tip: %s; MaxPrice: %s", txID, baseFee, gasTip, maxGasPricePerFee)
+	log.Debug(ctx, "Prices for tx", "txID", txID, "Basefee", baseFee, "Tip", gasTip, "MaxPrice", maxGasPricePerFee)
 	return &txID, nil
 }
 

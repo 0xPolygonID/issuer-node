@@ -60,7 +60,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 	// 1. Get all issuers that have claims not included in any state
 	issuers, err := p.identityService.GetUnprocessedIssuersIDs(ctx)
 	if err != nil {
-		log.Error(ctx, "error fetching unprocessed issuers ids", err)
+		log.Error(ctx, "error fetching unprocessed issuers dids", err)
 		return
 	}
 
@@ -94,13 +94,13 @@ func (p *publisher) PublishState(ctx context.Context) {
 	for _, id := range toCalculateAndPublish {
 		state, err := p.identityService.UpdateState(ctx, id)
 		if err != nil {
-			log.Error(ctx, "Error during processing claims", err, id.String())
+			log.Error(ctx, "Error during processing claims", err, "did", id.String())
 			continue
 		}
 
 		err = p.publishProof(ctx, *state)
 		if err != nil {
-			log.Error(ctx, "Error during publishing proof:", err, "id", id.String())
+			log.Error(ctx, "Error during publishing proof:", err, "did", id.String())
 			continue
 		}
 	}

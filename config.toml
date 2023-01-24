@@ -2,7 +2,7 @@ ServerPort = "3001"
 ServerUrl = "http://localhost"
 NativeProofGenerationEnabled = false
 PublishingKeyPath = "pbkey"
-OnChainPublishStateFrecuency = "2m"
+OnChainPublishStateFrecuency = "1m"
 OnChainCheckStatusFrecuency = "10m"
 
 [Database]
