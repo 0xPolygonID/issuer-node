@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
@@ -53,7 +55,13 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 }
 
 func (p *publisher) PublishState(ctx context.Context) {
-	log.Info(ctx, "publish state job started")
+	jobID, err := uuid.NewUUID()
+	if err != nil {
+		log.Error(ctx, "error", err)
+		return
+	}
+	ctx = context.WithValue(ctx, "job-id", jobID.String())
+	log.Info(ctx, "publish state job started", "job-id", jobID)
 	// TODO: make snapshot
 	// make snapshot if rds was init
 
@@ -63,6 +71,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 		log.Error(ctx, "error fetching unprocessed issuers dids", err)
 		return
 	}
+	log.Info(ctx, "GetUnprocessedIssuersIDs", "GetUnprocessedIssuersIDs-len", len(issuers))
 
 	// 2. Get all states that were not transacted by some reason
 	states, err := p.identityService.GetNonTransactedStates(ctx)
@@ -91,6 +100,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 	}
 
 	// 4. Calculate new states and publish them synchronously
+	log.Info(ctx, "toCalculateAndPublish", "toCalculateAndPublish-len", len(toCalculateAndPublish))
 	for _, id := range toCalculateAndPublish {
 		state, err := p.identityService.UpdateState(ctx, id)
 		if err != nil {
@@ -105,7 +115,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 		}
 	}
 
-	log.Info(ctx, "publish state job finished")
+	log.Info(ctx, "publish state job finished", "job-id", jobID)
 }
 
 // PublishProof publishes new proof using the latest state
@@ -365,7 +375,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	}
 
 	if err != nil {
-		log.Error(ctx, "state is not updated: ", err)
+		log.Error(ctx, "state is not updated", err)
 		return err
 	}
 
@@ -374,6 +384,13 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 
 // CheckTransactionStatus - checks transaction status
 func (p *publisher) CheckTransactionStatus(ctx context.Context) {
+	jobID, err := uuid.NewUUID()
+	if err != nil {
+		log.Error(ctx, "error", err)
+		return
+	}
+	ctx = context.WithValue(ctx, "job-id", jobID.String())
+	log.Info(ctx, "checker status job started", "job-id", jobID)
 	// Get all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
@@ -399,7 +416,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 		}
 	}
 
-	log.Info(ctx, "checker status job finished")
+	log.Info(ctx, "checker status job finished", "job-id", jobID)
 }
 
 func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {

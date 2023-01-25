@@ -14,7 +14,7 @@ LogMode = 2
 
 [KeyStore]
 Address="http://localhost:8200/"
-Token="hvs.YxU2dLZljGpqLyPYu6VeYJde"
+Token="hvs.Z6GaiziJW536COQZSquISbTT"
 PluginIden3MountPath="iden3"
 
 [ReverseHashService]
@@ -28,8 +28,8 @@ DefaultGasLimit=600000
 ConfirmationTimeout="600s"
 ConfirmationBlockCount=5
 ReceiptTimeout="600s"
-#MinGasPrice=0
-#MaxGasPrice=0
+MinGasPrice=0
+MaxGasPrice=1000000
 RPCResponseTimeout="5s"
 WaitReceiptCycleTime="30s"
 WaitBlockCycleTime="30s"

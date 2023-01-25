@@ -229,7 +229,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 	return claim, nil
 }
 
-func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (interface{}, error) {
+func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
 	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
 	if err != nil {
 		return nil, err
@@ -253,7 +253,27 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
-func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*protocol.RevocationStatusResponseMessage, error) {
+func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter) ([]*verifiable.W3CCredential, error) {
+	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	w3Credentials := make([]*verifiable.W3CCredential, 0)
+	for _, cred := range claims {
+		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
+		if err != nil {
+			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
+			continue
+		}
+
+		w3Credentials = append(w3Credentials, w3Cred)
+	}
+
+	return w3Credentials, nil
+}
+
+func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
 	revData := &protocol.RevocationStatusRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, revData)
 	if err != nil {
@@ -265,7 +285,7 @@ func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *port
 		return nil, fmt.Errorf("failed get revocation nonce: %w", err)
 	}
 
-	return &protocol.RevocationStatusResponseMessage{
+	return &domain.Agent{
 		ID:       uuid.NewString(),
 		Type:     protocol.RevocationStatusResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
@@ -275,7 +295,7 @@ func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *port
 	}, nil
 }
 
-func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*protocol.CredentialIssuanceMessage, error) {
+func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
@@ -296,7 +316,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 
-	return &protocol.CredentialIssuanceMessage{
+	return &domain.Agent{
 		ID:       uuid.NewString(),
 		Type:     protocol.CredentialIssuanceResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
@@ -351,26 +371,6 @@ func (c *claim) getRevocationNonceMTP(ctx context.Context, did *core.DID, nonce 
 	revocationStatus.MTP = *proof
 
 	return revocationStatus, nil
-}
-
-func (c *claim) GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error) {
-	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return nil, err
-	}
-
-	w3Credentials := make([]*verifiable.W3CCredential, 0)
-	for _, cred := range claims {
-		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
-		if err != nil {
-			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
-			continue
-		}
-
-		w3Credentials = append(w3Credentials, w3Cred)
-	}
-
-	return w3Credentials, nil
 }
 
 func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {

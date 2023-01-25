@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
@@ -124,8 +125,8 @@ func main() {
 		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
 		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
 		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
-		MinGasPrice:            cfg.Ethereum.MinGasPrice,
-		MaxGasPrice:            cfg.Ethereum.MaxGasPrice,
+		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,

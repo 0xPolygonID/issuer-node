@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,8 +54,8 @@ type Ethereum struct {
 	ConfirmationTimeout    time.Duration
 	ConfirmationBlockCount int64
 	ReceiptTimeout         time.Duration
-	MinGasPrice            *big.Int
-	MaxGasPrice            *big.Int
+	MinGasPrice            int
+	MaxGasPrice            int
 	RPCResponseTimeout     time.Duration
 	WaitReceiptCycleTime   time.Duration
 	WaitBlockCycleTime     time.Duration
