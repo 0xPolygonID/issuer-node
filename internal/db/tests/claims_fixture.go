@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func (f *Fixture) GetDefaultAuthClaimOfIssuer(t *testing.T, issuerID string) *do
 	ctx := context.Background()
 	did, err := core.ParseDID(issuerID)
 	assert.NoError(t, err)
-	claims, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, did)
+	claims, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, did, &ports.Filter{})
 	assert.NoError(t, err)
 	require.Equal(t, len(claims), defualtAuthClaims)
 
@@ -59,7 +60,7 @@ func (f *Fixture) NewClaim(t *testing.T, identity string) *domain.Claim {
 		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
 		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
 		SchemaType:      "AuthBJJCredential",
-		OtherIdentifier: "",
+		OtherIdentifier: "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 		Expiration:      0,
 		Version:         0,
 		RevNonce:        revNonce,
