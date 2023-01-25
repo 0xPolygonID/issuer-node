@@ -372,7 +372,6 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifi
 	filters := buildGetAllQueryAndFilters(identifier, filter, &query)
 
 	rows, err := conn.Query(ctx, query, filters...)
-
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, ErrClaimDoesNotExist

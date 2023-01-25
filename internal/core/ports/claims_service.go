@@ -38,6 +38,7 @@ type AgentRequest struct {
 	Type      comm.ProtocolMessage
 }
 
+// Filter struct
 type Filter struct {
 	Self       *bool
 	Revoked    *bool
@@ -47,9 +48,7 @@ type Filter struct {
 	QueryField string
 }
 
-type GetClaimsRequest struct {
-}
-
+// NewClaimsFilter returns a valid claims filter
 func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, revoked *bool) (*Filter, error) {
 	var filter Filter
 
