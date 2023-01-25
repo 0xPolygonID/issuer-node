@@ -99,7 +99,6 @@ paths:
                 $ref: '#/components/schemas/PublishStateResponse'
         '500':
           $ref: '#/components/responses/500'
-
   /v1/{identifier}/state/update:
     get:
       summary: Update Identity State
@@ -157,6 +156,36 @@ paths:
         - Claim
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: schemaType
+          schema:
+            type: string
+          description: Provide a filter per schemaType.
+        - in: query
+          name: schemaHash
+          schema:
+            type: string
+          description: Provide a filter per schemaHash.
+        - in: query
+          name: subject
+          schema:
+            type: string
+          description: Provide a filter per subject.
+        - in: query
+          name: revoked
+          schema:
+            type: boolean
+          description: Provide a filter per revoked.
+        - in: query
+          name: self
+          schema:
+            type: boolean
+          description: Provide a filter per self.
+        - in: query
+          name: query_field
+          schema:
+            type: string
+          description: Provide a filter per self.
       responses:
         '200':
           description: Claims found
@@ -168,7 +197,6 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
-
   /v1/{identifier}/claims/{id}:
     get:
       summary: Get Claim

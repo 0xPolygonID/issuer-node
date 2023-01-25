@@ -346,42 +346,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID) ([]*domain.Claim, error) {
-	query := `SELECT claims.id,
-				   issuer,
-				   schema_hash,
-				   schema_url,
-				   schema_type,
-				   other_identifier,
-				   expiration,
-				   updatable,
-				   claims.version,
-				   rev_nonce,
-				   signature_proof,
-				   mtp_proof,
-				   data,
-				   claims.identifier,
-				   identity_state,
-				   identity_states.status,
-				   credential_status,
-				   core_claim
-			FROM claims
-			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
-			WHERE claims.identifier = $1`
-
-	rows, err := conn.Query(ctx, query, identifier.String())
-	if err != nil {
-		return nil, err
-	}
-
-	return processClaims(rows)
-}
-
-// GetAllByIssuerIDWithFilters of all claims for identity
-func (c *claims) GetAllByIssuerIDWithFilters(ctx context.Context, conn db.Querier, identifier *core.DID, filterArg map[string]string) ([]*domain.Claim, error) {
-	var filter []interface{}
-
-	// language=PostgreSQL
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID, filter *ports.Filter) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
@@ -403,91 +368,19 @@ func (c *claims) GetAllByIssuerIDWithFilters(ctx context.Context, conn db.Querie
 			FROM claims
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 			`
-	// add where part.
-	// default filter.
-	filter = append(filter, identifier.String())
-	query = fmt.Sprintf("%s WHERE claims.identifier = $%d", query, len(filter))
 
-	if filterArg["schemaHash"] != "" {
-		filter = append(filter, fmt.Sprintf("%s%%", filterArg["schemaHash"]))
-		query = fmt.Sprintf("%s and schema_hash like $%d", query, len(filter))
-	}
-	if filterArg["schemaType"] != "" {
-		filter = append(filter, fmt.Sprintf("%%%s%%", filterArg["schemaType"]))
-		query = fmt.Sprintf("%s and schema_type like $%d", query, len(filter))
-	}
+	filters := buildGetAllQueryAndFilters(identifier, filter, &query)
 
-	// we can't use both these filters.
-	if filterArg["subject"] != "" && filterArg["self"] != "" {
-		return nil, errors.New("we can't used both filters 'subject' and 'self'")
-	}
-
-	if filterArg["subject"] != "" {
-		filter = append(filter, filterArg["subject"])
-		query = fmt.Sprintf("%s and other_identifier = $%d", query, len(filter))
-	}
-	if filterArg["self"] != "" {
-		query = fmt.Sprintf("%s and other_identifier = ''", query)
-	}
-
-	if filterArg["revoked"] != "" {
-		filter = append(filter, filterArg["revoked"])
-		query = fmt.Sprintf("%s and claims.revoked = $%d", query, len(filter))
-	}
-
-	if filterArg["query_field"] != "" {
-		// TODO: fix !!!!!
-		// "query_field":     field ,
-		//	"query_value":     reqQuery.Values[0].String(),
-		//	"query_operator": operator,
-		// filter = append(filter, filterArg["revoked"])
-		query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s'", query, filterArg["query_field"],
-			filterArg["query_value"])
-	}
-
-	// if revoked doesn't set - return both revoked and not revoked.
-	rows, err := conn.Query(ctx, query, filter...)
+	rows, err := conn.Query(ctx, query, filters...)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrClaimDoesNotExist
+		}
+
 		return nil, err
 	}
 
-	claims, err := processClaims(rows)
-
-	return claims, err
-}
-
-func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
-	defer rows.Close()
-
-	claims := make([]*domain.Claim, 0)
-
-	for rows.Next() {
-		var claim domain.Claim
-		err := rows.Scan(&claim.ID,
-			&claim.Issuer,
-			&claim.SchemaHash,
-			&claim.SchemaURL,
-			&claim.SchemaType,
-			&claim.OtherIdentifier,
-			&claim.Expiration,
-			&claim.Updatable,
-			&claim.Version,
-			&claim.RevNonce,
-			&claim.SignatureProof,
-			&claim.MTPProof,
-			&claim.Data,
-			&claim.Identifier,
-			&claim.IdentityState,
-			&claim.Status,
-			&claim.CredentialStatus,
-			&claim.CoreClaim)
-		if err != nil {
-			return nil, err
-		}
-		claims = append(claims, &claim)
-	}
-
-	return claims, rows.Err()
+	return processClaims(rows)
 }
 
 func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
@@ -586,4 +479,74 @@ func (c *claims) UpdateState(ctx context.Context, conn db.Querier, claim *domain
 		return 0, err
 	}
 	return res.RowsAffected(), nil
+}
+
+func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
+	defer rows.Close()
+
+	claims := make([]*domain.Claim, 0)
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaURL,
+			&claim.SchemaType,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.SignatureProof,
+			&claim.MTPProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.Status,
+			&claim.CredentialStatus,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, &claim)
+	}
+
+	return claims, rows.Err()
+}
+
+func buildGetAllQueryAndFilters(identifier *core.DID, filter *ports.Filter, query *string) []interface{} {
+	filters := []interface{}{identifier.String()}
+	*query = fmt.Sprintf("%s WHERE claims.identifier = $%d", *query, len(filters))
+
+	if filter.Self != nil && *filter.Self {
+		*query = fmt.Sprintf("%s and other_identifier = ''", *query)
+	}
+
+	if filter.Subject != "" {
+		filters = append(filters, filter.Subject)
+		*query = fmt.Sprintf("%s and other_identifier = $%d", *query, len(filters))
+	}
+
+	if filter.SchemaHash != "" {
+		filters = append(filters, fmt.Sprintf("%s%%", filter.SchemaHash))
+		*query = fmt.Sprintf("%s and schema_hash like $%d", *query, len(filters))
+	}
+
+	if filter.SchemaType != "" {
+		filters = append(filters, fmt.Sprintf("%%%s%%", filter.SchemaType))
+		*query = fmt.Sprintf("%s and schema_type like $%d", *query, len(filters))
+	}
+
+	if filter.Revoked != nil {
+		filters = append(filters, *filter.Revoked)
+		*query = fmt.Sprintf("%s and claims.revoked = $%d", *query, len(filters))
+
+	}
+
+	if filter.QueryField != "" {
+		*query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s'", *query, filter.QueryField, filter.QueryField)
+	}
+
+	return filters
 }

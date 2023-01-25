@@ -215,7 +215,12 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
-	claims, err := s.claimService.GetAll(ctx, did)
+	filter, err := ports.NewClaimsFilter(request.Params.SchemaHash, request.Params.SchemaType, request.Params.Subject, request.Params.QueryField, request.Params.Self, request.Params.Revoked)
+	if err != nil {
+		return GetClaims400JSONResponse{N400JSONResponse{err.Error()}}, nil
+	}
+
+	claims, err := s.claimService.GetAll(ctx, did, filter)
 	if err != nil {
 		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
 	}
@@ -272,6 +277,16 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	return resp, nil
 }
 
+// UpdateIdentityState - updates the identity state
+func (s *Server) UpdateIdentityState(ctx context.Context, request UpdateIdentityStateRequestObject) (UpdateIdentityStateResponseObject, error) {
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return UpdateIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+	_, err = s.identityService.UpdateState(ctx, did)
+	return nil, err
+}
+
 // RegisterStatic add method to the mux that are not documented in the API.
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)
@@ -322,14 +337,4 @@ func writeFile(path string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
-}
-
-// UpdateIdentityState - updates the identity state
-func (s *Server) UpdateIdentityState(ctx context.Context, request UpdateIdentityStateRequestObject) (UpdateIdentityStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
-	if err != nil {
-		return UpdateIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-	_, err = s.identityService.UpdateState(ctx, did)
-	return nil, err
 }

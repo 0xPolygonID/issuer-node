@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -605,10 +606,20 @@ func TestServer_GetClaims(t *testing.T) {
 		httpCode int
 	}
 
+	type filter struct {
+		schemaHash *string
+		schemaType *string
+		subject    *string
+		revoked    *string
+		self       *string
+		queryField *string
+	}
+
 	type testConfig struct {
 		name     string
 		did      string
 		expected expected
+		filter   filter
 	}
 
 	for _, tc := range []testConfig{
@@ -620,6 +631,18 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
+			},
+		},
+		{
+			name: "should get an error self and subject filter can not be used together",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				self:    common.ToPointer("true"),
+				subject: common.ToPointer("some subject"),
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				response: GetClaims400JSONResponse{N400JSONResponse{"self and subject filter can not be used together"}},
 			},
 		},
 		{
@@ -715,11 +738,218 @@ func TestServer_GetClaims(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "should get 1 credential with the given schemaHash filter",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				schemaHash: common.ToPointer(claim.SchemaHash),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      1,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
+						CredentialSchema: CredentialSchema{
+							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: uint64(claim.RevNonce),
+						},
+						CredentialSubject: map[string]interface{}{
+							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+							"birthday":     float64(19960424),
+							"documentType": float64(2),
+							"type":         "KYCAgeCredential",
+						},
+						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
+					},
+				},
+			},
+		},
+		{
+			name: "should get 1 credential with multiple filters",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				schemaHash: common.ToPointer(claim.SchemaHash),
+				revoked:    common.ToPointer("false"),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      1,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
+						CredentialSchema: CredentialSchema{
+							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: uint64(claim.RevNonce),
+						},
+						CredentialSubject: map[string]interface{}{
+							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+							"birthday":     float64(19960424),
+							"documentType": float64(2),
+							"type":         "KYCAgeCredential",
+						},
+						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
+					},
+				},
+			},
+		},
+		{
+			name: "should get 1 credentials with self filter",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				self: common.ToPointer("true"),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      1,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Id:      defaultClaimMultipleClaimsVC.ID,
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						CredentialSchema: CredentialSchema{
+							"https://schema.iden3.io/core/json/auth.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: 0,
+						},
+						CredentialSubject: map[string]interface{}{
+							"type": "AuthBJJCredential",
+							"x":    defaultClaimMultipleClaimsVC.CredentialSubject["x"],
+							"y":    defaultClaimMultipleClaimsVC.CredentialSubject["y"],
+						},
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "AuthBJJCredential"},
+					},
+				},
+			},
+		},
+		{
+			name: "should get 0 revoked credentials",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				revoked: common.ToPointer("true"),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      0,
+				response: GetClaims200JSONResponse{},
+			},
+		},
+		{
+			name: "should get two non revoked credentials",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				revoked: common.ToPointer("false"),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      2,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Id:      defaultClaimMultipleClaimsVC.ID,
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						CredentialSchema: CredentialSchema{
+							"https://schema.iden3.io/core/json/auth.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: 0,
+						},
+						CredentialSubject: map[string]interface{}{
+							"type": "AuthBJJCredential",
+							"x":    defaultClaimMultipleClaimsVC.CredentialSubject["x"],
+							"y":    defaultClaimMultipleClaimsVC.CredentialSubject["y"],
+						},
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "AuthBJJCredential"},
+					},
+					GetClaimResponse{
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
+						CredentialSchema: CredentialSchema{
+							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: uint64(claim.RevNonce),
+						},
+						CredentialSubject: map[string]interface{}{
+							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+							"birthday":     float64(19960424),
+							"documentType": float64(2),
+							"type":         "KYCAgeCredential",
+						},
+						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
+					},
+				},
+			},
+		},
+		{
+			name: "should get one credential with the given schemaType filter",
+			did:  identityMultipleClaims.Identifier,
+			filter: filter{
+				schemaType: common.ToPointer("https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"),
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				len:      1,
+				response: GetClaims200JSONResponse{
+					GetClaimResponse{
+						Id:      defaultClaimMultipleClaimsVC.ID,
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						CredentialSchema: CredentialSchema{
+							"https://schema.iden3.io/core/json/auth.json",
+							"JsonSchemaValidator2018",
+						},
+						CredentialStatus: verifiable.CredentialStatus{
+							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							Type:            "SparseMerkleTreeProof",
+							RevocationNonce: 0,
+						},
+						CredentialSubject: map[string]interface{}{
+							"type": "AuthBJJCredential",
+							"x":    defaultClaimMultipleClaimsVC.CredentialSubject["x"],
+							"y":    defaultClaimMultipleClaimsVC.CredentialSubject["y"],
+						},
+						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						Issuer:       identityMultipleClaims.Identifier,
+						Type:         []string{"VerifiableCredential", "AuthBJJCredential"},
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/claims", tc.did)
-			req, _ := http.NewRequest("GET", url, nil)
+			tURL := createGetClaimsURL(tc.did, tc.filter.schemaHash, tc.filter.schemaType, tc.filter.subject, tc.filter.revoked, tc.filter.self, tc.filter.queryField)
+			req, _ := http.NewRequest("GET", tURL, nil)
 			handler.ServeHTTP(rr, req)
 			assert.Equal(t, tc.expected.httpCode, rr.Code)
 
@@ -872,4 +1102,36 @@ func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
 	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
 	require.True(t, ok)
 	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
+}
+
+func createGetClaimsURL(did string, schemaHash *string, schemaType *string, subject *string, revoked *string, self *string, queryField *string) string {
+	tURL := &url.URL{Path: fmt.Sprintf("/v1/%s/claims", did)}
+	q := tURL.Query()
+
+	if self != nil {
+		q.Add("self", *self)
+	}
+
+	if schemaHash != nil {
+		q.Add("schemaHash", *schemaHash)
+	}
+
+	if schemaType != nil {
+		q.Add("schemaType", *schemaType)
+	}
+
+	if revoked != nil {
+		q.Add("revoked", *revoked)
+	}
+
+	if subject != nil {
+		q.Add("subject", *subject)
+	}
+
+	if queryField != nil {
+		q.Add("queryField", *queryField)
+	}
+
+	tURL.RawQuery = q.Encode()
+	return tURL.String()
 }
