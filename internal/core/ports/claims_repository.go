@@ -22,4 +22,6 @@ type ClaimsRepository interface {
 	GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID, filter *Filter) ([]*domain.Claim, error)
 	GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error)
 	UpdateState(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error)
+	GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier, identifier *core.DID, publishingState string, schemaHash string) ([]*domain.Claim, error)
+	UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error)
 }

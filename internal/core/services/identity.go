@@ -321,6 +321,22 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 	return newState, err
 }
 
+func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error {
+	// save identity to store
+	err := i.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		affected, err := i.identityStateRepository.UpdateState(ctx, tx, state)
+		if err != nil {
+			return fmt.Errorf("can't save identity state; %w", err)
+		}
+		if affected == 0 {
+			return fmt.Errorf("identity state hasn't been updated")
+		}
+
+		return nil
+	})
+	return err
+}
+
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {
 	claims, err := i.claimsRepository.GetAllByState(ctx, conn, id, nil)
 	if err != nil {
@@ -621,6 +637,21 @@ func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merklet
 	return mtpProof, nil
 }
 
+func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	var states []domain.IdentityState
+	var err error
+	err = i.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		states, err = i.identityStateRepository.GetStatesByStatus(ctx, tx, domain.StatusTransacted)
+
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return states, nil
+}
+
 // newAuthClaim generate BabyJubKeyTypeAuthorizeKSign claimL
 func newAuthClaim(key *babyjub.PublicKey) (*core.Claim, error) {
 	revNonce, err := common.RandInt64()
@@ -639,4 +670,17 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	}
 
 	return kms.DecodeBJJPubKey(keyBytes)
+}
+
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
+}
+
+func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
+	if err != nil {
+		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+	}
+
+	return states, nil
 }

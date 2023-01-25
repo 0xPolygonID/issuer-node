@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,14 +19,19 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl          string
-	ServerPort         int
-	Database           Database           `mapstructure:"Database"`
-	KeyStore           KeyStore           `mapstructure:"KeyStore"`
-	Runtime            Runtime            `mapstructure:"Runtime"`
-	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService"`
-	Ethereum           Ethereum           `mapstructure:"Ethereum"`
-	Circuit            Circuit            `mapstructure:"Circuit"`
+	ServerUrl                    string
+	ServerPort                   int
+	NativeProofGenerationEnabled bool
+	Database                     Database           `mapstructure:"Database"`
+	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
+	Runtime                      Runtime            `mapstructure:"Runtime"`
+	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
+	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
+	Prover                       Prover             `mapstructure:"Prover"`
+	Circuit                      Circuit            `mapstructure:"Circuit"`
+	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
+	OnChainPublishStateFrecuency string             `mapstructure:"OnChainPublishStateFrecuency"`
+	OnChainCheckStatusFrecuency  string             `mapstructure:"OnChainCheckStatusFrecuency"`
 }
 
 // Database has the database configuration
@@ -50,11 +54,17 @@ type Ethereum struct {
 	ConfirmationTimeout    time.Duration
 	ConfirmationBlockCount int64
 	ReceiptTimeout         time.Duration
-	MinGasPrice            *big.Int
-	MaxGasPrice            *big.Int
+	MinGasPrice            int
+	MaxGasPrice            int
 	RPCResponseTimeout     time.Duration
 	WaitReceiptCycleTime   time.Duration
 	WaitBlockCycleTime     time.Duration
+}
+
+// Prover struct
+type Prover struct {
+	ServerURL       string
+	ResponseTimeout time.Duration
 }
 
 // Circuit struct

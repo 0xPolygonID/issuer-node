@@ -88,7 +88,7 @@ func authV2CircuitStateVerification(contract *eth.State, pubsignals []string) er
 		return err
 	}
 
-	globalState := authPubSignals.GlobalRoot.BigInt()
+	globalState := authPubSignals.GISTRoot.BigInt()
 	globalStateInfo, err := contract.GetGISTRootInfo(&bind.CallOpts{}, globalState)
 	if err != nil {
 		return err

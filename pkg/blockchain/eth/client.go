@@ -352,7 +352,7 @@ func (c *Client) CreateRawTx(ctx context.Context, txParams TransactionParams) (*
 		// since hardhad doesn't support 'eth_maxPriorityFeePerGas' rpc call.
 		// we should hardcode 0 as a mainer tips. More information: https://github.com/NomicFoundation/hardhat/issues/1664#issuecomment-1149006010
 		if err != nil && strings.Contains(err.Error(), "eth_maxPriorityFeePerGas not found") {
-			log.Info(ctx, "failed get suggest gas tip: %s. use 0 instead", err)
+			log.Error(ctx, "failed get suggest gas tip: %s. use 0 instead", err)
 			gasTip = big.NewInt(0)
 		} else if err != nil {
 			return nil, fmt.Errorf("failed get suggest gas tip: %v", err)

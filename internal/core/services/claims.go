@@ -513,3 +513,110 @@ func buildRevocationURL(host, issuerDID string, nonce uint64) string {
 	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
 }
+
+func (c *claim) GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error) {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+
+	validAuthClaims, err := c.icRepo.GetAuthClaimsForPublishing(ctx, c.storage.Pgx, did, state, string(authHash))
+	if err != nil {
+		return nil, err
+	}
+	if len(validAuthClaims) == 0 {
+		return nil, errors.New("no auth claims for publishing")
+	}
+
+	return validAuthClaims[0], nil
+}
+
+// UpdateClaimsMTPAndState update identity status and claim MTP
+func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error {
+	did, err := core.ParseDID(currentState.Identifier)
+	if err != nil {
+		return err
+	}
+
+	iTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return err
+	}
+
+	claimsTree, err := iTrees.ClaimsTree()
+	if err != nil {
+		return err
+	}
+
+	currState, err := merkletree.NewHashFromHex(*currentState.State)
+	if err != nil {
+		return err
+	}
+
+	claims, err := c.icRepo.GetAllByState(ctx, c.storage.Pgx, did, currState)
+	if err != nil {
+		return err
+	}
+
+	for i := range claims {
+		var index *big.Int
+		var coreClaimHex string
+		coreClaim := claims[i].CoreClaim.Get()
+		index, err = coreClaim.HIndex()
+		if err != nil {
+			return err
+		}
+		var proof *merkletree.Proof
+		proof, _, err = claimsTree.GenerateProof(ctx, index, claimsTree.Root())
+		if err != nil {
+			return err
+		}
+		coreClaimHex, err = coreClaim.Hex()
+		if err != nil {
+			return err
+		}
+		mtpProof := verifiable.Iden3SparseMerkleProof{
+			Type: verifiable.Iden3SparseMerkleProofType,
+			IssuerData: verifiable.IssuerData{
+				ID: did.String(),
+				State: verifiable.State{
+					RootOfRoots:        currentState.RootOfRoots,
+					ClaimsTreeRoot:     currentState.ClaimsTreeRoot,
+					RevocationTreeRoot: currentState.RevocationTreeRoot,
+					Value:              currentState.State,
+					BlockTimestamp:     currentState.BlockTimestamp,
+					TxID:               currentState.TxID,
+					BlockNumber:        currentState.BlockNumber,
+				},
+			},
+			CoreClaim: coreClaimHex,
+			MTP:       proof,
+		}
+
+		var jsonProof []byte
+		jsonProof, err = json.Marshal(mtpProof)
+		if err != nil {
+			return fmt.Errorf("can't marshal proof: %w", err)
+		}
+
+		var affected int64
+		err = claims[i].MTPProof.Set(jsonProof)
+		if err != nil {
+			return fmt.Errorf("failed set mtp proof: %w", err)
+		}
+		affected, err = c.icRepo.UpdateClaimMTP(ctx, c.storage.Pgx, &claims[i])
+
+		if err != nil {
+			return fmt.Errorf("can't update claim mtp:  %w", err)
+		}
+		if affected == 0 {
+			return fmt.Errorf("claim has not been updated %v", claims[i])
+		}
+	}
+	_, err = c.identityStateRepository.UpdateState(ctx, c.storage.Pgx, currentState)
+	if err != nil {
+		return fmt.Errorf("can't update identity state: %w", err)
+	}
+
+	return nil
+}

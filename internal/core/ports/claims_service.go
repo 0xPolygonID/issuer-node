@@ -163,4 +163,6 @@ type ClaimsService interface {
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
 	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error)
+	GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error)
+	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error
 }

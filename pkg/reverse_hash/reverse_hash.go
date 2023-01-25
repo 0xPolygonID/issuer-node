@@ -48,6 +48,7 @@ func (rhsp *rhsPublisher) PushHashesToRHS(ctx context.Context, newState, prevSta
 	//if i.rhsCli == nil {
 	//	return nil
 	//}
+
 	nb := newNodesBuilder()
 
 	// add revocation nodes
