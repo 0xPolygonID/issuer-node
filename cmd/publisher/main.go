@@ -44,7 +44,7 @@ func main() {
 	}
 
 	// Context with log
-	ctx1 := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
+	ctx1 := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 	ctx, cancel := context.WithCancel(ctx1)
 
 	storage, err := db.NewStorage(cfg.Database.URL)

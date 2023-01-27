@@ -24,7 +24,7 @@ type Configuration struct {
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
-	Runtime                      Runtime            `mapstructure:"Runtime"`
+	Log                          Log                `mapstructure:"Runtime"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
 	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
 	Prover                       Prover             `mapstructure:"Prover"`
@@ -37,7 +37,7 @@ type Configuration struct {
 // Database has the database configuration
 // URL: The database connection string
 type Database struct {
-	URL string `tip:"The Datasource name locator"`
+	URL string `mapstructure:"Url" tip:"The Datasource name locator"`
 }
 
 // ReverseHashService contains the reverse hash service properties

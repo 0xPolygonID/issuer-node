@@ -134,6 +134,10 @@ func askForConfiguration(ctx context.Context, defaults *config.Configuration) er
 			if err := askForSectionConfiguration(&defaults.ReverseHashService); err != nil {
 				return err
 			}
+		case "config.Prover":
+			if err := askForSectionConfiguration(&defaults.Prover); err != nil {
+				return err
+			}
 		default:
 			if err := setBasicType(reflect.ValueOf(defaults).Elem().Field(i), description, fieldName, defaul, field.Type.String()); err != nil {
 				log.Error(ctx, "Unknown section", err, "section", field.Type.String())
@@ -145,7 +149,7 @@ func askForConfiguration(ctx context.Context, defaults *config.Configuration) er
 }
 
 type section interface {
-	config.Database | config.Circuit | config.Log | config.ReverseHashService | config.Ethereum | config.KeyStore
+	config.Database | config.Circuit | config.Log | config.ReverseHashService | config.Ethereum | config.KeyStore | config.Prover
 }
 
 func askForSectionConfiguration[T section](defaults *T) error {
