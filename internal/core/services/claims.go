@@ -97,7 +97,12 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, ErrJSONLdContext
 	}
 
-	vc, err := c.createVC(req, jsonLdContext, nonce)
+	vcID, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	vc, err := c.createVC(req, vcID, jsonLdContext, nonce)
 	if err != nil {
 		log.Error(ctx, "creating verifiable credential", err)
 		return nil, err
@@ -139,6 +144,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 	issuerDIDString := req.DID.String()
 	claim.Identifier = &issuerDIDString
 	claim.Issuer = issuerDIDString
+	claim.ID = vcID
 
 	proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
 
@@ -422,8 +428,8 @@ func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64
 	return revocationStatus, nil
 }
 
-func (c *claim) createVC(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
-	vCredential, err := c.newVerifiableCredential(claimReq, jsonLdContext, nonce) // create vc credential
+func (c *claim) createVC(claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+	vCredential, err := c.newVerifiableCredential(claimReq, vcID, jsonLdContext, nonce) // create vc credential
 	if err != nil {
 		return verifiable.W3CCredential{}, err
 	}
@@ -449,7 +455,7 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 	return nil
 }
 
-func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
 	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, claimReq.Type}
 
@@ -464,11 +470,6 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, json
 	}
 
 	credentialSubject["type"] = claimReq.Type
-
-	vcID, err := uuid.NewUUID()
-	if err != nil {
-		return verifiable.W3CCredential{}, err
-	}
 
 	cs := c.getRevocationSource(claimReq.DID.String(), nonce)
 
