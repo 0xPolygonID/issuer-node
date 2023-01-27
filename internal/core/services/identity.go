@@ -32,6 +32,9 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
+// ErrWrongDIDMetada - represents an error in the identity metadata
+var ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+
 type identity struct {
 	identityRepository      ports.IndentityRepository
 	imtRepository           ports.IdentityMerkleTreeRepository
@@ -62,13 +65,16 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 	}
 }
 
-func (i *identity) Create(ctx context.Context, hostURL string) (*domain.Identity, error) {
+func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, networkID, hostURL string) (*domain.Identity, error) {
 	var identifier *core.DID
 	var err error
 	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
-			identifier, _, err = i.createIdentity(ctx, tx, hostURL)
+			identifier, _, err = i.createIdentity(ctx, tx, DIDMethod, blockchain, networkID, hostURL)
 			if err != nil {
+				if errors.Is(err, ErrWrongDIDMetada) {
+					return err
+				}
 				return fmt.Errorf("can't create identity: %w", err)
 			}
 
@@ -413,7 +419,7 @@ func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTree
 	return nil
 }
 
-func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string) (*core.DID, *big.Int, error) {
+func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod string, blockchain, networkID, hostURL string) (*core.DID, *big.Int, error) {
 	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create identity markle tree: %w", err)
@@ -452,10 +458,11 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
 	}
 
-	// TODO: add config options for Blockchain and network
-	didType, err := core.BuildDIDType(core.DIDMethodPolygonID, core.Polygon, core.Mumbai)
+	// TODO: add config options for blockchain and network
+	// didType, err := core.BuildDIDType(core.DIDMethodPolygonID, core.Polygon, core.Mumbai)
+	didType, err := core.BuildDIDType(core.DIDMethod(DIDMethod), core.Blockchain(blockchain), core.NetworkID(networkID))
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't build didtype: %w", err)
+		return nil, nil, ErrWrongDIDMetada
 	}
 
 	identifier, err := core.IdGenesisFromIdenState(didType, currentState.BigInt())
