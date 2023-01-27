@@ -11,12 +11,14 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/hashicorp/vault/api v1.8.2
-	github.com/iden3/go-circuits v1.0.1-alpha.2.0.20221220201624-2e0df33ff6ab
+	github.com/iden3/go-circuits v1.0.1-alpha.2.0.20230124101518-ed2ae014aa33
 	github.com/iden3/go-iden3-core v0.1.1-0.20221219095955-92aedd7d12fa
 	github.com/iden3/go-iden3-crypto v0.0.13
 	github.com/iden3/go-jwz v0.1.4-0.20221129141428-312a907ea598
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
+	github.com/iden3/go-rapidsnark/prover v0.0.9
+	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2
 	github.com/iden3/go-schema-processor v0.2.1-0.20221202150832-91826307609c
 	github.com/iden3/iden3comm v0.1.3-0.20221202151226-1a99a4af0ccd
 	github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695
@@ -136,10 +138,8 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
-	github.com/iden3/go-rapidsnark/prover v0.0.8-0.20221129112904-b9f8680ca8e2 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
-	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/ipfs/go-cid v0.0.7 // indirect

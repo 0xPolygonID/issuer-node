@@ -38,6 +38,50 @@ type AgentRequest struct {
 	Type      comm.ProtocolMessage
 }
 
+// Filter struct
+type Filter struct {
+	Self       *bool
+	Revoked    *bool
+	SchemaHash string
+	SchemaType string
+	Subject    string
+	QueryField string
+}
+
+// NewClaimsFilter returns a valid claims filter
+func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, revoked *bool) (*Filter, error) {
+	var filter Filter
+
+	if self != nil && *self {
+		if subject != nil && *subject != "" {
+			return nil, fmt.Errorf("self and subject filter can not be used together")
+		}
+		filter.Self = self
+	}
+
+	if schemaHash != nil && *schemaHash != "" {
+		filter.SchemaHash = *schemaHash
+	}
+
+	if schemaType != nil && *schemaType != "" {
+		filter.SchemaType = *schemaType
+	}
+
+	if revoked != nil {
+		filter.Revoked = revoked
+	}
+
+	if subject != nil && *subject != "" {
+		filter.Subject = *subject
+	}
+
+	if queryField != nil && *queryField != "" {
+		filter.QueryField = *queryField
+	}
+
+	return &filter, nil
+}
+
 // NewCreateClaimRequest returns a new claim object with the given parameters
 func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *CreateClaimRequest {
 	req := &CreateClaimRequest{
@@ -114,9 +158,11 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id string, nonce uint64, description string) error
-	GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error)
+	GetAll(ctx context.Context, did *core.DID, filter *Filter) ([]*verifiable.W3CCredential, error)
 	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
-	Agent(ctx context.Context, req *AgentRequest) (interface{}, error)
+	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error)
+	GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error)
+	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error
 }

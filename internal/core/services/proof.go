@@ -264,46 +264,17 @@ func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifie
 }
 
 func (p *Proof) findClaimForQuery(ctx context.Context, identifier *core.DID, query ports.Query) ([]*domain.Claim, error) {
-	var reqQuery circuits.Query
 	field := ""
 	var err error
-	value := ""
 
-	if query.Req != nil {
-		reqQuery, field, err = parseQueryWithoutSlot(query.Req)
-		if err != nil {
-			return nil, err
-		}
-		value = reqQuery.Values[0].String()
-	}
-
-	var operator string
-	switch reqQuery.Operator {
-	case circuits.NOOP:
-		operator = ""
-	case circuits.EQ:
-		operator = "="
-	case circuits.LT: // TODO: implement
-	case circuits.GT: // TODO: implement
-	case circuits.IN: // TODO: implement
-	case circuits.NIN: // TODO: implement
-	default:
-		operator = ""
-	}
-
-	f := map[string]string{
-		"schemaType":     query.SchemaType(),
-		"subject":        identifier.String(),
-		"query_field":    field,
-		"query_value":    value,
-		"query_operator": operator,
-	}
-
+	// TODO "query_value":    value,
+	// TODO "query_operator": operator,
+	filter := &ports.Filter{QueryField: field, SchemaType: query.SchemaType()}
 	if !query.SkipClaimRevocationCheck {
-		f["revoked"] = "false"
+		filter.Revoked = common.ToPointer(false)
 	}
 
-	claim, err := p.claimsRepository.GetAllByIssuerIDWithFilters(ctx, p.storage.Pgx, identifier, f)
+	claim, err := p.claimsRepository.GetAllByIssuerID(ctx, p.storage.Pgx, identifier, filter)
 	if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 		return nil, fmt.Errorf("claim with credential type %v was not found", query)
 	}

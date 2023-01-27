@@ -49,6 +49,13 @@ up-test:
 $(BIN)/configurator:
 	$(BUILD_CMD) ./cmd/configurator
 
+.PHONY: clean-vault
+clean-vault:
+	rm -R infrastructure/local/.vault/data/init.out
+	rm -R infrastructure/local/.vault/file/core/
+	rm -R infrastructure/local/.vault/file/logical/
+	rm -R infrastructure/local/.vault/file/sys/
+
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
 

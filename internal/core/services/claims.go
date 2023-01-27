@@ -97,7 +97,12 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, ErrJSONLdContext
 	}
 
-	vc, err := c.createVC(req, jsonLdContext, nonce)
+	vcID, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	vc, err := c.createVC(req, vcID, jsonLdContext, nonce)
 	if err != nil {
 		log.Error(ctx, "creating verifiable credential", err)
 		return nil, err
@@ -139,6 +144,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 	issuerDIDString := req.DID.String()
 	claim.Identifier = &issuerDIDString
 	claim.Issuer = issuerDIDString
+	claim.ID = vcID
 
 	proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
 
@@ -229,7 +235,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 	return claim, nil
 }
 
-func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (interface{}, error) {
+func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
 	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
 	if err != nil {
 		return nil, err
@@ -253,7 +259,27 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
-func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*protocol.RevocationStatusResponseMessage, error) {
+func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter) ([]*verifiable.W3CCredential, error) {
+	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	w3Credentials := make([]*verifiable.W3CCredential, 0)
+	for _, cred := range claims {
+		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
+		if err != nil {
+			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
+			continue
+		}
+
+		w3Credentials = append(w3Credentials, w3Cred)
+	}
+
+	return w3Credentials, nil
+}
+
+func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
 	revData := &protocol.RevocationStatusRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, revData)
 	if err != nil {
@@ -265,7 +291,7 @@ func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *port
 		return nil, fmt.Errorf("failed get revocation nonce: %w", err)
 	}
 
-	return &protocol.RevocationStatusResponseMessage{
+	return &domain.Agent{
 		ID:       uuid.NewString(),
 		Type:     protocol.RevocationStatusResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
@@ -275,7 +301,7 @@ func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *port
 	}, nil
 }
 
-func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*protocol.CredentialIssuanceMessage, error) {
+func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
@@ -296,7 +322,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 
-	return &protocol.CredentialIssuanceMessage{
+	return &domain.Agent{
 		ID:       uuid.NewString(),
 		Type:     protocol.CredentialIssuanceResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
@@ -353,26 +379,6 @@ func (c *claim) getRevocationNonceMTP(ctx context.Context, did *core.DID, nonce 
 	return revocationStatus, nil
 }
 
-func (c *claim) GetAll(ctx context.Context, did *core.DID) ([]*verifiable.W3CCredential, error) {
-	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return nil, err
-	}
-
-	w3Credentials := make([]*verifiable.W3CCredential, 0)
-	for _, cred := range claims {
-		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
-		if err != nil {
-			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
-			continue
-		}
-
-		w3Credentials = append(w3Credentials, w3Cred)
-	}
-
-	return w3Credentials, nil
-}
-
 func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
 	did, err := core.ParseDID(id)
 	if err != nil {
@@ -422,8 +428,8 @@ func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64
 	return revocationStatus, nil
 }
 
-func (c *claim) createVC(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
-	vCredential, err := c.newVerifiableCredential(claimReq, jsonLdContext, nonce) // create vc credential
+func (c *claim) createVC(claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+	vCredential, err := c.newVerifiableCredential(claimReq, vcID, jsonLdContext, nonce) // create vc credential
 	if err != nil {
 		return verifiable.W3CCredential{}, err
 	}
@@ -449,7 +455,7 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 	return nil
 }
 
-func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
+func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jsonLdContext string, nonce uint64) (verifiable.W3CCredential, error) {
 	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, claimReq.Type}
 
@@ -464,11 +470,6 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, json
 	}
 
 	credentialSubject["type"] = claimReq.Type
-
-	vcID, err := uuid.NewUUID()
-	if err != nil {
-		return verifiable.W3CCredential{}, err
-	}
 
 	cs := c.getRevocationSource(claimReq.DID.String(), nonce)
 
@@ -512,4 +513,111 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} 
 func buildRevocationURL(host, issuerDID string, nonce uint64) string {
 	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
+}
+
+func (c *claim) GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error) {
+	authHash, err := core.AuthSchemaHash.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+
+	validAuthClaims, err := c.icRepo.GetAuthClaimsForPublishing(ctx, c.storage.Pgx, did, state, string(authHash))
+	if err != nil {
+		return nil, err
+	}
+	if len(validAuthClaims) == 0 {
+		return nil, errors.New("no auth claims for publishing")
+	}
+
+	return validAuthClaims[0], nil
+}
+
+// UpdateClaimsMTPAndState update identity status and claim MTP
+func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error {
+	did, err := core.ParseDID(currentState.Identifier)
+	if err != nil {
+		return err
+	}
+
+	iTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	if err != nil {
+		return err
+	}
+
+	claimsTree, err := iTrees.ClaimsTree()
+	if err != nil {
+		return err
+	}
+
+	currState, err := merkletree.NewHashFromHex(*currentState.State)
+	if err != nil {
+		return err
+	}
+
+	claims, err := c.icRepo.GetAllByState(ctx, c.storage.Pgx, did, currState)
+	if err != nil {
+		return err
+	}
+
+	for i := range claims {
+		var index *big.Int
+		var coreClaimHex string
+		coreClaim := claims[i].CoreClaim.Get()
+		index, err = coreClaim.HIndex()
+		if err != nil {
+			return err
+		}
+		var proof *merkletree.Proof
+		proof, _, err = claimsTree.GenerateProof(ctx, index, claimsTree.Root())
+		if err != nil {
+			return err
+		}
+		coreClaimHex, err = coreClaim.Hex()
+		if err != nil {
+			return err
+		}
+		mtpProof := verifiable.Iden3SparseMerkleProof{
+			Type: verifiable.Iden3SparseMerkleProofType,
+			IssuerData: verifiable.IssuerData{
+				ID: did.String(),
+				State: verifiable.State{
+					RootOfRoots:        currentState.RootOfRoots,
+					ClaimsTreeRoot:     currentState.ClaimsTreeRoot,
+					RevocationTreeRoot: currentState.RevocationTreeRoot,
+					Value:              currentState.State,
+					BlockTimestamp:     currentState.BlockTimestamp,
+					TxID:               currentState.TxID,
+					BlockNumber:        currentState.BlockNumber,
+				},
+			},
+			CoreClaim: coreClaimHex,
+			MTP:       proof,
+		}
+
+		var jsonProof []byte
+		jsonProof, err = json.Marshal(mtpProof)
+		if err != nil {
+			return fmt.Errorf("can't marshal proof: %w", err)
+		}
+
+		var affected int64
+		err = claims[i].MTPProof.Set(jsonProof)
+		if err != nil {
+			return fmt.Errorf("failed set mtp proof: %w", err)
+		}
+		affected, err = c.icRepo.UpdateClaimMTP(ctx, c.storage.Pgx, &claims[i])
+
+		if err != nil {
+			return fmt.Errorf("can't update claim mtp:  %w", err)
+		}
+		if affected == 0 {
+			return fmt.Errorf("claim has not been updated %v", claims[i])
+		}
+	}
+	_, err = c.identityStateRepository.UpdateState(ctx, c.storage.Pgx, currentState)
+	if err != nil {
+		return fmt.Errorf("can't update identity state: %w", err)
+	}
+
+	return nil
 }

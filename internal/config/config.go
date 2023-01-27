@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,14 +19,19 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl          string             `tip:"Server address to listen"`
-	ServerPort         int                `tip:"Server port to listen"`
-	Database           Database           `mapstructure:"Database" tip:"Database Configuration"`
-	KeyStore           KeyStore           `mapstructure:"KeyStore" tip:"Key Store configuration"`
-	Log                Log                `mapstructure:"Log" tip:"Log configuration"`
-	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService" tip:"Reverse hash service configuration"`
-	Ethereum           Ethereum           `mapstructure:"Ethereum" tip:"Ethereum network configuration"`
-	Circuit            Circuit            `mapstructure:"Circuit" tip:"Circuits configuration"`
+	ServerUrl                    string
+	ServerPort                   int
+	NativeProofGenerationEnabled bool
+	Database                     Database           `mapstructure:"Database"`
+	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
+	Runtime                      Runtime            `mapstructure:"Runtime"`
+	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
+	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
+	Prover                       Prover             `mapstructure:"Prover"`
+	Circuit                      Circuit            `mapstructure:"Circuit"`
+	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
+	OnChainPublishStateFrecuency string             `mapstructure:"OnChainPublishStateFrecuency"`
+	OnChainCheckStatusFrecuency  string             `mapstructure:"OnChainCheckStatusFrecuency"`
 }
 
 // Database has the database configuration
@@ -50,11 +54,17 @@ type Ethereum struct {
 	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
 	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
 	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
-	MinGasPrice            *big.Int      `tip:"Minimum Gas Price"`
-	MaxGasPrice            *big.Int      `tip:"The Datasource name locator"`
+	MinGasPrice            int           `tip:"Minimum Gas Price"`
+	MaxGasPrice            int           `tip:"The Datasource name locator"`
 	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
+}
+
+// Prover struct
+type Prover struct {
+	ServerURL       string
+	ResponseTimeout time.Duration
 }
 
 // Circuit struct

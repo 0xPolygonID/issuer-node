@@ -113,7 +113,10 @@ func (imts *IdentityMerkleTrees) RevokeClaim(ctx context.Context, revNonce *big.
 // GenerateRevocationProof generates the proof of existence (or non-existence) of an nonce in RevocationTree
 func (imts *IdentityMerkleTrees) GenerateRevocationProof(ctx context.Context, nonce *big.Int, root *merkletree.Hash) (*merkletree.Proof, error) {
 	proof, _, err := imts.Trees[MerkleTreeTypeRevocations].GenerateProof(ctx, nonce, root)
-	return proof, fmt.Errorf("cannot generate revocation proof: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate revocation proof: %w", err)
+	}
+	return proof, nil
 }
 
 // AddClaim adds a Claim into the MerkleTree

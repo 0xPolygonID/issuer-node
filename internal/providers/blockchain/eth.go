@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -36,8 +37,8 @@ func InitEthConnect(cfg config.Ethereum) (*eth.Client, error) {
 		ConfirmationTimeout:    cfg.ConfirmationTimeout,
 		ConfirmationBlockCount: cfg.ConfirmationBlockCount,
 		ReceiptTimeout:         cfg.ReceiptTimeout,
-		MinGasPrice:            cfg.MinGasPrice,
-		MaxGasPrice:            cfg.MaxGasPrice,
+		MinGasPrice:            big.NewInt(int64(cfg.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.MaxGasPrice)),
 		RPCResponseTimeout:     cfg.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.WaitBlockCycleTime,
