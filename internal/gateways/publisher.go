@@ -64,7 +64,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 		return
 	}
 	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
-	log.Info(ctx, "publish state job started", jobID, jobIDValue.String())
+	log.Info(ctx, "publish state job started", "job-id", jobIDValue.String())
 	// TODO: make snapshot
 	// make snapshot if rds was init
 
@@ -118,7 +118,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 		}
 	}
 
-	log.Info(ctx, "publish state job finished", jobID, jobIDValue.String())
+	log.Info(ctx, "publish state job finished", "job-id", jobIDValue.String())
 }
 
 // PublishProof publishes new proof using the latest state
@@ -383,7 +383,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 		return
 	}
 	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
-	log.Info(ctx, "checker status job started", jobID, jobIDValue.String())
+	log.Info(ctx, "checker status job started", "job-id", jobIDValue.String())
 	// Get all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
@@ -409,7 +409,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 		}
 	}
 
-	log.Info(ctx, "checker status job finished", jobID, jobIDValue.String())
+	log.Info(ctx, "checker status job finished", "job-id", jobIDValue.String())
 }
 
 func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {
