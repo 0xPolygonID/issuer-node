@@ -20,58 +20,58 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl          string
-	ServerPort         int
-	Database           Database           `mapstructure:"Database"`
-	KeyStore           KeyStore           `mapstructure:"KeyStore"`
-	Runtime            Runtime            `mapstructure:"Runtime"`
-	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService"`
-	Ethereum           Ethereum           `mapstructure:"Ethereum"`
-	Circuit            Circuit            `mapstructure:"Circuit"`
+	ServerUrl          string             `tip:"Server address to listen"`
+	ServerPort         int                `tip:"Server port to listen"`
+	Database           Database           `mapstructure:"Database" tip:"Database Configuration"`
+	KeyStore           KeyStore           `mapstructure:"KeyStore" tip:"Key Store configuration"`
+	Log                Log                `mapstructure:"Log" tip:"Log configuration"`
+	ReverseHashService ReverseHashService `mapstructure:"ReverseHashService" tip:"Reverse hash service configuration"`
+	Ethereum           Ethereum           `mapstructure:"Ethereum" tip:"Ethereum network configuration"`
+	Circuit            Circuit            `mapstructure:"Circuit" tip:"Circuits configuration"`
 }
 
 // Database has the database configuration
 // URL: The database connection string
 type Database struct {
-	URL string
+	URL string `tip:"The Datasource name locator"`
 }
 
 // ReverseHashService contains the reverse hash service properties
 type ReverseHashService struct {
-	URL     string
-	Enabled bool
+	URL     string `mapstructure:"Url" tip:"Reverse Hash Service address"`
+	Enabled bool   `tip:"Reverse hash service enabled"`
 }
 
 // Ethereum struct
 type Ethereum struct {
-	URL                    string
-	ContractAddress        string
-	DefaultGasLimit        int
-	ConfirmationTimeout    time.Duration
-	ConfirmationBlockCount int64
-	ReceiptTimeout         time.Duration
-	MinGasPrice            *big.Int
-	MaxGasPrice            *big.Int
-	RPCResponseTimeout     time.Duration
-	WaitReceiptCycleTime   time.Duration
-	WaitBlockCycleTime     time.Duration
+	URL                    string        `tip:"Ethereum url"`
+	ContractAddress        string        `tip:"Contract Address"`
+	DefaultGasLimit        int           `tip:"Default Gas Limit"`
+	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
+	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
+	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
+	MinGasPrice            *big.Int      `tip:"Minimum Gas Price"`
+	MaxGasPrice            *big.Int      `tip:"The Datasource name locator"`
+	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
+	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
+	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
 }
 
 // Circuit struct
 type Circuit struct {
-	Path string
+	Path string `tip:"Circuit path"`
 }
 
 // KeyStore defines the keystore
 type KeyStore struct {
-	Address              string
-	Token                string
-	PluginIden3MountPath string
+	Address              string `tip:"Keystore address"`
+	Token                string `tip:"Token"`
+	PluginIden3MountPath string `tip:"PluginIden3MountPath"`
 }
 
-// Runtime holds runtime configurations
+// Log holds runtime configurations
 //
-// LogLevel: The minimum log level to show on logs. Values can be
+// Level: The minimum log level to show on logs. Values can be
 //
 //	 -4: Debug
 //		0: Info
@@ -79,13 +79,13 @@ type KeyStore struct {
 //		8: Error
 //	 The default log level is debug
 //
-// LogMode: Log mode is the format of the log. It can be text or json
+// Mode: Log mode is the format of the log. It can be text or json
 // 1: JSON
 // 2: Text
 // The default log formal is JSON
-type Runtime struct {
-	LogLevel int `mapstructure:"LogLevel"`
-	LogMode  int `mapstructure:"LogMode"`
+type Log struct {
+	Level int `mapstructure:"Level" tip:"Minimum level to log: (-4:Debug, 0:Info, 4:Warning, 8:Error)"`
+	Mode  int `mapstructure:"Mode" tip:"Log format (1: JSON, 2:Structured text)"`
 }
 
 // Load loads the configuraion from a file
@@ -119,9 +119,9 @@ func Load(fileName string) (*Configuration, error) {
 	config := &Configuration{
 		// ServerPort: defDBPort,
 		Database: Database{},
-		Runtime: Runtime{
-			LogLevel: log.LevelDebug,
-			LogMode:  log.OutputText,
+		Log: Log{
+			Level: log.LevelDebug,
+			Mode:  log.OutputText,
 		},
 	}
 

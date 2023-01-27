@@ -12,6 +12,8 @@ infrastructure/local/.vault/plugins
 infrastructure/local/.vault/policies
 infrastructure/local/.vault/file
 
+config.toml
+
 .fleet
 
 # Test binary, built with `go test -c`

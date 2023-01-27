@@ -33,7 +33,7 @@ func main() {
 	}
 
 	// Context with log
-	ctx := log.NewContext(context.Background(), cfg.Runtime.LogLevel, cfg.Runtime.LogMode, os.Stdout)
+	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {

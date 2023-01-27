@@ -1,5 +1,0 @@
-ServerPort = "3005"
-
-
-[Database]
-    Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
