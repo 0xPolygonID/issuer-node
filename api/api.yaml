@@ -537,8 +537,30 @@ components:
 
     #Agent
     AgentResponse:
-      type: string
-      format: byte
+      type: object
+      required:
+        - body
+        - id
+        - typ
+        - type
+        - threadID
+        - from
+        - to
+      properties:
+        id:
+          type: string
+        typ:
+          type: string
+        type:
+          type: string
+        threadID:
+          type: string
+        body:
+          type: null
+        from:
+          type: string
+        to:
+          type: string
 
   parameters:
     pathIdentifier:

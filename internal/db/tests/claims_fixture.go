@@ -80,7 +80,7 @@ func (f *Fixture) NewClaim(t *testing.T, identity string) *domain.Claim {
 			"type":         "KYCAgeCredential",
 		},
 		CredentialStatus: verifiable.CredentialStatus{
-			ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identity, revNonce),
+			ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identity, revNonce),
 			Type:            "SparseMerkleTreeProof",
 			RevocationNonce: uint64(revNonce),
 		},

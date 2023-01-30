@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -247,7 +246,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	if request.Body == nil || *request.Body == "" {
 		return Agent400JSONResponse{N400JSONResponse{"can not proceed with an empty request"}}, nil
 	}
-
 	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
 	if err != nil {
 		return Agent400JSONResponse{N400JSONResponse{"can not proceed with the given request"}}, nil
@@ -263,18 +261,15 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
-	agentBytes, err := json.Marshal(agent)
-	if err != nil {
-		return Agent500JSONResponse{N500JSONResponse{err.Error()}}, nil
-	}
-
-	var resp Agent200JSONResponse
-	resp, err = s.packageManager.Pack(packers.MediaTypePlainMessage, agentBytes, packers.PlainPackerParams{})
-	if err != nil {
-		return Agent500JSONResponse{N500JSONResponse{err.Error()}}, nil
-	}
-
-	return resp, nil
+	return Agent200JSONResponse{
+		Body:     agent.Body,
+		From:     agent.From,
+		Id:       agent.ID,
+		ThreadID: agent.ThreadID,
+		To:       agent.To,
+		Typ:      string(agent.Typ),
+		Type:     string(agent.Type),
+	}, nil
 }
 
 // UpdateIdentityState - updates the identity state

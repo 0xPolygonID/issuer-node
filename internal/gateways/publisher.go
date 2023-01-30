@@ -6,9 +6,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/google/uuid"
 	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/poseidon"
@@ -20,6 +19,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+)
+
+type job string
+
+const (
+	publishJob job = "job-id"
 )
 
 // PublisherGateway - Define the interface for publishers.
@@ -60,7 +65,7 @@ func (p *publisher) PublishState(ctx context.Context) {
 		log.Error(ctx, "error", err)
 		return
 	}
-	ctx = context.WithValue(ctx, "job-id", jobID.String())
+	ctx = context.WithValue(ctx, publishJob, jobID.String())
 	log.Info(ctx, "publish state job started", "job-id", jobID)
 	// TODO: make snapshot
 	// make snapshot if rds was init
@@ -389,7 +394,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 		log.Error(ctx, "error", err)
 		return
 	}
-	ctx = context.WithValue(ctx, "job-id", jobID.String())
+	ctx = context.WithValue(ctx, publishJob, jobID.String())
 	log.Info(ctx, "checker status job started", "job-id", jobID)
 	// Get all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
