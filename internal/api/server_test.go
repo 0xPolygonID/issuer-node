@@ -580,7 +580,7 @@ func TestServer_GetClaim(t *testing.T) {
 						"JsonSchemaValidator2018",
 					},
 					CredentialStatus: verifiable.CredentialStatus{
-						ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", idStr, claim.RevNonce),
+						ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", idStr, claim.RevNonce),
 						Type:            "SparseMerkleTreeProof",
 						RevocationNonce: uint64(claim.RevNonce),
 					},
@@ -745,7 +745,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identity.Identifier, 0),
+							ID:              fmt.Sprintf("https://localhost.com/v1/%s/claims/revocation/status/%d", identity.Identifier, 0),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: 0,
 						},
@@ -776,7 +776,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							ID:              fmt.Sprintf("https://localhost.com/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: 0,
 						},
@@ -796,7 +796,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -831,7 +831,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -867,7 +867,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -903,7 +903,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							ID:              fmt.Sprintf("https://localhost.com/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: 0,
 						},
@@ -949,7 +949,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							ID:              fmt.Sprintf("https://localhost.com/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: 0,
 						},
@@ -969,7 +969,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -1005,7 +1005,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("https://localhost.com/api/v1/identities/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
+							ID:              fmt.Sprintf("https://localhost.com/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, 0),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: 0,
 						},

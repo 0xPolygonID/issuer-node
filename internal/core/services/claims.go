@@ -15,6 +15,7 @@ import (
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -308,7 +309,12 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
-	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, basicMessage.ClaimID)
+	claimID, err := uuid.Parse(fetchRequestBody.ID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid claim ID")
+	}
+
+	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
 	if err != nil {
 		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
 	}
@@ -324,11 +330,12 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 
 	return &domain.Agent{
 		ID:       uuid.NewString(),
+		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.CredentialIssuanceResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
 		Body:     protocol.IssuanceMessageBody{Credential: *vc},
-		From:     basicMessage.UserDID.String(),
-		To:       basicMessage.IssuerDID.String(),
+		From:     basicMessage.IssuerDID.String(),
+		To:       basicMessage.UserDID.String(),
 	}, err
 }
 
@@ -511,7 +518,7 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} 
 }
 
 func buildRevocationURL(host, issuerDID string, nonce uint64) string {
-	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
+	return fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
 }
 
