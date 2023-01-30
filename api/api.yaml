@@ -56,6 +56,12 @@ paths:
       description: Endpoint to create an identity
       tags:
         - Identity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIdentityRequest'
       responses:
         '201':
           description: Identity created
@@ -63,6 +69,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CreateIdentityResponse'
+        '400':
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
     get:
@@ -312,6 +320,28 @@ components:
           example: 'Something happen'
 
     #identity
+    CreateIdentityRequest:
+      type: object
+      required:
+        - didMetadata
+      properties:
+        didMetadata:
+          type: object
+          required:
+            - method
+            - blockchain
+            - network
+          properties:
+            method:
+              type: string
+              x-omitempty: false
+            blockchain:
+              type: string
+              x-omitempty: false
+            network:
+              type: string
+              x-omitempty: false
+
     CreateIdentityResponse:
       type: object
       required:

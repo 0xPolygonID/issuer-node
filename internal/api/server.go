@@ -61,10 +61,23 @@ func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResp
 
 // CreateIdentity is created identity controller
 func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error) {
-	identity, err := s.identityService.Create(ctx, fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort))
+	method := request.Body.DidMetadata.Method
+	blockchain := request.Body.DidMetadata.Blockchain
+	network := request.Body.DidMetadata.Network
+
+	hostUrl := fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort)
+	identity, err := s.identityService.Create(ctx, method, blockchain, network, hostUrl)
 	if err != nil {
+		if errors.Is(err, services.ErrWrongDIDMetada) {
+			return CreateIdentity400JSONResponse{
+				N400JSONResponse{
+					Message: err.Error(),
+				},
+			}, nil
+		}
 		return nil, err
 	}
+
 	return CreateIdentity201JSONResponse{
 		Identifier: &identity.Identifier,
 		Immutable:  identity.Immutable,

@@ -21,11 +21,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-type job string
+type jobIDType string
 
-const (
-	publishJob job = "job-id"
-)
+const jobID jobIDType = "job-id"
 
 // PublisherGateway - Define the interface for publishers.
 type PublisherGateway interface {
@@ -60,13 +58,13 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 }
 
 func (p *publisher) PublishState(ctx context.Context) {
-	jobID, err := uuid.NewUUID()
+	jobIDValue, err := uuid.NewUUID()
 	if err != nil {
 		log.Error(ctx, "error", err)
 		return
 	}
-	ctx = context.WithValue(ctx, publishJob, jobID.String())
-	log.Info(ctx, "publish state job started", "job-id", jobID)
+	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
+	log.Info(ctx, "publish state job started", "job-id", jobIDValue.String())
 	// TODO: make snapshot
 	// make snapshot if rds was init
 
@@ -120,21 +118,11 @@ func (p *publisher) PublishState(ctx context.Context) {
 		}
 	}
 
-	log.Info(ctx, "publish state job finished", "job-id", jobID)
+	log.Info(ctx, "publish state job finished", "job-id", jobIDValue.String())
 }
 
 // PublishProof publishes new proof using the latest state
 func (p *publisher) publishProof(ctx context.Context, newState domain.IdentityState) error {
-	// TODO: add metricts
-	//start := time.Now()
-	//defer func() {
-	//	status := promLabelStatusOk
-	//	if err != nil {
-	//		status = promLabelStatusErr
-	//	}
-	//
-	//}()
-
 	did, err := core.ParseDID(newState.Identifier)
 	if err != nil {
 		return err
@@ -389,13 +377,13 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 
 // CheckTransactionStatus - checks transaction status
 func (p *publisher) CheckTransactionStatus(ctx context.Context) {
-	jobID, err := uuid.NewUUID()
+	jobIDValue, err := uuid.NewUUID()
 	if err != nil {
 		log.Error(ctx, "error", err)
 		return
 	}
-	ctx = context.WithValue(ctx, publishJob, jobID.String())
-	log.Info(ctx, "checker status job started", "job-id", jobID)
+	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
+	log.Info(ctx, "checker status job started", "job-id", jobIDValue.String())
 	// Get all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
@@ -421,7 +409,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 		}
 	}
 
-	log.Info(ctx, "checker status job finished", "job-id", jobID)
+	log.Info(ctx, "checker status job finished", "job-id", jobIDValue.String())
 }
 
 func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {
