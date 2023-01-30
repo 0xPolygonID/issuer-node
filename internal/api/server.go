@@ -175,11 +175,6 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	return response, err
 }
 
-// PublishState is the controller to publish the state on-chain
-func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
-	return nil, nil
-}
-
 // GetClaim is the controller to get a client.
 func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
 	if request.Identifier == "" {

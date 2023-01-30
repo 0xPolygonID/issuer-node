@@ -91,22 +91,7 @@ paths:
                   type: string
         '500':
           $ref: '#/components/responses/500'
-  /v1/identities/state:
-    post:
-      summary: Publish State On-Chain
-      operationId: PublishState
-      description: Endpoint to publish state on-chain
-      tags:
-        - Identity
-      responses:
-        '200':
-          description: State published
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PublishStateResponse'
-        '500':
-          $ref: '#/components/responses/500'
+
   /v1/{identifier}/state/update:
     get:
       summary: Update Identity State
@@ -399,12 +384,6 @@ components:
         createdAt:
           type: string
           format: date-time
-
-    PublishStateResponse:
-      type: object
-      properties:
-        hex:
-          type: string
 
     #claims
     CreateClaimRequest:
