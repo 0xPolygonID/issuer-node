@@ -15,6 +15,12 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
+const (
+	method     = "polygonid"
+	blockchain = "polygon"
+	network    = "mumbai"
+)
+
 func Test_identity_UpdateState(t *testing.T) {
 	if os.Getenv("TEST_MODE") == "GA" {
 		t.Skip("Skipped. Cannot run hashicorp vault in ga")
@@ -45,10 +51,10 @@ func Test_identity_UpdateState(t *testing.T) {
 		claimsConf,
 	)
 
-	identity, err := identityService.Create(ctx, "http://localhost:3001")
+	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
 
-	identity2, err := identityService.Create(ctx, "http://localhost:3001")
+	identity2, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

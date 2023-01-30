@@ -30,6 +30,11 @@ import (
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -51,35 +56,97 @@ func TestServer_CreateIdentity(t *testing.T) {
 
 	type expected struct {
 		httpCode int
+		message  *string
 	}
 	type testConfig struct {
 		name     string
+		input    CreateIdentityRequest
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
 			name: "should create an identity",
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string `json:"blockchain"`
+					Method     string `json:"method"`
+					Network    string `json:"network"`
+				}{Blockchain: blockchain, Method: method, Network: network},
+			},
 			expected: expected{
 				httpCode: 201,
+				message:  nil,
+			},
+		},
+		{
+			name: "should return an error wrong network",
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string `json:"blockchain"`
+					Method     string `json:"method"`
+					Network    string `json:"network"`
+				}{Blockchain: blockchain, Method: method, Network: "mynetwork"},
+			},
+			expected: expected{
+				httpCode: 400,
+				message:  common.ToPointer("can't create identity: wrong DID Metadata"),
+			},
+		},
+		{
+			name: "should return an error wrong method",
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string `json:"blockchain"`
+					Method     string `json:"method"`
+					Network    string `json:"network"`
+				}{Blockchain: blockchain, Method: "my method", Network: network},
+			},
+			expected: expected{
+				httpCode: 400,
+				message:  common.ToPointer("can't create identity: wrong DID Metadata"),
+			},
+		},
+		{
+			name: "should return an error wrong blockchain",
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string `json:"blockchain"`
+					Method     string `json:"method"`
+					Network    string `json:"network"`
+				}{Blockchain: "my blockchain", Method: method, Network: network},
+			},
+			expected: expected{
+				httpCode: 400,
+				message:  common.ToPointer("can't create identity: wrong DID Metadata"),
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/v1/identities", nil)
+			req, err := http.NewRequest("POST", "/v1/identities", tests.JSONBody(t, tc.input))
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
 
-			var response CreateIdentityResponse
-			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-			assert.NotNil(t, *response.State.ClaimsTreeRoot)
-			assert.NotNil(t, response.State.CreatedAt)
-			assert.NotNil(t, response.State.ModifiedAt)
-			assert.NotNil(t, response.State.State)
-			assert.NotNil(t, response.State.Status)
-			assert.NotNil(t, *response.Identifier)
-			assert.NotNil(t, response.Immutable)
+			switch tc.expected.httpCode {
+			case http.StatusCreated:
+				var response CreateIdentityResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.NotNil(t, *response.State.ClaimsTreeRoot)
+				assert.NotNil(t, response.State.CreatedAt)
+				assert.NotNil(t, response.State.ModifiedAt)
+				assert.NotNil(t, response.State.State)
+				assert.NotNil(t, response.State.Status)
+				assert.NotNil(t, *response.Identifier)
+				assert.NotNil(t, response.Immutable)
+			case http.StatusBadRequest:
+				var response CreateIdentity400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+
+			default:
+				require.Fail(t, "unexpected http status response", tc.expected.httpCode)
+			}
 		})
 	}
 }
@@ -220,8 +287,12 @@ func TestServer_RevokeClaim(t *testing.T) {
 }
 
 func TestServer_CreateClaim(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
-
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -240,7 +311,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 	handler := getHandler(ctx, server)
 
-	iden, err := identityService.Create(ctx, "polygon-test")
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 	did := iden.Identifier
 
@@ -560,6 +631,11 @@ func TestServer_GetClaim(t *testing.T) {
 }
 
 func TestServer_GetClaims(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -579,14 +655,14 @@ func TestServer_GetClaims(t *testing.T) {
 	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
 
 	ctx := context.Background()
-	identity, err := server.identityService.Create(ctx, "https://localhost.com")
+	identity, err := server.identityService.Create(ctx, method, blockchain, network, "https://localhost.com")
 	require.NoError(t, err)
 
 	defaultClaim := fixture.GetDefaultAuthClaimOfIssuer(t, identity.Identifier)
 	defaultClaimVC, err := server.schemaService.FromClaimModelToW3CCredential(*defaultClaim)
 	assert.NoError(t, err)
 
-	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com")
+	identityMultipleClaims, err := server.identityService.Create(ctx, method, blockchain, network, "https://localhost.com")
 	require.NoError(t, err)
 
 	defaultClaimMultipleClaims := fixture.GetDefaultAuthClaimOfIssuer(t, identityMultipleClaims.Identifier)
@@ -977,6 +1053,11 @@ func TestServer_GetClaims(t *testing.T) {
 }
 
 func TestServer_GetRevocationStatus(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -993,7 +1074,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 		Host:       "https://host.com",
 	}
 
-	identity, err := identityService.Create(ctx, "http://localhost:3001")
+	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPackageManagerMock())
