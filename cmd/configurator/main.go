@@ -15,26 +15,37 @@ import (
 	"time"
 
 	"github.com/pelletier/go-toml"
+
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-const tip = "tip"
+const (
+	expArgc = 3
+	tip     = "tip"
+)
 
+// nolint: forbidigo
 func main() {
 	logBuffer := bytes.Buffer{}
 	ctx := log.NewContext(context.Background(), log.LevelInfo, log.OutputText, &logBuffer)
 	defer func() {
 		log.Debug(ctx, "configurator finished")
-		os.Stderr.WriteString("\r\n")
-		os.Stderr.Write(logBuffer.Bytes())
+		_, err := os.Stderr.WriteString("\r\n")
+		if err != nil {
+			log.Error(ctx, "Writing log", err)
+		}
+		_, err = os.Stderr.Write(logBuffer.Bytes())
+		if err != nil {
+			log.Error(ctx, "Writing log", err)
+		}
 	}()
 
 	log.Info(ctx, "Configurator started")
 	template := flag.String("template", "config.toml.sample", "a string")
 	output := flag.String("output", "config.toml.new", "a string")
 	flag.Parse()
-	if len(os.Args) != 3 {
+	if len(os.Args) != expArgc {
 		fmt.Println("Usage: configurator <template-file> <output-file>")
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -51,7 +62,11 @@ func main() {
 		log.Error(ctx, "cannot open template file", err)
 		return
 	}
-	defer in.Close()
+	defer func() {
+		if err := in.Close(); err != nil {
+			log.Error(ctx, "closing input file", err)
+		}
+	}()
 
 	out := bytes.Buffer{}
 	if err := configurator(ctx, in, &out); err != nil {
@@ -64,9 +79,14 @@ func main() {
 		log.Error(ctx, "cannot open output file", err)
 		return
 	}
+	defer func() {
+		if err := fp.Close(); err != nil {
+			log.Error(ctx, "closing new file", err)
+		}
+	}()
 
 	_, err = fp.Write(out.Bytes())
-	defer fp.Close()
+
 	if err != nil {
 		fmt.Println("Error writing file configuration.")
 		log.Error(ctx, "cannot write in output file", err)
@@ -152,6 +172,7 @@ type section interface {
 	config.Database | config.Circuit | config.Log | config.ReverseHashService | config.Ethereum | config.KeyStore | config.Prover
 }
 
+// nolint: forbidigo
 func askForSectionConfiguration[T section](defaults *T) error {
 	t := reflect.TypeOf(*defaults)
 
@@ -168,6 +189,7 @@ func askForSectionConfiguration[T section](defaults *T) error {
 	return nil
 }
 
+// nolint: forbidigo
 func setBasicType(value reflect.Value, desc string, name string, def reflect.Value, typ string) error {
 	fmt.Printf("\n- %s\n%s(%s) [%v]: ", desc, name, typ, def)
 	switch typ {
@@ -215,7 +237,7 @@ func askBool(def bool) bool {
 }
 
 func askDuration(def time.Duration) time.Duration {
-	t, err := time.ParseDuration(askString(fmt.Sprintf("%s", def)))
+	t, err := time.ParseDuration(askString(def.String()))
 	if err != nil {
 		return def
 	}
@@ -223,8 +245,9 @@ func askDuration(def time.Duration) time.Duration {
 }
 
 func askBigInt() *big.Int {
+	const base10 = 10
 	n := big.Int{}
-	ret, _ := n.SetString(askString("0"), 10)
+	ret, _ := n.SetString(askString("0"), base10)
 	return ret
 }
 
