@@ -19,7 +19,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-const tip = "tip"
+const (
+	expArgc = 3
+	tip     = "tip"
+)
 
 func main() {
 	logBuffer := bytes.Buffer{}
@@ -34,7 +37,7 @@ func main() {
 	template := flag.String("template", "config.toml.sample", "a string")
 	output := flag.String("output", "config.toml.new", "a string")
 	flag.Parse()
-	if len(os.Args) != 3 {
+	if len(os.Args) != expArgc {
 		fmt.Println("Usage: configurator <template-file> <output-file>")
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -215,7 +218,7 @@ func askBool(def bool) bool {
 }
 
 func askDuration(def time.Duration) time.Duration {
-	t, err := time.ParseDuration(askString(fmt.Sprintf("%s", def)))
+	t, err := time.ParseDuration(askString(def.String()))
 	if err != nil {
 		return def
 	}
