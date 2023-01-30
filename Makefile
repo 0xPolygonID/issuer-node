@@ -22,7 +22,7 @@ build/docker: ## Build the docker image.
 		-f ./Dockerfile \
 		-t sh-id-platform:$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
-		--build-arg BUILD_DATE=`date -u +”%Y-%m-%dT%H:%M:%SZ”` \
+		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
 
 .PHONY: clean

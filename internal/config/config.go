@@ -24,7 +24,7 @@ type Configuration struct {
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
-	Log                          Log                `mapstructure:"Runtime"`
+	Log                          Log                `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
 	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
 	Prover                       Prover             `mapstructure:"Prover"`
@@ -212,12 +212,11 @@ func bindEnv() {
 	_ = viper.BindEnv("PublishingKeyPath", "SH_ID_PLATFORM_PUBLISH_KEY_PATH")
 	_ = viper.BindEnv("OnChainPublishStateFrecuency", "SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY")
 	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY")
-	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY")
 
 	_ = viper.BindEnv("Database.URL", "SH_ID_PLATFORM_DATABASE_URL")
 
-	_ = viper.BindEnv("Runtime.LogLevel", "SH_ID_PLATFORM_RUNTIME_LOG_LEVEL")
-	_ = viper.BindEnv("Runtime.LogMode", "SH_ID_PLATFORM_RUNTIME_LOG_MODE")
+	_ = viper.BindEnv("Log.Level", "SH_ID_PLATFORM_LOG_LEVEL")
+	_ = viper.BindEnv("Log.Mode", "SH_ID_PLATFORM_LOG_MODE")
 
 	_ = viper.BindEnv("KeyStore.Address", "SH_ID_PLATFORM_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "SH_ID_PLATFORM_KEY_STORE_TOKEN")
