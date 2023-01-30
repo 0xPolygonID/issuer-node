@@ -20,8 +20,3 @@ jobs:
           cache: true
       - name: Run golangci-lint
         run: make lint
-
-      #- name: Install golangci-lint
-      #  run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50
-      #- name: Run golangci-lint
-      #  run: golangci-lint run --version --verbose --out-format=github-actions
