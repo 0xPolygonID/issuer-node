@@ -46,6 +46,9 @@ down:
 up-test:
 	$(DOCKER_COMPOSE_CMD) up -d test_postgres vault
 
+$(BIN)/configurator:
+	$(BUILD_CMD) ./cmd/configurator
+
 .PHONY: clean-vault
 clean-vault:
 	rm -R infrastructure/local/.vault/data/init.out
@@ -65,6 +68,10 @@ $(BIN)/golangci-lint: go.mod go.sum
 .PHONY: db/migrate
 db/migrate: $(BIN)/install-goose $(BIN)/platformid-migrate ## Install goose and apply migrations.
 	sh -c '$(BIN)/migrate'
+
+.PHONY: config
+config: $(BIN)/configurator
+	sh -c '$(BIN)/configurator -template=config.toml.sample -output=config.toml'
 
 .PHONY: lint
 lint: $(BIN)/golangci-lint
