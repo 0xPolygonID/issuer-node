@@ -233,8 +233,6 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.MinGasPrice", "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE")
 	_ = viper.BindEnv("Ethereum.MaxGasPrice", "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.MaxGasPrice", "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
