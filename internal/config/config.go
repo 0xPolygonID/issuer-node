@@ -23,6 +23,7 @@ type Configuration struct {
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
+	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
 	Log                          Log                `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
@@ -96,6 +97,13 @@ type KeyStore struct {
 type Log struct {
 	Level int `mapstructure:"Level" tip:"Minimum level to log: (-4:Debug, 0:Info, 4:Warning, 8:Error)"`
 	Mode  int `mapstructure:"Mode" tip:"Log format (1: JSON, 2:Structured text)"`
+}
+
+// HTTPBasicAuth configuration. Some of the endpoints are protected with basic http auth. Here you can set the
+// user and password to use.
+type HTTPBasicAuth struct {
+	User     string `mapstructure:"User" tip:"Basic auth username"`
+	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
 // Load loads the configuraion from a file

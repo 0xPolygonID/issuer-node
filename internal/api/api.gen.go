@@ -22,6 +22,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const (
+	BasicAuthScopes = "basicAuth.Scopes"
+)
+
 // AgentResponse defines model for AgentResponse.
 type AgentResponse struct {
 	Body     interface{} `json:"body"`
@@ -153,6 +157,9 @@ type PathNonce = int64
 // N400 defines model for 400.
 type N400 = GenericErrorMessage
 
+// N401 defines model for 401.
+type N401 = GenericErrorMessage
+
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
 
@@ -255,6 +262,8 @@ type MiddlewareFunc func(http.Handler) http.Handler
 func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDocumentation(w, r)
 	})
@@ -269,6 +278,8 @@ func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *ht
 // GetYaml operation middleware
 func (siw *ServerInterfaceWrapper) GetYaml(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetYaml(w, r)
@@ -285,6 +296,8 @@ func (siw *ServerInterfaceWrapper) GetYaml(w http.ResponseWriter, r *http.Reques
 func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
 	})
@@ -299,6 +312,8 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 // Agent operation middleware
 func (siw *ServerInterfaceWrapper) Agent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Agent(w, r)
@@ -315,6 +330,8 @@ func (siw *ServerInterfaceWrapper) Agent(w http.ResponseWriter, r *http.Request)
 func (siw *ServerInterfaceWrapper) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetIdentities(w, r)
 	})
@@ -329,6 +346,8 @@ func (siw *ServerInterfaceWrapper) GetIdentities(w http.ResponseWriter, r *http.
 // CreateIdentity operation middleware
 func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateIdentity(w, r)
@@ -355,6 +374,8 @@ func (siw *ServerInterfaceWrapper) GetClaims(w http.ResponseWriter, r *http.Requ
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
 		return
 	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetClaimsParams
@@ -433,6 +454,8 @@ func (siw *ServerInterfaceWrapper) CreateClaim(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateClaim(w, r, identifier)
 	})
@@ -467,6 +490,8 @@ func (siw *ServerInterfaceWrapper) GetRevocationStatus(w http.ResponseWriter, r 
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
 		return
 	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRevocationStatus(w, r, identifier, nonce)
@@ -503,6 +528,8 @@ func (siw *ServerInterfaceWrapper) RevokeClaim(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeClaim(w, r, identifier, nonce)
 	})
@@ -538,6 +565,8 @@ func (siw *ServerInterfaceWrapper) GetClaim(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetClaim(w, r, identifier, id)
 	})
@@ -563,6 +592,8 @@ func (siw *ServerInterfaceWrapper) UpdateIdentityState(w http.ResponseWriter, r 
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
 		return
 	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateIdentityState(w, r, identifier)
@@ -730,6 +761,8 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 
 type N400JSONResponse GenericErrorMessage
 
+type N401JSONResponse GenericErrorMessage
+
 type N404JSONResponse GenericErrorMessage
 
 type N422JSONResponse GenericErrorMessage
@@ -848,6 +881,15 @@ func (response GetIdentities200JSONResponse) VisitGetIdentitiesResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetIdentities401JSONResponse struct{ N401JSONResponse }
+
+func (response GetIdentities401JSONResponse) VisitGetIdentitiesResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetIdentities500JSONResponse struct{ N500JSONResponse }
 
 func (response GetIdentities500JSONResponse) VisitGetIdentitiesResponse(w http.ResponseWriter) error {
@@ -879,6 +921,15 @@ type CreateIdentity400JSONResponse struct{ N400JSONResponse }
 func (response CreateIdentity400JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateIdentity401JSONResponse struct{ N401JSONResponse }
+
+func (response CreateIdentity401JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -919,6 +970,15 @@ func (response GetClaims400JSONResponse) VisitGetClaimsResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetClaims401JSONResponse struct{ N401JSONResponse }
+
+func (response GetClaims401JSONResponse) VisitGetClaimsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetClaims500JSONResponse struct{ N500JSONResponse }
 
 func (response GetClaims500JSONResponse) VisitGetClaimsResponse(w http.ResponseWriter) error {
@@ -951,6 +1011,15 @@ type CreateClaim400JSONResponse struct{ N400JSONResponse }
 func (response CreateClaim400JSONResponse) VisitCreateClaimResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateClaim401JSONResponse struct{ N401JSONResponse }
+
+func (response CreateClaim401JSONResponse) VisitCreateClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1027,6 +1096,15 @@ func (response RevokeClaim202JSONResponse) VisitRevokeClaimResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type RevokeClaim401JSONResponse struct{ N401JSONResponse }
+
+func (response RevokeClaim401JSONResponse) VisitRevokeClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type RevokeClaim404JSONResponse struct{ N404JSONResponse }
 
 func (response RevokeClaim404JSONResponse) VisitRevokeClaimResponse(w http.ResponseWriter) error {
@@ -1072,6 +1150,15 @@ func (response GetClaim400JSONResponse) VisitGetClaimResponse(w http.ResponseWri
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetClaim401JSONResponse struct{ N401JSONResponse }
+
+func (response GetClaim401JSONResponse) VisitGetClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetClaim404JSONResponse struct{ N404JSONResponse }
 
 func (response GetClaim404JSONResponse) VisitGetClaimResponse(w http.ResponseWriter) error {
@@ -1112,6 +1199,15 @@ type UpdateIdentityState400JSONResponse struct{ N400JSONResponse }
 func (response UpdateIdentityState400JSONResponse) VisitUpdateIdentityStateResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityState401JSONResponse struct{ N401JSONResponse }
+
+func (response UpdateIdentityState401JSONResponse) VisitUpdateIdentityStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1524,40 +1620,41 @@ func (sh *strictHandler) UpdateIdentityState(w http.ResponseWriter, r *http.Requ
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"DcnK5/L/AQAA//+49pLZEywAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

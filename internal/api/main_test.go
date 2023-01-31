@@ -27,10 +27,6 @@ var (
 	keyStore       *kms.KMS
 )
 
-//func TestMain(m *testing.M) {
-//	os.Exit(testMain(m))
-//}
-
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 	conn := lookupPostgresURL()
@@ -78,13 +74,30 @@ func TestMain(m *testing.M) {
 func getHandler(ctx context.Context, server *Server) http.Handler {
 	mux := chi.NewRouter()
 	RegisterStatic(mux)
-	return HandlerFromMux(NewStrictHandler(server, middlewares(ctx)), mux)
+	return HandlerFromMux(NewStrictHandlerWithOptions(
+		server,
+		middlewares(ctx),
+		StrictHTTPServerOptions{
+			RequestErrorHandlerFunc:  RequestErrorHandlerFunc,
+			ResponseErrorHandlerFunc: ResponseErrorHandlerFunc,
+		},
+	), mux)
 }
 
 func middlewares(ctx context.Context) []StrictMiddlewareFunc {
+	usr, pass := authOk()
 	return []StrictMiddlewareFunc{
 		LogMiddleware(ctx),
+		BasicAuthMiddleware(ctx, usr, pass),
 	}
+}
+
+func authOk() (string, string) {
+	return "user", "password"
+}
+
+func authWrong() (string, string) {
+	return "", ""
 }
 
 func lookupPostgresURL() string {

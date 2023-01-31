@@ -56,6 +56,8 @@ paths:
       description: Endpoint to create an identity
       tags:
         - Identity
+      security:
+        - basicAuth: [ ]
       requestBody:
         required: true
         content:
@@ -71,6 +73,8 @@ paths:
                 $ref: '#/components/schemas/CreateIdentityResponse'
         '400':
           $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
     get:
@@ -79,6 +83,8 @@ paths:
       description: Endpoint to get all the identities
       tags:
         - Identity
+      security:
+        - basicAuth: [ ]
       responses:
         '200':
           description: all good
@@ -89,6 +95,8 @@ paths:
                 x-omitempty: false
                 items:
                   type: string
+        '401':
+          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
 
@@ -99,6 +107,8 @@ paths:
       description: Endpoint to update identity state
       tags:
         - Claim
+      security:
+        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
       responses:
@@ -110,6 +120,8 @@ paths:
                 $ref: '#/components/schemas/GenericErrorMessage'
         '400':
           $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
 #claims:
@@ -120,6 +132,8 @@ paths:
       description: Endpoint to create a Claim
       tags:
         - Claim
+      security:
+        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
       requestBody:
@@ -137,6 +151,8 @@ paths:
                 $ref: '#/components/schemas/CreateClaimResponse'
         '400':
           $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
         '422':
           $ref: '#/components/responses/422'
         '500':
@@ -147,6 +163,8 @@ paths:
       description: Endpoint to retrieve claims
       tags:
         - Claim
+      security:
+        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - in: query
@@ -188,6 +206,8 @@ paths:
                 $ref: '#/components/schemas/GetClaimsResponse'
         '400':
           $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
   /v1/{identifier}/claims/{id}:
@@ -197,6 +217,8 @@ paths:
       description: Endpoint to retrieve a created Claim
       tags:
         - Claim
+      security:
+        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/pathClaim'
@@ -209,6 +231,8 @@ paths:
                 $ref: '#/components/schemas/GetClaimResponse'
         '400':
           $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
         '404':
           $ref: '#/components/responses/404'
         '500':
@@ -220,6 +244,8 @@ paths:
       description: Endpoint to revoke a claim
       tags:
         - Claim
+      security:
+        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/pathNonce'
@@ -230,6 +256,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevokeClaimResponse'
+        '401':
+          $ref: '#/components/responses/401'
         '404':
           $ref: '#/components/responses/404'
         '500':
@@ -281,7 +309,15 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+security:
+  - basicAuth: []
+
 components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+
   schemas:
     Health:
       type: object
