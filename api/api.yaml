@@ -312,9 +312,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-security:
-  - basicAuth: []
-
 components:
   securitySchemes:
     basicAuth:
