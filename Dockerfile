@@ -18,5 +18,5 @@ COPY --from=builder /service/bin /service
 COPY --from=builder /service/config.toml /service
 COPY --from=builder "/go/pkg/mod/github.com/wasmerio/wasmer-go@v1.0.4/wasmer/packaged/lib/linux-amd64/libwasmer.so" \
 "/go/pkg/mod/github.com/wasmerio/wasmer-go@v1.0.4/wasmer/packaged/lib/linux-amd64/libwasmer.so"
-COPY --from=builder "pkg/credentials/circuits/authV2/circuit.wasm" \
-"pkg/credentials/circuits/authV2/circuit.wasm"
+COPY --from=builder "/go/pkg/credentials/circuits/authV2/circuit.wasm" \
+"/go/pkg/credentials/circuits/authV2/circuit.wasm"
