@@ -12,9 +12,9 @@ Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
 User = "user"
 Password = "password"
 
-[Runtime]
-LogLevel = -4
-LogMode = 2
+[Log]
+Level = -4
+Mode = 2
 
 [KeyStore]
 Address="http://localhost:8200/"
