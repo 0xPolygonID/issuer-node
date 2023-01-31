@@ -8,9 +8,13 @@ OnChainCheckStatusFrecuency = "10m"
 [Database]
 Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
 
-[Runtime]
-LogLevel = -4
-LogMode = 2
+[HTTPBasicAuth]
+User = "user"
+Password = "password"
+
+[Log]
+Level = -4
+Mode = 2
 
 [KeyStore]
 Address="http://localhost:8200/"

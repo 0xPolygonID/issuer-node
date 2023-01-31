@@ -60,13 +60,22 @@ func TestServer_CreateIdentity(t *testing.T) {
 	}
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		input    CreateIdentityRequest
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
 			name: "should create an identity",
+			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
 					Blockchain string `json:"blockchain"`
@@ -81,6 +90,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 		},
 		{
 			name: "should return an error wrong network",
+			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
 					Blockchain string `json:"blockchain"`
@@ -95,6 +105,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 		},
 		{
 			name: "should return an error wrong method",
+			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
 					Blockchain string `json:"blockchain"`
@@ -109,6 +120,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 		},
 		{
 			name: "should return an error wrong blockchain",
+			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
 					Blockchain string `json:"blockchain"`
@@ -125,9 +137,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			req, err := http.NewRequest("POST", "/v1/identities", tests.JSONBody(t, tc.input))
+			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
+
 			handler.ServeHTTP(rr, req)
 
+			require.Equal(t, tc.expected.httpCode, rr.Code)
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
 				var response CreateIdentityResponse
@@ -143,9 +158,6 @@ func TestServer_CreateIdentity(t *testing.T) {
 				var response CreateIdentity400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, *tc.expected.message, response.Message)
-
-			default:
-				require.Fail(t, "unexpected http status response", tc.expected.httpCode)
 			}
 		})
 	}
@@ -218,6 +230,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		did      string
 		nonce    int64
 		expected expected
@@ -225,7 +238,17 @@ func TestServer_RevokeClaim(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
+			name:  "No auth header",
+			auth:  authWrong,
+			did:   idStr,
+			nonce: nonce,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
 			name:  "should revoke the claim",
+			auth:  authOk,
 			did:   idStr,
 			nonce: nonce,
 			expected: expected{
@@ -237,6 +260,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		},
 		{
 			name:  "should get an error wrong nonce",
+			auth:  authOk,
 			did:   idStr,
 			nonce: int64(1231323),
 			expected: expected{
@@ -248,6 +272,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		},
 		{
 			name:  "should get an error",
+			auth:  authOk,
 			did:   "did:polygonid:polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			nonce: nonce,
 			expected: expected{
@@ -262,9 +287,10 @@ func TestServer_RevokeClaim(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims/revoke/%d", tc.did, tc.nonce)
 			req, err := http.NewRequest(http.MethodPost, url, nil)
+			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
-			assert.Equal(t, tc.expected.httpCode, rr.Code)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
 			case RevokeClaim202JSONResponse:
@@ -279,8 +305,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 				var response RevokeClaim500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
-			default:
-				require.Fail(t, "unexpected http response", tc.expected.httpCode)
 			}
 		})
 	}
@@ -322,13 +346,23 @@ func TestServer_CreateClaim(t *testing.T) {
 
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		did      string
 		body     CreateClaimRequest
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
+			name: "No auth header",
+			did:  did,
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
 			name: "Happy path",
+			auth: authOk,
 			did:  did,
 			body: CreateClaimRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -347,6 +381,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		},
 		{
 			name: "Wrong credential url",
+			auth: authOk,
 			did:  did,
 			body: CreateClaimRequest{
 				CredentialSchema: "wrong url",
@@ -365,6 +400,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		},
 		{
 			name: "Unreachable well formed credential url",
+			auth: authOk,
 			did:  did,
 			body: CreateClaimRequest{
 				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
@@ -387,9 +423,11 @@ func TestServer_CreateClaim(t *testing.T) {
 			url := fmt.Sprintf("/v1/%s/claims", tc.did)
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
+			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
+
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch tc.expected.httpCode {
@@ -406,8 +444,6 @@ func TestServer_CreateClaim(t *testing.T) {
 				var response CreateClaim422JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
-			default:
-				require.Fail(t, "unexpected http status response", tc.expected.httpCode)
 			}
 		})
 	}
@@ -452,12 +488,21 @@ func TestServer_GetIdentities(t *testing.T) {
 	}
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
 			name: "should return all the entities",
+			auth: authOk,
 			expected: expected{
 				httpCode: 200,
 			},
@@ -465,13 +510,18 @@ func TestServer_GetIdentities(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, _ := http.NewRequest("GET", "/v1/identities", nil)
+			req, err := http.NewRequest("GET", "/v1/identities", nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
 
-			var response GetIdentities200JSONResponse
-			assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-			assert.Equal(t, tc.expected.httpCode, rr.Code)
-			assert.True(t, len(response) >= 2)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			if tc.expected.httpCode == http.StatusOK {
+				var response GetIdentities200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.httpCode, rr.Code)
+				assert.True(t, len(response) >= 2)
+			}
 		})
 	}
 }
@@ -528,6 +578,7 @@ func TestServer_GetClaim(t *testing.T) {
 
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		did      string
 		claimID  uuid.UUID
 		expected expected
@@ -535,7 +586,16 @@ func TestServer_GetClaim(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
+			name: "No auth header",
+			auth: authWrong,
+			did:  idStr,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
 			name:    "should get an error non existing claimID",
+			auth:    authOk,
 			did:     idStr,
 			claimID: uuid.New(),
 			expected: expected{
@@ -547,6 +607,7 @@ func TestServer_GetClaim(t *testing.T) {
 		},
 		{
 			name:    "should get an error the given did has no entry for claimID",
+			auth:    authOk,
 			did:     idStrWithoutClaims,
 			claimID: claim.ID,
 			expected: expected{
@@ -558,6 +619,7 @@ func TestServer_GetClaim(t *testing.T) {
 		},
 		{
 			name:    "should get an error wrong did invalid format",
+			auth:    authOk,
 			did:     ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			claimID: claim.ID,
 			expected: expected{
@@ -569,6 +631,7 @@ func TestServer_GetClaim(t *testing.T) {
 		},
 		{
 			name:    "should get the claim",
+			auth:    authOk,
 			did:     idStr,
 			claimID: claim.ID,
 			expected: expected{
@@ -601,9 +664,13 @@ func TestServer_GetClaim(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims/%s", tc.did, tc.claimID.String())
-			req, _ := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest("GET", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
 			handler.ServeHTTP(rr, req)
-			assert.Equal(t, tc.expected.httpCode, rr.Code)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
 			case GetClaim200JSONResponse:
@@ -623,8 +690,6 @@ func TestServer_GetClaim(t *testing.T) {
 				var response GetClaim500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
-			default:
-				t.Fail()
 			}
 		})
 	}
@@ -693,6 +758,7 @@ func TestServer_GetClaims(t *testing.T) {
 
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		did      string
 		expected expected
 		filter   filter
@@ -700,7 +766,16 @@ func TestServer_GetClaims(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
+			name: "No auth header",
+			auth: authWrong,
+			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
 			name: "should get an error wrong did invalid format",
+			auth: authOk,
 			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			expected: expected{
 				httpCode: http.StatusBadRequest,
@@ -711,6 +786,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get an error self and subject filter can not be used together",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				self:    common.ToPointer("true"),
@@ -723,6 +799,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get 0 claims",
+			auth: authOk,
 			did:  emptyIdentityStr,
 			expected: expected{
 				httpCode: http.StatusOK,
@@ -732,6 +809,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get the default claim for a did that has no created claims",
+			auth: authOk,
 			did:  identity.Identifier,
 			expected: expected{
 				httpCode: http.StatusOK,
@@ -763,6 +841,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get the default claim plus another one that has been created",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			expected: expected{
 				httpCode: http.StatusOK,
@@ -816,6 +895,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get 1 credential with the given schemaHash filter",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				schemaHash: common.ToPointer(claim.SchemaHash),
@@ -851,6 +931,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get 1 credential with multiple filters",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				schemaHash: common.ToPointer(claim.SchemaHash),
@@ -887,6 +968,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get 1 credentials with self filter",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				self: common.ToPointer("true"),
@@ -921,6 +1003,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get 0 revoked credentials",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				revoked: common.ToPointer("true"),
@@ -933,6 +1016,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get two non revoked credentials",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				revoked: common.ToPointer("false"),
@@ -989,6 +1073,7 @@ func TestServer_GetClaims(t *testing.T) {
 		},
 		{
 			name: "should get one credential with the given schemaType filter",
+			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
 				schemaType: common.ToPointer("https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"),
@@ -1025,9 +1110,13 @@ func TestServer_GetClaims(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			tURL := createGetClaimsURL(tc.did, tc.filter.schemaHash, tc.filter.schemaType, tc.filter.subject, tc.filter.revoked, tc.filter.self, tc.filter.queryField)
-			req, _ := http.NewRequest("GET", tURL, nil)
+			req, err := http.NewRequest("GET", tURL, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
 			handler.ServeHTTP(rr, req)
-			assert.Equal(t, tc.expected.httpCode, rr.Code)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
 			case GetClaims200JSONResponse:
@@ -1045,8 +1134,6 @@ func TestServer_GetClaims(t *testing.T) {
 				var response GetClaims500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
-			default:
-				t.Fail()
 			}
 		})
 	}
@@ -1099,6 +1186,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	}
 	type testConfig struct {
 		name     string
+		auth     func() (string, string)
 		nonce    int64
 		expected expected
 	}
@@ -1106,33 +1194,41 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	for _, tc := range []testConfig{
 		{
 			name:  "should get revocation status",
+			auth:  authOk,
 			nonce: int64(claim.RevNonce),
 			expected: expected{
-				httpCode: 200,
+				httpCode: http.StatusOK,
 			},
 		},
 
 		{
 			name:  "should get revocation status wrong nonce",
+			auth:  authOk,
 			nonce: 123456,
 			expected: expected{
-				httpCode: 200,
+				httpCode: http.StatusOK,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims/revocation/status/%d", identity.Identifier, tc.nonce)
-			req, _ := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest("GET", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
 			handler.ServeHTTP(rr, req)
 
-			var response GetRevocationStatus200JSONResponse
-			assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-			assert.Equal(t, tc.expected.httpCode, rr.Code)
-			assert.NotNil(t, response.Issuer.ClaimsTreeRoot)
-			assert.NotNil(t, response.Issuer.State)
-			assert.NotNil(t, response.Mtp.Existence)
-			assert.NotNil(t, response.Mtp.Siblings)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			if tc.expected.httpCode == http.StatusOK {
+				var response GetRevocationStatus200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.NotNil(t, response.Issuer.ClaimsTreeRoot)
+				assert.NotNil(t, response.Issuer.State)
+				assert.NotNil(t, response.Mtp.Existence)
+				assert.NotNil(t, response.Mtp.Siblings)
+			}
 		})
 	}
 }

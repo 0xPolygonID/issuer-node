@@ -14,6 +14,17 @@ DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
 build:
 	$(BUILD_CMD) ./cmd/...
 
+
+.PHONY: build/docker
+build/docker: ## Build the docker image.
+	DOCKER_BUILDKIT=1 \
+	docker build \
+		-f ./Dockerfile \
+		-t sh-id-platform:$(VERSION) \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
+		.
+
 .PHONY: clean
 clean: ## Go clean
 	$(GO) clean ./...

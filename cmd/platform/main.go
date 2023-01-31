@@ -120,7 +120,15 @@ func main() {
 		chiMiddleware.Recoverer,
 		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
 	)
-	api.HandlerFromMux(api.NewStrictHandler(api.NewServer(cfg, identityService, claimsService, schemaService, packageManager), middlewares(ctx)), mux)
+	api.HandlerFromMux(
+		api.NewStrictHandlerWithOptions(
+			api.NewServer(cfg, identityService, claimsService, schemaService, packageManager),
+			middlewares(ctx, cfg.HTTPBasicAuth),
+			api.StrictHTTPServerOptions{
+				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,
+				ResponseErrorHandlerFunc: api.ResponseErrorHandlerFunc,
+			}),
+		mux)
 	api.RegisterStatic(mux)
 
 	server := &http.Server{
@@ -141,8 +149,9 @@ func main() {
 	log.Info(ctx, "Shutting down")
 }
 
-func middlewares(ctx context.Context) []api.StrictMiddlewareFunc {
+func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMiddlewareFunc {
 	return []api.StrictMiddlewareFunc{
 		api.LogMiddleware(ctx),
+		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
 	}
 }

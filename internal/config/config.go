@@ -23,8 +23,9 @@ type Configuration struct {
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
+	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
-	Log                          Log                `mapstructure:"Runtime"`
+	Log                          Log                `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
 	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
 	Prover                       Prover             `mapstructure:"Prover"`
@@ -96,6 +97,13 @@ type KeyStore struct {
 type Log struct {
 	Level int `mapstructure:"Level" tip:"Minimum level to log: (-4:Debug, 0:Info, 4:Warning, 8:Error)"`
 	Mode  int `mapstructure:"Mode" tip:"Log format (1: JSON, 2:Structured text)"`
+}
+
+// HTTPBasicAuth configuration. Some of the endpoints are protected with basic http auth. Here you can set the
+// user and password to use.
+type HTTPBasicAuth struct {
+	User     string `mapstructure:"User" tip:"Basic auth username"`
+	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
 // Load loads the configuraion from a file
@@ -208,7 +216,40 @@ func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
 	_ = viper.BindEnv("ServerUrl", "SH_ID_PLATFORM_SERVER_URL")
 	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
+	_ = viper.BindEnv("NativeProofGenerationEnabled", "SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED")
+	_ = viper.BindEnv("PublishingKeyPath", "SH_ID_PLATFORM_PUBLISH_KEY_PATH")
+	_ = viper.BindEnv("OnChainPublishStateFrecuency", "SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY")
+	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY")
+
 	_ = viper.BindEnv("Database.URL", "SH_ID_PLATFORM_DATABASE_URL")
+
+	_ = viper.BindEnv("Log.Level", "SH_ID_PLATFORM_LOG_LEVEL")
+	_ = viper.BindEnv("Log.Mode", "SH_ID_PLATFORM_LOG_MODE")
+
+	_ = viper.BindEnv("KeyStore.Address", "SH_ID_PLATFORM_KEY_STORE_ADDRESS")
+	_ = viper.BindEnv("KeyStore.Token", "SH_ID_PLATFORM_KEY_STORE_TOKEN")
+	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
+
+	_ = viper.BindEnv("ReverseHashService.URL", "SH_ID_PLATFORM_REVERSE_HASH_SERVICE_URL")
+	_ = viper.BindEnv("ReverseHashService.Enabled", "SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED")
+
+	_ = viper.BindEnv("Ethereum.URL", "SH_ID_PLATFORM_ETHEREUM_URL")
+	_ = viper.BindEnv("Ethereum.ContractAddress", "SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS")
+	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT")
+	_ = viper.BindEnv("Ethereum.ConfirmationTimeout", "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT")
+	_ = viper.BindEnv("Ethereum.ConfirmationBlockCount", "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT")
+	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT")
+	_ = viper.BindEnv("Ethereum.MinGasPrice", "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE")
+	_ = viper.BindEnv("Ethereum.MaxGasPrice", "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE")
+	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT")
+	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
+	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
+
+	_ = viper.BindEnv("Prover.ServerURL", "SH_ID_PLATFORM_PROVER_SERVER_URL")
+	_ = viper.BindEnv("Prover.ResponseTimeout", "SH_ID_PLATFORM_PROVER_TIMEOUT")
+
+	_ = viper.BindEnv("Circuit.Path", "SH_ID_PLATFORM_CIRCUIT_PATH")
+
 	viper.AutomaticEnv()
 }
 
