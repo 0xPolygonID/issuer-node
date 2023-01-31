@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -117,6 +118,7 @@ func main() {
 		chiMiddleware.RequestID,
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
+		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(

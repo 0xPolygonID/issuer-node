@@ -7,7 +7,7 @@ info:
 
 servers:
   - description: Local
-    url: http://127.0.0.1
+    url: http://localhost:3001
 
 tags:
   - name: Identity
@@ -106,7 +106,7 @@ paths:
       operationId: UpdateIdentityState
       description: Endpoint to update identity state
       tags:
-        - Claim
+        - Identity
       security:
         - basicAuth: [ ]
       parameters:
@@ -160,7 +160,9 @@ paths:
     get:
       summary: Get Claims
       operationId: GetClaims
-      description: Endpoint to retrieve claims
+      description: |
+        Endpoint to retrieve claims 
+        > ⚠️ **self** and **subject** filter can not be used together
       tags:
         - Claim
       security:
@@ -171,32 +173,32 @@ paths:
           name: schemaType
           schema:
             type: string
-          description: Provide a filter per schemaType.
+          description: Filter per schema type. Example - KYCAgeCredential
         - in: query
           name: schemaHash
           schema:
             type: string
-          description: Provide a filter per schemaHash.
+          description: Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
         - in: query
           name: subject
           schema:
             type: string
-          description: Provide a filter per subject.
+          description: Filter per subject. Example - did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
         - in: query
           name: revoked
           schema:
             type: boolean
-          description: Provide a filter per revoked.
+          description: Filter per claims revoked or not - Example - true.
         - in: query
           name: self
           schema:
             type: boolean
-          description: Provide a filter per self.
+          description: Filter per retrieve claims of the provided identifier. Example - true
         - in: query
           name: query_field
           schema:
             type: string
-          description: Provide a filter per self.
+          description: Filter inside the data of the claim.
       responses:
         '200':
           description: Claims found
@@ -297,6 +299,7 @@ paths:
           text/plain:
             schema:
               type: string
+              example: jwz-token
       responses:
         '200':
           description: TBD
@@ -356,12 +359,15 @@ components:
             method:
               type: string
               x-omitempty: false
+              example: "polygonid"
             blockchain:
               type: string
               x-omitempty: false
+              example: "polygon"
             network:
               type: string
               x-omitempty: false
+              example: "mumbai"
 
     CreateIdentityResponse:
       type: object
@@ -451,6 +457,14 @@ components:
           type: string
         merklizedRootPosition:
           type: string
+      example:
+        credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+        type: "KYCAgeCredential"
+        credentialSubject:
+          id: "fill with did"
+          birthday: 19960424
+          documentType: 2
+        expiration: 12345
 
     CreateClaimResponse:
       type: object
@@ -612,7 +626,7 @@ components:
       name: identifier
       in: path
       required: true
-      description: Identity identifier
+      description: Issuer identifier
       schema:
         type: string
     pathClaim:
