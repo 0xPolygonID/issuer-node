@@ -51,7 +51,8 @@ up:
 
 .PHONY: run
 run:
-	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault platform
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}'))
+	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD) up -d platform
 
 .PHONY: down
 down:
