@@ -3,8 +3,10 @@ package kms
 import (
 	"context"
 	stderr "errors"
+	"fmt"
 	"sync"
 
+	"github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/pkg/errors"
 )
@@ -170,4 +172,30 @@ func (k *KMS) LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID
 	}
 
 	return kp.LinkToIdentity(ctx, keyID, identity)
+}
+
+// Open returns an initialized KMS
+func Open(pluginIden3MountPath string, vault *api.Client) (*KMS, error) {
+	bjjKeyProvider, err := NewVaultPluginIden3KeyProvider(vault, pluginIden3MountPath, KeyTypeBabyJubJub)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
+	}
+
+	ethKeyProvider, err := NewVaultPluginIden3KeyProvider(vault, pluginIden3MountPath, KeyTypeEthereum)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create Ethereum key provider: %+v", err)
+	}
+
+	keyStore := NewKMS()
+	err = keyStore.RegisterKeyProvider(KeyTypeBabyJubJub, bjjKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register BabyJubJub key provider: %+v", err)
+	}
+
+	err = keyStore.RegisterKeyProvider(KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register Ethereum key provider: %+v", err)
+	}
+
+	return keyStore, nil
 }

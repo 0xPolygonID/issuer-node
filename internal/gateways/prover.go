@@ -3,6 +3,11 @@ package gateways
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"net/http"
 	"time"
 
@@ -25,6 +30,23 @@ type ProverService struct {
 // NewProverService new prover service that works with zero knowledge proofs
 func NewProverService(config *ProverConfig) *ProverService {
 	return &ProverService{proverConfig: config}
+}
+
+func NewProver(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+	log.Info(ctx, fmt.Sprintf("native prover enabled: %v", config.NativeProofGenerationEnabled))
+	if config.NativeProofGenerationEnabled {
+		proverConfig := &services.NativeProverConfig{
+			CircuitsLoader: circuitLoaderService,
+		}
+		return services.NewNativeProverService(proverConfig)
+	}
+
+	proverConfig := &ProverConfig{
+		ServerURL:       config.Prover.ServerURL,
+		ResponseTimeout: config.Prover.ResponseTimeout,
+	}
+
+	return NewProverService(proverConfig)
 }
 
 // Verify calls prover server for proof verification
