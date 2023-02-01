@@ -25,7 +25,7 @@ func ResponseErrorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error)
 	case AuthError:
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Header().Add("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
-		_, _ = w.Write([]byte("Unauthorized"))
+		_, _ = w.Write([]byte("\"Unauthorized\""))
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))

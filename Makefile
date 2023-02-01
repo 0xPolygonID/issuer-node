@@ -20,7 +20,7 @@ build/docker: ## Build the docker image.
 	DOCKER_BUILDKIT=1 \
 	docker build \
 		-f ./Dockerfile \
-		-t sh-id-platform:$(VERSION) \
+		-t sh-id-platform/api:$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
