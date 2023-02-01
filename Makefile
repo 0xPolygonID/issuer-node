@@ -49,6 +49,10 @@ api: $(BIN)/oapi-codegen
 up:
 	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
 
+.PHONY: run
+run:
+	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault platform
+
 .PHONY: down
 down:
 	$(DOCKER_COMPOSE_CMD) down --remove-orphans
