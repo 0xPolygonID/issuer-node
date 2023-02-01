@@ -6,6 +6,10 @@ services:
       context: ../../
     ports:
       - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+      - vault
     environment:
       - SH_ID_PLATFORM_SERVER_URL=localhost:3001
       - SH_ID_PLATFORM_SERVER_PORT=3001
@@ -13,11 +17,13 @@ services:
       - SH_ID_PLATFORM_PUBLISH_KEY_PATH=pbkey
       - SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY=1m
       - SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY=1m
-      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable
+      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
       - SH_ID_PLATFORM_LOG_LEVEL=-4
       - SH_ID_PLATFORM_LOG_MODE=2
-      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=vault:8200/
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=hvs.Z6GaiziJW536COQZSquISbTT
+      - SH_ID_PLATFORM_HTTPBASICAUTH_USER=user
+      - SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD=password
+      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
+      - SH_ID_PLATFORM_KEY_STORE_TOKEN=hvs.0te9YshwbBe149CQMNXoTSud
       - SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH=iden3
       - SH_ID_PLATFORM_REVERSE_HASH_SERVICE_URL=http://localhost:3001
       - SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED=false
@@ -35,6 +41,7 @@ services:
       - SH_ID_PLATFORM_PROVER_SERVER_URL=http://localhost:8002
       - SH_ID_PLATFORM_PROVER_TIMEOUT=600s
       - SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
+    command: sh -c "sleep 4s && ./migrate && ./platform"
 
   postgres:
     image: postgres:14-alpine
@@ -88,7 +95,7 @@ services:
       - ./.vault/config:/vault/config
       - ./.vault/policies:/vault/policies
       - ./.vault/data:/vault/data
-      # - ./.vault/file:/vault/file:rw
+      - ./.vault/file:/vault/file:rw
       - ./.vault/scripts:/vault/scripts
       - ./.vault/plugins:/vault/plugins
     ports:

@@ -226,6 +226,9 @@ func bindEnv() {
 	_ = viper.BindEnv("Log.Level", "SH_ID_PLATFORM_LOG_LEVEL")
 	_ = viper.BindEnv("Log.Mode", "SH_ID_PLATFORM_LOG_MODE")
 
+	_ = viper.BindEnv("HTTPBasicAuth.User", "SH_ID_PLATFORM_HTTPBASICAUTH_USER")
+	_ = viper.BindEnv("HTTPBasicAuth.Password", "SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD")
+
 	_ = viper.BindEnv("KeyStore.Address", "SH_ID_PLATFORM_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "SH_ID_PLATFORM_KEY_STORE_TOKEN")
 	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
