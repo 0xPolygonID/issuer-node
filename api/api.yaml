@@ -124,7 +124,33 @@ paths:
           $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
-#claims:
+
+  /v1/{identifier}/state/publish:
+    post:
+      summary: Publish Identity State
+      operationId: PublishIdentityState
+      description: Endpoint to publish identity state
+      tags:
+        - Identity
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Transaction ID of the published state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  #claims:
   /v1/{identifier}/claims:
     post:
       summary: Create Claim
@@ -426,6 +452,12 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    PublishIdentityStateResponse:
+      type: object
+      properties:
+        txID:
+          type: string
 
     #claims
     CreateClaimRequest:

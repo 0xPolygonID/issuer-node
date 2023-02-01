@@ -57,133 +57,97 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 	}
 }
 
-func (p *publisher) PublishState(ctx context.Context) {
-	jobIDValue, err := uuid.NewUUID()
+func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*string, error) {
+	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
 	if err != nil {
-		log.Error(ctx, "error", err)
-		return
-	}
-	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
-	log.Info(ctx, "publish state job started", "job-id", jobIDValue.String())
-	// TODO: make snapshot
-	// make snapshot if rds was init
-
-	// 1. Get all issuers that have claims not included in any state
-	issuers, err := p.identityService.GetUnprocessedIssuersIDs(ctx)
-	if err != nil {
-		log.Error(ctx, "error fetching unprocessed issuers dids", err)
-		return
-	}
-	log.Info(ctx, "GetUnprocessedIssuersIDs", "GetUnprocessedIssuersIDs-len", len(issuers))
-
-	// 2. Get all states that were not transacted by some reason
-	states, err := p.identityService.GetNonTransactedStates(ctx)
-	if err != nil {
-		log.Error(ctx, "error fetching non transacted states", err)
-		return
+		log.Error(ctx, "error fetching unprocessed issuers did", err)
+		return nil, err
 	}
 
-	// 3. Publish non -transacted states
-	log.Info(ctx, "Non transacted states", "states len", len(states))
-	for i := range states {
-		err = p.publishProof(ctx, states[i])
-		if err != nil {
-			log.Error(ctx, "Error during publishing proof", err, "did", states[i].Identifier)
-			continue
-		}
-	}
-
-	// we shouldn't process IDs which had unpublished states.
-
-	toCalculateAndPublish := []*core.DID{}
-	for _, id := range issuers {
-		if !domain.ContainsID(states, id) {
-			toCalculateAndPublish = append(toCalculateAndPublish, id)
-		}
+	if !exists {
+		log.Info(ctx, "no unprocessed states for the given issuer id")
+		return nil, fmt.Errorf("no unprocessed states for the given issuer id")
 	}
 
 	// 4. Calculate new states and publish them synchronously
-	log.Info(ctx, "toCalculateAndPublish", "toCalculateAndPublish-len", len(toCalculateAndPublish))
-	for _, id := range toCalculateAndPublish {
-		state, err := p.identityService.UpdateState(ctx, id)
-		if err != nil {
-			log.Error(ctx, "Error during processing claims", err, "did", id.String())
-			continue
-		}
-
-		err = p.publishProof(ctx, *state)
-		if err != nil {
-			log.Error(ctx, "Error during publishing proof:", err, "did", id.String())
-			continue
-		}
+	updatedState, err := p.identityService.UpdateState(ctx, identifier)
+	if err != nil {
+		log.Error(ctx, "Error during processing claims", err, "did", identifier.String())
+		return nil, err
 	}
 
-	log.Info(ctx, "publish state job finished", "job-id", jobIDValue.String())
+	txID, err := p.publishProof(ctx, *updatedState)
+	if err != nil {
+		log.Error(ctx, "Error during publishing proof:", err, "did", identifier.String())
+		return nil, err
+	}
+
+	return txID, nil
 }
 
 // PublishProof publishes new proof using the latest state
-func (p *publisher) publishProof(ctx context.Context, newState domain.IdentityState) error {
+func (p *publisher) publishProof(ctx context.Context, newState domain.IdentityState) (*string, error) {
 	did, err := core.ParseDID(newState.Identifier)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 1. Get latest transacted state
 	latestState, err := p.identityService.GetLatestStateByID(ctx, did)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	latestStateHash, err := merkletree.NewHashFromHex(*latestState.State)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: core.IdenState should be calculated before state stored to db
 	newStateHash, err := merkletree.NewHashFromHex(*newState.State)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	newTreeState, err := newState.ToTreeState()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	authClaim, err := p.claimService.GetAuthClaimForPublishing(ctx, did, *newState.State)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	claimKeyID, err := p.identityService.GetKeyIDFromAuthClaim(ctx, authClaim)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	oldTreeState, err := latestState.ToTreeState()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	circuitAuthClaim, circuitAuthClaimNewStateIncProof, err := p.fillAuthClaimData(ctx, did, authClaim, newState)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	hashOldAndNewStates, err := poseidon.Hash([]*big.Int{oldTreeState.State.BigInt(), newStateHash.BigInt()})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sigDigest := kms.BJJDigest(hashOldAndNewStates)
 	sigBytes, err := p.kms.Sign(ctx, claimKeyID, sigDigest)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	signature, err := kms.DecodeBJJSignature(sigBytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	isLatestStateGenesis := latestState.PreviousState == nil
@@ -203,20 +167,20 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 
 	jsonInputs, err := stateTransitionInputs.InputsMarshal()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// TODO: Integrate when it's finished
 	fullProof, err := p.zkService.Generate(ctx, jsonInputs, string(circuits.StateTransitionCircuitID))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// 7. Publish state and receive txID
 
 	txID, err := p.publisherGateway.PublishState(ctx, did, latestStateHash, newStateHash, isLatestStateGenesis, fullProof.Proof)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	log.Info(ctx, "Success!", "TxID", txID)
@@ -228,7 +192,7 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 
 	err = p.identityService.UpdateIdentityState(ctx, &newState)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// add go routine that will listen for transaction status update
@@ -240,7 +204,7 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 		}
 	}()
 
-	return nil
+	return txID, nil
 }
 
 func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID, authClaim *domain.Claim, newState domain.IdentityState) (

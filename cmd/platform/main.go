@@ -3,25 +3,31 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -54,10 +60,22 @@ func main() {
 		panic(err)
 	}
 
+	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
+	if err != nil {
+		log.Error(ctx, "cannot create Ethereum key provider", err)
+		panic(err)
+	}
+
 	keyStore := kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
 		log.Error(ctx, "cannot register BabyJubJub key provider: %+v", err)
+		panic(err)
+	}
+
+	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		log.Error(ctx, "cannot register Ethereum key provider", err)
 		panic(err)
 	}
 
@@ -98,14 +116,44 @@ func main() {
 	}
 
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
-
 	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepo, keyStore, storage, stateContract)
-
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol:  %+v", err)
 		panic(err)
 	}
+
+	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	if err != nil {
+		panic("Error dialing with ethclient: " + err.Error())
+	}
+
+	cl := eth.NewClient(commonClient, &eth.ClientConfig{
+		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
+		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
+		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
+		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
+		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
+		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
+		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
+	})
+	publisherGateway, err := gateways.NewPublisherEthGateway(cl, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
+	if err != nil {
+		log.Error(ctx, "error creating publish gateway", err)
+		panic("error creating publish gateway")
+	}
+
+	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
+	proofService := initProofService(cfg, circuitsLoaderService)
+	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
+	if err != nil {
+		log.Error(ctx, "error creating transaction service", err)
+		panic("error creating transaction service")
+	}
+
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
 
 	spec, err := api.GetSwagger()
 	if err != nil {
@@ -122,7 +170,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, schemaService, packageManager),
+			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,
@@ -154,4 +202,21 @@ func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMid
 		api.LogMiddleware(ctx),
 		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
 	}
+}
+
+func initProofService(config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+	log.Info(context.Background(), fmt.Sprintf("native prover enabled: %v", config.NativeProofGenerationEnabled))
+	if config.NativeProofGenerationEnabled {
+		proverConfig := &services.NativeProverConfig{
+			CircuitsLoader: circuitLoaderService,
+		}
+		return services.NewNativeProverService(proverConfig)
+	}
+
+	proverConfig := &gateways.ProverConfig{
+		ServerURL:       config.Prover.ServerURL,
+		ResponseTimeout: config.Prover.ResponseTimeout,
+	}
+
+	return gateways.NewProverService(proverConfig)
 }

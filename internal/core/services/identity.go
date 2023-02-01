@@ -683,6 +683,10 @@ func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, e
 	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
 }
 
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier *core.DID) (bool, error) {
+	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, identifier)
+}
+
 func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
 	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
 	if err != nil {
