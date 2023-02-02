@@ -12,6 +12,7 @@ import (
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -142,4 +143,8 @@ func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identit
 // TODO: add package manager mocks
 func NewPackageManagerMock() *iden3comm.PackageManager {
 	return &iden3comm.PackageManager{}
+}
+
+func NewPublisherMock() ports.Publisher {
+	return nil
 }

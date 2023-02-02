@@ -17,11 +17,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -48,42 +50,16 @@ func main() {
 		panic(err)
 	}
 
-	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
+	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
-		log.Error(ctx, "cannot create BabyJubJub key provider: %+v", err)
+		log.Error(ctx, "cannot initialize kms: %+v", err)
 		panic(err)
 	}
 
-	keyStore := kms.NewKMS()
-	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
+	ethereumClient, err := blockchain.Open(cfg)
 	if err != nil {
-		log.Error(ctx, "cannot register BabyJubJub key provider: %+v", err)
-		panic(err)
+		panic("Error dialing with ethclient: " + err.Error())
 	}
-
-	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
-	mtRepo := repositories.NewIdentityMerkleTreeRepository()
-	identityStateRepo := repositories.NewIdentityState()
-	revocationRepository := repositories.NewRevocation()
-	mtService := services.NewIdentityMerkleTrees(mtRepo)
-
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(storage)
-	claimsService := services.NewClaim(
-		claimsRepo,
-		schemaService,
-		identityService,
-		mtService,
-		identityStateRepo,
-		storage,
-		services.ClaimCfg{
-			RHSEnabled: cfg.ReverseHashService.Enabled,
-			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.ServerUrl,
-		},
-	)
 
 	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
 	if err != nil {
@@ -97,9 +73,50 @@ func main() {
 		panic(err)
 	}
 
-	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
+	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
 
-	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepo, keyStore, storage, stateContract)
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+
+	// repositories initialization
+	identityRepository := repositories.NewIdentity()
+	claimsRepository := repositories.NewClaims()
+	mtRepository := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepository := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+
+	// services initialization
+	mtService := services.NewIdentityMerkleTrees(mtRepository)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, storage, rhsp)
+	schemaService := services.NewSchema(storage)
+	claimsService := services.NewClaim(
+		claimsRepository,
+		schemaService,
+		identityService,
+		mtService,
+		identityStateRepository,
+		storage,
+		services.ClaimCfg{
+			RHSEnabled: cfg.ReverseHashService.Enabled,
+			RHSUrl:     cfg.ReverseHashService.URL,
+			Host:       cfg.ServerUrl,
+		},
+	)
+	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
+	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
+	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepository, keyStore, storage, stateContract)
+	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
+	if err != nil {
+		log.Error(ctx, "error creating transaction service", err)
+		panic("error creating transaction service")
+	}
+
+	publisherGateway, err := gateways.NewPublisherEthGateway(ethereumClient, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
+	if err != nil {
+		log.Error(ctx, "error creating publish gateway", err)
+		panic("error creating publish gateway")
+	}
+
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
@@ -112,6 +129,7 @@ func main() {
 		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
 		os.Exit(1)
 	}
+
 	spec.Servers = nil
 	mux := chi.NewRouter()
 	mux.Use(
@@ -122,7 +140,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, schemaService, packageManager),
+			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,

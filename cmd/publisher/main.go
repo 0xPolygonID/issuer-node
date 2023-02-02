@@ -33,11 +33,6 @@ func main() {
 		panic(err)
 	}
 
-	onChainPublishStateFrecuency, err := time.ParseDuration(cfg.OnChainPublishStateFrecuency)
-	if err != nil {
-		panic("error converting onChainPublishStateFrecuency param")
-	}
-
 	onChainCheckStatusFrecuency, err := time.ParseDuration(cfg.OnChainCheckStatusFrecuency)
 	if err != nil {
 		panic("error converting onChainCheckStatusFrecuency param")
@@ -151,18 +146,6 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(onChainPublishStateFrecuency)
-		for {
-			select {
-			case <-ticker.C:
-				publisher.PublishState(ctx)
-			case <-ctx.Done():
-				log.Info(ctx, "finishing publish state job..")
-			}
-		}
-	}(ctx)
-
-	go func(ctx context.Context) {
 		ticker := time.NewTicker(onChainCheckStatusFrecuency)
 		for {
 			select {
@@ -189,7 +172,6 @@ func initProofService(config *config.Configuration, circuitLoaderService *loader
 		return services.NewNativeProverService(proverConfig)
 	}
 
-	// TODO: add another prover
 	proverConfig := &gateways.ProverConfig{
 		ServerURL:       config.Prover.ServerURL,
 		ResponseTimeout: config.Prover.ResponseTimeout,

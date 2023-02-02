@@ -3,12 +3,17 @@ package gateways
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	client "github.com/polygonid/sh-id-platform/pkg/http"
+	"github.com/polygonid/sh-id-platform/pkg/loaders"
 )
 
 // ProverConfig represents prover server config
@@ -25,6 +30,26 @@ type ProverService struct {
 // NewProverService new prover service that works with zero knowledge proofs
 func NewProverService(config *ProverConfig) *ProverService {
 	return &ProverService{proverConfig: config}
+}
+
+// NewProver returns a new prover with the given configuration.
+// If NativeProofGenerationEnabled is true it will return a NativeProverService
+// If NativeProofGenerationEnabled is false if will return an external ProverService
+func NewProver(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+	log.Info(ctx, fmt.Sprintf("native prover enabled: %v", config.NativeProofGenerationEnabled))
+	if config.NativeProofGenerationEnabled {
+		proverConfig := &services.NativeProverConfig{
+			CircuitsLoader: circuitLoaderService,
+		}
+		return services.NewNativeProverService(proverConfig)
+	}
+
+	proverConfig := &ProverConfig{
+		ServerURL:       config.Prover.ServerURL,
+		ResponseTimeout: config.Prover.ResponseTimeout,
+	}
+
+	return NewProverService(proverConfig)
 }
 
 // Verify calls prover server for proof verification

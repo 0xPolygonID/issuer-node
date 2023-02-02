@@ -46,3 +46,23 @@ func InitEthConnect(cfg config.Ethereum) (*eth.Client, error) {
 
 	return cl, nil
 }
+
+// Open returns an initialized eth Client with the given configuration
+func Open(cfg *config.Configuration) (*eth.Client, error) {
+	ethClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	return eth.NewClient(ethClient, &eth.ClientConfig{
+		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
+		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
+		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
+		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
+		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
+		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
+		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
+	}), nil
+}

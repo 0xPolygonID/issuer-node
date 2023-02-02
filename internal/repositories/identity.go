@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	core "github.com/iden3/go-iden3-core"
 
@@ -134,4 +135,28 @@ SELECT issuer FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FRO
 	}
 
 	return issuersIDs, nil
+}
+
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier, identifier *core.DID) (bool, error) {
+	row := conn.QueryRow(ctx,
+		`WITH issuers_to_process AS
+				(
+					SELECT  issuer 
+						FROM claims
+						WHERE identity_state ISNULL AND identifier = issuer
+							UNION
+						SELECT identifier FROM revocation where status = 0
+				), transacted_issuers AS
+				(
+					SELECT identifier from identity_states WHERE status = 'transacted'  
+				)
+				
+				SELECT COUNT(*) FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FROM transacted_issuers) AND issuer = $1`, identifier.String())
+
+	var res int64
+	if err := row.Scan(&res); err != nil {
+		return false, fmt.Errorf("error getting unprocessed rows %w", err)
+	}
+
+	return res > 0, nil
 }
