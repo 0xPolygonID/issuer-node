@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -67,8 +66,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	blockchain := request.Body.DidMetadata.Blockchain
 	network := request.Body.DidMetadata.Network
 
-	hostUrl := fmt.Sprintf("%s:%d", s.cfg.ServerUrl, s.cfg.ServerPort)
-	identity, err := s.identityService.Create(ctx, method, blockchain, network, hostUrl)
+	identity, err := s.identityService.Create(ctx, method, blockchain, network, s.cfg.ServerUrl)
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
 			return CreateIdentity400JSONResponse{
