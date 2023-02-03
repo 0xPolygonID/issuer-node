@@ -7,8 +7,12 @@ export PATH := $(BIN):$(PATH)
 BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
+SANDBOX_DEV_PATH = $(shell pwd)/infrastructure/sandbox
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
+DOCKER_COMPOSE_FILE_SANDBOX := $(SANDBOX_DEV_PATH)/docker-compose.yml
+
 DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
+DOCKER_COMPOSE_CMD_SANDBOX := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE_SANDBOX)
 
 .PHONY: build
 build:
@@ -49,14 +53,35 @@ api: $(BIN)/oapi-codegen
 up:
 	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
 
+.PHONY: up-sandbox
+up-sandbox:
+	$(DOCKER_COMPOSE_CMD_SANDBOX) up -d redis postgres vault
+
 .PHONY: run
 run:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}'))
 	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD) up -d platform
 
+.PHONY: run-sandbox
+run-sandbox:
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}'))
+	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD_SANDBOX) up -d platform --build platform
+
+.PHONY: down-sandbox
+down-sandbox:
+	$(DOCKER_COMPOSE_CMD_SANDBOX) down --remove-orphans
+
 .PHONY: down
 down:
 	$(DOCKER_COMPOSE_CMD) down --remove-orphans
+
+.PHONY: stop
+stop:
+	$(DOCKER_COMPOSE_CMD) stop
+
+.PHONY: stop-sandbox
+stop-sandbox:
+	$(DOCKER_COMPOSE_CMD_SANDBOX) stop
 
 .PHONY: up-test
 up-test:
