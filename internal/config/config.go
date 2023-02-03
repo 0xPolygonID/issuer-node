@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -106,34 +105,26 @@ type HTTPBasicAuth struct {
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
-// Load loads the configuraion from a file
-func Load(fileName string) (*Configuration, error) {
-	//if err := getFlags(); err != nil {
-	//	return nil, err
-	//}
-	bindEnv()
-	pathFlag := viper.GetString("config")
-	if _, err := os.Stat(pathFlag); err == nil {
-		ext := filepath.Ext(pathFlag)
-		if len(ext) > 1 {
-			ext = ext[1:]
-		}
-		name := strings.Split(filepath.Base(pathFlag), ".")[0]
-		viper.AddConfigPath(".")
-		viper.SetConfigName(name)
-		viper.SetConfigType(ext)
+func Load() *Configuration {
+	env := os.Getenv("ENV")
+	viper.SetConfigType("toml")
+	if "" == env {
+		viper.SetConfigName("config")
 	} else {
-		// Read default config file.
-		viper.AddConfigPath(getWorkingDirectory())
-		viper.AddConfigPath(CIConfigPath)
-		viper.SetConfigType("toml")
-		if fileName == "" {
-			viper.SetConfigName("config")
-		} else {
-			viper.SetConfigName(fileName)
-		}
+		viper.SetConfigName("config." + env)
 	}
-	// const defDBPort = 5432
+	return loadDefault()
+}
+
+func loadDefault() *Configuration {
+	bindEnv()
+	viper.AddConfigPath(getWorkingDirectory())
+	viper.AddConfigPath(CIConfigPath)
+
+	return loadEnv()
+}
+
+func loadEnv() *Configuration {
 	config := &Configuration{
 		// ServerPort: defDBPort,
 		Database: Database{},
@@ -143,15 +134,14 @@ func Load(fileName string) (*Configuration, error) {
 		},
 	}
 
-	if err := viper.ReadInConfig(); err == nil {
-		if err := viper.Unmarshal(config); err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, err
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Printf("config file not found...")
 	}
 
-	return config, nil
+	if err := viper.Unmarshal(config); err != nil {
+		fmt.Printf("error:%v", err)
+	}
+	return config
 }
 
 // VaultTest returns the vault configuration to be used in tests.

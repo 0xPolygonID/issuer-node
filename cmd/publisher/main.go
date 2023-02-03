@@ -27,12 +27,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		panic(err)
-	}
-
+	cfg := config.Load()
 	onChainCheckStatusFrecuency, err := time.ParseDuration(cfg.OnChainCheckStatusFrecuency)
 	if err != nil {
 		panic("error converting onChainCheckStatusFrecuency param")
