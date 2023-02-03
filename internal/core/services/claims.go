@@ -410,7 +410,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 
 	issuanceDate := time.Now()
 	return verifiable.W3CCredential{
-		ID:                fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(c.cfg.Host, "/"), vcID),
+		ID:                fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(c.cfg.Host, "/"), claimReq.DID.String(), vcID),
 		Context:           credentialCtx,
 		Type:              credentialType,
 		Expiration:        claimReq.Expiration,
