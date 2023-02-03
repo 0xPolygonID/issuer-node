@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -105,6 +106,7 @@ type HTTPBasicAuth struct {
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
+// Load - loads config envs.
 func Load() *Configuration {
 	env := os.Getenv("ENV")
 	viper.SetConfigType("toml")
@@ -134,12 +136,8 @@ func loadEnv() *Configuration {
 		},
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("config file not found...")
-	}
-
 	if err := viper.Unmarshal(config); err != nil {
-		fmt.Printf("error:%v", err)
+		log.Error(context.Background(), "error loading envs", err)
 	}
 	return config
 }
