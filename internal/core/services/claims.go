@@ -245,9 +245,6 @@ func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Age
 	if !exists {
 		return nil, fmt.Errorf("can not proceed with this identity, not found")
 	}
-	if req.Type == protocol.RevocationStatusRequestMessageType {
-		return c.getAgentRevocationStatus(ctx, req)
-	}
 
 	return c.getAgentCredential(ctx, req) // at this point the type is already validated
 }
@@ -278,28 +275,6 @@ func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter)
 	}
 
 	return w3Credentials, nil
-}
-
-func (c *claim) getAgentRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
-	revData := &protocol.RevocationStatusRequestMessageBody{}
-	err := json.Unmarshal(basicMessage.Body, revData)
-	if err != nil {
-		return nil, fmt.Errorf("invalid revocation request body: %w", err)
-	}
-
-	revStatus, err := c.getRevocationNonceMTP(ctx, basicMessage.IssuerDID, revData.RevocationNonce)
-	if err != nil {
-		return nil, fmt.Errorf("failed get revocation nonce: %w", err)
-	}
-
-	return &domain.Agent{
-		ID:       uuid.NewString(),
-		Type:     protocol.RevocationStatusResponseMessageType,
-		ThreadID: basicMessage.ThreadID,
-		Body:     protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus},
-		From:     basicMessage.UserDID.String(),
-		To:       basicMessage.IssuerDID.String(),
-	}, nil
 }
 
 func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
@@ -337,53 +312,6 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		From:     basicMessage.IssuerDID.String(),
 		To:       basicMessage.UserDID.String(),
 	}, err
-}
-
-// getRevocationNonceMTP generates MTP proof for given nonce
-func (c *claim) getRevocationNonceMTP(ctx context.Context, did *core.DID, nonce uint64) (*verifiable.RevocationStatus, error) {
-	rID := new(big.Int).SetUint64(nonce)
-	revocationStatus := &verifiable.RevocationStatus{}
-
-	// current state of identity / the latest published on chain
-	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return nil, err
-	}
-
-	revocationStatus.Issuer.State = state.State
-	revocationStatus.Issuer.ClaimsTreeRoot = state.ClaimsTreeRoot
-	revocationStatus.Issuer.RevocationTreeRoot = state.RevocationTreeRoot
-	revocationStatus.Issuer.RootOfRoots = state.RootOfRoots
-
-	if state.RevocationTreeRoot == nil {
-
-		var mtp *merkletree.Proof
-		mtp, err = merkletree.NewProofFromData(false, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-		revocationStatus.MTP = *mtp
-		return revocationStatus, nil
-	}
-
-	revocationTreeHash, err := merkletree.NewHashFromHex(*state.RevocationTreeRoot)
-	if err != nil {
-		return nil, err
-	}
-	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
-	if err != nil {
-		return nil, err
-	}
-
-	// revocation / non revocation MTP for the latest identity state
-	proof, err := identityTrees.GenerateRevocationProof(ctx, rID, revocationTreeHash)
-	if err != nil {
-		return nil, err
-	}
-
-	revocationStatus.MTP = *proof
-
-	return revocationStatus, nil
 }
 
 func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
