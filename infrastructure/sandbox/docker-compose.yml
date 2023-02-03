@@ -93,9 +93,9 @@ services:
     container_name: sh-id-platform-test-vault
     volumes:
       - ./.vault/config:/vault/config
-      - /home/ubuntu/vault/policies:/vault/policies
-      - /home/ubuntu/vault/data:/vault/data
-      - /home/ubuntu/vault/file:/vault/file:rw
+      - /Users/martinsaporiti/dev/vault/policies:/vault/policies
+      - /Users/martinsaporiti/dev/vault/data:/vault/data
+      - /Users/martinsaporiti/dev/vault/file:/vault/file:rw
       - ./.vault/scripts:/vault/scripts
       - ./.vault/plugins:/vault/plugins
     ports:
