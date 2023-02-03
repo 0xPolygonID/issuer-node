@@ -11,7 +11,7 @@ services:
       - redis
       - vault
     environment:
-      - SH_ID_PLATFORM_SERVER_URL=localhost:3001
+      - SH_ID_PLATFORM_SERVER_URL=https://self-hosted-platform.polygonid.me
       - SH_ID_PLATFORM_SERVER_PORT=3001
       - SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED=true
       - SH_ID_PLATFORM_PUBLISH_KEY_PATH=pbkey
