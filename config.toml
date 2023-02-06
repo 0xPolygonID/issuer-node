@@ -21,7 +21,7 @@ Mode = 2
 
 [KeyStore]
 Address="http://localhost:8200/"
-Token="hvs.Z6GaiziJW536COQZSquISbTT"
+Token="hvs.4SIyXITXIk6ilBj8SetGejvL"
 PluginIden3MountPath="iden3"
 
 [ReverseHashService]

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 type spyLoader struct {

@@ -113,14 +113,6 @@ func lookupPostgresURL() string {
 	return con
 }
 
-func lookupRedisUrl() string {
-	con, ok := os.LookupEnv("POSTGRES_TEST_REDIS")
-	if !ok {
-		return ""
-	}
-	return con
-}
-
 type KMSMock struct{}
 
 func (kpm *KMSMock) RegisterKeyProvider(kt kms.KeyType, kp kms.KeyProvider) error {
