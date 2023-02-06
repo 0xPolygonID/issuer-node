@@ -2,6 +2,7 @@ package gateways
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -19,11 +20,23 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
 )
 
 type jobIDType string
 
-const jobID jobIDType = "job-id"
+var (
+	// ErrNoStatesToProcess No states to process
+	ErrNoStatesToProcess = errors.New("no states to process")
+	// ErrStateIsBeingProcessed State is being processed
+	ErrStateIsBeingProcessed = errors.New("the state is being processed")
+)
+
+const (
+	jobID              jobIDType = "job-id"
+	ttl                          = 60 * time.Second
+	transactionCleanup           = 3600 * time.Second
+)
 
 // PublisherGateway - Define the interface for publishers.
 type PublisherGateway interface {
@@ -40,10 +53,14 @@ type publisher struct {
 	confirmationTimeout time.Duration
 	zkService           ports.ZKGenerator
 	publisherGateway    PublisherGateway
+	pendingTransactions *sync_ttl_map.TTLMap
 }
 
 // NewPublisher - Constructor
 func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration) *publisher {
+	pendingTransactions := sync_ttl_map.New(ttl)
+	pendingTransactions.CleaningBackground(transactionCleanup)
+
 	return &publisher{
 		identityService:     identityService,
 		claimService:        claimService,
@@ -54,10 +71,27 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 		zkService:           zkService,
 		publisherGateway:    publisherGateway,
 		confirmationTimeout: confirmationTimeout,
+		pendingTransactions: pendingTransactions,
 	}
 }
 
 func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*string, error) {
+	idStr := identifier.String()
+	processingEntity := p.pendingTransactions.Load(idStr)
+	if processingEntity != nil {
+		return nil, ErrStateIsBeingProcessed
+	}
+
+	p.pendingTransactions.Store(idStr, true)
+	txID, err := p.publishState(ctx, identifier)
+	if err != nil {
+		p.pendingTransactions.Delete(idStr)
+	}
+
+	return txID, err
+}
+
+func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*string, error) {
 	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching unprocessed issuers did", err)
@@ -66,7 +100,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 
 	if !exists {
 		log.Info(ctx, "no unprocessed states for the given issuer id")
-		return nil, fmt.Errorf("no unprocessed states for the given issuer id")
+		return nil, ErrNoStatesToProcess
 	}
 
 	// 4. Calculate new states and publish them synchronously
@@ -76,7 +110,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 		return nil, err
 	}
 
-	txID, err := p.publishProof(ctx, *updatedState)
+	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
 		log.Error(ctx, "Error during publishing proof:", err, "did", identifier.String())
 		return nil, err
@@ -86,7 +120,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 }
 
 // PublishProof publishes new proof using the latest state
-func (p *publisher) publishProof(ctx context.Context, newState domain.IdentityState) (*string, error) {
+func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newState domain.IdentityState) (*string, error) {
 	did, err := core.ParseDID(newState.Identifier)
 	if err != nil {
 		return nil, err
@@ -202,6 +236,8 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 		if err2 != nil {
 			log.Error(ctx, "can not update transaction status", err2)
 		}
+
+		p.pendingTransactions.Delete(identifier.String())
 	}()
 
 	return txID, nil

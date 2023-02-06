@@ -138,7 +138,13 @@ paths:
         - $ref: '#/components/parameters/pathIdentifier'
       responses:
         '200':
-          description: Transaction ID of the published state
+          description: No transactions to process to the given identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorMessage'
+        '202':
+          description: Transaction ID of the published  state
           content:
             application/json:
               schema:
