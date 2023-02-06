@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"net/http"
 	"os"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 

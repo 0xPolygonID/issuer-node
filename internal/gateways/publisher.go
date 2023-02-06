@@ -26,8 +26,10 @@ import (
 type jobIDType string
 
 var (
-	ErrNoStatesToProcess     = errors.New("no states to process")         // ErrNoStatesToProcess No states to process
-	ErrStateIsBeingProcessed = errors.New("the state is being processed") // ErrNoStatesToProcess No states to process
+	// ErrNoStatesToProcess No states to process
+	ErrNoStatesToProcess = errors.New("no states to process")
+	// ErrStateIsBeingProcessed State is being processed
+	ErrStateIsBeingProcessed = errors.New("the state is being processed")
 )
 
 const (
