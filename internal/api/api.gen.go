@@ -101,7 +101,7 @@ type GetClaimsResponse = []GetClaimResponse
 
 // Health defines model for Health.
 type Health struct {
-	Cache bool `json:"sync_ttl_map"`
+	Cache bool `json:"cache"`
 	Db    bool `json:"db"`
 }
 
@@ -1770,10 +1770,10 @@ var swaggerSpec = []string{
 	"a4V42Z7zN+D4zn5lttj4HmEC0/IUVHU4O0VAu934EOXABjvcdwU7DXu9jdQAKC/tUOVxLo0mWC15Q5Xa",
 	"t8THDdRBsT7EuT2IuHzVgUKt1fizITB4UAjcrA9Jp0kCeRWNtogw7gPFdWtPdhZhnHz3iTB3jC62u5KQ",
 	"Mmb35Miyyngk9Dhaj1I3rc9mO6+afjrSqgprQ5jZyVCcuyHZZgHKL666LMhNl9o4Cw3eHqYo2xmMNvz0",
-	"GGlJuCKJeaCsRty3wOZPk88nbAa1JtQietBYuXKgGeqyLplFF+fVvcydAtRb77/tJuG1ULV5UImvDZs9",
-	"DvdFTv1gdG18dUvXgf43u+p/DvP3Krt+OkacMTaDiD1WzkoTNcX/VSS291XI1M9Ih3GcmodTofTw+NAI",
-	"cV0d3Pk/U0SagnNAMa6GPwpJSG2e1qLerfQNiWXvM7rHedUl25/ms/B9jnKTq+VRbnayuF78JwAA///6",
-	"EMVknDQAAA==",
+	"GGlJuCKJeaCsRty3wOZPk88nbAa1JtQietBYuXKgGeqyLplFF+fVvcydAhR58/23XSW8Gqo+DyoBtmG3",
+	"xwG/yKmfjK4NsG7pOtT/Zlf9z4H+XnXXT8eIM8ZmELHHyllpoqb4v4rENr8Kmfoh6TCOU/NwKpQeHh8a",
+	"Ia6rgzv/a4pIU3AeKMbV9EchCalN1FrU25W+I7Fsfkb3OK+6ZfvTfBq+z1FudLU8yg1PFteL/wQAAP//",
+	"UumxfZ00AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
