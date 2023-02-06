@@ -34,7 +34,7 @@ var (
 
 const (
 	jobID              jobIDType = "job-id"
-	ttl                          = 30 * time.Second
+	ttl                          = 60 * time.Second
 	transactionCleanup           = 3600 * time.Second
 )
 
@@ -84,7 +84,9 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 
 	p.pendingTransactions.Store(idStr, true)
 	txID, err := p.publishState(ctx, identifier)
-	p.pendingTransactions.Delete(idStr)
+	if err != nil {
+		p.pendingTransactions.Delete(idStr)
+	}
 
 	return txID, err
 }
@@ -108,7 +110,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*st
 		return nil, err
 	}
 
-	txID, err := p.publishProof(ctx, *updatedState)
+	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
 		log.Error(ctx, "Error during publishing proof:", err, "did", identifier.String())
 		return nil, err
@@ -118,7 +120,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*st
 }
 
 // PublishProof publishes new proof using the latest state
-func (p *publisher) publishProof(ctx context.Context, newState domain.IdentityState) (*string, error) {
+func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newState domain.IdentityState) (*string, error) {
 	did, err := core.ParseDID(newState.Identifier)
 	if err != nil {
 		return nil, err
@@ -234,6 +236,8 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 		if err2 != nil {
 			log.Error(ctx, "can not update transaction status", err2)
 		}
+
+		p.pendingTransactions.Delete(identifier.String())
 	}()
 
 	return txID, nil
