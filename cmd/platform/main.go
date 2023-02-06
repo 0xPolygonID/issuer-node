@@ -19,10 +19,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
+	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -43,6 +46,15 @@ func main() {
 		log.Error(ctx, "cannot connect to database", err)
 		panic(err)
 	}
+
+	// Redis cache
+	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	if err != nil {
+		log.Error(ctx, "cannot connect to redis", err, "host", cfg.Cache.RedisUrl)
+		panic(err)
+	}
+	cachex := cache.NewRedisCache(rdb)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
@@ -87,7 +99,7 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(storage)
+	schemaService := services.NewSchema(schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
 		schemaService,
@@ -103,7 +115,7 @@ func main() {
 	)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
-	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepository, keyStore, storage, stateContract)
+	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", err)

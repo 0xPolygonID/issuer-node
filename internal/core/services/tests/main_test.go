@@ -22,10 +22,6 @@ var (
 	keyStore       *kms.KMS
 )
 
-//func TestMain(m *testing.M) {
-//	os.Exit(testMain(m))
-//}
-
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 	conn := lookupPostgresURL()
@@ -42,31 +38,30 @@ func TestMain(m *testing.M) {
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
 	if err != nil {
-		log.Error(ctx, "failed to acquire test database: %+v", err)
-		// return 1
+		log.Error(ctx, "failed to acquire test database", err)
+		os.Exit(1)
 	}
 	storage = s
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "failed to acquire vault client: %+v", err)
-		// return 1
+		log.Error(ctx, "failed to acquire vault client", err)
+		os.Exit(1)
 	}
 
 	bjjKeyProvider, err = kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Error(ctx, "failed to create Iden3 Key Provider: %+v", err)
-		// return 1
+		log.Error(ctx, "failed to create Iden3 Key Provider", err)
+		os.Exit(1)
 	}
 
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Error(ctx, "failed to register Key Provider: %+v", err)
-		// return 1
+		log.Error(ctx, "failed to register Key Provider", err)
+		os.Exit(1)
 	}
 
-	// return m.Run()
 	m.Run()
 }
 
