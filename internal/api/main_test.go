@@ -18,7 +18,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
@@ -52,17 +51,7 @@ func TestMain(m *testing.M) {
 	}
 	storage = s
 
-	// Redis, caches, etc...
-	redisUrl := lookupRedisUrl()
-	if redisUrl == "" {
-		redisUrl = "redis://@localhost:6380/1"
-	}
-	rdc, err := redis.Open(redisUrl)
-	if err != nil {
-		log.Error(ctx, "cannot connect to redis", err, "host", cfg.Cache.RedisUrl)
-		panic(err)
-	}
-	cachex = cache.NewRedisCache(rdc)
+	cachex = cache.NewMemoryCache()
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {
