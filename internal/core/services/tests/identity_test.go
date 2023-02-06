@@ -31,7 +31,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(loader.OnceFactory(loader.HTTPFactory))
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,

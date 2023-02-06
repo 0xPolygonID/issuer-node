@@ -13,7 +13,7 @@ type schemaData struct {
 }
 
 type cached struct {
-	url    string // TODO: Get from Loader interface
+	url    string
 	loader Loader
 	cache  cache.Cache
 }
@@ -49,8 +49,9 @@ func (c *cached) key(url string) string {
 }
 
 // Cached is a file loader that uses a cache. That cache can be shared by multiple loaders.
-func Cached(l Loader, c cache.Cache) Loader {
+func Cached(l Loader, c cache.Cache, url string) Loader {
 	return &cached{
+		url:    url,
 		loader: l,
 		cache:  c,
 	}
@@ -60,6 +61,6 @@ func Cached(l Loader, c cache.Cache) Loader {
 // looks on a cache for a file before tryying to fetch it
 func CachedFactory(f Factory, c cache.Cache) Factory {
 	return func(url string) Loader {
-		return Cached(f(url), c)
+		return Cached(f(url), c, url)
 	}
 }

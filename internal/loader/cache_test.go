@@ -2,8 +2,10 @@ package loader
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,10 +18,11 @@ func (s *spyLoader) Load(_ context.Context) (schema []byte, extension string, er
 	return []byte("this is an schema content"), "extension", nil
 }
 
-func TestOnce_Load(t *testing.T) {
+func TestCached_Load(t *testing.T) {
 	ctx := context.Background()
 	spy := &spyLoader{}
-	myLoader := OnceFactory(func(url string) Loader { return spy })("http://this/is/an/url")
+	c := cache.NewMemoryCache()
+	myLoader := CachedFactory(func(url string) Loader { return spy }, c)("http://this/is/an/url")
 	assert.Equal(t, spy.called, 0)
 	for i := 0; i < 100; i++ {
 		schema, ext, err := myLoader.Load(ctx)
@@ -27,5 +30,6 @@ func TestOnce_Load(t *testing.T) {
 		assert.Equal(t, []byte("this is an schema content"), schema)
 		assert.Equal(t, "extension", ext)
 		assert.Equal(t, 1, spy.called, "Load function of underlying loader has only been called once")
+		assert.True(t, c.Exists(ctx, fmt.Sprintf("schema-%s", "http://this/is/an/url")))
 	}
 }

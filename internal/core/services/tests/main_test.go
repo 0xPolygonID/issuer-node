@@ -13,6 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	vaultCli       *api.Client
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
+	cachex         cache.Cache
 )
 
 func TestMain(m *testing.M) {
@@ -61,6 +63,7 @@ func TestMain(m *testing.M) {
 		log.Error(ctx, "failed to register Key Provider", err)
 		os.Exit(1)
 	}
+	cachex = cache.NewMemoryCache()
 
 	m.Run()
 }
