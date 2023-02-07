@@ -7,39 +7,29 @@ import (
 
 	core "github.com/iden3/go-iden3-core"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/loaders"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
 type schema struct {
-	storage *db.Storage
+	loaderFactory loader.Factory
 }
 
 // NewSchema creates a new schema service
-func NewSchema(storage *db.Storage) ports.SchemaService {
-	return &schema{storage: storage}
-}
-
-// Load returns schema content by url
-func (s *schema) Load(ctx context.Context, schemaURL string) (schema []byte, extension string, err error) {
-	var schemaBytes []byte
-	schemaBytes, _, err = s.GetLoader(schemaURL).Load(ctx)
-	if err != nil {
-		return nil, "", err
+func NewSchema(lf loader.Factory) ports.SchemaService {
+	return &schema{
+		loaderFactory: lf,
 	}
-
-	return schemaBytes, string(domain.JSONLD), nil
 }
 
 // LoadSchema loads schema from url
 func (s *schema) LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, error) {
-	schemaBytes, _, err := s.Load(ctx, url)
+	schemaBytes, _, err := s.load(ctx, url)
 	if err != nil {
 		return jsonSuite.Schema{}, err
 	}
@@ -59,7 +49,7 @@ func (s *schema) Process(ctx context.Context, schemaURL, credentialType string, 
 	validator = jsonSuite.Validator{}
 	parser = jsonSuite.Parser{}
 
-	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(s.GetLoader(schemaURL)))
+	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(s.loaderFactory(schemaURL)))
 
 	schema, _, err := pr.Load(ctx)
 	if err != nil {
@@ -81,11 +71,6 @@ func (s *schema) Process(ctx context.Context, schemaURL, credentialType string, 
 		return nil, err
 	}
 	return claim, nil
-}
-
-// GetLoader returns corresponding loader (according to url schema)
-func (s *schema) GetLoader(_url string) processor.SchemaLoader {
-	return &loaders.HTTP{URL: _url}
 }
 
 // FromClaimModelToW3CCredential JSON-LD response base on claim
@@ -124,4 +109,15 @@ func (s *schema) FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.
 	cred.Proof = proofs
 
 	return &cred, nil
+}
+
+// load returns schema content by url
+func (s *schema) load(ctx context.Context, schemaURL string) (schema []byte, extension string, err error) {
+	var schemaBytes []byte
+	schemaBytes, _, err = s.loaderFactory(schemaURL).Load(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return schemaBytes, string(domain.JSONLD), nil
 }

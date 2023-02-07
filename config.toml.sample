@@ -8,6 +8,9 @@ OnChainCheckStatusFrecuency = "10m"
 [Database]
 Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
 
+[Cache]
+RedisUrl="redis://@localhost:6380/1"
+
 [HTTPBasicAuth]
 User = "user"
 Password = "password"

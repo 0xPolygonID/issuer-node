@@ -16,6 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -299,10 +300,13 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 
 	txID, err := s.publisherGateway.PublishState(ctx, did)
 	if err != nil {
+		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
+			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
+		}
 		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	return PublishIdentityState200JSONResponse{TxID: txID}, nil
+	return PublishIdentityState202JSONResponse{TxID: txID}, nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

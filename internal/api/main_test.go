@@ -18,6 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	cfg            config.Configuration
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
+	cachex         cache.Cache
 )
 
 func TestMain(m *testing.M) {
@@ -44,10 +46,12 @@ func TestMain(m *testing.M) {
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
 	if err != nil {
-		log.Error(ctx, "failed to acquire test database: %+v", err)
+		log.Error(ctx, "failed to acquire test database", err)
 		// return 1
 	}
 	storage = s
+
+	cachex = cache.NewMemoryCache()
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {
