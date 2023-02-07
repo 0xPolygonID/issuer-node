@@ -26,7 +26,6 @@ const (
 	MerkleTreeTypeRoots = 2
 	mtTypesCount        = 3
 
-	// TODO: move to config
 	mtDepth = 40
 )
 
