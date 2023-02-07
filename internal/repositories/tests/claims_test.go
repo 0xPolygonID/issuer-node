@@ -19,8 +19,6 @@ func TestRevoke(t *testing.T) {
 	idStr := "did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"
 	identity := &domain.Identity{
 		Identifier: idStr,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
@@ -52,8 +50,6 @@ func TestGetByRevocationNonce(t *testing.T) {
 	idStr := "did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW"
 	identity := &domain.Identity{
 		Identifier: idStr,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture.CreateIdentity(t, identity)
 	idClaim, _ := uuid.NewUUID()
@@ -118,8 +114,6 @@ func TestRevokeNonce(t *testing.T) {
 	idStr := "did:polygonid:polygon:mumbai:2qNWrZ4Z7iZPvDusp32sWXGMHvAL9RoTqgPEEXvS9q"
 	identity := &domain.Identity{
 		Identifier: idStr,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)

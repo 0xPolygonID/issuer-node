@@ -81,8 +81,6 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 	return CreateIdentity201JSONResponse{
 		Identifier: &identity.Identifier,
-		Immutable:  identity.Immutable,
-		Relay:      identity.Relay,
 		State: &IdentityState{
 			BlockNumber:        identity.State.BlockNumber,
 			BlockTimestamp:     identity.State.BlockTimestamp,

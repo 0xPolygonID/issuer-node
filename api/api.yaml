@@ -402,16 +402,10 @@ components:
       type: object
       required:
         - identity
-        - relay
-        - immutable
         - status
       properties:
         identifier:
           type: string
-        relay:
-          type: string
-        immutable:
-          type: boolean
         state:
           $ref: '#/components/schemas/IdentityState'
 
