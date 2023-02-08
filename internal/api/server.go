@@ -279,16 +279,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	}, nil
 }
 
-// UpdateIdentityState - updates the identity state
-func (s *Server) UpdateIdentityState(ctx context.Context, request UpdateIdentityStateRequestObject) (UpdateIdentityStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
-	if err != nil {
-		return UpdateIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-	_, err = s.identityService.UpdateState(ctx, did)
-	return nil, err
-}
-
 // PublishIdentityState - publish identity state on chain
 func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error) {
 	did, err := core.ParseDID(request.Identifier)
