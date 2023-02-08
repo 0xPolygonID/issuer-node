@@ -39,7 +39,7 @@ require (
 	github.com/pressly/goose/v3 v3.7.0
 	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/exp v0.0.0-20221217163422-3c43f8badb15
+	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 )
 
 require (
