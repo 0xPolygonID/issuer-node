@@ -75,7 +75,7 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 	}
 }
 
-func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*string, error) {
+func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
 	idStr := identifier.String()
 	processingEntity := p.pendingTransactions.Load(idStr)
 	if processingEntity != nil {
@@ -83,15 +83,15 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 	}
 
 	p.pendingTransactions.Store(idStr, true)
-	txID, err := p.publishState(ctx, identifier)
+	newState, err := p.publishState(ctx, identifier)
 	if err != nil {
 		p.pendingTransactions.Delete(idStr)
 	}
 
-	return txID, err
+	return newState, err
 }
 
-func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*string, error) {
+func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
 	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching unprocessed issuers did", err)
@@ -116,7 +116,13 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*st
 		return nil, err
 	}
 
-	return txID, nil
+	return &domain.PublishedState{
+		TxID:               txID,
+		ClaimsTreeRoot:     updatedState.ClaimsTreeRoot,
+		State:              updatedState.State,
+		RevocationTreeRoot: updatedState.RevocationTreeRoot,
+		RootOfRoots:        updatedState.RootOfRoots,
+	}, nil
 }
 
 // PublishProof publishes new proof using the latest state
