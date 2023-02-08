@@ -100,31 +100,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/update:
-    get:
-      summary: Update Identity State
-      operationId: UpdateIdentityState
-      description: Endpoint to update identity state
-      tags:
-        - Identity
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-      responses:
-        '200':
-          description: Proof
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorMessage'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
   /v1/{identifier}/state/publish:
     post:
       summary: Publish Identity State
