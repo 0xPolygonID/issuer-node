@@ -137,7 +137,7 @@ func main() {
 		panic(err)
 	}
 
-	serverHealth := health.New(storage.Pgx, cachex)
+	serverHealth := health.New(storage.Pgx, rdb)
 
 	spec, err := api.GetSwagger()
 	if err != nil {

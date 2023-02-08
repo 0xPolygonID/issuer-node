@@ -2,6 +2,8 @@ package health
 
 import (
 	"context"
+
+	"github.com/go-redis/redis/v8"
 )
 
 // Health struct
@@ -15,7 +17,7 @@ type storage interface {
 }
 
 type cache interface {
-	Ping(ctx context.Context) error
+	Ping(ctx context.Context) *redis.StatusCmd
 }
 
 // Status struct
@@ -39,7 +41,7 @@ func (h *Health) Status(ctx context.Context) *Status {
 		status.DB = false
 	}
 
-	if err := h.cache.Ping(ctx); err != nil {
+	if err := h.cache.Ping(ctx); err.Err() != nil {
 		status.Cache = false
 	}
 

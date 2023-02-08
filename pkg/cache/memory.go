@@ -45,8 +45,3 @@ func (m *memory) Delete(_ context.Context, key string) error {
 	m.c.Delete(key)
 	return nil
 }
-
-// Ping returns the status of the cache
-func (m *memory) Ping(_ context.Context) error {
-	return nil
-}
