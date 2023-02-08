@@ -252,7 +252,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			expected: expected{
 				httpCode: 202,
 				response: RevokeClaim202JSONResponse{
-					Status: "pending",
+					Message: "claim revocation request sent",
 				},
 			},
 		},
@@ -294,7 +294,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			case RevokeClaim202JSONResponse:
 				var response RevokeClaim202JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Status, v.Status)
+				assert.Equal(t, response.Message, v.Message)
 			case RevokeClaim404JSONResponse:
 				var response RevokeClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))

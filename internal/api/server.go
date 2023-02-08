@@ -137,7 +137,7 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 		return RevokeClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return RevokeClaim202JSONResponse{
-		Status: "pending",
+		Message: "claim revocation request sent",
 	}, nil
 }
 
