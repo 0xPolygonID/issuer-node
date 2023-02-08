@@ -16,6 +16,13 @@ type memory struct {
 	c *cache.Cache
 }
 
+// NewMemoryCache returns a basic in memory cache
+func NewMemoryCache() Cache {
+	return &memory{
+		c: cache.New(memoryDefTTL, memoryCleanUPPeriod),
+	}
+}
+
 // Set sets an item in the in memory cache
 func (m *memory) Set(_ context.Context, key string, value any, ttl time.Duration) error {
 	m.c.Set(key, value, ttl)
@@ -39,9 +46,7 @@ func (m *memory) Delete(_ context.Context, key string) error {
 	return nil
 }
 
-// NewMemoryCache returns a basic in memory cache
-func NewMemoryCache() Cache {
-	return &memory{
-		c: cache.New(memoryDefTTL, memoryCleanUPPeriod),
-	}
+// Ping returns the status of the cache
+func (m *memory) Ping(_ context.Context) error {
+	return nil
 }

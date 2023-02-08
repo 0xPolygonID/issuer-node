@@ -9,13 +9,14 @@ import (
 )
 
 type redisCache struct {
-	redis *cache.Cache
+	redis  *cache.Cache
+	client *redis.Client
 }
 
 // NewRedisCache returns a new cache based on Redis
 func NewRedisCache(client *redis.Client) Cache {
 	myc := cache.New(&cache.Options{Redis: client})
-	return &redisCache{redis: myc}
+	return &redisCache{redis: myc, client: client}
 }
 
 // Set sets a new entry in redis cache
@@ -47,4 +48,8 @@ func (c *redisCache) Exists(ctx context.Context, key string) bool {
 // Delete removes an entry from redis
 func (c *redisCache) Delete(ctx context.Context, key string) error {
 	return c.redis.Delete(ctx, key)
+}
+
+func (c *redisCache) Ping(ctx context.Context) error {
+	return c.client.Ping(ctx).Err()
 }

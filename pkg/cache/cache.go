@@ -20,4 +20,6 @@ type Cache interface {
 	Exists(ctx context.Context, key string) bool
 	// Delete removes an entry from the cache.
 	Delete(ctx context.Context, key string) error
+
+	Ping(ctx context.Context) error
 }
