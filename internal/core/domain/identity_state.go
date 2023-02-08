@@ -40,6 +40,7 @@ type IdentityState struct {
 	CreatedAt          time.Time      `json:"created_at,omitempty"`
 }
 
+// PublishedState defines the domain object of publish state on chain
 type PublishedState struct {
 	TxID               *string
 	ClaimsTreeRoot     *string
