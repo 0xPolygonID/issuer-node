@@ -551,9 +551,9 @@ components:
     RevokeClaimResponse:
       type: object
       required:
-        - status
+        - message
       properties:
-        status:
+        message:
           type: string
           x-omitempty: false
           example: pending
