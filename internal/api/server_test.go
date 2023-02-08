@@ -154,7 +154,6 @@ func TestServer_CreateIdentity(t *testing.T) {
 				assert.NotNil(t, response.State.State)
 				assert.NotNil(t, response.State.Status)
 				assert.NotNil(t, *response.Identifier)
-				assert.NotNil(t, response.Immutable)
 			case http.StatusBadRequest:
 				var response CreateIdentity400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -186,8 +185,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
 		Identifier: idStr,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
@@ -472,13 +469,9 @@ func TestServer_GetIdentities(t *testing.T) {
 	idStr2 := "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"
 	identity1 := &domain.Identity{
 		Identifier: idStr1,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	identity2 := &domain.Identity{
 		Identifier: idStr2,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity1)
@@ -550,8 +543,6 @@ func TestServer_GetClaim(t *testing.T) {
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
 	identity := &domain.Identity{
 		Identifier: idStr,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)

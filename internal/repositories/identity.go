@@ -19,8 +19,7 @@ func NewIdentity() ports.IndentityRepository {
 }
 
 func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error {
-	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier, relay, immutable) VALUES ($1, $2, $3)`,
-		identity.Identifier, identity.Relay, identity.Immutable)
+	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier) VALUES ($1)`, identity.Identifier)
 	return err
 }
 
@@ -30,8 +29,6 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier *cor
 	}
 	row := conn.QueryRow(ctx,
 		`SELECT  identities.identifier,
-       					relay,
-       					identities.immutable,
        					state_id,
    						state,           
     					root_of_roots,
@@ -53,8 +50,6 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier *cor
 				ORDER BY state_id DESC LIMIT 1`, identifier.String())
 
 	err := row.Scan(&identity.Identifier,
-		&identity.Relay,
-		&identity.Immutable,
 		&identity.State.StateID,
 		&identity.State.State,
 		&identity.State.RootOfRoots,
