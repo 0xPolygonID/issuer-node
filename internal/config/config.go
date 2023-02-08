@@ -259,6 +259,8 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Circuit.Path", "SH_ID_PLATFORM_CIRCUIT_PATH")
 
+	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
+
 	viper.AutomaticEnv()
 }
 
