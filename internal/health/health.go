@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const (
+	DefaultPingPeriod = 5 * time.Second // DefaultPingPeriod is a recommendation to ping any service
+)
+
 // Status struct
 type Status struct {
 	sync.RWMutex
@@ -30,7 +34,7 @@ func New(m Monitors) *Status {
 // Run starts a monitor that will check each service every t duration.
 func (s *Status) Run(ctx context.Context, t time.Duration) {
 	go func() {
-		timer := time.NewTimer(t)
+		timer := time.NewTicker(t)
 		s.checkStatus(ctx)
 		for {
 			select {

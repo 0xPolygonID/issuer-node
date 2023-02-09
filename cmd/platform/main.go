@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
@@ -145,7 +144,7 @@ func main() {
 			return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
 		}(rdb),
 	})
-	serverHealth.Run(ctx, 30*time.Second)
+	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
 	mux := chi.NewRouter()
 	mux.Use(
