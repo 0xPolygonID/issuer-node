@@ -55,20 +55,20 @@ func TestMain(m *testing.M) {
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "failed to acquire vault client: %+v", err)
+		log.Error(ctx, "failed to acquire vault client", err)
 		// return 1
 	}
 
 	bjjKeyProvider, err = kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Error(ctx, "failed to create Iden3 Key Provider: %+v", err)
+		log.Error(ctx, "failed to create Iden3 Key Provider", err)
 		// return 1
 	}
 
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Error(ctx, "failed to register Key Provider: %+v", err)
+		log.Error(ctx, "failed to register Key Provider", err)
 		// return 1
 	}
 

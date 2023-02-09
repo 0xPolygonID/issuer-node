@@ -69,24 +69,29 @@ func addRequestIDToHeader(ctx context.Context, r *http.Request) {
 
 // executeRequest contains common logic of request execution
 func executeRequest(ctx context.Context, c *Client, r *http.Request) ([]byte, error) {
+	ctx = log.With(ctx, "method", r.Method, "uri", r.RequestURI)
 	resp, err := c.base.Do(r)
 	if err != nil {
+		log.Error(ctx, "http request", err)
 		return nil, err
 	}
 
 	defer func() {
 		err := resp.Body.Close()
 		if err != nil {
-			log.Error(ctx, "can not close body", err)
+			log.Error(ctx, "cannot close http body", err)
 		}
 	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		log.Error(ctx, "cannot read http body", err)
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("http request failed with status %v, error: %v", resp.StatusCode, string(body))
+		err := errors.Errorf("http request failed with status %v", resp.StatusCode)
+		log.Error(ctx, "http request: unexpected status", err, "status", resp.StatusCode, "body", string(body))
+		return nil, err
 	}
 
 	return body, nil

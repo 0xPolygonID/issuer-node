@@ -64,7 +64,7 @@ func main() {
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
-		log.Error(ctx, "cannot initialize kms: %+v", err)
+		log.Error(ctx, "cannot initialize kms", err)
 		panic(err)
 	}
 
@@ -75,13 +75,13 @@ func main() {
 
 	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
 	if err != nil {
-		log.Error(ctx, "failed init ethereum client: %+v", err)
+		log.Error(ctx, "failed init ethereum client", err)
 		panic(err)
 	}
 
 	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
 	if err != nil {
-		log.Error(ctx, "failed init ethereum connect: %+v", err)
+		log.Error(ctx, "failed init ethereum connect", err)
 		panic(err)
 	}
 
@@ -132,13 +132,13 @@ func main() {
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
-		log.Error(ctx, "failed init package protocol:  %+v", err)
+		log.Error(ctx, "failed init package protocol", err)
 		panic(err)
 	}
 
 	spec, err := api.GetSwagger()
 	if err != nil {
-		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
+		log.Error(ctx, "cannot retrieve the openapi specification file", err)
 		os.Exit(1)
 	}
 
@@ -170,7 +170,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, fmt.Sprintf("server started on port:%d", cfg.ServerPort))
+		log.Info(ctx, "server started", "port", cfg.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
 			log.Error(ctx, "Starting http server", err)
 		}

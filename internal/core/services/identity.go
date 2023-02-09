@@ -82,11 +82,13 @@ func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, net
 		})
 
 	if err != nil {
-		return nil, fmt.Errorf("can't create identity: %w", err)
+		log.Error(ctx, "creating identity", err, "id", identifier)
+		return nil, fmt.Errorf("cannot create identity: %w", err)
 	}
 
 	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 	if err != nil {
+		log.Error(ctx, "loading identity", err, "id", identifier)
 		return nil, fmt.Errorf("can't get identity: %w", err)
 	}
 	return identityDB, nil
