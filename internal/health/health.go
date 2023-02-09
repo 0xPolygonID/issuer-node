@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	redis  = "redis"
-	db     = "db"
-	memory = "memory"
+	redis = "redis"
+	db    = "db"
 )
 
 // Status struct
