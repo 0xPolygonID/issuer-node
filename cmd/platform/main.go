@@ -7,11 +7,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	redis2 "github.com/go-redis/redis/v8"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -137,15 +139,14 @@ func main() {
 		panic(err)
 	}
 
-	serverHealth := health.New(storage.Pgx, redis.Wrapper{Client: rdb})
+	serverHealth := health.New(health.Monitors{
+		"postgres": storage.Ping,
+		"redis": func(rdb *redis2.Client) health.Pinger {
+			return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
+		}(rdb),
+	})
+	serverHealth.Run(ctx, 30*time.Second)
 
-	spec, err := api.GetSwagger()
-	if err != nil {
-		log.Error(ctx, "cannot retrieve the openapi specification file", err)
-		os.Exit(1)
-	}
-
-	spec.Servers = nil
 	mux := chi.NewRouter()
 	mux.Use(
 		chiMiddleware.RequestID,

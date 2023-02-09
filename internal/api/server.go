@@ -47,8 +47,8 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 }
 
 // Health is a method
-func (s *Server) Health(ctx context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
-	var resp Health200JSONResponse = s.health.Status(ctx)
+func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
+	var resp Health200JSONResponse = s.health.Status()
 
 	return resp, nil
 }
