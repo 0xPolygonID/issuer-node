@@ -40,6 +40,15 @@ type IdentityState struct {
 	CreatedAt          time.Time      `json:"created_at,omitempty"`
 }
 
+// PublishedState defines the domain object of publish state on chain
+type PublishedState struct {
+	TxID               *string
+	ClaimsTreeRoot     *string
+	State              *string
+	RevocationTreeRoot *string
+	RootOfRoots        *string
+}
+
 // ToTreeState returns circuits.TreeState structure
 func (i *IdentityState) ToTreeState() (circuits.TreeState, error) {
 	return BuildTreeState(i.State, i.ClaimsTreeRoot, i.RevocationTreeRoot, i.RootOfRoots)

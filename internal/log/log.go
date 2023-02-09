@@ -7,6 +7,8 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+type contextKey struct{}
+
 // Log configuration constants
 const (
 	LevelDebug = int(slog.LevelDebug) // debug level
@@ -28,39 +30,50 @@ func NewContext(ctx context.Context, level, format int, w io.Writer) context.Con
 		Level:     &l,
 	}
 	if format == OutputJSON {
-		return slog.NewContext(ctx, slog.New(opts.NewJSONHandler(w)))
+		return newContext(ctx, slog.New(opts.NewJSONHandler(w)))
 	}
-	return slog.NewContext(ctx, slog.New(opts.NewTextHandler(w)))
+	return newContext(ctx, slog.New(opts.NewTextHandler(w)))
 }
 
 // CopyFromContext is a helper function that extracts returns a new context from dest, adding
 // the log included in orig.
 func CopyFromContext(orig, dest context.Context) context.Context {
-	return slog.NewContext(dest, slog.FromContext(orig))
+	return newContext(dest, fromContext(orig))
 }
 
 // With changes the context logger with a new logger that will include  the extra attributes
 // from args parameters.
 func With(ctx context.Context, args ...any) context.Context {
-	return slog.NewContext(ctx, slog.FromContext(ctx).With(args...))
+	return newContext(ctx, fromContext(ctx).With(args...))
 }
 
 // Debug logs a debug message  using context logger
 func Debug(ctx context.Context, msg string, args ...any) {
-	slog.FromContext(ctx).Info(msg, args...)
+	fromContext(ctx).Info(msg, args...)
 }
 
 // Info logs an info using context logger
 func Info(ctx context.Context, msg string, args ...any) {
-	slog.FromContext(ctx).Info(msg, args...)
+	fromContext(ctx).Info(msg, args...)
 }
 
 // Warn logs a warning using context logger
 func Warn(ctx context.Context, msg string, args ...any) {
-	slog.FromContext(ctx).Warn(msg, args...)
+	fromContext(ctx).Warn(msg, args...)
 }
 
 // Error logs an error using context logger
 func Error(ctx context.Context, msg string, err error, args ...any) {
-	slog.FromContext(ctx).Error(msg, err, args...)
+	fromContext(ctx).Error(msg, err, args...)
+}
+
+func newContext(ctx context.Context, l *slog.Logger) context.Context {
+	return context.WithValue(ctx, contextKey{}, l)
+}
+
+func fromContext(ctx context.Context) *slog.Logger {
+	if l, ok := ctx.Value(contextKey{}).(*slog.Logger); ok {
+		return l
+	}
+	return slog.Default()
 }
