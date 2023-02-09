@@ -17,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
+	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -29,10 +30,11 @@ type Server struct {
 	schemaService    ports.SchemaService
 	publisherGateway ports.Publisher
 	packageManager   *iden3comm.PackageManager
+	health           *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:              cfg,
 		identityService:  identityService,
@@ -40,15 +42,15 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		schemaService:    schemaService,
 		publisherGateway: publisherGateway,
 		packageManager:   packageManager,
+		health:           health,
 	}
 }
 
 // Health is a method
-func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
-	return Health200JSONResponse{
-		Cache: true,
-		Db:    false,
-	}, nil
+func (s *Server) Health(ctx context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
+	var resp Health200JSONResponse = s.health.Status(ctx)
+
+	return resp, nil
 }
 
 // GetDocumentation this method will be overridden in the main function

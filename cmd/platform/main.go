@@ -18,6 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
+	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -136,6 +137,8 @@ func main() {
 		panic(err)
 	}
 
+	serverHealth := health.New(storage.Pgx, redis.Wrapper{Client: rdb})
+
 	spec, err := api.GetSwagger()
 	if err != nil {
 		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
@@ -153,7 +156,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager),
+			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,

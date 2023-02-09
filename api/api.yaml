@@ -328,16 +328,11 @@ components:
   schemas:
     Health:
       type: object
-      required:
-        - db
-        - cache
-      properties:
-        db:
-          type: boolean
-          example: true
-        cache:
-          type: boolean
-          example: true
+      x-omitempty: false
+      additionalProperties:
+        type: boolean
+
+
     GenericErrorMessage:
       type: object
       required:
