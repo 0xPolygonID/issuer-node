@@ -101,7 +101,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: 400,
-				message:  common.ToPointer("can't create identity: wrong DID Metadata"),
+				message:  common.ToPointer("cannot create identity: wrong DID Metadata"),
 			},
 		},
 		{
@@ -116,7 +116,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: 400,
-				message:  common.ToPointer("can't create identity: wrong DID Metadata"),
+				message:  common.ToPointer("cannot create identity: wrong DID Metadata"),
 			},
 		},
 		{
@@ -131,7 +131,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: 400,
-				message:  common.ToPointer("can't create identity: wrong DID Metadata"),
+				message:  common.ToPointer("cannot create identity: wrong DID Metadata"),
 			},
 		},
 	} {

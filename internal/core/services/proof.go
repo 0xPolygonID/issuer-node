@@ -109,7 +109,7 @@ func (p *Proof) PrepareInputs(ctx context.Context, identifier *core.DID, query p
 		return nil, nil, err
 	}
 
-	log.Debug(ctx, "Circuit inputs:", string(inputs))
+	log.Debug(ctx, "Circuit inputs", "inputs", string(inputs))
 
 	return inputs, claims, nil
 }

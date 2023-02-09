@@ -3,7 +3,6 @@ package gateways
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -34,9 +33,9 @@ func NewProverService(config *ProverConfig) *ProverService {
 
 // NewProver returns a new prover with the given configuration.
 // If NativeProofGenerationEnabled is true it will return a NativeProverService
-// If NativeProofGenerationEnabled is false if will return an external ProverService
+// If NativeProofGenerationEnabled is false it will return an external ProverService
 func NewProver(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
-	log.Info(ctx, fmt.Sprintf("native prover enabled: %v", config.NativeProofGenerationEnabled))
+	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
 	if config.NativeProofGenerationEnabled {
 		proverConfig := &services.NativeProverConfig{
 			CircuitsLoader: circuitLoaderService,

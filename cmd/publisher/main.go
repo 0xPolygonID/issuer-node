@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"os"
 	"os/signal"
@@ -129,7 +128,7 @@ func main() {
 	})
 
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
-	proofService := initProofService(cfg, circuitsLoaderService)
+	proofService := initProofService(ctx, cfg, circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
@@ -153,7 +152,7 @@ func main() {
 			case <-ticker.C:
 				publisher.CheckTransactionStatus(ctx)
 			case <-ctx.Done():
-				log.Info(ctx, "finishing check transaction status job..")
+				log.Info(ctx, "finishing check transaction status job")
 			}
 		}
 	}(ctx)
@@ -161,11 +160,11 @@ func main() {
 	<-quit
 	log.Info(ctx, "finishing app")
 	cancel()
-	log.Info(ctx, "Finshed")
+	log.Info(ctx, "Finished")
 }
 
-func initProofService(config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
-	log.Info(context.Background(), fmt.Sprintf("native prover enabled: %v", config.NativeProofGenerationEnabled))
+func initProofService(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
 	if config.NativeProofGenerationEnabled {
 		proverConfig := &services.NativeProverConfig{
 			CircuitsLoader: circuitLoaderService,

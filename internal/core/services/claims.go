@@ -267,7 +267,7 @@ func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter)
 	for _, cred := range claims {
 		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
 		if err != nil {
-			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
+			log.Warn(ctx, "could not convert claim model to W3CCredential", "err", err)
 			continue
 		}
 
