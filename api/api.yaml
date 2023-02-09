@@ -430,6 +430,14 @@ components:
       properties:
         txID:
           type: string
+        claimsTreeRoot:
+          type: string
+        state:
+          type: string
+        revocationTreeRoot:
+          type: string
+        rootOfRoots:
+          type: string
 
     #claims
     CreateClaimRequest:

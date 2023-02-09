@@ -286,7 +286,7 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 		return PublishIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
-	txID, err := s.publisherGateway.PublishState(ctx, did)
+	publishedState, err := s.publisherGateway.PublishState(ctx, did)
 	if err != nil {
 		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
 			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
@@ -294,7 +294,13 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	return PublishIdentityState202JSONResponse{TxID: txID}, nil
+	return PublishIdentityState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.
