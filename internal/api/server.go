@@ -30,11 +30,11 @@ type Server struct {
 	schemaService    ports.SchemaService
 	publisherGateway ports.Publisher
 	packageManager   *iden3comm.PackageManager
-	health           *health.Health
+	health           *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Health) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:              cfg,
 		identityService:  identityService,
@@ -48,12 +48,9 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 
 // Health is a method
 func (s *Server) Health(ctx context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
-	status := s.health.Status(ctx)
+	var resp Health200JSONResponse = s.health.Status(ctx)
 
-	return Health200JSONResponse{
-		Cache: status.Cache,
-		Db:    status.DB,
-	}, nil
+	return resp, nil
 }
 
 // GetDocumentation this method will be overridden in the main function

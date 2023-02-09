@@ -137,7 +137,7 @@ func main() {
 		panic(err)
 	}
 
-	serverHealth := health.New(storage.Pgx, rdb)
+	serverHealth := health.New(storage.Pgx, redis.Wrapper{Client: rdb})
 
 	spec, err := api.GetSwagger()
 	if err != nil {
