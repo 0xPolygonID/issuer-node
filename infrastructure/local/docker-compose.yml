@@ -18,7 +18,7 @@ services:
       #      - SH_ID_PLATFORM_PUBLISH_KEY_PATH=pbkey
       #      - SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY=1m
       # - SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY=1m
-      #      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
+      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
       #      - SH_ID_PLATFORM_LOG_LEVEL=-4
       #      - SH_ID_PLATFORM_LOG_MODE=2
       #      - SH_ID_PLATFORM_HTTPBASICAUTH_USER=user
