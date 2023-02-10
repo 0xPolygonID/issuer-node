@@ -85,7 +85,7 @@ func (s *schema) FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.
 		return nil, fmt.Errorf("credential status is not set")
 	}
 
-	proofs := make([]interface{}, 0)
+	proofs := make(verifiable.CredentialProofs, 0)
 
 	var signatureProof *verifiable.BJJSignatureProof2021
 	if claim.SignatureProof.Status != pgtype.Null {
