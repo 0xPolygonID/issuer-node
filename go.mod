@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/hashicorp/vault/api v1.8.2
-	github.com/iden3/go-circuits v1.0.1-alpha.2.0.20230206142346-8f04f523e690
+	github.com/iden3/go-circuits v1.0.2
 	github.com/iden3/go-iden3-core v1.0.0
 	github.com/iden3/go-iden3-crypto v0.0.13
 	github.com/iden3/go-jwz v0.1.4-0.20221129141428-312a907ea598
@@ -281,13 +281,13 @@ require (
 	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/crypto v0.6.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/net v0.6.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e // indirect
