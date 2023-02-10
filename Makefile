@@ -51,9 +51,10 @@ up:
 	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
 
 .PHONY: run
-run:
+run: up
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}'))
 	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD) up -d platform
+	docker exec  sh-id-platform_platform_1 ./migrate
 
 .PHONY: down
 down:
