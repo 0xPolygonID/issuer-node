@@ -12,7 +12,6 @@ FILE=/vault/data/init.out
 if [ ! -e "$FILE" ]; then
     echo -e "===== Initialize the Vault ====="
     vault operator init > /vault/data/init.out
-    chmod 755 /vault/file -R
 fi
 
 UNSEAL_KEY_1=$(grep "Unseal Key 1" /vault/data/init.out | cut -c 15-)
@@ -50,6 +49,9 @@ apk add -q openssl
 IDEN3_PLUGIN_SHA256=`openssl dgst -r -sha256 ${IDEN3_PLUGIN_PATH} | awk '{print $1}'`
 vault plugin register -sha256=$IDEN3_PLUGIN_SHA256 vault-plugin-secrets-iden3
 vault secrets enable -path=iden3 vault-plugin-secrets-iden3
+
+chmod 755 /vault/file -R
+
 echo "===== ENABLED IDEN3 ====="
 export vault_token="token:${TOKEN}"
 echo $vault_token
