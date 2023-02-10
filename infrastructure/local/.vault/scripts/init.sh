@@ -12,6 +12,7 @@ FILE=/vault/data/init.out
 if [ ! -e "$FILE" ]; then
     echo -e "===== Initialize the Vault ====="
     vault operator init > /vault/data/init.out
+    chmod 755 /vault/file -R
 fi
 
 UNSEAL_KEY_1=$(grep "Unseal Key 1" /vault/data/init.out | cut -c 15-)
