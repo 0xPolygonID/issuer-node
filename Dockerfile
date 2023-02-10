@@ -1,4 +1,4 @@
-FROM golang:latest as builder
+FROM golang:1.19 as builder
 
 ARG VERSION
 
@@ -15,7 +15,7 @@ RUN apk add --no-cache libstdc++ gcompat libgomp
 
 WORKDIR /service
 COPY --from=builder /service/bin /service
-COPY --from=builder /service/config.toml /service
+COPY --from=builder /service/config.toml.sample /service/config.toml
 COPY --from=builder /service/api/spec.html /service/api/spec.html
 COPY --from=builder /service/api/api.yaml /service/api/api.yaml
 COPY --from=builder "/go/pkg/mod/github.com/wasmerio/wasmer-go@v1.0.4/wasmer/packaged/lib/linux-amd64/libwasmer.so" \
