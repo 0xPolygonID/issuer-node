@@ -459,8 +459,6 @@ github.com/iden3/go-iden3-core v1.0.0 h1:GNwuYOHZD7hiWjmW+wv26RW9f/JwF4lRQu7/55f
 github.com/iden3/go-iden3-core v1.0.0/go.mod h1:wJtcMK/bSazyW/JrQaRrbpUMgSMg79Pke3xgtfPxDnQ=
 github.com/iden3/go-iden3-crypto v0.0.13 h1:ixWRiaqDULNyIDdOWz2QQJG5t4PpNHkQk2P6GV94cok=
 github.com/iden3/go-iden3-crypto v0.0.13/go.mod h1:swXIv0HFbJKobbQBtsB50G7IHr6PbTowutSew/iBEoo=
-github.com/iden3/go-jwz v0.1.4-0.20221129141428-312a907ea598 h1:JQjs0cgifSub4SgbfPA7XE1o1svJpDpa06nd2YNoHgY=
-github.com/iden3/go-jwz v0.1.4-0.20221129141428-312a907ea598/go.mod h1:L7QPuyY44QctnHIrwcmK5mGKJIoVVPwS8ztgnON8ZFw=
 github.com/iden3/go-jwz v1.0.0-beta.0 h1:Mi4Swt29RLiEUm1ZQbqsQxw757mqiJA6IzeRc/BMF08=
 github.com/iden3/go-jwz v1.0.0-beta.0/go.mod h1:PFnEY9ZUOSx9WrR33/QVtq2H37qeFILjZN6uVdDk4iE=
 github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1 h1:HkfV73HSKdcGJJK5VN918r3/r9kOQzmqi5UMIjUG5ow=
@@ -475,10 +473,10 @@ github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 h1:
 github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2/go.mod h1:A3R3qr+8QiQtFBghrx94VJrOIr+9mdgrrbmFzJyS9Sg=
 github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2 h1:fOgHvwd8K0ifG7Epz9ucU9xv2CX+gk5oIH5QJ/hThXs=
 github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2/go.mod h1:ZRd4PX8vJX/2aJ/1XRvtwMon5F7phDRX6C7v/BYBrwE=
-github.com/iden3/go-schema-processor v0.2.1-0.20221202150832-91826307609c h1:iY4otwqKbBG/usHEs2n23HSTKq2oxKq5HWfIsc1IGO0=
-github.com/iden3/go-schema-processor v0.2.1-0.20221202150832-91826307609c/go.mod h1:3dht3ZDhW+OU2Ru1RjwCAqiGEkazw9IuhPhjRDr8B1Q=
-github.com/iden3/iden3comm v0.1.3-0.20221202151226-1a99a4af0ccd h1:Dpp8bQIF/c1f+77/947qW8hX58uAZEVW4+0oWcwJ8TM=
-github.com/iden3/iden3comm v0.1.3-0.20221202151226-1a99a4af0ccd/go.mod h1:1kyQLlO4ktAh1Gnx9A/vU+uZxy+MdJwogJZS5HIs7M0=
+github.com/iden3/go-schema-processor v1.0.0 h1:7Ut+alv+GIDbeYVBhzDlnhao8q8y/yuBoV/BMNlyB8A=
+github.com/iden3/go-schema-processor v1.0.0/go.mod h1:+kc0IFGKaO6dYy5ICVfGBN5FyU7HqrJlwDYkcnAjFG4=
+github.com/iden3/iden3comm v1.0.0-beta.0 h1:4DQfVOYWBrbeJ/G5Mr3JDJt6hYGVmPS63Kp3/TICmd0=
+github.com/iden3/iden3comm v1.0.0-beta.0/go.mod h1:jhj1N7+6uaRVHnIjyKqSLO6oCXS6rPvNVUMlq8ydk64=
 github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695 h1:8CetpPSy5zu3shLA6E3B2+o8a48oialyMODKWFCNyhw=
 github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695/go.mod h1:viUqFXdonLL6isznj1ts0CID77CJ11AlXi9vTC8ZD8A=
 github.com/inconshreveable/mousetrap v1.0.1 h1:U3uMjPSQEBMNp1lFxmllqCPM6P5u/Xq7Pgzkat/bFNc=
