@@ -1,9 +1,9 @@
 ServerPort = 3001
 ServerUrl = "http://localhost"
-NativeProofGenerationEnabled = true
+NativeProofGenerationEnabled = false
 PublishingKeyPath = "pbkey"
 OnChainPublishStateFrecuency = "1m"
-OnChainCheckStatusFrecuency = "1m"
+OnChainCheckStatusFrecuency = "10m"
 
 [Database]
 Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
