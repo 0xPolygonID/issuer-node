@@ -26,13 +26,3 @@ func Status(ctx context.Context, rdb *redis.Client) error {
 	}
 	return nil
 }
-
-// Wrapper around redis client
-type Wrapper struct {
-	Client *redis.Client
-}
-
-// Ping function for redis client
-func (w Wrapper) Ping(ctx context.Context) error {
-	return w.Client.Ping(ctx).Err()
-}
