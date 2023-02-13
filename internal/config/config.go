@@ -116,7 +116,7 @@ type HTTPBasicAuth struct {
 // Load - loads config envs.
 func Load() *Configuration {
 	if err := godotenv.Load(getWorkingDirectory() + "/.env"); err != nil {
-		log.Info(context.Background(), "error loading .env file ")
+		log.Info(context.Background(), ".env file not found")
 	}
 	return loadEnv()
 }

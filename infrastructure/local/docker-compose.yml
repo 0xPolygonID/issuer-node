@@ -11,7 +11,7 @@ services:
       - redis
       - vault
     env_file:
-      - ../../.env
+      - ./.env
     command: sh -c "sleep 4s && ./migrate && ./platform"
 
   postgres:
