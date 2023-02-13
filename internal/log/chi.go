@@ -20,6 +20,7 @@ func requestLogger(ctx context.Context) func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			t1 := time.Now()
+			//nolint:contextcheck
 			defer func() {
 				ua := r.Header.Get("User-Agent")
 				Info(ctx,
