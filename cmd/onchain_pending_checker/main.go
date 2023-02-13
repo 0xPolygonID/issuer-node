@@ -33,11 +33,6 @@ func main() {
 		panic(err)
 	}
 
-	onChainCheckStatusFrecuency, err := time.ParseDuration(cfg.OnChainCheckStatusFrecuency)
-	if err != nil {
-		panic("error converting onChainCheckStatusFrecuency param")
-	}
-
 	// Context with log
 	ctx1 := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 	ctx, cancel := context.WithCancel(ctx1)
@@ -146,7 +141,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(onChainCheckStatusFrecuency)
+		ticker := time.NewTicker(cfg.OnChainCheckStatusFrecuency)
 		for {
 			select {
 			case <-ticker.C:
