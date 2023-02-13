@@ -1,5 +1,6 @@
 
 -- +goose Up
+-- +goose StatementBegin
 CREATE TABLE claims (
     id uuid NOT NULL DEFAULT gen_random_uuid(),
     identifier text NOT NULL,
@@ -97,7 +98,6 @@ CREATE TABLE identity_states (
     CONSTRAINT fk_identity FOREIGN KEY (identifier) REFERENCES public.identities(identifier)
 );
 
--- +goose StatementBegin
 CREATE OR REPLACE FUNCTION update_modified_at_column()
     RETURNS TRIGGER AS $$
 BEGIN
@@ -106,7 +106,6 @@ RETURN NEW;
 END;
 $$
 language plpgsql;
--- +goose StatementEnd
 
 CREATE TRIGGER update_state_modifiedtime BEFORE UPDATE ON identity_states FOR EACH ROW EXECUTE PROCEDURE  update_modified_at_column();
 
@@ -126,8 +125,10 @@ CREATE TABLE revocation (
 
 CREATE TRIGGER update_revocation_modifiedtime
     BEFORE UPDATE ON revocation FOR EACH ROW EXECUTE PROCEDURE  update_modified_at_column();
+-- +goose StatementEnd
 
 -- +goose Down
+-- +goose StatementBegin
 DROP TABLE IF EXISTS identity_mts;
 DROP TABLE IF EXISTS mt_nodes;
 DROP TABLE IF EXISTS mt_roots;
@@ -141,3 +142,4 @@ DROP TABLE IF EXISTS revocation;
 DROP TRIGGER IF EXISTS update_revocation_modifiedtime ON revocation;
 ALTER TABLE connections DROP CONSTRAINT connections_managed_identifier_third_party_identifier_key;
 DROP TABLE connections;
+-- +goose StatementEnd

@@ -2,6 +2,7 @@ package gateways
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -19,11 +20,23 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
 )
 
 type jobIDType string
 
-const jobID jobIDType = "job-id"
+var (
+	// ErrNoStatesToProcess No states to process
+	ErrNoStatesToProcess = errors.New("no states to process")
+	// ErrStateIsBeingProcessed State is being processed
+	ErrStateIsBeingProcessed = errors.New("the state is being processed")
+)
+
+const (
+	jobID              jobIDType = "job-id"
+	ttl                          = 60 * time.Second
+	transactionCleanup           = 3600 * time.Second
+)
 
 // PublisherGateway - Define the interface for publishers.
 type PublisherGateway interface {
@@ -40,10 +53,14 @@ type publisher struct {
 	confirmationTimeout time.Duration
 	zkService           ports.ZKGenerator
 	publisherGateway    PublisherGateway
+	pendingTransactions *sync_ttl_map.TTLMap
 }
 
 // NewPublisher - Constructor
 func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration) *publisher {
+	pendingTransactions := sync_ttl_map.New(ttl)
+	pendingTransactions.CleaningBackground(transactionCleanup)
+
 	return &publisher{
 		identityService:     identityService,
 		claimService:        claimService,
@@ -54,10 +71,27 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 		zkService:           zkService,
 		publisherGateway:    publisherGateway,
 		confirmationTimeout: confirmationTimeout,
+		pendingTransactions: pendingTransactions,
 	}
 }
 
-func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*string, error) {
+func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+	idStr := identifier.String()
+	processingEntity := p.pendingTransactions.Load(idStr)
+	if processingEntity != nil {
+		return nil, ErrStateIsBeingProcessed
+	}
+
+	p.pendingTransactions.Store(idStr, true)
+	newState, err := p.publishState(ctx, identifier)
+	if err != nil {
+		p.pendingTransactions.Delete(idStr)
+	}
+
+	return newState, err
+}
+
+func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
 	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching unprocessed issuers did", err)
@@ -66,7 +100,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 
 	if !exists {
 		log.Info(ctx, "no unprocessed states for the given issuer id")
-		return nil, fmt.Errorf("no unprocessed states for the given issuer id")
+		return nil, ErrNoStatesToProcess
 	}
 
 	// 4. Calculate new states and publish them synchronously
@@ -76,17 +110,23 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*st
 		return nil, err
 	}
 
-	txID, err := p.publishProof(ctx, *updatedState)
+	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
 		log.Error(ctx, "Error during publishing proof:", err, "did", identifier.String())
 		return nil, err
 	}
 
-	return txID, nil
+	return &domain.PublishedState{
+		TxID:               txID,
+		ClaimsTreeRoot:     updatedState.ClaimsTreeRoot,
+		State:              updatedState.State,
+		RevocationTreeRoot: updatedState.RevocationTreeRoot,
+		RootOfRoots:        updatedState.RootOfRoots,
+	}, nil
 }
 
 // PublishProof publishes new proof using the latest state
-func (p *publisher) publishProof(ctx context.Context, newState domain.IdentityState) (*string, error) {
+func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newState domain.IdentityState) (*string, error) {
 	did, err := core.ParseDID(newState.Identifier)
 	if err != nil {
 		return nil, err
@@ -197,12 +237,12 @@ func (p *publisher) publishProof(ctx context.Context, newState domain.IdentitySt
 
 	// add go routine that will listen for transaction status update
 
-	go func() {
-		err2 := p.updateTransactionStatus(ctx, newState, *txID)
-		if err2 != nil {
-			log.Error(ctx, "can not update transaction status", err2)
+	go func(ctx context.Context) {
+		if err := p.updateTransactionStatus(ctx, newState, *txID); err != nil {
+			log.Error(ctx, "cannot update transaction status", err)
 		}
-	}()
+		p.pendingTransactions.Delete(identifier.String())
+	}(ctx)
 
 	return txID, nil
 }
@@ -281,7 +321,7 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID,
 func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.IdentityState, txID string) error {
 	receipt, err := p.transactionService.WaitForTransactionReceipt(ctx, txID)
 	if err != nil {
-		log.Error(ctx, "error during receipt receiving: ", err)
+		log.Error(ctx, "error during receipt receiving: ", err, "txID", txID)
 		return err
 	}
 
@@ -302,7 +342,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 
 	err = p.updateIdentityStateTxStatus(ctx, &state, receipt)
 	if err != nil {
-		log.Error(ctx, "error during identity state update: ", err)
+		log.Error(ctx, "updating identity state", err, "txID", txID)
 		return err
 	}
 
@@ -313,7 +353,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *domain.IdentityState, receipt *types.Receipt) error {
 	header, err := p.transactionService.GetHeaderByNumber(ctx, receipt.BlockNumber)
 	if err != nil {
-		log.Error(ctx, "couldn't find receipt block: ", err)
+		log.Error(ctx, "couldn't find receipt block: ", err, "block", receipt.BlockNumber)
 		return err
 	}
 
@@ -357,7 +397,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 
 	// we shouldn't process states which go routines are still in progress
 
-	toCheck := []domain.IdentityState{}
+	var toCheck []domain.IdentityState
 	for i := range states {
 		if time.Now().Unix() > states[i].ModifiedAt.Add(p.confirmationTimeout).Unix() {
 			toCheck = append(toCheck, states[i])
@@ -380,8 +420,8 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 	// Get receipt and check status
 	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, *state.TxID)
 	if err != nil {
-		log.Error(ctx, "error during receipt receiving:", err, "state id", *state.TxID)
-		return fmt.Errorf("error during receipt receiving::%s - %w", *state.TxID, err)
+		log.Error(ctx, "error during receipt receiving:", err, "state-id", *state.TxID)
+		return fmt.Errorf("error during receipt receiving::%s: %w", *state.TxID, err)
 	}
 
 	// Check if transaction has enough confirmation blocks

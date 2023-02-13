@@ -18,14 +18,10 @@ func TestGetIdentities(t *testing.T) {
 
 	identity1 := &domain.Identity{
 		Identifier: idStr1,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 
 	identity2 := &domain.Identity{
 		Identifier: idStr2,
-		Relay:      "relay_mock",
-		Immutable:  false,
 	}
 	fixture.CreateIdentity(t, identity1)
 	fixture.CreateIdentity(t, identity2)

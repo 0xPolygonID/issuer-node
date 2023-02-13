@@ -2,7 +2,6 @@ package services_tests
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	core "github.com/iden3/go-iden3-core"
@@ -11,6 +10,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -22,10 +22,6 @@ const (
 )
 
 func Test_identity_UpdateState(t *testing.T) {
-	if os.Getenv("TEST_MODE") == "GA" {
-		t.Skip("Skipped. Cannot run hashicorp vault in ga")
-	}
-
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -35,7 +31,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(storage)
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,

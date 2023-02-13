@@ -100,31 +100,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/update:
-    get:
-      summary: Update Identity State
-      operationId: UpdateIdentityState
-      description: Endpoint to update identity state
-      tags:
-        - Identity
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-      responses:
-        '200':
-          description: Proof
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorMessage'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
   /v1/{identifier}/state/publish:
     post:
       summary: Publish Identity State
@@ -138,7 +113,13 @@ paths:
         - $ref: '#/components/parameters/pathIdentifier'
       responses:
         '200':
-          description: Transaction ID of the published state
+          description: No transactions to process to the given identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorMessage'
+        '202':
+          description: Transaction ID of the published  state
           content:
             application/json:
               schema:
@@ -347,16 +328,11 @@ components:
   schemas:
     Health:
       type: object
-      required:
-        - db
-        - cache
-      properties:
-        db:
-          type: boolean
-          example: true
-        cache:
-          type: boolean
-          example: true
+      x-omitempty: false
+      additionalProperties:
+        type: boolean
+
+
     GenericErrorMessage:
       type: object
       required:
@@ -396,16 +372,10 @@ components:
       type: object
       required:
         - identity
-        - relay
-        - immutable
         - status
       properties:
         identifier:
           type: string
-        relay:
-          type: string
-        immutable:
-          type: boolean
         state:
           $ref: '#/components/schemas/IdentityState'
 
@@ -454,6 +424,14 @@ components:
       type: object
       properties:
         txID:
+          type: string
+        claimsTreeRoot:
+          type: string
+        state:
+          type: string
+        revocationTreeRoot:
+          type: string
+        rootOfRoots:
           type: string
 
     #claims
@@ -570,9 +548,9 @@ components:
     RevokeClaimResponse:
       type: object
       required:
-        - status
+        - message
       properties:
-        status:
+        message:
           type: string
           x-omitempty: false
           example: pending

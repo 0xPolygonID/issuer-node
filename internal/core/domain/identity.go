@@ -5,8 +5,6 @@ import core "github.com/iden3/go-iden3-core"
 // Identity struct
 type Identity struct {
 	Identifier string
-	Relay      string
-	Immutable  bool
 	State      IdentityState
 }
 
@@ -14,8 +12,6 @@ type Identity struct {
 func NewIdentityFromIdentifier(id *core.DID, rootState string) *Identity {
 	return &Identity{
 		Identifier: id.String(),
-		Relay:      "",
-		Immutable:  false,
 		State: IdentityState{
 			Identifier: id.String(),
 			State:      &rootState,

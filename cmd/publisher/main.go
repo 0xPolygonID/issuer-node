@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"os"
 	"os/signal"
@@ -18,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -90,7 +90,7 @@ func main() {
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(storage)
+	schemaService := services.NewSchema(loader.HTTPFactory)
 	claimsService := services.NewClaim(
 		claimsRepo,
 		schemaService,
@@ -123,7 +123,7 @@ func main() {
 	})
 
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
-	proofService := initProofService(cfg, circuitsLoaderService)
+	proofService := initProofService(ctx, cfg, circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
@@ -147,7 +147,7 @@ func main() {
 			case <-ticker.C:
 				publisher.CheckTransactionStatus(ctx)
 			case <-ctx.Done():
-				log.Info(ctx, "finishing check transaction status job..")
+				log.Info(ctx, "finishing check transaction status job")
 			}
 		}
 	}(ctx)
@@ -155,11 +155,11 @@ func main() {
 	<-quit
 	log.Info(ctx, "finishing app")
 	cancel()
-	log.Info(ctx, "Finshed")
+	log.Info(ctx, "Finished")
 }
 
-func initProofService(config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
-	log.Info(context.Background(), fmt.Sprintf("native prover enabled: %v", config.NativeProofGenerationEnabled))
+func initProofService(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
 	if config.NativeProofGenerationEnabled {
 		proverConfig := &services.NativeProverConfig{
 			CircuitsLoader: circuitLoaderService,

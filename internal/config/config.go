@@ -24,6 +24,7 @@ type Configuration struct {
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
+	Cache                        Cache              `mapstructure:"Cache"`
 	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
 	Log                          Log                `mapstructure:"Log"`
@@ -40,6 +41,11 @@ type Configuration struct {
 // URL: The database connection string
 type Database struct {
 	URL string `mapstructure:"Url" tip:"The Datasource name locator"`
+}
+
+// Cache configurations
+type Cache struct {
+	RedisUrl string `mapstructure:"RedisUrl" tip:"The redis url to use as a cache"`
 }
 
 // ReverseHashService contains the reverse hash service properties
@@ -230,6 +236,8 @@ func bindEnv() {
 	_ = viper.BindEnv("Prover.ResponseTimeout", "SH_ID_PLATFORM_PROVER_TIMEOUT")
 
 	_ = viper.BindEnv("Circuit.Path", "SH_ID_PLATFORM_CIRCUIT_PATH")
+
+	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
 
 	viper.AutomaticEnv()
 }

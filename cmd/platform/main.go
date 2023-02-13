@@ -12,17 +12,22 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	redis2 "github.com/go-redis/redis/v8"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
+	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
+	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -40,6 +45,15 @@ func main() {
 		panic(err)
 	}
 
+	// Redis cache
+	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	if err != nil {
+		log.Error(ctx, "cannot connect to redis", err, "host", cfg.Cache.RedisUrl)
+		panic(err)
+	}
+	cachex := cache.NewRedisCache(rdb)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
 		log.Error(ctx, "cannot init vault client: ", err)
@@ -48,7 +62,7 @@ func main() {
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
-		log.Error(ctx, "cannot initialize kms: %+v", err)
+		log.Error(ctx, "cannot initialize kms", err)
 		panic(err)
 	}
 
@@ -59,13 +73,13 @@ func main() {
 
 	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
 	if err != nil {
-		log.Error(ctx, "failed init ethereum client: %+v", err)
+		log.Error(ctx, "failed init ethereum client", err)
 		panic(err)
 	}
 
 	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
 	if err != nil {
-		log.Error(ctx, "failed init ethereum connect: %+v", err)
+		log.Error(ctx, "failed init ethereum connect", err)
 		panic(err)
 	}
 
@@ -83,7 +97,7 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, storage, rhsp)
-	schemaService := services.NewSchema(storage)
+	schemaService := services.NewSchema(schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
 		schemaService,
@@ -99,7 +113,7 @@ func main() {
 	)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
-	zkProofService := services.NewProofService(claimsService, revocationService, schemaService, identityService, mtService, claimsRepository, keyStore, storage, stateContract)
+	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", err)
@@ -116,27 +130,29 @@ func main() {
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
-		log.Error(ctx, "failed init package protocol:  %+v", err)
+		log.Error(ctx, "failed init package protocol", err)
 		panic(err)
 	}
 
-	spec, err := api.GetSwagger()
-	if err != nil {
-		log.Error(ctx, "cannot retrieve the openapi specification file: %+v", err)
-		os.Exit(1)
-	}
+	serverHealth := health.New(health.Monitors{
+		"postgres": storage.Ping,
+		"redis": func(rdb *redis2.Client) health.Pinger {
+			return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
+		}(rdb),
+	})
+	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
-	spec.Servers = nil
 	mux := chi.NewRouter()
 	mux.Use(
 		chiMiddleware.RequestID,
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
 		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
+		chiMiddleware.NoCache,
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager),
+			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,
@@ -153,7 +169,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, fmt.Sprintf("server started on port:%d", cfg.ServerPort))
+		log.Info(ctx, "server started", "port", cfg.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
 			log.Error(ctx, "Starting http server", err)
 		}

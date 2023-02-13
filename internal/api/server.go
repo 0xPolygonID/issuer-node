@@ -16,6 +16,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
+	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -28,10 +30,11 @@ type Server struct {
 	schemaService    ports.SchemaService
 	publisherGateway ports.Publisher
 	packageManager   *iden3comm.PackageManager
+	health           *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:              cfg,
 		identityService:  identityService,
@@ -39,15 +42,15 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		schemaService:    schemaService,
 		publisherGateway: publisherGateway,
 		packageManager:   packageManager,
+		health:           health,
 	}
 }
 
 // Health is a method
 func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
-	return Health200JSONResponse{
-		Cache: true,
-		Db:    false,
-	}, nil
+	var resp Health200JSONResponse = s.health.Status()
+
+	return resp, nil
 }
 
 // GetDocumentation this method will be overridden in the main function
@@ -80,8 +83,6 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 	return CreateIdentity201JSONResponse{
 		Identifier: &identity.Identifier,
-		Immutable:  identity.Immutable,
-		Relay:      identity.Relay,
 		State: &IdentityState{
 			BlockNumber:        identity.State.BlockNumber,
 			BlockTimestamp:     identity.State.BlockTimestamp,
@@ -138,7 +139,7 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 		return RevokeClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return RevokeClaim202JSONResponse{
-		Status: "pending",
+		Message: "claim revocation request sent",
 	}, nil
 }
 
@@ -280,16 +281,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 	}, nil
 }
 
-// UpdateIdentityState - updates the identity state
-func (s *Server) UpdateIdentityState(ctx context.Context, request UpdateIdentityStateRequestObject) (UpdateIdentityStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
-	if err != nil {
-		return UpdateIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-	_, err = s.identityService.UpdateState(ctx, did)
-	return nil, err
-}
-
 // PublishIdentityState - publish identity state on chain
 func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error) {
 	did, err := core.ParseDID(request.Identifier)
@@ -297,12 +288,21 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 		return PublishIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
-	txID, err := s.publisherGateway.PublishState(ctx, did)
+	publishedState, err := s.publisherGateway.PublishState(ctx, did)
 	if err != nil {
+		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
+			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
+		}
 		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	return PublishIdentityState200JSONResponse{TxID: txID}, nil
+	return PublishIdentityState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

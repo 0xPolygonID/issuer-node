@@ -267,7 +267,7 @@ func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter)
 	for _, cred := range claims {
 		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
 		if err != nil {
-			log.Warn(ctx, "could not convert claim model to W3CCredential", err)
+			log.Warn(ctx, "could not convert claim model to W3CCredential", "err", err)
 			continue
 		}
 
@@ -410,7 +410,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 
 	issuanceDate := time.Now()
 	return verifiable.W3CCredential{
-		ID:                fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(c.cfg.Host, "/"), vcID),
+		ID:                fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(c.cfg.Host, "/"), claimReq.DID.String(), vcID),
 		Context:           credentialCtx,
 		Type:              credentialType,
 		Expiration:        claimReq.Expiration,

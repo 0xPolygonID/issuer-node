@@ -25,6 +25,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
@@ -45,27 +46,27 @@ var (
 type Proof struct {
 	claimSrv         ports.ClaimsService
 	revocationSrv    ports.RevocationService
-	schemaSrv        ports.SchemaService
 	identitySrv      ports.IdentityService
 	mtService        ports.MtService
 	claimsRepository ports.ClaimsRepository
 	keyProvider      *kms.KMS
 	storage          *db.Storage
 	stateContract    *eth.State
+	schemaLoader     loader.Factory
 }
 
 // NewProofService init proof service
-func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, schemaSrv ports.SchemaService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *eth.State) ports.ProofService {
+func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *eth.State, ld loader.Factory) ports.ProofService {
 	return &Proof{
 		claimSrv:         claimSrv,
 		revocationSrv:    revocationSrv,
-		schemaSrv:        schemaSrv,
 		identitySrv:      identitySrv,
 		mtService:        mtService,
 		claimsRepository: claimsRepository,
 		keyProvider:      keyProvider,
 		storage:          storage,
 		stateContract:    stateContract,
+		schemaLoader:     ld,
 	}
 }
 
@@ -108,7 +109,7 @@ func (p *Proof) PrepareInputs(ctx context.Context, identifier *core.DID, query p
 		return nil, nil, err
 	}
 
-	log.Debug(ctx, "Circuit inputs:", string(inputs))
+	log.Debug(ctx, "Circuit inputs", "inputs", string(inputs))
 
 	return inputs, claims, nil
 }
@@ -405,9 +406,7 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 		return circuits.Query{}, err
 	}
 
-	loader := p.schemaSrv.GetLoader(query.Context)
-
-	schema, _, err := loader.Load(ctx)
+	schema, _, err := p.schemaLoader(query.Context).Load(ctx)
 	if err != nil {
 		return circuits.Query{}, err
 	}
@@ -451,12 +450,10 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 }
 
 func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL string, query ports.Query) (circuits.Query, error) {
-	loader := p.schemaSrv.GetLoader(jsonSchemaURL)
-
 	parser := jsonSuite.Parser{}
 	pr := processor.InitProcessorOptions(&processor.Processor{},
 		processor.WithParser(parser),
-		processor.WithSchemaLoader(loader))
+		processor.WithSchemaLoader(p.schemaLoader(jsonSchemaURL)))
 
 	schema, _, err := pr.Load(ctx)
 	if err != nil {

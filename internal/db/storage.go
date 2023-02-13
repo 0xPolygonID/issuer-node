@@ -22,6 +22,11 @@ func NewStorage(connectionString string) (*Storage, error) {
 	}, nil
 }
 
+// Ping is a wrapper for Pgx Ping
+func (s *Storage) Ping(ctx context.Context) error {
+	return s.Pgx.Ping(ctx)
+}
+
 // Close all connections to database
 func (s *Storage) Close() error {
 	s.Pgx.Close()
