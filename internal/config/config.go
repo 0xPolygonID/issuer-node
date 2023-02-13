@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -108,21 +109,9 @@ type HTTPBasicAuth struct {
 
 // Load - loads config envs.
 func Load() *Configuration {
-	env := os.Getenv("ENV")
-	viper.SetConfigType("toml")
-	if "" == env {
-		viper.SetConfigName("config")
-	} else {
-		viper.SetConfigName("config." + env)
+	if err := godotenv.Load(getWorkingDirectory() + "/.env"); err != nil {
+		log.Info(context.Background(), "error loading .env file ")
 	}
-	return loadDefault()
-}
-
-func loadDefault() *Configuration {
-	bindEnv()
-	viper.AddConfigPath(getWorkingDirectory())
-	viper.AddConfigPath(CIConfigPath)
-
 	return loadEnv()
 }
 
@@ -136,6 +125,7 @@ func loadEnv() *Configuration {
 		},
 	}
 
+	bindEnv()
 	if err := viper.Unmarshal(config); err != nil {
 		log.Error(context.Background(), "error loading envs", err)
 	}

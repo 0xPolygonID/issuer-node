@@ -24,3 +24,4 @@ infrastructure/local/.vault/file
 # vendor/
 
 .DS_STORE
+.env
