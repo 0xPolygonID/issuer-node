@@ -24,7 +24,7 @@ func requestLogger(ctx context.Context) func(next http.Handler) http.Handler {
 				ua := r.Header.Get("User-Agent")
 				Info(ctx,
 					"http req",
-					"req-id", middleware.GetReqID(ctx),
+					"req-id", middleware.GetReqID(r.Context()),
 					"method", r.Method,
 					"uri", r.RequestURI,
 					"status", ww.Status(),
