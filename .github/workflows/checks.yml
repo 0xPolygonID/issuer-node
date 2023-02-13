@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: mv ./.env-ci ./.env
+      - run: mv ./.env-ci ./infrastructure/local/.env
 
       - name: Docker Compose
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
