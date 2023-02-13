@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: mv ./.env-ci ./.env
+
       - name: Docker Compose
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
         with:
