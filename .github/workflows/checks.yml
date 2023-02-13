@@ -7,6 +7,7 @@ jobs:
     name: Test codebase
     runs-on: ubuntu-latest
     steps:
+      - run: mv ./github/workflows/.env-ci ./env
       - uses: actions/checkout@v3
       - name: Docker Compose
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
