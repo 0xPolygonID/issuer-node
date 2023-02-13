@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: mv /home/runner/work/sh-id-platform/sh-id-platform/.env-ci /home/runner/work/sh-id-platform/sh-id-platform/.env
+      - run: mv ${{GITHUB_WORKSPACE}}/.env-ci ${{GITHUB_WORKSPACE}}/.env
       - name: Docker Compose
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
         with:
