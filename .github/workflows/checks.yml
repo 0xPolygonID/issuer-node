@@ -7,8 +7,8 @@ jobs:
     name: Test codebase
     runs-on: ubuntu-latest
     steps:
-      - run: mv /home/runner/work/sh-id-platform/sh-id-platform/.env-ci /home/runner/work/sh-id-platform/sh-id-platform/.env
       - uses: actions/checkout@v3
+      - run: mv /home/runner/work/sh-id-platform/sh-id-platform/.env-ci /home/runner/work/sh-id-platform/sh-id-platform/.env
       - name: Docker Compose
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
         with:
