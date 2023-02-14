@@ -32,8 +32,7 @@ type Configuration struct {
 	Prover                       Prover             `mapstructure:"Prover"`
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
-	OnChainPublishStateFrecuency string             `mapstructure:"OnChainPublishStateFrecuency"`
-	OnChainCheckStatusFrecuency  string             `mapstructure:"OnChainCheckStatusFrecuency"`
+	OnChainCheckStatusFrecuency  time.Duration      `mapstructure:"OnChainCheckStatusFrecuency"`
 }
 
 // Database has the database configuration
@@ -224,7 +223,6 @@ func bindEnv() {
 	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
 	_ = viper.BindEnv("NativeProofGenerationEnabled", "SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED")
 	_ = viper.BindEnv("PublishingKeyPath", "SH_ID_PLATFORM_PUBLISH_KEY_PATH")
-	_ = viper.BindEnv("OnChainPublishStateFrecuency", "SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY")
 	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY")
 
 	_ = viper.BindEnv("Database.URL", "SH_ID_PLATFORM_DATABASE_URL")
