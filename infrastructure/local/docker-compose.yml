@@ -28,7 +28,7 @@ services:
       #      - SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH=iden3
       #      - SH_ID_PLATFORM_REVERSE_HASH_SERVICE_URL=http://localhost:3001
       #      - SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED=false
-      # - SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
+      - SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
       # - SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS=0xEA9aF2088B4a9770fC32A12fD42E61BDD317E655
     #      - SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT=600000
     #      - SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT=600s
@@ -44,6 +44,20 @@ services:
     #      - SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
       - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6380/1
     command: sh -c "sleep 4s && ./migrate && ./platform"
+
+  pending_publisher:
+    build:
+      context: ../../
+    depends_on:
+      - postgres
+      - vault
+    environment:
+      # This environment vars overwrite the ones in config.toml
+      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
+      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
+      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
+      - SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
+    command: sh -c "sleep 4s &&  ./pending_publisher"
 
   postgres:
     image: postgres:14-alpine

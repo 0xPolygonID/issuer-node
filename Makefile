@@ -53,7 +53,7 @@ up:
 .PHONY: run
 run:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD) up -d platform
+	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD) up -d platform pending_publisher
 	docker exec  sh-id-platform_platform_1 ./migrate
 
 .PHONY: down

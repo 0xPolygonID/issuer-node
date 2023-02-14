@@ -14,7 +14,9 @@ FROM alpine:3.16.0
 RUN apk add --no-cache libstdc++ gcompat libgomp
 
 WORKDIR /service
-COPY --from=builder /service/bin /service
+COPY --from=builder /service/bin/migrate /service
+COPY --from=builder /service/bin/platform /service
+COPY --from=builder /service/bin/pending_publisher /service
 COPY --from=builder /service/config.toml.sample /service/config.toml
 COPY --from=builder /service/api/spec.html /service/api/spec.html
 COPY --from=builder /service/api/api.yaml /service/api/api.yaml
