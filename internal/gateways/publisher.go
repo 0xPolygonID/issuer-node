@@ -394,13 +394,14 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 		log.Error(ctx, "Error during get transacted states", err)
 		return
 	}
-
 	// we shouldn't process states which go routines are still in progress
 
 	var toCheck []domain.IdentityState
-	for i := range states {
+	for i, state := range states {
+		log.Debug(ctx, "examining state", "id", state.StateID, "identifier", state.Identifier, "prev", state.PreviousState, "created_at", state.CreatedAt, "updated_at", state.ModifiedAt)
 		if time.Now().Unix() > states[i].ModifiedAt.Add(p.confirmationTimeout).Unix() {
 			toCheck = append(toCheck, states[i])
+			log.Debug(ctx, "considering state", "id", state.StateID, "identifier", state.Identifier, "prev", state.PreviousState, "created_at", state.CreatedAt, "updated_at", state.ModifiedAt)
 		}
 	}
 
@@ -408,7 +409,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	for i := range toCheck {
 		err := p.checkStatus(ctx, &toCheck[i])
 		if err != nil {
-			log.Error(ctx, "Error during transaction check status", err, "state id", *states[i].State)
+			log.Error(ctx, "transaction check status", err, "state id", *states[i].State)
 			continue
 		}
 	}
