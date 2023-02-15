@@ -164,8 +164,13 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	if rs.MTP.NodeAux != nil {
 		key := rs.MTP.NodeAux.Key.String()
 		value := rs.MTP.NodeAux.Value.String()
-		response.Mtp.NodeAux.Key = &key
-		response.Mtp.NodeAux.Value = &value
+		response.Mtp.NodeAux = &struct {
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
+		}{
+			Key:   &key,
+			Value: &value,
+		}
 	}
 	response.Mtp.Existence = rs.MTP.Existence
 	siblings := make([]string, 0)
