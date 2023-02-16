@@ -583,19 +583,22 @@ components:
               type: array
               x-omitempty: false
               items:
-                $ref: '#/components/schemas/ByteArray'
+                type: string
+                format: byte
 
             nodeAux:
               type: object
               properties:
                 key:
-                  $ref: '#/components/schemas/ByteArray'
+                  type: string
+                  format: byte
                 value:
-                  $ref: '#/components/schemas/ByteArray'
+                  type: string
+                  format: byte
 
-    ByteArray:
-      type: string
-      format: byte
+#    ByteArray:
+#      type: string
+#      format: byte
 
     #Agent
     AgentResponse:
