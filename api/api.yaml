@@ -584,21 +584,18 @@ components:
               x-omitempty: false
               items:
                 type: string
-                format: byte
 
             nodeAux:
               type: object
               properties:
                 key:
                   type: string
-                  format: byte
                 value:
                   type: string
-                  format: byte
 
-#    ByteArray:
-#      type: string
-#      format: byte
+    ByteArray:
+      type: string
+      format: byte
 
     #Agent
     AgentResponse:

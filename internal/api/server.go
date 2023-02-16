@@ -13,7 +13,6 @@ import (
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -164,25 +163,22 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 
 	if rs.MTP.NodeAux != nil {
 		key := rs.MTP.NodeAux.Key
+		decodedKey := key.BigInt().String()
 		value := rs.MTP.NodeAux.Value
+		decodedValue := value.BigInt().String()
 		response.Mtp.NodeAux = &struct {
-			Key   *[]byte `json:"key,omitempty"`
-			Value *[]byte `json:"value,omitempty"`
-		}{}
-		if key != nil {
-			response.Mtp.NodeAux.Key = common.ToPointer(make([]byte, len(key)))
-			copy(*response.Mtp.NodeAux.Key, key[:])
-		}
-		if value != nil {
-			response.Mtp.NodeAux.Value = common.ToPointer(make([]byte, len(value)))
-			copy(*response.Mtp.NodeAux.Value, value[:])
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
+		}{
+			Key:   &decodedKey,
+			Value: &decodedValue,
 		}
 	}
 
 	response.Mtp.Existence = rs.MTP.Existence
-	siblings := make([][]byte, 0)
+	siblings := make([]string, 0)
 	for _, s := range rs.MTP.AllSiblings() {
-		siblings = append(siblings, s[:])
+		siblings = append(siblings, s.BigInt().String())
 	}
 	response.Mtp.Siblings = &siblings
 	return response, err
