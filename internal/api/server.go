@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -163,20 +165,42 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 
 	if rs.MTP.NodeAux != nil {
 		key, _ := rs.MTP.NodeAux.Key.MarshalText()
+		decodedKey, err := base64.StdEncoding.DecodeString(string(key))
+		if err != nil {
+			log.Error(ctx, "error decoding node key", err)
+			return GetRevocationStatus500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		value, _ := rs.MTP.NodeAux.Value.MarshalText()
+		decodedValue, err := base64.StdEncoding.DecodeString(string(value))
+		if err != nil {
+			log.Error(ctx, "error decoding node value", err)
+			return GetRevocationStatus500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		response.Mtp.NodeAux = &struct {
 			Key   *ByteArray `json:"key,omitempty"`
 			Value *ByteArray `json:"value,omitempty"`
 		}{
-			Key:   &key,
-			Value: &value,
+			Key:   &decodedKey,
+			Value: &decodedValue,
 		}
 	}
+
 	response.Mtp.Existence = rs.MTP.Existence
 	siblings := make([]ByteArray, 0)
 	for _, s := range rs.MTP.AllSiblings() {
 		sb, _ := s.MarshalText()
-		siblings = append(siblings, sb)
+		decodedSb, err := base64.StdEncoding.DecodeString(string(sb))
+		if err != nil {
+			log.Error(ctx, "error decoding sibling", err)
+			return GetRevocationStatus500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
+		siblings = append(siblings, decodedSb)
 	}
 	response.Mtp.Siblings = &siblings
 	return response, err
