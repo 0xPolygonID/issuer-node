@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/polygonid/sh-id-platform/internal/log"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -164,9 +166,21 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 
 	if rs.MTP.NodeAux != nil {
 		key, _ := rs.MTP.NodeAux.Key.MarshalText()
-		decodedKey, _ := base64.StdEncoding.DecodeString(string(key))
+		decodedKey, err := base64.StdEncoding.DecodeString(string(key))
+		if err != nil {
+			log.Error(ctx, "error decoding node key", err)
+			return GetRevocationStatus500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		value, _ := rs.MTP.NodeAux.Value.MarshalText()
-		decodedValue, _ := base64.StdEncoding.DecodeString(string(value))
+		decodedValue, err := base64.StdEncoding.DecodeString(string(value))
+		if err != nil {
+			log.Error(ctx, "error decoding node value", err)
+			return GetRevocationStatus500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		response.Mtp.NodeAux = &struct {
 			Key   *ByteArray `json:"key,omitempty"`
 			Value *ByteArray `json:"value,omitempty"`
@@ -180,7 +194,13 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	siblings := make([]ByteArray, 0)
 	for _, s := range rs.MTP.AllSiblings() {
 		sb, _ := s.MarshalText()
-		decodedSb, _ := base64.StdEncoding.DecodeString(string(sb))
+		decodedSb, err := base64.StdEncoding.DecodeString(string(sb))
+		if err != nil {
+			log.Error(ctx, "error decoding sibling", err)
+			return GetRevocationStatus500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
 		siblings = append(siblings, decodedSb)
 	}
 	response.Mtp.Siblings = &siblings
