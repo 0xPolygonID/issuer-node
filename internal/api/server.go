@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"os"
@@ -163,20 +164,24 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 
 	if rs.MTP.NodeAux != nil {
 		key, _ := rs.MTP.NodeAux.Key.MarshalText()
+		decodedKey, _ := base64.StdEncoding.DecodeString(string(key))
 		value, _ := rs.MTP.NodeAux.Value.MarshalText()
+		decodedValue, _ := base64.StdEncoding.DecodeString(string(value))
 		response.Mtp.NodeAux = &struct {
 			Key   *ByteArray `json:"key,omitempty"`
 			Value *ByteArray `json:"value,omitempty"`
 		}{
-			Key:   &key,
-			Value: &value,
+			Key:   &decodedKey,
+			Value: &decodedValue,
 		}
 	}
+
 	response.Mtp.Existence = rs.MTP.Existence
 	siblings := make([]ByteArray, 0)
 	for _, s := range rs.MTP.AllSiblings() {
 		sb, _ := s.MarshalText()
-		siblings = append(siblings, sb)
+		decodedSb, _ := base64.StdEncoding.DecodeString(string(sb))
+		siblings = append(siblings, decodedSb)
 	}
 	response.Mtp.Siblings = &siblings
 	return response, err
