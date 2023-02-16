@@ -585,7 +585,7 @@ components:
               items:
                 type: string
 
-            nodeAux:
+            node_aux:
               type: object
               properties:
                 key:
