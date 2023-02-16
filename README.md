@@ -61,8 +61,6 @@ for this environment variables is defined in the function bindEnv() in file inte
 
 A helper command is provided under the command `make config` to help in the generation of the config file. 
 
-NOTE: The config.toml is deprecated and probably will evolve to only use environment files and a .env file.
-
 ## How to test it
 1) Start the testing environment 
 ``make up-test``
@@ -70,10 +68,3 @@ NOTE: The config.toml is deprecated and probably will evolve to only use environ
 ``make tests`` to run test or ``make test-race`` to run tests with go test --race
 3) Run linter
 ``make lint``
-
-## How to contribute
-
-## How to report tools
-
-### Third party tools
-If you want to execute the github actions locally visit https://github.com/nektos/act
