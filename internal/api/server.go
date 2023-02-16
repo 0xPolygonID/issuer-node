@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"net/http"
 	"os"
@@ -19,7 +18,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -164,25 +162,13 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	response.Mtp.Existence = rs.MTP.Existence
 
 	if rs.MTP.NodeAux != nil {
-		key, _ := rs.MTP.NodeAux.Key.MarshalText()
-		decodedKey, err := base64.StdEncoding.DecodeString(string(key))
-		if err != nil {
-			log.Error(ctx, "error decoding node key", err)
-			return GetRevocationStatus500JSONResponse{N500JSONResponse{
-				Message: err.Error(),
-			}}, nil
-		}
-		value, _ := rs.MTP.NodeAux.Value.MarshalText()
-		decodedValue, err := base64.StdEncoding.DecodeString(string(value))
-		if err != nil {
-			log.Error(ctx, "error decoding node value", err)
-			return GetRevocationStatus500JSONResponse{N500JSONResponse{
-				Message: err.Error(),
-			}}, nil
-		}
+		key := rs.MTP.NodeAux.Key
+		decodedKey := key.BigInt().String()
+		value := rs.MTP.NodeAux.Value
+		decodedValue := value.BigInt().String()
 		response.Mtp.NodeAux = &struct {
-			Key   *ByteArray `json:"key,omitempty"`
-			Value *ByteArray `json:"value,omitempty"`
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
 		}{
 			Key:   &decodedKey,
 			Value: &decodedValue,
@@ -190,17 +176,9 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	}
 
 	response.Mtp.Existence = rs.MTP.Existence
-	siblings := make([]ByteArray, 0)
+	siblings := make([]string, 0)
 	for _, s := range rs.MTP.AllSiblings() {
-		sb, _ := s.MarshalText()
-		decodedSb, err := base64.StdEncoding.DecodeString(string(sb))
-		if err != nil {
-			log.Error(ctx, "error decoding sibling", err)
-			return GetRevocationStatus500JSONResponse{N500JSONResponse{
-				Message: err.Error(),
-			}}, nil
-		}
-		siblings = append(siblings, decodedSb)
+		siblings = append(siblings, s.BigInt().String())
 	}
 	response.Mtp.Siblings = &siblings
 	return response, err

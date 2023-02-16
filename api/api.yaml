@@ -583,15 +583,15 @@ components:
               type: array
               x-omitempty: false
               items:
-                $ref: '#/components/schemas/ByteArray'
+                type: string
 
             nodeAux:
               type: object
               properties:
                 key:
-                  $ref: '#/components/schemas/ByteArray'
+                  type: string
                 value:
-                  $ref: '#/components/schemas/ByteArray'
+                  type: string
 
     ByteArray:
       type: string
