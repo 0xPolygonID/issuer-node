@@ -162,20 +162,21 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	response.Mtp.Existence = rs.MTP.Existence
 
 	if rs.MTP.NodeAux != nil {
-		key := rs.MTP.NodeAux.Key.String()
-		value := rs.MTP.NodeAux.Value.String()
+		key, _ := rs.MTP.NodeAux.Key.MarshalText()
+		value, _ := rs.MTP.NodeAux.Value.MarshalText()
 		response.Mtp.NodeAux = &struct {
-			Key   *string `json:"key,omitempty"`
-			Value *string `json:"value,omitempty"`
+			Key   *ByteArray `json:"key,omitempty"`
+			Value *ByteArray `json:"value,omitempty"`
 		}{
 			Key:   &key,
 			Value: &value,
 		}
 	}
 	response.Mtp.Existence = rs.MTP.Existence
-	siblings := make([]string, 0)
+	siblings := make([]ByteArray, 0)
 	for _, s := range rs.MTP.AllSiblings() {
-		siblings = append(siblings, s.String())
+		sb, _ := s.MarshalText()
+		siblings = append(siblings, sb)
 	}
 	response.Mtp.Siblings = &siblings
 	return response, err

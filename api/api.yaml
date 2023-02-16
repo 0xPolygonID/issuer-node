@@ -583,23 +583,19 @@ components:
               type: array
               x-omitempty: false
               items:
-                type: string
+                $ref: '#/components/schemas/ByteArray'
 
             nodeAux:
               type: object
               properties:
                 key:
-                  type: string
-#                  x-go-type: merkletree.Hash
-#                  x-go-type-import:
-#                    name: Hash
-#                    path: github.com/iden3/go-merkletree-sql/v2
+                  $ref: '#/components/schemas/ByteArray'
                 value:
-                  type: string
-#                  x-go-type: merkletree.Hash
-#                  x-go-type-import:
-#                    name: Hash
-#                    path: github.com/iden3/go-merkletree-sql/v2
+                  $ref: '#/components/schemas/ByteArray'
+
+    ByteArray:
+      type: string
+      format: byte
 
     #Agent
     AgentResponse:
