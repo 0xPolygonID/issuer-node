@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/polygonid/sh-id-platform/internal/log"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -21,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
