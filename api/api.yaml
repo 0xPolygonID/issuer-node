@@ -585,7 +585,7 @@ components:
               items:
                 $ref: '#/components/schemas/ByteArray'
 
-            nodeAux:
+            node_aux:
               type: object
               properties:
                 key:
