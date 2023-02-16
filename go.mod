@@ -18,7 +18,6 @@ require (
 	github.com/iden3/go-iden3-core v1.0.0
 	github.com/iden3/go-iden3-crypto v0.0.13
 	github.com/iden3/go-jwz v1.0.0-beta.0
-	github.com/iden3/go-merkletree-sql v1.0.2
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/prover v0.0.9
