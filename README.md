@@ -30,7 +30,8 @@ securing it.
 2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
 evaluation purposes. 
 3) Run `make run` to start a docker container running the issuer
-4) Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
+4) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault 
+5) Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
 
 
 ### Running the server in standalone mode
@@ -45,21 +46,27 @@ it will generate a binary for each of the commands:
     - configurator
 3) Make sure you have postgres, redis and hashicorp vault properly configured. You could use `make up` command to start
 a postgres, redis and vault redis container. Use this images only for evaluation purposes.
-4) Make sure that your database is properly configured (step 1) and run ./migrate command. This will check for the
+4) Make sure that your database is properly configured (step 1) and run `make db/migrate` command. This will check for the
 current structure of the database and will apply needed change to create or update the database schema.
-5) Run `./bin/platform` command to start the issuer. Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
+5) Write the vault token in the config.toml file, once the vault is initialized the token can be found in _infrastructure/local/.vault/data/init.out_ or in the logs of the vault container.
+6) Run `./bin/platform` command to start the issuer. Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
 This will show you the api documentation.
-6) Run `./bin/pending_publisher` in background. This process is not strictly necessary but highly recommended. 
+7) Run `./bin/pending_publisher` in background. This process is not strictly necessary but highly recommended. 
 It checks for possible errors publishing transactions on chain and try to resend it.
+8) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
 
 ## How to configure
 The server can be configured with a config file and/or environment variables. There is a config.toml.sample file provided
 as a reference. The system expects to have a config.toml file in the working directory. 
 
-Any variable defined in the config file can be overrided using environment variables. The binding 
+Any variable defined in the config file can be overwritten using environment variables. The binding 
 for this environment variables is defined in the function bindEnv() in file internal/config/config.go
 
 A helper command is provided under the command `make config` to help in the generation of the config file. 
+
+### Steps to write the private key in the vault
+1. docker exec -it sh-id-platform-test-vault sh
+2. vault write iden3/import/pbkey key_type=ethereum private_key=<privkey>
 
 ## How to test it
 1) Start the testing environment 
