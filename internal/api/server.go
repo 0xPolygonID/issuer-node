@@ -33,6 +33,11 @@ type Server struct {
 	health           *health.Status
 }
 
+func (s *Server) GetQrCodeClaim(ctx context.Context, request GetQrCodeClaimRequestObject) (GetQrCodeClaimResponseObject, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewServer is a Server constructor
 func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
