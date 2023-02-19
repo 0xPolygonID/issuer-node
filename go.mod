@@ -1,6 +1,6 @@
 module github.com/polygonid/sh-id-platform
 
-go 1.19
+go 1.18
 
 require (
 	github.com/deepmap/oapi-codegen v1.12.4
@@ -21,7 +21,7 @@ require (
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/prover v0.0.9
-	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2
+	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20230217163707-fad5b5345629
 	github.com/iden3/go-schema-processor v1.0.0
 	github.com/iden3/iden3comm v1.0.0-beta.0
 	github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695
@@ -39,7 +39,7 @@ require (
 	github.com/pressly/goose/v3 v3.7.0
 	github.com/spf13/viper v1.14.0
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
+	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 )
 
 require (
@@ -143,8 +143,10 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
+	github.com/iden3/go-rapidsnark v0.0.0-20230217163707-fad5b5345629 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
+	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/ipfs/go-cid v0.0.7 // indirect
