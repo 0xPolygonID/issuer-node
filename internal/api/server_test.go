@@ -638,7 +638,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			case GetClaimQrCode200JSONResponse:
 				var response GetClaimQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, string(protocol.CredentialIssuanceResponseMessageType), response.Type)
+				assert.Equal(t, string(protocol.CredentialOfferMessageType), response.Type)
 				assert.Equal(t, string(packers.MediaTypePlainMessage), response.Typ)
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)

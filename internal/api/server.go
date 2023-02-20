@@ -407,7 +407,7 @@ func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetCl
 		Thid: id.String(),
 		To:   *claim.Identifier,
 		Typ:  string(packers.MediaTypePlainMessage),
-		Type: string(protocol.CredentialIssuanceResponseMessageType),
+		Type: string(protocol.CredentialOfferMessageType),
 	}
 }
 
