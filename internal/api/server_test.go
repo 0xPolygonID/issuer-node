@@ -16,6 +16,9 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/mitchellh/mapstructure"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -25,8 +28,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
@@ -620,7 +621,6 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			},
 		},
 	} {
-
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims/%s/qrcode", tc.did, tc.claim)
@@ -664,7 +664,6 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestServer_GetClaim(t *testing.T) {
