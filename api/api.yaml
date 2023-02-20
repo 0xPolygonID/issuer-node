@@ -296,7 +296,7 @@ paths:
     get:
       summary: Get Claim QR code
       operationId: GetClaimQrCode
-      description: Returns a QRCode to scan for accepting a claim. When image=true, it will return a binary image of the QR. Otherwise it will return a json that can be used to create the QR
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim.
       tags:
         - Claim
       security:
