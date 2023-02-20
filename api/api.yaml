@@ -295,7 +295,7 @@ paths:
   /v1/{identifier}/claims/{id}/qrcode:
     get:
       summary: Get Claim QR code
-      operationId: GetQrCodeClaim
+      operationId: GetClaimQrCode
       description: Returns a QRCode to scan for accepting a claim. When image=true, it will return a binary image of the QR. Otherwise it will return a json that can be used to create the QR
       tags:
         - Claim
@@ -310,7 +310,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetQrCodeClaimResponse'
+                $ref: '#/components/schemas/GetClaimQrCodeResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -557,7 +557,7 @@ components:
         proof:
           type: null
 
-    GetQrCodeClaimResponse:
+    GetClaimQrCodeResponse:
       type: object
       required:
         - body

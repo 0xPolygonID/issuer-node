@@ -522,7 +522,7 @@ func TestServer_GetIdentities(t *testing.T) {
 	}
 }
 
-func TestServer_GetQrCodeClaim(t *testing.T) {
+func TestServer_GetClaimQrCode(t *testing.T) {
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -555,7 +555,7 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response GetQrCodeClaimResponseObject
+		response GetClaimQrCodeResponseObject
 		httpCode int
 	}
 
@@ -582,7 +582,7 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			did:   idStr,
 			claim: uuid.New(),
 			expected: expected{
-				response: GetQrCodeClaim404JSONResponse{N404JSONResponse{
+				response: GetClaimQrCode404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
 				httpCode: http.StatusNotFound,
@@ -594,7 +594,7 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			did:   idNoClaims,
 			claim: claim.ID,
 			expected: expected{
-				response: GetQrCodeClaim404JSONResponse{N404JSONResponse{
+				response: GetClaimQrCode404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
 				httpCode: http.StatusNotFound,
@@ -606,7 +606,7 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			did:   ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			claim: claim.ID,
 			expected: expected{
-				response: GetQrCodeClaim400JSONResponse{N400JSONResponse{
+				response: GetClaimQrCode400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
 				httpCode: http.StatusBadRequest,
@@ -618,7 +618,7 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			did:   idStr,
 			claim: claim.ID,
 			expected: expected{
-				response: GetQrCodeClaim200JSONResponse{},
+				response: GetClaimQrCode200JSONResponse{},
 				httpCode: http.StatusOK,
 			},
 		},
@@ -635,8 +635,8 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case GetQrCodeClaim200JSONResponse:
-				var response GetQrCodeClaim200JSONResponse
+			case GetClaimQrCode200JSONResponse:
+				var response GetClaimQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, string(protocol.CredentialIssuanceResponseMessageType), response.Type)
 				assert.Equal(t, string(packers.MediaTypePlainMessage), response.Typ)
@@ -651,16 +651,16 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, claim.SchemaType, response.Body.Credentials[0].Description)
 
-			case GetQrCodeClaim400JSONResponse:
-				var response GetQrCodeClaim400JSONResponse
+			case GetClaimQrCode400JSONResponse:
+				var response GetClaimQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case GetQrCodeClaim404JSONResponse:
-				var response GetQrCodeClaim400JSONResponse
+			case GetClaimQrCode404JSONResponse:
+				var response GetClaimQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case GetQrCodeClaim500JSONResponse:
-				var response GetQrCodeClaim500JSONResponse
+			case GetClaimQrCode500JSONResponse:
+				var response GetClaimQrCode500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}

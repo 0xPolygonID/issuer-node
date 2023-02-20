@@ -248,40 +248,40 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 	return toGetClaims200Response(claims), nil
 }
 
-// GetQrCodeClaim returns a GetQrCodeClaimResponseObject that can be used with any QR generator to create a QR and
+// GetClaimQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
 // scan it with polygon wallet to accept the claim
-func (s *Server) GetQrCodeClaim(ctx context.Context, request GetQrCodeClaimRequestObject) (GetQrCodeClaimResponseObject, error) {
+func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error) {
 	if request.Identifier == "" {
-		return GetQrCodeClaim400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
 	}
 
 	did, err := core.ParseDID(request.Identifier)
 	if err != nil {
-		return GetQrCodeClaim400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
 	if request.Id == "" {
-		return GetQrCodeClaim400JSONResponse{N400JSONResponse{"can not proceed with an empty claim id"}}, nil
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"can not proceed with an empty claim id"}}, nil
 	}
 
 	claimID, err := uuid.Parse(request.Id)
 	if err != nil {
-		return GetQrCodeClaim400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
 	}
 
 	claim, err := s.claimService.GetByID(ctx, did, claimID)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
-			return GetQrCodeClaim404JSONResponse{N404JSONResponse{err.Error()}}, nil
+			return GetClaimQrCode404JSONResponse{N404JSONResponse{err.Error()}}, nil
 		}
-		return GetQrCodeClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
+		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
-	return toGetQrCodeClaim200JSONResponse(claim, s.cfg.ServerUrl), nil
+	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
 }
 
-func toGetQrCodeClaim200JSONResponse(claim *domain.Claim, hostURL string) *GetQrCodeClaim200JSONResponse {
+func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetClaimQrCode200JSONResponse {
 	id := uuid.New()
-	return &GetQrCodeClaim200JSONResponse{
+	return &GetClaimQrCode200JSONResponse{
 		Body: struct {
 			Credentials []struct {
 				Description string `json:"description"`
