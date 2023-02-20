@@ -279,36 +279,6 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
 }
 
-func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetClaimQrCode200JSONResponse {
-	id := uuid.New()
-	return &GetClaimQrCode200JSONResponse{
-		Body: struct {
-			Credentials []struct {
-				Description string `json:"description"`
-				Id          string `json:"id"`
-			} `json:"credentials"`
-			Url string `json:"url"`
-		}{
-			Credentials: []struct {
-				Description string `json:"description"`
-				Id          string `json:"id"`
-			}{
-				{
-					Description: claim.SchemaType,
-					Id:          claim.ID.String(),
-				},
-			},
-			Url: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
-		},
-		From: claim.Issuer,
-		Id:   id.String(),
-		Thid: id.String(),
-		To:   *claim.Identifier,
-		Typ:  string(packers.MediaTypePlainMessage),
-		Type: string(protocol.CredentialIssuanceResponseMessageType),
-	}
-}
-
 // GetIdentities is the controller to get identities
 func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error) {
 	var response GetIdentities200JSONResponse
@@ -408,6 +378,36 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Issuer:            claim.Issuer,
 		Proof:             claim.Proof,
 		Type:              claim.Type,
+	}
+}
+
+func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetClaimQrCode200JSONResponse {
+	id := uuid.New()
+	return &GetClaimQrCode200JSONResponse{
+		Body: struct {
+			Credentials []struct {
+				Description string `json:"description"`
+				Id          string `json:"id"`
+			} `json:"credentials"`
+			Url string `json:"url"`
+		}{
+			Credentials: []struct {
+				Description string `json:"description"`
+				Id          string `json:"id"`
+			}{
+				{
+					Description: claim.SchemaType,
+					Id:          claim.ID.String(),
+				},
+			},
+			Url: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
+		},
+		From: claim.Issuer,
+		Id:   id.String(),
+		Thid: id.String(),
+		To:   *claim.Identifier,
+		Typ:  string(packers.MediaTypePlainMessage),
+		Type: string(protocol.CredentialIssuanceResponseMessageType),
 	}
 }
 
