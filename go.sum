@@ -475,6 +475,8 @@ github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2 h1:f
 github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2/go.mod h1:ZRd4PX8vJX/2aJ/1XRvtwMon5F7phDRX6C7v/BYBrwE=
 github.com/iden3/go-schema-processor v1.0.0 h1:7Ut+alv+GIDbeYVBhzDlnhao8q8y/yuBoV/BMNlyB8A=
 github.com/iden3/go-schema-processor v1.0.0/go.mod h1:+kc0IFGKaO6dYy5ICVfGBN5FyU7HqrJlwDYkcnAjFG4=
+github.com/iden3/go-schema-processor v1.1.0 h1:WPGq8ngXandfpMgEmtVfTCiJ3I6am3qDrGy5BigFue8=
+github.com/iden3/go-schema-processor v1.1.0/go.mod h1:/xyS8jh1d1mt+8i/QvU8pqMf21c/KjCClRcG181Ri1I=
 github.com/iden3/iden3comm v1.0.0-beta.0 h1:4DQfVOYWBrbeJ/G5Mr3JDJt6hYGVmPS63Kp3/TICmd0=
 github.com/iden3/iden3comm v1.0.0-beta.0/go.mod h1:jhj1N7+6uaRVHnIjyKqSLO6oCXS6rPvNVUMlq8ydk64=
 github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695 h1:8CetpPSy5zu3shLA6E3B2+o8a48oialyMODKWFCNyhw=
@@ -775,6 +777,7 @@ github.com/pierrec/lz4 v2.5.2+incompatible h1:WCjObylUIOlKy/+7Abdn34TLIkXiA4UWUM
 github.com/pierrec/lz4 v2.5.2+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/piprate/json-gold v0.5.0 h1:RmGh1PYboCFcchVFuh2pbSWAZy4XJaqTMU4KQYsApbM=
 github.com/piprate/json-gold v0.5.0/go.mod h1:WZ501QQMbZZ+3pXFPhQKzNwS1+jls0oqov3uQ2WasLs=
+github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f/go.mod h1:WZ501QQMbZZ+3pXFPhQKzNwS1+jls0oqov3uQ2WasLs=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

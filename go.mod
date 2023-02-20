@@ -22,7 +22,7 @@ require (
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/prover v0.0.9
 	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2
-	github.com/iden3/go-schema-processor v1.0.0
+	github.com/iden3/go-schema-processor v1.1.0
 	github.com/iden3/iden3comm v1.0.0-beta.0
 	github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695
 	github.com/jackc/pgconn v1.13.0
@@ -211,7 +211,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
-	github.com/piprate/json-gold v0.5.0 // indirect
+	github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v1.0.5 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
