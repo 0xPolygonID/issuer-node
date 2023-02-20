@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -12,8 +14,10 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
@@ -244,6 +248,37 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 	return toGetClaims200Response(claims), nil
 }
 
+// GetClaimQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
+// scan it with polygon wallet to accept the claim
+func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error) {
+	if request.Identifier == "" {
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+	}
+
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+
+	if request.Id == "" {
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"can not proceed with an empty claim id"}}, nil
+	}
+
+	claimID, err := uuid.Parse(request.Id)
+	if err != nil {
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+	}
+
+	claim, err := s.claimService.GetByID(ctx, did, claimID)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return GetClaimQrCode404JSONResponse{N404JSONResponse{err.Error()}}, nil
+		}
+		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
+	}
+	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
+}
+
 // GetIdentities is the controller to get identities
 func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error) {
 	var response GetIdentities200JSONResponse
@@ -343,6 +378,36 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Issuer:            claim.Issuer,
 		Proof:             claim.Proof,
 		Type:              claim.Type,
+	}
+}
+
+func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetClaimQrCode200JSONResponse {
+	id := uuid.New()
+	return &GetClaimQrCode200JSONResponse{
+		Body: struct {
+			Credentials []struct {
+				Description string `json:"description"`
+				Id          string `json:"id"`
+			} `json:"credentials"`
+			Url string `json:"url"`
+		}{
+			Credentials: []struct {
+				Description string `json:"description"`
+				Id          string `json:"id"`
+			}{
+				{
+					Description: claim.SchemaType,
+					Id:          claim.ID.String(),
+				},
+			},
+			Url: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
+		},
+		From: claim.Issuer,
+		Id:   id.String(),
+		Thid: id.String(),
+		To:   *claim.Identifier,
+		Typ:  string(packers.MediaTypePlainMessage),
+		Type: string(protocol.CredentialOfferMessageType),
 	}
 }
 
