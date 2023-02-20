@@ -318,8 +318,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
        				credential_status,
        				core_claim
         FROM claims
-        WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(),
-		claimID).Scan(
+        WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
 		&claim.Issuer,
 		&claim.SchemaHash,
