@@ -809,7 +809,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -841,7 +841,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -971,7 +971,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -1019,7 +1019,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -1076,7 +1076,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
