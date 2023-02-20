@@ -15,6 +15,8 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -636,8 +638,8 @@ func TestServer_GetQrCodeClaim(t *testing.T) {
 			case GetQrCodeClaim200JSONResponse:
 				var response GetQrCodeClaim200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, "https://iden3-communication.io/credentials/1.0/offer", response.Type)
-				assert.Equal(t, "application/iden3comm-plain-json", response.Typ)
+				assert.Equal(t, string(protocol.CredentialIssuanceResponseMessageType), response.Type)
+				assert.Equal(t, string(packers.MediaTypePlainMessage), response.Typ)
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
 				assert.Equal(t, response.Id, response.Thid)

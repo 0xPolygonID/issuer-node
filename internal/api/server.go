@@ -14,6 +14,7 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -303,8 +304,8 @@ func toGetQrCodeClaim200JSONResponse(claim *domain.Claim, hostURL string) *GetQr
 		Id:   id.String(),
 		Thid: id.String(),
 		To:   *claim.Identifier,
-		Typ:  "application/iden3comm-plain-json",
-		Type: "https://iden3-communication.io/credentials/1.0/offer",
+		Typ:  string(packers.MediaTypePlainMessage),
+		Type: string(protocol.CredentialIssuanceResponseMessageType),
 	}
 }
 
