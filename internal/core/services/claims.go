@@ -306,7 +306,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	return &domain.Agent{
 		ID:       uuid.NewString(),
 		Typ:      packers.MediaTypePlainMessage,
-		Type:     protocol.CredentialOfferMessageType,
+		Type:     protocol.CredentialIssuanceResponseMessageType,
 		ThreadID: basicMessage.ThreadID,
 		Body:     protocol.IssuanceMessageBody{Credential: *vc},
 		From:     basicMessage.IssuerDID.String(),
