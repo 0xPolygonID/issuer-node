@@ -644,7 +644,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, response.Id, response.Thid)
 				assert.Equal(t, idStr, response.From)
-				assert.Equal(t, idStr, response.To)
+				assert.Equal(t, claim.OtherIdentifier, response.To)
 				assert.Equal(t, cfg.ServerUrl+"v1/agent", response.Body.Url)
 				require.Len(t, response.Body.Credentials, 1)
 				_, err = uuid.Parse(response.Body.Credentials[0].Id)
