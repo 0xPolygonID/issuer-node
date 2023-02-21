@@ -19,7 +19,7 @@ Level = -4
 Mode = 2
 
 [KeyStore]
-Address="http://localhost:8200/" ##
+Address="http://localhost:8200/"
 Token="<placeholder(hvs.xxxxx from iden.out file)>"
 PluginIden3MountPath="iden3"
 
@@ -29,7 +29,7 @@ Enabled= false
 
 [Ethereum]
 URL="<placeholder(https://polygon-mumbai.g.alchemy.com/v2/xxxxxxxxx)>"
-ContractAddress="0xEA9aF2088B4a9770fC32A12fD42E61BDD317E655"
+ContractAddress="0x134B1BE34911E39A8397ec6289782989729807a4"
 DefaultGasLimit=600000
 ConfirmationTimeout="600s"
 ConfirmationBlockCount=5

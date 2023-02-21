@@ -292,6 +292,31 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+  /v1/{identifier}/claims/{id}/qrcode:
+    get:
+      summary: Get Claim QR code
+      operationId: GetClaimQrCode
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim.
+      tags:
+        - Claim
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathClaim'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetClaimQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
 #agent
   /v1/agent:
     post:
@@ -531,6 +556,51 @@ components:
           x-omitempty: false
         proof:
           type: null
+
+    GetClaimQrCodeResponse:
+      type: object
+      required:
+        - body
+        - id
+        - typ
+        - type
+        - thid
+        - from
+        - to
+      properties:
+        id:
+          type: string
+        typ:
+          type: string
+        type:
+          type: string
+        thid:
+          type: string
+        body:
+          type: object
+          required:
+            - url
+            - credentials
+          properties:
+            url:
+              type: string
+            credentials:
+              type: array
+              items:
+                type: object
+                required:
+                  - id
+                  - description
+                properties:
+                  id:
+                    type: string
+                  description:
+                    type: string
+        from:
+          type: string
+        to:
+          type: string
+
 
     CredentialSchema:
       type: object
