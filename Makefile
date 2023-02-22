@@ -53,8 +53,14 @@ up:
 .PHONY: run
 run:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	KEY_STORE_TOKEN=$(TOKEN) $(DOCKER_COMPOSE_CMD) up -d platform pending_publisher
-	docker exec  sh-id-platform_platform_1 ./migrate
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d platform
+	docker exec sh-id-platform-platform-1 ./migrate
+
+.PHONY: run-arm
+run-arm:
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d platform
+	docker exec sh-id-platform-platform-1 ./migrate
 
 .PHONY: down
 down:
