@@ -20,7 +20,7 @@ Mode = 2
 
 [KeyStore]
 Address="http://localhost:8200/"
-Token="<placeholder(hvs.xxxxx from iden.out file)>"
+Token="<placeholder(hvs.xxxxx from infrastructure/local/.vault/data/init.out file)>"
 PluginIden3MountPath="iden3"
 
 [ReverseHashService]
