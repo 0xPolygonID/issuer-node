@@ -15,6 +15,8 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -520,6 +522,152 @@ func TestServer_GetIdentities(t *testing.T) {
 	}
 }
 
+func TestServer_GetClaimQrCode(t *testing.T) {
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
+	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
+
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+
+	identity := &domain.Identity{
+		Identifier: idStr,
+	}
+
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	claim := fixture.NewClaim(t, identity.Identifier)
+	fixture.CreateClaim(t, claim)
+
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	handler := getHandler(context.Background(), server)
+
+	type expected struct {
+		response GetClaimQrCodeResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		did      string
+		claim    uuid.UUID
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name:  "No auth",
+			auth:  authWrong,
+			did:   idStr,
+			claim: claim.ID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:  "should get an error non existing claimID",
+			auth:  authOk,
+			did:   idStr,
+			claim: uuid.New(),
+			expected: expected{
+				response: GetClaimQrCode404JSONResponse{N404JSONResponse{
+					Message: "claim not found",
+				}},
+				httpCode: http.StatusNotFound,
+			},
+		},
+		{
+			name:  "should get an error the given did has no entry for claimID",
+			auth:  authOk,
+			did:   idNoClaims,
+			claim: claim.ID,
+			expected: expected{
+				response: GetClaimQrCode404JSONResponse{N404JSONResponse{
+					Message: "claim not found",
+				}},
+				httpCode: http.StatusNotFound,
+			},
+		},
+		{
+			name:  "should get an error wrong did invalid format",
+			auth:  authOk,
+			did:   ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
+			claim: claim.ID,
+			expected: expected{
+				response: GetClaimQrCode400JSONResponse{N400JSONResponse{
+					Message: "invalid did",
+				}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:  "should get a json QR",
+			auth:  authOk,
+			did:   idStr,
+			claim: claim.ID,
+			expected: expected{
+				response: GetClaimQrCode200JSONResponse{},
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/%s/claims/%s/qrcode", tc.did, tc.claim)
+			req, err := http.NewRequest("GET", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch v := tc.expected.response.(type) {
+			case GetClaimQrCode200JSONResponse:
+				var response GetClaimQrCode200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, string(protocol.CredentialOfferMessageType), response.Type)
+				assert.Equal(t, string(packers.MediaTypePlainMessage), response.Typ)
+				_, err := uuid.Parse(response.Id)
+				assert.NoError(t, err)
+				assert.Equal(t, response.Id, response.Thid)
+				assert.Equal(t, idStr, response.From)
+				assert.Equal(t, claim.OtherIdentifier, response.To)
+				assert.Equal(t, cfg.ServerUrl+"v1/agent", response.Body.Url)
+				require.Len(t, response.Body.Credentials, 1)
+				_, err = uuid.Parse(response.Body.Credentials[0].Id)
+				assert.NoError(t, err)
+				assert.Equal(t, claim.SchemaType, response.Body.Credentials[0].Description)
+
+			case GetClaimQrCode400JSONResponse:
+				var response GetClaimQrCode400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, v.Message, response.Message)
+			case GetClaimQrCode404JSONResponse:
+				var response GetClaimQrCode400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, v.Message, response.Message)
+			case GetClaimQrCode500JSONResponse:
+				var response GetClaimQrCode500JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, v.Message, response.Message)
+			}
+		})
+	}
+}
+
 func TestServer_GetClaim(t *testing.T) {
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -591,7 +739,7 @@ func TestServer_GetClaim(t *testing.T) {
 			did:     idStr,
 			claimID: uuid.New(),
 			expected: expected{
-				httpCode: 404,
+				httpCode: http.StatusNotFound,
 				response: GetClaim404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
@@ -603,7 +751,7 @@ func TestServer_GetClaim(t *testing.T) {
 			did:     idStrWithoutClaims,
 			claimID: claim.ID,
 			expected: expected{
-				httpCode: 404,
+				httpCode: http.StatusNotFound,
 				response: GetClaim404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
@@ -615,7 +763,7 @@ func TestServer_GetClaim(t *testing.T) {
 			did:     ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			claimID: claim.ID,
 			expected: expected{
-				httpCode: 400,
+				httpCode: http.StatusBadRequest,
 				response: GetClaim400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
@@ -627,7 +775,7 @@ func TestServer_GetClaim(t *testing.T) {
 			did:     idStr,
 			claimID: claim.ID,
 			expected: expected{
-				httpCode: 200,
+				httpCode: http.StatusOK,
 				response: GetClaim200JSONResponse{
 					Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 					CredentialSchema: CredentialSchema{
@@ -809,7 +957,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -841,7 +989,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -971,7 +1119,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -1019,7 +1167,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",
@@ -1076,7 +1224,7 @@ func TestServer_GetClaims(t *testing.T) {
 				response: GetClaims200JSONResponse{
 					GetClaimResponse{
 						Id:      defaultClaimMultipleClaimsVC.ID,
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
+						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", "https://schema.iden3.io/core/jsonld/auth.jsonld"},
 						CredentialSchema: CredentialSchema{
 							"https://schema.iden3.io/core/json/auth.json",
 							"JsonSchemaValidator2018",

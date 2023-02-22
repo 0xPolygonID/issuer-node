@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -111,7 +112,30 @@ type HTTPBasicAuth struct {
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
-// Load loads the configuraion from a file
+// Sanitize perform some basic checks and sanitizations in the configuration.
+// Returns true if config is acceptable, error otherwise.
+func (c *Configuration) Sanitize() error {
+	sUrl, err := c.validateServerUrl()
+	if err != nil {
+		return fmt.Errorf("serverUrl is not a valid url <%s>: %w", c.ServerUrl, err)
+	}
+	c.ServerUrl = sUrl
+	return nil
+}
+
+func (c *Configuration) validateServerUrl() (string, error) {
+	sUrl, err := url.ParseRequestURI(c.ServerUrl)
+	if err != nil {
+		return c.ServerUrl, err
+	}
+	if sUrl.Scheme == "" {
+		return c.ServerUrl, fmt.Errorf("server url must be an absolute url")
+	}
+	sUrl.RawQuery = ""
+	return strings.Trim(strings.Trim(sUrl.String(), "/"), "?"), nil
+}
+
+// Load loads the configuration from a file
 func Load(fileName string) (*Configuration, error) {
 	//if err := getFlags(); err != nil {
 	//	return nil, err

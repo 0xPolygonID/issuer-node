@@ -21,8 +21,8 @@ require (
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/prover v0.0.9
-	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20230217163707-fad5b5345629
-	github.com/iden3/go-schema-processor v1.0.0
+	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2
+	github.com/iden3/go-schema-processor v1.1.0
 	github.com/iden3/iden3comm v1.0.0-beta.0
 	github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695
 	github.com/jackc/pgconn v1.13.0
