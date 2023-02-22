@@ -25,9 +25,6 @@ securing it.
 
 ## How to run the server
 
-> **Note:**
-> **Mac computers** with **Apple Silicon chip** are **not supported** with the current version of the **Dockerfile**. Please, use the [standalone](#running-the-server-for-evaluation-purposes-with-docker-composer) version instead.
-
 ### Running the server for evaluation purposes with docker-composer
 1) Configure the project creating config.toml file.
 2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
