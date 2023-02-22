@@ -143,10 +143,8 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
-	github.com/iden3/go-rapidsnark v0.0.0-20230217163707-fad5b5345629 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
-	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/ipfs/go-cid v0.0.7 // indirect
@@ -213,7 +211,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
-	github.com/piprate/json-gold v0.5.0 // indirect
+	github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v1.0.5 // indirect
 	github.com/pquerna/cachecontrol v0.1.0 // indirect
