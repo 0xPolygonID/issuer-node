@@ -37,23 +37,27 @@ func main() {
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", err)
-		panic(err)
+		return
 	}
 
-	// Context with log
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
+
+	if err := cfg.Sanitize(); err != nil {
+		log.Error(ctx, "there are errors in the configuration that prevent server to start", err)
+		return
+	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
 		log.Error(ctx, "cannot connect to database", err)
-		panic(err)
+		return
 	}
 
 	// Redis cache
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", err, "host", cfg.Cache.RedisUrl)
-		panic(err)
+		return
 	}
 	cachex := cache.NewRedisCache(rdb)
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
@@ -61,30 +65,31 @@ func main() {
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
 		log.Error(ctx, "cannot init vault client: ", err)
-		panic(err)
+		return
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize kms", err)
-		panic(err)
+		return
 	}
 
 	ethereumClient, err := blockchain.Open(cfg)
 	if err != nil {
-		panic("Error dialing with ethclient: " + err.Error())
+		log.Error(ctx, "error dialing with ethereum client", err)
+		return
 	}
 
 	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
 	if err != nil {
 		log.Error(ctx, "failed init ethereum client", err)
-		panic(err)
+		return
 	}
 
 	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
 	if err != nil {
 		log.Error(ctx, "failed init ethereum connect", err)
-		panic(err)
+		return
 	}
 
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
@@ -121,13 +126,13 @@ func main() {
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", err)
-		panic("error creating transaction service")
+		return
 	}
 
 	publisherGateway, err := gateways.NewPublisherEthGateway(ethereumClient, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
 	if err != nil {
 		log.Error(ctx, "error creating publish gateway", err)
-		panic("error creating publish gateway")
+		return
 	}
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
@@ -135,7 +140,7 @@ func main() {
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", err)
-		panic(err)
+		return
 	}
 
 	serverHealth := health.New(health.Monitors{

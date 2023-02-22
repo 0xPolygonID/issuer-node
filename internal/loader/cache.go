@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
@@ -23,23 +24,26 @@ type cached struct {
 // and caches it.
 // TTL for cached items is forever
 func (c *cached) Load(ctx context.Context) (schema []byte, extension string, err error) {
+	ctx = log.With(ctx, "key", c.key(c.url))
 	if d, found := c.cache.Get(ctx, c.key(c.url)); found {
 		data, ok := d.(schemaData)
 		if ok {
+			log.Debug(ctx, "schema found in cache")
 			return data.schema, data.extension, nil
 		} else {
+			log.Warn(ctx, "unexpected response loading schema from cache", "data", data)
 			if err := c.cache.Delete(ctx, c.key(c.url)); err != nil {
+				log.Error(ctx, "removing schema from cache", err)
 				return nil, "", err
 			}
 		}
-
 	}
 	d := schemaData{}
 	if d.schema, d.extension, err = c.loader.Load(ctx); err != nil {
 		return nil, "", err
 	}
 	if err := c.cache.Set(ctx, c.key(c.url), d, cache.ForEver); err != nil {
-		return nil, "", err
+		log.Warn(ctx, "adding schema to Redis. Bypassing cache")
 	}
 	return d.schema, d.extension, nil
 }
