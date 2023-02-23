@@ -34,7 +34,7 @@ func (m *memory) Set(_ context.Context, key string, value any, ttl time.Duration
 // value must be passed as reference as the cached value will be stored there
 func (m *memory) Get(_ context.Context, key string, value any) bool {
 	mVal, exists := m.c.Get(key)
-	if exists && reflect.TypeOf(value) == reflect.TypeOf(&mVal) {
+	if exists && (reflect.TypeOf(value).Elem() == reflect.TypeOf(mVal)) {
 		reflect.ValueOf(value).Elem().Set(reflect.ValueOf(mVal))
 		return true
 	}
