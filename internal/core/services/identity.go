@@ -544,7 +544,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 		return nil, nil, fmt.Errorf("can't create credential: %w", err)
 	}
 
-	cred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), claimID)
+	cred.ID = fmt.Sprintf("%s/v1/%s/claim/%s", strings.TrimSuffix(hostURL, "/"), identifier, claimID)
 	cs := &verifiable.CredentialStatus{
 		ID: fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d",
 			hostURL, url.QueryEscape(did.String()), revNonce),
