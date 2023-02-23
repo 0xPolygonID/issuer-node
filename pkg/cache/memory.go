@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/patrickmn/go-cache"
@@ -30,8 +31,15 @@ func (m *memory) Set(_ context.Context, key string, value any, ttl time.Duration
 }
 
 // Get retrieves a cache entry and a boolean telling it is found or not
-func (m *memory) Get(_ context.Context, key string) (v any, f bool) {
-	return m.c.Get(key)
+// value must be passed as reference as the cached value will be stored there
+func (m *memory) Get(_ context.Context, key string, value any) bool {
+	mVal, exists := m.c.Get(key)
+	if exists && reflect.TypeOf(value) == reflect.TypeOf(&mVal) {
+		reflect.ValueOf(value).Elem().Set(reflect.ValueOf(mVal))
+		return true
+	}
+
+	return false
 }
 
 // Exists returns true if the key exists in the cache
