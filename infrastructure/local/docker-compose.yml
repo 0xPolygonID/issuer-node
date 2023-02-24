@@ -96,9 +96,8 @@ services:
 
   redis:
     image: redis:6-alpine
-    command: --port 6380
     ports:
-      - "6380:6380"
+      - "6380:6379"
     healthcheck:
       test: [ "CMD", "redis-cli", "-p", "6380", "ping" ]
       interval: 10s

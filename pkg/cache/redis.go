@@ -31,12 +31,13 @@ func (c *redisCache) Set(ctx context.Context, key string, value any, ttl time.Du
 }
 
 // Get returns an entry from redis and a boolean telling if the key has been found in redis
-func (c *redisCache) Get(ctx context.Context, key string) (any, bool) {
-	var dest any
-	if err := c.redis.Get(ctx, key, &dest); err != nil {
-		return nil, false
+// value must be passed as reference as the cached value will be stored there
+func (c *redisCache) Get(ctx context.Context, key string, value any) bool {
+	if err := c.redis.Get(ctx, key, &value); err != nil {
+		return false
 	}
-	return dest, true
+
+	return true
 }
 
 // Exists returns true if the key exists in redis
