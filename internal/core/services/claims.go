@@ -239,11 +239,13 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
 	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
 	if err != nil {
+		log.Error(ctx, "loading issuer identity", err, "issuerDID", req.IssuerDID)
 		return nil, err
 	}
 
 	if !exists {
-		return nil, fmt.Errorf("can not proceed with this identity, not found")
+		log.Warn(ctx, "issuer not found", "issuerDID", req.IssuerDID)
+		return nil, fmt.Errorf("cannot proceed with this identity, not found")
 	}
 
 	return c.getAgentCredential(ctx, req) // at this point the type is already validated
@@ -281,25 +283,30 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
+		log.Error(ctx, "unmarshalling agent body", err)
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
 	claimID, err := uuid.Parse(fetchRequestBody.ID)
 	if err != nil {
+		log.Error(ctx, "wrong claimID in agent request body", err)
 		return nil, fmt.Errorf("invalid claim ID")
 	}
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
 	if err != nil {
+		log.Error(ctx, "loading claim", err, "claimID", claim.ID)
 		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
 	}
-
 	if claim.OtherIdentifier != basicMessage.UserDID.String() {
-		return nil, fmt.Errorf("claim doesn't relate to sender")
+		err := fmt.Errorf("claim doesn't relate to sender")
+		log.Error(ctx, "claim doesn't relate to sender", err, "claimID", claim.ID)
+		return nil, err
 	}
 
 	vc, err := c.schemaSrv.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
+		log.Error(ctx, "creating W3 credential", err)
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 

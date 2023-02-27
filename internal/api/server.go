@@ -22,6 +22,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -296,20 +297,24 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 // Agent is the controller to fetch credentials from mobile
 func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error) {
 	if request.Body == nil || *request.Body == "" {
-		return Agent400JSONResponse{N400JSONResponse{"can not proceed with an empty request"}}, nil
+		log.Debug(ctx, "agent empty request")
+		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
 	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
 	if err != nil {
-		return Agent400JSONResponse{N400JSONResponse{"can not proceed with the given request"}}, nil
+		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
+		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
 	}
 
 	req, err := ports.NewAgentRequest(basicMessage)
 	if err != nil {
+		log.Error(ctx, "agent parsing request", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
 	agent, err := s.claimService.Agent(ctx, req)
 	if err != nil {
+		log.Error(ctx, "agent error", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
