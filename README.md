@@ -8,11 +8,12 @@ This project is developed with go 1.19. You probably would need a working golang
 
 You can also use the docker and docker compose files to run the project in case you do not want to compile by yoursef.
 
-Nice to have:
+Nice to have (Not all of them are strictly required but highly recommended):
 - Go 1.19.
 - Makefile.
 - Docker.
 - Docker-compose.
+- Unix style operating system (Linux, Mac, Windows WSL)
 
 Services needed:
 - Postgres
