@@ -22,10 +22,12 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
+	ServerAdminPort              int
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
 	Cache                        Cache              `mapstructure:"Cache"`
 	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
+	HTTPAdminAuth                HTTPAdminAuth      `mapstructure:"HTTPAdminAuth"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
 	Log                          Log                `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
@@ -108,6 +110,13 @@ type Log struct {
 // HTTPBasicAuth configuration. Some of the endpoints are protected with basic http auth. Here you can set the
 // user and password to use.
 type HTTPBasicAuth struct {
+	User     string `mapstructure:"User" tip:"Basic auth username"`
+	Password string `mapstructure:"Password" tip:"Basic auth password"`
+}
+
+// HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
+// user and password to use.
+type HTTPAdminAuth struct {
 	User     string `mapstructure:"User" tip:"Basic auth username"`
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
@@ -282,6 +291,9 @@ func bindEnv() {
 	_ = viper.BindEnv("Circuit.Path", "SH_ID_PLATFORM_CIRCUIT_PATH")
 
 	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
+
+	_ = viper.BindEnv("HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
+	_ = viper.BindEnv("HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
 
 	viper.AutomaticEnv()
 }
