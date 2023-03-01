@@ -62,6 +62,10 @@ run-arm:
 	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d platform
 	docker exec sh-id-platform-platform-1 ./migrate
 
+.PHONY: run-ui
+run-ui:
+	$(DOCKER_COMPOSE_CMD) up -d ui
+
 .PHONY: down
 down:
 	$(DOCKER_COMPOSE_CMD) down --remove-orphans

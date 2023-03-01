@@ -1,6 +1,15 @@
 version: "3.9"
 services:
 
+  ui:
+    build:
+      context: ../../ui/
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - API=https://api-staging/polygonid/com/v1
+
   platform:
     build:
       context: ../../
@@ -31,18 +40,18 @@ services:
       #      - SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED=false
       - SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
       # - SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS=0xEA9aF2088B4a9770fC32A12fD42E61BDD317E655
-    #      - SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT=600000
-    #      - SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT=600s
-    #      - SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT=5
-    #      - SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT=600s
-    #      - SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE=0
-    #      - SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE=1000000
-    #      - SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT=5s
-    #      - SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME=30s
-    #      - SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME=30s
-    #      - SH_ID_PLATFORM_PROVER_SERVER_URL=http://localhost:8002
-    #      - SH_ID_PLATFORM_PROVER_TIMEOUT=600s
-    #      - SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
+      #      - SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT=600000
+      #      - SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT=600s
+      #      - SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT=5
+      #      - SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT=600s
+      #      - SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE=0
+      #      - SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE=1000000
+      #      - SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT=5s
+      #      - SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME=30s
+      #      - SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME=30s
+      #      - SH_ID_PLATFORM_PROVER_SERVER_URL=http://localhost:8002
+      #      - SH_ID_PLATFORM_PROVER_TIMEOUT=600s
+      #      - SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
       - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6380/1
     command: sh -c "sleep 4s && ./migrate && ./platform"
 
