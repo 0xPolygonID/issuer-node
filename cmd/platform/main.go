@@ -18,6 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -164,8 +165,8 @@ func main() {
 			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
-				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,
-				ResponseErrorHandlerFunc: api.ResponseErrorHandlerFunc,
+				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
 		mux)
 	api.RegisterStatic(mux)

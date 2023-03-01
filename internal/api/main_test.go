@@ -15,6 +15,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
@@ -84,8 +85,8 @@ func getHandler(ctx context.Context, server *Server) http.Handler {
 		server,
 		middlewares(ctx),
 		StrictHTTPServerOptions{
-			RequestErrorHandlerFunc:  RequestErrorHandlerFunc,
-			ResponseErrorHandlerFunc: ResponseErrorHandlerFunc,
+			RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+			ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 		},
 	), mux)
 }
