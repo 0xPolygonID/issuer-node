@@ -46,6 +46,11 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
+
+.PHONY: api-admin
+api-admin: $(BIN)/oapi-codegen
+	$(BIN)/oapi-codegen -config ./api_admin/config-oapi-codegen.yaml ./api_admin/api.yaml > ./internal/api_admin/api.gen.go
+
 .PHONY: up
 up:
 	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
@@ -54,13 +59,23 @@ up:
 run:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
 	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d platform
-	docker exec sh-id-platform-platform-1 ./migrate
+
+.PHONY: run-ui
+run-ui:
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d admin
+
 
 .PHONY: run-arm
 run-arm:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
 	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d platform
-	docker exec sh-id-platform-platform-1 ./migrate
+
+
+.PHONY: run-arm-ui
+run-arm-ui:
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d admin
 
 .PHONY: down
 down:

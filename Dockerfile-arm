@@ -29,26 +29,3 @@ RUN mv /service/bin/* /service/
 RUN rm -R /usr/local/go
 RUN rm -R /service/bin
 RUN rm ./go1.19.linux-arm64.tar.gz
-
-###Build an issuer image
-#FROM ubuntu:22.04
-#
-#WORKDIR /service
-#
-#RUN apt-get update
-#RUN apt-get install -y build-essential libomp-dev ca-certificates
-#
-##COPY --from=builder /service/bin/migrate /service
-##COPY --from=builder /service/bin/platform /service
-##COPY --from=builder /service/bin/pending_publisher /service
-#
-#COPY --from=builder /service/migrate /service
-#COPY --from=builder /service/platform /service
-#COPY --from=builder /service/pending_publisher /service
-#COPY --from=builder /service/config.toml /service/config.toml
-#COPY --from=builder /service/api/spec.html /service/api/spec.html
-#COPY --from=builder /service/api/api.yaml /service/api/api.yaml
-#COPY --from=builder "/go/pkg/mod/github.com/wasmerio/wasmer-go@v1.0.4/wasmer/packaged/lib/" \
-#"/go/pkg/mod/github.com/wasmerio/wasmer-go@v1.0.4/wasmer/packaged/lib/"
-#COPY --from=builder "/service/pkg/credentials" \
-#"/service/pkg/credentials"
