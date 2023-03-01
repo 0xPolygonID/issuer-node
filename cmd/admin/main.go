@@ -14,11 +14,11 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 
-	"github.com/polygonid/sh-id-platform/internal/api"
 	api_admin "github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -165,8 +165,8 @@ func main() {
 			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPAdminAuth),
 			api_admin.StrictHTTPServerOptions{
-				RequestErrorHandlerFunc:  api.RequestErrorHandlerFunc,
-				ResponseErrorHandlerFunc: api.ResponseErrorHandlerFunc,
+				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
 		mux)
 	api_admin.RegisterStatic(mux)

@@ -1,15 +1,15 @@
-package api
+package errors
 
 import "net/http"
 
 // AuthError is a special error type used to signal an authorization error
 type AuthError struct {
-	err error
+	Err error
 }
 
 // Error satisfies error interface for AuthError
 func (a AuthError) Error() string {
-	return a.err.Error()
+	return a.Err.Error()
 }
 
 // RequestErrorHandlerFunc is a Request Error Handler that can be injected in oapi-codegen to handler errors in requests

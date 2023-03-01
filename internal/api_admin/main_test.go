@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/hashicorp/vault/api"
+	vaultApi "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
@@ -23,7 +24,7 @@ import (
 
 var (
 	storage        *db.Storage
-	vaultCli       *api.Client
+	vaultCli       *vaultApi.Client
 	cfg            config.Configuration
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
@@ -84,8 +85,8 @@ func getHandler(ctx context.Context, server *Server) http.Handler {
 		server,
 		middlewares(ctx),
 		StrictHTTPServerOptions{
-			RequestErrorHandlerFunc:  RequestErrorHandlerFunc,
-			ResponseErrorHandlerFunc: ResponseErrorHandlerFunc,
+			RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+			ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 		},
 	), mux)
 }

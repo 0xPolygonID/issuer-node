@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 
+	apiErrors "github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
@@ -34,10 +35,10 @@ func BasicAuthMiddleware(ctx context.Context, user, pass string) StrictMiddlewar
 			if ctxReq.Value(BasicAuthScopes) != nil && user != "" && pass != "" {
 				userReq, passReq, ok := r.BasicAuth()
 				if !ok {
-					return nil, AuthError{err: errors.New("unauthorized")}
+					return nil, apiErrors.AuthError{Err: errors.New("unauthorized")}
 				}
 				if subtle.ConstantTimeCompare([]byte(user), []byte(userReq)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(passReq)) != 1 {
-					return nil, AuthError{errors.New("unauthorized")}
+					return nil, apiErrors.AuthError{Err: errors.New("unauthorized")}
 				}
 			}
 			return f(ctx, w, r, args)
