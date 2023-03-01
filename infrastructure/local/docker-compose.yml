@@ -43,8 +43,28 @@ services:
     #      - SH_ID_PLATFORM_PROVER_SERVER_URL=http://localhost:8002
     #      - SH_ID_PLATFORM_PROVER_TIMEOUT=600s
     #      - SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
-      - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6380/1
+      - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
     command: sh -c "sleep 4s && ./migrate && ./platform"
+
+  admin:
+    build:
+      context: ../../
+      dockerfile: ${DOCKER_FILE}
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres
+      - redis
+      - vault
+    environment:
+      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
+      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
+      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
+      - SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
+      - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
+      - SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER=user
+      - SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD=password
+    command: sh -c "sleep 4s && ./migrate && ./admin"
 
   pending_publisher:
     build:

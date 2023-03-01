@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 
-	"github.com/polygonid/sh-id-platform/internal/api"
+	api_admin "github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -160,28 +160,28 @@ func main() {
 		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
 		chiMiddleware.NoCache,
 	)
-	api.HandlerFromMux(
-		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
-			middlewares(ctx, cfg.HTTPBasicAuth),
-			api.StrictHTTPServerOptions{
+	api_admin.HandlerFromMux(
+		api_admin.NewStrictHandlerWithOptions(
+			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
+			middlewares(ctx, cfg.HTTPAdminAuth),
+			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
 		mux)
-	api.RegisterStatic(mux)
+	api_admin.RegisterStatic(mux)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
+		Addr:    fmt.Sprintf(":%d", cfg.ServerAdminPort),
 		Handler: mux,
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, "server started", "port", cfg.ServerPort)
+		log.Info(ctx, "admin server started", "port", cfg.ServerAdminPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http server", err)
+			log.Error(ctx, "Starting http admin server", err)
 		}
 	}()
 
@@ -189,9 +189,9 @@ func main() {
 	log.Info(ctx, "Shutting down")
 }
 
-func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMiddlewareFunc {
-	return []api.StrictMiddlewareFunc{
-		api.LogMiddleware(ctx),
-		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
+func middlewares(ctx context.Context, auth config.HTTPAdminAuth) []api_admin.StrictMiddlewareFunc {
+	return []api_admin.StrictMiddlewareFunc{
+		api_admin.LogMiddleware(ctx),
+		api_admin.BasicAuthMiddleware(ctx, auth.User, auth.Password),
 	}
 }

@@ -35,6 +35,15 @@ evaluation purposes.
 5) Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
 
 
+### Running the admin server backend (api) for evaluation purposes with docker-composer
+1) Configure the project creating config.toml file.
+2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
+   evaluation purposes.
+3) Run `make run-ui-backend` to start a docker container running the issuer, (`make run-arm-ui-backend` for **Mac computers** with **Apple Silicon chip**)
+4) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
+5) Browse to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
+
+
 ### Running the server in standalone mode
 
 1) Configure the project creating a config.toml file copying the original config.toml.sample. The same variables can be
@@ -55,6 +64,7 @@ This will show you the api documentation.
 7) Run `./bin/pending_publisher` in background. This process is not strictly necessary but highly recommended. 
 It checks for possible errors publishing transactions on chain and try to resend it.
 8) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
+
 
 ## How to configure
 The server can be configured with a config file and/or environment variables. There is a config.toml.sample file provided
