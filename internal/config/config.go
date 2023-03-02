@@ -120,6 +120,7 @@ type Admin struct {
 	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth"`
 	IsuerName     string        `mapstructure:"IssuerName"`
 	IssuerLogo    string        `mapstructure:"IssuerLogo"`
+	IssuerDID     string        `mapstructure:"IssuerDID"`
 }
 
 // HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
