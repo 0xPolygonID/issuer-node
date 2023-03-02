@@ -49,6 +49,7 @@ Path="./pkg/credentials/circuits"
 
 # Admin Configuration
 [Admin]
+ServerPort = "3002"
 IsuerName = ""
 IssuerLogo = ""
 IssuerDID = ""

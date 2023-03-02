@@ -22,7 +22,6 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
-	ServerAdminPort              int
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
 	Cache                        Cache              `mapstructure:"Cache"`
@@ -117,6 +116,7 @@ type HTTPBasicAuth struct {
 
 // Admin - Admin backend service configuration.
 type Admin struct {
+	ServerPort    int           `mapstructure:"ServerPort"`
 	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth"`
 	IsuerName     string        `mapstructure:"IssuerName"`
 	IssuerLogo    string        `mapstructure:"IssuerLogo"`
@@ -301,6 +301,7 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
 
+	_ = viper.BindEnv("Admin.ServerPort", "SH_ID_PLATFORM_HTTP_ADMIN_SERVER_PORT")
 	_ = viper.BindEnv("Admin.HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
 	_ = viper.BindEnv("Admin.HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
 	_ = viper.BindEnv("Admin.IssuerName", "SH_ID_PLATFORM_HTTP_ADMIN_ISSUER_NAME")
