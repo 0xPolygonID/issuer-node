@@ -1,5 +1,8 @@
 #!/bin/sh
-ENV_FILENAME="/app/.env"
+
+ENV_FILENAME=".env"
+
+cd /app
 
 # Create .env file
 touch $ENV_FILENAME
@@ -8,13 +11,13 @@ touch $ENV_FILENAME
 echo "VITE_API=$API" >> $ENV_FILENAME
 
 # Build app
-cd /app && npm run build
+npm run build
 
 # Copy nginx config
-cp /app/deployment/nginx.conf /etc/nginx/conf.d/default.conf
+cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy app dist
-cp -r /app/dist/. /usr/share/nginx/html
+cp -r dist/. /usr/share/nginx/html
 
 # Delete source code
 rm -rf /app/*

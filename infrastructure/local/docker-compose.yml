@@ -8,7 +8,7 @@ services:
     ports:
       - "8080:80"
     environment:
-      - API=https://api-staging/polygonid/com/v1
+      - API=http://admin:3002
 
   platform:
     build:
