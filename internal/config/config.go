@@ -118,7 +118,7 @@ type HTTPBasicAuth struct {
 type Admin struct {
 	ServerPort    int           `mapstructure:"ServerPort"`
 	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth"`
-	IsuerName     string        `mapstructure:"IssuerName"`
+	IssuerName    string        `mapstructure:"IssuerName"`
 	IssuerLogo    string        `mapstructure:"IssuerLogo"`
 	IssuerDID     string        `mapstructure:"IssuerDID"`
 }
