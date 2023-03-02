@@ -1,4 +1,4 @@
-package api
+package api_admin
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/hashicorp/vault/api"
+	vaultApi "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 
@@ -24,7 +24,7 @@ import (
 
 var (
 	storage        *db.Storage
-	vaultCli       *api.Client
+	vaultCli       *vaultApi.Client
 	cfg            config.Configuration
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
@@ -101,10 +101,6 @@ func middlewares(ctx context.Context) []StrictMiddlewareFunc {
 
 func authOk() (string, string) {
 	return "user", "password"
-}
-
-func authWrong() (string, string) {
-	return "", ""
 }
 
 func lookupPostgresURL() string {

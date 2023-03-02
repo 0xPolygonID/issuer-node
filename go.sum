@@ -471,14 +471,16 @@ github.com/iden3/go-rapidsnark/types v0.0.2 h1:CjJSrlbWchHzuMRdxSYrEh7n/akP+Z2PL
 github.com/iden3/go-rapidsnark/types v0.0.2/go.mod h1:ApgcaUxKIgSRA6fAeFxK7p+lgXXfG4oA2HN5DhFlfF4=
 github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 h1:0r3AgEXAm6WSBfPjNV5IU6p58xOrRVSkWniHjwZPAGM=
 github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2/go.mod h1:A3R3qr+8QiQtFBghrx94VJrOIr+9mdgrrbmFzJyS9Sg=
-github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2 h1:fOgHvwd8K0ifG7Epz9ucU9xv2CX+gk5oIH5QJ/hThXs=
-github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2/go.mod h1:ZRd4PX8vJX/2aJ/1XRvtwMon5F7phDRX6C7v/BYBrwE=
+github.com/iden3/go-rapidsnark/witness v0.0.4-0.20230217163707-fad5b5345629 h1:bq4ywWvI3bOGynfC1wjzTziT1gKge8bQwQ7F5YT1d1w=
+github.com/iden3/go-rapidsnark/witness v0.0.4-0.20230217163707-fad5b5345629/go.mod h1:/DxZuqIZC5UyQ0+PKVVz9H0SnIle7pAYsSFw0E9ZiQ4=
 github.com/iden3/go-schema-processor v1.1.0 h1:WPGq8ngXandfpMgEmtVfTCiJ3I6am3qDrGy5BigFue8=
 github.com/iden3/go-schema-processor v1.1.0/go.mod h1:/xyS8jh1d1mt+8i/QvU8pqMf21c/KjCClRcG181Ri1I=
 github.com/iden3/iden3comm v1.0.0-beta.0 h1:4DQfVOYWBrbeJ/G5Mr3JDJt6hYGVmPS63Kp3/TICmd0=
 github.com/iden3/iden3comm v1.0.0-beta.0/go.mod h1:jhj1N7+6uaRVHnIjyKqSLO6oCXS6rPvNVUMlq8ydk64=
 github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695 h1:8CetpPSy5zu3shLA6E3B2+o8a48oialyMODKWFCNyhw=
 github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695/go.mod h1:viUqFXdonLL6isznj1ts0CID77CJ11AlXi9vTC8ZD8A=
+github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 h1:KW0syFZ7yPr6NRq6Gmun4eHLg4SYp9jmFICPtipvt1A=
+github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47/go.mod h1:ZnZBAO012M7o+Q1INXLRIxKQgEcH2FuwL0Iga8A4ufg=
 github.com/inconshreveable/mousetrap v1.0.1 h1:U3uMjPSQEBMNp1lFxmllqCPM6P5u/Xq7Pgzkat/bFNc=
 github.com/inconshreveable/mousetrap v1.0.1/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/invopop/yaml v0.1.0 h1:YW3WGUoJEXYfzWBjn00zIlrw7brGVD0fUKRYDPAPhrc=
@@ -979,8 +981,6 @@ github.com/vmihailenco/msgpack/v5 v5.3.4 h1:qMKAwOV+meBw2Y8k9cVwAy7qErtYCwBzZ2el
 github.com/vmihailenco/msgpack/v5 v5.3.4/go.mod h1:7xyJ9e+0+9SaZT0Wt1RGleJXzli6Q/V5KbhBonMG9jc=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
-github.com/wasmerio/wasmer-go v1.0.4 h1:MnqHoOGfiQ8MMq2RF6wyCeebKOe84G88h5yv+vmxJgs=
-github.com/wasmerio/wasmer-go v1.0.4/go.mod h1:0gzVdSfg6pysA6QVp6iVRPTagC6Wq9pOE8J86WKb2Fk=
 github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c h1:GGsyl0dZ2jJgVT+VvWBf/cNijrHRhkrTjkmp5wg7li0=
 github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c/go.mod h1:xxcJeBb7SIUl/Wzkz1eVKJE/CB34YNrqX2TQI6jY9zs=
 github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 h1:bAn7/zixMGCfxrRTfdpNzjtPYqr8smhKouy9mxVdGPU=

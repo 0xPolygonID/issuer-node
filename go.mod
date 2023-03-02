@@ -21,7 +21,7 @@ require (
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/prover v0.0.9
-	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20221129112904-b9f8680ca8e2
+	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20230217163707-fad5b5345629
 	github.com/iden3/go-schema-processor v1.1.0
 	github.com/iden3/iden3comm v1.0.0-beta.0
 	github.com/iden3/merkletree-proof v0.0.2-0.20221021174318-7b4a8f585695
@@ -145,6 +145,7 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
+	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/ipfs/go-cid v0.0.7 // indirect
@@ -271,7 +272,6 @@ require (
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	github.com/whyrusleeping/tar-utils v0.0.0-20180509141711-8c6c8ba81d5c // indirect
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.2.0 // indirect
