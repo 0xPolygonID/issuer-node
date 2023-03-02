@@ -116,11 +116,11 @@ type HTTPBasicAuth struct {
 
 // Admin - Admin backend service configuration.
 type Admin struct {
-	ServerPort    int           `mapstructure:"ServerPort"`
-	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth"`
-	IssuerName    string        `mapstructure:"IssuerName"`
-	IssuerLogo    string        `mapstructure:"IssuerLogo"`
-	IssuerDID     string        `mapstructure:"IssuerDID"`
+	ServerPort    int           `mapstructure:"ServerPort" tip:"Server admin backend port"`
+	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth" tip:"Server admin backend basic auth credentials"`
+	IssuerName    string        `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
+	IssuerLogo    string        `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
+	IssuerDID     string        `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
 }
 
 // HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
