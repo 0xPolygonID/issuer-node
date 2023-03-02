@@ -1,0 +1,33 @@
+$avatar-bg: #2c374e;
+$bg-light: #f9fafb;
+$border-color: #d0d5dd;
+$cyan-bg: #cff9fe;
+$cyan-color: #088ab2;
+$error-bg: #fecfcf;
+$error-color: #b20808;
+$primary-bg: #f4ebff;
+$primary-color: #7f56d9;
+$success-color: #027a48;
+$tag-bg: #f2f4f7;
+$tag-bg-success: #ecfdf3;
+$tag-color: #344054;
+$text-color: #101828;
+$text-color-secondary: #667085;
+
+:export {
+  avatarBg: $avatar-bg;
+  bgLight: $bg-light;
+  borderColor: $border-color;
+  cyanBg: $cyan-bg;
+  cyanColor: $cyan-color;
+  errorBg: $error-bg;
+  errorColor: $error-color;
+  primaryBg: $primary-bg;
+  primaryColor: $primary-color;
+  successColor: $success-color;
+  tagBg: $tag-bg;
+  tagBgSuccess: $tag-bg-success;
+  tagColor: $tag-color;
+  textColor: $text-color;
+  textColorSecondary: $text-color-secondary;
+}

@@ -1,0 +1,235 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://beta.api.schemas.serto.id/v1/public/vaccination-certificate/1.2.2.3/json-schema.json",
+    "$metadata": {
+        "slug": "vaccination-certificate",
+        "version": "1.2.2.3",
+        "icon": "💉",
+        "discoverable": true,
+        "uris": {
+            "jsonLdContextPlus": "https://beta.api.schemas.serto.id/v1/public/vaccination-certificate/1.2.2.3/ld-context-plus.json",
+            "jsonLdContext": "https://beta.api.schemas.serto.id/v1/public/vaccination-certificate/1.2.2.3/ld-context.json",
+            "jsonSchema": "https://beta.api.schemas.serto.id/v1/public/vaccination-certificate/1.2.2.3/json-schema.json"
+        }
+    },
+    "title": "Vaccination Certificate",
+    "description": "Certificate for vaccination against COVID-19 or any other disease. Based on W3C draft: https://w3c-ccg.github.io/vaccination-vocab/",
+    "type": "object",
+    "required": [
+        "@context",
+        "type",
+        "issuer",
+        "issuanceDate",
+        "credentialSubject"
+    ],
+    "properties": {
+        "@context": {
+            "type": [
+                "string",
+                "array",
+                "object"
+            ]
+        },
+        "string": {
+            "type": "string",
+            "format": "uri",
+            "enum": [
+                "red",
+                "amber",
+                "green"
+            ]
+        },
+        "numeric": {
+            "type": "number",
+            "enum": [
+                3,
+                5,
+                7
+            ]
+        },
+        "boolean": {
+            "type": "boolean",
+            "enum": [
+                true,
+                false
+            ]
+        },
+        "type": {
+            "type": [
+                "string",
+                "array"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "issuer": {
+            "title": "Issuer title",
+            "description": "Issuer description",
+            "type": [
+                "string",
+                "object"
+            ],
+            "format": "uri",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            }
+        },
+        "issuanceDate": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "expirationDate": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "credentialSubject": {
+            "type": "object",
+            "required": [
+                "id",
+                "batchNumber",
+                "countryOfVaccination"
+            ],
+            "properties": {
+                "id": {
+                    "title": "Credential Subject ID",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "batchNumber": {
+                    "title": "Batch Number",
+                    "description": "",
+                    "type": "string"
+                },
+                "administeringCentre": {
+                    "title": "Administering Centre",
+                    "type": "object",
+                    "required": [
+                        "name"
+                    ],
+                    "properties": {
+                        "name": {
+                            "title": "Name",
+                            "description": "",
+                            "type": "string"
+                        },
+                        "address": {
+                            "title": "Address",
+                            "description": "",
+                            "type": "string"
+                        },
+                        "url": {
+                            "title": "URL",
+                            "description": "",
+                            "type": "string",
+                            "format": "uri"
+                        },
+                        "id": {
+                            "title": "ID",
+                            "description": "",
+                            "type": "string",
+                            "format": "uri"
+                        }
+                    }
+                },
+                "countryOfVaccination": {
+                    "title": "Country of Vaccination",
+                    "description": "",
+                    "type": "string"
+                },
+                "recipient": {
+                    "title": "Recipient",
+                    "type": "object",
+                    "required": [
+                        "givenName",
+                        "familyName",
+                        "birthDate",
+                        "photoUrl"
+                    ],
+                    "properties": {
+                        "givenName": {
+                            "title": "Given Name",
+                            "description": "",
+                            "type": "string"
+                        },
+                        "familyName": {
+                            "title": "Family Name",
+                            "description": "",
+                            "type": "string"
+                        },
+                        "birthDate": {
+                            "title": "Birth Date",
+                            "description": "",
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "gender": {
+                            "title": "Gender",
+                            "description": "",
+                            "type": "string"
+                        },
+                        "photoUrl": {
+                            "title": "Photo URL",
+                            "description": "URL of a photo of the recipient",
+                            "type": "string",
+                            "format": "uri"
+                        }
+                    }
+                },
+                "vaccine": {
+                    "title": "Vaccine",
+                    "type": "object",
+                    "required": [
+                        "disease",
+                        "atcCode",
+                        "medicinalProductName"
+                    ],
+                    "properties": {
+                        "disease": {
+                            "title": "Disease",
+                            "description": "",
+                            "type": "string"
+                        },
+                        "atcCode": {
+                            "title": "ATC Code",
+                            "description": "https://en.wikipedia.org/wiki/ATC_code_J07",
+                            "type": "string"
+                        },
+                        "medicinalProductName": {
+                            "title": "Medicinal Product Name",
+                            "description": "e.g. \"COVID-19 Vaccine Moderna\"",
+                            "type": "string"
+                        },
+                        "marketingAuthorizationHolder": {
+                            "title": "Marketing Authorization Holder",
+                            "description": "e.g. \"Moderna Biotech\"",
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "credentialSchema": {
+            "type": "object",
+            "required": [
+                "id",
+                "type"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

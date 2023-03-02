@@ -1,31 +1,39 @@
-ServerPort = 3001
-ServerUrl = "<placeholder(public server url)>"
-NativeProofGenerationEnabled = true
-PublishingKeyPath = "pbkey"
-OnChainCheckStatusFrecuency = "30s"
+[Server]
+Port=3001
+URL="http://localhost:3001"
+NativeProofGenerationEnabled=true
+PublishingKeyPath="pbkey"
+OnChainCheckStatusFrequency="30s"
 
 [Database]
-Url="postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable"
+URL="postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable"
 
 [Cache]
-RedisUrl="redis://@localhost:6380/1"
+URL="redis://@redis:6379/1"
+
+[UI]
+Port=5173
+URL="http://localhost:5173"
+API="http://localhost:3002"
 
 [HTTPBasicAuth]
-User = "user"
-Password = "password"
+User="userIdentity"
+Password="passwordIdentity"
 
 [Log]
-Level = -4
-Mode = 2
+Level=-4
+Mode=2
 
 [KeyStore]
-Address="http://localhost:8200/"
+Address="http://vault:8200/"
+# Required for standalone mode only
 Token="<placeholder(hvs.xxxxx from infrastructure/local/.vault/data/init.out file)>"
 PluginIden3MountPath="iden3"
 
-[ReverseHashService]
-URL="http://localhost:3001"
-Enabled= false
+# UNDER DEVELOPMENT
+# [ReverseHashService]
+# URL="http://localhost:3001"
+# Enabled=false
 
 [Ethereum]
 URL="<placeholder(https://polygon-mumbai.g.alchemy.com/v2/xxxxxxxxx)>"
@@ -41,7 +49,7 @@ WaitReceiptCycleTime="30s"
 WaitBlockCycleTime="30s"
 
 [Prover]
-ServerURL="http://localhost:8002"
+URL="http://localhost:8002"
 ResponseTimeout="600s"
 
 [Circuit]
