@@ -163,7 +163,7 @@ func main() {
 	api_admin.HandlerFromMux(
 		api_admin.NewStrictHandlerWithOptions(
 			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
-			middlewares(ctx, cfg.HTTPAdminAuth),
+			middlewares(ctx, cfg.Admin.HTTPAdminAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,

@@ -27,7 +27,6 @@ type Configuration struct {
 	Database                     Database           `mapstructure:"Database"`
 	Cache                        Cache              `mapstructure:"Cache"`
 	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
-	HTTPAdminAuth                HTTPAdminAuth      `mapstructure:"HTTPAdminAuth"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
 	Log                          Log                `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
@@ -36,6 +35,8 @@ type Configuration struct {
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
 	OnChainCheckStatusFrecuency  time.Duration      `mapstructure:"OnChainCheckStatusFrecuency"`
+
+	Admin Admin `mapstructure:"Admin"`
 }
 
 // Database has the database configuration
@@ -112,6 +113,13 @@ type Log struct {
 type HTTPBasicAuth struct {
 	User     string `mapstructure:"User" tip:"Basic auth username"`
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
+}
+
+// Admin - Admin backend service configuration.
+type Admin struct {
+	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth"`
+	IsuerName     string        `mapstructure:"IssuerName"`
+	IssuerLogo    string        `mapstructure:"IssuerLogo"`
 }
 
 // HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
@@ -292,8 +300,10 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
 
-	_ = viper.BindEnv("HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
-	_ = viper.BindEnv("HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
+	_ = viper.BindEnv("Admin.HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
+	_ = viper.BindEnv("Admin.HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
+	_ = viper.BindEnv("Admin.IssuerName", "SH_ID_PLATFORM_HTTP_ADMIN_ISSUER_NAME")
+	_ = viper.BindEnv("Admin.IssuerLogo", "SH_ID_PLATFORM_HTTP__ADMIN_ISSUER_NAME")
 
 	viper.AutomaticEnv()
 }
