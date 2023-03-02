@@ -3,11 +3,11 @@
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
 
-This full-stack web-application allows a single authenticated user of the Polygon ID zk-proof protocol to create schemas for issuing and managing credentials of identities. It provides a web-based frontend (UI) to manage schemas, credentials and connections.
+This full-stack web-application allows a single authenticated user of the Polygon ID zk-proof protocol to create schemas for issuing and managing credentials of identities. It also provides a web-based [frontend (UI)](ui/README.md) to manage issuer schemas, credentials and connections.
 
 ## Installation
 
-The first step is configuring, installing and running the server.
+There are two options for installing and running the server alongside the UI.
 
 ### Option 1 - Using Docker only
 

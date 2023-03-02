@@ -16,9 +16,17 @@ Port=5173
 URL="http://localhost:5173"
 API="http://localhost:3002"
 
-[HTTPBasicAuth]
-User="userIdentity"
-Password="passwordIdentity"
+[HTTPAuthIssuer]
+User="userIssuer"
+Password="passwordIssuer"
+
+[HTTPAuthAPI]
+User="userAPI"
+Password="passwordAPI"
+
+[HTTPAuthUI]
+User="userUI"
+Password="passwordUI"
 
 [Log]
 Level=-4
@@ -31,9 +39,9 @@ Token="<placeholder(hvs.xxxxx from infrastructure/local/.vault/data/init.out fil
 PluginIden3MountPath="iden3"
 
 # UNDER DEVELOPMENT
-# [ReverseHashService]
-# URL="http://localhost:3001"
-# Enabled=false
+[ReverseHashService]
+URL="http://localhost:3001"
+Enabled=false
 
 [Ethereum]
 URL="<placeholder(https://polygon-mumbai.g.alchemy.com/v2/xxxxxxxxx)>"
