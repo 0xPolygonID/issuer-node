@@ -138,6 +138,11 @@ func (c *Configuration) Sanitize() error {
 		return fmt.Errorf("serverUrl is not a valid url <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
+
+	if c.Admin.IssuerLogo == "" {
+		c.Admin.IssuerLogo = "http://no-logo.com"
+	}
+
 	return nil
 }
 
