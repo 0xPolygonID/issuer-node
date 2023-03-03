@@ -139,8 +139,18 @@ func (c *Configuration) Sanitize() error {
 	}
 	c.ServerUrl = sUrl
 
+	return nil
+}
+
+// SanitizeAdmin perform some basic checks and sanitizations in the configuration.
+// Returns true if config is acceptable, error otherwise.
+func (c *Configuration) SanitizeAdmin() error {
 	if c.Admin.IssuerLogo == "" {
 		c.Admin.IssuerLogo = "http://no-logo.com"
+	}
+
+	if c.Admin.IssuerDID == "" {
+		return fmt.Errorf("the Issuer DID value is empty and you must to provide one")
 	}
 
 	return nil
