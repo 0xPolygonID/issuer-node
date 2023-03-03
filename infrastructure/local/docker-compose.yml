@@ -1,6 +1,15 @@
 version: "3.9"
 services:
 
+  ui:
+    build:
+      context: ../../ui/
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      - API=http://admin:3002
+
   platform:
     build:
       context: ../../

@@ -1,2 +1,5 @@
 # Global code owners
 *   @martinsaporiti @javip97 @x1m3
+
+# UI code owners
+/ui @adrifdez @cneuro @amonsosanz @elias-garcia
