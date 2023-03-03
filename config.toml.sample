@@ -62,3 +62,14 @@ ResponseTimeout="600s"
 
 [Circuit]
 Path="./pkg/credentials/circuits"
+
+# Admin Configuration
+[Admin]
+ServerPort = "3002"
+IssuerName = ""
+IssuerLogo = ""
+IssuerDID = ""
+
+[Admin.HTTPAdminAuth]
+User = "user"
+Password = "password"

@@ -22,12 +22,10 @@ const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
 type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
-	ServerAdminPort              int
 	NativeProofGenerationEnabled bool
 	Database                     Database           `mapstructure:"Database"`
 	Cache                        Cache              `mapstructure:"Cache"`
 	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
-	HTTPAdminAuth                HTTPAdminAuth      `mapstructure:"HTTPAdminAuth"`
 	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
 	Log                          Log                `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
@@ -36,6 +34,8 @@ type Configuration struct {
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
 	OnChainCheckStatusFrecuency  time.Duration      `mapstructure:"OnChainCheckStatusFrecuency"`
+
+	Admin Admin `mapstructure:"Admin"`
 }
 
 // Database has the database configuration
@@ -114,6 +114,15 @@ type HTTPBasicAuth struct {
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
+// Admin - Admin backend service configuration.
+type Admin struct {
+	ServerPort    int           `mapstructure:"ServerPort" tip:"Server admin backend port"`
+	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth" tip:"Server admin backend basic auth credentials"`
+	IssuerName    string        `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
+	IssuerLogo    string        `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
+	IssuerDID     string        `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
+}
+
 // HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
 // user and password to use.
 type HTTPAdminAuth struct {
@@ -129,6 +138,11 @@ func (c *Configuration) Sanitize() error {
 		return fmt.Errorf("serverUrl is not a valid url <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
+
+	if c.Admin.IssuerLogo == "" {
+		c.Admin.IssuerLogo = "http://no-logo.com"
+	}
+
 	return nil
 }
 
@@ -292,8 +306,11 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
 
-	_ = viper.BindEnv("HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
-	_ = viper.BindEnv("HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
+	_ = viper.BindEnv("Admin.ServerPort", "SH_ID_PLATFORM_HTTP_ADMIN_SERVER_PORT")
+	_ = viper.BindEnv("Admin.HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
+	_ = viper.BindEnv("Admin.HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
+	_ = viper.BindEnv("Admin.IssuerName", "SH_ID_PLATFORM_HTTP_ADMIN_ISSUER_NAME")
+	_ = viper.BindEnv("Admin.IssuerLogo", "SH_ID_PLATFORM_HTTP__ADMIN_ISSUER_NAME")
 
 	viper.AutomaticEnv()
 }

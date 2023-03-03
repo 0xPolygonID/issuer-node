@@ -121,3 +121,9 @@ config: $(BIN)/configurator
 .PHONY: lint
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
+
+# usage: make private_key=xxx add-private-key
+.PHONY: add-private-key
+add-private-key:
+	docker exec sh-id-platform-test-vault \
+	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)

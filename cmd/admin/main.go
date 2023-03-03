@@ -163,7 +163,7 @@ func main() {
 	api_admin.HandlerFromMux(
 		api_admin.NewStrictHandlerWithOptions(
 			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
-			middlewares(ctx, cfg.HTTPAdminAuth),
+			middlewares(ctx, cfg.Admin.HTTPAdminAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
@@ -172,14 +172,14 @@ func main() {
 	api_admin.RegisterStatic(mux)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.ServerAdminPort),
+		Addr:    fmt.Sprintf(":%d", cfg.Admin.ServerPort),
 		Handler: mux,
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, "admin server started", "port", cfg.ServerAdminPort)
+		log.Info(ctx, "admin server started", "port", cfg.Admin.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
 			log.Error(ctx, "Starting http admin server", err)
 		}
