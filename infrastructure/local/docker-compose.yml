@@ -6,7 +6,6 @@ services:
       context: ../../ui/
       dockerfile: Dockerfile
     ports:
-<<<<<<< HEAD
       - "5173:5173"
     environment:
       - API=${UI-BACKEND}
@@ -14,11 +13,6 @@ services:
       - API_PASSWORD=""
       - ISSUER_NAME=""
       - ISSUER_LOGO=""
-=======
-      - "8080:80"
-    environment:
-      - API=http://admin:3002
->>>>>>> develop
 
   platform:
     build:
