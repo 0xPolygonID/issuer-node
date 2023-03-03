@@ -43,7 +43,7 @@ func main() {
 
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	if err := cfg.Sanitize(); err != nil {
+	if err := cfg.SanitizeAdmin(); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", err)
 		return
 	}
