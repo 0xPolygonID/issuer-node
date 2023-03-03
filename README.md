@@ -1,9 +1,9 @@
-# Self-hosted Polygon ID Platform
+# Self-hosted Polygon ID Issuer Node
 
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
 
-This full-stack web-application allows a single authenticated user of the Polygon ID zk-proof protocol to create schemas for issuing and managing credentials of identities. It also provides a web-based [frontend (UI)](ui/README.md) to manage issuer schemas, credentials and connections.
+This is a set of tools and an API for issuers of zk-proof credentials to build on top of. It allows a single authenticated user to create schemas for issuing and managing credentials of identities. It also provides a web-based [frontend (UI)](ui/README.md) to manage issuer schemas, credentials and connections.
 
 ## Installation
 
@@ -30,7 +30,7 @@ _NB: There is no compatibility with Windows environments at this time._
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
 6. _(Optional)_ Run `make run-ui-backend` and `make-run-ui` to have the Platform UI available on <http://localhost:5173> (or whatever was set in the `[UI] URL` config entry).
-7. To sign in to the UI, use the credentials defined under `[HTTPBasicAuth] user password`.
+7. MISSING STEP ON SETTING UP UI
 
 ### Option 2 - Standalone mode
 
@@ -38,10 +38,10 @@ Running the app in standalone mode means you will need to install the binaries f
 
 #### Requirements for standalone mode
 
-- [Docker Engine](https://docs.docker.com/engine/) 1.27+
+- [Docker Engine](https://docs.docker.com/engine/) 1.27
 - Makefile toolchain
 - Unix-based operating system (e.g. Debian, Arch, Mac OS X)
-- [Go](https://go.dev/) 1.19+
+- [Go](https://go.dev/) 1.19
 - [Postgres](https://www.postgresql.org/)
 - [Redis](https://redis.io/)
 - [Hashicorp Vault](https://github.com/hashicorp/vault)
@@ -64,7 +64,7 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 6. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
-9. _(Optional)_ MISSING STEP ON SETTING UP UI IN PRODUCTION
+9. MISSING STEP ON SETTING UP UI IN PRODUCTION
 
 ## Configuration
 
