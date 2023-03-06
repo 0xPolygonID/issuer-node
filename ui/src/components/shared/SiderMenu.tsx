@@ -5,7 +5,7 @@ import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
-import { UserDropdown } from "src/components/shared/UserDropdown";
+import { UserDisplay } from "src/components/shared/UserDisplay";
 import { ROUTES } from "src/routes";
 import { SCHEMAS_TABS, TUTORIALS_URL } from "src/utils/constants";
 
@@ -27,7 +27,7 @@ export function SiderMenu() {
   return (
     <Row className="menu-sider-layout" justify="space-between">
       <Col>
-        <UserDropdown />
+        <UserDisplay />
 
         <Divider />
 

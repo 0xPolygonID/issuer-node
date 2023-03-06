@@ -11,7 +11,7 @@ import {
   claimsQRCreate,
 } from "src/adapters/api/claims";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
-import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
+import { ReactComponent as IconQR } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -99,7 +99,7 @@ export function ScanClaim() {
           size="large"
           style={{ textAlign: "center", width: 400 }}
         >
-          <Avatar className="avatar-color-primary" icon={<QRIcon />} size={56} />
+          <Avatar className="avatar-color-primary" icon={<IconQR />} size={56} />
 
           <Typography.Title level={2}>Claim link is invalid</Typography.Title>
 

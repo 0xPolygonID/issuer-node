@@ -43,6 +43,7 @@
     "lint": "eslint --ext .ts,.tsx .",
     "lint:fix": "npm run lint -- --fix",
     "lint-styles": "stylelint '**/*.scss'",
+    "lint-styles:fix": "npm run lint-styles -- --fix",
     "prepare": "cd .. && husky install ui/.husky",
     "start": "vite"
   },
@@ -54,15 +55,15 @@
   },
   "lint-staged": {
     "*.{json,md}": [
-      "prettier --write"
+      "npm run format"
     ],
     "*.{ts,tsx}": [
-      "eslint --fix",
-      "prettier --write"
+      "npm run lint:fix",
+      "npm run format"
     ],
     "*.scss": [
-      "stylelint --fix",
-      "prettier --write"
+      "npm run lint-styles:fix",
+      "npm run format"
     ]
   },
   "browserslist": {

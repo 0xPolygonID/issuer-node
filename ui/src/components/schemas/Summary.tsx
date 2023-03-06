@@ -7,8 +7,8 @@ import { Schema } from "src/adapters/api/schemas";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
-import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
-import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
+import { ReactComponent as IconExternalLink } from "src/assets/icons/link-external-01.svg";
+import { ReactComponent as IconQR } from "src/assets/icons/qr-code.svg";
 import { ROUTES } from "src/routes";
 import { downloadFile } from "src/utils/browser";
 import { CARD_ELLIPSIS_MAXIMUM_WIDTH, FORM_LABEL, SCHEMAS_TABS } from "src/utils/constants";
@@ -64,13 +64,13 @@ export function Summary({ claim, schema }: { claim: Claim; schema: Schema }) {
       className="claiming-card"
       extra={
         <Row>
-          <Button icon={<QRIcon />} onClick={onDownloadQRCode} type="link">
+          <Button icon={<IconQR />} onClick={onDownloadQRCode} type="link">
             Download QR code
           </Button>
 
           <Button
             href={generatePath(ROUTES.claimLink.path, { claimID: claim.id })}
-            icon={<ExternalLinkIcon />}
+            icon={<IconExternalLink />}
             target="_blank"
             type="link"
           >
