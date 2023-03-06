@@ -146,7 +146,6 @@ func (c *Configuration) Sanitize() error {
 // SanitizeAdmin perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) SanitizeAdmin() error {
-
 	if c.ApiUI.ServerPort == 0 {
 		return fmt.Errorf("the api ui server port should be provided")
 	}
@@ -193,7 +192,7 @@ func Load(fileName string) (*Configuration, error) {
 		viper.AddConfigPath(CIConfigPath)
 		viper.SetConfigType("toml")
 		if fileName == "" {
-			viper.SetConfigName("config1")
+			viper.SetConfigName("config")
 		} else {
 			viper.SetConfigName(fileName)
 		}
@@ -207,9 +206,15 @@ func Load(fileName string) (*Configuration, error) {
 			Mode:  log.OutputText,
 		},
 	}
-	_ = viper.ReadInConfig()
-	_ = viper.Unmarshal(config)
-	checkEnvVars(config)
+	ctx := context.Background()
+	if err := viper.ReadInConfig(); err != nil {
+		log.Error(ctx, "error loading config file", err)
+	}
+
+	if err := viper.Unmarshal(config); err != nil {
+		log.Error(ctx, "error unmurshalling config file", err)
+	}
+	checkEnvVars(context.Background(), config)
 	return config, nil
 }
 
@@ -311,133 +316,133 @@ func bindEnv() {
 	viper.AutomaticEnv()
 }
 
-func checkEnvVars(cfg *Configuration) {
+func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.ServerUrl == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_SERVER_URL value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_SERVER_URL value is missing")
 	}
 
 	if cfg.ServerPort == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_SERVER_PORT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_SERVER_PORT value is missing")
 	}
 
 	if cfg.PublishingKeyPath == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_PUBLISH_KEY_PATH value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_PUBLISH_KEY_PATH value is missing")
 	}
 
 	if cfg.OnChainCheckStatusFrecuency == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
 	}
 
 	if cfg.Database.URL == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_DATABASE_URL value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_DATABASE_URL value is missing")
 	}
 
 	if cfg.HTTPBasicAuth.User == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_HTTPBASICAUTH_USER value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_HTTPBASICAUTH_USER value is missing")
 	}
 
 	if cfg.HTTPBasicAuth.Password == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD value is missing")
 	}
 
 	if cfg.KeyStore.Address == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_KEY_STORE_ADDRESS value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_KEY_STORE_ADDRESS value is missing")
 	}
 
 	if cfg.KeyStore.Token == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_KEY_STORE_TOKEN value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_KEY_STORE_TOKEN value is missing")
 	}
 
 	if cfg.KeyStore.PluginIden3MountPath == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH value is missing")
 	}
 
 	if cfg.Ethereum.URL == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
 	}
 
 	if cfg.Ethereum.ContractAddress == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS value is missing")
 	}
 
 	if cfg.Ethereum.URL == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
 	}
 
 	if cfg.Ethereum.DefaultGasLimit == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
 	}
 
 	if cfg.Ethereum.ConfirmationTimeout == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
 	}
 
 	if cfg.Ethereum.ConfirmationBlockCount == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
 	}
 
 	if cfg.Ethereum.ReceiptTimeout == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT value is missing")
 	}
 
 	if cfg.Ethereum.MinGasPrice == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE value is missing or is 0")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE value is missing or is 0")
 	}
 
 	if cfg.Ethereum.MaxGasPrice == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
 	}
 
 	if cfg.Ethereum.RPCResponseTimeout == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
 	}
 
 	if cfg.Ethereum.WaitReceiptCycleTime == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
 	}
 
 	if cfg.Ethereum.WaitBlockCycleTime == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
 	}
 
 	if cfg.Prover.ServerURL == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_PROVER_SERVER_URL value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_PROVER_SERVER_URL value is missing")
 	}
 
 	if cfg.Prover.ResponseTimeout == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_PROVER_TIMEOUT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_PROVER_TIMEOUT value is missing")
 	}
 
 	if cfg.Circuit.Path == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_CIRCUIT_PATH value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_CIRCUIT_PATH value is missing")
 	}
 
 	if cfg.Cache.RedisUrl == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_REDIS_URL value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_REDIS_URL value is missing")
 	}
 
 	if cfg.ApiUI.ServerPort == 0 {
-		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_SERVER_PORT value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_API_UI_SERVER_PORT value is missing")
 	}
 
 	if cfg.ApiUI.HTTPAPIUIAuth.User == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_AUTH_USER value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_API_UI_AUTH_USER value is missing")
 	}
 
 	if cfg.ApiUI.HTTPAPIUIAuth.Password == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_AUTH_PASSWORD value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_API_UI_AUTH_PASSWORD value is missing")
 	}
 
 	if cfg.ApiUI.IssuerName == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_ISSUER_NAME value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_API_UI_ISSUER_NAME value is missing")
 	}
 
 	if cfg.ApiUI.IssuerLogo == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_ISSUER_LOGO value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_API_UI_ISSUER_LOGO value is missing")
 	}
 
 	if cfg.ApiUI.IssuerDID == "" {
-		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_ISSUER_DID value is missing")
+		log.Info(ctx, "SH_ID_PLATFORM_API_UI_ISSUER_DID value is missing")
 	}
 }
 

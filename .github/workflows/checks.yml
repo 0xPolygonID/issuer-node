@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Create .env and .sahred.env files
+      - name: Create .env and .shared.env files
         run: |
           touch .env
           touch .shared.env
