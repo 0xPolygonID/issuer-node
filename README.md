@@ -41,7 +41,7 @@ evaluation purposes.
    evaluation purposes.
 3) Run `make run-api-ui` to start a docker container running the issuer, (`make run-arm-api-ui` for **Mac computers** with **Apple Silicon chip**)
 4) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
-5) Browe to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
+5) Browse to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
 
 
 ### Running the server in standalone mode
