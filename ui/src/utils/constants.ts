@@ -18,7 +18,8 @@ export const FORM_LABEL = {
 
 export const ACTIVE_SEARCH_PARAM = "active";
 
-export const { API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, ISSUER_LOGO, ISSUER_NAME } = import.meta.env;
+export const { API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, ISSUER_LOGO, ISSUER_NAME } =
+  import.meta.env;
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 

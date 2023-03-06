@@ -68,19 +68,19 @@ export function Issuance() {
       const parsedForm = issueClaimFormData(schema.attributes).safeParse(formData);
 
       if (parsedForm.success) {
-          void claimIssue({
-            payload: serializeClaimForm(parsedForm.data),
-            schemaID,
-          }).then((response) => {
-            if (response.isSuccessful) {
-              setClaim({ data: response.data, status: "successful" });
-              void message.success("Claim link created");
-              setStep("summary");
-            } else {
-              setClaim({ error: undefined, status: "failed" });
-              void message.error(response.error.message);
-            }
-          });
+        void claimIssue({
+          payload: serializeClaimForm(parsedForm.data),
+          schemaID,
+        }).then((response) => {
+          if (response.isSuccessful) {
+            setClaim({ data: response.data, status: "successful" });
+            void message.success("Claim link created");
+            setStep("summary");
+          } else {
+            setClaim({ error: undefined, status: "failed" });
+            void message.error(response.error.message);
+          }
+        });
       } else {
         processZodError(parsedForm.error).forEach((msg) => void message.error(msg));
       }

@@ -9,7 +9,14 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import { API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, QUERY_SEARCH_PARAM, VALID_SEARCH_PARAM } from "src/utils/constants";
+import {
+  API_PASSWORD,
+  API_URL,
+  API_USERNAME,
+  ISSUER_DID,
+  QUERY_SEARCH_PARAM,
+  VALID_SEARCH_PARAM,
+} from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface ClaimAttribute {
