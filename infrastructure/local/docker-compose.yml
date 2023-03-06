@@ -8,11 +8,13 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - API=${UI-BACKEND}
+      # TODO - decide on how and where these are configured so that the FE app has them in its Node env
+      - API_URL=${UI-BACKEND}
       - API_USERNAME=""
       - API_PASSWORD=""
       - ISSUER_NAME=""
       - ISSUER_LOGO=""
+      - ISSUER_DID=""
 
   platform:
     build:
