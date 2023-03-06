@@ -146,6 +146,11 @@ func (c *Configuration) Sanitize() error {
 // SanitizeAdmin perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) SanitizeAdmin() error {
+
+	if c.ApiUI.ServerPort == 0 {
+		return fmt.Errorf("the api ui server port should be provided")
+	}
+
 	if c.ApiUI.IssuerLogo == "" {
 		c.ApiUI.IssuerLogo = "http://no-logo.com"
 	}
