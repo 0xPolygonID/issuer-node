@@ -6,7 +6,6 @@ import { PayloadSchemaCreate, payloadSchemaCreate, schemasCreate } from "src/ada
 import { ReactComponent as IconAdd } from "src/assets/icons/plus.svg";
 import { SchemaAttributeField } from "src/components/schemas/SchemaAttributeField";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { ROUTES } from "src/routes";
 import { processZodError } from "src/utils/adapters";
 import {
@@ -41,7 +40,6 @@ export function CreateSchema() {
   const [creatingSchema, setCreatingSchema] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { account, authToken } = useAuthContext();
 
   const onAttributeTypeChange = (index: number) => {
     form.setFieldValue([NAMES_LIST.attributes, index, NAMES_LIST.singleChoiceValues], undefined);
@@ -51,36 +49,32 @@ export function CreateSchema() {
     const parser = payloadSchemaCreate.safeParse(data);
 
     if (parser.success) {
-      if (authToken && account?.organization) {
-        setCreatingSchema(true);
-        void schemasCreate({
-          id: account.organization,
-          payload: parser.data,
-          token: authToken,
-        }).then((response) => {
-          if (response.isSuccessful) {
-            const { id: schemaID } = response.data;
+      setCreatingSchema(true);
+      void schemasCreate({
+        payload: parser.data,
+      }).then((response) => {
+        if (response.isSuccessful) {
+          const { id: schemaID } = response.data;
 
-            if (goToIssueClaimOnSuccess) {
-              navigate(
-                generatePath(ROUTES.issueClaim.path, {
-                  schemaID,
-                })
-              );
-            } else {
-              navigate(
-                generatePath(ROUTES.schemas.path, {
-                  tabID: SCHEMAS_TABS[0].tabID,
-                })
-              );
-            }
-            void message.success("Claim schema created.");
+          if (goToIssueClaimOnSuccess) {
+            navigate(
+              generatePath(ROUTES.issueClaim.path, {
+                schemaID,
+              })
+            );
           } else {
-            void message.error(response.error.message);
+            navigate(
+              generatePath(ROUTES.schemas.path, {
+                tabID: SCHEMAS_TABS[0].tabID,
+              })
+            );
           }
-          setCreatingSchema(false);
-        });
-      }
+          void message.success("Claim schema created.");
+        } else {
+          void message.error(response.error.message);
+        }
+        setCreatingSchema(false);
+      });
     } else {
       processZodError(parser.error).forEach((error) => void message.error(error));
     }

@@ -11,7 +11,6 @@ import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { CopyableDetail } from "src/components/schemas/CopyableDetail";
 import { ErrorResult } from "src/components/schemas/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { ROUTES } from "src/routes";
 import { APIError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -25,7 +24,6 @@ import { formatDate } from "src/utils/forms";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export function IssuedClaimDetails() {
-  const { account, authToken } = useAuthContext();
   const [claim, setClaim] = useState<AsyncTask<Claim, APIError>>({
     status: "pending",
   });
@@ -54,15 +52,13 @@ export function IssuedClaimDetails() {
 
   const getClaim = useCallback(
     async (signal: AbortSignal) => {
-      if (claimID && schemaID && authToken && account?.organization) {
+      if (claimID && schemaID) {
         setClaim({ status: "loading" });
 
         const response = await claimsGetSingle({
           claimID,
-          issuerID: account.organization,
           schemaID,
           signal,
-          token: authToken,
         });
 
         if (response.isSuccessful) {
@@ -74,7 +70,7 @@ export function IssuedClaimDetails() {
         }
       }
     },
-    [authToken, account, claimID, schemaID]
+    [claimID, schemaID]
   );
 
   const claimLinkPath =

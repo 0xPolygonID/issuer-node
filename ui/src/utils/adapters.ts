@@ -1,8 +1,6 @@
 import axios from "axios";
-import { matchRoutes } from "react-router-dom";
 import z from "zod";
 
-import { ROUTES } from "src/routes";
 import { StrictSchema } from "src/utils/types";
 
 export interface APIError {
@@ -91,20 +89,6 @@ export function buildAPIError(error: unknown): APIError {
       // This is a Polygon ID API error.
       const { data, status } = responseError.parse(error.response);
       const { message } = data;
-
-      if (status === HTTPStatusError.Unauthorized) {
-        const isAuthorizedPath = Object.values(ROUTES)
-          .filter(({ path }) => ROUTES.notFound.path !== path && ROUTES.signIn.path !== path)
-          .find(({ path }) => {
-            const currentRoute = matchRoutes([{ path }], location.pathname)?.[0];
-
-            return currentRoute;
-          });
-
-        if (isAuthorizedPath) {
-          window.location.href = ROUTES.signIn.path;
-        }
-      }
 
       return { message, status };
     } catch (e) {

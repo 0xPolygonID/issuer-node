@@ -12,7 +12,6 @@ import { NoResults } from "src/components/schemas/NoResults";
 import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { SchemaRowDropdown } from "src/components/schemas/SchemaRowDropdown";
 import { TableCard } from "src/components/schemas/TableCard";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { ROUTES } from "src/routes";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -21,7 +20,6 @@ import { formatDate } from "src/utils/forms";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function MySchemas({ showActive }: { showActive: boolean }) {
-  const { account, authToken } = useAuthContext();
   const [schemas, setSchemas] = useState<AsyncTask<Schema[], APIError>>({
     status: "pending",
   });
@@ -31,35 +29,33 @@ export function MySchemas({ showActive }: { showActive: boolean }) {
 
   const getSchemas = useCallback(
     async (signal: AbortSignal) => {
-      if (authToken && account?.organization) {
-        setSchemas((oldState) =>
-          isAsyncTaskDataAvailable(oldState)
-            ? { data: oldState.data, status: "reloading" }
-            : { status: "loading" }
-        );
-        const response = await schemasGetAll({
-          id: account.organization,
-          params: {
-            active: showActive,
-            query: queryParam || undefined,
-          },
-          signal,
-          token: authToken,
-        });
-        if (response.isSuccessful) {
-          setSchemas({ data: response.data.schemas, status: "successful" });
+      setSchemas((oldState) =>
+        isAsyncTaskDataAvailable(oldState)
+          ? { data: oldState.data, status: "reloading" }
+          : { status: "loading" }
+      );
 
-          response.data.errors.forEach((zodError) => {
-            processZodError(zodError).forEach((error) => void message.error(error));
-          });
-        } else {
-          if (!isAbortedError(response.error)) {
-            setSchemas({ error: response.error, status: "failed" });
-          }
+      const response = await schemasGetAll({
+        params: {
+          active: showActive,
+          query: queryParam || undefined,
+        },
+        signal,
+      });
+
+      if (response.isSuccessful) {
+        setSchemas({ data: response.data.schemas, status: "successful" });
+
+        response.data.errors.forEach((zodError) => {
+          processZodError(zodError).forEach((error) => void message.error(error));
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setSchemas({ error: response.error, status: "failed" });
         }
       }
     },
-    [authToken, account, queryParam, showActive]
+    [queryParam, showActive]
   );
 
   const tableContents: ColumnsType<Schema> = [
@@ -128,19 +124,15 @@ export function MySchemas({ showActive }: { showActive: boolean }) {
   };
 
   const handleActivate = (id: string) => {
-    if (authToken && account?.organization) {
-      void schemasUpdate({
-        issuerID: account.organization,
-        payload: { active: true },
-        schemaID: id,
-        token: authToken,
-      }).then((isUpdated) => {
-        if (isUpdated.isSuccessful) {
-          void message.success("Claim schema moved to active.");
-          makeRequestAbortable(getSchemas);
-        }
-      });
-    }
+    void schemasUpdate({
+      payload: { active: true },
+      schemaID: id,
+    }).then((isUpdated) => {
+      if (isUpdated.isSuccessful) {
+        void message.success("Claim schema moved to active.");
+        makeRequestAbortable(getSchemas);
+      }
+    });
   };
 
   const onSearch = useCallback(

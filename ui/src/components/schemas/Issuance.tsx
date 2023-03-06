@@ -12,7 +12,6 @@ import { IssuanceMethod, SetIssuanceMethod } from "src/components/schemas/SetIss
 import { Summary } from "src/components/schemas/Summary";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { ROUTES } from "src/routes";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -40,20 +39,17 @@ export function Issuance() {
     status: "pending",
   });
   const [step, setStep] = useState<IssuanceStep>("attributes");
-  const { account, authToken } = useAuthContext();
 
   const { schemaID } = useParams();
 
   const getSchema = useCallback(
     async (signal: AbortSignal) => {
-      if (schemaID && authToken && account?.organization) {
+      if (schemaID) {
         setSchema({ status: "loading" });
 
         const response = await schemasGetSingle({
-          issuerID: account.organization,
           schemaID,
           signal,
-          token: authToken,
         });
         if (response.isSuccessful) {
           setSchema({ data: response.data, status: "successful" });
@@ -64,7 +60,7 @@ export function Issuance() {
         }
       }
     },
-    [schemaID, authToken, account]
+    [schemaID]
   );
 
   const issueClaim = (formData: FormData, schema: Schema) => {
@@ -72,13 +68,9 @@ export function Issuance() {
       const parsedForm = issueClaimFormData(schema.attributes).safeParse(formData);
 
       if (parsedForm.success) {
-        if (authToken && account?.organization) {
-          setClaim({ status: "loading" });
           void claimIssue({
-            issuerID: account.organization,
             payload: serializeClaimForm(parsedForm.data),
             schemaID,
-            token: authToken,
           }).then((response) => {
             if (response.isSuccessful) {
               setClaim({ data: response.data, status: "successful" });
@@ -89,7 +81,6 @@ export function Issuance() {
               void message.error(response.error.message);
             }
           });
-        }
       } else {
         processZodError(parsedForm.error).forEach((msg) => void message.error(msg));
       }

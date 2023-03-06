@@ -1,6 +1,5 @@
 import { ComponentType } from "react";
 import { Navigate, Route, Routes, generatePath } from "react-router-dom";
-import { SignIn } from "src/components/authentication/SignIn";
 
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
@@ -20,7 +19,6 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   issueClaim: Issuance,
   notFound: NotFound,
   schemas: Schemas,
-  signIn: SignIn,
 };
 
 export function Router() {
@@ -49,9 +47,11 @@ export function Router() {
         path={ROOT_PATH}
       />
       <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
+
       <Route element={<FullWidthLayout background="bg-light" />}>
         {getLayoutRoutes("fullWidthGrey")}
       </Route>
+
       <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
     </Routes>
   );

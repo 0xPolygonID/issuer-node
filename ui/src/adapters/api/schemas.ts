@@ -8,7 +8,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import { ACTIVE_SEARCH_PARAM, API_URL, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { ACTIVE_SEARCH_PARAM, API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface PayloadSchemaCreate {
@@ -53,23 +53,19 @@ export type SchemaAttribute = {
 );
 
 export async function schemasCreate({
-  id,
   payload,
-  token,
 }: {
-  id: string;
   payload: PayloadSchemaCreate;
-  token: string;
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       data: payload,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "POST",
-      url: `issuers/${id}/schemas`,
+      url: `issuers/${ISSUER_DID}/schemas`,
     });
     const { data } = resultCreatedSchema.parse(response);
 
@@ -80,25 +76,21 @@ export async function schemasCreate({
 }
 
 export async function schemasGetSingle({
-  issuerID,
   schemaID,
   signal,
-  token,
 }: {
-  issuerID: string;
   schemaID: string;
   signal: AbortSignal;
-  token: string;
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "GET",
       signal,
-      url: `issuers/${issuerID}/schemas/${schemaID}`,
+      url: `issuers/${ISSUER_DID}/schemas/${schemaID}`,
     });
     const { data } = resultOKSchema.parse(response);
 
@@ -109,18 +101,14 @@ export async function schemasGetSingle({
 }
 
 export async function schemasGetAll({
-  id,
   params: { active, query },
   signal,
-  token,
 }: {
-  id: string;
   params: {
     active?: boolean;
     query?: string;
   };
   signal: AbortSignal;
-  token: string;
 }): Promise<
   APIResponse<{
     errors: z.ZodError<Schema>[];
@@ -131,7 +119,7 @@ export async function schemasGetAll({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "GET",
       params: new URLSearchParams({
@@ -139,7 +127,7 @@ export async function schemasGetAll({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `issuers/${id}/schemas`,
+      url: `issuers/${ISSUER_DID}/schemas`,
     });
     const { data } = resultOKSchemasGetAll.parse(response);
 
@@ -156,25 +144,21 @@ export async function schemasGetAll({
 }
 
 export async function schemasUpdate({
-  issuerID,
   payload,
   schemaID,
-  token,
 }: {
-  issuerID: string;
   payload: PayloadSchemaUpdate;
   schemaID: string;
-  token: string;
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       data: payload,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "PATCH",
-      url: `issuers/${issuerID}/schemas/${schemaID}`,
+      url: `issuers/${ISSUER_DID}/schemas/${schemaID}`,
     });
     const { data } = resultOKSchema.parse(response);
 

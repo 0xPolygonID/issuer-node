@@ -1,15 +1,10 @@
-# Self-hosted Polygon ID Platform UI
+# Self-hosted Polygon ID Issuer Node UI
 
-The frontend application of [Self-hosted Polygon ID Platform](../README.md).
+The frontend application entirely dependent on the [Self-hosted Polygon ID Issuer Node](../README.md).
 
 ## Installation
 
-1. Copy `.env.example` as `.env`, and amend the endpoint variable as needed.
-1. Run `npm install` to install.
-1. Run `npm run prepare` to set up commit hooks.
-1. Run `npm start` to build & run locally.
-
-The application will be available on [http://localhost:5173](http://localhost:5173).
+Configure, install and set up the [issuer node](../README.md#installation) first and follow the instructions for the UI.
 
 ## Built with
 
@@ -18,25 +13,6 @@ The application will be available on [http://localhost:5173](http://localhost:51
 - [Typescript](https://www.typescriptlang.org)
 - [Vite](https://vitejs.dev)
 - [Docker](https://docs.docker.com/get-started/)
-
-## Docker image
-
-To locally generate a Docker image of the Polygon ID Platform, you can run the following command:
-
-```sh
-docker build . -t platform:local
-```
-
-The Docker image won't build the application until you run it, to allow dynamic environment variables to be passed via the command. This facilitates the deployment process. The environment variables that you need to pass to the
-`docker run` command are the same as those in the `.env.example` file but without the `VITE_` prefix.
-
-Example:
-
-```sh
-docker run \
--e API=https://api-staging.polygonid.com/v1 \
--p 8080:80 platform:local
-```
 
 ## JSON Schema support
 

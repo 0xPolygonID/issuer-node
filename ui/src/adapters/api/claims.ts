@@ -9,7 +9,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import { API_URL, QUERY_SEARCH_PARAM, VALID_SEARCH_PARAM } from "src/utils/constants";
+import { API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, QUERY_SEARCH_PARAM, VALID_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface ClaimAttribute {
@@ -38,25 +38,21 @@ export interface ClaimIssuePayload {
 }
 
 export async function claimIssue({
-  issuerID,
   payload,
   schemaID,
-  token,
 }: {
-  issuerID: string;
   payload: ClaimIssuePayload;
   schemaID: string;
-  token: string;
 }): Promise<APIResponse<Claim>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       data: payload,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "POST",
-      url: `issuers/${issuerID}/schemas/${schemaID}/offers`,
+      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers`,
     });
     const { data } = resultCreatedClaim.parse(response);
 
@@ -72,26 +68,22 @@ interface ClaimUpdatePayload {
 
 export async function claimUpdate({
   claimID,
-  issuerID,
   payload,
   schemaID,
-  token,
 }: {
   claimID: string;
-  issuerID: string;
   payload: ClaimUpdatePayload;
   schemaID: string;
-  token: string;
 }): Promise<APIResponse<Claim>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       data: payload,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "PATCH",
-      url: `issuers/${issuerID}/schemas/${schemaID}/offers/${claimID}`,
+      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers/${claimID}`,
     });
     const { data } = resultOKClaim.parse(response);
 
@@ -102,18 +94,14 @@ export async function claimUpdate({
 }
 
 export async function claimsGetAll({
-  issuerID,
   params: { query, valid },
   signal,
-  token,
 }: {
-  issuerID: string;
   params: {
     query?: string;
     valid?: boolean;
   };
   signal?: AbortSignal;
-  token: string;
 }): Promise<
   APIResponse<{
     claims: Claim[];
@@ -124,7 +112,7 @@ export async function claimsGetAll({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "GET",
       params: new URLSearchParams({
@@ -132,7 +120,7 @@ export async function claimsGetAll({
         ...(valid !== undefined ? { [VALID_SEARCH_PARAM]: valid.toString() } : {}),
       }),
       signal,
-      url: `issuers/${issuerID}/offers`,
+      url: `issuers/${ISSUER_DID}/offers`,
     });
     const { data } = resultOKClaimsGetAll.parse(response);
 
@@ -150,26 +138,22 @@ export async function claimsGetAll({
 
 export async function claimsGetSingle({
   claimID,
-  issuerID,
   schemaID,
   signal,
-  token,
 }: {
   claimID: string;
-  issuerID: string;
   schemaID: string;
   signal: AbortSignal;
-  token: string;
 }): Promise<APIResponse<Claim>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "GET",
       signal,
-      url: `issuers/${issuerID}/schemas/${schemaID}/offers/${claimID}`,
+      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers/${claimID}`,
     });
     const { data } = resultOKClaim.parse(response);
 

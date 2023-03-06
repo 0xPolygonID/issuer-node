@@ -1,25 +1,14 @@
 import { Avatar, Row, Space, Typography } from "antd";
-import { useAuthContext } from "src/hooks/useAuthContext";
-import { IMAGE_PLACEHOLDER_PATH } from "src/utils/constants";
-import { isAsyncTaskDataAvailable } from "src/utils/types";
+import { IMAGE_PLACEHOLDER_PATH, ISSUER_LOGO, ISSUER_NAME } from "src/utils/constants";
 
 export function UserDropdown() {
-  const { organization } = useAuthContext();
-
-  const { displayName, logo } = isAsyncTaskDataAvailable(organization)
-    ? organization.data
-    : {
-        displayName: undefined,
-        logo: undefined,
-      };
-
   return (
     <Space>
-      <Avatar shape="square" size="large" src={logo || IMAGE_PLACEHOLDER_PATH} />
+      <Avatar shape="square" size="large" src={ISSUER_LOGO || IMAGE_PLACEHOLDER_PATH} />
 
       <Row className="dropdown-info">
         <Typography.Text className="font-small" ellipsis strong>
-          {displayName}
+          {ISSUER_NAME}
         </Typography.Text>
       </Row>
     </Space>

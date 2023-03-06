@@ -13,7 +13,7 @@ import {
 import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
-import { Error } from "src/components/shared/Error";
+import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { APIError, HTTPStatusError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -110,7 +110,7 @@ export function ScanClaim() {
       );
     }
     return (
-      <Error
+      <ErrorResult
         error={shareClaimQRCode.error.message}
         labelRetry="Start again"
         onRetry={onStartAgain}

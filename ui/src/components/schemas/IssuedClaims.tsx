@@ -25,7 +25,6 @@ import { ErrorResult } from "src/components/schemas/ErrorResult";
 import { IssuedClaimDetails } from "src/components/schemas/IssuedClaimDetails";
 import { NoResults } from "src/components/schemas/NoResults";
 import { TableCard } from "src/components/schemas/TableCard";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { ROUTES } from "src/routes";
 import { APIError, processZodError, stringBoolean } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -45,7 +44,7 @@ export function IssuedClaims() {
     status: "pending",
   });
   const [isClaimUpdating, setClaimUpdating] = useState<Record<string, boolean>>({});
-  const { account, authToken } = useAuthContext();
+
   const [searchParams, setSearchParams] = useSearchParams();
   const validParam = searchParams.get(VALID_SEARCH_PARAM);
   const parsedValidParam = stringBoolean.safeParse(validParam);
@@ -55,37 +54,33 @@ export function IssuedClaims() {
 
   const getClaims = useCallback(
     async (signal: AbortSignal) => {
-      if (authToken && account?.organization) {
-        setClaims((previousClaims) =>
-          isAsyncTaskDataAvailable(previousClaims)
-            ? { data: previousClaims.data, status: "reloading" }
-            : { status: "loading" }
-        );
+      setClaims((previousClaims) =>
+        isAsyncTaskDataAvailable(previousClaims)
+          ? { data: previousClaims.data, status: "reloading" }
+          : { status: "loading" }
+      );
 
-        const response = await claimsGetAll({
-          issuerID: account.organization,
-          params: {
-            query: queryParam || undefined,
-            valid: showValid,
-          },
-          signal,
-          token: authToken,
+      const response = await claimsGetAll({
+        params: {
+          query: queryParam || undefined,
+          valid: showValid,
+        },
+        signal,
+      });
+
+      if (response.isSuccessful) {
+        setClaims({ data: response.data.claims, status: "successful" });
+
+        response.data.errors.forEach((zodError) => {
+          processZodError(zodError).forEach((error) => void message.error(error));
         });
-
-        if (response.isSuccessful) {
-          setClaims({ data: response.data.claims, status: "successful" });
-
-          response.data.errors.forEach((zodError) => {
-            processZodError(zodError).forEach((error) => void message.error(error));
-          });
-        } else {
-          if (!isAbortedError(response.error)) {
-            setClaims({ error: response.error, status: "failed" });
-          }
+      } else {
+        if (!isAbortedError(response.error)) {
+          setClaims({ error: response.error, status: "failed" });
         }
       }
     },
-    [authToken, account, queryParam, showValid]
+    [queryParam, showValid]
   );
 
   const handleShowValidChange = ({ target: { value } }: RadioChangeEvent) => {
@@ -117,31 +112,27 @@ export function IssuedClaims() {
   };
 
   const toggleClaimActive = (active: boolean, { id: claimID, schemaTemplate }: Claim) => {
-    if (authToken && account?.organization) {
+    setClaimUpdating((currentClaimsUpdating) => {
+      return { ...currentClaimsUpdating, [claimID]: true };
+    });
+
+    void claimUpdate({
+      claimID,
+      payload: { active },
+      schemaID: schemaTemplate.id,
+    }).then((response) => {
+      if (response.isSuccessful) {
+        updateClaimInState(response.data);
+
+        void message.success(`Link ${active ? "activated" : "deactivated"}`);
+      } else {
+        void message.error(response.error.message);
+      }
+
       setClaimUpdating((currentClaimsUpdating) => {
-        return { ...currentClaimsUpdating, [claimID]: true };
+        return { ...currentClaimsUpdating, [claimID]: false };
       });
-
-      void claimUpdate({
-        claimID,
-        issuerID: account.organization,
-        payload: { active },
-        schemaID: schemaTemplate.id,
-        token: authToken,
-      }).then((response) => {
-        if (response.isSuccessful) {
-          updateClaimInState(response.data);
-
-          void message.success(`Link ${active ? "activated" : "deactivated"}`);
-        } else {
-          void message.error(response.error.message);
-        }
-
-        setClaimUpdating((currentClaimsUpdating) => {
-          return { ...currentClaimsUpdating, [claimID]: false };
-        });
-      });
-    }
+    });
   };
 
   useEffect(() => {

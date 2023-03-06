@@ -8,7 +8,6 @@ import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { CopyableDetail } from "src/components/schemas/CopyableDetail";
 import { ErrorResult } from "src/components/schemas/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { APIError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { DETAILS_MAXIMUM_WIDTH, FORM_LABEL, SCHEMA_ID_SEARCH_PARAM } from "src/utils/constants";
@@ -16,7 +15,6 @@ import { formatDate } from "src/utils/forms";
 import { AsyncTask } from "src/utils/types";
 
 export function SchemaDetails() {
-  const { account, authToken } = useAuthContext();
   const [schema, setSchema] = useState<AsyncTask<Schema, APIError>>({
     status: "pending",
   });
@@ -25,14 +23,12 @@ export function SchemaDetails() {
 
   const getSchema = useCallback(
     async (signal: AbortSignal) => {
-      if (schemaID && authToken && account?.organization) {
+      if (schemaID) {
         setSchema({ status: "loading" });
 
         const response = await schemasGetSingle({
-          issuerID: account.organization,
           schemaID,
           signal,
-          token: authToken,
         });
 
         if (response.isSuccessful) {
@@ -44,7 +40,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [authToken, account, schemaID]
+    [schemaID]
   );
 
   const onClose = () => {

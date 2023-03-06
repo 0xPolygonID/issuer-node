@@ -4,8 +4,7 @@ export type RouteID =
   | "importSchema"
   | "issueClaim"
   | "notFound"
-  | "schemas"
-  | "signIn";
+  | "schemas";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -41,9 +40,5 @@ export const ROUTES: Routes = {
   schemas: {
     layout: "sider",
     path: "/schemas/:tabID",
-  },
-  signIn: {
-    layout: "fullWidth",
-    path: "/sign-in",
   },
 };

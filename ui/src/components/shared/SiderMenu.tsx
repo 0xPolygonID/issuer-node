@@ -6,18 +6,12 @@ import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.sv
 import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDropdown } from "src/components/shared/UserDropdown";
-import { useAuthContext } from "src/hooks/useAuthContext";
 import { ROUTES } from "src/routes";
 import { SCHEMAS_TABS, TUTORIALS_URL } from "src/utils/constants";
 
 export function SiderMenu() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { authToken } = useAuthContext();
-
-  if (!authToken) {
-    navigate(ROUTES.signIn.path);
-  }
 
   const pathSchemas = ROUTES.schemas.path;
   const pathIssueClaim = ROUTES.issueClaim.path;

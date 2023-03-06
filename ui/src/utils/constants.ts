@@ -18,11 +18,7 @@ export const FORM_LABEL = {
 
 export const ACTIVE_SEARCH_PARAM = "active";
 
-export const API_URL = import.meta.env.VITE_API;
-
-export const AUTH_CONTEXT_NOT_READY_MESSAGE = "Auth Context is not ready yet";
-
-export const AUTH_TOKEN_KEY = "authToken";
+export const { API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, ISSUER_LOGO, ISSUER_NAME } = import.meta.env;
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 
