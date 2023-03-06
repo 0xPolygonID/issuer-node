@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -35,7 +36,7 @@ type Configuration struct {
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
 	OnChainCheckStatusFrecuency  time.Duration      `mapstructure:"OnChainCheckStatusFrecuency"`
 
-	Admin Admin `mapstructure:"Admin"`
+	ApiUI ApiUI `mapstructure:"ApiUI"`
 }
 
 // Database has the database configuration
@@ -114,18 +115,18 @@ type HTTPBasicAuth struct {
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
-// Admin - Admin backend service configuration.
-type Admin struct {
+// ApiUI - ApiUI backend service configuration.
+type ApiUI struct {
 	ServerPort    int           `mapstructure:"ServerPort" tip:"Server admin backend port"`
-	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth" tip:"Server admin backend basic auth credentials"`
+	HTTPAPIUIAuth HTTPAPIUIAuth `mapstructure:"HTTPAPIUIAuth" tip:"Server api backend basic auth credentials"`
 	IssuerName    string        `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
 	IssuerLogo    string        `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
 	IssuerDID     string        `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
 }
 
-// HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
+// HTTPAPIUIAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
 // user and password to use.
-type HTTPAdminAuth struct {
+type HTTPAPIUIAuth struct {
 	User     string `mapstructure:"User" tip:"Basic auth username"`
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
@@ -145,11 +146,11 @@ func (c *Configuration) Sanitize() error {
 // SanitizeAdmin perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) SanitizeAdmin() error {
-	if c.Admin.IssuerLogo == "" {
-		c.Admin.IssuerLogo = "http://no-logo.com"
+	if c.ApiUI.IssuerLogo == "" {
+		c.ApiUI.IssuerLogo = "http://no-logo.com"
 	}
 
-	if c.Admin.IssuerDID == "" {
+	if c.ApiUI.IssuerDID == "" {
 		return fmt.Errorf("the Issuer DID value is empty and you must to provide one")
 	}
 
@@ -170,9 +171,6 @@ func (c *Configuration) validateServerUrl() (string, error) {
 
 // Load loads the configuration from a file
 func Load(fileName string) (*Configuration, error) {
-	//if err := getFlags(); err != nil {
-	//	return nil, err
-	//}
 	bindEnv()
 	pathFlag := viper.GetString("config")
 	if _, err := os.Stat(pathFlag); err == nil {
@@ -190,7 +188,7 @@ func Load(fileName string) (*Configuration, error) {
 		viper.AddConfigPath(CIConfigPath)
 		viper.SetConfigType("toml")
 		if fileName == "" {
-			viper.SetConfigName("config")
+			viper.SetConfigName("config1")
 		} else {
 			viper.SetConfigName(fileName)
 		}
@@ -204,15 +202,9 @@ func Load(fileName string) (*Configuration, error) {
 			Mode:  log.OutputText,
 		},
 	}
-
-	if err := viper.ReadInConfig(); err == nil {
-		if err := viper.Unmarshal(config); err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, err
-	}
-
+	_ = viper.ReadInConfig()
+	_ = viper.Unmarshal(config)
+	checkEnvVars(config)
 	return config, nil
 }
 
@@ -262,18 +254,6 @@ func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
 	return matches[0], nil
 }
 
-//func getFlags() error {
-//	pflag.StringP("config", "c", "", "Specify the configuration file location.")
-//	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-//	pflag.Parse()
-//
-//	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-//		log.Error(context.Background(), "parsing config flags", err)
-//		return err
-//	}
-//	return nil
-//}
-
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
 	_ = viper.BindEnv("ServerUrl", "SH_ID_PLATFORM_SERVER_URL")
@@ -316,13 +296,144 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
 
-	_ = viper.BindEnv("Admin.ServerPort", "SH_ID_PLATFORM_HTTP_ADMIN_SERVER_PORT")
-	_ = viper.BindEnv("Admin.HTTPAdminAuth.User", "SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER")
-	_ = viper.BindEnv("Admin.HTTPAdminAuth.Password", "SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD")
-	_ = viper.BindEnv("Admin.IssuerName", "SH_ID_PLATFORM_HTTP_ADMIN_ISSUER_NAME")
-	_ = viper.BindEnv("Admin.IssuerLogo", "SH_ID_PLATFORM_HTTP__ADMIN_ISSUER_NAME")
+	_ = viper.BindEnv("ApiUI.ServerPort", "SH_ID_PLATFORM_API_UI_SERVER_PORT")
+	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.User", "SH_ID_PLATFORM_API_UI_AUTH_USER")
+	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.Password", "SH_ID_PLATFORM_API_UI_AUTH_PASSWORD")
+	_ = viper.BindEnv("ApiUI.IssuerName", "SH_ID_PLATFORM_API_UI_ISSUER_NAME")
+	_ = viper.BindEnv("ApiUI.IssuerLogo", "SH_ID_PLATFORM_API_UI_ISSUER_LOGO")
+	_ = viper.BindEnv("ApiUI.IssuerDID", "SH_ID_PLATFORM_API_UI_ISSUER_DID")
 
 	viper.AutomaticEnv()
+}
+
+func checkEnvVars(cfg *Configuration) {
+	if cfg.ServerUrl == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_SERVER_URL value is missing")
+	}
+
+	if cfg.ServerPort == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_SERVER_PORT value is missing")
+	}
+
+	if cfg.PublishingKeyPath == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_PUBLISH_KEY_PATH value is missing")
+	}
+
+	if cfg.OnChainCheckStatusFrecuency == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
+	}
+
+	if cfg.Database.URL == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_DATABASE_URL value is missing")
+	}
+
+	if cfg.HTTPBasicAuth.User == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_HTTPBASICAUTH_USER value is missing")
+	}
+
+	if cfg.HTTPBasicAuth.Password == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD value is missing")
+	}
+
+	if cfg.KeyStore.Address == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_KEY_STORE_ADDRESS value is missing")
+	}
+
+	if cfg.KeyStore.Token == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_KEY_STORE_TOKEN value is missing")
+	}
+
+	if cfg.KeyStore.PluginIden3MountPath == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH value is missing")
+	}
+
+	if cfg.Ethereum.URL == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
+	}
+
+	if cfg.Ethereum.ContractAddress == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS value is missing")
+	}
+
+	if cfg.Ethereum.URL == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
+	}
+
+	if cfg.Ethereum.DefaultGasLimit == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
+	}
+
+	if cfg.Ethereum.ConfirmationTimeout == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
+	}
+
+	if cfg.Ethereum.ConfirmationBlockCount == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
+	}
+
+	if cfg.Ethereum.ReceiptTimeout == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT value is missing")
+	}
+
+	if cfg.Ethereum.MinGasPrice == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE value is missing or is 0")
+	}
+
+	if cfg.Ethereum.MaxGasPrice == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
+	}
+
+	if cfg.Ethereum.RPCResponseTimeout == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
+	}
+
+	if cfg.Ethereum.WaitReceiptCycleTime == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
+	}
+
+	if cfg.Ethereum.WaitBlockCycleTime == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
+	}
+
+	if cfg.Prover.ServerURL == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_PROVER_SERVER_URL value is missing")
+	}
+
+	if cfg.Prover.ResponseTimeout == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_PROVER_TIMEOUT value is missing")
+	}
+
+	if cfg.Circuit.Path == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_CIRCUIT_PATH value is missing")
+	}
+
+	if cfg.Cache.RedisUrl == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_REDIS_URL value is missing")
+	}
+
+	if cfg.ApiUI.ServerPort == 0 {
+		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_SERVER_PORT value is missing")
+	}
+
+	if cfg.ApiUI.HTTPAPIUIAuth.User == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_AUTH_USER value is missing")
+	}
+
+	if cfg.ApiUI.HTTPAPIUIAuth.Password == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_AUTH_PASSWORD value is missing")
+	}
+
+	if cfg.ApiUI.IssuerName == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_ISSUER_NAME value is missing")
+	}
+
+	if cfg.ApiUI.IssuerLogo == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_ISSUER_LOGO value is missing")
+	}
+
+	if cfg.ApiUI.IssuerDID == "" {
+		log.Info(context.Background(), "SH_ID_PLATFORM_API_UI_ISSUER_DID value is missing")
+	}
 }
 
 func getWorkingDirectory() string {

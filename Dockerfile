@@ -7,7 +7,6 @@ COPY ./api_admin ./api_admin
 COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY ./pkg ./pkg
-COPY ./config.toml ./
 COPY ./go.mod ./
 COPY ./go.sum ./
 

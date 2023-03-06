@@ -35,11 +35,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		return
-	}
+	cfg, _ := config.Load("")
 
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 

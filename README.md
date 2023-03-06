@@ -39,45 +39,87 @@ evaluation purposes.
 1) Configure the project creating config.toml file.
 2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
    evaluation purposes.
-3) Run `make run-ui-backend` to start a docker container running the issuer, (`make run-arm-ui-backend` for **Mac computers** with **Apple Silicon chip**)
+3) Run `make run-api-ui` to start a docker container running the issuer, (`make run-arm-api-ui` for **Mac computers** with **Apple Silicon chip**)
 4) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
-5) Browse to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
+5) Browe to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
 
 
 ### Running the server in standalone mode
 
-1) Configure the project creating a config.toml file copying the original config.toml.sample. The same variables can be
-   injected as environment variables for your convenience. Please, see configuration section
-2) Compile it with `make build`. You need a golang 1.19 environment to do it. make build will run a go install so
+1) Compile it with `make build`. You need a golang 1.19 environment to do it. make build will run a go install so
 it will generate a binary for each of the commands:
     - platform
     - migrate
     - pending_publisher
     - configurator
-3) Make sure you have postgres, redis and hashicorp vault properly configured. You could use `make up` command to start
+2) Make sure you have postgres, redis and hashicorp vault properly configured. You could use `make up` command to start
 a postgres, redis and vault redis container. Use this images only for evaluation purposes.
-4) Make sure that your database is properly configured (step 1) and run `make db/migrate` command. This will check for the
+3) Make sure that your database is properly configured (step 1) and run `make db/migrate` command. This will check for the
 current structure of the database and will apply needed change to create or update the database schema.
-5) Write the vault token in the config.toml file, once the vault is initialized the token can be found in _infrastructure/local/.vault/data/init.out_ or in the logs of the vault container.
-6) Run `./bin/platform` command to start the issuer. Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
+4) Write the vault token in the config.toml file, once the vault is initialized the token can be found in _infrastructure/local/.vault/data/init.out_ or in the logs of the vault container.
+5) Run `./bin/platform` command to start the issuer. Browse to http://localhost:3001 (or the port configured in ServerPort config entry)
 This will show you the api documentation.
-7) Run `./bin/pending_publisher` in background. This process is not strictly necessary but highly recommended. 
+6) Run `./bin/pending_publisher` in background. This process is not strictly necessary but highly recommended. 
 It checks for possible errors publishing transactions on chain and try to resend it.
-8) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
+7) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
+8) Set up [required environment variables](#how-to-configure)
 
 
 ## How to configure
-The server can be configured with a config file and/or environment variables. There is a config.toml.sample file provided
-as a reference. The system expects to have a config.toml file in the working directory. 
+The different components must be configured with environment variables. The following are the environment variables required with some sample values, and we encourage you to split them into
+three files. Those three files are actually used by the [docker-compose](infrastructure/local/docker-compose.yml) file provided.
 
-Any variable defined in the config file can be overwritten using environment variables. The binding 
-for this environment variables is defined in the function bindEnv() in file internal/config/config.go
+```
+# .env file variables
+SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED=true
+SH_ID_PLATFORM_PUBLISH_KEY_PATH=pbkey
+SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY=1m
+SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY=1m
+SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
+SH_ID_PLATFORM_LOG_LEVEL=-4
+SH_ID_PLATFORM_LOG_MODE=2
+SH_ID_PLATFORM_HTTPBASICAUTH_USER=user
+SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD=password
+SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
+SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH=iden3
+SH_ID_PLATFORM_REVERSE_HASH_SERVICE_URL=http://localhost:3001
+SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED=false
+SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xxxxxxxxx
+SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS=0x134B1BE34911E39A8397ec6289782989729807a4
+SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT=600000
+SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT=600s
+SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT=5
+SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT=600s
+SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE=0
+SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE=1000000
+SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT=5s
+SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME=30s
+SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME=30s
+# To use external prover SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED should be false.
+SH_ID_PLATFORM_PROVER_SERVER_URL=prover url
+SH_ID_PLATFORM_PROVER_TIMEOUT=600s
+SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
+SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
 
-A helper command is provided under the command `make config` to help in the generation of the config file. 
+# .shared.env file variables
+SH_ID_PLATFORM_SERVER_URL=localhost:3001
+SH_ID_PLATFORM_API_UI_SERVER_PORT=3002
+SH_ID_PLATFORM_API_UI_AUTH_USER=user
+SH_ID_PLATFORM_API_UI_AUTH_PASSWORD=password
+SH_ID_PLATFORM_API_UI_ISSUER_NAME=my issuer
+SH_ID_PLATFORM_API_UI_ISSUER_DID=did:polygonid:polygon:mumbai:2qE9HutYM8te92FxjxA5BNXU8NCV3Ki9hRmP8ttAHY
+
+
+# .ui.env file variables:
+<TODO>
+```
+
 
 ### Steps to write the private key in the vault
-1. docker exec -it sh-id-platform-test-vault sh
-2. vault write iden3/import/pbkey key_type=ethereum private_key=<privkey>
+Just run:   
+```
+make private_key=xxx add-private-key
+```
 
 ## How to test it
 1) Start the testing environment 

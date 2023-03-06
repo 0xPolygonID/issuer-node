@@ -9,7 +9,7 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 
-DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
+DOCKER_COMPOSE_CMD := docker compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
 
 .PHONY: build
 build:
@@ -58,22 +58,22 @@ up:
 .PHONY: run
 run:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d platform
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d  api-issuer
 
 .PHONY: run-arm
 run-arm:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d platform
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d  api-issuer
 
-.PHONY: run-ui-backend
-run-ui-backend:
+.PHONY: run-api-ui
+run-api-ui:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d admin
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui
 
-.PHONY: run-arm-ui-backend
-run-arm-ui-backend:
+.PHONY: run-arm-api-ui
+run-arm-api-ui:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d admin
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui
 
 .PHONY: run-ui
 run-ui:
