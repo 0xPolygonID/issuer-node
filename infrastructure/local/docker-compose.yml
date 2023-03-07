@@ -5,9 +5,6 @@ services:
     build:
       context: ../../ui/
       dockerfile: Dockerfile
-      args:
-        - UI_BASIC_USERNAME:${ISSUER_UI_BASIC_USERNAME}
-        - UI_BASIC_PASSWORD:${ISSUER_UI_BASIC_PASSWORD}
     ports:
       - "8080:80"
     env_file:

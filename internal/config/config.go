@@ -34,9 +34,9 @@ type Configuration struct {
 	Prover                       Prover             `mapstructure:"Prover"`
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrecuency  time.Duration      `mapstructure:"OnChainCheckStatusFrecuency"`
+	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
 
-	ApiUI ApiUI `mapstructure:"ApiUI"`
+	APIUI APIUI `mapstructure:"APIUI"`
 }
 
 // Database has the database configuration
@@ -115,18 +115,18 @@ type HTTPBasicAuth struct {
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
 
-// ApiUI - ApiUI backend service configuration.
-type ApiUI struct {
-	ServerPort    int           `mapstructure:"ServerPort" tip:"Server admin backend port"`
-	HTTPAPIUIAuth HTTPAPIUIAuth `mapstructure:"HTTPAPIUIAuth" tip:"Server api backend basic auth credentials"`
-	IssuerName    string        `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
-	IssuerLogo    string        `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
-	IssuerDID     string        `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
+// APIUI - APIUI backend service configuration.
+type APIUI struct {
+	ServerPort int       `mapstructure:"ServerPort" tip:"Server admin backend port"`
+	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server api backend basic auth credentials"`
+	IssuerName string    `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
+	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
+	IssuerDID  string    `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
 }
 
-// HTTPAPIUIAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
+// APIUIAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
 // user and password to use.
-type HTTPAPIUIAuth struct {
+type APIUIAuth struct {
 	User     string `mapstructure:"User" tip:"Basic auth username"`
 	Password string `mapstructure:"Password" tip:"Basic auth password"`
 }
@@ -146,15 +146,15 @@ func (c *Configuration) Sanitize() error {
 // SanitizeAdmin perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) SanitizeAdmin() error {
-	if c.ApiUI.ServerPort == 0 {
-		return fmt.Errorf("the api ui server port should be provided")
+	if c.APIUI.ServerPort == 0 {
+		return fmt.Errorf("an API UI server port must be provided")
 	}
 
-	if c.ApiUI.IssuerLogo == "" {
-		c.ApiUI.IssuerLogo = "http://no-logo.com"
+	if c.APIUI.IssuerLogo == "" {
+		c.APIUI.IssuerLogo = "http://no-logo.com"
 	}
 
-	if c.ApiUI.IssuerDID == "" {
+	if c.APIUI.IssuerDID == "" {
 		return fmt.Errorf("the Issuer DID value is empty and you must to provide one")
 	}
 
@@ -265,20 +265,20 @@ func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
 }
 
 func bindEnv() {
-	viper.SetEnvPrefix("SH_ID_PLATFORM")
+	viper.SetEnvPrefix("ISSUER")
 	_ = viper.BindEnv("ServerUrl", "ISSUER_SERVER_URL")
 	_ = viper.BindEnv("ServerPort", "ISSUER_SERVER_PORT")
 	_ = viper.BindEnv("NativeProofGenerationEnabled", "ISSUER_NATIVE_PROOF_GENERATION_ENABLED")
 	_ = viper.BindEnv("PublishingKeyPath", "ISSUER_PUBLISH_KEY_PATH")
-	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "ISSUER_ONCHAIN_CHECK_STATUS_FRECUENCY")
+	_ = viper.BindEnv("OnChainCheckStatusFrequency", "ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY")
 
 	_ = viper.BindEnv("Database.URL", "ISSUER_DATABASE_URL")
 
 	_ = viper.BindEnv("Log.Level", "ISSUER_LOG_LEVEL")
 	_ = viper.BindEnv("Log.Mode", "ISSUER_LOG_MODE")
 
-	_ = viper.BindEnv("HTTPBasicAuth.User", "ISSUER_HTTPBASICAUTH_USER")
-	_ = viper.BindEnv("HTTPBasicAuth.Password", "ISSUER_HTTPBASICAUTH_PASSWORD")
+	_ = viper.BindEnv("HTTPBasicAuth.User", "ISSUER_API_AUTH_USER")
+	_ = viper.BindEnv("HTTPBasicAuth.Password", "ISSUER_API_AUTH_PASSWORD")
 
 	_ = viper.BindEnv("KeyStore.Address", "ISSUER_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
@@ -306,12 +306,12 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 
-	_ = viper.BindEnv("ApiUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
-	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.User", "ISSUER_API_UI_AUTH_USER")
-	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.Password", "ISSUER_API_UI_AUTH_PASSWORD")
-	_ = viper.BindEnv("ApiUI.IssuerName", "ISSUER_API_UI_ISSUER_NAME")
-	_ = viper.BindEnv("ApiUI.IssuerLogo", "ISSUER_API_UI_ISSUER_LOGO")
-	_ = viper.BindEnv("ApiUI.IssuerDID", "ISSUER_API_UI_ISSUER_DID")
+	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
+	_ = viper.BindEnv("APIUI.APIUIAuth.User", "ISSUER_API_UI_AUTH_USER")
+	_ = viper.BindEnv("APIUI.APIUIAuth.Password", "ISSUER_API_UI_AUTH_PASSWORD")
+	_ = viper.BindEnv("APIUI.IssuerName", "ISSUER_API_UI_ISSUER_NAME")
+	_ = viper.BindEnv("APIUI.IssuerLogo", "ISSUER_API_UI_ISSUER_LOGO")
+	_ = viper.BindEnv("APIUI.IssuerDID", "ISSUER_API_UI_ISSUER_DID")
 
 	viper.AutomaticEnv()
 }
@@ -329,7 +329,7 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_PUBLISH_KEY_PATH value is missing")
 	}
 
-	if cfg.OnChainCheckStatusFrecuency == 0 {
+	if cfg.OnChainCheckStatusFrequency == 0 {
 		log.Info(ctx, "ISSUER_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
 	}
 
@@ -421,27 +421,27 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
 	}
 
-	if cfg.ApiUI.ServerPort == 0 {
+	if cfg.APIUI.ServerPort == 0 {
 		log.Info(ctx, "ISSUER_API_UI_SERVER_PORT value is missing")
 	}
 
-	if cfg.ApiUI.HTTPAPIUIAuth.User == "" {
+	if cfg.APIUI.APIUIAuth.User == "" {
 		log.Info(ctx, "ISSUER_API_UI_AUTH_USER value is missing")
 	}
 
-	if cfg.ApiUI.HTTPAPIUIAuth.Password == "" {
+	if cfg.APIUI.APIUIAuth.Password == "" {
 		log.Info(ctx, "ISSUER_API_UI_AUTH_PASSWORD value is missing")
 	}
 
-	if cfg.ApiUI.IssuerName == "" {
+	if cfg.APIUI.IssuerName == "" {
 		log.Info(ctx, "ISSUER_API_UI_ISSUER_NAME value is missing")
 	}
 
-	if cfg.ApiUI.IssuerLogo == "" {
+	if cfg.APIUI.IssuerLogo == "" {
 		log.Info(ctx, "ISSUER_API_UI_ISSUER_LOGO value is missing")
 	}
 
-	if cfg.ApiUI.IssuerDID == "" {
+	if cfg.APIUI.IssuerDID == "" {
 		log.Info(ctx, "ISSUER_API_UI_ISSUER_DID value is missing")
 	}
 }

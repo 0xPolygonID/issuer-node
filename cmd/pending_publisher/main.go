@@ -137,7 +137,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(cfg.OnChainCheckStatusFrecuency)
+		ticker := time.NewTicker(cfg.OnChainCheckStatusFrequency)
 		for {
 			select {
 			case <-ticker.C:
