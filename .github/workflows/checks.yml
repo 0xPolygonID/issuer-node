@@ -8,10 +8,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Create .env and .shared.env files
+      - name: Create .env-api, .env-issuer and .env-ui files
         run: |
-          touch .env
-          touch .shared.env
+          touch .env-api
+          touch .env-issuer
+          touch .env-ui
       - name: Docker Compose
         uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
         with:
