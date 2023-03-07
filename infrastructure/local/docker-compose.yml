@@ -5,11 +5,14 @@ services:
     build:
       context: ../../ui/
       dockerfile: Dockerfile
+      args:
+        - UI_BASIC_USERNAME:${ISSUER_UI_BASIC_USERNAME}
+        - UI_BASIC_PASSWORD:${ISSUER_UI_BASIC_PASSWORD}
     ports:
       - "8080:80"
-    environment:
-      - ../../.shared.env
-      - ../../.ui.env
+    env_file:
+      - ../../.env-api
+      - ../../.env-ui
 
   api-issuer:
     build:
@@ -24,8 +27,8 @@ services:
     environment:
       - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
-      - ../../.shared.env
-      - ../../.env
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./platform"
 
   api-ui:
@@ -41,8 +44,8 @@ services:
     environment:
       - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
-      - ../../.shared.env
-      - ../../.env
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./admin"
 
   pending_publisher:
@@ -54,8 +57,8 @@ services:
     environment:
       - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
-      - ../../.shared.env
-      - ../../.env
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s &&  ./pending_publisher"
 
   postgres:

@@ -66,54 +66,8 @@ It checks for possible errors publishing transactions on chain and try to resend
 
 
 ## How to configure
-The different components must be configured with environment variables. The following are the environment variables required with some sample values, and we encourage you to split them into
-three files. Those three files are actually used by the [docker-compose](infrastructure/local/docker-compose.yml) file provided.
-
-```
-# .env file variables
-SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED=true
-SH_ID_PLATFORM_PUBLISH_KEY_PATH=pbkey
-SH_ID_PLATFORM_ONCHAIN_PUBLISH_STATE_FRECUENCY=1m
-SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY=1m
-SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-SH_ID_PLATFORM_LOG_LEVEL=-4
-SH_ID_PLATFORM_LOG_MODE=2
-SH_ID_PLATFORM_HTTPBASICAUTH_USER=user
-SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD=password
-SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
-SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH=iden3
-SH_ID_PLATFORM_REVERSE_HASH_SERVICE_URL=http://localhost:3001
-SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED=false
-SH_ID_PLATFORM_ETHEREUM_URL=https://polygon-mumbai.g.alchemy.com/v2/xxxxxxxxx
-SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS=0x134B1BE34911E39A8397ec6289782989729807a4
-SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT=600000
-SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT=600s
-SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT=5
-SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT=600s
-SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE=0
-SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE=1000000
-SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT=5s
-SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME=30s
-SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME=30s
-# To use external prover SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED should be false.
-SH_ID_PLATFORM_PROVER_SERVER_URL=prover url
-SH_ID_PLATFORM_PROVER_TIMEOUT=600s
-SH_ID_PLATFORM_CIRCUIT_PATH=./pkg/credentials/circuits
-SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
-
-# .shared.env file variables
-SH_ID_PLATFORM_SERVER_URL=localhost:3001
-SH_ID_PLATFORM_API_UI_SERVER_PORT=3002
-SH_ID_PLATFORM_API_UI_AUTH_USER=user
-SH_ID_PLATFORM_API_UI_AUTH_PASSWORD=password
-SH_ID_PLATFORM_API_UI_ISSUER_NAME=my issuer
-SH_ID_PLATFORM_API_UI_ISSUER_DID=did:polygonid:polygon:mumbai:2qE9HutYM8te92FxjxA5BNXU8NCV3Ki9hRmP8ttAHY
-
-
-# .ui.env file variables:
-<TODO>
-```
-
+The different components must be configured with environment variables. We provide three env files samples with the required variables.
+Similar files are actually used by the [docker-compose](infrastructure/local/docker-compose.yml) file provided.
 
 ### Steps to write the private key in the vault
 Just run:   

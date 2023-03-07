@@ -208,7 +208,7 @@ func Load(fileName string) (*Configuration, error) {
 	}
 	ctx := context.Background()
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error(ctx, "error loading config file", err)
+		log.Error(ctx, "error loading config file...", err)
 	}
 
 	if err := viper.Unmarshal(config); err != nil {
@@ -266,183 +266,183 @@ func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
 
 func bindEnv() {
 	viper.SetEnvPrefix("SH_ID_PLATFORM")
-	_ = viper.BindEnv("ServerUrl", "SH_ID_PLATFORM_SERVER_URL")
-	_ = viper.BindEnv("ServerPort", "SH_ID_PLATFORM_SERVER_PORT")
-	_ = viper.BindEnv("NativeProofGenerationEnabled", "SH_ID_PLATFORM_NATIVE_PROOF_GENERATION_ENABLED")
-	_ = viper.BindEnv("PublishingKeyPath", "SH_ID_PLATFORM_PUBLISH_KEY_PATH")
-	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY")
+	_ = viper.BindEnv("ServerUrl", "ISSUER_SERVER_URL")
+	_ = viper.BindEnv("ServerPort", "ISSUER_SERVER_PORT")
+	_ = viper.BindEnv("NativeProofGenerationEnabled", "ISSUER_NATIVE_PROOF_GENERATION_ENABLED")
+	_ = viper.BindEnv("PublishingKeyPath", "ISSUER_PUBLISH_KEY_PATH")
+	_ = viper.BindEnv("OnChainCheckStatusFrecuency", "ISSUER_ONCHAIN_CHECK_STATUS_FRECUENCY")
 
-	_ = viper.BindEnv("Database.URL", "SH_ID_PLATFORM_DATABASE_URL")
+	_ = viper.BindEnv("Database.URL", "ISSUER_DATABASE_URL")
 
-	_ = viper.BindEnv("Log.Level", "SH_ID_PLATFORM_LOG_LEVEL")
-	_ = viper.BindEnv("Log.Mode", "SH_ID_PLATFORM_LOG_MODE")
+	_ = viper.BindEnv("Log.Level", "ISSUER_LOG_LEVEL")
+	_ = viper.BindEnv("Log.Mode", "ISSUER_LOG_MODE")
 
-	_ = viper.BindEnv("HTTPBasicAuth.User", "SH_ID_PLATFORM_HTTPBASICAUTH_USER")
-	_ = viper.BindEnv("HTTPBasicAuth.Password", "SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD")
+	_ = viper.BindEnv("HTTPBasicAuth.User", "ISSUER_HTTPBASICAUTH_USER")
+	_ = viper.BindEnv("HTTPBasicAuth.Password", "ISSUER_HTTPBASICAUTH_PASSWORD")
 
-	_ = viper.BindEnv("KeyStore.Address", "SH_ID_PLATFORM_KEY_STORE_ADDRESS")
-	_ = viper.BindEnv("KeyStore.Token", "SH_ID_PLATFORM_KEY_STORE_TOKEN")
-	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
+	_ = viper.BindEnv("KeyStore.Address", "ISSUER_KEY_STORE_ADDRESS")
+	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
+	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
 
-	_ = viper.BindEnv("ReverseHashService.URL", "SH_ID_PLATFORM_REVERSE_HASH_SERVICE_URL")
-	_ = viper.BindEnv("ReverseHashService.Enabled", "SH_ID_PLATFORM_REVERSE_HASH_SERVICE_ENABLED")
+	_ = viper.BindEnv("ReverseHashService.URL", "ISSUER_REVERSE_HASH_SERVICE_URL")
+	_ = viper.BindEnv("ReverseHashService.Enabled", "ISSUER_REVERSE_HASH_SERVICE_ENABLED")
 
-	_ = viper.BindEnv("Ethereum.URL", "SH_ID_PLATFORM_ETHEREUM_URL")
-	_ = viper.BindEnv("Ethereum.ContractAddress", "SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS")
-	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT")
-	_ = viper.BindEnv("Ethereum.ConfirmationTimeout", "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT")
-	_ = viper.BindEnv("Ethereum.ConfirmationBlockCount", "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT")
-	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.MinGasPrice", "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.MaxGasPrice", "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
+	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
+	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
+	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT")
+	_ = viper.BindEnv("Ethereum.ConfirmationTimeout", "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT")
+	_ = viper.BindEnv("Ethereum.ConfirmationBlockCount", "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT")
+	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "ISSUER_ETHEREUM_RECEIPT_TIMEOUT")
+	_ = viper.BindEnv("Ethereum.MinGasPrice", "ISSUER_ETHEREUM_MIN_GAS_PRICE")
+	_ = viper.BindEnv("Ethereum.MaxGasPrice", "ISSUER_ETHEREUM_MAX_GAS_PRICE")
+	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
+	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
+	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
 
-	_ = viper.BindEnv("Prover.ServerURL", "SH_ID_PLATFORM_PROVER_SERVER_URL")
-	_ = viper.BindEnv("Prover.ResponseTimeout", "SH_ID_PLATFORM_PROVER_TIMEOUT")
+	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
+	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")
 
-	_ = viper.BindEnv("Circuit.Path", "SH_ID_PLATFORM_CIRCUIT_PATH")
+	_ = viper.BindEnv("Circuit.Path", "ISSUER_CIRCUIT_PATH")
 
-	_ = viper.BindEnv("Cache.RedisUrl", "SH_ID_PLATFORM_REDIS_URL")
+	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 
-	_ = viper.BindEnv("ApiUI.ServerPort", "SH_ID_PLATFORM_API_UI_SERVER_PORT")
-	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.User", "SH_ID_PLATFORM_API_UI_AUTH_USER")
-	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.Password", "SH_ID_PLATFORM_API_UI_AUTH_PASSWORD")
-	_ = viper.BindEnv("ApiUI.IssuerName", "SH_ID_PLATFORM_API_UI_ISSUER_NAME")
-	_ = viper.BindEnv("ApiUI.IssuerLogo", "SH_ID_PLATFORM_API_UI_ISSUER_LOGO")
-	_ = viper.BindEnv("ApiUI.IssuerDID", "SH_ID_PLATFORM_API_UI_ISSUER_DID")
+	_ = viper.BindEnv("ApiUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
+	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.User", "ISSUER_API_UI_AUTH_USER")
+	_ = viper.BindEnv("ApiUI.HTTPAPIUIAuth.Password", "ISSUER_API_UI_AUTH_PASSWORD")
+	_ = viper.BindEnv("ApiUI.IssuerName", "ISSUER_API_UI_ISSUER_NAME")
+	_ = viper.BindEnv("ApiUI.IssuerLogo", "ISSUER_API_UI_ISSUER_LOGO")
+	_ = viper.BindEnv("ApiUI.IssuerDID", "ISSUER_API_UI_ISSUER_DID")
 
 	viper.AutomaticEnv()
 }
 
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.ServerUrl == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_SERVER_URL value is missing")
+		log.Info(ctx, "ISSUER_SERVER_URL value is missing")
 	}
 
 	if cfg.ServerPort == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_SERVER_PORT value is missing")
+		log.Info(ctx, "ISSUER_SERVER_PORT value is missing")
 	}
 
 	if cfg.PublishingKeyPath == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_PUBLISH_KEY_PATH value is missing")
+		log.Info(ctx, "ISSUER_PUBLISH_KEY_PATH value is missing")
 	}
 
 	if cfg.OnChainCheckStatusFrecuency == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
+		log.Info(ctx, "ISSUER_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
 	}
 
 	if cfg.Database.URL == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_DATABASE_URL value is missing")
+		log.Info(ctx, "ISSUER_DATABASE_URL value is missing")
 	}
 
 	if cfg.HTTPBasicAuth.User == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_HTTPBASICAUTH_USER value is missing")
+		log.Info(ctx, "ISSUER_HTTPBASICAUTH_USER value is missing")
 	}
 
 	if cfg.HTTPBasicAuth.Password == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_HTTPBASICAUTH_PASSWORD value is missing")
+		log.Info(ctx, "ISSUER_HTTPBASICAUTH_PASSWORD value is missing")
 	}
 
 	if cfg.KeyStore.Address == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_KEY_STORE_ADDRESS value is missing")
+		log.Info(ctx, "ISSUER_KEY_STORE_ADDRESS value is missing")
 	}
 
 	if cfg.KeyStore.Token == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_KEY_STORE_TOKEN value is missing")
+		log.Info(ctx, "ISSUER_KEY_STORE_TOKEN value is missing")
 	}
 
 	if cfg.KeyStore.PluginIden3MountPath == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH value is missing")
+		log.Info(ctx, "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH value is missing")
 	}
 
 	if cfg.Ethereum.URL == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
 	}
 
 	if cfg.Ethereum.ContractAddress == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_CONTRACT_ADDRESS value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_CONTRACT_ADDRESS value is missing")
 	}
 
 	if cfg.Ethereum.URL == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_URL value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
 	}
 
 	if cfg.Ethereum.DefaultGasLimit == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
 	}
 
 	if cfg.Ethereum.ConfirmationTimeout == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
 	}
 
 	if cfg.Ethereum.ConfirmationBlockCount == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
 	}
 
 	if cfg.Ethereum.ReceiptTimeout == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_RECEIPT_TIMEOUT value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_RECEIPT_TIMEOUT value is missing")
 	}
 
 	if cfg.Ethereum.MinGasPrice == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_MIN_GAS_PRICE value is missing or is 0")
+		log.Info(ctx, "ISSUER_ETHEREUM_MIN_GAS_PRICE value is missing or is 0")
 	}
 
 	if cfg.Ethereum.MaxGasPrice == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
+		log.Info(ctx, "ISSUER_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
 	}
 
 	if cfg.Ethereum.RPCResponseTimeout == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
 	}
 
 	if cfg.Ethereum.WaitReceiptCycleTime == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
 	}
 
 	if cfg.Ethereum.WaitBlockCycleTime == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
+		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
 	}
 
 	if cfg.Prover.ServerURL == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_PROVER_SERVER_URL value is missing")
+		log.Info(ctx, "ISSUER_PROVER_SERVER_URL value is missing")
 	}
 
 	if cfg.Prover.ResponseTimeout == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_PROVER_TIMEOUT value is missing")
+		log.Info(ctx, "ISSUER_PROVER_TIMEOUT value is missing")
 	}
 
 	if cfg.Circuit.Path == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_CIRCUIT_PATH value is missing")
+		log.Info(ctx, "ISSUER_CIRCUIT_PATH value is missing")
 	}
 
 	if cfg.Cache.RedisUrl == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_REDIS_URL value is missing")
+		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
 	}
 
 	if cfg.ApiUI.ServerPort == 0 {
-		log.Info(ctx, "SH_ID_PLATFORM_API_UI_SERVER_PORT value is missing")
+		log.Info(ctx, "ISSUER_API_UI_SERVER_PORT value is missing")
 	}
 
 	if cfg.ApiUI.HTTPAPIUIAuth.User == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_API_UI_AUTH_USER value is missing")
+		log.Info(ctx, "ISSUER_API_UI_AUTH_USER value is missing")
 	}
 
 	if cfg.ApiUI.HTTPAPIUIAuth.Password == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_API_UI_AUTH_PASSWORD value is missing")
+		log.Info(ctx, "ISSUER_API_UI_AUTH_PASSWORD value is missing")
 	}
 
 	if cfg.ApiUI.IssuerName == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_API_UI_ISSUER_NAME value is missing")
+		log.Info(ctx, "ISSUER_API_UI_ISSUER_NAME value is missing")
 	}
 
 	if cfg.ApiUI.IssuerLogo == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_API_UI_ISSUER_LOGO value is missing")
+		log.Info(ctx, "ISSUER_API_UI_ISSUER_LOGO value is missing")
 	}
 
 	if cfg.ApiUI.IssuerDID == "" {
-		log.Info(ctx, "SH_ID_PLATFORM_API_UI_ISSUER_DID value is missing")
+		log.Info(ctx, "ISSUER_API_UI_ISSUER_DID value is missing")
 	}
 }
 

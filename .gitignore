@@ -8,8 +8,10 @@ bin/
 *.dylib
 
 config.toml
-.shared.env
-.env
+.env-api
+.env-issuer
+.env-ui
+
 infrastructure/local/.vault/data
 infrastructure/local/.vault/plugins
 infrastructure/local/.vault/policies

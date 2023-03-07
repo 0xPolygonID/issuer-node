@@ -15,6 +15,7 @@ npm run build
 
 # Copy nginx config
 cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
+htpasswd -c -b /etc/nginx/.htpasswd $ISSUER_UI_BASIC_USERNAME $ISSUER_UI_BASIC_PASSWORD
 
 # Copy app dist
 cp -r dist/. /usr/share/nginx/html
