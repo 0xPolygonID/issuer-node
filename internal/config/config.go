@@ -214,7 +214,7 @@ func Load(fileName string) (*Configuration, error) {
 	if err := viper.Unmarshal(config); err != nil {
 		log.Error(ctx, "error unmurshalling config file", err)
 	}
-	checkEnvVars(context.Background(), config)
+	checkEnvVars(ctx, config)
 	return config, nil
 }
 
