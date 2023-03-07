@@ -31,20 +31,39 @@ type GenericErrorMessage struct {
 // Health defines model for Health.
 type Health map[string]bool
 
+// ImportSchemaRequest defines model for ImportSchemaRequest.
+type ImportSchemaRequest struct {
+	BigInt     string `json:"bigInt"`
+	Hash       string `json:"hash"`
+	SchemaType string `json:"schemaType"`
+	Url        string `json:"url"`
+}
+
 // SayHi defines model for SayHi.
 type SayHi struct {
 	Message string `json:"message"`
 }
 
+// UUIDResponse defines model for UUIDResponse.
+type UUIDResponse struct {
+	Id string `json:"id"`
+}
+
+// N400 defines model for 400.
+type N400 = GenericErrorMessage
+
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
+
+// ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
+type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Healthcheck
+	// Say Hi endpoint
 	// (GET /say-hi)
 	SayHi(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
@@ -53,6 +72,9 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
+	// Import JSON schema
+	// (POST /v1/schemas)
+	ImportSchema(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -117,6 +139,23 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ImportSchema operation middleware
+func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportSchema(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -251,9 +290,14 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
+	})
 
 	return r
 }
+
+type N400JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
 
@@ -337,12 +381,47 @@ func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ImportSchemaRequestObject struct {
+	Body *ImportSchemaJSONRequestBody
+}
+
+type ImportSchemaResponseObject interface {
+	VisitImportSchemaResponse(w http.ResponseWriter) error
+}
+
+type ImportSchema201JSONResponse UUIDResponse
+
+func (response ImportSchema201JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response ImportSchema400JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Healthcheck
+	// Say Hi endpoint
 	// (GET /say-hi)
 	SayHi(ctx context.Context, request SayHiRequestObject) (SayHiResponseObject, error)
 	// Get the documentation yaml file
@@ -351,6 +430,9 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
+	// Import JSON schema
+	// (POST /v1/schemas)
+	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -479,21 +561,56 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ImportSchema operation middleware
+func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	var request ImportSchemaRequestObject
+
+	var body ImportSchemaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ImportSchema(ctx, request.(ImportSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ImportSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ImportSchemaResponseObject); ok {
+		if err := validResponse.VisitImportSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

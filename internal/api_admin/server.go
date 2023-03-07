@@ -2,10 +2,15 @@ package api_admin
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -43,6 +48,37 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	var resp Health200JSONResponse = s.health.Status()
 
 	return resp, nil
+}
+
+// ImportSchema is the UI endpoint to import schema metadata
+func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error) {
+	req := request.Body
+	if err := guardImportSchemaReq(req); err != nil {
+		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprint("bad request: %w", err.Error())}}, nil
+	}
+	return ImportSchema201JSONResponse{Id: uuid.New().String()}, nil
+}
+
+func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
+	if req != nil {
+		return errors.New("empty body")
+	}
+	if strings.TrimSpace(req.Url) == "" {
+		return errors.New("empty url")
+	}
+	if strings.TrimSpace(req.SchemaType) == "" {
+		return errors.New("empty type")
+	}
+	if strings.TrimSpace(req.Hash) == "" {
+		return errors.New("empty hash")
+	}
+	if strings.TrimSpace(req.BigInt) == "" {
+		return errors.New("empty bigInt")
+	}
+	if _, err := url.ParseRequestURI(req.Url); err != nil {
+		return fmt.Errorf("parsing url: %w", err)
+	}
+	return nil
 }
 
 // SayHi - Say Hi
