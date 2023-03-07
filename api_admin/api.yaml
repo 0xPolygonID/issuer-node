@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: Self Hosted ID Platform
+  title: Self Hosted ID - UI API
   description: |
-    Documentation for the Self Hosted ID Admin Platform
+    Documentation for the Self Hosted ID UI API
   version: 0.1.0
 
 servers:
