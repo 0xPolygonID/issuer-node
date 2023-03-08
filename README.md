@@ -1,9 +1,9 @@
-# Self-hosted Polygon ID Issuer Node
+# Polygon ID Issuer Node
 
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
 
-This is a set of tools and an API for issuers of zk-proof credentials to build on top of. It allows a single authenticated user to create schemas for issuing and managing credentials of identities. It also provides a web-based [frontend (UI)](ui/README.md) to manage issuer schemas, credentials and connections.
+This is a set of tools and APIs for issuers of zk-proof credentials, designed to be extensible. It allows an authenticated user to create schemas for issuing and managing credentials of identities. It also provides a web-based [frontend (UI)](ui/README.md) to manage issuer schemas, credentials and connections.
 
 ## Installation
 
@@ -23,14 +23,13 @@ _NB: There is no compatibility with Windows environments at this time._
 
 #### Setup for Docker-only
 
-1. Copy `config.toml.sample` as `config.toml`. Please see the [configuration](#configuration) section for more details.
-    - For a turnkey setup, you will only need to add a valid JSON RPC URL for Polygon Mumbai under `[Ethereum] URL`.
+1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
 3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts Docker containers for the issuer application.
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
-6. _(Optional)_ Run `make run-ui-backend` and `make-run-ui` to have the Platform UI available on <http://localhost:5173> (or whatever was set in the `[UI] URL` config entry).
-7. MISSING STEP ON SETTING UP UI
+6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
+7. _(Optional)_ Run `make-run-ui` (or `make-run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:5173>. HTTP auth credentials are set in `.env-ui`.
 
 ### Option 2 - Standalone mode
 
@@ -52,7 +51,7 @@ _NB: There is no compatibility with Windows environments at this time._
 
 Make sure you have Postgres, Redis and Vault properly installed & configured. Do _not_ use `make up` since those will start the containers for non-production builds, see [option 1](#option-1---using-docker-only).
 
-1. Copy `config.toml.sample` as `config.toml`. Please see the [configuration](#configuration) section for more details.
+1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make build`. This will generate a binary for each of the following commands:
     - `platform`
     - `migrate`
@@ -64,13 +63,36 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 6. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
-9. MISSING STEP ON SETTING UP UI IN PRODUCTION
+9. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
+10. _(Optional)_ TODO - UI PRODUCTION SETUP
 
 ## Configuration
 
-For a full guide, please refer to the [getting started docs](https://0xpolygonid.github.io/tutorials/issuer-node/getting-started-flow).
+For a full user guide, please refer to the [getting started docs](https://0xpolygonid.github.io/tutorials/issuer-node/getting-started-flow).
 
-The application requires a config file `config.toml` file in the root working directory. There is a `config.toml.sample` file provided as a reference.
+### Turnkey Docker-only setup
+
+If you are setting up [locally](#setup-for-docker-only) with Docker, you will need to set up the following variables in their respective `.env` files:
+
+In `.env-api`:
+
+- `ISSUER_API_UI_AUTH_USER`
+- `ISSUER_API_UI_AUTH_PASSWORD`
+- `ISSUER_API_UI_ISSUER_DID`
+- `ISSUER_ETHEREUM_URL`
+
+In `.env-issuer`:
+
+- `ISSUER_API_AUTH_USER`
+- `ISSUER_API_AUTH_PASSWORD`
+- `ISSUER_KEY_STORE_TOKEN` obtained from step 4.
+
+If you are running the UI, in `.env-ui`:
+
+- `ISSUER_UI_AUTH_USERNAME`
+- `ISSUER_UI_AUTH_PASSWORD`
+
+### Advanced setup
 
 Any variable defined in the config file can be overwritten using environment variables. The binding for this environment variables is defined in the function `bindEnv()` in the file `internal/config/config.go`
 
