@@ -118,9 +118,9 @@ type HTTPBasicAuth struct {
 // APIUI - APIUI backend service configuration.
 type APIUI struct {
 	ServerPort int       `mapstructure:"ServerPort" tip:"Server admin backend port"`
-	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server api backend basic auth credentials"`
+	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server API backend basic auth credentials"`
 	IssuerName string    `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
-	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
+	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (URL)"`
 	IssuerDID  string    `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
 }
 
@@ -148,10 +148,6 @@ func (c *Configuration) Sanitize() error {
 func (c *Configuration) SanitizeAdmin() error {
 	if c.APIUI.ServerPort == 0 {
 		return fmt.Errorf("an API UI server port must be provided")
-	}
-
-	if c.APIUI.IssuerLogo == "" {
-		c.APIUI.IssuerLogo = "http://no-logo.com"
 	}
 
 	if c.APIUI.IssuerDID == "" {
@@ -330,7 +326,7 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	}
 
 	if cfg.OnChainCheckStatusFrequency == 0 {
-		log.Info(ctx, "ISSUER_ONCHAIN_CHECK_STATUS_FRECUENCY value is missing")
+		log.Info(ctx, "ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY value is missing")
 	}
 
 	if cfg.Database.URL == "" {

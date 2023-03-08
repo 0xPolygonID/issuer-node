@@ -174,7 +174,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, "admin server started", "port", cfg.APIUI.ServerPort)
+		log.Info(ctx, "ui server started", "port", cfg.APIUI.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
 			log.Error(ctx, "Starting http admin server", err)
 		}

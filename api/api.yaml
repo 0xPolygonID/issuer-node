@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: Self Hosted ISSUER ID
+  title: Polygon ID - Issuer
   description: |
-    Documentation for the Self Hosted ISSUER ID
+    Documentation for the Issuer
   version: 0.1.0
 
 servers:

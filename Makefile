@@ -47,9 +47,9 @@ api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
 
-.PHONY: api-admin
-api-admin: $(BIN)/oapi-codegen
-	$(BIN)/oapi-codegen -config ./api_admin/config-oapi-codegen.yaml ./api_admin/api.yaml > ./internal/api_admin/api.gen.go
+.PHONY: api-ui
+api-ui: $(BIN)/oapi-codegen
+	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_admin/api.gen.go
 
 .PHONY: up
 up:
@@ -65,19 +65,15 @@ run-arm:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
 	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d  api-issuer
 
-.PHONY: run-api-ui
-run-api-ui:
-	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui
-
-.PHONY: run-arm-api-ui
-run-arm-api-ui:
-	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui
-
 .PHONY: run-ui
 run-ui:
-	$(DOCKER_COMPOSE_CMD) up -d ui
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
+
+.PHONY: run-arm-ui
+run-arm-ui:
+	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
 
 .PHONY: down
 down:

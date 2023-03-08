@@ -39,9 +39,9 @@ evaluation purposes.
 1) Configure the project creating config.toml file.
 2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
    evaluation purposes.
-3) Run `make run-api-ui` to start a docker container running the issuer, (`make run-arm-api-ui` for **Mac computers** with **Apple Silicon chip**)
+3) Run `make run-ui` to start the docker containers for running the issuer ui api and the ui, (`make run-arm-ui` for **Mac computers** with **Apple Silicon chip**)
 4) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
-5) Browse to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
+5) Browse to http://localhost:3002.
 
 
 ### Running the server in standalone mode
