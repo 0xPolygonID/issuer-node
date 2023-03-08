@@ -177,7 +177,7 @@ func main() {
 	go func() {
 		log.Info(ctx, "server started", "port", cfg.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http server", err)
+			log.Error(ctx, "starting http server", err)
 		}
 	}()
 

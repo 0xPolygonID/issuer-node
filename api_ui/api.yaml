@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Issuer - UI API
+  title: Polygon ID - Issuer - UI API
   description: |
     Documentation for the Issuer - UI API
   version: 0.1.0

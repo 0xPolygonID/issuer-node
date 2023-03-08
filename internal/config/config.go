@@ -117,18 +117,18 @@ type HTTPBasicAuth struct {
 
 // APIUI - APIUI backend service configuration.
 type APIUI struct {
-	ServerPort int       `mapstructure:"ServerPort" tip:"Server admin backend port"`
-	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server API backend basic auth credentials"`
-	IssuerName string    `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
-	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (URL)"`
-	IssuerDID  string    `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
+	ServerPort int       `mapstructure:"ServerPort" tip:"Server UI API backend port"`
+	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server UI API backend basic auth credentials"`
+	IssuerName string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
+	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
+	IssuerDID  string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
 }
 
-// APIUIAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
+// APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
 // user and password to use.
 type APIUIAuth struct {
-	User     string `mapstructure:"User" tip:"Basic auth username"`
-	Password string `mapstructure:"Password" tip:"Basic auth password"`
+	User     string `mapstructure:"User" tip:"Server UI APIBasic auth username"`
+	Password string `mapstructure:"Password" tip:"Server UI API Basic auth password"`
 }
 
 // Sanitize perform some basic checks and sanitizations in the configuration.
@@ -136,7 +136,7 @@ type APIUIAuth struct {
 func (c *Configuration) Sanitize() error {
 	sUrl, err := c.validateServerUrl()
 	if err != nil {
-		return fmt.Errorf("serverUrl is not a valid url <%s>: %w", c.ServerUrl, err)
+		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
 
@@ -147,11 +147,11 @@ func (c *Configuration) Sanitize() error {
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) SanitizeAdmin() error {
 	if c.APIUI.ServerPort == 0 {
-		return fmt.Errorf("an API UI server port must be provided")
+		return fmt.Errorf("a port for the UI API server must be provided")
 	}
 
 	if c.APIUI.IssuerDID == "" {
-		return fmt.Errorf("the Issuer DID value is empty and you must to provide one")
+		return fmt.Errorf("an issuer DID must be provided")
 	}
 
 	return nil
@@ -163,7 +163,7 @@ func (c *Configuration) validateServerUrl() (string, error) {
 		return c.ServerUrl, err
 	}
 	if sUrl.Scheme == "" {
-		return c.ServerUrl, fmt.Errorf("server url must be an absolute url")
+		return c.ServerUrl, fmt.Errorf("server URL must be an absolute URL")
 	}
 	sUrl.RawQuery = ""
 	return strings.Trim(strings.Trim(sUrl.String(), "/"), "?"), nil
@@ -208,7 +208,7 @@ func Load(fileName string) (*Configuration, error) {
 	}
 
 	if err := viper.Unmarshal(config); err != nil {
-		log.Error(ctx, "error unmurshalling config file", err)
+		log.Error(ctx, "error unmarshalling config file", err)
 	}
 	checkEnvVars(ctx, config)
 	return config, nil
@@ -334,11 +334,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	}
 
 	if cfg.HTTPBasicAuth.User == "" {
-		log.Info(ctx, "ISSUER_HTTPBASICAUTH_USER value is missing")
+		log.Info(ctx, "ISSUER_API_AUTH_USER value is missing")
 	}
 
 	if cfg.HTTPBasicAuth.Password == "" {
-		log.Info(ctx, "ISSUER_HTTPBASICAUTH_PASSWORD value is missing")
+		log.Info(ctx, "ISSUER_API_AUTH_PASSWORD value is missing")
 	}
 
 	if cfg.KeyStore.Address == "" {
@@ -431,10 +431,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 
 	if cfg.APIUI.IssuerName == "" {
 		log.Info(ctx, "ISSUER_API_UI_ISSUER_NAME value is missing")
-	}
-
-	if cfg.APIUI.IssuerLogo == "" {
-		log.Info(ctx, "ISSUER_API_UI_ISSUER_LOGO value is missing")
 	}
 
 	if cfg.APIUI.IssuerDID == "" {

@@ -14,7 +14,7 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 
-	api_admin "github.com/polygonid/sh-id-platform/internal/api_admin"
+	"github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -174,9 +174,9 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, "ui server started", "port", cfg.APIUI.ServerPort)
+		log.Info(ctx, "UI API server started", "port", cfg.APIUI.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http admin server", err)
+			log.Error(ctx, "starting HTTP UI API server", err)
 		}
 	}()
 
