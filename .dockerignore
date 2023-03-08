@@ -1,0 +1,6 @@
+.git/
+Makefile
+infrastructure/local/docker-compose.yml
+infrastructure/local/.vault/data/init.out
+infrastructure/local/.vault/file/
+demo.sh
