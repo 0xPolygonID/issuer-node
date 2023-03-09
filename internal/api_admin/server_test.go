@@ -17,7 +17,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/internal/session"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -119,9 +118,9 @@ func TestServer_AuthQRCode(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	sessionManager := session.Cached(cachex)
+	sessionRepository := repositories.NewSessionCached(cachex)
 
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionManager)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository)
 	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)

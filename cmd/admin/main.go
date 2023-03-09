@@ -32,7 +32,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/internal/session"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
@@ -62,7 +61,6 @@ func main() {
 	}
 	cachex := cache.NewRedisCache(rdb)
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
-	sessionManager := session.Cached(cachex)
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
@@ -115,10 +113,11 @@ func main() {
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
+	sessionRepository := repositories.NewSessionCached(cachex)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionManager)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository)
 	schemaService := services.NewSchema(schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,

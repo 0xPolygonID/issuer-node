@@ -1,31 +1,24 @@
-package session
+package repositories
 
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/iden3/iden3comm/protocol"
-
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
+	"time"
 )
 
 const (
 	defaultTTL = 5 * time.Minute
 )
 
-// Manager defines the interface for managing sessions
-type Manager interface {
-	Get(ctx context.Context, key string) (protocol.AuthorizationRequestMessage, error)
-	Set(ctx context.Context, key string, value protocol.AuthorizationRequestMessage) error
-}
-
 type cached struct {
 	cache cache.Cache
 }
 
-// Cached returns a new cached manager
-func Cached(c cache.Cache) Manager {
+// NewSessionCached returns a new cached manager
+func NewSessionCached(c cache.Cache) ports.SessionRepository {
 	return &cached{cache: c}
 }
 

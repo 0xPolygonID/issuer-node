@@ -32,7 +32,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/session"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
@@ -59,18 +58,18 @@ type identity struct {
 	claimsRepository        ports.ClaimsRepository
 	revocationRepository    ports.RevocationRepository
 	connectionsRepository   ports.ConnectionsRepository
+	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
 	kms                     kms.KMSType
 	verifier                *auth.Verifier
-	sessionManager          session.Manager
 
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionManager session.Manager) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -78,13 +77,13 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		claimsRepository:        claimsRepository,
 		revocationRepository:    revocationRepository,
 		connectionsRepository:   connectionsRepository,
+		sessionManager:          sessionRepository,
 		storage:                 storage,
 		mtService:               mtservice,
 		kms:                     kms,
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
 		verifier:                verifier,
-		sessionManager:          sessionManager,
 	}
 }
 
