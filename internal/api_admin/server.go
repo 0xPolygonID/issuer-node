@@ -70,6 +70,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 
 	err := s.identityService.Authenticate(ctx, *request.Body, *request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
+		log.Debug(ctx, "error authenticating", err.Error())
 		return AuthCallback500JSONResponse{}, nil
 	}
 

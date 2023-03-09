@@ -2,6 +2,9 @@ package repositories
 
 import (
 	"context"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -17,11 +20,11 @@ func NewConnections() ports.ConnectionsRepository {
 
 // Save stores in the database the given connection and updates the modified at in case already exists
 func (c *connections) Save(ctx context.Context, conn db.Querier, connection *domain.Connection) error {
-	sql := `INSERT INTO connections (issuer_id, user_id, issuer_doc, user_doc)
-			VALUES($1, $2, $3, $4) ON CONFLICT (issuer_id, user_id) DO
-			UPDATE SET issuer_id=$1, user_id=$2, issuer_doc=$3, user_doc=$4,
+	sql := `INSERT INTO connections (id,issuer_id, user_id, issuer_doc, user_doc,created_at,modified_at)
+			VALUES($1, $2, $3, $4,$5,$6,$7) ON CONFLICT (issuer_id, user_id) DO
+			UPDATE SET issuer_id=$2, user_id=$3, issuer_doc=$4, user_doc=$5,
 			           modified_at = now();`
-	_, err := conn.Exec(ctx, sql, connection.IssuerDID.String(), connection.UserDID.String(), connection.IssuerDoc, connection.UserDoc)
+	_, err := conn.Exec(ctx, sql, uuid.New().String(), connection.IssuerDID.String(), connection.UserDID.String(), connection.IssuerDoc, connection.UserDoc, time.Now(), time.Now())
 
 	return err
 }
