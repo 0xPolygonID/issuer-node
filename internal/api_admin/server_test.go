@@ -26,6 +26,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(storage.Pgx))
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -33,7 +34,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService, NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
+	server := NewServer(&cfg, identityService, claimsService, schemaAdminService, NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
 	handler := getHandler(context.Background(), server)
 
 	t.Run("should return 200", func(t *testing.T) {
