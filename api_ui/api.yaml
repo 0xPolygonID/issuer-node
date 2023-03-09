@@ -153,12 +153,6 @@ components:
         schemaType:
           type: string
           example: "vaccinationCertificate"
-        hash:
-          type: string
-          example: ""
-        bigInt:
-          type: string
-          example: ""
 
     Health:
       type: object

@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -55,7 +53,7 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 // ImportSchema is the UI endpoint to import schema metadata
 func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error) {
 	req := request.Body
-	if _, err := guardImportSchemaReq(req); err != nil {
+	if err := guardImportSchemaReq(req); err != nil {
 		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprint("bad request: %w", err.Error())}}, nil
 	}
 	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, req.Url, req.SchemaType)
@@ -65,38 +63,20 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 	return ImportSchema201JSONResponse{Id: schema.ID.String()}, nil
 }
 
-func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) (core.SchemaHash, error) {
+func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
 	if req != nil {
-		return core.SchemaHash{}, errors.New("empty body")
+		return errors.New("empty body")
 	}
 	if strings.TrimSpace(req.Url) == "" {
-		return core.SchemaHash{}, errors.New("empty url")
+		return errors.New("empty url")
 	}
 	if strings.TrimSpace(req.SchemaType) == "" {
-		return core.SchemaHash{}, errors.New("empty type")
-	}
-	if strings.TrimSpace(req.Hash) == "" {
-		return core.SchemaHash{}, errors.New("empty hash")
-	}
-	if strings.TrimSpace(req.BigInt) == "" {
-		return core.SchemaHash{}, errors.New("empty bigInt")
+		return errors.New("empty type")
 	}
 	if _, err := url.ParseRequestURI(req.Url); err != nil {
-		return core.SchemaHash{}, fmt.Errorf("parsing url: %w", err)
+		return fmt.Errorf("parsing url: %w", err)
 	}
-	hash, err := core.NewSchemaHashFromHex(req.Hash)
-	if err != nil {
-		return core.SchemaHash{}, errors.New("hash wrong format")
-	}
-	const base10 = 10
-	n, ok := new(big.Int).SetString(req.BigInt, base10)
-	if !ok {
-		return core.SchemaHash{}, errors.New("bigInt wrong format")
-	}
-	if n.Cmp(hash.BigInt()) != 0 {
-		return core.SchemaHash{}, errors.New("hash and bigInt does not match")
-	}
-	return hash, nil
+	return nil
 }
 
 // SayHi - Say Hi
