@@ -394,10 +394,13 @@ func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverU
 	}
 
 	conn := &domain.Connection{
-		IssuerDID: issuerDID,
-		UserDID:   *userDID,
-		IssuerDoc: bytesIssuerDoc,
-		UserDoc:   arm.Body.DIDDoc,
+		ID:         uuid.New(),
+		IssuerDID:  issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  bytesIssuerDoc,
+		UserDoc:    arm.Body.DIDDoc,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
 	}
 
 	return i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)

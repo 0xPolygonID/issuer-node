@@ -3,10 +3,12 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/iden3/iden3comm/protocol"
+
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"time"
 )
 
 const (

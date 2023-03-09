@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+
 	"github.com/iden3/iden3comm/protocol"
 )
 
