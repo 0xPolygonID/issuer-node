@@ -146,8 +146,7 @@ func (c *Claim) GetVerifiableCredential() (verifiable.W3CCredential, error) {
 
 // GetCircuitIncProof TBD
 func (c *Claim) GetCircuitIncProof() (circuits.MTProof, error) {
-	// nolint: staticcheck
-	var proof verifiable.Iden3SparseMerkleProof
+	var proof verifiable.Iden3SparseMerkleTreeProof
 	err := c.MTPProof.AssignTo(&proof)
 	if err != nil {
 		return circuits.MTProof{}, err
