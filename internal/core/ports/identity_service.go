@@ -5,6 +5,7 @@ import (
 
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -24,4 +25,6 @@ type IdentityService interface {
 	GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
+	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID *core.DID) (*protocol.AuthorizationRequestMessage, error)
+	Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID *core.DID) error
 }

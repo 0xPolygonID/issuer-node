@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	core "github.com/iden3/go-iden3-core"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -68,6 +69,7 @@ type Ethereum struct {
 	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
+	ResolverPrefix         string        `tip:"blockchain:network e.g polygon:mumbai"`
 }
 
 // Prover struct
@@ -120,7 +122,8 @@ type Admin struct {
 	HTTPAdminAuth HTTPAdminAuth `mapstructure:"HTTPAdminAuth" tip:"Server admin backend basic auth credentials"`
 	IssuerName    string        `mapstructure:"IssuerName" tip:"Server admin backend issuer name"`
 	IssuerLogo    string        `mapstructure:"IssuerLogo" tip:"Server admin backend issuer logo (url)"`
-	IssuerDID     string        `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
+	Issuer        string        `mapstructure:"IssuerDID" tip:"Server admin backend issuer DID (already created in the issuer node)"`
+	IssuerDID     *core.DID     `mapstructure:"-"`
 }
 
 // HTTPAdminAuth configuration. Some of the admin endpoints are protected with basic http auth. Here you can set the
@@ -149,9 +152,16 @@ func (c *Configuration) SanitizeAdmin() error {
 		c.Admin.IssuerLogo = "http://no-logo.com"
 	}
 
-	if c.Admin.IssuerDID == "" {
+	if c.Admin.Issuer == "" {
 		return fmt.Errorf("the Issuer DID value is empty and you must to provide one")
 	}
+
+	issuerDID, err := core.ParseDID(c.Admin.Issuer)
+	if err != nil {
+		return fmt.Errorf("invalid issuer did format")
+	}
+
+	c.Admin.IssuerDID = issuerDID
 
 	return nil
 }

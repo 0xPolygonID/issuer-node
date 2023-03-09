@@ -89,7 +89,8 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.HTTPFactory)
 	claimsService := services.NewClaim(
 		claimsRepo,

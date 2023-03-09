@@ -10,11 +10,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 
+	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
@@ -22,6 +24,20 @@ import (
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
+
+// AuthenticationQrCodeResponse defines model for AuthenticationQrCodeResponse.
+type AuthenticationQrCodeResponse struct {
+	Body struct {
+		CallbackUrl string        `json:"callbackUrl"`
+		Reason      string        `json:"reason"`
+		Scope       []interface{} `json:"scope"`
+	} `json:"body"`
+	From string `json:"from"`
+	Id   string `json:"id"`
+	Thid string `json:"thid"`
+	Typ  string `json:"typ"`
+	Type string `json:"type"`
+}
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -36,15 +52,33 @@ type SayHi struct {
 	Message string `json:"message"`
 }
 
+// SessionID defines model for sessionID.
+type SessionID = string
+
+// N400 defines model for 400.
+type N400 = GenericErrorMessage
+
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
+
+// AuthCallbackTextBody defines parameters for AuthCallback.
+type AuthCallbackTextBody = string
+
+// AuthCallbackParams defines parameters for AuthCallback.
+type AuthCallbackParams struct {
+	// SessionID Session ID
+	SessionID *SessionID `form:"sessionID,omitempty" json:"sessionID,omitempty"`
+}
+
+// AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
+type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Healthcheck
+	// Say Hi endpoint
 	// (GET /say-hi)
 	SayHi(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
@@ -53,6 +87,12 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
+	// authentication callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
+	// get authentication qrcode
+	// (GET /v1/authentication/qrcode)
+	AuthQRCode(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -117,6 +157,49 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AuthCallback operation middleware
+func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthCallbackParams
+
+	// ------------- Optional query parameter "sessionID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthCallback(w, r, params)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AuthQRCode operation middleware
+func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthQRCode(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -251,9 +334,17 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/authentication/callback", wrapper.AuthCallback)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/authentication/qrcode", wrapper.AuthQRCode)
+	})
 
 	return r
 }
+
+type N400JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
 
@@ -337,12 +428,72 @@ func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 	return json.NewEncoder(w).Encode(response)
 }
 
+type AuthCallbackRequestObject struct {
+	Params AuthCallbackParams
+	Body   *AuthCallbackTextRequestBody
+}
+
+type AuthCallbackResponseObject interface {
+	VisitAuthCallbackResponse(w http.ResponseWriter) error
+}
+
+type AuthCallback200Response struct {
+}
+
+func (response AuthCallback200Response) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type AuthCallback400JSONResponse struct{ N400JSONResponse }
+
+func (response AuthCallback400JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthCallback500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthCallback500JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCodeRequestObject struct {
+}
+
+type AuthQRCodeResponseObject interface {
+	VisitAuthQRCodeResponse(w http.ResponseWriter) error
+}
+
+type AuthQRCode200JSONResponse AuthenticationQrCodeResponse
+
+func (response AuthQRCode200JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCode500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Healthcheck
+	// Say Hi endpoint
 	// (GET /say-hi)
 	SayHi(ctx context.Context, request SayHiRequestObject) (SayHiResponseObject, error)
 	// Get the documentation yaml file
@@ -351,6 +502,12 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
+	// authentication callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
+	// get authentication qrcode
+	// (GET /v1/authentication/qrcode)
+	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -479,21 +636,84 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// AuthCallback operation middleware
+func (sh *strictHandler) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
+	var request AuthCallbackRequestObject
+
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AuthCallbackTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthCallback(ctx, request.(AuthCallbackRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthCallback")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthCallbackResponseObject); ok {
+		if err := validResponse.VisitAuthCallbackResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// AuthQRCode operation middleware
+func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	var request AuthQRCodeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthQRCode(ctx, request.(AuthQRCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthQRCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthQRCodeResponseObject); ok {
+		if err := validResponse.VisitAuthQRCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
