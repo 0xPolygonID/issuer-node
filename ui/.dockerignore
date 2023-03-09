@@ -4,10 +4,6 @@
 # production
 /dist
 
-# env vars
-.env*
-!.env.example
-
 # linter
 .eslintcache
 

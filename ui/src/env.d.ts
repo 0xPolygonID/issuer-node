@@ -3,10 +3,10 @@ interface ImportMeta {
 }
 
 interface ImportMetaEnv {
-  readonly API_PASSWORD: string;
-  readonly API_URL: string;
-  readonly API_USERNAME: string;
-  readonly ISSUER_DID: string;
-  readonly ISSUER_LOGO: string;
-  readonly ISSUER_NAME: string;
+  readonly VITE_API_PASSWORD: string;
+  readonly VITE_API_URL: string;
+  readonly VITE_API_USERNAME: string;
+  readonly VITE_ISSUER_DID: string;
+  readonly VITE_ISSUER_LOGO: string;
+  readonly VITE_ISSUER_NAME: string;
 }

@@ -6,7 +6,7 @@ services:
       context: ../../ui/
       dockerfile: Dockerfile
     ports:
-      - "5173:5173"
+      - "8080:80"
     env_file:
       - ../../.env-api
       - ../../.env-ui

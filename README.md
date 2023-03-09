@@ -29,7 +29,7 @@ _NB: There is no compatibility with Windows environments at this time._
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-7. _(Optional)_ Run `make-run-ui` (or `make-run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:5173>. HTTP auth credentials are set in `.env-ui`.
+7. _(Optional)_ Run `make-run-ui` (or `make-run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`.
 
 ### Option 2 - Standalone mode
 

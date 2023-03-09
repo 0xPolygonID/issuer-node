@@ -18,8 +18,15 @@ export const FORM_LABEL = {
 
 export const ACTIVE_SEARCH_PARAM = "active";
 
-export const { API_PASSWORD, API_URL, API_USERNAME, ISSUER_DID, ISSUER_LOGO, ISSUER_NAME } =
-  import.meta.env;
+// TODO - Alex, Hero of Zod to the rescue ;)
+export const {
+  VITE_API_PASSWORD: API_PASSWORD,
+  VITE_API_URL: API_URL,
+  VITE_API_USERNAME: API_USERNAME,
+  VITE_ISSUER_DID: ISSUER_DID,
+  VITE_ISSUER_LOGO: ISSUER_LOGO,
+  VITE_ISSUER_NAME: ISSUER_NAME,
+} = import.meta.env;
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 
