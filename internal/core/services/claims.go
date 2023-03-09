@@ -518,8 +518,8 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 		if err != nil {
 			return err
 		}
-		mtpProof := verifiable.Iden3SparseMerkleProof{
-			Type: verifiable.Iden3SparseMerkleProofType,
+		mtpProof := verifiable.Iden3SparseMerkleTreeProof{
+			Type: verifiable.Iden3SparseMerkleTreeProofType,
 			IssuerData: verifiable.IssuerData{
 				ID: did.String(),
 				State: verifiable.State{

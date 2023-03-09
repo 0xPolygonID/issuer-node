@@ -96,7 +96,7 @@ func (s *schema) FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.
 		proofs = append(proofs, signatureProof)
 	}
 
-	var mtpProof *verifiable.Iden3SparseMerkleProof
+	var mtpProof *verifiable.Iden3SparseMerkleTreeProof
 
 	if claim.MTPProof.Status != pgtype.Null {
 		err = claim.MTPProof.AssignTo(&mtpProof)
