@@ -1,6 +1,6 @@
-# Self-hosted Polygon ID Issuer Node UI
+# Polygon ID Issuer Node UI
 
-The frontend application entirely dependent on the [Self-hosted Polygon ID Issuer Node](../README.md).
+The frontend application entirely dependent on the [Polygon ID Issuer Node](../README.md).
 
 ## Installation
 

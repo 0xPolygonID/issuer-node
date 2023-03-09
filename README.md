@@ -29,7 +29,7 @@ _NB: There is no compatibility with Windows environments at this time._
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-7. _(Optional)_ Run `make-run-ui` (or `make-run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`.
+7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`.
 
 ### Option 2 - Standalone mode
 
@@ -63,7 +63,7 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 6. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
-9. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
+9. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
 10. _(Optional)_ TODO - UI PRODUCTION SETUP
 
 ## Configuration
@@ -79,13 +79,13 @@ In `.env-api`:
 - `ISSUER_API_UI_AUTH_USER`
 - `ISSUER_API_UI_AUTH_PASSWORD`
 - `ISSUER_API_UI_ISSUER_DID`
-- `ISSUER_ETHEREUM_URL`
+- `ISSUER_ETHEREUM_URL` - this is Ethereum address of the issuer's DApp.
 
 In `.env-issuer`:
 
 - `ISSUER_API_AUTH_USER`
 - `ISSUER_API_AUTH_PASSWORD`
-- `ISSUER_KEY_STORE_TOKEN` obtained from step 4.
+- `ISSUER_KEY_STORE_TOKEN` - obtained from step 4.
 
 If you are running the UI, in `.env-ui`:
 
@@ -106,6 +106,10 @@ Run the following commands, then exit the CLI:
 
 1. `docker exec -it sh-id-platform-test-vault sh`
 2. `vault write iden3/import/pbkey key_type=ethereum private_key=<private_key>`
+
+Alternatively, you can run the following command:
+
+`make private_key=<private_key> add-private-key`
 
 ## Testing
 
