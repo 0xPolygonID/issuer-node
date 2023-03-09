@@ -27,11 +27,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		panic(err)
-	}
+	cfg, _ := config.Load("")
 
 	// Context with log
 	ctx1 := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
@@ -141,7 +137,7 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(cfg.OnChainCheckStatusFrecuency)
+		ticker := time.NewTicker(cfg.OnChainCheckStatusFrequency)
 		for {
 			select {
 			case <-ticker.C:
