@@ -47,9 +47,22 @@ type GenericErrorMessage struct {
 // Health defines model for Health.
 type Health map[string]bool
 
+// ImportSchemaRequest defines model for ImportSchemaRequest.
+type ImportSchemaRequest struct {
+	BigInt     string `json:"bigInt"`
+	Hash       string `json:"hash"`
+	SchemaType string `json:"schemaType"`
+	Url        string `json:"url"`
+}
+
 // SayHi defines model for SayHi.
 type SayHi struct {
 	Message string `json:"message"`
+}
+
+// UUIDResponse defines model for UUIDResponse.
+type UUIDResponse struct {
+	Id string `json:"id"`
 }
 
 // SessionID defines model for sessionID.
@@ -73,6 +86,9 @@ type AuthCallbackParams struct {
 // AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
 type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
+// ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
+type ImportSchemaJSONRequestBody = ImportSchemaRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the documentation
@@ -93,6 +109,9 @@ type ServerInterface interface {
 	// get authentication qrcode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request)
+	// Import JSON schema
+	// (POST /v1/schemas)
+	ImportSchema(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -200,6 +219,23 @@ func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Req
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AuthQRCode(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ImportSchema operation middleware
+func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportSchema(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -339,6 +375,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/authentication/qrcode", wrapper.AuthQRCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
 	})
 
 	return r
@@ -488,6 +527,41 @@ func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ImportSchemaRequestObject struct {
+	Body *ImportSchemaJSONRequestBody
+}
+
+type ImportSchemaResponseObject interface {
+	VisitImportSchemaResponse(w http.ResponseWriter) error
+}
+
+type ImportSchema201JSONResponse UUIDResponse
+
+func (response ImportSchema201JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response ImportSchema400JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -508,6 +582,9 @@ type StrictServerInterface interface {
 	// get authentication qrcode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
+	// Import JSON schema
+	// (POST /v1/schemas)
+	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -694,26 +771,60 @@ func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ImportSchema operation middleware
+func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	var request ImportSchemaRequestObject
+
+	var body ImportSchemaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ImportSchema(ctx, request.(ImportSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ImportSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ImportSchemaResponseObject); ok {
+		if err := validResponse.VisitImportSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

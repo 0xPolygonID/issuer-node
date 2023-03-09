@@ -55,7 +55,7 @@ func TestServer_CheckStatus(t *testing.T) {
 }
 
 func TestServer_AuthCallback(t *testing.T) {
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewAdminSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -122,7 +122,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	sessionRepository := repositories.NewSessionCached(cachex)
 
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository)
-	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, NewClaimsMock(), NewAdminSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID

@@ -58,11 +58,7 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 	if _, err := guardImportSchemaReq(req); err != nil {
 		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprint("bad request: %w", err.Error())}}, nil
 	}
-	isuerDID, err := core.ParseDID(s.cfg.Admin.IssuerDID)
-	if err != nil {
-		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	schema, err := s.schemaService.ImportSchema(ctx, *isuerDID, req.Url, req.SchemaType)
+	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, req.Url, req.SchemaType)
 	if err != nil {
 		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
