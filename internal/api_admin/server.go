@@ -68,7 +68,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	err := s.identityService.Authenticate(ctx, *request.Body, *request.Params.SessionID, s.cfg.ServerUrl, s.cfg.Admin.IssuerDID)
+	err := s.identityService.Authenticate(ctx, *request.Body, *request.Params.SessionID, s.cfg.ServerUrl, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthCallback500JSONResponse{}, nil
 	}
@@ -78,7 +78,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 
 // AuthQRCode returns the qr code for authenticating a user
 func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	qrCode, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.ServerUrl, s.cfg.Admin.IssuerDID)
+	qrCode, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.ServerUrl, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
