@@ -12,7 +12,7 @@ import (
 const (
 	wasmFile            = "circuit.wasm"
 	proofingKeyFile     = "circuit_final.zkey"
-	verificationKeyFile = "verification_key.json"
+	verificationKeyFile = "authV2.json"
 )
 
 // CircuitFilesSet set circuits files.

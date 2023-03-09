@@ -13,6 +13,10 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
+	auth "github.com/iden3/go-iden3-auth"
+	authLoaders "github.com/iden3/go-iden3-auth/loaders"
+	"github.com/iden3/go-iden3-auth/pubsignals"
+	"github.com/iden3/go-iden3-auth/state"
 
 	"github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -88,6 +92,16 @@ func main() {
 		return
 	}
 
+	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
+	resolvers := map[string]pubsignals.StateResolver{
+		cfg.Ethereum.ResolverPrefix: state.ETHResolver{
+			RPCUrl:          cfg.Ethereum.URL,
+			ContractAddress: common.HexToAddress(cfg.Ethereum.ContractAddress),
+		},
+	}
+
+	verifier := auth.NewVerifier(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolvers)
+
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
@@ -98,10 +112,12 @@ func main() {
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
+	connectionsRepository := repositories.NewConnections()
+	sessionRepository := repositories.NewSessionCached(cachex)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, storage, rhsp)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository)
 	schemaService := services.NewSchema(schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,

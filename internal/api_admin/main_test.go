@@ -150,3 +150,15 @@ func NewPackageManagerMock() *iden3comm.PackageManager {
 func NewPublisherMock() ports.Publisher {
 	return nil
 }
+
+func NewIdentityMock() ports.IdentityService {
+	return nil
+}
+
+func NewClaimsMock() ports.ClaimsService {
+	return nil
+}
+
+func NewSchemaMock() ports.SchemaService {
+	return nil
+}
