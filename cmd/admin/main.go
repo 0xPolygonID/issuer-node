@@ -13,8 +13,12 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
+	auth "github.com/iden3/go-iden3-auth"
+	authLoaders "github.com/iden3/go-iden3-auth/loaders"
+	"github.com/iden3/go-iden3-auth/pubsignals"
+	"github.com/iden3/go-iden3-auth/state"
 
-	api_admin "github.com/polygonid/sh-id-platform/internal/api_admin"
+	"github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -35,12 +39,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		return
-	}
-
+	cfg, _ := config.Load("")
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAdmin(); err != nil {
@@ -93,6 +92,16 @@ func main() {
 		return
 	}
 
+	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
+	resolvers := map[string]pubsignals.StateResolver{
+		cfg.Ethereum.ResolverPrefix: state.ETHResolver{
+			RPCUrl:          cfg.Ethereum.URL,
+			ContractAddress: common.HexToAddress(cfg.Ethereum.ContractAddress),
+		},
+	}
+
+	verifier := auth.NewVerifier(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolvers)
+
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
@@ -103,10 +112,12 @@ func main() {
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
+	connectionsRepository := repositories.NewConnections()
+	sessionRepository := repositories.NewSessionCached(cachex)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, storage, rhsp)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository)
 	schemaService := services.NewSchema(schemaLoader)
 	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(storage.Pgx))
 	claimsService := services.NewClaim(
@@ -163,8 +174,8 @@ func main() {
 	)
 	api_admin.HandlerFromMux(
 		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, publisher, packageManager, serverHealth),
-			middlewares(ctx, cfg.Admin.HTTPAdminAuth),
+			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
+			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
@@ -173,16 +184,16 @@ func main() {
 	api_admin.RegisterStatic(mux)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Admin.ServerPort),
+		Addr:    fmt.Sprintf(":%d", cfg.APIUI.ServerPort),
 		Handler: mux,
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, "admin server started", "port", cfg.Admin.ServerPort)
+		log.Info(ctx, "UI API server started", "port", cfg.APIUI.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http admin server", err)
+			log.Error(ctx, "starting HTTP UI API server", err)
 		}
 	}()
 
@@ -190,7 +201,7 @@ func main() {
 	log.Info(ctx, "Shutting down")
 }
 
-func middlewares(ctx context.Context, auth config.HTTPAdminAuth) []api_admin.StrictMiddlewareFunc {
+func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictMiddlewareFunc {
 	return []api_admin.StrictMiddlewareFunc{
 		api_admin.LogMiddleware(ctx),
 		api_admin.BasicAuthMiddleware(ctx, auth.User, auth.Password),

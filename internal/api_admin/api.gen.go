@@ -10,11 +10,13 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 
+	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
@@ -22,6 +24,20 @@ import (
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
+
+// AuthenticationQrCodeResponse defines model for AuthenticationQrCodeResponse.
+type AuthenticationQrCodeResponse struct {
+	Body struct {
+		CallbackUrl string        `json:"callbackUrl"`
+		Reason      string        `json:"reason"`
+		Scope       []interface{} `json:"scope"`
+	} `json:"body"`
+	From string `json:"from"`
+	Id   string `json:"id"`
+	Thid string `json:"thid"`
+	Typ  string `json:"typ"`
+	Type string `json:"type"`
+}
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -31,23 +47,13 @@ type GenericErrorMessage struct {
 // Health defines model for Health.
 type Health map[string]bool
 
-// ImportSchemaRequest defines model for ImportSchemaRequest.
-type ImportSchemaRequest struct {
-	BigInt     string `json:"bigInt"`
-	Hash       string `json:"hash"`
-	SchemaType string `json:"schemaType"`
-	Url        string `json:"url"`
-}
-
 // SayHi defines model for SayHi.
 type SayHi struct {
 	Message string `json:"message"`
 }
 
-// UUIDResponse defines model for UUIDResponse.
-type UUIDResponse struct {
-	Id string `json:"id"`
-}
+// SessionID defines model for sessionID.
+type SessionID = string
 
 // N400 defines model for 400.
 type N400 = GenericErrorMessage
@@ -55,8 +61,17 @@ type N400 = GenericErrorMessage
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
 
-// ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
-type ImportSchemaJSONRequestBody = ImportSchemaRequest
+// AuthCallbackTextBody defines parameters for AuthCallback.
+type AuthCallbackTextBody = string
+
+// AuthCallbackParams defines parameters for AuthCallback.
+type AuthCallbackParams struct {
+	// SessionID Session ID
+	SessionID *SessionID `form:"sessionID,omitempty" json:"sessionID,omitempty"`
+}
+
+// AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
+type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -72,9 +87,12 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
-	// Import JSON schema
-	// (POST /v1/schemas)
-	ImportSchema(w http.ResponseWriter, r *http.Request)
+	// authentication callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
+	// get authentication qrcode
+	// (GET /v1/authentication/qrcode)
+	AuthQRCode(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -148,14 +166,40 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// ImportSchema operation middleware
-func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
+// AuthCallback operation middleware
+func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthCallbackParams
+
+	// ------------- Optional query parameter "sessionID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ImportSchema(w, r)
+		siw.Handler.AuthCallback(w, r, params)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AuthQRCode operation middleware
+func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthQRCode(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -291,7 +335,10 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
+		r.Post(options.BaseURL+"/v1/authentication/callback", wrapper.AuthCallback)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/authentication/qrcode", wrapper.AuthQRCode)
 	})
 
 	return r
@@ -381,35 +428,60 @@ func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 	return json.NewEncoder(w).Encode(response)
 }
 
-type ImportSchemaRequestObject struct {
-	Body *ImportSchemaJSONRequestBody
+type AuthCallbackRequestObject struct {
+	Params AuthCallbackParams
+	Body   *AuthCallbackTextRequestBody
 }
 
-type ImportSchemaResponseObject interface {
-	VisitImportSchemaResponse(w http.ResponseWriter) error
+type AuthCallbackResponseObject interface {
+	VisitAuthCallbackResponse(w http.ResponseWriter) error
 }
 
-type ImportSchema201JSONResponse UUIDResponse
-
-func (response ImportSchema201JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
+type AuthCallback200Response struct {
 }
 
-type ImportSchema400JSONResponse struct{ N400JSONResponse }
+func (response AuthCallback200Response) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
 
-func (response ImportSchema400JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+type AuthCallback400JSONResponse struct{ N400JSONResponse }
+
+func (response AuthCallback400JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type ImportSchema500JSONResponse struct{ N500JSONResponse }
+type AuthCallback500JSONResponse struct{ N500JSONResponse }
 
-func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+func (response AuthCallback500JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCodeRequestObject struct {
+}
+
+type AuthQRCodeResponseObject interface {
+	VisitAuthQRCodeResponse(w http.ResponseWriter) error
+}
+
+type AuthQRCode200JSONResponse AuthenticationQrCodeResponse
+
+func (response AuthQRCode200JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCode500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -430,9 +502,12 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
-	// Import JSON schema
-	// (POST /v1/schemas)
-	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
+	// authentication callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
+	// get authentication qrcode
+	// (GET /v1/authentication/qrcode)
+	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -561,30 +636,57 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// ImportSchema operation middleware
-func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
-	var request ImportSchemaRequestObject
+// AuthCallback operation middleware
+func (sh *strictHandler) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
+	var request AuthCallbackRequestObject
 
-	var body ImportSchemaJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
 		return
 	}
+	body := AuthCallbackTextRequestBody(data)
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ImportSchema(ctx, request.(ImportSchemaRequestObject))
+		return sh.ssi.AuthCallback(ctx, request.(AuthCallbackRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ImportSchema")
+		handler = middleware(handler, "AuthCallback")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ImportSchemaResponseObject); ok {
-		if err := validResponse.VisitImportSchemaResponse(w); err != nil {
+	} else if validResponse, ok := response.(AuthCallbackResponseObject); ok {
+		if err := validResponse.VisitAuthCallbackResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// AuthQRCode operation middleware
+func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	var request AuthQRCodeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthQRCode(ctx, request.(AuthQRCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthQRCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthQRCodeResponseObject); ok {
+		if err := validResponse.VisitAuthQRCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -595,22 +697,23 @@ func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

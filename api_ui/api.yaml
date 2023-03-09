@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: Self Hosted ID Platform
+  title: Polygon ID - Issuer - UI API
   description: |
-    Documentation for the Self Hosted ID Admin Platform
+    Documentation for the Issuer - UI API
   version: 0.1.0
 
 servers:
@@ -47,6 +47,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/authentication/qrcode:
+    get:
+      summary: get authentication qrcode
+      operationId: authQRCode
+      description: Authentication qrcode
+      tags:
+        - auth
+      responses:
+        '200':
+          description: authentication qrcode
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationQrCodeResponse'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/authentication/callback:
+    post:
+      summary: authentication callback
+      operationId: authCallback
+      description: Authentication callback
+      tags:
+        - auth
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: ok
+        '400':
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
@@ -135,6 +176,40 @@ components:
           type: string
           example: 'Hi!'
 
+    AuthenticationQrCodeResponse:
+      type: object
+      required:
+        - id
+        - typ
+        - type
+        - thid
+        - body
+        - from
+      properties:
+        id:
+          type: string
+        typ:
+          type: string
+        type:
+          type: string
+        thid:
+          type: string
+        body:
+          type: object
+          required:
+            - callbackUrl
+            - reason
+            - scope
+          properties:
+            callbackUrl:
+              type: string
+            reason:
+              type: string
+            scope:
+              type: array
+        from:
+          type: string
+
     UUIDResponse:
       type: object
       required:
@@ -153,6 +228,13 @@ components:
           type: string
           example: 'Something happen'
 
+  parameters:
+    sessionID:
+      name: sessionID
+      in: query
+      description: Session ID
+      schema:
+        type: string
 
   responses:
     '400':
