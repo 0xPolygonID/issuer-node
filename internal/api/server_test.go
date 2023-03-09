@@ -45,7 +45,8 @@ func TestServer_CreateIdentity(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 
 	claimsConf := services.ClaimCfg{
@@ -173,7 +174,8 @@ func TestServer_RevokeClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 
 	claimsConf := services.ClaimCfg{
@@ -324,7 +326,8 @@ func TestServer_CreateClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -457,7 +460,8 @@ func TestServer_GetIdentities(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -530,7 +534,8 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -675,8 +680,9 @@ func TestServer_GetClaim(t *testing.T) {
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
+	connectionsRepository := repositories.NewConnections()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 
 	claimsConf := services.ClaimCfg{
@@ -848,7 +854,8 @@ func TestServer_GetClaims(t *testing.T) {
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -1293,7 +1300,8 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, storage, rhsp)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
 
 	claimsConf := services.ClaimCfg{

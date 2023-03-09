@@ -12,8 +12,9 @@
 .eslintcache
 
 # IDE
-.vscode
 *.code-workspace
+.idea
+.vscode
 
 # Mac OS
 .DS_Store

@@ -8,15 +8,22 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	auth "github.com/iden3/go-iden3-auth"
+	"github.com/iden3/go-iden3-auth/pubsignals"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql/v2"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -32,8 +39,17 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
+const (
+	transitionDelay = time.Minute * 5
+	serviceContext  = "https://www.w3.org/ns/did/v1"
+	authReason      = "authentication"
+	randSessions    = 1000000
+)
+
 // ErrWrongDIDMetada - represents an error in the identity metadata
-var ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+var (
+	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+)
 
 type identity struct {
 	identityRepository      ports.IndentityRepository
@@ -41,27 +57,33 @@ type identity struct {
 	identityStateRepository ports.IdentityStateRepository
 	claimsRepository        ports.ClaimsRepository
 	revocationRepository    ports.RevocationRepository
+	connectionsRepository   ports.ConnectionsRepository
+	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
 	kms                     kms.KMSType
+	verifier                *auth.Verifier
 
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
 		identityStateRepository: identityStateRepository,
 		claimsRepository:        claimsRepository,
 		revocationRepository:    revocationRepository,
+		connectionsRepository:   connectionsRepository,
+		sessionManager:          sessionRepository,
 		storage:                 storage,
 		mtService:               mtservice,
 		kms:                     kms,
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
+		verifier:                verifier,
 	}
 }
 
@@ -343,6 +365,70 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 		return nil
 	})
 	return err
+}
+
+func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID core.DID) error {
+	authReq, err := i.sessionManager.Get(ctx, sessionID)
+	if err != nil {
+		log.Warn(ctx, "authentication session not found")
+		return err
+	}
+
+	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
+	if err != nil {
+		log.Error(ctx, "authentication failed", err)
+		return err
+	}
+
+	issuerDoc := newDIDDocument(serverURL, issuerDID)
+	bytesIssuerDoc, err := json.Marshal(issuerDoc)
+	if err != nil {
+		log.Error(ctx, "failed to marshal issuerDoc", err)
+		return err
+	}
+
+	userDID, err := core.ParseDID(arm.From)
+	if err != nil {
+		log.Error(ctx, "failed to parse userDID", err)
+		return err
+	}
+
+	conn := &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  bytesIssuerDoc,
+		UserDoc:    arm.Body.DIDDoc,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	}
+
+	return i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+}
+
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
+	sessionID := rand.Intn(randSessions)
+
+	id, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	qrCode := &protocol.AuthorizationRequestMessage{
+		From:     issuerDID.String(),
+		ID:       id.String(),
+		ThreadID: id.String(),
+		Typ:      packers.MediaTypePlainMessage,
+		Type:     protocol.AuthorizationRequestMessageType,
+		Body: protocol.AuthorizationRequestMessageBody{
+			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%d", serverURL, sessionID),
+			Reason:      authReason,
+		},
+	}
+
+	err = i.sessionManager.Set(ctx, strconv.Itoa(sessionID), *qrCode)
+
+	return qrCode, err
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {
@@ -661,6 +747,23 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
+}
+
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier *core.DID) (bool, error) {
+	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, identifier)
+}
+
+func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
+	if err != nil {
+		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+	}
+
+	return states, nil
+}
+
 // newAuthClaim generate BabyJubKeyTypeAuthorizeKSign claimL
 func newAuthClaim(key *babyjub.PublicKey) (*core.Claim, error) {
 	revNonce, err := common.RandInt64()
@@ -681,19 +784,16 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	return kms.DecodeBJJPubKey(keyBytes)
 }
 
-func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
-	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
-}
-
-func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier *core.DID) (bool, error) {
-	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, identifier)
-}
-
-func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
-	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
-	if err != nil {
-		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument {
+	return verifiable.DIDDocument{
+		Context: []string{serviceContext},
+		ID:      issuerDID.String(),
+		Service: []interface{}{
+			verifiable.Service{
+				ID:              fmt.Sprintf("%s#%s", issuerDID, verifiable.Iden3CommServiceType),
+				Type:            verifiable.Iden3CommServiceType,
+				ServiceEndpoint: fmt.Sprintf("%s/v1/agent", serverURL),
+			},
+		},
 	}
-
-	return states, nil
 }

@@ -11,7 +11,11 @@ echo "VITE_API=$API" >> $ENV_FILENAME
 cd /app && npm run build
 
 # Copy nginx config
-cp /app/deployment/nginx.conf /etc/nginx/conf.d/default.conf
+cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
+echo $ISSUER_UI_AUTH_USERNAME
+echo $ISSUER_UI_AUTH_PASSWORD
+htpasswd -c -b /etc/nginx/.htpasswd $ISSUER_UI_AUTH_USERNAME $ISSUER_UI_AUTH_PASSWORD
+cat /etc/nginx/.htpasswd
 
 # Copy app dist
 cp -r /app/dist/. /usr/share/nginx/html

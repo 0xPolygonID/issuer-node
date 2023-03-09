@@ -3,11 +3,10 @@ FROM ubuntu:22.04 as builder
 ARG VERSION
 WORKDIR /service
 COPY ./api ./api
-COPY ./api_admin ./api_admin
+COPY ./api_ui ./api_ui
 COPY ./cmd ./cmd
 COPY ./internal ./internal
 COPY ./pkg ./pkg
-COPY ./config.toml ./
 COPY ./go.mod ./
 COPY ./go.sum ./
 

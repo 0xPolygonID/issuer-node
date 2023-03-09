@@ -7,16 +7,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5173:5173"
-    environment:
-      # TODO - decide on how and where these are configured so that the FE app has them in its Node env
-      - API_URL=${UI-BACKEND}
-      - API_USERNAME=""
-      - API_PASSWORD=""
-      - ISSUER_NAME=""
-      - ISSUER_LOGO=""
-      - ISSUER_DID=""
+    env_file:
+      - ../../.env-api
+      - ../../.env-ui
 
-  platform:
+  api-issuer:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
@@ -27,14 +22,13 @@ services:
       - redis
       - vault
     environment:
-      # This environment vars overwrite the ones in config.toml
-      #- SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-      #- SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
       - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
-      #- SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./platform"
 
-  admin:
+  api-ui:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
@@ -45,12 +39,10 @@ services:
       - redis
       - vault
     environment:
-      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
       - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
-      - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
-      - SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER=user
-      - SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD=password
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./admin"
 
   pending_publisher:
@@ -60,10 +52,10 @@ services:
       - postgres
       - vault
     environment:
-      # This environment vars overwrite the ones in config.toml
-      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
       - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s &&  ./pending_publisher"
 
   postgres:
@@ -103,9 +95,9 @@ services:
   redis:
     image: redis:6-alpine
     ports:
-      - "6380:6379"
+      - "6379:6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "6380", "ping" ]
+      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
