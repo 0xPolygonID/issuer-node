@@ -125,7 +125,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.Admin.IssuerDID = issuerDID
+	server.cfg.APIUI.IssuerDID = issuerDID
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
