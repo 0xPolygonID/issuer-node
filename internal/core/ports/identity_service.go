@@ -25,6 +25,6 @@ type IdentityService interface {
 	GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
-	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID *core.DID) (*protocol.AuthorizationRequestMessage, error)
-	Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID *core.DID) error
+	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error)
+	Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID core.DID) error
 }

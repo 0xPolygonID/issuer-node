@@ -368,7 +368,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID *core.DID) error {
+func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID core.DID) error {
 	authReq, err := i.sessionManager.Get(ctx, sessionID)
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
@@ -396,7 +396,7 @@ func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverU
 
 	conn := &domain.Connection{
 		IssuerDID: issuerDID,
-		UserDID:   userDID,
+		UserDID:   *userDID,
 		IssuerDoc: bytesIssuerDoc,
 		UserDoc:   arm.Body.DIDDoc,
 	}
@@ -404,7 +404,7 @@ func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverU
 	return i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID *core.DID) (*protocol.AuthorizationRequestMessage, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
 	sessionID := rand.Intn(randSessions)
 
 	id, err := uuid.NewUUID()
@@ -782,7 +782,7 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	return kms.DecodeBJJPubKey(keyBytes)
 }
 
-func newDIDDocument(serverURL string, issuerDID *core.DID) verifiable.DIDDocument {
+func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument {
 	return verifiable.DIDDocument{
 		Context: []string{serviceContext},
 		ID:      issuerDID.String(),

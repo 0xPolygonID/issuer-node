@@ -120,11 +120,12 @@ type HTTPBasicAuth struct {
 // APIUI - APIUI backend service configuration.
 type APIUI struct {
 	ServerPort int       `mapstructure:"ServerPort" tip:"Server UI API backend port"`
+	ServerURL  string    `mapstructure:"ServerUrl" tip:"Server UI API backend url"`
 	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server UI API backend basic auth credentials"`
 	IssuerName string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
 	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
-	Issuer string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID     *core.DID     `mapstructure:"-"`
+	Issuer     string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
+	IssuerDID  core.DID  `mapstructure:"-"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -153,6 +154,10 @@ func (c *Configuration) SanitizeAdmin() error {
 		return fmt.Errorf("a port for the UI API server must be provided")
 	}
 
+	if c.APIUI.ServerURL == "" {
+		return fmt.Errorf("the UI API server url must be provided")
+	}
+
 	if c.APIUI.Issuer == "" {
 		return fmt.Errorf("an issuer DID must be provided")
 	}
@@ -162,7 +167,7 @@ func (c *Configuration) SanitizeAdmin() error {
 		return fmt.Errorf("invalid issuer did format")
 	}
 
-	c.APIUI.IssuerDID = issuerDID
+	c.APIUI.IssuerDID = *issuerDID
 
 	return nil
 }
@@ -313,6 +318,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
+	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
 	_ = viper.BindEnv("APIUI.APIUIAuth.User", "ISSUER_API_UI_AUTH_USER")
 	_ = viper.BindEnv("APIUI.APIUIAuth.Password", "ISSUER_API_UI_AUTH_PASSWORD")
 	_ = viper.BindEnv("APIUI.IssuerName", "ISSUER_API_UI_ISSUER_NAME")
@@ -391,10 +397,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_ETHEREUM_RECEIPT_TIMEOUT value is missing")
 	}
 
-	if cfg.Ethereum.MinGasPrice == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_MIN_GAS_PRICE value is missing or is 0")
-	}
-
 	if cfg.Ethereum.MaxGasPrice == 0 {
 		log.Info(ctx, "ISSUER_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
 	}
@@ -429,6 +431,10 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 
 	if cfg.APIUI.ServerPort == 0 {
 		log.Info(ctx, "ISSUER_API_UI_SERVER_PORT value is missing")
+	}
+
+	if cfg.APIUI.ServerURL == "" {
+		log.Info(ctx, "ISSUER_API_UI_SERVER_URL value is missing")
 	}
 
 	if cfg.APIUI.APIUIAuth.User == "" {

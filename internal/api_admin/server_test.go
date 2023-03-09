@@ -125,7 +125,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = issuerDID
+	server.cfg.APIUI.IssuerDID = *issuerDID
+	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -148,7 +149,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 						Reason      string        `json:"reason"`
 						Scope       []interface{} `json:"scope"`
 					}{
-						CallbackUrl: "https://testing.env//v1/authentication/callback?sessionID=",
+						CallbackUrl: "https://testing.env/v1/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       []interface{}{},
 					},

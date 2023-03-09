@@ -11,8 +11,8 @@ import (
 // Connection struct
 type Connection struct {
 	ID         uuid.UUID
-	IssuerDID  *core.DID
-	UserDID    *core.DID
+	IssuerDID  core.DID
+	UserDID    core.DID
 	IssuerDoc  json.RawMessage
 	UserDoc    json.RawMessage
 	CreatedAt  time.Time

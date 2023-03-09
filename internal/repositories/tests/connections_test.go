@@ -22,8 +22,8 @@ func TestSave(t *testing.T) {
 	// when and then
 	t.Run("should save the connection", func(t *testing.T) {
 		assert.NoError(t, connectionsRepo.Save(context.Background(), storage.Pgx, &domain.Connection{
-			UserDID:   userDID,
-			IssuerDID: issuerDID,
+			UserDID:   *userDID,
+			IssuerDID: *issuerDID,
 		}))
 	})
 }
