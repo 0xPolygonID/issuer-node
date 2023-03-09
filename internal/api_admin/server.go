@@ -109,15 +109,15 @@ func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResp
 // RegisterStatic add method to the mux that are not documented in the API.
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)
-	mux.Get("/static/docs/api_admin/api.yaml", swagger)
+	mux.Get("/static/docs/api_ui/api.yaml", swagger)
 }
 
 func documentation(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api_admin/spec.html", w)
+	writeFile("api_ui/spec.html", w)
 }
 
 func swagger(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api_admin/api.yaml", w)
+	writeFile("api_ui/api.yaml", w)
 }
 
 func writeFile(path string, w http.ResponseWriter) {

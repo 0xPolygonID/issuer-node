@@ -18,7 +18,7 @@ import (
 	"github.com/iden3/go-iden3-auth/pubsignals"
 	"github.com/iden3/go-iden3-auth/state"
 
-	api_admin "github.com/polygonid/sh-id-platform/internal/api_admin"
+	"github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -40,12 +40,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		return
-	}
-
+	cfg, _ := config.Load("")
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAdmin(); err != nil {
@@ -180,7 +175,7 @@ func main() {
 	api_admin.HandlerFromMux(
 		api_admin.NewStrictHandlerWithOptions(
 			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
-			middlewares(ctx, cfg.Admin.HTTPAdminAuth),
+			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
@@ -189,16 +184,16 @@ func main() {
 	api_admin.RegisterStatic(mux)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Admin.ServerPort),
+		Addr:    fmt.Sprintf(":%d", cfg.APIUI.ServerPort),
 		Handler: mux,
 	}
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Info(ctx, "admin server started", "port", cfg.Admin.ServerPort)
+		log.Info(ctx, "UI API server started", "port", cfg.APIUI.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http admin server", err)
+			log.Error(ctx, "starting HTTP UI API server", err)
 		}
 	}()
 
@@ -206,7 +201,7 @@ func main() {
 	log.Info(ctx, "Shutting down")
 }
 
-func middlewares(ctx context.Context, auth config.HTTPAdminAuth) []api_admin.StrictMiddlewareFunc {
+func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictMiddlewareFunc {
 	return []api_admin.StrictMiddlewareFunc{
 		api_admin.LogMiddleware(ctx),
 		api_admin.BasicAuthMiddleware(ctx, auth.User, auth.Password),
