@@ -111,7 +111,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 
 	circuitSigner := signer.New(bbjSuite)
 
-	var issuerMTP verifiable.Iden3SparseMerkleProof // nolint: staticcheck
+	var issuerMTP verifiable.Iden3SparseMerkleTreeProof
 	err = authClaim.MTPProof.AssignTo(&issuerMTP)
 	if err != nil {
 		return nil, err
@@ -612,26 +612,26 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 	return did, currentState.BigInt(), nil
 }
 
-func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *core.DID) (verifiable.Iden3SparseMerkleProof, error) { // nolint: staticcheck
+func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *core.DID) (verifiable.Iden3SparseMerkleTreeProof, error) {
 	index, err := authClaim.HIndex()
 	if err != nil {
-		return verifiable.Iden3SparseMerkleProof{}, err // nolint: staticcheck
+		return verifiable.Iden3SparseMerkleTreeProof{}, err
 	}
 
 	proof, _, err := claimsTree.GenerateProof(ctx, index, nil)
 	if err != nil {
-		return verifiable.Iden3SparseMerkleProof{}, err // nolint: staticcheck
+		return verifiable.Iden3SparseMerkleTreeProof{}, err
 	}
 
 	authClaimHex, err := authClaim.Hex()
 	if err != nil {
-		return verifiable.Iden3SparseMerkleProof{}, fmt.Errorf("auth claim core hex error: %w", err) // nolint: staticcheck
+		return verifiable.Iden3SparseMerkleTreeProof{}, fmt.Errorf("auth claim core hex error: %w", err)
 	}
 
 	stateHex := currentState.Hex()
 	cltHex := claimsTree.Root().Hex()
-	mtpProof := verifiable.Iden3SparseMerkleProof{ // nolint: staticcheck
-		Type: verifiable.Iden3SparseMerkleProofType, // nolint: staticcheck
+	mtpProof := verifiable.Iden3SparseMerkleTreeProof{
+		Type: verifiable.Iden3SparseMerkleTreeProofType,
 		IssuerData: verifiable.IssuerData{
 			ID:            did.String(),
 			AuthCoreClaim: authClaimHex,
