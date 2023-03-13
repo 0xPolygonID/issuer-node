@@ -40,27 +40,27 @@ func TestMain(m *testing.M) {
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
 	if err != nil {
-		log.Error(ctx, "failed to acquire test database", err)
+		log.Error(ctx, "failed to acquire test database", "err", err)
 		os.Exit(1)
 	}
 	storage = s
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "failed to acquire vault client", err)
+		log.Error(ctx, "failed to acquire vault client", "err", err)
 		os.Exit(1)
 	}
 
 	bjjKeyProvider, err = kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Error(ctx, "failed to create Iden3 Key Provider", err)
+		log.Error(ctx, "failed to create Iden3 Key Provider", "err", err)
 		os.Exit(1)
 	}
 
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Error(ctx, "failed to register Key Provider", err)
+		log.Error(ctx, "failed to register Key Provider", "err", err)
 		os.Exit(1)
 	}
 	cachex = cache.NewMemoryCache()

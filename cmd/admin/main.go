@@ -37,27 +37,27 @@ import (
 func main() {
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
+		log.Error(context.Background(), "cannot load config", "err", err)
 		return
 	}
 
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.Sanitize(); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", err)
+		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
 		return
 	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
-		log.Error(ctx, "cannot connect to database", err)
+		log.Error(ctx, "cannot connect to database", "err", err)
 		return
 	}
 
 	// Redis cache
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
 		return
 	}
 	cachex := cache.NewRedisCache(rdb)
@@ -65,31 +65,31 @@ func main() {
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", err)
+		log.Error(ctx, "cannot init vault client: ", "err", err)
 		return
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
-		log.Error(ctx, "cannot initialize kms", err)
+		log.Error(ctx, "cannot initialize kms", "err", err)
 		return
 	}
 
 	ethereumClient, err := blockchain.Open(cfg)
 	if err != nil {
-		log.Error(ctx, "error dialing with ethereum client", err)
+		log.Error(ctx, "error dialing with ethereum client", "err", err)
 		return
 	}
 
 	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
 	if err != nil {
-		log.Error(ctx, "failed init ethereum client", err)
+		log.Error(ctx, "failed init ethereum client", "err", err)
 		return
 	}
 
 	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
 	if err != nil {
-		log.Error(ctx, "failed init ethereum connect", err)
+		log.Error(ctx, "failed init ethereum connect", "err", err)
 		return
 	}
 
@@ -126,13 +126,13 @@ func main() {
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
-		log.Error(ctx, "error creating transaction service", err)
+		log.Error(ctx, "error creating transaction service", "err", err)
 		return
 	}
 
 	publisherGateway, err := gateways.NewPublisherEthGateway(ethereumClient, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
 	if err != nil {
-		log.Error(ctx, "error creating publish gateway", err)
+		log.Error(ctx, "error creating publish gateway", "err", err)
 		return
 	}
 
@@ -140,7 +140,7 @@ func main() {
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
-		log.Error(ctx, "failed init package protocol", err)
+		log.Error(ctx, "failed init package protocol", "err", err)
 		return
 	}
 
@@ -181,7 +181,7 @@ func main() {
 	go func() {
 		log.Info(ctx, "admin server started", "port", cfg.ServerAdminPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http admin server", err)
+			log.Error(ctx, "Starting http admin server", "err", err)
 		}
 	}()
 

@@ -38,7 +38,7 @@ func (s *NativeProverService) Generate(ctx context.Context, inputs json.RawMessa
 
 	calc, err := witness.NewCircom2WitnessCalculator(wasm, true)
 	if err != nil {
-		log.Error(ctx, "can't create witness calculator", err)
+		log.Error(ctx, "can't create witness calculator", "err", err)
 		return nil, fmt.Errorf("can't create witness calculator: %w", err)
 	}
 
@@ -49,7 +49,7 @@ func (s *NativeProverService) Generate(ctx context.Context, inputs json.RawMessa
 
 	wtnsBytes, err := calc.CalculateWTNSBin(parsedInputs, true)
 	if err != nil {
-		log.Error(ctx, "can't generate witnesses", err)
+		log.Error(ctx, "can't generate witnesses", "err", err)
 		return nil, fmt.Errorf("can't generate witnesses: %w", err)
 	}
 
@@ -59,7 +59,7 @@ func (s *NativeProverService) Generate(ctx context.Context, inputs json.RawMessa
 	}
 	p, err := prover.Groth16Prover(provingKey, wtnsBytes)
 	if err != nil {
-		log.Error(ctx, "can't generate proof", err)
+		log.Error(ctx, "can't generate proof", "err", err)
 		return nil, fmt.Errorf("can't generate proof: %w", err)
 	}
 	// TODO: get rid of models.Proof structure

@@ -29,7 +29,7 @@ import (
 func main() {
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
+		log.Error(context.Background(), "cannot load config", "err", err)
 		panic(err)
 	}
 
@@ -39,45 +39,45 @@ func main() {
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
-		log.Error(ctx, "cannot connect to database", err)
+		log.Error(ctx, "cannot connect to database", "err", err)
 		panic(err)
 	}
 
 	defer func(storage *db.Storage) {
 		err := storage.Close()
 		if err != nil {
-			log.Error(ctx, "error closing database connection", err)
+			log.Error(ctx, "error closing database connection", "err", err)
 		}
 	}(storage)
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", err)
+		log.Error(ctx, "cannot init vault client: ", "err", err)
 		panic(err)
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {
-		log.Error(ctx, "cannot create BabyJubJub key provider", err)
+		log.Error(ctx, "cannot create BabyJubJub key provider", "err", err)
 		panic(err)
 	}
 
 	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
 	if err != nil {
-		log.Error(ctx, "cannot create Ethereum key provider", err)
+		log.Error(ctx, "cannot create Ethereum key provider", "err", err)
 		panic(err)
 	}
 
 	keyStore := kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Error(ctx, "cannot register BabyJubJub key provider", err)
+		log.Error(ctx, "cannot register BabyJubJub key provider", "err", err)
 		panic(err)
 	}
 
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
 	if err != nil {
-		log.Error(ctx, "cannot register Ethereum key provider", err)
+		log.Error(ctx, "cannot register Ethereum key provider", "err", err)
 		panic(err)
 	}
 
@@ -127,12 +127,12 @@ func main() {
 
 	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
-		log.Error(ctx, "error creating transaction service", err)
+		log.Error(ctx, "error creating transaction service", "err", err)
 		panic("error creating transaction service")
 	}
 	publisherGateway, err := gateways.NewPublisherEthGateway(cl, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
 	if err != nil {
-		log.Error(ctx, "error creating publish gateway", err)
+		log.Error(ctx, "error creating publish gateway", "err", err)
 		panic("error creating publish gateway")
 	}
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)

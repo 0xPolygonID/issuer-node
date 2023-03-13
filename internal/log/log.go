@@ -63,8 +63,8 @@ func Warn(ctx context.Context, msg string, args ...any) {
 }
 
 // Error logs an error using context logger
-func Error(ctx context.Context, msg string, err error, args ...any) {
-	fromContext(ctx).Error(msg, err, args...)
+func Error(ctx context.Context, msg string, args ...any) {
+	fromContext(ctx).Error(msg, args...)
 }
 
 func newContext(ctx context.Context, l *slog.Logger) context.Context {
