@@ -103,6 +103,10 @@ func authOk() (string, string) {
 	return "user", "password"
 }
 
+func authWrong() (string, string) {
+	return "", ""
+}
+
 func lookupPostgresURL() string {
 	con, ok := os.LookupEnv("POSTGRES_TEST_DATABASE")
 	if !ok {
@@ -160,5 +164,9 @@ func NewClaimsMock() ports.ClaimsService {
 }
 
 func NewSchemaMock() ports.SchemaService {
+	return nil
+}
+
+func NewConnectionsMock() ports.ConnectionsService {
 	return nil
 }
