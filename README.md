@@ -29,7 +29,7 @@ _NB: There is no compatibility with Windows environments at this time._
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`.
+7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
 
 ### Option 2 - Standalone mode
 
@@ -62,9 +62,9 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 5. Run `./bin/platform` command to start the issuer.
 6. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
-8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
+8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for issuer node documentation and credentials setup.
 9. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-10. _(Optional)_ TODO - UI PRODUCTION SETUP
+10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
 
 ## Configuration
 
@@ -79,6 +79,7 @@ In `.env-api`:
 - `ISSUER_API_UI_AUTH_USER`
 - `ISSUER_API_UI_AUTH_PASSWORD`
 - `ISSUER_API_UI_ISSUER_DID`
+- `ISSUER_API_UI_ISSUER_LOGO` - optional (placeholder used if left blank). A valid URL to a minimum 40x40 pixel PNG, JPEG or SVG of the issuer's logo.
 - `ISSUER_ETHEREUM_URL` - this is Ethereum address of the issuer's DApp.
 
 In `.env-issuer`:
@@ -117,6 +118,16 @@ Start the testing environment with `make up-test`
 
 - Run tests with `make tests` to run test or `make test-race` to run tests with the Go parameter `test --race`
 - Run the linter with `make lint`
+
+## Troubleshooting
+
+In case any of the spun-up domains shows a 404 or 401 error when accessing their respective URLs, the root cause can usually be determined by inspecting the Docker container logs.
+
+For example, for inspecting the issuer API node, run:
+
+`docker logs sh-id-platform-api-issuer-1`
+
+In most cases, a startup failure will be due to erroneous env variables.
 
 ## License
 
