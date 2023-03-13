@@ -402,8 +402,8 @@ func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverU
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
 	}
-
-	return i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+	_, err = i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+	return err
 }
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {

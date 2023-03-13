@@ -19,6 +19,7 @@ import (
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	uuid "github.com/google/uuid"
 )
 
 const (
@@ -44,6 +45,11 @@ type GenericErrorMessage struct {
 	Message string `json:"message"`
 }
 
+// GenericMessage defines model for GenericMessage.
+type GenericMessage struct {
+	Message string `json:"message"`
+}
+
 // Health defines model for Health.
 type Health map[string]bool
 
@@ -51,6 +57,9 @@ type Health map[string]bool
 type SayHi struct {
 	Message string `json:"message"`
 }
+
+// Id defines model for id.
+type Id = uuid.UUID
 
 // SessionID defines model for sessionID.
 type SessionID = string
@@ -93,6 +102,9 @@ type ServerInterface interface {
 	// get authentication qrcode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request)
+	// delete connection
+	// (DELETE /v1/connections/{id})
+	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -200,6 +212,34 @@ func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Req
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AuthQRCode(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteConnection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnection(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -339,6 +379,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/authentication/qrcode", wrapper.AuthQRCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/connections/{id}", wrapper.DeleteConnection)
 	})
 
 	return r
@@ -488,6 +531,41 @@ func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type DeleteConnectionRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type DeleteConnectionResponseObject interface {
+	VisitDeleteConnectionResponse(w http.ResponseWriter) error
+}
+
+type DeleteConnection200JSONResponse GenericMessage
+
+func (response DeleteConnection200JSONResponse) VisitDeleteConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteConnection400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteConnection400JSONResponse) VisitDeleteConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteConnection500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteConnection500JSONResponse) VisitDeleteConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -508,6 +586,9 @@ type StrictServerInterface interface {
 	// get authentication qrcode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
+	// delete connection
+	// (DELETE /v1/connections/{id})
+	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -694,26 +775,54 @@ func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteConnection operation middleware
+func (sh *strictHandler) DeleteConnection(w http.ResponseWriter, r *http.Request, id Id) {
+	var request DeleteConnectionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteConnection(ctx, request.(DeleteConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteConnectionResponseObject); ok {
+		if err := validResponse.VisitDeleteConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

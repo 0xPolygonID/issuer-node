@@ -132,6 +132,7 @@ func main() {
 			Host:       cfg.ServerUrl,
 		},
 	)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
@@ -173,7 +174,7 @@ func main() {
 	)
 	api_admin.HandlerFromMux(
 		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
+			api_admin.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
