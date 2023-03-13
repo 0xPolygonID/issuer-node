@@ -33,11 +33,11 @@ func main() {
 		log.Debug(ctx, "configurator finished")
 		_, err := os.Stderr.WriteString("\r\n")
 		if err != nil {
-			log.Error(ctx, "Writing log", err)
+			log.Error(ctx, "Writing log", "err", err)
 		}
 		_, err = os.Stderr.Write(logBuffer.Bytes())
 		if err != nil {
-			log.Error(ctx, "Writing log", err)
+			log.Error(ctx, "Writing log", "err", err)
 		}
 	}()
 
@@ -53,35 +53,35 @@ func main() {
 
 	if err := guardInputs(*template, *output); err != nil {
 		fmt.Println(err.Error())
-		log.Error(ctx, "preconditions", err)
+		log.Error(ctx, "preconditions", "err", err)
 		return
 	}
 	in, err := os.Open(*template)
 	if err != nil {
 		fmt.Printf("Cannot open templates file <%s>: %v", *template, err)
-		log.Error(ctx, "cannot open template file", err)
+		log.Error(ctx, "cannot open template file", "err", err)
 		return
 	}
 	defer func() {
 		if err := in.Close(); err != nil {
-			log.Error(ctx, "closing input file", err)
+			log.Error(ctx, "closing input file", "err", err)
 		}
 	}()
 
 	out := bytes.Buffer{}
 	if err := configurator(ctx, in, &out); err != nil {
-		log.Error(ctx, "tip", err)
+		log.Error(ctx, "tip", "err", err)
 		return
 	}
 	fp, err := os.Create(*output)
 	if err != nil {
 		fmt.Println("Error creating file configuration.")
-		log.Error(ctx, "cannot open output file", err)
+		log.Error(ctx, "cannot open output file", "err", err)
 		return
 	}
 	defer func() {
 		if err := fp.Close(); err != nil {
-			log.Error(ctx, "closing new file", err)
+			log.Error(ctx, "closing new file", "err", err)
 		}
 	}()
 
@@ -89,7 +89,7 @@ func main() {
 
 	if err != nil {
 		fmt.Println("Error writing file configuration.")
-		log.Error(ctx, "cannot write in output file", err)
+		log.Error(ctx, "cannot write in output file", "err", err)
 	}
 }
 
@@ -160,7 +160,7 @@ func askForConfiguration(ctx context.Context, defaults *config.Configuration) er
 			}
 		default:
 			if err := setBasicType(reflect.ValueOf(defaults).Elem().Field(i), description, fieldName, defaul, field.Type.String()); err != nil {
-				log.Error(ctx, "Unknown section", err, "section", field.Type.String())
+				log.Error(ctx, "Unknown section", "err", err, "section", field.Type.String())
 				return err
 			}
 		}

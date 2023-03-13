@@ -82,19 +82,19 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 
 	nonce, err := rand.Int64()
 	if err != nil {
-		log.Error(ctx, "create a nonce", err)
+		log.Error(ctx, "create a nonce", "err", err)
 		return nil, err
 	}
 
 	schema, err := c.schemaSrv.LoadSchema(ctx, req.Schema)
 	if err != nil {
-		log.Error(ctx, "loading schema", err, "schema", req.Schema)
+		log.Error(ctx, "loading schema", "err", err, "schema", req.Schema)
 		return nil, ErrLoadingSchema
 	}
 
 	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
 	if !ok {
-		log.Error(ctx, "invalid jsonLdContext", ErrJSONLdContext)
+		log.Error(ctx, "invalid jsonLdContext", "err", ErrJSONLdContext)
 		return nil, ErrJSONLdContext
 	}
 
@@ -105,7 +105,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 
 	vc, err := c.createVC(req, vcID, jsonLdContext, nonce)
 	if err != nil {
-		log.Error(ctx, "creating verifiable credential", err)
+		log.Error(ctx, "creating verifiable credential", "err", err)
 		return nil, err
 	}
 
@@ -120,25 +120,25 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "Can not process the schema", err)
+		log.Error(ctx, "Can not process the schema", "err", err)
 		return nil, ErrProcessSchema
 	}
 
 	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
 	if err != nil {
-		log.Error(ctx, "Can not obtain the claim from claimer", err)
+		log.Error(ctx, "Can not obtain the claim from claimer", "err", err)
 		return nil, err
 	}
 
 	authClaim, err := c.GetAuthClaim(ctx, req.DID)
 	if err != nil {
-		log.Error(ctx, "Can not retrieve the auth claim", err)
+		log.Error(ctx, "Can not retrieve the auth claim", "err", err)
 		return nil, err
 	}
 
 	proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
 	if err != nil {
-		log.Error(ctx, "Can not sign claim entry", err)
+		log.Error(ctx, "Can not sign claim entry", "err", err)
 		return nil, err
 	}
 
@@ -151,30 +151,30 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 
 	jsonSignatureProof, err := json.Marshal(proof)
 	if err != nil {
-		log.Error(ctx, "Can not encode the json signature proof", err)
+		log.Error(ctx, "Can not encode the json signature proof", "err", err)
 		return nil, err
 	}
 	err = claim.SignatureProof.Set(jsonSignatureProof)
 	if err != nil {
-		log.Error(ctx, "Can not set the json signature proof", err)
+		log.Error(ctx, "Can not set the json signature proof", "err", err)
 		return nil, err
 	}
 
 	err = claim.Data.Set(vc)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential", err)
+		log.Error(ctx, "Can not set the credential", "err", err)
 		return nil, err
 	}
 
 	err = claim.CredentialStatus.Set(vc.CredentialStatus)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential status", err)
+		log.Error(ctx, "Can not set the credential status", "err", err)
 		return nil, err
 	}
 
 	claimResp, err := c.save(ctx, claim)
 	if err != nil {
-		log.Error(ctx, "Can not save the claim", err)
+		log.Error(ctx, "Can not save the claim", "err", err)
 		return nil, err
 	}
 	return claimResp, err
@@ -239,7 +239,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
 	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
 	if err != nil {
-		log.Error(ctx, "loading issuer identity", err, "issuerDID", req.IssuerDID)
+		log.Error(ctx, "loading issuer identity", "err", err, "issuerDID", req.IssuerDID)
 		return nil, err
 	}
 
@@ -518,8 +518,8 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 		if err != nil {
 			return err
 		}
-		mtpProof := verifiable.Iden3SparseMerkleProof{
-			Type: verifiable.Iden3SparseMerkleProofType,
+		mtpProof := verifiable.Iden3SparseMerkleTreeProof{
+			Type: verifiable.Iden3SparseMerkleTreeProofType,
 			IssuerData: verifiable.IssuerData{
 				ID: did.String(),
 				State: verifiable.State{
