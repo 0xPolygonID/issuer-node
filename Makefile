@@ -9,7 +9,7 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 
-DOCKER_COMPOSE_CMD := docker-compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
+DOCKER_COMPOSE_CMD := docker compose -p sh-id-platform -f $(DOCKER_COMPOSE_FILE)
 
 .PHONY: build
 build:
@@ -47,9 +47,9 @@ api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
 
-.PHONY: api-admin
-api-admin: $(BIN)/oapi-codegen
-	$(BIN)/oapi-codegen -config ./api_admin/config-oapi-codegen.yaml ./api_admin/api.yaml > ./internal/api_admin/api.gen.go
+.PHONY: api-ui
+api-ui: $(BIN)/oapi-codegen
+	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_admin/api.gen.go
 
 .PHONY: up
 up:
@@ -58,22 +58,22 @@ up:
 .PHONY: run
 run:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d platform
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-issuer
 
 .PHONY: run-arm
 run-arm:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d platform
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-issuer
 
-.PHONY: run-ui-backend
-run-ui-backend:
+.PHONY: run-ui
+run-ui:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d admin
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
 
-.PHONY: run-arm-ui-backend
-run-arm-ui-backend:
+.PHONY: run-arm-ui
+run-arm-ui:
 	$(eval TOKEN = $(shell docker logs sh-id-platform-test-vault 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d admin
+	COMPOSE_DOCKER_CLI_BUILD=1 KEY_STORE_TOKEN=$(TOKEN) DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
 
 .PHONY: down
 down:
@@ -117,3 +117,9 @@ config: $(BIN)/configurator
 .PHONY: lint
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
+
+# usage: make private_key=xxx add-private-key
+.PHONY: add-private-key
+add-private-key:
+	docker exec sh-id-platform-test-vault \
+	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)

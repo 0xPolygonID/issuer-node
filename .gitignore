@@ -7,7 +7,9 @@ bin/
 *.so
 *.dylib
 
-config.toml
+.env-api
+.env-issuer
+.env-ui
 
 infrastructure/local/.vault/data
 infrastructure/local/.vault/plugins

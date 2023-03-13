@@ -35,11 +35,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load("")
-	if err != nil {
-		log.Error(context.Background(), "cannot load config", err)
-		return
-	}
+	cfg, _ := config.Load("")
 
 	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
@@ -106,7 +102,7 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, storage, rhsp)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
@@ -181,7 +177,7 @@ func main() {
 	go func() {
 		log.Info(ctx, "server started", "port", cfg.ServerPort)
 		if err := server.ListenAndServe(); err != nil {
-			log.Error(ctx, "Starting http server", err)
+			log.Error(ctx, "starting http server", err)
 		}
 	}()
 

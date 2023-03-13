@@ -10,21 +10,43 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 
+	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	uuid "github.com/google/uuid"
 )
 
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// AuthenticationQrCodeResponse defines model for AuthenticationQrCodeResponse.
+type AuthenticationQrCodeResponse struct {
+	Body struct {
+		CallbackUrl string        `json:"callbackUrl"`
+		Reason      string        `json:"reason"`
+		Scope       []interface{} `json:"scope"`
+	} `json:"body"`
+	From string `json:"from"`
+	Id   string `json:"id"`
+	Thid string `json:"thid"`
+	Typ  string `json:"typ"`
+	Type string `json:"type"`
+}
+
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
+	Message string `json:"message"`
+}
+
+// GenericMessage defines model for GenericMessage.
+type GenericMessage struct {
 	Message string `json:"message"`
 }
 
@@ -36,15 +58,36 @@ type SayHi struct {
 	Message string `json:"message"`
 }
 
+// Id defines model for id.
+type Id = uuid.UUID
+
+// SessionID defines model for sessionID.
+type SessionID = string
+
+// N400 defines model for 400.
+type N400 = GenericErrorMessage
+
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
+
+// AuthCallbackTextBody defines parameters for AuthCallback.
+type AuthCallbackTextBody = string
+
+// AuthCallbackParams defines parameters for AuthCallback.
+type AuthCallbackParams struct {
+	// SessionID Session ID
+	SessionID *SessionID `form:"sessionID,omitempty" json:"sessionID,omitempty"`
+}
+
+// AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
+type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Healthcheck
+	// Say Hi endpoint
 	// (GET /say-hi)
 	SayHi(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
@@ -53,6 +96,15 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
+	// authentication callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
+	// get authentication qrcode
+	// (GET /v1/authentication/qrcode)
+	AuthQRCode(w http.ResponseWriter, r *http.Request)
+	// delete connection
+	// (DELETE /v1/connections/{id})
+	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -117,6 +169,77 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AuthCallback operation middleware
+func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthCallbackParams
+
+	// ------------- Optional query parameter "sessionID" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthCallback(w, r, params)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AuthQRCode operation middleware
+func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthQRCode(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteConnection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteConnection(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -251,9 +374,20 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/authentication/callback", wrapper.AuthCallback)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/authentication/qrcode", wrapper.AuthQRCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/connections/{id}", wrapper.DeleteConnection)
+	})
 
 	return r
 }
+
+type N400JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
 
@@ -337,12 +471,107 @@ func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 	return json.NewEncoder(w).Encode(response)
 }
 
+type AuthCallbackRequestObject struct {
+	Params AuthCallbackParams
+	Body   *AuthCallbackTextRequestBody
+}
+
+type AuthCallbackResponseObject interface {
+	VisitAuthCallbackResponse(w http.ResponseWriter) error
+}
+
+type AuthCallback200Response struct {
+}
+
+func (response AuthCallback200Response) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type AuthCallback400JSONResponse struct{ N400JSONResponse }
+
+func (response AuthCallback400JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthCallback500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthCallback500JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCodeRequestObject struct {
+}
+
+type AuthQRCodeResponseObject interface {
+	VisitAuthQRCodeResponse(w http.ResponseWriter) error
+}
+
+type AuthQRCode200JSONResponse AuthenticationQrCodeResponse
+
+func (response AuthQRCode200JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCode500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteConnectionRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type DeleteConnectionResponseObject interface {
+	VisitDeleteConnectionResponse(w http.ResponseWriter) error
+}
+
+type DeleteConnection200JSONResponse GenericMessage
+
+func (response DeleteConnection200JSONResponse) VisitDeleteConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteConnection400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteConnection400JSONResponse) VisitDeleteConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteConnection500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteConnection500JSONResponse) VisitDeleteConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Healthcheck
+	// Say Hi endpoint
 	// (GET /say-hi)
 	SayHi(ctx context.Context, request SayHiRequestObject) (SayHiResponseObject, error)
 	// Get the documentation yaml file
@@ -351,6 +580,15 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
+	// authentication callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
+	// get authentication qrcode
+	// (GET /v1/authentication/qrcode)
+	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
+	// delete connection
+	// (DELETE /v1/connections/{id})
+	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -479,21 +717,112 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// AuthCallback operation middleware
+func (sh *strictHandler) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
+	var request AuthCallbackRequestObject
+
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AuthCallbackTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthCallback(ctx, request.(AuthCallbackRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthCallback")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthCallbackResponseObject); ok {
+		if err := validResponse.VisitAuthCallbackResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// AuthQRCode operation middleware
+func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	var request AuthQRCodeRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthQRCode(ctx, request.(AuthQRCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthQRCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthQRCodeResponseObject); ok {
+		if err := validResponse.VisitAuthQRCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// DeleteConnection operation middleware
+func (sh *strictHandler) DeleteConnection(w http.ResponseWriter, r *http.Request, id Id) {
+	var request DeleteConnectionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteConnection(ctx, request.(DeleteConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteConnectionResponseObject); ok {
+		if err := validResponse.VisitDeleteConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7RVQW/zNgz9Kxq3o786+z7s4lvQDk2AFiiQXYYuGBiZidXJkibRRY3C/32g7CU1lgxr",
-	"0V1aWaIe9fgemVfQvg3ekeME1StESsG7RPnjp8VC/mnvmBzLEkOwRiMb78qn5J3sJd1Qi7L6IdIeKvi+",
-	"PGGW42kqb8lRNPrnGH28p5TwQDAMQwE1JR1NEEioYO2YokOrNhSfKSqSeJC4CUjynMOqXiFEHyiyGR/f",
-	"ng7oBdtgCSrY+Ja4Me6gGgyBHBTAfZCTxNG4Q84U6c/ORKqhejyibI+BfvdEmmEoYEVoucllqWsjBNA+",
-	"zN4wXdl5bwmd3JmDFPDyxbeGqQ3cQ7VHm2goYIP9yvxHRivz3cdJnM0vtSbdRcP9Rmo+Jt9hMnrZjXyz",
-	"FpmZ7J7yN8xhVNW4vZfIubo3XnctOc4GUnsfFTekNmT3auUTU63WN2pZt8apB4u897H9LWtkeJRvHvl3",
-	"DBTwTDGNORZXP14tpNQ+kMNgoIJveauAgNxkMqX8OVC2tFQ4v2ddQwW3xLNHQjFvia9jS8xppU5rSkmh",
-	"q1Uk7qJLmVg9o2ucWv1yfye0W+TR013bYuzHvP+8kvUxU0dAxbHL6pQJ+y+NuchhtM/5h39KL48JznTv",
-	"BnvVGEWuDt643CTTDDkHd3xfKUFvfQfV48xxj9th+7ZaY+fphvQfMFZECqbL2utUYjC/o3hIVlc9tvbf",
-	"1P5Vzj9VZEF8h8iqz/HG0kW5GblLF0lMY+h/1HvKcEbwpbUqUXw2mpLCSCp2zuUR9F7lL2ibTSG/BCl7",
-	"Yp79zmsU8bpop+FTlaWVzcYnrr4tFl9BjMN4OHf92ltLOmvg90fTJhXJokwY9mpdk2MxZAEO88Q77gzF",
-	"B/CuLZo2ndDy98eg7v1u9MwEtTyIzsN2+CsAAP//vWiagdMHAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
