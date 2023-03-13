@@ -194,7 +194,7 @@ func (c *Client) waitBlock(ctx context.Context, timeout time.Duration, confirmat
 	for {
 		blockNumber, err = c.CurrentBlock(ctx)
 		if err != nil {
-			log.Error(ctx, "couldn't get the current block number", err)
+			log.Error(ctx, "couldn't get the current block number", "err", err)
 			break
 		}
 		if time.Since(start) >= timeout {
@@ -352,7 +352,7 @@ func (c *Client) CreateRawTx(ctx context.Context, txParams TransactionParams) (*
 		// since hardhad doesn't support 'eth_maxPriorityFeePerGas' rpc call.
 		// we should hardcode 0 as a mainer tips. More information: https://github.com/NomicFoundation/hardhat/issues/1664#issuecomment-1149006010
 		if err != nil && strings.Contains(err.Error(), "eth_maxPriorityFeePerGas not found") {
-			log.Error(ctx, "failed get suggest gas tip: %s. use 0 instead", err)
+			log.Error(ctx, "failed get suggest gas tip: %s. use 0 instead", "err", err)
 			gasTip = big.NewInt(0)
 		} else if err != nil {
 			return nil, fmt.Errorf("failed get suggest gas tip: %v", err)

@@ -82,13 +82,13 @@ func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, net
 		})
 
 	if err != nil {
-		log.Error(ctx, "creating identity", err, "id", identifier)
+		log.Error(ctx, "creating identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("cannot create identity: %w", err)
 	}
 
 	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 	if err != nil {
-		log.Error(ctx, "loading identity", err, "id", identifier)
+		log.Error(ctx, "loading identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("can't get identity: %w", err)
 	}
 	return identityDB, nil
@@ -111,7 +111,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 
 	circuitSigner := signer.New(bbjSuite)
 
-	var issuerMTP verifiable.Iden3SparseMerkleProof
+	var issuerMTP verifiable.Iden3SparseMerkleProof // nolint: staticcheck
 	err = authClaim.MTPProof.AssignTo(&issuerMTP)
 	if err != nil {
 		return nil, err
@@ -311,7 +311,7 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 
 			err = i.rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
 			if err != nil {
-				log.Error(ctx, "publishing hashes to RHS", err)
+				log.Error(ctx, "publishing hashes to RHS", "err", err)
 				if i.ignoreRHSErrors {
 					err = nil
 				} else {
@@ -612,26 +612,26 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 	return did, currentState.BigInt(), nil
 }
 
-func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *core.DID) (verifiable.Iden3SparseMerkleProof, error) {
+func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *core.DID) (verifiable.Iden3SparseMerkleProof, error) { // nolint: staticcheck
 	index, err := authClaim.HIndex()
 	if err != nil {
-		return verifiable.Iden3SparseMerkleProof{}, err
+		return verifiable.Iden3SparseMerkleProof{}, err // nolint: staticcheck
 	}
 
 	proof, _, err := claimsTree.GenerateProof(ctx, index, nil)
 	if err != nil {
-		return verifiable.Iden3SparseMerkleProof{}, err
+		return verifiable.Iden3SparseMerkleProof{}, err // nolint: staticcheck
 	}
 
 	authClaimHex, err := authClaim.Hex()
 	if err != nil {
-		return verifiable.Iden3SparseMerkleProof{}, fmt.Errorf("auth claim core hex error: %w", err)
+		return verifiable.Iden3SparseMerkleProof{}, fmt.Errorf("auth claim core hex error: %w", err) // nolint: staticcheck
 	}
 
 	stateHex := currentState.Hex()
 	cltHex := claimsTree.Root().Hex()
-	mtpProof := verifiable.Iden3SparseMerkleProof{
-		Type: verifiable.Iden3SparseMerkleProofType,
+	mtpProof := verifiable.Iden3SparseMerkleProof{ // nolint: staticcheck
+		Type: verifiable.Iden3SparseMerkleProofType, // nolint: staticcheck
 		IssuerData: verifiable.IssuerData{
 			ID:            did.String(),
 			AuthCoreClaim: authClaimHex,

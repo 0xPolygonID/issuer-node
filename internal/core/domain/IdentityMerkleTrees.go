@@ -38,7 +38,7 @@ var (
 // AddEntry adds claim to claims merkle tree
 func (imts *IdentityMerkleTrees) AddEntry(ctx context.Context, entry *merkletree.Entry) error {
 	if len(imts.Trees) < mtTypesCount {
-		log.Error(ctx, "not enough merkle trees", errorMsgNotCreated, "count", len(imts.Trees))
+		log.Error(ctx, "not enough merkle trees", "err", errorMsgNotCreated, "count", len(imts.Trees))
 		return errorMsgNotCreated
 	}
 
@@ -56,13 +56,13 @@ func (imts *IdentityMerkleTrees) AddEntry(ctx context.Context, entry *merkletree
 
 	index, value, err := entry.HiHv()
 	if err != nil {
-		log.Error(ctx, "cannot get HiHv values", err, "entry", marshalEntry())
+		log.Error(ctx, "cannot get HiHv values", "err", err, "entry", marshalEntry())
 		return fmt.Errorf("cannot get HiHv index, values: %w", err)
 	}
 
 	err = imts.Trees[MerkleTreeTypeClaims].Add(ctx, index.BigInt(), value.BigInt())
 	if err != nil {
-		log.Error(ctx, "adding entry to claims merkle tree", err, "entry", marshalEntry())
+		log.Error(ctx, "adding entry to claims merkle tree", "err", err, "entry", marshalEntry())
 		return fmt.Errorf("cannot add entry to claims merkle tree: %w", err)
 	}
 	return nil

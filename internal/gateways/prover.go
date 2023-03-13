@@ -63,7 +63,7 @@ func (s *ProverService) Verify(ctx context.Context, zkp *domain.FullProof, circu
 
 	proverReq, err := json.Marshal(r)
 	if err != nil {
-		log.Error(ctx, "can't json encode request: ", err)
+		log.Error(ctx, "can't json encode request: ", "err", err)
 		return false, err
 	}
 
@@ -78,7 +78,7 @@ func (s *ProverService) Verify(ctx context.Context, zkp *domain.FullProof, circu
 	}{}
 	err = json.Unmarshal(res, &verifyResp)
 	if err != nil {
-		log.Error(ctx, "failed to unmarshal proof verification result:", err)
+		log.Error(ctx, "failed to unmarshal proof verification result:", "err", err)
 		return false, err
 	}
 
@@ -101,7 +101,7 @@ func (s *ProverService) Generate(ctx context.Context, inputs json.RawMessage, ci
 
 	req, err := json.Marshal(r)
 	if err != nil {
-		log.Error(ctx, "can't json encode request:", err)
+		log.Error(ctx, "can't json encode request:", "err", err)
 		return nil, err
 	}
 
@@ -113,7 +113,7 @@ func (s *ProverService) Generate(ctx context.Context, inputs json.RawMessage, ci
 	}
 	err = json.Unmarshal(res, &zkp)
 	if err != nil {
-		log.Error(ctx, "failed to unmarshal proof generation result: ", err)
+		log.Error(ctx, "failed to unmarshal proof generation result: ", "err", err)
 		return nil, err
 	}
 
