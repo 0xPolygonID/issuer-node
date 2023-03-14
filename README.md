@@ -72,15 +72,15 @@ For a full user guide, please refer to the [getting started docs](https://0xpoly
 
 ### Turnkey Docker-only setup
 
-If you are setting up [locally](#setup-for-docker-only) with Docker, you will need to set up the following variables in their respective `.env` files:
+If you are setting up [locally](#setup-for-docker-only) with Docker, you will need to set up the following variables in their respective `.env` files.
 
 In `.env-api`:
 
 - `ISSUER_API_UI_AUTH_USER`
 - `ISSUER_API_UI_AUTH_PASSWORD`
 - `ISSUER_API_UI_ISSUER_DID`
+- `ISSUER_ETHEREUM_URL` - this is the Ethereum address of the issuer's DApp.
 - `ISSUER_API_UI_ISSUER_LOGO` - optional (placeholder used if left blank). A valid URL to a minimum 40x40 pixel PNG, JPEG or SVG of the issuer's logo.
-- `ISSUER_ETHEREUM_URL` - this is Ethereum address of the issuer's DApp.
 
 In `.env-issuer`:
 
@@ -92,12 +92,6 @@ If you are running the UI, in `.env-ui`:
 
 - `ISSUER_UI_AUTH_USERNAME`
 - `ISSUER_UI_AUTH_PASSWORD`
-
-### Advanced setup
-
-Any variable defined in the config file can be overwritten using environment variables. The binding for this environment variables is defined in the function `bindEnv()` in the file `internal/config/config.go`
-
-An _experimental_ helper command is provided via `make config` to allow an interactive generation of the config file, but this requires Go 1.19.
 
 ### Adding Ethereum private key to the Vault
 
@@ -111,6 +105,20 @@ Run the following commands, then exit the CLI:
 Alternatively, you can run the following command:
 
 `make private_key=<private_key> add-private-key`
+
+### Advanced setup
+
+Any variable defined in the config file can be overwritten using environment variables. The binding for this environment variables is defined in the function `bindEnv()` in the file `internal/config/config.go`
+
+An _experimental_ helper command is provided via `make config` to allow an interactive generation of the config file, but this requires Go 1.19.
+
+## Development
+
+[TODO]
+
+- Developing the issuer API
+- Developing the UI API
+- Developing the UI (HMR enabled with env config)
 
 ## Testing
 
