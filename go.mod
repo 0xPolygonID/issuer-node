@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/ethereum/go-ethereum v1.11.4
-	github.com/getkin/kin-openapi v0.114.0
+	github.com/getkin/kin-openapi v0.112.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/go-redis/cache/v8 v8.4.4
@@ -100,6 +100,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/go-test/deep v1.0.8 // indirect
 	github.com/go-toolsmith/astcast v1.0.0 // indirect
 	github.com/go-toolsmith/astcopy v1.0.2 // indirect
 	github.com/go-toolsmith/astequal v1.0.3 // indirect
@@ -208,7 +209,6 @@ require (
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.7 // indirect
-	github.com/perimeterx/marshmallow v1.1.4 // indirect
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
 	github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
