@@ -3,18 +3,20 @@ package api_admin
 import (
 	"context"
 	"errors"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm"
+
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"net/http"
-	"os"
-	"time"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -120,6 +122,7 @@ func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionR
 	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
 }
 
+// GetCredential returns a credential
 func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
 	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {

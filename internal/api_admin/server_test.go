@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,6 +23,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
