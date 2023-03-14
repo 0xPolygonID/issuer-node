@@ -98,7 +98,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, tc.did)
-			identityState, err := identityService.UpdateState(ctx, tc.did)
+			identityState, err := identityService.UpdateState(ctx, *tc.did)
 			if tc.shouldReturnErr {
 				assert.Error(t, err)
 			} else {
