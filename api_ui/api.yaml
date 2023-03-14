@@ -148,7 +148,7 @@ paths:
 
   /v1/schemas/{id}:
     get:
-      summary: Retrieves schema with this id
+      summary: Retrieves schema from id
       operationId: GetSchema
       security:
         - basicAuth: [ ]
