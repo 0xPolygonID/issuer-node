@@ -1,4 +1,19 @@
-node_modules
-dist
+# dependencies
+/node_modules
+
+# production
+/dist
+
+# linter
+.eslintcache
+
+# IDE
+*.code-workspace
 .idea
 .vscode
+
+# Mac OS
+.DS_Store
+
+# package managers
+npm-debug.log*
