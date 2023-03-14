@@ -8,14 +8,11 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
@@ -181,7 +178,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		return GetCredential500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 	}
 
-	return toCredential(w3c, credential), nil
+	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
 }
 
 // GetYaml this method will be overridden in the main function
@@ -234,31 +231,4 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
-}
-
-func toCredential(w3c *verifiable.W3CCredential, credential *domain.Claim) GetCredential200JSONResponse {
-	expired := false
-	if w3c.Expiration != nil {
-		if time.Now().UTC().After(w3c.Expiration.UTC()) {
-			expired = true
-		}
-	}
-
-	proofs := make([]string, len(w3c.Proof))
-	for i := range w3c.Proof {
-		proofs[i] = string(w3c.Proof[i].ProofType())
-	}
-
-	return GetCredential200JSONResponse{
-		Attributes: w3c.CredentialSubject,
-		CreatedAt:  *w3c.IssuanceDate,
-		Expired:    expired,
-		ExpiresAt:  w3c.Expiration,
-		Id:         credential.ID,
-		ProofTypes: proofs,
-		RevNonce:   uint64(credential.RevNonce),
-		Revoked:    credential.Revoked,
-		SchemaHash: credential.SchemaHash,
-		SchemaType: credential.SchemaType,
-	}
 }
