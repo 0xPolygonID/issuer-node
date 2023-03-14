@@ -124,6 +124,7 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository)
 	schemaService := services.NewSchema(schemaLoader)
+	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(*storage), schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
 		schemaService,
@@ -179,7 +180,7 @@ func main() {
 	)
 	api_admin.HandlerFromMux(
 		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, publisher, packageManager, serverHealth),
+			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

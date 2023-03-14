@@ -53,9 +53,20 @@ type GenericMessage struct {
 // Health defines model for Health.
 type Health map[string]bool
 
+// ImportSchemaRequest defines model for ImportSchemaRequest.
+type ImportSchemaRequest struct {
+	SchemaType string `json:"schemaType"`
+	Url        string `json:"url"`
+}
+
 // SayHi defines model for SayHi.
 type SayHi struct {
 	Message string `json:"message"`
+}
+
+// UUIDResponse defines model for UUIDResponse.
+type UUIDResponse struct {
+	Id string `json:"id"`
 }
 
 // Id defines model for id.
@@ -82,6 +93,9 @@ type AuthCallbackParams struct {
 // AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
 type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
+// ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
+type ImportSchemaJSONRequestBody = ImportSchemaRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the documentation
@@ -105,6 +119,9 @@ type ServerInterface interface {
 	// delete connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id)
+	// Import JSON schema
+	// (POST /v1/schemas)
+	ImportSchema(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -249,6 +266,23 @@ func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// ImportSchema operation middleware
+func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportSchema(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -382,6 +416,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/v1/connections/{id}", wrapper.DeleteConnection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
 	})
 
 	return r
@@ -566,6 +603,41 @@ func (response DeleteConnection500JSONResponse) VisitDeleteConnectionResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
+type ImportSchemaRequestObject struct {
+	Body *ImportSchemaJSONRequestBody
+}
+
+type ImportSchemaResponseObject interface {
+	VisitImportSchemaResponse(w http.ResponseWriter) error
+}
+
+type ImportSchema201JSONResponse UUIDResponse
+
+func (response ImportSchema201JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response ImportSchema400JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -589,6 +661,9 @@ type StrictServerInterface interface {
 	// delete connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
+	// Import JSON schema
+	// (POST /v1/schemas)
+	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -801,28 +876,62 @@ func (sh *strictHandler) DeleteConnection(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// ImportSchema operation middleware
+func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	var request ImportSchemaRequestObject
+
+	var body ImportSchemaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ImportSchema(ctx, request.(ImportSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ImportSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ImportSchemaResponseObject); ok {
+		if err := validResponse.VisitImportSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

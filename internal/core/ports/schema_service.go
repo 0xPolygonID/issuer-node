@@ -12,6 +12,7 @@ import (
 )
 
 // SchemaService is the interface implemented by the Schema service
+// TODO: Convert into a package
 type SchemaService interface {
 	LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, error)
 	Process(ctx context.Context, schemaURL, credentialType string, credential verifiable.W3CCredential, opts *processor.CoreClaimOptions) (*core.Claim, error)

@@ -3,8 +3,11 @@ package api_admin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/iden3comm"
@@ -22,7 +25,7 @@ type Server struct {
 	cfg                *config.Configuration
 	identityService    ports.IdentityService
 	claimService       ports.ClaimsService
-	schemaService      ports.SchemaService
+	schemaService      ports.SchemaAdminService
 	connectionsService ports.ConnectionsService
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
@@ -30,7 +33,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -48,6 +51,37 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	var resp Health200JSONResponse = s.health.Status()
 
 	return resp, nil
+}
+
+// ImportSchema is the UI endpoint to import schema metadata
+func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error) {
+	req := request.Body
+	if err := guardImportSchemaReq(req); err != nil {
+		log.Debug(ctx, "Importing schema bad request", "err", err, "req", req)
+		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("bad request: %s", err.Error())}}, nil
+	}
+	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, req.Url, req.SchemaType)
+	if err != nil {
+		log.Error(ctx, "Importing schema", "err", err, "req", req)
+		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return ImportSchema201JSONResponse{Id: schema.ID.String()}, nil
+}
+
+func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
+	if req == nil {
+		return errors.New("empty body")
+	}
+	if strings.TrimSpace(req.Url) == "" {
+		return errors.New("empty url")
+	}
+	if strings.TrimSpace(req.SchemaType) == "" {
+		return errors.New("empty type")
+	}
+	if _, err := url.ParseRequestURI(req.Url); err != nil {
+		return fmt.Errorf("parsing url: %w", err)
+	}
+	return nil
 }
 
 // SayHi - Say Hi
