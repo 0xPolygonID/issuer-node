@@ -167,8 +167,6 @@ components:
       required:
         - url
         - schemaType
-        - hash
-        - bigInt
       properties:
         url:
           type: string
