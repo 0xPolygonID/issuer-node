@@ -47,12 +47,12 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
     <Form layout="vertical">
       <Form.Item label="Select schema type" required>
         <Select
+          className="full-width"
           loading={!isAsyncTaskDataAvailable(schemas)}
           onChange={(id: string) =>
             navigate(generatePath(ROUTES.issueCredential.path, { schemaID: id }))
           }
           placeholder={SCHEMA_TYPE}
-          style={{ width: "100%" }}
           value={schemaID && isAsyncTaskDataAvailable(schemas) ? schemaID : undefined}
         >
           {isAsyncTaskDataAvailable(schemas) &&

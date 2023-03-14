@@ -9,23 +9,6 @@
 }
 
 /* OVERRIDES */
-.ant-tree-show-line .ant-tree-switcher {
-  background: transparent;
-}
-
-.ant-tree.ant-tree-directory .ant-tree-treenode:hover::before {
-  background: transparent;
-}
-
-body {
-  margin: 0;
-}
-
-h2,
-h3,
-h5 {
-  margin-top: 0;
-}
 
 .ant-avatar {
   display: inline-flex;
@@ -50,106 +33,6 @@ h5 {
 .ant-card .ant-card-meta-description {
   font-size: 16px;
 }
-
-.ant-card.selected {
-  border: 1px solid $primary-color;
-  background: $bg-light;
-}
-
-.ant-card.disabled {
-  border: 1px solid $border-color;
-  background: $bg-light;
-}
-
-.ant-card-type-inner {
-  background-color: $bg-light;
-  border: 2px dashed $border-color;
-
-  .ant-card-head {
-    background-color: $bg-light;
-    border-bottom: none;
-    padding: 16px 16px 0;
-  }
-
-  .ant-card-body {
-    padding: 16px;
-  }
-}
-
-.ant-drawer-content-wrapper {
-  width: 400px !important;
-}
-
-.ant-form {
-  .ant-form-item {
-    .ant-form-item-label {
-      font-weight: 500;
-
-      label.ant-form-item-required::before {
-        display: none;
-      }
-
-      label.ant-form-item-required::after {
-        display: inline-block;
-        margin-inline-start: 4px;
-        color: #b20808;
-        font-size: 14px;
-        font-family: SimSun, sans-serif;
-        line-height: 1;
-        content: "*";
-      }
-    }
-
-    .ant-form-item-explain,
-    .ant-form-item-extra,
-    .ant-typography.ant-typography-secondary {
-      color: $text-color-secondary;
-    }
-  }
-}
-
-.ant-input-affix-wrapper .ant-input-prefix {
-  margin-right: 16px;
-}
-
-.ant-menu.ant-menu-root {
-  &.ant-menu-light {
-    border-right: none;
-  }
-
-  .ant-menu-item {
-    align-items: center;
-    display: flex;
-
-    &.ant-menu-item-selected {
-      border-radius: 6px;
-    }
-  }
-
-  > .ant-menu-item,
-  .ant-menu-submenu-title {
-    padding-left: 16px !important;
-  }
-}
-
-.ant-space.ant-space-vertical {
-  width: 100%;
-}
-
-.ant-tag {
-  font-weight: bold;
-
-  &.ant-tag-success {
-    background-color: $tag-bg-success;
-  }
-}
-
-.ant-typography-copy svg {
-  vertical-align: text-bottom;
-  width: 16px;
-}
-
-/* CUSTOM */
 
 .ant-card.explainer {
   background-color: $primary-color;
@@ -176,13 +59,29 @@ h5 {
   }
 }
 
-.ant-layout .ant-layout-header {
-  line-height: inherit;
+.ant-card.disabled {
+  border: 1px solid $border-color;
+  background: $bg-light;
 }
 
-.ant-layout .bg-light,
-.bg-light {
+.ant-card.selected {
+  border: 1px solid $primary-color;
+  background: $bg-light;
+}
+
+.ant-card-type-inner {
   background-color: $bg-light;
+  border: 2px dashed $border-color;
+
+  .ant-card-head {
+    background-color: $bg-light;
+    border-bottom: none;
+    padding: 16px 16px 0;
+  }
+
+  .ant-card-body {
+    padding: 16px;
+  }
 }
 
 .avatar-color-cyan {
@@ -212,6 +111,97 @@ h5 {
   }
 }
 
+.ant-drawer-content-wrapper {
+  width: 400px !important;
+}
+
+.ant-form {
+  .ant-form-item {
+    .ant-form-item-label {
+      font-weight: 500;
+
+      label.ant-form-item-required::before {
+        display: none;
+      }
+
+      label.ant-form-item-required::after {
+        display: inline-block;
+        margin-inline-start: 4px;
+        color: #b20808;
+        font-size: 14px;
+        font-family: SimSun, sans-serif;
+        line-height: 1;
+        content: "*";
+      }
+    }
+  }
+}
+
+.ant-input-affix-wrapper .ant-input-prefix {
+  margin-right: 16px;
+}
+
+.ant-layout .ant-layout-header {
+  line-height: inherit;
+}
+
+.ant-layout .bg-light,
+.bg-light {
+  background-color: $bg-light;
+}
+
+.ant-menu.ant-menu-root {
+  &.ant-menu-light {
+    border-right: none;
+  }
+
+  .ant-menu-item {
+    align-items: center;
+    display: flex;
+
+    &.ant-menu-item-selected {
+      border-radius: 6px;
+    }
+  }
+
+  > .ant-menu-item,
+  .ant-menu-submenu-title {
+    padding-left: 16px !important;
+  }
+}
+
+.ant-radio-group .ant-card-body .ant-radio-wrapper .ant-radio {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.ant-space.ant-space-vertical {
+  width: 100%;
+}
+
+.ant-tag {
+  font-weight: bold;
+
+  &.ant-tag-success {
+    background-color: $tag-bg-success;
+  }
+}
+
+.ant-tree-show-line .ant-tree-switcher {
+  background: transparent;
+}
+
+.ant-tree.ant-tree-directory .ant-tree-treenode:hover::before {
+  background: transparent;
+}
+
+.ant-typography-copy svg {
+  vertical-align: text-bottom;
+  width: 16px;
+}
+
+/* CUSTOM */
+
 .check-items {
   div:first-child {
     align-items: center;
@@ -227,11 +217,6 @@ h5 {
   }
 }
 
-.issue-credential-card {
-  margin: auto;
-  max-width: 720px;
-}
-
 .dropdown-info {
   max-width: 192px;
 
@@ -240,20 +225,17 @@ h5 {
   }
 }
 
-.font-small,
-.font-small a,
-th .ant-typography,
-.ant-table-cell .ant-typography,
-.ant-table-cell a {
-  font-size: 14px;
-}
-
 .full-width {
   width: 100%;
 }
 
 .input-copy-group {
   display: flex !important;
+}
+
+.issue-credential-card {
+  margin: auto;
+  max-width: 720px;
 }
 
 .menu-sider-layout {
@@ -267,6 +249,16 @@ th .ant-typography,
 
 .pointer {
   cursor: pointer;
+}
+
+body {
+  margin: 0;
+}
+
+h2,
+h3,
+h5 {
+  margin-top: 0;
 }
 
 h5 {
@@ -296,9 +288,4 @@ svg {
       stroke: $text-color-secondary;
     }
   }
-}
-
-.ant-radio-group .ant-card-body .ant-radio-wrapper .ant-radio {
-  align-self: flex-start;
-  margin-top: 2px;
 }

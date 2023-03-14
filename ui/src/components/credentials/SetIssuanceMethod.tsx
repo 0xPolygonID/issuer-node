@@ -74,7 +74,7 @@ export function SetIssuanceMethod({
         validateTrigger="onBlur"
       >
         <Form.Item name="type" rules={[{ message: "Value required", required: true }]}>
-          <Radio.Group name="type" style={{ width: "100%" }}>
+          <Radio.Group className="full-width" name="type">
             <Space direction="vertical">
               <Card className={`${isDirectIssue ? "selected" : ""} disabled`}>
                 <Radio disabled value="directIssue">

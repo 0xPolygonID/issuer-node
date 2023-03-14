@@ -159,19 +159,20 @@ export function ScanCredentialLink() {
       <Card bodyStyle={{ padding: 0 }} style={{ margin: "auto", width: lg ? 800 : "100%" }}>
         <Row>
           <Col
+            className="full-width"
             md={13}
             style={{
               background:
                 'url("/images/noise-bg.png"), linear-gradient(50deg, rgb(130 101 208) 15%, rgba(221, 178, 248, 1) 44%)',
               borderRadius: 8,
               padding: 24,
-              width: "100%",
             }}
           >
             <QRCodeSVG
+              className="full-width"
               includeMargin
               level="H"
-              style={{ height: "100%", width: "100%" }}
+              style={{ height: "100%" }}
               value={
                 credentialQRCheck.status === CredentialQRStatus.Done
                   ? JSON.stringify(credentialQRCheck.qrcode)
