@@ -29,7 +29,7 @@ _NB: There is no compatibility with Windows environments at this time._
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
+7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
 
 ### Option 2 - Standalone mode
 
@@ -64,7 +64,7 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for issuer node documentation and credentials setup.
 9. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:80>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
+10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
 
 ## Configuration
 
