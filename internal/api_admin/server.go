@@ -50,11 +50,6 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	return resp, nil
 }
 
-// SayHi - Say Hi
-func (s *Server) SayHi(ctx context.Context, request SayHiRequestObject) (SayHiResponseObject, error) {
-	return SayHi200JSONResponse{Message: "Hi!"}, nil
-}
-
 // GetDocumentation this method will be overridden in the main function
 func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestObject) (GetDocumentationResponseObject, error) {
 	return nil, nil
@@ -147,4 +142,26 @@ func writeFile(path string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
+}
+
+// CreateCredential - creates a new credential
+func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil)
+	resp, err := s.claimService.CreateClaim(ctx, req)
+	if err != nil {
+		if errors.Is(err, services.ErrJSONLdContext) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }

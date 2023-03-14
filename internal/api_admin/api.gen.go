@@ -40,6 +40,19 @@ type AuthenticationQrCodeResponse struct {
 	Type string `json:"type"`
 }
 
+// CreateCredentialRequest defines model for CreateCredentialRequest.
+type CreateCredentialRequest struct {
+	CredentialSchema  string                 `json:"credentialSchema"`
+	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	Expiration        *int64                 `json:"expiration,omitempty"`
+	Type              string                 `json:"type"`
+}
+
+// CreateCredentialResponse defines model for CreateCredentialResponse.
+type CreateCredentialResponse struct {
+	Id string `json:"id"`
+}
+
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
 	Message string `json:"message"`
@@ -53,11 +66,6 @@ type GenericMessage struct {
 // Health defines model for Health.
 type Health map[string]bool
 
-// SayHi defines model for SayHi.
-type SayHi struct {
-	Message string `json:"message"`
-}
-
 // Id defines model for id.
 type Id = uuid.UUID
 
@@ -66,6 +74,12 @@ type SessionID = string
 
 // N400 defines model for 400.
 type N400 = GenericErrorMessage
+
+// N401 defines model for 401.
+type N401 = GenericErrorMessage
+
+// N422 defines model for 422.
+type N422 = GenericErrorMessage
 
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
@@ -82,14 +96,14 @@ type AuthCallbackParams struct {
 // AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
 type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
+// CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
+type CreateCredentialJSONRequestBody = CreateCredentialRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Say Hi endpoint
-	// (GET /say-hi)
-	SayHi(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
 	// (GET /static/docs/api_admin/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
@@ -105,6 +119,9 @@ type ServerInterface interface {
 	// delete connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id)
+	// Create a Credential
+	// (POST /v1/credentials)
+	CreateCredential(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -122,23 +139,6 @@ func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDocumentation(w, r)
-	})
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// SayHi operation middleware
-func (siw *ServerInterfaceWrapper) SayHi(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
-
-	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SayHi(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -240,6 +240,23 @@ func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteConnection(w, r, id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateCredential operation middleware
+func (siw *ServerInterfaceWrapper) CreateCredential(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCredential(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -366,9 +383,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/", wrapper.GetDocumentation)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/say-hi", wrapper.SayHi)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/static/docs/api_admin/api.yaml", wrapper.GetYaml)
 	})
 	r.Group(func(r chi.Router) {
@@ -383,11 +397,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/v1/connections/{id}", wrapper.DeleteConnection)
 	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/credentials", wrapper.CreateCredential)
+	})
 
 	return r
 }
 
 type N400JSONResponse GenericErrorMessage
+
+type N401JSONResponse GenericErrorMessage
+
+type N422JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
 
@@ -404,31 +425,6 @@ type GetDocumentation200Response struct {
 func (response GetDocumentation200Response) VisitGetDocumentationResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
-}
-
-type SayHiRequestObject struct {
-}
-
-type SayHiResponseObject interface {
-	VisitSayHiResponse(w http.ResponseWriter) error
-}
-
-type SayHi200JSONResponse SayHi
-
-func (response SayHi200JSONResponse) VisitSayHiResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type SayHi500JSONResponse struct{ N500JSONResponse }
-
-func (response SayHi500JSONResponse) VisitSayHiResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
 }
 
 type GetYamlRequestObject struct {
@@ -566,14 +562,64 @@ func (response DeleteConnection500JSONResponse) VisitDeleteConnectionResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
+type CreateCredentialRequestObject struct {
+	Body *CreateCredentialJSONRequestBody
+}
+
+type CreateCredentialResponseObject interface {
+	VisitCreateCredentialResponse(w http.ResponseWriter) error
+}
+
+type CreateCredential201JSONResponse CreateCredentialResponse
+
+func (response CreateCredential201JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateCredential400JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential401JSONResponse struct{ N401JSONResponse }
+
+func (response CreateCredential401JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential422JSONResponse struct{ N422JSONResponse }
+
+func (response CreateCredential422JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateCredential500JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Say Hi endpoint
-	// (GET /say-hi)
-	SayHi(ctx context.Context, request SayHiRequestObject) (SayHiResponseObject, error)
 	// Get the documentation yaml file
 	// (GET /static/docs/api_admin/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
@@ -589,6 +635,9 @@ type StrictServerInterface interface {
 	// delete connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
+	// Create a Credential
+	// (POST /v1/credentials)
+	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -638,30 +687,6 @@ func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetDocumentationResponseObject); ok {
 		if err := validResponse.VisitGetDocumentationResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
-	}
-}
-
-// SayHi operation middleware
-func (sh *strictHandler) SayHi(w http.ResponseWriter, r *http.Request) {
-	var request SayHiRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SayHi(ctx, request.(SayHiRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SayHi")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SayHiResponseObject); ok {
-		if err := validResponse.VisitSayHiResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -801,28 +826,63 @@ func (sh *strictHandler) DeleteConnection(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// CreateCredential operation middleware
+func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request) {
+	var request CreateCredentialRequestObject
+
+	var body CreateCredentialJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCredential(ctx, request.(CreateCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCredentialResponseObject); ok {
+		if err := validResponse.VisitCreateCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
