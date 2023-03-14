@@ -20,6 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -161,7 +162,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		return GetCredential500JSONResponse{N500JSONResponse{"There was an error trying to retrieve the credential information"}}, nil
 	}
 
-	w3c, err := s.schemaService.FromClaimModelToW3CCredential(*credential)
+	w3c, err := schema.FromClaimModelToW3CCredential(*credential)
 	if err != nil {
 		return GetCredential500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 	}
