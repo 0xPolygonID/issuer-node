@@ -55,7 +55,7 @@ func (r *schema) GetById(ctx context.Context, id uuid.UUID) (*domain.Schema, err
 	row := r.conn.Pgx.QueryRow(ctx, byID, id)
 	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt)
 	if err == pgx.ErrNoRows {
-		return nil, ErrClaimDoesNotExist
+		return nil, ErrSchemaDoesNotExist
 	}
 	if err != nil {
 		return nil, err

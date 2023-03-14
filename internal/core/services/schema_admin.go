@@ -24,6 +24,12 @@ func NewSchemaAdmin(repo ports.SchemaRepository, lf loader.Factory) *schemaAdmin
 	return &schemaAdmin{repo: repo, loaderFactory: lf}
 }
 
+// GetByID returns a domain.Schema by ID
+func (s *schemaAdmin) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
+	return s.repo.GetById(ctx, id)
+}
+
+// ImportSchema process an schema url and imports into the system
 func (s *schemaAdmin) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
 	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(url))
 	if err != nil {

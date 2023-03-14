@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -72,6 +73,16 @@ type ImportSchemaRequest struct {
 	Url        string `json:"url"`
 }
 
+// Schema defines model for Schema.
+type Schema struct {
+	BigInt    string    `json:"bigInt"`
+	CreatedAt time.Time `json:"createdAt"`
+	Hash      string    `json:"hash"`
+	Id        string    `json:"id"`
+	Type      string    `json:"type"`
+	Url       string    `json:"url"`
+}
+
 // UUIDResponse defines model for UUIDResponse.
 type UUIDResponse struct {
 	Id string `json:"id"`
@@ -88,6 +99,9 @@ type N400 = GenericErrorMessage
 
 // N401 defines model for 401.
 type N401 = GenericErrorMessage
+
+// N404 defines model for 404.
+type N404 = GenericErrorMessage
 
 // N422 defines model for 422.
 type N422 = GenericErrorMessage
@@ -139,6 +153,9 @@ type ServerInterface interface {
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(w http.ResponseWriter, r *http.Request)
+	// Retrieves schema with this id
+	// (GET /v1/schemas/{id})
+	GetSchema(w http.ResponseWriter, r *http.Request, id Id)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -300,6 +317,34 @@ func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetSchema operation middleware
+func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSchema(w, r, id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -437,6 +482,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/schemas/{id}", wrapper.GetSchema)
+	})
 
 	return r
 }
@@ -444,6 +492,8 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 type N400JSONResponse GenericErrorMessage
 
 type N401JSONResponse GenericErrorMessage
+
+type N404JSONResponse GenericErrorMessage
 
 type N422JSONResponse GenericErrorMessage
 
@@ -687,6 +737,50 @@ func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetSchemaRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetSchemaResponseObject interface {
+	VisitGetSchemaResponse(w http.ResponseWriter) error
+}
+
+type GetSchema200JSONResponse Schema
+
+func (response GetSchema200JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSchema400JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema404JSONResponse struct{ N404JSONResponse }
+
+func (response GetSchema404JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -713,6 +807,9 @@ type StrictServerInterface interface {
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
+	// Retrieves schema with this id
+	// (GET /v1/schemas/{id})
+	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -963,34 +1060,62 @@ func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetSchema operation middleware
+func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, id Id) {
+	var request GetSchemaRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchema(ctx, request.(GetSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
+		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

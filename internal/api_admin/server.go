@@ -17,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -44,6 +45,19 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		packageManager:     packageManager,
 		health:             health,
 	}
+}
+
+// GetSchema is the UI endpoint that searches and schema by Id and returns it.
+func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
+	schema, err := s.schemaService.GetByID(ctx, request.Id)
+	if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
+		log.Debug(ctx, "schema not found", "id", request.Id)
+		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
+	}
+	if err != nil {
+		log.Error(ctx, "loading schema", "err", err, "id", request.Id)
+	}
+	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
 
 // Health is a method
