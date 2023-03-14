@@ -194,7 +194,6 @@ func TestServer_ImportSchema(t *testing.T) {
 	ctx := context.Background()
 	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
 	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
-	//server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -204,7 +203,6 @@ func TestServer_ImportSchema(t *testing.T) {
 
 	type expected struct {
 		httpCode int
-		response ImportSchemaResponseObject
 		errorMsg string
 	}
 	type testConfig struct {
@@ -278,7 +276,6 @@ func TestServer_ImportSchema(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestServer_DeleteConnection(t *testing.T) {

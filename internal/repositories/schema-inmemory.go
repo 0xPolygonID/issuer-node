@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
@@ -11,6 +12,7 @@ type schemaInMemory struct {
 	schemas map[uuid.UUID]domain.Schema
 }
 
+// NewSchemaInMemory returns schemaRepository implemented in memory convenient for testing
 func NewSchemaInMemory() *schemaInMemory {
 	return &schemaInMemory{schemas: make(map[uuid.UUID]domain.Schema)}
 }

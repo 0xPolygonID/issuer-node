@@ -11,12 +11,15 @@ import (
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/mitchellh/mapstructure"
+
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
+// Attributes is a list of Attribute entities
 type Attributes []Attribute
 
+// SchemaAttrs converts jsonschema.Attributes into domain.SchemaAttrs
 func (a Attributes) SchemaAttrs() domain.SchemaAttrs {
 	out := make(domain.SchemaAttrs, len(a))
 	for i, attr := range a {
@@ -25,6 +28,7 @@ func (a Attributes) SchemaAttrs() domain.SchemaAttrs {
 	return out
 }
 
+// Attribute represents a json schema attribute
 type Attribute struct {
 	ID     string
 	Title  string
@@ -39,11 +43,13 @@ func (a Attribute) String() string {
 	return a.ID
 }
 
-type Schema struct {
+// JSONSchema provides some methods to load a schema and do some inspections over it.
+type JSONSchema struct {
 	content map[string]any
 }
 
-func Load(ctx context.Context, loader loader.Loader) (*Schema, error) {
+// Load loads the json file doing some validations..
+func Load(ctx context.Context, loader loader.Loader) (*JSONSchema, error) {
 	pr := processor.InitProcessorOptions(
 		&processor.Processor{},
 		processor.WithValidator(jsonSuite.Validator{}),
@@ -54,14 +60,15 @@ func Load(ctx context.Context, loader loader.Loader) (*Schema, error) {
 		return nil, err
 	}
 
-	schema := &Schema{content: make(map[string]any)}
+	schema := &JSONSchema{content: make(map[string]any)}
 	if err := json.Unmarshal(raw, &schema.content); err != nil {
 		return nil, err
 	}
 	return schema, nil
 }
 
-func (s *Schema) AttributeNames() (Attributes, error) {
+// AttributeNames returns a list with the attributes in properties.credentialSubject.properties
+func (s *JSONSchema) AttributeNames() (Attributes, error) {
 	var props map[string]any
 	var ok bool
 	props, ok = s.content["properties"].(map[string]any)
@@ -88,7 +95,8 @@ func (s *Schema) AttributeNames() (Attributes, error) {
 	return attrs, nil
 }
 
-func (s *Schema) JSONLdContext() (string, error) {
+// JSONLdContext returns the value of $metadata.uris.jsonLdContext
+func (s *JSONSchema) JSONLdContext() (string, error) {
 	var metadata map[string]any
 	var ok bool
 	metadata, ok = s.content["$metadata"].(map[string]any)
@@ -106,7 +114,8 @@ func (s *Schema) JSONLdContext() (string, error) {
 	return jsonLdContext, nil
 }
 
-func (s *Schema) SchemaHash(schemaType string) (core.SchemaHash, error) {
+// SchemaHash calculates the hash of a schemaType
+func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 	jsonLdContext, err := s.JSONLdContext()
 	if err != nil {
 		return core.SchemaHash{}, err
