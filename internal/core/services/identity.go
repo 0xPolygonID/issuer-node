@@ -87,7 +87,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 	}
 }
 
-func (i *identity) GetByDID(ctx context.Context, identifier *core.DID) (*domain.Identity, error) {
+func (i *identity) GetByDID(ctx context.Context, identifier core.DID) (*domain.Identity, error) {
 	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 }
 
@@ -112,7 +112,7 @@ func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, net
 		return nil, fmt.Errorf("cannot create identity: %w", err)
 	}
 
-	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *identifier)
 	if err != nil {
 		log.Error(ctx, "loading identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("can't get identity: %w", err)
@@ -169,7 +169,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 }
 
 func (i *identity) Exists(ctx context.Context, identifier *core.DID) (bool, error) {
-	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *identifier)
 	if err != nil {
 		return false, err
 	}

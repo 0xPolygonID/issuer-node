@@ -158,7 +158,7 @@ func Test_identity_GetByDID(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			identityState, err := identityService.GetByDID(ctx, tc.did)
+			identityState, err := identityService.GetByDID(ctx, *tc.did)
 			if tc.shouldReturnErr {
 				assert.Error(t, err)
 			} else {
