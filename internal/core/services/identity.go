@@ -87,6 +87,10 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 	}
 }
 
+func (i *identity) GetByDID(ctx context.Context, identifier *core.DID) (*domain.Identity, error) {
+	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+}
+
 func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, networkID, hostURL string) (*domain.Identity, error) {
 	var identifier *core.DID
 	var err error

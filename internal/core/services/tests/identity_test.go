@@ -117,3 +117,55 @@ func Test_identity_UpdateState(t *testing.T) {
 		})
 	}
 }
+
+func Test_identity_GetByDID(t *testing.T) {
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+
+	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
+	assert.NoError(t, err)
+
+	did, err := core.ParseDID(identity.Identifier)
+	assert.NoError(t, err)
+
+	did2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qD6cqGpLX2dibdFuKfrPxGiybi3wKa8RbR4onw49H")
+	assert.NoError(t, err)
+
+	type testConfig struct {
+		name            string
+		did             *core.DID
+		shouldReturnErr bool
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:            "should get the identity",
+			did:             did,
+			shouldReturnErr: false,
+		},
+		{
+			name:            "should return an error",
+			did:             did2,
+			shouldReturnErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			identityState, err := identityService.GetByDID(ctx, tc.did)
+			if tc.shouldReturnErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.did.String(), identityState.Identifier)
+			}
+		})
+	}
+}
