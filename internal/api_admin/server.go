@@ -3,17 +3,18 @@ package api_admin
 import (
 	"context"
 	"errors"
-	"net/http"
-	"os"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm"
-
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"net/http"
+	"os"
+	"time"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -119,6 +120,23 @@ func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionR
 	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
 }
 
+func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
+	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return GetCredential400JSONResponse{N400JSONResponse{"The given credential id does not exist"}}, nil
+		}
+		return GetCredential500JSONResponse{N500JSONResponse{"There was an error trying to retrieve the credential information"}}, nil
+	}
+
+	w3c, err := s.schemaService.FromClaimModelToW3CCredential(*credential)
+	if err != nil {
+		return GetCredential500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+	}
+
+	return toCredential(w3c, credential), nil
+}
+
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
@@ -147,4 +165,31 @@ func writeFile(path string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
+}
+
+func toCredential(w3c *verifiable.W3CCredential, credential *domain.Claim) GetCredential200JSONResponse {
+	expired := false
+	if w3c.Expiration != nil {
+		if time.Now().UTC().After(w3c.Expiration.UTC()) {
+			expired = true
+		}
+	}
+
+	proofs := make([]string, len(w3c.Proof))
+	for i := range w3c.Proof {
+		proofs[i] = string(w3c.Proof[i].ProofType())
+	}
+
+	return GetCredential200JSONResponse{
+		Attributes: w3c.CredentialSubject,
+		CreatedAt:  *w3c.IssuanceDate,
+		Expired:    expired,
+		ExpiresAt:  w3c.Expiration,
+		Id:         credential.ID,
+		ProofTypes: proofs,
+		RevNonce:   uint64(credential.RevNonce),
+		Revoked:    credential.Revoked,
+		SchemaHash: credential.SchemaHash,
+		SchemaType: credential.SchemaType,
+	}
 }
