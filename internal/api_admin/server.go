@@ -17,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -198,4 +199,20 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
+}
+
+// RevokeCredential - revokes a credential per a given nonce
+func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error) {
+	if err := s.claimService.Revoke(ctx, s.cfg.APIUI.IssuerDID.String(), uint64(request.Nonce), ""); err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return RevokeCredential404JSONResponse{N404JSONResponse{
+				Message: "the claim does not exist",
+			}}, nil
+		}
+
+		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RevokeCredential202JSONResponse{
+		Message: "claim revocation request sent",
+	}, nil
 }
