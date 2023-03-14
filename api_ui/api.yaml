@@ -146,6 +146,30 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/schemas:
+    post:
+      summary: Import JSON schema
+      operationId: ImportSchema
+      security:
+        - basicAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportSchemaRequest'
+      responses:
+        '201':
+          description: Schema imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 
 components:
   securitySchemes:
@@ -154,6 +178,19 @@ components:
       scheme: basic
 
   schemas:
+    ImportSchemaRequest:
+      type: object
+      required:
+        - url
+        - schemaType
+      properties:
+        url:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+        schemaType:
+          type: string
+          example: "vaccinationCertificate"
+
     Health:
       type: object
       x-omitempty: false
@@ -193,6 +230,15 @@ components:
               type: array
         from:
           type: string
+
+    UUIDResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-omitempty: false
 
     GenericErrorMessage:
       type: object

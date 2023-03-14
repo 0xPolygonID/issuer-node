@@ -49,7 +49,7 @@ func With(ctx context.Context, args ...any) context.Context {
 
 // Debug logs a debug message  using context logger
 func Debug(ctx context.Context, msg string, args ...any) {
-	fromContext(ctx).Info(msg, args...)
+	fromContext(ctx).Debug(msg, args...)
 }
 
 // Info logs an info using context logger

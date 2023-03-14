@@ -38,6 +38,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -45,7 +46,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaService, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
+	server := NewServer(&cfg, identityService, claimsService, schemaAdminService, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
 	handler := getHandler(context.Background(), server)
 
 	t.Run("should return 200", func(t *testing.T) {
@@ -61,12 +62,12 @@ func TestServer_CheckStatus(t *testing.T) {
 }
 
 func TestServer_AuthCallback(t *testing.T) {
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
 		httpCode int
-		message  *string
+		message  string
 	}
 	type testConfig struct {
 		name      string
@@ -79,7 +80,7 @@ func TestServer_AuthCallback(t *testing.T) {
 			name: "should get an error empty param sessionID",
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				message:  common.ToPointer("Cannot proceed with empty sessionID"),
+				message:  "Cannot proceed with empty sessionID",
 			},
 		},
 		{
@@ -87,7 +88,7 @@ func TestServer_AuthCallback(t *testing.T) {
 			sessionID: common.ToPointer("12345"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				message:  common.ToPointer("Cannot proceed with empty body"),
+				message:  "Cannot proceed with empty body",
 			},
 		},
 	} {
@@ -108,7 +109,7 @@ func TestServer_AuthCallback(t *testing.T) {
 			case http.StatusBadRequest:
 				var response AuthCallback400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, *tc.expected.message, response.Message)
+				assert.Equal(t, tc.expected.message, response.Message)
 			default:
 				t.Fail()
 			}
@@ -128,7 +129,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	sessionRepository := repositories.NewSessionCached(cachex)
 
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository)
-	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -189,11 +190,101 @@ func TestServer_AuthQRCode(t *testing.T) {
 	}
 }
 
+func TestServer_ImportSchema(t *testing.T) {
+	const url = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	const schemaType = "KYCCountryOfResidenceCredential"
+	ctx := context.Background()
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+	server.cfg.APIUI.IssuerDID = *issuerDID
+	server.cfg.APIUI.ServerURL = "https://testing.env"
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		httpCode int
+		errorMsg string
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		request  *ImportSchemaJSONRequestBody
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name:    "Not authorized",
+			auth:    authWrong,
+			request: nil,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:    "Empty request",
+			auth:    authOk,
+			request: nil,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "bad request: empty url",
+			},
+		},
+		{
+			name: "Wrong url",
+			auth: authOk,
+			request: &ImportSchemaRequest{
+				SchemaType: "lala",
+				Url:        "wrong/url",
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
+			},
+		},
+		{
+			name: "Valid request",
+			auth: authOk,
+			request: &ImportSchemaRequest{
+				SchemaType: schemaType,
+				Url:        url,
+			},
+			expected: expected{
+				httpCode: http.StatusCreated,
+				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/v1/schemas", tests.JSONBody(t, tc.request))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusCreated:
+				var response ImportSchema201JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				_, err := uuid.Parse(response.Id)
+				assert.NoError(t, err)
+			case http.StatusBadRequest:
+				var response ImportSchema400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
+			}
+		})
+	}
+}
+
 func TestServer_DeleteConnection(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	fixture := tests.NewFixture(storage)
@@ -305,7 +396,7 @@ func TestServer_CreateCredential(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	handler := getHandler(ctx, server)
 

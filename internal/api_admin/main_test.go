@@ -163,10 +163,14 @@ func NewClaimsMock() ports.ClaimsService {
 	return nil
 }
 
-func NewSchemaMock() ports.SchemaService {
+func NewAdminSchemaMock() ports.SchemaAdminService {
 	return nil
 }
 
 func NewConnectionsMock() ports.ConnectionsService {
+	return nil
+}
+
+func NewSchemaAdminMock() ports.SchemaAdminService {
 	return nil
 }

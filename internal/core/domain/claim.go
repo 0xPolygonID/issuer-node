@@ -42,7 +42,7 @@ type Claim struct {
 	HIndex           string          `json:"-"`
 }
 
-// FromClaimer TODO
+// FromClaimer TODO add description
 func FromClaimer(claim *core.Claim, schemaURL, schemaType string) (*Claim, error) {
 	otherIdentifier := ""
 	id, err := claim.GetID()
