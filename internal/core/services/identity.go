@@ -87,6 +87,10 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 	}
 }
 
+func (i *identity) GetByDID(ctx context.Context, identifier core.DID) (*domain.Identity, error) {
+	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+}
+
 func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, networkID, hostURL string) (*domain.Identity, error) {
 	var identifier *core.DID
 	var err error
@@ -108,7 +112,7 @@ func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, net
 		return nil, fmt.Errorf("cannot create identity: %w", err)
 	}
 
-	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *identifier)
 	if err != nil {
 		log.Error(ctx, "loading identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("can't get identity: %w", err)
@@ -164,7 +168,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
-func (i *identity) Exists(ctx context.Context, identifier *core.DID) (bool, error) {
+func (i *identity) Exists(ctx context.Context, identifier core.DID) (bool, error) {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 	if err != nil {
 		return false, err
@@ -223,9 +227,9 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 }
 
 // GetLatestStateByID get latest identity state by identifier
-func (i *identity) GetLatestStateByID(ctx context.Context, identifier *core.DID) (*domain.IdentityState, error) {
+func (i *identity) GetLatestStateByID(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
 	// check that identity exists in the db
-	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, identifier)
+	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &identifier)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +285,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 	return keyID, errors.New("private key not found")
 }
 
-func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.IdentityState, error) {
+func (i *identity) UpdateState(ctx context.Context, did core.DID) (*domain.IdentityState, error) {
 	newState := &domain.IdentityState{
 		Identifier: did.String(),
 		Status:     domain.StatusCreated,
@@ -289,17 +293,17 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 
 	err := i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
-			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, did)
+			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, &did)
 			if err != nil {
 				return err
 			}
 
-			previousState, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, tx, did)
+			previousState, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, tx, &did)
 			if err != nil {
 				return fmt.Errorf("error getting the identifier last state: %w", err)
 			}
 
-			lc, err := i.claimsRepository.GetAllByState(ctx, tx, did, nil)
+			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
 			if err != nil {
 				return fmt.Errorf("error getting the states: %w", err)
 			}
@@ -316,12 +320,12 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 				return err
 			}
 
-			err = i.update(ctx, tx, did, *newState)
+			err = i.update(ctx, tx, &did, *newState)
 			if err != nil {
 				return err
 			}
 
-			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, did)
+			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, &did)
 			if err != nil {
 				return err
 			}
@@ -751,8 +755,8 @@ func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, e
 	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
 }
 
-func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier *core.DID) (bool, error) {
-	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, identifier)
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, &identifier)
 }
 
 func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
