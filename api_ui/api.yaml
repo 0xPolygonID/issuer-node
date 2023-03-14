@@ -12,8 +12,10 @@ servers:
 tags:
   - name: Identity
     description: Collection of endpoints related to Identity
-  - name: Credentials
-    description: Collection of endpoints related to Credentials
+  - name: Credential
+    description: Collection of endpoints related to Credential
+  - name: Agent
+    description: Collection of endpoints related to Mobile
   - name: Connection
     description: Collection of endpoints related to Connections
 
@@ -120,7 +122,7 @@ paths:
       operationId: getCredential
       description: get credential details
       tags:
-        - Credentials
+        - Credential
       security:
         - basicAuth: [ ]
       parameters:
@@ -137,19 +139,59 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /say-hi:
-    get:
-      summary: Say Hi endpoint
-      operationId: SayHi
+  #credentials:
+  /v1/credentials:
+    post:
+      summary: Create a Credential
+      operationId: CreateCredential
+      description: Endpoint to create a Credential
+      tags:
+        - Credential
       security:
         - basicAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCredentialRequest'
       responses:
-        '200':
-          description: Say hi endpoint
+        '201':
+          description: Claim created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SayHi'
+                $ref: '#/components/schemas/CreateCredentialResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '422':
+          $ref: '#/components/responses/422'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/schemas:
+    post:
+      summary: Import JSON schema
+      operationId: ImportSchema
+      security:
+        - basicAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportSchemaRequest'
+      responses:
+        '201':
+          description: Schema imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
@@ -161,21 +203,24 @@ components:
       scheme: basic
 
   schemas:
+    ImportSchemaRequest:
+      type: object
+      required:
+        - url
+        - schemaType
+      properties:
+        url:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+        schemaType:
+          type: string
+          example: "vaccinationCertificate"
+
     Health:
       type: object
       x-omitempty: false
       additionalProperties:
         type: boolean
-
-    SayHi:
-      type: object
-      required:
-        - message
-      x-omitempty: false
-      properties:
-        message:
-          type: string
-          example: 'Hi!'
 
     AuthenticationQrCodeResponse:
       type: object
@@ -210,6 +255,15 @@ components:
               type: array
         from:
           type: string
+
+    UUIDResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-omitempty: false
 
     GenericErrorMessage:
       type: object
@@ -272,6 +326,43 @@ components:
         message:
           type: string
 
+    CreateCredentialRequest:
+      type: object
+      required:
+        - credentialSchema
+        - type
+        - credentialSubject
+      properties:
+        credentialSchema:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+        credentialSubject:
+          type: object
+          x-omitempty: false
+        expiration:
+          type: integer
+          format: int64
+      example:
+        credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+        type: "KYCAgeCredential"
+        credentialSubject:
+          id: "fill with did"
+          birthday: 19960424
+          documentType: 2
+        expiration: 12345
+
+    CreateCredentialResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+
   parameters:
     sessionID:
       name: sessionID
@@ -295,6 +386,24 @@ components:
   responses:
     '400':
       description: 'Bad Request'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '401':
+      description: 'Unauthorized'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '402':
+      description: 'Payment Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '422':
+      description: 'Unprocessable Content'
       content:
         application/json:
           schema:

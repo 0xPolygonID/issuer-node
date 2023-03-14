@@ -3,8 +3,11 @@ package api_admin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -25,7 +28,7 @@ type Server struct {
 	cfg                *config.Configuration
 	identityService    ports.IdentityService
 	claimService       ports.ClaimsService
-	schemaService      ports.SchemaService
+	schemaService      ports.SchemaAdminService
 	connectionsService ports.ConnectionsService
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
@@ -33,7 +36,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -53,9 +56,35 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 	return resp, nil
 }
 
-// SayHi - Say Hi
-func (s *Server) SayHi(ctx context.Context, request SayHiRequestObject) (SayHiResponseObject, error) {
-	return SayHi200JSONResponse{Message: "Hi!"}, nil
+// ImportSchema is the UI endpoint to import schema metadata
+func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error) {
+	req := request.Body
+	if err := guardImportSchemaReq(req); err != nil {
+		log.Debug(ctx, "Importing schema bad request", "err", err, "req", req)
+		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("bad request: %s", err.Error())}}, nil
+	}
+	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, req.Url, req.SchemaType)
+	if err != nil {
+		log.Error(ctx, "Importing schema", "err", err, "req", req)
+		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return ImportSchema201JSONResponse{Id: schema.ID.String()}, nil
+}
+
+func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
+	if req == nil {
+		return errors.New("empty body")
+	}
+	if strings.TrimSpace(req.Url) == "" {
+		return errors.New("empty url")
+	}
+	if strings.TrimSpace(req.SchemaType) == "" {
+		return errors.New("empty type")
+	}
+	if _, err := url.ParseRequestURI(req.Url); err != nil {
+		return fmt.Errorf("parsing url: %w", err)
+	}
+	return nil
 }
 
 // GetDocumentation this method will be overridden in the main function
@@ -168,6 +197,28 @@ func writeFile(path string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
+}
+
+// CreateCredential - creates a new credential
+func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil)
+	resp, err := s.claimService.CreateClaim(ctx, req)
+	if err != nil {
+		if errors.Is(err, services.ErrJSONLdContext) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
 func toCredential(w3c *verifiable.W3CCredential, credential *domain.Claim) GetCredential200JSONResponse {

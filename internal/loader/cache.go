@@ -56,7 +56,7 @@ func Cached(l Loader, c cache.Cache, url string) Loader {
 }
 
 // CachedFactory returns a function factory able to create Cached Loaders. That means, file loaders that
-// looks on a cache for a file before tryying to fetch it
+// looks on a cache for a file before trying to fetch it
 func CachedFactory(f Factory, c cache.Cache) Factory {
 	return func(url string) Loader {
 		return Cached(f(url), c, url)
