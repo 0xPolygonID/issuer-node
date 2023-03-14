@@ -91,6 +91,29 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/connections/{id}:
+    delete:
+      summary: delete connection
+      operationId: deleteConnection
+      description: delete connection
+      tags:
+        - connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   /say-hi:
     get:
       summary: Say Hi endpoint
@@ -222,6 +245,14 @@ components:
           type: string
           example: 'Something happen'
 
+    GenericMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+
   parameters:
     sessionID:
       name: sessionID
@@ -229,6 +260,18 @@ components:
       description: Session ID
       schema:
         type: string
+
+    id:
+      name: id
+      in: path
+      required: true
+      description: id
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
 
   responses:
     '400':

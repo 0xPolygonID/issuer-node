@@ -3,17 +3,22 @@ package api_admin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -39,7 +44,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
 
-	server := NewServer(&cfg, identityService, claimsService, schemaAdminService, NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
+	server := NewServer(&cfg, identityService, claimsService, schemaAdminService, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
 	handler := getHandler(context.Background(), server)
 
 	t.Run("should return 200", func(t *testing.T) {
@@ -55,7 +60,7 @@ func TestServer_CheckStatus(t *testing.T) {
 }
 
 func TestServer_AuthCallback(t *testing.T) {
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewAdminSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -122,7 +127,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	sessionRepository := repositories.NewSessionCached(cachex)
 
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository)
-	server := NewServer(&cfg, identityService, NewClaimsMock(), NewAdminSchemaMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -178,6 +183,92 @@ func TestServer_AuthQRCode(t *testing.T) {
 				assert.Equal(t, v.Body.Scope, response.Body.Scope)
 				assert.Equal(t, v.Body.Reason, response.Body.Reason)
 				assert.True(t, strings.Contains(response.Body.CallbackUrl, v.Body.CallbackUrl))
+			}
+		})
+	}
+}
+
+func TestServer_DeleteConnection(t *testing.T) {
+	connectionsRepository := repositories.NewConnections()
+
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	handler := getHandler(context.Background(), server)
+
+	fixture := tests.NewFixture(storage)
+
+	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	conn := fixture.CreateConnection(t, &domain.Connection{
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	type expected struct {
+		httpCode int
+		message  *string
+	}
+
+	type testConfig struct {
+		name     string
+		connID   uuid.UUID
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:   "should get an error, not existing connection",
+			connID: uuid.New(),
+			auth:   authOk,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("The given connection does not exist"),
+			},
+		},
+		{
+			name:   "should delete the connection",
+			connID: conn,
+			auth:   authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				message:  common.ToPointer("Connection successfully deleted"),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/connections/%s", tc.connID.String())
+			req, err := http.NewRequest("DELETE", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusBadRequest:
+				var response DeleteConnection400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			case http.StatusOK:
+				var response DeleteConnection200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
 			}
 		})
 	}

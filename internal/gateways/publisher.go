@@ -94,7 +94,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*do
 func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
 	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
 	if err != nil {
-		log.Error(ctx, "error fetching unprocessed issuers did", err)
+		log.Error(ctx, "error fetching unprocessed issuers did", "err", err)
 		return nil, err
 	}
 
@@ -106,13 +106,13 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	// 4. Calculate new states and publish them synchronously
 	updatedState, err := p.identityService.UpdateState(ctx, identifier)
 	if err != nil {
-		log.Error(ctx, "Error during processing claims", err, "did", identifier.String())
+		log.Error(ctx, "Error during processing claims", "err", err, "did", identifier.String())
 		return nil, err
 	}
 
 	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
-		log.Error(ctx, "Error during publishing proof:", err, "did", identifier.String())
+		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
 		return nil, err
 	}
 
@@ -239,7 +239,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newS
 
 	go func(ctx context.Context) {
 		if err := p.updateTransactionStatus(ctx, newState, *txID); err != nil {
-			log.Error(ctx, "cannot update transaction status", err)
+			log.Error(ctx, "cannot update transaction status", "err", err)
 		}
 		p.pendingTransactions.Delete(identifier.String())
 	}(ctx)
@@ -321,7 +321,7 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID,
 func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.IdentityState, txID string) error {
 	receipt, err := p.transactionService.WaitForTransactionReceipt(ctx, txID)
 	if err != nil {
-		log.Error(ctx, "error during receipt receiving: ", err, "txID", txID)
+		log.Error(ctx, "error during receipt receiving: ", "err", err, "txID", txID)
 		return err
 	}
 
@@ -342,7 +342,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 
 	err = p.updateIdentityStateTxStatus(ctx, &state, receipt)
 	if err != nil {
-		log.Error(ctx, "updating identity state", err, "txID", txID)
+		log.Error(ctx, "updating identity state", "err", err, "txID", txID)
 		return err
 	}
 
@@ -353,7 +353,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *domain.IdentityState, receipt *types.Receipt) error {
 	header, err := p.transactionService.GetHeaderByNumber(ctx, receipt.BlockNumber)
 	if err != nil {
-		log.Error(ctx, "couldn't find receipt block: ", err, "block", receipt.BlockNumber)
+		log.Error(ctx, "couldn't find receipt block: ", "err", err, "block", receipt.BlockNumber)
 		return err
 	}
 
@@ -372,7 +372,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	}
 
 	if err != nil {
-		log.Error(ctx, "state is not updated", err)
+		log.Error(ctx, "state is not updated", "err", err)
 		return err
 	}
 
@@ -383,7 +383,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	jobIDValue, err := uuid.NewUUID()
 	if err != nil {
-		log.Error(ctx, "error", err)
+		log.Error(ctx, "Check transaction status", "err", err)
 		return
 	}
 	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
@@ -391,7 +391,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	// Get all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
-		log.Error(ctx, "Error during get transacted states", err)
+		log.Error(ctx, "Error during get transacted states", "err", err)
 		return
 	}
 	// we shouldn't process states which go routines are still in progress
@@ -409,7 +409,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	for i := range toCheck {
 		err := p.checkStatus(ctx, &toCheck[i])
 		if err != nil {
-			log.Error(ctx, "transaction check status", err, "state id", *states[i].State)
+			log.Error(ctx, "transaction check status", "err", err, "state id", *states[i].State)
 			continue
 		}
 	}
@@ -421,14 +421,14 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 	// Get receipt and check status
 	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, *state.TxID)
 	if err != nil {
-		log.Error(ctx, "error during receipt receiving:", err, "state-id", *state.TxID)
+		log.Error(ctx, "error during receipt receiving:", "err", err, "state-id", *state.TxID)
 		return fmt.Errorf("error during receipt receiving::%s: %w", *state.TxID, err)
 	}
 
 	// Check if transaction has enough confirmation blocks
 	confirmed, err := p.transactionService.CheckConfirmation(ctx, receipt)
 	if err != nil {
-		log.Error(ctx, fmt.Sprintf("transaction receipt is found, but confirmation is not checked - %s", *state.TxID), err)
+		log.Error(ctx, fmt.Sprintf("transaction receipt is found, but confirmation is not checked - %s", *state.TxID), "err", err)
 		return fmt.Errorf("transaction receipt is found, but confirmation is not checked:%s - %w", *state.TxID, err)
 	}
 
@@ -438,7 +438,7 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 
 	err = p.updateIdentityStateTxStatus(ctx, state, receipt)
 	if err != nil {
-		log.Error(ctx, "error during identity state update: ", err)
+		log.Error(ctx, "error during identity state update: ", "err", err)
 		return err
 	}
 

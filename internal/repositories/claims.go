@@ -158,7 +158,7 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 		}
 	}
 
-	log.Errorf("error saving the claim: %v", err.Error())
+	log.Errorf("error saving the claim: %v", "err", err.Error())
 	return uuid.Nil, fmt.Errorf("error saving the claim: %w", err)
 }
 

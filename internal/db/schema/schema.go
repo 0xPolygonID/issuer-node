@@ -24,7 +24,7 @@ func Migrate(databaseURL string) error {
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
-			log.Error(context.Background(), "closing database", err)
+			log.Error(context.Background(), "closing database", "err", err)
 		}
 	}()
 
