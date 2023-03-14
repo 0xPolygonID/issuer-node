@@ -562,7 +562,7 @@ func (p *Proof) fillAuthClaimData(ctx context.Context, identifier *core.DID, aut
 		ctx, func(tx pgx.Tx) error {
 			var errIn error
 			var idState *domain.IdentityState
-			idState, errIn = p.identitySrv.GetLatestStateByID(ctx, identifier)
+			idState, errIn = p.identitySrv.GetLatestStateByID(ctx, *identifier)
 			if errIn != nil {
 				return errIn
 			}
