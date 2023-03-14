@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -359,6 +361,145 @@ func TestServer_DeleteConnection(t *testing.T) {
 				var response DeleteConnection200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
+func TestServer_CreateCredential(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response CreateCredentialResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		body     CreateCredentialRequest
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Happy path",
+			auth: authOk,
+			body: CreateCredentialRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateCredential201JSONResponse{},
+				httpCode: http.StatusCreated,
+			},
+		},
+		{
+			name: "Wrong credential url",
+			auth: authOk,
+			body: CreateCredentialRequest{
+				CredentialSchema: "wrong url",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "malformed url"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Unreachable well formed credential url",
+			auth: authOk,
+			body: CreateCredentialRequest{
+				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateCredential422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
+				httpCode: http.StatusUnprocessableEntity,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := "/v1/credentials"
+
+			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusCreated:
+				var response CreateCredentialResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				_, err := uuid.Parse(response.Id)
+				assert.NoError(t, err)
+			case http.StatusBadRequest:
+				var response CreateCredential400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			case http.StatusUnprocessableEntity:
+				var response CreateCredential422JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
 			}
 		})
 	}
