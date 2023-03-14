@@ -176,6 +176,20 @@ func (c *claims) Revoke(ctx context.Context, conn db.Querier, revocation *domain
 	return nil
 }
 
+func (c *claims) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error {
+	sql := `DELETE FROM claims WHERE id = $1`
+	cmd, err := conn.Exec(ctx, sql, id.String())
+	if err != nil {
+		return err
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return ErrClaimDoesNotExist
+	}
+
+	return nil
+}
+
 func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *core.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error) {
 	claim := domain.Claim{}
 	row := conn.QueryRow(

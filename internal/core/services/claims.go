@@ -224,6 +224,18 @@ func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description
 	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
 }
 
+func (c *claim) Delete(ctx context.Context, id uuid.UUID) error {
+	err := c.icRepo.Delete(ctx, c.storage.Pgx, id)
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return ErrClaimNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error) {
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
 	if err != nil {

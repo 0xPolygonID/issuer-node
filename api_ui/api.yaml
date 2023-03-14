@@ -146,6 +146,31 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/{id}:
+    delete:
+      summary: Delete a Credential
+      operationId: DeleteCredential
+      description: Endpoint to delete a Credential
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Claim deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/schemas:
     post:
       summary: Import JSON schema

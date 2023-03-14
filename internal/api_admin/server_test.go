@@ -504,3 +504,103 @@ func TestServer_CreateCredential(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_DeleteCredential(t *testing.T) {
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	handler := getHandler(context.Background(), server)
+
+	fixture := tests.NewFixture(storage)
+
+	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+
+	cred := fixture.NewClaim(t, issuerDID.String())
+	fCred := fixture.CreateClaim(t, cred)
+
+	type expected struct {
+		httpCode int
+		message  *string
+	}
+
+	type testConfig struct {
+		name         string
+		credentialID uuid.UUID
+		auth         func() (string, string)
+		expected     expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:         "should get an error, not existing claim",
+			credentialID: uuid.New(),
+			auth:         authOk,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("The given credential does not exist"),
+			},
+		},
+		{
+			name:         "should delete the credential",
+			credentialID: fCred,
+			auth:         authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				message:  common.ToPointer("Credential successfully deleted"),
+			},
+		},
+		{
+			name:         "should get an error, a credential can not be deleted twice",
+			credentialID: fCred,
+			auth:         authOk,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("The given credential does not exist"),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/%s", tc.credentialID.String())
+			req, err := http.NewRequest("DELETE", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusBadRequest:
+				var response DeleteCredential400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			case http.StatusOK:
+				var response DeleteCredential200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
