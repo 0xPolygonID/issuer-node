@@ -4,14 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import {
-  ClaimQRCheck,
-  ClaimQRStatus,
-  ShareClaimQRCode,
-  claimsQRCheck,
-  claimsQRCreate,
-} from "src/adapters/api/claims";
+  CredentialQRCheck,
+  CredentialQRStatus,
+  ShareCredentialQRCode,
+  credentialsQRCheck,
+  credentialsQRCreate,
+} from "src/adapters/api/credentials";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
-import { ReactComponent as IconQR } from "src/assets/icons/qr-code.svg";
+import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -25,73 +25,81 @@ import {
 } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
-export function ScanClaim() {
-  const [shareClaimQRCode, setShareClaimQRCode] = useState<AsyncTask<ShareClaimQRCode, APIError>>({
+export function ScanCredentialLink() {
+  const [shareCredentialQRCode, setShareCredentialQRCode] = useState<
+    AsyncTask<ShareCredentialQRCode, APIError>
+  >({
     status: "pending",
   });
-  const [claimQRCheck, setClaimQRCheck] = useState<ClaimQRCheck>({ status: ClaimQRStatus.Pending });
+  const [credentialQRCheck, setCredentialQRCheck] = useState<CredentialQRCheck>({
+    status: CredentialQRStatus.Pending,
+  });
 
   const { lg } = Grid.useBreakpoint();
-  const { claimID } = useParams();
+  const { credentialID } = useParams();
 
-  const createClaimQR = useCallback(
+  const createCredentialQR = useCallback(
     async (signal: AbortSignal) => {
-      if (claimID) {
-        setShareClaimQRCode({ status: "loading" });
-        const response = await claimsQRCreate({ id: claimID, signal });
+      if (credentialID) {
+        setShareCredentialQRCode({ status: "loading" });
+
+        const response = await credentialsQRCreate({ id: credentialID, signal });
+
         if (response.isSuccessful) {
-          setShareClaimQRCode({ data: response.data, status: "successful" });
+          setShareCredentialQRCode({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {
-            setShareClaimQRCode({ error: response.error, status: "failed" });
+            setShareCredentialQRCode({ error: response.error, status: "failed" });
           }
         }
       }
     },
-    [claimID]
+    [credentialID]
   );
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(createClaimQR);
+    const { aborter } = makeRequestAbortable(createCredentialQR);
+
     return aborter;
-  }, [createClaimQR]);
+  }, [createCredentialQR]);
 
   useEffect(() => {
-    const checkClaimQRCode = async () => {
-      if (isAsyncTaskDataAvailable(shareClaimQRCode) && claimID) {
-        const response = await claimsQRCheck({
-          claimID,
-          sessionID: shareClaimQRCode.data.sessionID,
+    const checkCredentialQRCode = async () => {
+      if (isAsyncTaskDataAvailable(shareCredentialQRCode) && credentialID) {
+        const response = await credentialsQRCheck({
+          credentialID,
+          sessionID: shareCredentialQRCode.data.sessionID,
         });
 
         if (response.isSuccessful) {
-          setClaimQRCheck(response.data);
-          if (response.data.status === ClaimQRStatus.Done) {
-            void message.success("Claim successfully shared");
+          setCredentialQRCheck(response.data);
+          if (response.data.status === CredentialQRStatus.Done) {
+            void message.success("Credential successfully shared");
           }
         } else {
-          setClaimQRCheck({ status: ClaimQRStatus.Error });
+          setCredentialQRCheck({ status: CredentialQRStatus.Error });
         }
       }
     };
 
-    const checkQRClaimStatusTimer = setInterval(() => {
-      if (claimQRCheck.status === ClaimQRStatus.Pending) {
-        void checkClaimQRCode();
+    const checkQRCredentialStatusTimer = setInterval(() => {
+      if (credentialQRCheck.status === CredentialQRStatus.Pending) {
+        void checkCredentialQRCode();
       } else {
-        clearInterval(checkQRClaimStatusTimer);
+        clearInterval(checkQRCredentialStatusTimer);
       }
     }, QR_CODE_POLLING_INTERVAL);
-    return () => clearInterval(checkQRClaimStatusTimer);
-  }, [shareClaimQRCode, claimID, claimQRCheck]);
+
+    return () => clearInterval(checkQRCredentialStatusTimer);
+  }, [shareCredentialQRCode, credentialID, credentialQRCheck]);
 
   const onStartAgain = () => {
-    makeRequestAbortable(createClaimQR);
-    setClaimQRCheck({ status: ClaimQRStatus.Pending });
+    makeRequestAbortable(createCredentialQR);
+    setCredentialQRCheck({ status: CredentialQRStatus.Pending });
   };
 
-  if (shareClaimQRCode.status === "failed") {
-    if (shareClaimQRCode.error.status === HTTPStatusError.NotFound) {
+  if (shareCredentialQRCode.status === "failed") {
+    if (shareCredentialQRCode.error.status === HTTPStatusError.NotFound) {
       return (
         <Space
           align="center"
@@ -99,50 +107,50 @@ export function ScanClaim() {
           size="large"
           style={{ textAlign: "center", width: 400 }}
         >
-          <Avatar className="avatar-color-primary" icon={<IconQR />} size={56} />
+          <Avatar className="avatar-color-primary" icon={<QRIcon />} size={56} />
 
-          <Typography.Title level={2}>Claim link is invalid</Typography.Title>
+          <Typography.Title level={2}>Credential link is invalid</Typography.Title>
 
           <Typography.Text type="secondary">
-            In case you think this is an error, please contact the issuer of this claim.
+            In case you think this is an error, please contact the issuer of this credential.
           </Typography.Text>
         </Space>
       );
     }
     return (
       <ErrorResult
-        error={shareClaimQRCode.error.message}
+        error={shareCredentialQRCode.error.message}
         labelRetry="Start again"
         onRetry={onStartAgain}
       />
     );
   }
 
-  return isAsyncTaskStarting(shareClaimQRCode) ? (
+  return isAsyncTaskStarting(shareCredentialQRCode) ? (
     <LoadingResult />
   ) : (
     <Space align="center" direction="vertical" size="large">
       <Avatar
         shape="square"
         size={64}
-        src={shareClaimQRCode.data.issuer.logo || IMAGE_PLACEHOLDER_PATH}
+        src={shareCredentialQRCode.data.issuer.logo || IMAGE_PLACEHOLDER_PATH}
       />
 
       <Space direction="vertical" style={{ textAlign: "center" }}>
         <Typography.Title level={2}>
-          {claimQRCheck.status === ClaimQRStatus.Done
-            ? "Scan again to add the claim to your wallet"
-            : `You received a claim request from ${shareClaimQRCode.data.issuer.displayName}`}
+          {credentialQRCheck.status === CredentialQRStatus.Done
+            ? "Scan again to add the credential to your wallet"
+            : `You received a credential request from ${shareCredentialQRCode.data.issuer.displayName}`}
         </Typography.Title>
 
         <Typography.Text>
-          {claimQRCheck.status === ClaimQRStatus.Done
-            ? "If you already received a push notification and added the claim to your mobile device, please disregard this message."
-            : "Scan the QR code with your Polygon ID wallet to add the claim to your wallet."}
+          {credentialQRCheck.status === CredentialQRStatus.Done
+            ? "If you already received a push notification and added the credential to your mobile device, please disregard this message."
+            : "Scan the QR code with your Polygon ID wallet to add the credential to your wallet."}
         </Typography.Text>
       </Space>
 
-      {claimQRCheck.status === ClaimQRStatus.Done && (
+      {credentialQRCheck.status === CredentialQRStatus.Done && (
         <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
           Start again
         </Button>
@@ -165,9 +173,9 @@ export function ScanClaim() {
               level="H"
               style={{ height: "100%", width: "100%" }}
               value={
-                claimQRCheck.status === ClaimQRStatus.Done
-                  ? JSON.stringify(claimQRCheck.qrcode)
-                  : JSON.stringify(shareClaimQRCode.data.qrcode)
+                credentialQRCheck.status === CredentialQRStatus.Done
+                  ? JSON.stringify(credentialQRCheck.qrcode)
+                  : JSON.stringify(shareCredentialQRCode.data.qrcode)
               }
             />
           </Col>
@@ -180,17 +188,17 @@ export function ScanClaim() {
           >
             <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {shareClaimQRCode.data.offerDetails.schemaTemplate.schema}
+                {shareCredentialQRCode.data.offerDetails.schemaTemplate.schema}
               </Typography.Title>
 
               <Typography.Title level={5} type="secondary">
                 Attributes
               </Typography.Title>
 
-              {shareClaimQRCode.data.offerDetails.attributeValues.map((attribute) => {
+              {shareCredentialQRCode.data.offerDetails.attributeValues.map((attribute) => {
                 const formattedValue = formatAttributeValue(
                   attribute,
-                  shareClaimQRCode.data.offerDetails.schemaTemplate.attributes
+                  shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
                 );
 
                 return (

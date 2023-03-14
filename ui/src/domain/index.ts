@@ -6,7 +6,7 @@ export interface Organization {
   modifiedAt: Date;
 }
 
-export type TabsSchemasIDs = "archivedSchemas" | "mySchemas";
+export type TabsCredentialsIDs = "issued" | "links";
 
 export interface StyleVariables {
   avatarBg: string;
@@ -26,39 +26,39 @@ export interface StyleVariables {
   textColorSecondary: string;
 }
 
-// Claims
-export interface BooleanClaimFormAttribute {
+// Credentials
+export interface BooleanCredentialFormAttribute {
   name: string;
   type: "boolean";
   value: boolean;
 }
-export interface DateClaimFormAttribute {
+export interface DateCredentialFormAttribute {
   name: string;
   type: "date";
   value: Date;
 }
-export interface NumberClaimFormAttribute {
+export interface NumberCredentialFormAttribute {
   name: string;
   type: "number";
   value: number;
 }
-export interface SingleChoiceClaimFormAttribute {
+export interface SingleChoiceCredentialFormAttribute {
   name: string;
   type: "singlechoice";
   value: number;
 }
 
-export type ClaimFormAttribute =
-  | BooleanClaimFormAttribute
-  | DateClaimFormAttribute
-  | NumberClaimFormAttribute
-  | SingleChoiceClaimFormAttribute;
+export type CredentialFormAttribute =
+  | BooleanCredentialFormAttribute
+  | DateCredentialFormAttribute
+  | NumberCredentialFormAttribute
+  | SingleChoiceCredentialFormAttribute;
 
-export interface ClaimForm {
-  attributes: ClaimFormAttribute[];
-  claimLinkExpiration: Date | undefined;
-  expirationDate: Date | undefined;
-  limitedClaims: number | undefined;
+export interface CredentialForm {
+  attributes: CredentialFormAttribute[];
+  expiration: Date | undefined;
+  linkAccessibleUntil: Date | undefined;
+  linkMaximumIssuance: number | undefined;
 }
 
 // Schemas
@@ -122,7 +122,7 @@ export type NullAttribute = {
 };
 
 export type ObjectProps = {
-  properties?: Schema[];
+  properties?: Attribute[];
   required?: string[];
 };
 
@@ -136,7 +136,7 @@ export type ObjectAttribute = {
 };
 
 export type ArrayProps = {
-  items?: Schema;
+  items?: Attribute;
 };
 
 export type ArraySchema = CommonProps & ArrayProps & { type: "array" };
@@ -157,11 +157,6 @@ export type MultiAttribute = {
   type: "multi";
 };
 
-type RootProps = {
-  $id?: string;
-  $schema?: string;
-};
-
 export type Attribute =
   | StringAttribute
   | IntegerAttribute
@@ -172,4 +167,17 @@ export type Attribute =
   | ArrayAttribute
   | MultiAttribute;
 
-export type Schema = RootProps & Attribute;
+export type SchemaProps = {
+  $metadata: {
+    uris: {
+      jsonLdContext: string;
+    };
+  };
+};
+
+export type Schema = Attribute & SchemaProps;
+
+export type JsonLdType = { id: string; name: string };
+
+export type JsonLiteral = string | number | boolean | null;
+export type Json = JsonLiteral | { [key: string]: Json } | Json[];

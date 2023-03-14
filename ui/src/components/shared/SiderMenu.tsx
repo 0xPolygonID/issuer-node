@@ -1,27 +1,32 @@
 import { Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
-import { generatePath, matchPath, useLocation, useNavigate } from "react-router-dom";
+import { generatePath, matchPath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
+import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { ROUTES } from "src/routes";
-import { SCHEMAS_TABS, TUTORIALS_URL } from "src/utils/constants";
+import { CREDENTIALS, CREDENTIALS_TABS, SCHEMAS, TUTORIALS_URL } from "src/utils/constants";
 
 export function SiderMenu() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const pathSchemas = ROUTES.schemas.path;
-  const pathIssueClaim = ROUTES.issueClaim.path;
+  const credentialsPath = ROUTES.credentials.path;
+  const schemasPath = ROUTES.schemas.path;
 
   const getSelectedKey = (): string[] => {
-    if (matchPath(pathSchemas, pathname) || matchPath(pathIssueClaim, pathname)) {
+    if (matchPath(schemasPath, pathname)) {
       return ["schemas"];
-    } else {
-      return [];
+    } else if (
+      matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
+    ) {
+      return ["credentials"];
     }
+
+    return [];
   };
 
   return (
@@ -35,12 +40,19 @@ export function SiderMenu() {
           items={[
             {
               icon: <IconSchema />,
+              // TODO - these keys need to be typed.
               key: "schemas",
-              label: "Schemas",
+              label: SCHEMAS,
+              onClick: () => navigate(schemasPath),
+            },
+            {
+              icon: <IconCredentials />,
+              key: "credentials",
+              label: CREDENTIALS,
               onClick: () =>
                 navigate(
-                  generatePath(pathSchemas, {
-                    tabID: SCHEMAS_TABS[0].tabID,
+                  generatePath(credentialsPath, {
+                    tabID: CREDENTIALS_TABS[0].tabID,
                   })
                 ),
             },

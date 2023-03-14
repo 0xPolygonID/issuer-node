@@ -4,32 +4,41 @@ import type { DataNode } from "antd/es/tree";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { SchemaTreeNode } from "src/components/schemas/SchemaTreeNode";
-import { Schema } from "src/domain";
+import { Attribute, Schema } from "src/domain";
 
-const schemaToTreeDataNodes = ({
+const attributeToTreeDataNode = ({
+  attribute,
   parents,
-  schema,
   treeWidth,
 }: {
-  parents: Schema[];
-  schema: Schema;
+  attribute: Attribute;
+  parents: Attribute[];
   treeWidth: number;
-}): DataNode[] => {
-  const children = (schema.type === "object" && schema.schema.properties) || [];
-
-  return children.map((child) => ({
+}): DataNode => {
+  return {
     children:
-      child.type === "object"
-        ? schemaToTreeDataNodes({ parents: [...parents, schema], schema: child, treeWidth })
+      attribute.type === "object" && attribute.schema.properties
+        ? attribute.schema.properties.map((child) =>
+            attributeToTreeDataNode({
+              attribute: child,
+              parents: [...parents, attribute],
+              treeWidth,
+            })
+          )
         : [],
-    key: [...parents, schema, child].map((node) => node.name).join(" > "),
-    title: <SchemaTreeNode nestingLevel={parents.length} schema={child} treeWidth={treeWidth} />,
-  }));
+    key: [...parents, attribute].map((node) => node.name).join(" > "),
+    title: (
+      <SchemaTreeNode attribute={attribute} nestingLevel={parents.length} treeWidth={treeWidth} />
+    ),
+  };
 };
 
 export function SchemaTree({ schema, style }: { schema: Schema; style?: React.CSSProperties }) {
-  const ref = useRef<HTMLDivElement | null>(null);
   const [treeWidth, setTreeWidth] = useState(0);
+
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  const treeData = [attributeToTreeDataNode({ attribute: schema, parents: [], treeWidth })];
 
   useLayoutEffect(() => {
     const updateWidth = () => {
@@ -45,14 +54,6 @@ export function SchemaTree({ schema, style }: { schema: Schema; style?: React.CS
       window.removeEventListener("resize", updateWidth);
     };
   }, []);
-
-  const treeData = [
-    {
-      children: schemaToTreeDataNodes({ parents: [], schema, treeWidth }),
-      key: schema.name,
-      title: <SchemaTreeNode nestingLevel={0} schema={schema} treeWidth={treeWidth} />,
-    },
-  ];
 
   return (
     <Col ref={ref}>

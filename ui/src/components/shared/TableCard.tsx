@@ -1,14 +1,15 @@
 import { Card, Row, Space } from "antd";
 import { ReactNode } from "react";
 
-import { SearchBox } from "src/components/schemas/SearchBox";
 import { LoadingResult } from "src/components/shared/LoadingResult";
+import { SearchBox } from "src/components/shared/SearchBox";
 
 export function TableCard({
   defaultContents,
   isLoading,
   onSearch,
   query,
+  searchPlaceholder,
   showDefaultContents,
   table,
   title,
@@ -17,6 +18,7 @@ export function TableCard({
   isLoading: boolean;
   onSearch: (value: string) => void;
   query: string | null;
+  searchPlaceholder: string;
   showDefaultContents: boolean;
   table: ReactNode;
   title: ReactNode;
@@ -25,7 +27,7 @@ export function TableCard({
     <Card bodyStyle={{ padding: 0 }} title={title}>
       {!showDefaultContents && (
         <Row style={{ padding: "16px 12px", width: "60%" }}>
-          <SearchBox onSearch={onSearch} query={query} />
+          <SearchBox onSearch={onSearch} placeholder={searchPlaceholder} query={query} />
         </Row>
       )}
 

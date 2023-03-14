@@ -80,14 +80,32 @@ h5 {
   width: 400px !important;
 }
 
-.ant-form-item-explain,
-.ant-form-item-extra,
-.ant-typography.ant-typography-secondary {
-  color: $text-color-secondary;
-}
+.ant-form {
+  .ant-form-item {
+    .ant-form-item-label {
+      font-weight: 500;
 
-.ant-form-item-label {
-  font-weight: 500;
+      label.ant-form-item-required::before {
+        display: none;
+      }
+
+      label.ant-form-item-required::after {
+        display: inline-block;
+        margin-inline-start: 4px;
+        color: #b20808;
+        font-size: 14px;
+        font-family: SimSun, sans-serif;
+        line-height: 1;
+        content: "*";
+      }
+    }
+
+    .ant-form-item-explain,
+    .ant-form-item-extra,
+    .ant-typography.ant-typography-secondary {
+      color: $text-color-secondary;
+    }
+  }
 }
 
 .ant-input-affix-wrapper .ant-input-prefix {
@@ -209,9 +227,17 @@ h5 {
   }
 }
 
-.claiming-card {
+.issue-credential-card {
   margin: auto;
   max-width: 720px;
+}
+
+.dropdown-info {
+  max-width: 192px;
+
+  .ant-typography-ellipsis {
+    width: 192px;
+  }
 }
 
 .font-small,
@@ -270,4 +296,9 @@ svg {
       stroke: $text-color-secondary;
     }
   }
+}
+
+.ant-radio-group .ant-card-body .ant-radio-wrapper .ant-radio {
+  align-self: flex-start;
+  margin-top: 2px;
 }
