@@ -92,7 +92,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*do
 }
 
 func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
-	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
+	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching unprocessed issuers did", "err", err)
 		return nil, err
@@ -104,7 +104,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	}
 
 	// 4. Calculate new states and publish them synchronously
-	updatedState, err := p.identityService.UpdateState(ctx, identifier)
+	updatedState, err := p.identityService.UpdateState(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "Error during processing claims", "err", err, "did", identifier.String())
 		return nil, err
@@ -133,7 +133,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newS
 	}
 
 	// 1. Get latest transacted state
-	latestState, err := p.identityService.GetLatestStateByID(ctx, did)
+	latestState, err := p.identityService.GetLatestStateByID(ctx, *did)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID,
 			var errIn error
 
 			var idState *domain.IdentityState
-			idState, errIn = p.identityService.GetLatestStateByID(ctx, identifier)
+			idState, errIn = p.identityService.GetLatestStateByID(ctx, *identifier)
 			if errIn != nil {
 				return errIn
 			}

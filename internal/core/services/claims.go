@@ -237,7 +237,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 }
 
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
-	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
+	exists, err := c.identitySrv.Exists(ctx, *req.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "loading issuer identity", "err", err, "issuerDID", req.IssuerDID)
 		return nil, err

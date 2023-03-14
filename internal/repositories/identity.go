@@ -23,7 +23,7 @@ func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.I
 	return err
 }
 
-func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.Identity, error) {
+func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error) {
 	identity := domain.Identity{
 		State: domain.IdentityState{},
 	}
