@@ -16,6 +16,8 @@ tags:
     description: Collection of endpoints related to Credential
   - name: Agent
     description: Collection of endpoints related to Mobile
+  - name: Connection
+    description: Collection of endpoints related to Connections
 
 paths:
   /:
@@ -97,7 +99,7 @@ paths:
       operationId: deleteConnection
       description: delete connection
       tags:
-        - connection
+        - Connection
       security:
         - basicAuth: [ ]
       parameters:
@@ -109,6 +111,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/credentials/{id}:
+    get:
+      summary: get credential
+      operationId: getCredential
+      description: get credential details
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCredentialResponse'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -248,6 +273,50 @@ components:
         message:
           type: string
           example: 'Something happen'
+
+    GetCredentialResponse:
+      type: object
+      required:
+        - id
+        - proofTypes
+        - createdAt
+        - expired
+        - schemaHash
+        - schemaType
+        - revNonce
+        - attributes
+        - revoked
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+        proofTypes:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        expired:
+          type: boolean
+        schemaHash:
+          type: string
+        schemaType:
+          type: string
+        revoked:
+          type: boolean
+        revNonce:
+          type: integer
+          format: uint64
+        attributes:
+          type: object
+          x-omitempty: false
 
     GenericMessage:
       type: object
