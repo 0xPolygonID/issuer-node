@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/ethereum/go-ethereum v1.11.4
-	github.com/getkin/kin-openapi v0.114.0
+	github.com/getkin/kin-openapi v0.112.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
 	github.com/go-redis/cache/v8 v8.4.4
