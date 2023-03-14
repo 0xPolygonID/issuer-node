@@ -28,11 +28,11 @@ type dbSchema struct {
 }
 
 type schema struct {
-	conn db.Querier
+	conn db.Storage
 }
 
 // NewSchema returns a new schema repository
-func NewSchema(conn db.Querier) *schema {
+func NewSchema(conn db.Storage) *schema {
 	return &schema{conn: conn}
 }
 
@@ -42,7 +42,7 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 	if err != nil {
 		return err
 	}
-	_, err = r.conn.Exec(ctx, insertSchema, s.ID, s.IssuerDID.String(), s.URL, s.Type, s.Attributes.String(), string(hash), s.CreatedAt)
+	_, err = r.conn.Pgx.Exec(ctx, insertSchema, s.ID, s.IssuerDID.String(), s.URL, s.Type, s.Attributes.String(), string(hash), s.CreatedAt)
 	return err
 }
 
@@ -52,7 +52,7 @@ func (r *schema) GetById(ctx context.Context, id uuid.UUID) (*domain.Schema, err
 		WHERE id=$1`
 
 	s := dbSchema{}
-	row := r.conn.QueryRow(ctx, byID, id)
+	row := r.conn.Pgx.QueryRow(ctx, byID, id)
 	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist

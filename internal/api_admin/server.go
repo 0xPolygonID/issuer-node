@@ -57,17 +57,19 @@ func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthRespons
 func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error) {
 	req := request.Body
 	if err := guardImportSchemaReq(req); err != nil {
-		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprint("bad request: %w", err.Error())}}, nil
+		log.Debug(ctx, "Importing schema bad request", "err", err, "req", req)
+		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("bad request: %s", err.Error())}}, nil
 	}
 	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, req.Url, req.SchemaType)
 	if err != nil {
+		log.Error(ctx, "Importing schema", "err", err, "req", req)
 		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return ImportSchema201JSONResponse{Id: schema.ID.String()}, nil
 }
 
 func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
-	if req != nil {
+	if req == nil {
 		return errors.New("empty body")
 	}
 	if strings.TrimSpace(req.Url) == "" {

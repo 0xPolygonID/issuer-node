@@ -170,3 +170,7 @@ func NewAdminSchemaMock() ports.SchemaAdminService {
 func NewConnectionsMock() ports.ConnectionsService {
 	return nil
 }
+
+func NewSchemaAdminMock() ports.SchemaAdminService {
+	return nil
+}

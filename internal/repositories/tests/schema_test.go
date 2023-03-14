@@ -19,7 +19,7 @@ import (
 func TestGetSchema(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
-	store := repositories.NewSchema(storage.Pgx)
+	store := repositories.NewSchema(*storage)
 	did := core.DID{}
 	// Create a schemaHash
 	i := &big.Int{}
@@ -45,5 +45,5 @@ func TestGetSchema(t *testing.T) {
 	assert.Equal(t, schema1.Type, schema2.Type)
 	assert.Equal(t, schema1.Hash, schema2.Hash)
 	assert.Equal(t, schema1.Attributes, schema2.Attributes)
-	assert.InDelta(t, schema1.CreatedAt.UnixNano(), schema2.CreatedAt.UnixNano(), 1000)
+	assert.InDelta(t, schema1.CreatedAt.UnixMilli(), schema2.CreatedAt.UnixMilli(), 10)
 }

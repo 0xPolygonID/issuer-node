@@ -9,21 +9,38 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
+	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 type schemaAdmin struct {
-	repo ports.SchemaRepository
+	repo          ports.SchemaRepository
+	loaderFactory loader.Factory
 }
 
 // NewSchemaAdmin is the schemaAdmin service constructor
-func NewSchemaAdmin(repo ports.SchemaRepository) *schemaAdmin {
-	return &schemaAdmin{repo: repo}
+func NewSchemaAdmin(repo ports.SchemaRepository, lf loader.Factory) *schemaAdmin {
+	return &schemaAdmin{repo: repo, loaderFactory: lf}
 }
 
 func (s *schemaAdmin) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
-	// TODO:
-	hash := core.SchemaHash{}
-	attrs := domain.SchemaAttrs{}
+	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(url))
+	if err != nil {
+		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", url)
+		return nil, ErrLoadingSchema
+	}
+	attributeNames, err := remoteSchema.AttributeNames()
+	if err != nil {
+		log.Error(ctx, "processing jsonschema", "err", err, "jsonschema", url)
+		return nil, ErrProcessSchema
+	}
+
+	hash, err := remoteSchema.SchemaHash(sType)
+	if err != nil {
+		log.Error(ctx, "hashing schema", "err", err, "jsonschema", url)
+		return nil, ErrProcessSchema
+	}
 
 	schema := &domain.Schema{
 		ID:         uuid.New(),
@@ -31,11 +48,12 @@ func (s *schemaAdmin) ImportSchema(ctx context.Context, did core.DID, url string
 		URL:        url,
 		Type:       sType,
 		Hash:       hash,
-		Attributes: attrs,
+		Attributes: attributeNames.SchemaAttrs(),
 		CreatedAt:  time.Now(),
 	}
 
 	if err := s.repo.Save(ctx, schema); err != nil {
+		log.Error(ctx, "saving imported schema", "err", err)
 		return nil, err
 	}
 	return schema, nil
