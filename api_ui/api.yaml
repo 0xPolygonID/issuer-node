@@ -138,6 +138,29 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+    delete:
+      summary: Delete a Credential
+      operationId: DeleteCredential
+      description: Endpoint to delete a Credential
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Claim deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
 
   #credentials:
   /v1/credentials:
@@ -168,31 +191,6 @@ paths:
           $ref: '#/components/responses/401'
         '422':
           $ref: '#/components/responses/422'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/credentials/{id}:
-    delete:
-      summary: Delete a Credential
-      operationId: DeleteCredential
-      description: Endpoint to delete a Credential
-      tags:
-        - Credential
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/id'
-      responses:
-        '200':
-          description: Claim deleted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericMessage'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
 
