@@ -171,6 +171,30 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/revoke/{nonce}:
+    post:
+      summary: Revoke Credential
+      operationId: RevokeCredential
+      description: Endpoint to revoke a credential
+      tags:
+        - Credentials
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeCredentialResponse'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
   /v1/schemas:
     post:
       summary: Import JSON schema
@@ -363,6 +387,15 @@ components:
           type: string
           x-omitempty: false
 
+    RevokeCredentialResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          x-omitempty: false
+          example: pending
   parameters:
     sessionID:
       name: sessionID
@@ -383,6 +416,14 @@ components:
           name: uuid
           path: github.com/google/uuid
 
+    pathNonce:
+      name: nonce
+      in: path
+      required: true
+      description: Claim nonce
+      schema:
+        type: integer
+        format: int64
   responses:
     '400':
       description: 'Bad Request'
@@ -398,6 +439,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '402':
       description: 'Payment Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '404':
+      description: 'Not found'
       content:
         application/json:
           schema:
