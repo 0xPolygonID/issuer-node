@@ -195,12 +195,38 @@ paths:
           $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
+  /v1/schemas/{id}:
+    get:
+      summary: Retrieves schema from id
+      operationId: GetSchema
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/schemas:
     post:
       summary: Import JSON schema
       operationId: ImportSchema
       security:
         - basicAuth: [ ]
+      tags:
+        - Schemas
       requestBody:
         required: true
         content:
@@ -378,6 +404,36 @@ components:
           documentType: 2
         expiration: 12345
 
+    Schema:
+      type: object
+      required:
+        - id
+        - hash
+        - bigInt
+        - url
+        - type
+        - createdAt
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        hash:
+          type: string
+          x-omitempty: false
+        bigInt:
+          type: string
+          x-omitempty: false
+        url:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+        createdAt:
+          type: string
+          format: date-time
+          x-omitempty: false
+
     CreateCredentialResponse:
       type: object
       required:
@@ -437,14 +493,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GenericErrorMessage'
-    '402':
-      description: 'Payment Required'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/GenericErrorMessage'
     '404':
-      description: 'Not found'
+      description: 'Entity not found'
       content:
         application/json:
           schema:
