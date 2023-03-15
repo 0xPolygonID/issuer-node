@@ -159,8 +159,6 @@ export const stringBoolean = StrictSchema<string, boolean>()(
   })
 );
 
-// TODO - are the following constants and functions adapters? Parsers? Should they live in "utils/json.ts"? They look out of place here.
-
 const jsonLiteralParser = StrictSchema<JsonLiteral>()(
   z.union([z.string(), z.number(), z.boolean(), z.null()])
 );
