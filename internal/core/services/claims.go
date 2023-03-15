@@ -272,24 +272,16 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
-func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter) ([]*verifiable.W3CCredential, error) {
+func (c *claim) GetAll(ctx context.Context, did *core.DID, filter *ports.Filter) ([]*domain.Claim, error) {
 	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
 	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return nil, ErrClaimNotFound
+		}
 		return nil, err
 	}
 
-	w3Credentials := make([]*verifiable.W3CCredential, 0)
-	for _, cred := range claims {
-		w3Cred, err := c.schemaSrv.FromClaimModelToW3CCredential(*cred)
-		if err != nil {
-			log.Warn(ctx, "could not convert claim model to W3CCredential", "err", err)
-			continue
-		}
-
-		w3Credentials = append(w3Credentials, w3Cred)
-	}
-
-	return w3Credentials, nil
+	return claims, nil
 }
 
 func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {

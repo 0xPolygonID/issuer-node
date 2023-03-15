@@ -41,6 +41,14 @@ type AuthenticationQrCodeResponse struct {
 	Type string `json:"type"`
 }
 
+// Connection defines model for Connection.
+type Connection struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Id        string    `json:"id"`
+	IssuerID  string    `json:"issuerID"`
+	UserID    string    `json:"userID"`
+}
+
 // CreateCredentialRequest defines model for CreateCredentialRequest.
 type CreateCredentialRequest struct {
 	CredentialSchema  string                 `json:"credentialSchema"`
@@ -54,18 +62,8 @@ type CreateCredentialResponse struct {
 	Id string `json:"id"`
 }
 
-// GenericErrorMessage defines model for GenericErrorMessage.
-type GenericErrorMessage struct {
-	Message string `json:"message"`
-}
-
-// GenericMessage defines model for GenericMessage.
-type GenericMessage struct {
-	Message string `json:"message"`
-}
-
-// GetCredentialResponse defines model for GetCredentialResponse.
-type GetCredentialResponse struct {
+// Credential defines model for Credential.
+type Credential struct {
 	Attributes map[string]interface{} `json:"attributes"`
 	CreatedAt  time.Time              `json:"createdAt"`
 	Expired    bool                   `json:"expired"`
@@ -76,6 +74,22 @@ type GetCredentialResponse struct {
 	Revoked    bool                   `json:"revoked"`
 	SchemaHash string                 `json:"schemaHash"`
 	SchemaType string                 `json:"schemaType"`
+}
+
+// GenericErrorMessage defines model for GenericErrorMessage.
+type GenericErrorMessage struct {
+	Message string `json:"message"`
+}
+
+// GenericMessage defines model for GenericMessage.
+type GenericMessage struct {
+	Message string `json:"message"`
+}
+
+// GetConnectionResponse defines model for GetConnectionResponse.
+type GetConnectionResponse struct {
+	Connection  Connection   `json:"connection"`
+	Credentials []Credential `json:"credentials"`
 }
 
 // Health defines model for Health.
@@ -169,6 +183,9 @@ type ServerInterface interface {
 	// delete connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id)
+	// get connection
+	// (GET /v1/connections/{id})
+	GetConnection(w http.ResponseWriter, r *http.Request, id Id)
 	// Create a Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
@@ -305,6 +322,34 @@ func (siw *ServerInterfaceWrapper) DeleteConnection(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteConnection(w, r, id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetConnection(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -592,6 +637,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Delete(options.BaseURL+"/v1/connections/{id}", wrapper.DeleteConnection)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/connections/{id}", wrapper.GetConnection)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/credentials", wrapper.CreateCredential)
 	})
 	r.Group(func(r chi.Router) {
@@ -773,6 +821,41 @@ func (response DeleteConnection500JSONResponse) VisitDeleteConnectionResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetConnectionRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetConnectionResponseObject interface {
+	VisitGetConnectionResponse(w http.ResponseWriter) error
+}
+
+type GetConnection200JSONResponse GetConnectionResponse
+
+func (response GetConnection200JSONResponse) VisitGetConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetConnection400JSONResponse struct{ N400JSONResponse }
+
+func (response GetConnection400JSONResponse) VisitGetConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetConnection500JSONResponse struct{ N500JSONResponse }
+
+func (response GetConnection500JSONResponse) VisitGetConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type CreateCredentialRequestObject struct {
 	Body *CreateCredentialJSONRequestBody
 }
@@ -922,7 +1005,7 @@ type GetCredentialResponseObject interface {
 	VisitGetCredentialResponse(w http.ResponseWriter) error
 }
 
-type GetCredential200JSONResponse GetCredentialResponse
+type GetCredential200JSONResponse Credential
 
 func (response GetCredential200JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1048,6 +1131,9 @@ type StrictServerInterface interface {
 	// delete connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
+	// get connection
+	// (GET /v1/connections/{id})
+	GetConnection(ctx context.Context, request GetConnectionRequestObject) (GetConnectionResponseObject, error)
 	// Create a Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
@@ -1254,6 +1340,32 @@ func (sh *strictHandler) DeleteConnection(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// GetConnection operation middleware
+func (sh *strictHandler) GetConnection(w http.ResponseWriter, r *http.Request, id Id) {
+	var request GetConnectionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetConnection(ctx, request.(GetConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetConnectionResponseObject); ok {
+		if err := validResponse.VisitGetConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // CreateCredential operation middleware
 func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request) {
 	var request CreateCredentialRequestObject
@@ -1423,38 +1535,39 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, id Id
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

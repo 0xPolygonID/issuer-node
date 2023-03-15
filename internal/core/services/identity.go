@@ -463,7 +463,7 @@ func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, cu
 }
 
 // populate identity state with data needed to do generate new state.
-// Get Data from MT and previous state
+// GetByIDAndIssuerID Data from MT and previous state
 func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTrees, state, previousState *domain.IdentityState) error {
 	claimsTree, err := trees.ClaimsTree()
 	if err != nil {

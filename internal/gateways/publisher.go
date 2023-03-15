@@ -132,7 +132,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newS
 		return nil, err
 	}
 
-	// 1. Get latest transacted state
+	// 1. GetByIDAndIssuerID latest transacted state
 	latestState, err := p.identityService.GetLatestStateByID(ctx, *did)
 	if err != nil {
 		return nil, err
@@ -388,7 +388,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	}
 	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
 	log.Info(ctx, "checker status job started", "job-id", jobIDValue.String())
-	// Get all issuers that have claims not included in any state
+	// GetByIDAndIssuerID all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
 		log.Error(ctx, "Error during get transacted states", "err", err)
@@ -418,7 +418,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 }
 
 func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {
-	// Get receipt and check status
+	// GetByIDAndIssuerID receipt and check status
 	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, *state.TxID)
 	if err != nil {
 		log.Error(ctx, "error during receipt receiving:", "err", err, "state-id", *state.TxID)

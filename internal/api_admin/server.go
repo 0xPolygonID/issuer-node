@@ -150,6 +150,35 @@ func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (Aut
 	}, nil
 }
 
+// GetConnection returns a connection with its related credentials
+func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequestObject) (GetConnectionResponseObject, error) {
+	conn, err := s.connectionsService.GetByIDAndIssuerID(ctx, request.Id, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		if errors.Is(err, services.ErrConnectionDoesNotExist) {
+			return GetConnection400JSONResponse{N400JSONResponse{"The given connection does not exist"}}, nil
+		}
+		log.Debug(ctx, "get connection internal server error", "err", err, "req", request)
+		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
+	}
+
+	filter := &ports.Filter{
+		Subject: conn.UserDID.String(),
+	}
+	credentials, err := s.claimService.GetAll(ctx, &s.cfg.APIUI.IssuerDID, filter)
+	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
+		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
+		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
+	}
+
+	w3credentials, err := schema.FromClaimsModelToW3CCredential(credentials)
+	if err != nil {
+		log.Debug(ctx, "get connection internal server error converting credentials to w3c", "err", err, "req", request)
+		return GetConnection500JSONResponse{N500JSONResponse{"There was an error parsing the credential of the given connection"}}, nil
+	}
+
+	return GetConnection200JSONResponse(connectionResponse(conn, w3credentials, credentials)), nil
+}
+
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
 	err := s.connectionsService.Delete(ctx, request.Id)
