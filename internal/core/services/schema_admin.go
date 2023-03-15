@@ -26,7 +26,7 @@ func NewSchemaAdmin(repo ports.SchemaRepository, lf loader.Factory) *schemaAdmin
 
 // GetByID returns a domain.Schema by ID
 func (s *schemaAdmin) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
-	return s.repo.GetById(ctx, id)
+	return s.repo.GetByID(ctx, id)
 }
 
 // ImportSchema process an schema url and imports into the system

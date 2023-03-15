@@ -22,7 +22,7 @@ func (s *schemaInMemory) Save(_ context.Context, schema *domain.Schema) error {
 	return nil
 }
 
-func (s *schemaInMemory) GetById(_ context.Context, id uuid.UUID) (*domain.Schema, error) {
+func (s *schemaInMemory) GetByID(_ context.Context, id uuid.UUID) (*domain.Schema, error) {
 	if schema, found := s.schemas[id]; found {
 		return &schema, nil
 	}

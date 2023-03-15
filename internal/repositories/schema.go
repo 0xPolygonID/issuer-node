@@ -46,7 +46,7 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 	return err
 }
 
-func (r *schema) GetById(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
+func (r *schema) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
 	const byID = `SELECT id, issuer_id, url, type, attributes, hash, created_at 
 		FROM schemas 
 		WHERE id=$1`
