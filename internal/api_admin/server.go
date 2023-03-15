@@ -61,6 +61,15 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
 
+// GetSchemas returns the list of schemas that match the request.Params.Query filter. If param query is nil it will return all
+func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error) {
+	col, err := s.schemaService.GetAll(ctx, request.Params.Query)
+	if err != nil {
+		return GetSchemas500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return GetSchemas200JSONResponse(schemaCollectionResponse(col)), nil
+}
+
 // Health is a method
 func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
 	var resp Health200JSONResponse = s.health.Status()

@@ -38,6 +38,11 @@ func (s *schemaAdmin) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema
 	return schema, nil
 }
 
+// GetAll return all schemas in the database that matches the query string
+func (s *schemaAdmin) GetAll(ctx context.Context, query *string) ([]domain.Schema, error) {
+	return s.repo.GetAll(ctx, query)
+}
+
 // ImportSchema process an schema url and imports into the system
 func (s *schemaAdmin) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
 	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(url))

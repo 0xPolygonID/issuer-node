@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -289,6 +290,83 @@ func TestServer_GetSchema(t *testing.T) {
 				var response GetSchema400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.errorMsg, response.Message)
+			}
+		})
+	}
+}
+
+func TestServer_GetSchemas(t *testing.T) {
+	ctx := context.Background()
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+	server.cfg.APIUI.IssuerDID = *issuerDID
+	server.cfg.APIUI.ServerURL = "https://testing.env"
+	fixture := tests.NewFixture(storage)
+
+	for i := 0; i < 20; i++ {
+		s := &domain.Schema{
+			ID:         uuid.New(),
+			IssuerDID:  *issuerDID,
+			URL:        fmt.Sprintf("https://domain.org/this/is/an/url/%d", i),
+			Type:       fmt.Sprintf("schemaType-%d", i),
+			Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
+			CreatedAt:  time.Now(),
+		}
+		s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
+		fixture.CreateSchema(t, ctx, s)
+	}
+
+	handler := getHandler(ctx, server)
+	type expected struct {
+		httpCode int
+		errorMsg string
+		count    int
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		query    *string
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "Not authorized",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:  "Happy path. All schemas",
+			auth:  authOk,
+			query: nil,
+			expected: expected{
+				httpCode: http.StatusOK,
+				errorMsg: "schema not found",
+				count:    20,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			endpoint := "/v1/schemas"
+			if tc.query != nil {
+				endpoint = url.QueryEscape(endpoint + "?query=" + *tc.query)
+			}
+			req, err := http.NewRequest("GET", endpoint, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetSchemas200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.GreaterOrEqual(t, len(response), 20)
 			}
 		})
 	}

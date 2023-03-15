@@ -140,6 +140,12 @@ type AuthCallbackParams struct {
 	SessionID *SessionID `form:"sessionID,omitempty" json:"sessionID,omitempty"`
 }
 
+// GetSchemasParams defines parameters for GetSchemas.
+type GetSchemasParams struct {
+	// Query Query string to do full text search in schema types and attributes.
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
 // AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
 type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
@@ -181,6 +187,9 @@ type ServerInterface interface {
 	// get credential
 	// (GET /v1/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, id Id)
+	// Search for schemas.
+	// (GET /v1/schemas)
+	GetSchemas(w http.ResponseWriter, r *http.Request, params GetSchemasParams)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(w http.ResponseWriter, r *http.Request)
@@ -415,6 +424,36 @@ func (siw *ServerInterfaceWrapper) GetCredential(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetSchemas operation middleware
+func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetSchemasParams
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSchemas(w, r, params)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // ImportSchema operation middleware
 func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -602,6 +641,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/credentials/{id}", wrapper.GetCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/schemas", wrapper.GetSchemas)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
@@ -949,6 +991,41 @@ func (response GetCredential500JSONResponse) VisitGetCredentialResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetSchemasRequestObject struct {
+	Params GetSchemasParams
+}
+
+type GetSchemasResponseObject interface {
+	VisitGetSchemasResponse(w http.ResponseWriter) error
+}
+
+type GetSchemas200JSONResponse []Schema
+
+func (response GetSchemas200JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchemas400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSchemas400JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchemas500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSchemas500JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type ImportSchemaRequestObject struct {
 	Body *ImportSchemaJSONRequestBody
 }
@@ -1060,6 +1137,9 @@ type StrictServerInterface interface {
 	// get credential
 	// (GET /v1/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
+	// Search for schemas.
+	// (GET /v1/schemas)
+	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
@@ -1363,6 +1443,32 @@ func (sh *strictHandler) GetCredential(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
+// GetSchemas operation middleware
+func (sh *strictHandler) GetSchemas(w http.ResponseWriter, r *http.Request, params GetSchemasParams) {
+	var request GetSchemasRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchemas(ctx, request.(GetSchemasRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchemas")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSchemasResponseObject); ok {
+		if err := validResponse.VisitGetSchemasResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // ImportSchema operation middleware
 func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
 	var request ImportSchemaRequestObject
@@ -1423,38 +1529,39 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, id Id
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xaW3PbNhb+KxjsPlKmLaudqd5cOdNot+mmcfzQyXp2IPBIREwCDAAqVj367zu4iFdQ",
-	"ltTIzUti43rO+b5zA/2MqcgLwYFrhafPuCCS5KBB2t9YYv5NQFHJCs0Ex1MzFmFmfiqITnGEOclhNy7h",
-	"S8kkJHiqZQkRVjSFnJhD9KYwq5SWjK9whJ9GKzHyg2XJkov7+/ltc3zE8kJIbfb6G8wyHLlrp3jFdFou",
-	"LqjI45UQqwxiO7/dbt2S3wSn0Bd/lhGWI24ng3rspoZVWQqZE21U5vrHCY52ujGuYQUSGwkUKMUEn9/2",
-	"JbhzU8iqawX4UoLc1BLUe4cNaNWUoArBFVisJpeX5j8quAZuzUaKImOUmGvjz8rc/dw4758SlniK/xHX",
-	"BIjdrIp/AQ6S0TdSCvkOlCIrcDe2NfmZJOgDfClBabyN8OTy6rUluOek1KmQ7E9InAiT1xbhDddMbxAX",
-	"Gi1FyZ0Y4/HrW6KQgpr5RQZo5m/eRviH1+fFnGuQnGToDuQaJAKz3rmFO8jcc1PqFLj2gvwuZyKBD57Q",
-	"NhJJUYDUzLF7IZJNf5SSLFsQ+ngvs4CLGAchXr/elKKigMYMkZJssPOqneN/al1QHbfb/FB5vlh8Bmqt",
-	"vZQiD97nQmlvWKdDE5tiaBxC4aAttw2U5gi/wV8UOTt6MUPyzyQQDTMJicGGZDv3nj5jeCJ5kdnLaTV/",
-	"53mDU60LNY1jSb5euNBcKpCedTZKswT4dUxN/B05HozWgpJFnBPGK4oZQsb//mN2s2pIMVpfX3x2pm9c",
-	"XTqpDTuY1GlCNnh69dNPP15OxpMIJ4KWOXD90ao4dgjgJcsy9JXpFCXMuio8FUwSR9yr8fXkh8ooXSHM",
-	"6g79emYI5TmRMw15oTd4uiSZgu2AEm0sBnY2xT0gEw3xJXh6l/td7Sou9cU/jEpDzh1ygUMkZEnw4lCU",
-	"6t2Z1xMVsfGdyEGnjK9QSooCeG3RAT/bnbJHjEMk+CuX6EMsTLSWbFFq99tBTKMWvuRGt4iWEA0jzXLo",
-	"m8aTE5pgLoTIgPB6Uh1z3hAvzlU5Wv8WSxMxHC815GpPFN4lDQPXuqo3K93KYa+UsBaPQ5ZyofAtUelA",
-	"5jLTHw/PAw2lmrDWeLWubF3Q0CxqkqjWIETKt0AybYUnScJMsCLZ+xYf+0ofxMm5BdaFo0ZmanO9bZ/a",
-	"udeEUsZt7JyZ1UtTegR5V7pyot76WsltP5ilLUIa6oVs/8HickhMCEbAAnji3Oz4cLwvTtUJslPXsdWc",
-	"62MS51FBaeCYNOhbA4sPzk5HJduKZSelPa9CtLNf5MlRJ2hvphAWJl6+UjK2nTAtJdMbywAPOlGMmvq/",
-	"clcbDMxojaDxOddcML4U/Tb61td31qHRUkikU0BzpUqQaITu5+jm/fy/1quYttx+L7LNyjbeaNRdiCO8",
-	"Bqnc0ZcXVxeXxlKiAE4Khqf42g65FGJ1iM0/K7BENOazYsxNifkL6JZsuNOoj11D1tZGldQ0b4jwBEnQ",
-	"peTK6pO0tGQcvf347lfkmW/NW+Y5kRt3b3+LhY75fsw9ZZhdsTLTNE4EVTEp2P9IkjNufrrYkDzbp9sf",
-	"Zv6bqmROPEIltLHrWQb7lCvVoBI+PYV1+CZ9sr8h0BrfZBlSINeMgkJEApIl5z7t+E49dHAlaWwWtY3k",
-	"LqMp0Ec7E6+vYtJqruNdG2u9Xbik2ZGrtQFVG6KO7cy6WT3ZfC78FBa9XhLXD1vbBxc8QOmffWffMLyG",
-	"Jx0XGWEdk9dp6vPXP0daPAYr9G337W57CFvFo3s/OgACs+h0uMigpTVZGTPaFfhhAMovkooEGtzei6Nf",
-	"HULx9w8zN3U2L9j7whPwDRKU/XRLr0AjMmCPsK2p4ByoWaniZ5ZsnX0z0IGHZDeO6i09K9/aFbPmguP8",
-	"xTQlD2cEqNOhBiA5t1f42sAao1EVfHowetdIhmy9Q7Bh3xrHqvxVwyHvDU8KwbhGWiBXMCGCGs89XTi7",
-	"7xl4Xwg7HZShF7iDAtvVGcUYdlz3TcUXnccSxn81eGntVeNd/YW14/HZiDgL8qSiYj0YomLseub42X5i",
-	"2h7GTLcHEUSHmdnt+Y4ONPX3skC8+XafMgZ701ChRCkUFZ2OoIj7AvTS2snZKOKUfIkgKsyQl5JOkxk+",
-	"KO6NWT4Fnc6Mvz8FueDilD1rcDkLG26DIAUDRhSu6EwVU1MEJaAJy1QP6dZD8HcIsz7M7b+TgqNt9BdC",
-	"fOOj5i6et7FpPlueqWoIvYy+csXQelYKQOuEQ+5x/nhXPgvOzmzoX3f/+Q2p6iuXx/rO49oFuorSQ08k",
-	"FdLflxN6sfZAw90rjBk8OtD+7WlXSwZrUB5HtJQiR+47eB9Pe7Bc74BpW+NXQa3P2wda+w45jePMDKZC",
-	"6en15eXYAuXP7f2Fkcgy15AgsUTgM7ZCEjJTH5vUPbcxRDf+5qca2UYnnNeK/P7E1ofrE858Jxbuic2f",
-	"d7Nyf1Byinh1W92Qr+7btg/b/wcAAP//2qmpJ4gmAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

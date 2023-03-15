@@ -218,6 +218,7 @@ paths:
           $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
+
   /v1/schemas/{id}:
     get:
       summary: Retrieves schema from id
@@ -243,6 +244,33 @@ paths:
           $ref: '#/components/responses/500'
 
   /v1/schemas:
+    get:
+      summary: Search for schemas.
+      operationId : GetSchemas
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in schema types and attributes.
+      responses:
+        '200':
+          description: Schema collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
     post:
       summary: Import JSON schema
       operationId: ImportSchema

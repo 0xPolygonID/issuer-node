@@ -20,6 +20,14 @@ func schemaResponse(s *domain.Schema) Schema {
 	}
 }
 
+func schemaCollectionResponse(schemas []domain.Schema) []Schema {
+	res := make([]Schema, len(schemas))
+	for i, s := range schemas {
+		res[i] = schemaResponse(&s)
+	}
+	return res
+}
+
 func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) GetCredentialResponse {
 	expired := false
 	if w3c.Expiration != nil {

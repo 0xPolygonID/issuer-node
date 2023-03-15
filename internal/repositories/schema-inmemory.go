@@ -28,3 +28,14 @@ func (s *schemaInMemory) GetByID(_ context.Context, id uuid.UUID) (*domain.Schem
 	}
 	return nil, ErrSchemaDoesNotExist
 }
+
+// GetAll returns all. WARNING: query param will not work in the same way as DB repo
+func (s *schemaInMemory) GetAll(_ context.Context, _ *string) ([]domain.Schema, error) {
+	schemas := make([]domain.Schema, len(s.schemas))
+	i := 0
+	for _, schema := range s.schemas {
+		schemas[i] = schema
+		i++
+	}
+	return schemas, nil
+}

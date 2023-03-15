@@ -392,6 +392,7 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifi
 
 		return nil, err
 	}
+	defer rows.Close()
 
 	return processClaims(rows)
 }
@@ -495,8 +496,6 @@ func (c *claims) UpdateState(ctx context.Context, conn db.Querier, claim *domain
 }
 
 func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
-	defer rows.Close()
-
 	claims := make([]*domain.Claim, 0)
 
 	for rows.Next() {
@@ -606,6 +605,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	claims, err := processClaims(rows)
 	if err != nil {
