@@ -181,6 +181,19 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
 }
 
+// DeleteCredential deletes a credential
+func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
+	err := s.claimService.Delete(ctx, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
+		}
+		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
+	}
+
+	return DeleteCredential200JSONResponse{Message: "Credential successfully deleted"}, nil
+}
+
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
