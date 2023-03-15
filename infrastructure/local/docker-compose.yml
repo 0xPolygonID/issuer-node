@@ -11,7 +11,7 @@ services:
       - ../../.env-api
       - ../../.env-ui
 
-  api-issuer:
+  api:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
@@ -22,7 +22,7 @@ services:
       - redis
       - vault
     environment:
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
+      - ISSUER_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -104,7 +104,6 @@ services:
 
   vault:
     image: vault:latest
-    container_name: sh-id-platform-test-vault
     volumes:
       - ./.vault/config:/vault/config
       - ./.vault/policies:/vault/policies
