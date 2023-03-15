@@ -17,9 +17,11 @@ import (
 	authLoaders "github.com/iden3/go-iden3-auth/loaders"
 	"github.com/iden3/go-iden3-auth/pubsignals"
 	"github.com/iden3/go-iden3-auth/state"
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/api_admin"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/errors"
@@ -170,6 +172,11 @@ func main() {
 	})
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
+	if !identifierExists(ctx, &cfg.APIUI.IssuerDID, identityService) {
+		log.Error(ctx, "issuer did must exists")
+		return
+	}
+
 	mux := chi.NewRouter()
 	mux.Use(
 		chiMiddleware.RequestID,
@@ -205,6 +212,11 @@ func main() {
 
 	<-quit
 	log.Info(ctx, "Shutting down")
+}
+
+func identifierExists(ctx context.Context, did *core.DID, service ports.IdentityService) bool {
+	_, err := service.GetByDID(ctx, *did)
+	return err == nil
 }
 
 func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictMiddlewareFunc {

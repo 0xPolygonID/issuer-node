@@ -28,11 +28,12 @@ import (
 )
 
 var (
-	ErrClaimNotFound = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim 	// ErrProcessSchema Cannot process schema
-	ErrJSONLdContext = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
-	ErrLoadingSchema = errors.New("cannot load schema")             // ErrLoadingSchema means the system cannot load the schema file
-	ErrMalformedURL  = errors.New("malformed url")                  // ErrMalformedURL The schema url is wrong
-	ErrProcessSchema = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
+	ErrClaimNotFound  = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim
+	ErrSchemaNotFound = errors.New("claim not found")                // ErrSchemaNotFound Cannot retrieve the given schema from DB
+	ErrJSONLdContext  = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrLoadingSchema  = errors.New("cannot load schema")             // ErrLoadingSchema means the system cannot load the schema file
+	ErrMalformedURL   = errors.New("malformed url")                  // ErrMalformedURL The schema url is wrong
+	ErrProcessSchema  = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
 )
 
 // ClaimCfg claim service configuration
@@ -224,6 +225,18 @@ func (c *claim) Revoke(ctx context.Context, id string, nonce uint64, description
 	return c.icRepo.RevokeNonce(ctx, c.storage.Pgx, &revocation)
 }
 
+func (c *claim) Delete(ctx context.Context, id uuid.UUID) error {
+	err := c.icRepo.Delete(ctx, c.storage.Pgx, id)
+	if err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return ErrClaimNotFound
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error) {
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
 	if err != nil {
@@ -237,7 +250,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 }
 
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
-	exists, err := c.identitySrv.Exists(ctx, req.IssuerDID)
+	exists, err := c.identitySrv.Exists(ctx, *req.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "loading issuer identity", "err", err, "issuerDID", req.IssuerDID)
 		return nil, err

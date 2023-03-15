@@ -17,6 +17,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -44,6 +46,19 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		packageManager:     packageManager,
 		health:             health,
 	}
+}
+
+// GetSchema is the UI endpoint that searches and schema by Id and returns it.
+func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
+	schema, err := s.schemaService.GetByID(ctx, request.Id)
+	if errors.Is(err, services.ErrSchemaNotFound) {
+		log.Debug(ctx, "schema not found", "id", request.Id)
+		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
+	}
+	if err != nil {
+		log.Error(ctx, "loading schema", "err", err, "id", request.Id)
+	}
+	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
 
 // Health is a method
@@ -148,6 +163,37 @@ func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionR
 	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
 }
 
+// GetCredential returns a credential
+func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
+	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return GetCredential400JSONResponse{N400JSONResponse{"The given credential id does not exist"}}, nil
+		}
+		return GetCredential500JSONResponse{N500JSONResponse{"There was an error trying to retrieve the credential information"}}, nil
+	}
+
+	w3c, err := schema.FromClaimModelToW3CCredential(*credential)
+	if err != nil {
+		return GetCredential500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+	}
+
+	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
+}
+
+// DeleteCredential deletes a credential
+func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
+	err := s.claimService.Delete(ctx, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
+		}
+		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
+	}
+
+	return DeleteCredential200JSONResponse{Message: "Credential successfully deleted"}, nil
+}
+
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
@@ -198,4 +244,20 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
+}
+
+// RevokeCredential - revokes a credential per a given nonce
+func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error) {
+	if err := s.claimService.Revoke(ctx, s.cfg.APIUI.IssuerDID.String(), uint64(request.Nonce), ""); err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return RevokeCredential404JSONResponse{N404JSONResponse{
+				Message: "the claim does not exist",
+			}}, nil
+		}
+
+		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RevokeCredential202JSONResponse{
+		Message: "claim revocation request sent",
+	}, nil
 }

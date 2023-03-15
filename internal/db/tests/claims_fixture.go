@@ -26,8 +26,14 @@ func (f *Fixture) CreateClaim(t *testing.T, claim *domain.Claim) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
 	id, err := f.claimRepository.Save(ctx, f.storage.Pgx, claim)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	return id
+}
+
+// CreateSchema creates an entry in schema table
+func (f *Fixture) CreateSchema(t *testing.T, ctx context.Context, s *domain.Schema) {
+	t.Helper()
+	require.NoError(t, f.schemaRepository.Save(ctx, s))
 }
 
 // GetDefaultAuthClaimOfIssuer returns the default auth claim of an issuer just created
