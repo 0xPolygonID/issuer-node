@@ -1,4 +1,4 @@
-import { Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
+import { Col, Divider, Menu, Row, Space, Typography } from "antd";
 import { generatePath, matchPath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
@@ -81,10 +81,8 @@ export function SiderMenu() {
           selectedKeys={getSelectedKey()}
         />
 
-        <Space style={{ marginTop: 42 }}>
+        <Space style={{ marginTop: 40 }}>
           <LogoLink />
-
-          <Tag>Testnet</Tag>
         </Space>
       </Col>
     </Row>
