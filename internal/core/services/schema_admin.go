@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 type schemaAdmin struct {
@@ -26,7 +28,14 @@ func NewSchemaAdmin(repo ports.SchemaRepository, lf loader.Factory) *schemaAdmin
 
 // GetByID returns a domain.Schema by ID
 func (s *schemaAdmin) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
-	return s.repo.GetByID(ctx, id)
+	schema, err := s.repo.GetByID(ctx, id)
+	if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
+		return nil, ErrSchemaNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return schema, nil
 }
 
 // ImportSchema process an schema url and imports into the system
