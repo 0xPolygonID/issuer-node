@@ -11,5 +11,5 @@ import (
 // SchemaRepository interface that define repo methods for schemas
 type SchemaRepository interface {
 	Save(ctx context.Context, schema *domain.Schema) error
-	GetById(ctx context.Context, id uuid.UUID) (*domain.Schema, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error)
 }

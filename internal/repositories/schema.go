@@ -46,7 +46,7 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 	return err
 }
 
-func (r *schema) GetById(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
+func (r *schema) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
 	const byID = `SELECT id, issuer_id, url, type, attributes, hash, created_at 
 		FROM schemas 
 		WHERE id=$1`
@@ -55,7 +55,7 @@ func (r *schema) GetById(ctx context.Context, id uuid.UUID) (*domain.Schema, err
 	row := r.conn.Pgx.QueryRow(ctx, byID, id)
 	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt)
 	if err == pgx.ErrNoRows {
-		return nil, ErrClaimDoesNotExist
+		return nil, ErrSchemaDoesNotExist
 	}
 	if err != nil {
 		return nil, err

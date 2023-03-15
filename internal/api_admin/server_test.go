@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-schema-processor/utils"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -186,6 +187,108 @@ func TestServer_AuthQRCode(t *testing.T) {
 				assert.Equal(t, v.Body.Scope, response.Body.Scope)
 				assert.Equal(t, v.Body.Reason, response.Body.Reason)
 				assert.True(t, strings.Contains(response.Body.CallbackUrl, v.Body.CallbackUrl))
+			}
+		})
+	}
+}
+
+func TestServer_GetSchema(t *testing.T) {
+	ctx := context.Background()
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+	server.cfg.APIUI.IssuerDID = *issuerDID
+	server.cfg.APIUI.ServerURL = "https://testing.env"
+	fixture := tests.NewFixture(storage)
+
+	s := &domain.Schema{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		URL:        "https://domain.org/this/is/an/url",
+		Type:       "schemaType",
+		Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
+		CreatedAt:  time.Now(),
+	}
+	s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
+	fixture.CreateSchema(t, ctx, s)
+	sHash, _ := s.Hash.MarshalText()
+
+	handler := getHandler(ctx, server)
+	type expected struct {
+		httpCode int
+		errorMsg string
+		schema   *Schema
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		id       string
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "Not authorized",
+			auth: authWrong,
+			id:   uuid.NewString(),
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Non existing uuid",
+			auth: authOk,
+			id:   uuid.NewString(),
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				errorMsg: "schema not found",
+			},
+		},
+		{
+			name: "Happy path. Existing schema",
+			auth: authOk,
+			id:   s.ID.String(),
+			expected: expected{
+				httpCode: http.StatusOK,
+				errorMsg: "schema not found",
+				schema: &Schema{
+					BigInt:    s.Hash.BigInt().String(),
+					CreatedAt: s.CreatedAt,
+					Hash:      string(sHash),
+					Id:        s.ID.String(),
+					Type:      s.Type,
+					Url:       s.URL,
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest("GET", fmt.Sprintf("/v1/schemas/%s", tc.id), nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetSchema200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.schema.Id, response.Id)
+				assert.Equal(t, tc.expected.schema.BigInt, response.BigInt)
+				assert.Equal(t, tc.expected.schema.Type, response.Type)
+				assert.Equal(t, tc.expected.schema.Url, response.Url)
+				assert.Equal(t, tc.expected.schema.Hash, response.Hash)
+				assert.InDelta(t, tc.expected.schema.CreatedAt.UnixMilli(), response.CreatedAt.UnixMilli(), 10)
+			case http.StatusNotFound:
+				var response GetSchema404JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
+			case http.StatusBadRequest:
+				var response GetSchema400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
 			}
 		})
 	}
@@ -747,6 +850,145 @@ func TestServer_GetCredential(t *testing.T) {
 				var response GetCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
+func TestServer_RevokeCredential(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+
+	fixture := tests.NewFixture(storage)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	idClaim, err := uuid.NewUUID()
+	require.NoError(t, err)
+	nonce := int64(123)
+	revNonce := domain.RevNonceUint64(nonce)
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim,
+		Identifier:      common.ToPointer(did.String()),
+		Issuer:          did.String(),
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        revNonce,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+	})
+
+	handler := getHandler(context.Background(), server)
+
+	type expected struct {
+		response RevokeCredentialResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		nonce    int64
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:  "No auth header",
+			auth:  authWrong,
+			nonce: nonce,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:  "should revoke the claim",
+			auth:  authOk,
+			nonce: nonce,
+			expected: expected{
+				httpCode: 202,
+				response: RevokeCredential202JSONResponse{
+					Message: "claim revocation request sent",
+				},
+			},
+		},
+		{
+			name:  "should get an error wrong nonce",
+			auth:  authOk,
+			nonce: int64(1231323),
+			expected: expected{
+				httpCode: 404,
+				response: RevokeCredential404JSONResponse{N404JSONResponse{
+					Message: "the claim does not exist",
+				}},
+			},
+		},
+		{
+			name:  "should get an error - duplicated nonce",
+			auth:  authOk,
+			nonce: nonce,
+			expected: expected{
+				httpCode: 500,
+				response: RevokeCredential500JSONResponse{N500JSONResponse{
+					Message: "error revoking the claim: cannot add revocation nonce: 123 to revocation merkle tree: the entry index already exists in the tree",
+				}},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/revoke/%d", tc.nonce)
+			req, err := http.NewRequest(http.MethodPost, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch v := tc.expected.response.(type) {
+			case RevokeCredential202JSONResponse:
+				var response RevokeCredential202JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, response.Message, v.Message)
+			case RevokeCredential404JSONResponse:
+				var response RevokeCredential404JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, response.Message, v.Message)
+			case RevokeCredential500JSONResponse:
+				var response RevokeCredential500JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, response.Message, v.Message)
 			}
 		})
 	}

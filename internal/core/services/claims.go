@@ -28,11 +28,12 @@ import (
 )
 
 var (
-	ErrClaimNotFound = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim 	// ErrProcessSchema Cannot process schema
-	ErrJSONLdContext = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
-	ErrLoadingSchema = errors.New("cannot load schema")             // ErrLoadingSchema means the system cannot load the schema file
-	ErrMalformedURL  = errors.New("malformed url")                  // ErrMalformedURL The schema url is wrong
-	ErrProcessSchema = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
+	ErrClaimNotFound  = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim
+	ErrSchemaNotFound = errors.New("claim not found")                // ErrSchemaNotFound Cannot retrieve the given schema from DB
+	ErrJSONLdContext  = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrLoadingSchema  = errors.New("cannot load schema")             // ErrLoadingSchema means the system cannot load the schema file
+	ErrMalformedURL   = errors.New("malformed url")                  // ErrMalformedURL The schema url is wrong
+	ErrProcessSchema  = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
 )
 
 // ClaimCfg claim service configuration

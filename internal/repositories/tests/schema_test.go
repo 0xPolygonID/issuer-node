@@ -37,7 +37,7 @@ func TestGetSchema(t *testing.T) {
 	}
 	require.NoError(t, store.Save(ctx, schema1))
 
-	schema2, err := store.GetById(ctx, schema1.ID)
+	schema2, err := store.GetByID(ctx, schema1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, schema1.ID, schema2.ID)
 	assert.Equal(t, schema1.IssuerDID, schema2.IssuerDID)

@@ -8,18 +8,16 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -48,6 +46,19 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		packageManager:     packageManager,
 		health:             health,
 	}
+}
+
+// GetSchema is the UI endpoint that searches and schema by Id and returns it.
+func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
+	schema, err := s.schemaService.GetByID(ctx, request.Id)
+	if errors.Is(err, services.ErrSchemaNotFound) {
+		log.Debug(ctx, "schema not found", "id", request.Id)
+		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
+	}
+	if err != nil {
+		log.Error(ctx, "loading schema", "err", err, "id", request.Id)
+	}
+	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
 
 // Health is a method
@@ -167,7 +178,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		return GetCredential500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 	}
 
-	return toCredential(w3c, credential), nil
+	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
 }
 
 // DeleteCredential deletes a credential
@@ -235,29 +246,18 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
-func toCredential(w3c *verifiable.W3CCredential, credential *domain.Claim) GetCredential200JSONResponse {
-	expired := false
-	if w3c.Expiration != nil {
-		if time.Now().UTC().After(w3c.Expiration.UTC()) {
-			expired = true
+// RevokeCredential - revokes a credential per a given nonce
+func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error) {
+	if err := s.claimService.Revoke(ctx, s.cfg.APIUI.IssuerDID.String(), uint64(request.Nonce), ""); err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return RevokeCredential404JSONResponse{N404JSONResponse{
+				Message: "the claim does not exist",
+			}}, nil
 		}
-	}
 
-	proofs := make([]string, len(w3c.Proof))
-	for i := range w3c.Proof {
-		proofs[i] = string(w3c.Proof[i].ProofType())
+		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-
-	return GetCredential200JSONResponse{
-		Attributes: w3c.CredentialSubject,
-		CreatedAt:  *w3c.IssuanceDate,
-		Expired:    expired,
-		ExpiresAt:  w3c.Expiration,
-		Id:         credential.ID,
-		ProofTypes: proofs,
-		RevNonce:   uint64(credential.RevNonce),
-		Revoked:    credential.Revoked,
-		SchemaHash: credential.SchemaHash,
-		SchemaType: credential.SchemaType,
-	}
+	return RevokeCredential202JSONResponse{
+		Message: "claim revocation request sent",
+	}, nil
 }

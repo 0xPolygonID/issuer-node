@@ -87,6 +87,21 @@ type ImportSchemaRequest struct {
 	Url        string `json:"url"`
 }
 
+// RevokeCredentialResponse defines model for RevokeCredentialResponse.
+type RevokeCredentialResponse struct {
+	Message string `json:"message"`
+}
+
+// Schema defines model for Schema.
+type Schema struct {
+	BigInt    string    `json:"bigInt"`
+	CreatedAt time.Time `json:"createdAt"`
+	Hash      string    `json:"hash"`
+	Id        string    `json:"id"`
+	Type      string    `json:"type"`
+	Url       string    `json:"url"`
+}
+
 // UUIDResponse defines model for UUIDResponse.
 type UUIDResponse struct {
 	Id string `json:"id"`
@@ -94,6 +109,9 @@ type UUIDResponse struct {
 
 // Id defines model for id.
 type Id = uuid.UUID
+
+// PathNonce defines model for pathNonce.
+type PathNonce = int64
 
 // SessionID defines model for sessionID.
 type SessionID = string
@@ -103,6 +121,9 @@ type N400 = GenericErrorMessage
 
 // N401 defines model for 401.
 type N401 = GenericErrorMessage
+
+// N404 defines model for 404.
+type N404 = GenericErrorMessage
 
 // N422 defines model for 422.
 type N422 = GenericErrorMessage
@@ -151,15 +172,18 @@ type ServerInterface interface {
 	// Create a Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
-	// Delete a Credential
-	// (DELETE /v1/credentials/{id})
-	DeleteCredential(w http.ResponseWriter, r *http.Request, id Id)
+	// Revoke Credential
+	// (POST /v1/credentials/revoke/{nonce})
+	RevokeCredential(w http.ResponseWriter, r *http.Request, nonce PathNonce)
 	// get credential
 	// (GET /v1/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, id Id)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(w http.ResponseWriter, r *http.Request)
+	// Retrieves schema from id
+	// (GET /v1/schemas/{id})
+	GetSchema(w http.ResponseWriter, r *http.Request, id Id)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -304,25 +328,25 @@ func (siw *ServerInterfaceWrapper) CreateCredential(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// DeleteCredential operation middleware
-func (siw *ServerInterfaceWrapper) DeleteCredential(w http.ResponseWriter, r *http.Request) {
+// RevokeCredential operation middleware
+func (siw *ServerInterfaceWrapper) RevokeCredential(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "id" -------------
-	var id Id
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathNonce
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "nonce", runtime.ParamLocationPath, chi.URLParam(r, "nonce"), &nonce)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
 		return
 	}
 
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteCredential(w, r, id)
+		siw.Handler.RevokeCredential(w, r, nonce)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -368,6 +392,34 @@ func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.R
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ImportSchema(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetSchema operation middleware
+func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSchema(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -512,13 +564,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/credentials", wrapper.CreateCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v1/credentials/{id}", wrapper.DeleteCredential)
+		r.Post(options.BaseURL+"/v1/credentials/revoke/{nonce}", wrapper.RevokeCredential)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/credentials/{id}", wrapper.GetCredential)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/schemas", wrapper.ImportSchema)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/schemas/{id}", wrapper.GetSchema)
 	})
 
 	return r
@@ -527,6 +582,8 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 type N400JSONResponse GenericErrorMessage
 
 type N401JSONResponse GenericErrorMessage
+
+type N404JSONResponse GenericErrorMessage
 
 type N422JSONResponse GenericErrorMessage
 
@@ -735,44 +792,44 @@ func (response CreateCredential500JSONResponse) VisitCreateCredentialResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteCredentialRequestObject struct {
-	Id Id `json:"id"`
+type RevokeCredentialRequestObject struct {
+	Nonce PathNonce `json:"nonce"`
 }
 
-type DeleteCredentialResponseObject interface {
-	VisitDeleteCredentialResponse(w http.ResponseWriter) error
+type RevokeCredentialResponseObject interface {
+	VisitRevokeCredentialResponse(w http.ResponseWriter) error
 }
 
-type DeleteCredential200JSONResponse GenericMessage
+type RevokeCredential202JSONResponse RevokeCredentialResponse
 
-func (response DeleteCredential200JSONResponse) VisitDeleteCredentialResponse(w http.ResponseWriter) error {
+func (response RevokeCredential202JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(202)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteCredential400JSONResponse struct{ N400JSONResponse }
+type RevokeCredential401JSONResponse struct{ N401JSONResponse }
 
-func (response DeleteCredential400JSONResponse) VisitDeleteCredentialResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteCredential401JSONResponse struct{ N401JSONResponse }
-
-func (response DeleteCredential401JSONResponse) VisitDeleteCredentialResponse(w http.ResponseWriter) error {
+func (response RevokeCredential401JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteCredential500JSONResponse struct{ N500JSONResponse }
+type RevokeCredential404JSONResponse struct{ N404JSONResponse }
 
-func (response DeleteCredential500JSONResponse) VisitDeleteCredentialResponse(w http.ResponseWriter) error {
+func (response RevokeCredential404JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeCredential500JSONResponse struct{ N500JSONResponse }
+
+func (response RevokeCredential500JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -849,6 +906,50 @@ func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetSchemaRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetSchemaResponseObject interface {
+	VisitGetSchemaResponse(w http.ResponseWriter) error
+}
+
+type GetSchema200JSONResponse Schema
+
+func (response GetSchema200JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSchema400JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema404JSONResponse struct{ N404JSONResponse }
+
+func (response GetSchema404JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -872,15 +973,18 @@ type StrictServerInterface interface {
 	// Create a Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
-	// Delete a Credential
-	// (DELETE /v1/credentials/{id})
-	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
+	// Revoke Credential
+	// (POST /v1/credentials/revoke/{nonce})
+	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
 	// get credential
 	// (GET /v1/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
+	// Retrieves schema from id
+	// (GET /v1/schemas/{id})
+	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -1100,25 +1204,25 @@ func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// DeleteCredential operation middleware
-func (sh *strictHandler) DeleteCredential(w http.ResponseWriter, r *http.Request, id Id) {
-	var request DeleteCredentialRequestObject
+// RevokeCredential operation middleware
+func (sh *strictHandler) RevokeCredential(w http.ResponseWriter, r *http.Request, nonce PathNonce) {
+	var request RevokeCredentialRequestObject
 
-	request.Id = id
+	request.Nonce = nonce
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteCredential(ctx, request.(DeleteCredentialRequestObject))
+		return sh.ssi.RevokeCredential(ctx, request.(RevokeCredentialRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteCredential")
+		handler = middleware(handler, "RevokeCredential")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DeleteCredentialResponseObject); ok {
-		if err := validResponse.VisitDeleteCredentialResponse(w); err != nil {
+	} else if validResponse, ok := response.(RevokeCredentialResponseObject); ok {
+		if err := validResponse.VisitRevokeCredentialResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1183,37 +1287,66 @@ func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetSchema operation middleware
+func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, id Id) {
+	var request GetSchemaRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchema(ctx, request.(GetSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
+		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

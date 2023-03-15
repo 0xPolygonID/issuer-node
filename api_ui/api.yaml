@@ -194,12 +194,62 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/revoke/{nonce}:
+    post:
+      summary: Revoke Credential
+      operationId: RevokeCredential
+      description: Endpoint to revoke a credential
+      tags:
+        - Credentials
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeCredentialResponse'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /v1/schemas/{id}:
+    get:
+      summary: Retrieves schema from id
+      operationId: GetSchema
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/schemas:
     post:
       summary: Import JSON schema
       operationId: ImportSchema
       security:
         - basicAuth: [ ]
+      tags:
+        - Schemas
       requestBody:
         required: true
         content:
@@ -377,6 +427,36 @@ components:
           documentType: 2
         expiration: 12345
 
+    Schema:
+      type: object
+      required:
+        - id
+        - hash
+        - bigInt
+        - url
+        - type
+        - createdAt
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        hash:
+          type: string
+          x-omitempty: false
+        bigInt:
+          type: string
+          x-omitempty: false
+        url:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+        createdAt:
+          type: string
+          format: date-time
+          x-omitempty: false
+
     CreateCredentialResponse:
       type: object
       required:
@@ -386,6 +466,15 @@ components:
           type: string
           x-omitempty: false
 
+    RevokeCredentialResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          x-omitempty: false
+          example: pending
   parameters:
     sessionID:
       name: sessionID
@@ -406,6 +495,14 @@ components:
           name: uuid
           path: github.com/google/uuid
 
+    pathNonce:
+      name: nonce
+      in: path
+      required: true
+      description: Claim nonce
+      schema:
+        type: integer
+        format: int64
   responses:
     '400':
       description: 'Bad Request'
@@ -419,8 +516,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GenericErrorMessage'
-    '402':
-      description: 'Payment Required'
+    '404':
+      description: 'Entity not found'
       content:
         application/json:
           schema:
