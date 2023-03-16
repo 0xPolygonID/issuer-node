@@ -25,7 +25,7 @@ build/docker: ## Build the docker image.
 	DOCKER_BUILDKIT=1 \
 	docker build \
 		-f ./Dockerfile \
-		-t isser/api:$(VERSION) \
+		-t issuer/api:$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
