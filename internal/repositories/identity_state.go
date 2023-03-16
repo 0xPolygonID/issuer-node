@@ -85,6 +85,7 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	states := []domain.IdentityState{}
 	for rows.Next() {

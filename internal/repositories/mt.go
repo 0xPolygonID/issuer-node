@@ -61,6 +61,7 @@ func (mt *identityMerkleTreeRepository) GetByIdentifierAndTypes(ctx context.Cont
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	trees := make([]domain.IdentityMerkleTree, 0, len(mtTypes))
 	for rows.Next() {

@@ -24,6 +24,7 @@ RETURNING identifier, nonce, version, status, description`,
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var revs []*domain.Revocation
 	for rows.Next() {
