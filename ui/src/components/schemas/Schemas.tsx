@@ -1,5 +1,4 @@
 import { Button, Divider, Space } from "antd";
-import { useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
@@ -11,9 +10,6 @@ import { ROUTES } from "src/routes";
 import { IMPORT_SCHEMA, ISSUE_CREDENTIAL, SCHEMAS, TUTORIALS_URL } from "src/utils/constants";
 
 export function Schemas() {
-  // TODO - this will be handled via local storage, see PID-69
-  const [isExplainerShowing, setExplainerShowing] = useState(true);
-
   const navigate = useNavigate();
 
   return (
@@ -43,15 +39,12 @@ export function Schemas() {
       <Divider />
 
       <Space direction="vertical" size="large">
-        {isExplainerShowing && (
-          <Explainer
-            CTA={{ label: "Learn more", url: TUTORIALS_URL }}
-            description="Learn about schema types, attributes, naming conventions, data types and more."
-            handleDismiss={() => setExplainerShowing(false)}
-            image="/images/illustration-explainer.svg"
-            title="Credential schemas explained"
-          />
-        )}
+        <Explainer
+          CTA={{ label: "Learn more", url: TUTORIALS_URL }}
+          description="Learn about schema types, attributes, naming conventions, data types and more."
+          image="/images/illustration-explainer.svg"
+          title="Credential schemas explained"
+        />
 
         <MySchemas />
       </Space>
