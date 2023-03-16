@@ -101,9 +101,7 @@ Follow these steps:
 
 1. Copy your Ethereum private key, pasting it into `<private_key>` in step 2.
 2. Run `make private_key=<private_key> add-private-key`
-3. Run `docker logs sh-id-platform-test-vault`
-4. Look for the end of the output starting with `===== ENABLED IDEN3 =====`, and copy `<X>` in `token:<X>`.
-5. Paste that token into the `ISSUER_KEY_STORE_TOKEN` variable in `.env-issuer`.
+3. Run `make add-vault-token`
 
 ### Creating the issuer DID
 
