@@ -18,4 +18,4 @@ jobs:
           key: ${{ secrets.KEY_ED25519_TESTING }}
           passphrase: ${{ secrets.PASSPHRASE_TESTING }}
           port: ${{ secrets.PORT_TESTING }}
-          script: hello.sh
+          script: sh hello.sh
