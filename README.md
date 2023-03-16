@@ -101,7 +101,7 @@ Follow these steps:
 
 1. Copy your Ethereum private key, pasting it into `<private_key>` in step 2.
 2. Run `make private_key=<private_key> add-private-key`
-3. Run `docker logs sh-id-platform-test-vault`
+3. Run `docker logs issuer-vault-1`
 4. Look for the end of the output starting with `===== ENABLED IDEN3 =====`, and copy `<X>` in `token:<X>`.
 5. Paste that token into the `ISSUER_KEY_STORE_TOKEN` variable in `.env-issuer`.
 
@@ -139,9 +139,20 @@ Start the testing environment with `make up-test`
 
 In case any of the spun-up domains shows a 404 or 401 error when accessing their respective URLs, the root cause can usually be determined by inspecting the Docker container logs.
 
+```bash
+$ docker ps
+CONTAINER ID   IMAGE                COMMAND                  CREATED          STATUS                    PORTS                                       NAMES
+60e992ea9271   issuer-api-ui        "sh -c 'sleep 4s && …"   15 seconds ago   Up 4 seconds              0.0.0.0:3002->3002/tcp, :::3002->3002/tcp   issuer-api-ui-1
+fae8873ac23b   issuer-ui            "/bin/sh /app/script…"   15 seconds ago   Up 4 seconds              0.0.0.0:8088->80/tcp, :::8088->80/tcp       issuer-ui-1
+80d4511ed7c4   issuer-api           "sh -c 'sleep 4s && …"   21 minutes ago   Up 21 minutes             0.0.0.0:3001->3001/tcp, :::3001->3001/tcp   issuer-api-1
+fa30b750848e   postgres:14-alpine   "docker-entrypoint.s…"   34 minutes ago   Up 34 minutes (healthy)   0.0.0.0:5432->5432/tcp, :::5432->5432/tcp   issuer-postgres-1
+abd1d3c93255   redis:6-alpine       "docker-entrypoint.s…"   34 minutes ago   Up 34 minutes (healthy)   0.0.0.0:6379->6379/tcp, :::6379->6379/tcp   issuer-redis-1
+0912c9920294   vault:latest         "docker-entrypoint.s…"   34 minutes ago   Up 34 minutes             0.0.0.0:8200->8200/tcp, :::8200->8200/tcp   issuer-vault-1
+```
+
 For example, for inspecting the issuer API node, run:
 
-`docker logs sh-id-platform-api-issuer-1`
+`docker logs issuer-api-1`
 
 In most cases, a startup failure will be due to erroneous env variables.
 
