@@ -19,11 +19,11 @@ export function SiderMenu() {
 
   const getSelectedKey = (): string[] => {
     if (matchPath(schemasPath, pathname)) {
-      return ["schemas"];
+      return [schemasPath];
     } else if (
       matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
     ) {
-      return ["credentials"];
+      return [credentialsPath];
     }
 
     return [];
@@ -40,14 +40,13 @@ export function SiderMenu() {
           items={[
             {
               icon: <IconSchema />,
-              // TODO - these keys need to be typed.
-              key: "schemas",
+              key: schemasPath,
               label: SCHEMAS,
               onClick: () => navigate(schemasPath),
             },
             {
               icon: <IconCredentials />,
-              key: "credentials",
+              key: credentialsPath,
               label: CREDENTIALS,
               onClick: () =>
                 navigate(
@@ -78,7 +77,6 @@ export function SiderMenu() {
               ),
             },
           ]}
-          selectedKeys={getSelectedKey()}
         />
 
         <Space style={{ marginTop: 40 }}>
