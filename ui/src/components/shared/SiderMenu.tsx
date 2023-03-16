@@ -1,5 +1,5 @@
 import { Col, Divider, Menu, Row, Space, Typography } from "antd";
-import { generatePath, matchPath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
+import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
@@ -18,7 +18,7 @@ export function SiderMenu() {
   const schemasPath = ROUTES.schemas.path;
 
   const getSelectedKey = (): string[] => {
-    if (matchPath(schemasPath, pathname)) {
+    if (matchRoutes([{ path: schemasPath }, { path: ROUTES.importSchema.path }], pathname)) {
       return [schemasPath];
     } else if (
       matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
