@@ -21,8 +21,6 @@ services:
       - postgres
       - redis
       - vault
-    environment:
-      - ISSUER_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -38,8 +36,6 @@ services:
       - postgres
       - redis
       - vault
-    environment:
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -51,8 +47,6 @@ services:
     depends_on:
       - postgres
       - vault
-    environment:
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
     env_file:
       - ../../.env-api
       - ../../.env-issuer
