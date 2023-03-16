@@ -1,10 +1,17 @@
 name: Deploy to Testing
 
-on:
-  push:
-    branches:
-      - "*"
+#on:
+#  push:
+#    branches:
+#      - "*"
 
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Define branch name'
+        required: true
+        default: 'master'
 jobs:
   Deploy:
     name: Deploy to Testing
@@ -19,3 +26,5 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE_TESTING }}
           port: ${{ secrets.PORT_TESTING }}
           script: sh hello.sh
+      - run: |
+          echo "Branch: ${{ github.event.inputs.branch }}"
