@@ -101,7 +101,7 @@ Follow these steps:
 
 1. Copy your Ethereum private key, pasting it into `<private_key>` in step 2.
 2. Run `make private_key=<private_key> add-private-key`
-3. Run `add-vault-token`
+3. Run `make add-vault-token`
 
 ### Creating the issuer DID
 
