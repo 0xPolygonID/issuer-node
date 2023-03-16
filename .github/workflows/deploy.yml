@@ -1,0 +1,20 @@
+name: deploy testing
+
+on:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_TESTING }}
+          username: ${{ secrets.USERNAME_TESTING }}
+          key: ${{ secrets.KEY_ED25519_TESTING }}
+          port: ${{ secrets.PORT_TESTING }}
+          script: hello.sh
