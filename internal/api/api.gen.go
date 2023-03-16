@@ -232,10 +232,10 @@ type CreateClaimJSONRequestBody = CreateClaimRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get the documentation
+	// GetByIDAndIssuerID the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Get the documentation yaml file
+	// GetByIDAndIssuerID the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
@@ -244,28 +244,28 @@ type ServerInterface interface {
 	// Agent
 	// (POST /v1/agent)
 	Agent(w http.ResponseWriter, r *http.Request)
-	// Get Identities
+	// GetByIDAndIssuerID Identities
 	// (GET /v1/identities)
 	GetIdentities(w http.ResponseWriter, r *http.Request)
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
-	// Get Claims
+	// GetByIDAndIssuerID Claims
 	// (GET /v1/{identifier}/claims)
 	GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Revocation Status
+	// GetByIDAndIssuerID Revocation Status
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
-	// Get Claim
+	// GetByIDAndIssuerID Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
-	// Get Claim QR code
+	// GetByIDAndIssuerID Claim QR code
 	// (GET /v1/{identifier}/claims/{id}/qrcode)
 	GetClaimQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Publish Identity State
@@ -1331,10 +1331,10 @@ func (response PublishIdentityState500JSONResponse) VisitPublishIdentityStateRes
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Get the documentation
+	// GetByIDAndIssuerID the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Get the documentation yaml file
+	// GetByIDAndIssuerID the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
 	// Healthcheck
@@ -1343,28 +1343,28 @@ type StrictServerInterface interface {
 	// Agent
 	// (POST /v1/agent)
 	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
-	// Get Identities
+	// GetByIDAndIssuerID Identities
 	// (GET /v1/identities)
 	GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error)
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
-	// Get Claims
+	// GetByIDAndIssuerID Claims
 	// (GET /v1/{identifier}/claims)
 	GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error)
-	// Get Revocation Status
+	// GetByIDAndIssuerID Revocation Status
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error)
-	// Get Claim
+	// GetByIDAndIssuerID Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error)
-	// Get Claim QR code
+	// GetByIDAndIssuerID Claim QR code
 	// (GET /v1/{identifier}/claims/{id}/qrcode)
 	GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error)
 	// Publish Identity State
