@@ -15,57 +15,57 @@ import {
 import dayjs from "dayjs";
 import { useState } from "react";
 
-import { parseClaimLinkExpirationDate } from "src/adapters/parsers/forms";
+import { parseLinkExpirationDate } from "src/adapters/parsers/forms";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
-import { FORM_LABEL } from "src/utils/constants";
+import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
 
 export type IssuanceMethod =
   | {
       type: "directIssue";
     }
   | {
-      claimLinkExpirationDate?: dayjs.Dayjs;
-      claimLinkExpirationTime?: dayjs.Dayjs;
-      limitedClaims?: string;
-      type: "claimLink";
+      linkExpirationDate?: dayjs.Dayjs;
+      linkExpirationTime?: dayjs.Dayjs;
+      linkMaximumIssuance?: string;
+      type: "credentialLink";
     };
 
 export function SetIssuanceMethod({
-  claimExpirationDate,
+  credentialExpirationDate,
   initialValues,
-  isClaimLoading,
+  isCredentialLoading,
   onStepBack,
   onSubmit,
 }: {
-  claimExpirationDate?: dayjs.Dayjs;
+  credentialExpirationDate?: dayjs.Dayjs;
   initialValues: IssuanceMethod;
-  isClaimLoading: boolean;
+  isCredentialLoading: boolean;
   onStepBack: (values: IssuanceMethod) => void;
   onSubmit: (values: IssuanceMethod) => void;
 }) {
   const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethod>(initialValues);
+
   const isDirectIssue = issuanceMethod.type === "directIssue";
 
   return (
-    <Card className="claiming-card" title="Select a way to issue claims">
+    <Card className="issue-credential-card" title="Choose how to issue credential">
       <Form
         initialValues={initialValues}
         layout="vertical"
-        name="issueClaimMethod"
+        name="issueCredentialMethod"
         onFinish={onSubmit}
         onValuesChange={(changedValues, allValues) => {
-          const parsedClaimLinkExpirationDate =
-            parseClaimLinkExpirationDate.safeParse(changedValues);
+          const parsedLinkExpirationDate = parseLinkExpirationDate.safeParse(changedValues);
 
           if (
-            allValues.type === "claimLink" &&
-            parsedClaimLinkExpirationDate.success &&
-            (parsedClaimLinkExpirationDate.data.claimLinkExpirationDate === null ||
-              (dayjs().isSame(parsedClaimLinkExpirationDate.data.claimLinkExpirationDate, "day") &&
-                dayjs().isAfter(allValues.claimLinkExpirationTime)))
+            allValues.type === "credentialLink" &&
+            parsedLinkExpirationDate.success &&
+            (parsedLinkExpirationDate.data.linkExpirationDate === null ||
+              (dayjs().isSame(parsedLinkExpirationDate.data.linkExpirationDate, "day") &&
+                dayjs().isAfter(allValues.linkExpirationTime)))
           ) {
-            setIssuanceMethod({ ...allValues, claimLinkExpirationTime: undefined });
+            setIssuanceMethod({ ...allValues, linkExpirationTime: undefined });
           } else {
             setIssuanceMethod(allValues);
           }
@@ -74,7 +74,7 @@ export function SetIssuanceMethod({
         validateTrigger="onBlur"
       >
         <Form.Item name="type" rules={[{ message: "Value required", required: true }]}>
-          <Radio.Group name="type" style={{ width: "100%" }}>
+          <Radio.Group className="full-width" name="type">
             <Space direction="vertical">
               <Card className={`${isDirectIssue ? "selected" : ""} disabled`}>
                 <Radio disabled value="directIssue">
@@ -84,39 +84,35 @@ export function SetIssuanceMethod({
                     </Typography.Text>
 
                     <Typography.Text type="secondary">
-                      Issue claims directly using a known identifier - connections with your
+                      Issue credentials directly using a known identifier - connections with your
                       organization or establish connection with new identifiers.
                     </Typography.Text>
                   </Space>
                 </Radio>
               </Card>
 
-              <Card className={issuanceMethod.type === "claimLink" ? "selected" : ""}>
+              <Card className={issuanceMethod.type === "credentialLink" ? "selected" : ""}>
                 <Space direction="vertical" size="large">
-                  <Radio value="claimLink">
+                  <Radio value="credentialLink">
                     <Space direction="vertical">
-                      <Typography.Text>{FORM_LABEL.CLAIM_LINK}</Typography.Text>
+                      <Typography.Text>{CREDENTIAL_LINK}</Typography.Text>
 
                       <Typography.Text type="secondary">
-                        Anyone can access the claim with this link. You can deactivate it at any
-                        time.
+                        Anyone can access the credential with this link. You can deactivate it at
+                        any time.
                       </Typography.Text>
                     </Space>
                   </Radio>
 
                   <Space direction="horizontal" size="large" style={{ paddingLeft: 28 }}>
                     <Space align="end" direction="horizontal">
-                      <Form.Item
-                        help="Optional"
-                        label={FORM_LABEL.LINK_VALIDITY}
-                        name="claimLinkExpirationDate"
-                      >
+                      <Form.Item help="Optional" label={ACCESSIBLE_UNTIL} name="linkExpirationDate">
                         <DatePicker
                           disabled={isDirectIssue}
                           disabledDate={(current) =>
                             current < dayjs().startOf("day") ||
-                            (claimExpirationDate !== undefined &&
-                              current.isAfter(claimExpirationDate))
+                            (credentialExpirationDate !== undefined &&
+                              current.isAfter(credentialExpirationDate))
                           }
                         />
                       </Form.Item>
@@ -124,12 +120,12 @@ export function SetIssuanceMethod({
                       <Form.Item
                         getValueProps={() => {
                           return {
-                            claimLinkExpirationTime:
-                              issuanceMethod.type === "claimLink" &&
-                              issuanceMethod.claimLinkExpirationTime,
+                            linkExpirationTime:
+                              issuanceMethod.type === "credentialLink" &&
+                              issuanceMethod.linkExpirationTime,
                           };
                         }}
-                        name="claimLinkExpirationTime"
+                        name="linkExpirationTime"
                       >
                         <TimePicker
                           disabled={isDirectIssue}
@@ -137,8 +133,8 @@ export function SetIssuanceMethod({
                             const now = dayjs();
 
                             if (
-                              issuanceMethod.type === "claimLink" &&
-                              now.isSame(issuanceMethod.claimLinkExpirationDate, "day")
+                              issuanceMethod.type === "credentialLink" &&
+                              now.isSame(issuanceMethod.linkExpirationDate, "day")
                             ) {
                               return {
                                 disabledHours: () => [...Array(now.hour()).keys()],
@@ -159,15 +155,19 @@ export function SetIssuanceMethod({
                           minuteStep={5}
                           showNow={false}
                           value={
-                            issuanceMethod.type === "claimLink"
-                              ? issuanceMethod.claimLinkExpirationTime
+                            issuanceMethod.type === "credentialLink"
+                              ? issuanceMethod.linkExpirationTime
                               : undefined
                           }
                         />
                       </Form.Item>
                     </Space>
 
-                    <Form.Item help="Optional" label="Set maximum issuance" name="limitedClaims">
+                    <Form.Item
+                      help="Optional"
+                      label="Set maximum issuance"
+                      name="linkMaximumIssuance"
+                    >
                       <InputNumber
                         className="full-width"
                         disabled={isDirectIssue}
@@ -188,7 +188,7 @@ export function SetIssuanceMethod({
           <Col>
             <Button
               icon={<IconBack />}
-              loading={isClaimLoading}
+              loading={isCredentialLoading}
               onClick={() => {
                 onStepBack(issuanceMethod);
               }}
@@ -198,9 +198,8 @@ export function SetIssuanceMethod({
           </Col>
 
           <Col>
-            <Button htmlType="submit" loading={isClaimLoading} type="primary">
-              Create claim link
-              <IconRight />
+            <Button htmlType="submit" loading={isCredentialLoading} type="primary">
+              Create credential link <IconRight />
             </Button>
           </Col>
         </Row>

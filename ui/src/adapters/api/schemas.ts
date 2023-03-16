@@ -9,7 +9,6 @@ import {
   buildAPIError,
 } from "src/utils/adapters";
 import {
-  ACTIVE_SEARCH_PARAM,
   API_PASSWORD,
   API_URL,
   API_USERNAME,
@@ -18,19 +17,7 @@ import {
 } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
-export interface PayloadSchemaCreate {
-  attributes: SchemaAttribute[];
-  mandatoryExpiration: boolean;
-  schema: string;
-  technicalName: string;
-}
-
-export type PayloadSchemaUpdate = {
-  active: boolean;
-};
-
 export interface Schema {
-  active: boolean;
   attributes: SchemaAttribute[];
   createdAt: Date;
   id: string;
@@ -59,29 +46,6 @@ export type SchemaAttribute = {
     }
 );
 
-export async function schemasCreate({
-  payload,
-}: {
-  payload: PayloadSchemaCreate;
-}): Promise<APIResponse<Schema>> {
-  try {
-    const response = await axios({
-      baseURL: API_URL,
-      data: payload,
-      headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
-      },
-      method: "POST",
-      url: `issuers/${ISSUER_DID}/schemas`,
-    });
-    const { data } = resultCreatedSchema.parse(response);
-
-    return { data, isSuccessful: true };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
 export async function schemasGetSingle({
   schemaID,
   signal,
@@ -108,11 +72,10 @@ export async function schemasGetSingle({
 }
 
 export async function schemasGetAll({
-  params: { active, query },
+  params: { query },
   signal,
 }: {
   params: {
-    active?: boolean;
     query?: string;
   };
   signal: AbortSignal;
@@ -130,7 +93,6 @@ export async function schemasGetAll({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(active !== undefined ? { [ACTIVE_SEARCH_PARAM]: active.toString() } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
@@ -145,31 +107,6 @@ export async function schemasGetAll({
       },
       isSuccessful: true,
     };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
-export async function schemasUpdate({
-  payload,
-  schemaID,
-}: {
-  payload: PayloadSchemaUpdate;
-  schemaID: string;
-}): Promise<APIResponse<Schema>> {
-  try {
-    const response = await axios({
-      baseURL: API_URL,
-      data: payload,
-      headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
-      },
-      method: "PATCH",
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}`,
-    });
-    const { data } = resultOKSchema.parse(response);
-
-    return { data, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
@@ -218,18 +155,8 @@ export const schemaAttribute = StrictSchema<SchemaAttribute>()(
     )
 );
 
-export const payloadSchemaCreate = StrictSchema<PayloadSchemaCreate>()(
-  z.object({
-    attributes: z.array(schemaAttribute),
-    mandatoryExpiration: z.boolean(),
-    schema: z.string(),
-    technicalName: z.string(),
-  })
-);
-
 export const schema = StrictSchema<Schema>()(
   z.object({
-    active: z.boolean(),
     attributes: z.array(schemaAttribute),
     createdAt: z.coerce.date(),
     id: z.string(),

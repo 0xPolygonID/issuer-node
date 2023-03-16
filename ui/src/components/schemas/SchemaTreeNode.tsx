@@ -2,19 +2,19 @@ import { Col, Row, Space, Typography } from "antd";
 
 import { ReactComponent as IconTreeLeaf } from "src/assets/icons/file-04.svg";
 import { ReactComponent as IconTreeNode } from "src/assets/icons/folder.svg";
-import { Schema } from "src/domain";
+import { Attribute } from "src/domain";
 
 export function SchemaTreeNode({
+  attribute,
   nestingLevel,
-  schema,
   treeWidth,
 }: {
+  attribute: Attribute;
   nestingLevel: number;
-  schema: Schema;
   treeWidth: number;
 }) {
-  const commonProps = schema.type !== "multi" ? schema.schema : schema.schemas[0];
-  const name = commonProps.title || schema.name;
+  const commonProps = attribute.type !== "multi" ? attribute.schema : attribute.schemas[0];
+  const name = commonProps.title || attribute.name;
   const description = commonProps.description;
 
   return (
@@ -22,23 +22,23 @@ export function SchemaTreeNode({
       <Row justify="space-between">
         <Col>
           <Space>
-            {schema.type === "object" ? (
+            {attribute.type === "object" ? (
               <IconTreeNode className="icon-secondary" />
             ) : (
               <IconTreeLeaf className="icon-secondary" />
             )}
             <Typography.Text>{name}</Typography.Text>
 
-            {schema.required ? <Typography.Text type="danger">*</Typography.Text> : null}
+            {attribute.required ? <Typography.Text type="danger">*</Typography.Text> : null}
           </Space>
         </Col>
 
         <Col style={{ marginLeft: 28 }}>
-          {schema.type !== "object" && (
+          {attribute.type !== "object" && (
             <Typography.Text type="secondary">
-              {schema.type === "string" && schema.schema.format
-                ? schema.schema.format
-                : schema.type}
+              {attribute.type === "string" && attribute.schema.format
+                ? attribute.schema.format
+                : attribute.type}
             </Typography.Text>
           )}
         </Col>

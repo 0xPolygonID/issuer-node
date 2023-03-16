@@ -1,27 +1,32 @@
-import { Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
-import { generatePath, matchPath, useLocation, useNavigate } from "react-router-dom";
+import { Col, Divider, Menu, Row, Space, Typography } from "antd";
+import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
+import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { ROUTES } from "src/routes";
-import { SCHEMAS_TABS, TUTORIALS_URL } from "src/utils/constants";
+import { CREDENTIALS, CREDENTIALS_TABS, SCHEMAS, TUTORIALS_URL } from "src/utils/constants";
 
 export function SiderMenu() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
-  const pathSchemas = ROUTES.schemas.path;
-  const pathIssueClaim = ROUTES.issueClaim.path;
+  const credentialsPath = ROUTES.credentials.path;
+  const schemasPath = ROUTES.schemas.path;
 
   const getSelectedKey = (): string[] => {
-    if (matchPath(pathSchemas, pathname) || matchPath(pathIssueClaim, pathname)) {
-      return ["schemas"];
-    } else {
-      return [];
+    if (matchRoutes([{ path: schemasPath }, { path: ROUTES.importSchema.path }], pathname)) {
+      return [schemasPath];
+    } else if (
+      matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
+    ) {
+      return [credentialsPath];
     }
+
+    return [];
   };
 
   return (
@@ -35,12 +40,18 @@ export function SiderMenu() {
           items={[
             {
               icon: <IconSchema />,
-              key: "schemas",
-              label: "Schemas",
+              key: schemasPath,
+              label: SCHEMAS,
+              onClick: () => navigate(schemasPath),
+            },
+            {
+              icon: <IconCredentials />,
+              key: credentialsPath,
+              label: CREDENTIALS,
               onClick: () =>
                 navigate(
-                  generatePath(pathSchemas, {
-                    tabID: SCHEMAS_TABS[0].tabID,
+                  generatePath(credentialsPath, {
+                    tabID: CREDENTIALS_TABS[0].tabID,
                   })
                 ),
             },
@@ -66,13 +77,10 @@ export function SiderMenu() {
               ),
             },
           ]}
-          selectedKeys={getSelectedKey()}
         />
 
-        <Space style={{ marginTop: 42 }}>
+        <Space style={{ marginTop: 40 }}>
           <LogoLink />
-
-          <Tag>Testnet</Tag>
         </Space>
       </Col>
     </Row>

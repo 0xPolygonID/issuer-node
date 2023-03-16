@@ -1,8 +1,8 @@
 export type RouteID =
-  | "claimLink"
-  | "createSchema"
+  | "credentialLink"
+  | "credentials"
   | "importSchema"
-  | "issueClaim"
+  | "issueCredential"
   | "notFound"
   | "schemas";
 
@@ -17,21 +17,21 @@ type Routes = Record<
 >;
 
 export const ROUTES: Routes = {
-  claimLink: {
+  credentialLink: {
     layout: "fullWidthGrey",
-    path: "/claim-link/:claimID",
+    path: "/credential-link/:credentialID",
   },
-  createSchema: {
+  credentials: {
     layout: "sider",
-    path: "/claiming/create-schema",
+    path: "/credentials/:tabID",
   },
   importSchema: {
     layout: "sider",
     path: "/schemas/import-schema",
   },
-  issueClaim: {
+  issueCredential: {
     layout: "sider",
-    path: "/schemas/issue-claim/:schemaID",
+    path: "/credentials/issue/:schemaID?",
   },
   notFound: {
     layout: "fullWidth",
@@ -39,6 +39,6 @@ export const ROUTES: Routes = {
   },
   schemas: {
     layout: "sider",
-    path: "/schemas/:tabID",
+    path: "/schemas",
   },
 };
