@@ -107,12 +107,8 @@ Follow these steps:
 
 ### Creating the issuer DID
 
-This determines the owner of the credentials that are issued. You can either reuse an existing DID, or you can generate a new identity by following these steps:
+This determines the owner of the credentials that are issued. You can either reuse an existing DID already configured, or you can generate a new identity running:`make generate-issuer-did` and a new issuer did must be in the environment variable `ISSUER_API_UI_ISSUER_DID` in `.env-api`
 
-1. Navigate to the issuer API frontend (default <http://localhost:3001>).
-2. Under "AUTHENTICATION", enter the credentials provided in `.env-api` (`ISSUER_API_AUTH_USER` & `ISSUER_API_UI_AUTH_PASSWORD`), then click "SET".
-3. Under "IDENTITY" > "Create Identity", click "TRY".
-4. In the resulting JSON response, copy the "identity" value to `ISSUER_API_UI_ISSUER_DID` in `.env-api`.
 
 ### Advanced setup
 

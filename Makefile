@@ -135,3 +135,12 @@ add-private-key:
 print-vault-token:
 	$(eval TOKEN = $(shell docker logs issuer-vault-1 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
 	@echo $(TOKEN)
+
+.PHONY: generate-issuer-did
+generate-issuer-did:
+	$(eval DID = $(shell docker exec issuer-api-ui-1 ./issuer_initializer | grep "did"))
+	@echo $(DID)
+	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
+	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
+	@MV .env-api.tmp .env-api
+
