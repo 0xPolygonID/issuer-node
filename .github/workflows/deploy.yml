@@ -1,4 +1,4 @@
-name: deploy testing
+name: Deploy to Testing
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - "*"
 
 jobs:
-  build:
-    name: Build
+  Deploy:
+    name: Deploy to Testing
     runs-on: ubuntu-latest
     steps:
       - name: executing remote ssh commands using ssh key
