@@ -7,7 +7,7 @@ info:
 
 servers:
   - description: Local
-    url: http://localhost:3001
+    url: http://bolota:3001
 
 tags:
   - name: Identity
