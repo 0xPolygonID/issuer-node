@@ -28,7 +28,7 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 	return res
 }
 
-func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) GetCredentialResponse {
+func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
 	expired := false
 	if w3c.Expiration != nil {
 		if time.Now().UTC().After(w3c.Expiration.UTC()) {
@@ -41,7 +41,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		proofs[i] = string(w3c.Proof[i].ProofType())
 	}
 
-	return GetCredentialResponse{
+	return Credential{
 		Attributes: w3c.CredentialSubject,
 		CreatedAt:  *w3c.IssuanceDate,
 		Expired:    expired,
@@ -52,5 +52,22 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		Revoked:    credential.Revoked,
 		SchemaHash: credential.SchemaHash,
 		SchemaType: credential.SchemaType,
+	}
+}
+
+func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {
+	credResp := make([]Credential, len(w3cs))
+	for i := range credentials {
+		credResp[i] = credentialResponse(w3cs[i], credentials[i])
+	}
+
+	return GetConnectionResponse{
+		Connection: Connection{
+			CreatedAt: conn.CreatedAt,
+			Id:        conn.ID.String(),
+			UserID:    conn.UserDID.String(),
+			IssuerID:  conn.IssuerDID.String(),
+		},
+		Credentials: credResp,
 	}
 }

@@ -5,7 +5,9 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -37,4 +39,16 @@ func (c *connection) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error) {
+	conn, err := c.connRepo.GetByIDAndIssuerID(ctx, c.storage.Pgx, id, issuerDID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
+			return nil, ErrConnectionDoesNotExist
+		}
+		return nil, err
+	}
+
+	return conn, nil
 }

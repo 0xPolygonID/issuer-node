@@ -477,6 +477,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	require.NoError(t, err)
 
 	conn := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
 		IssuerDID:  *issuerDID,
 		UserDID:    *userDID,
 		IssuerDoc:  nil,
@@ -824,16 +825,9 @@ func TestServer_GetCredential(t *testing.T) {
 
 	handler := getHandler(ctx, server)
 
-	type credentialKYCSubject struct {
-		Id           string `json:"id"`
-		Birthday     uint64 `json:"birthday"`
-		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
-	}
-
 	type expected struct {
 		message  *string
-		response GetCredential200JSONResponse
+		response Credential
 		httpCode int
 	}
 
@@ -872,7 +866,7 @@ func TestServer_GetCredential(t *testing.T) {
 				Id: claim.ID,
 			},
 			expected: expected{
-				response: GetCredential200JSONResponse{
+				response: Credential{
 					Attributes: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
@@ -907,23 +901,9 @@ func TestServer_GetCredential(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				var response GetCredentialResponse
+				var response Credential
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, tc.expected.response.Id, response.Id)
-				assert.Equal(t, tc.expected.response.SchemaType, response.SchemaType)
-				assert.Equal(t, tc.expected.response.SchemaHash, response.SchemaHash)
-				assert.Equal(t, tc.expected.response.Revoked, response.Revoked)
-				assert.Equal(t, tc.expected.response.RevNonce, response.RevNonce)
-				assert.InDelta(t, tc.expected.response.CreatedAt.Unix(), response.CreatedAt.Unix(), 10)
-				if response.ExpiresAt != nil && tc.expected.response.ExpiresAt != nil {
-					assert.InDelta(t, tc.expected.response.ExpiresAt.Unix(), response.ExpiresAt.Unix(), 10)
-				}
-				assert.Equal(t, tc.expected.response.Expired, response.Expired)
-				var respAttributes, tcCredentialSubject credentialKYCSubject
-				assert.NoError(t, mapstructure.Decode(tc.expected.response.Attributes, &tcCredentialSubject))
-				assert.NoError(t, mapstructure.Decode(response.Attributes, &respAttributes))
-				assert.EqualValues(t, respAttributes, tcCredentialSubject)
-				assert.EqualValues(t, tc.expected.response.ProofTypes, response.ProofTypes)
+				validateCredential(t, tc.expected.response, response)
 			case http.StatusBadRequest:
 				var response GetCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -931,6 +911,219 @@ func TestServer_GetCredential(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServer_GetConnection(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, schemaService, identityService, mtService, identityStateRepo, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	fixture := tests.NewFixture(storage)
+	claim := fixture.NewClaim(t, did.String())
+	fixture.CreateClaim(t, claim)
+
+	usrDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+
+	usrDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qFBp1sRF1bFbTybVHHZQRgSWE2nKrdWeAxyZ67PdG")
+	require.NoError(t, err)
+
+	connID := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *did,
+		UserDID:    *usrDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	connID2 := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *did,
+		UserDID:    *usrDID2,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		message  *string
+		response GetConnection200JSONResponse
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		request  GetConnectionRequestObject
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			request: GetConnectionRequestObject{
+				Id: uuid.New(),
+			},
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "should return an error, connection not found",
+			auth: authOk,
+			request: GetConnectionRequestObject{
+				Id: uuid.New(),
+			},
+			expected: expected{
+				message:  common.ToPointer("The given connection does not exist"),
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "happy path 1 claim",
+			auth: authOk,
+			request: GetConnectionRequestObject{
+				Id: connID,
+			},
+			expected: expected{
+				response: GetConnection200JSONResponse{
+					Connection: Connection{
+						CreatedAt: time.Now(),
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+					},
+					Credentials: []Credential{
+						{
+							Attributes: map[string]interface{}{
+								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+								"birthday":     19960424,
+								"documentType": 2,
+								"type":         "KYCAgeCredential",
+							},
+							CreatedAt:  time.Now().UTC(),
+							Expired:    false,
+							ExpiresAt:  nil,
+							Id:         claim.ID,
+							ProofTypes: []string{},
+							RevNonce:   uint64(claim.RevNonce),
+							Revoked:    claim.Revoked,
+							SchemaHash: claim.SchemaHash,
+							SchemaType: claim.SchemaType,
+						},
+					},
+				},
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "happy path 0 claims",
+			auth: authOk,
+			request: GetConnectionRequestObject{
+				Id: connID2,
+			},
+			expected: expected{
+				response: GetConnection200JSONResponse{
+					Connection: Connection{
+						CreatedAt: time.Now(),
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+					},
+					Credentials: []Credential{},
+				},
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/connections/%s", tc.request.Id.String())
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetConnection200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				require.Equal(t, len(tc.expected.response.Credentials), len(response.Credentials))
+				for i := range tc.expected.response.Credentials {
+					validateCredential(t, tc.expected.response.Credentials[i], response.Credentials[i])
+				}
+				assert.Equal(t, tc.expected.response.Connection.Id, response.Connection.Id)
+				assert.Equal(t, tc.expected.response.Connection.IssuerID, response.Connection.IssuerID)
+				assert.Equal(t, tc.expected.response.Connection.UserID, response.Connection.UserID)
+				assert.InDelta(t, tc.expected.response.Connection.CreatedAt.Unix(), response.Connection.CreatedAt.Unix(), 10)
+			case http.StatusBadRequest:
+				var response GetConnection400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
+func validateCredential(t *testing.T, tc Credential, response Credential) {
+	type credentialKYCSubject struct {
+		Id           string `json:"id"`
+		Birthday     uint64 `json:"birthday"`
+		DocumentType uint64 `json:"documentType"`
+		Type         string `json:"type"`
+	}
+
+	assert.Equal(t, tc.Id, response.Id)
+	assert.Equal(t, tc.SchemaType, response.SchemaType)
+	assert.Equal(t, tc.SchemaHash, response.SchemaHash)
+	assert.Equal(t, tc.Revoked, response.Revoked)
+	assert.Equal(t, tc.RevNonce, response.RevNonce)
+	assert.InDelta(t, tc.CreatedAt.Unix(), response.CreatedAt.Unix(), 10)
+	if response.ExpiresAt != nil && tc.ExpiresAt != nil {
+		assert.InDelta(t, tc.ExpiresAt.Unix(), response.ExpiresAt.Unix(), 10)
+	}
+	assert.Equal(t, tc.Expired, response.Expired)
+	var respAttributes, tcCredentialSubject credentialKYCSubject
+	assert.NoError(t, mapstructure.Decode(tc.Attributes, &tcCredentialSubject))
+	assert.NoError(t, mapstructure.Decode(response.Attributes, &respAttributes))
+	assert.EqualValues(t, respAttributes, tcCredentialSubject)
+	assert.EqualValues(t, tc.ProofTypes, response.ProofTypes)
 }
 
 func TestServer_RevokeCredential(t *testing.T) {

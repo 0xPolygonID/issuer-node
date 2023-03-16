@@ -24,6 +24,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers
@@ -242,11 +243,16 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 	}
 
 	claims, err := s.claimService.GetAll(ctx, did, filter)
-	if err != nil {
+	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
 		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
 	}
 
-	return toGetClaims200Response(claims), nil
+	w3Claims, err := schema.FromClaimsModelToW3CCredential(claims)
+	if err != nil {
+		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error parsing the claims"}}, nil
+	}
+
+	return toGetClaims200Response(w3Claims), nil
 }
 
 // GetClaimQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and

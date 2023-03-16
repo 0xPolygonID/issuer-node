@@ -115,6 +115,27 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+    get:
+      summary: get connection
+      operationId: getConnection
+      description: get connection
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetConnectionResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
   /v1/credentials/{id}:
     get:
@@ -133,7 +154,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetCredentialResponse'
+                $ref: '#/components/schemas/Credential'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -375,7 +396,7 @@ components:
           type: string
           example: 'Something happen'
 
-    GetCredentialResponse:
+    Credential:
       type: object
       required:
         - id
@@ -426,6 +447,41 @@ components:
       properties:
         message:
           type: string
+
+    Connection:
+      type: object
+      required:
+        - id
+        - userID
+        - issuerID
+        - createdAt
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        userID:
+          type: string
+          x-omitempty: false
+        issuerID:
+          type: string
+          x-omitempty: false
+        createdAt:
+          type: string
+          format: date-time
+
+
+    GetConnectionResponse:
+      type: object
+      required:
+        - connection
+        - credentials
+      properties:
+        connection:
+          $ref: '#/components/schemas/Connection'
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credential'
 
     CreateCredentialRequest:
       type: object
