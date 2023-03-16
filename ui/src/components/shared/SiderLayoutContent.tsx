@@ -1,25 +1,26 @@
 import { Button, Col, Divider, Layout, Row, Space, Typography } from "antd";
 import { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconArrowLeft } from "src/assets/icons/arrow-narrow-left.svg";
 import { CONTENT_WIDTH } from "src/utils/constants";
 
 export function SiderLayoutContent({
-  backButtonLink,
   children,
   description,
   extra = null,
+  showBackButton,
   showDivider = false,
   title,
 }: {
-  backButtonLink?: string;
   children: ReactNode;
   description?: string;
   extra?: ReactNode;
+  showBackButton?: boolean;
   showDivider?: boolean;
   title?: string;
 }) {
+  const navigate = useNavigate();
   return (
     <>
       <Layout.Header
@@ -28,10 +29,11 @@ export function SiderLayoutContent({
       >
         <Row justify="space-between">
           <Space align="start" size="large">
-            {backButtonLink && (
-              <Link to={backButtonLink}>
-                <Button icon={<IconArrowLeft style={{ marginRight: 0 }} />} />
-              </Link>
+            {showBackButton && (
+              <Button
+                icon={<IconArrowLeft style={{ marginRight: 0 }} />}
+                onClick={() => navigate(-1)}
+              />
             )}
 
             <Col style={{ lineHeight: "1rem", maxWidth: CONTENT_WIDTH }}>

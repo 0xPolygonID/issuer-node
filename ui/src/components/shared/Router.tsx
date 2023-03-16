@@ -1,22 +1,22 @@
 import { ComponentType } from "react";
-import { Navigate, Route, Routes, generatePath } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
+import { Credentials } from "src/components/credentials/Credentials";
+import { IssueCredential } from "src/components/credentials/IssueCredential";
+import { ScanCredentialLink } from "src/components/credentials/ScanCredentialLink";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
-import { CreateSchema } from "src/components/schemas/CreateSchema";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
-import { Issuance } from "src/components/schemas/Issuance";
-import { ScanClaim } from "src/components/schemas/ScanClaim";
 import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
 import { Layout, ROUTES, RouteID } from "src/routes";
-import { ROOT_PATH, SCHEMAS_TABS } from "src/utils/constants";
+import { ROOT_PATH } from "src/utils/constants";
 
 const COMPONENTS: Record<RouteID, ComponentType> = {
-  claimLink: ScanClaim,
-  createSchema: CreateSchema,
+  credentialLink: ScanCredentialLink,
+  credentials: Credentials,
   importSchema: ImportSchema,
-  issueClaim: Issuance,
+  issueCredential: IssueCredential,
   notFound: NotFound,
   schemas: Schemas,
 };
@@ -36,16 +36,8 @@ export function Router() {
 
   return (
     <Routes>
-      <Route
-        element={
-          <Navigate
-            to={generatePath(ROUTES.schemas.path, {
-              tabID: SCHEMAS_TABS[0].tabID,
-            })}
-          />
-        }
-        path={ROOT_PATH}
-      />
+      <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
+
       <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
 
       <Route element={<FullWidthLayout background="bg-light" />}>

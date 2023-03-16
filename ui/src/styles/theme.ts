@@ -83,5 +83,6 @@ export const theme: ThemeConfig = {
     fontFamily: "ModernEra-Regular",
     fontSize: 16,
     fontSizeHeading2: 32,
+    fontSizeSM: 14,
   },
 };
