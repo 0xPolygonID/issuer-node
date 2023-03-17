@@ -409,15 +409,12 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
 	sessionID := uuid.New().String()
-	reqID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
-	}
+	reqID := uuid.New().String()
 
 	qrCode := &protocol.AuthorizationRequestMessage{
 		From:     issuerDID.String(),
-		ID:       reqID.String(),
-		ThreadID: reqID.String(),
+		ID:       reqID,
+		ThreadID: reqID,
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
@@ -426,7 +423,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		},
 	}
 
-	err = i.sessionManager.Set(ctx, sessionID, *qrCode)
+	err := i.sessionManager.Set(ctx, sessionID, *qrCode)
 
 	return qrCode, err
 }
