@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
@@ -297,8 +298,18 @@ func TestServer_GetSchema(t *testing.T) {
 	}
 }
 
+// Refer to the schema repository tests for more deep test related to Postgres Full Text Search
 func TestServer_GetSchemas(t *testing.T) {
 	ctx := context.Background()
+	// Need an isolated DB here to avoid other tests side effects
+	conn := lookupPostgresURL()
+	if conn == "" {
+		conn = "postgres://postgres:postgres@localhost:5435"
+	}
+	storage, teardown, err := tests.NewTestStorage(&config.Configuration{Database: config.Database{URL: conn}})
+	require.NoError(t, err)
+	defer teardown()
+
 	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
 	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -323,7 +334,6 @@ func TestServer_GetSchemas(t *testing.T) {
 	handler := getHandler(ctx, server)
 	type expected struct {
 		httpCode int
-		errorMsg string
 		count    int
 	}
 	type testConfig struct {
@@ -341,12 +351,38 @@ func TestServer_GetSchemas(t *testing.T) {
 			},
 		},
 		{
-			name:  "Happy path. All schemas",
+			name:  "Happy path. All schemas, no query",
 			auth:  authOk,
 			query: nil,
 			expected: expected{
 				httpCode: http.StatusOK,
-				errorMsg: "schema not found",
+				count:    20,
+			},
+		},
+		{
+			name:  "Happy path. All schemas, query=''",
+			auth:  authOk,
+			query: common.ToPointer(""),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    20,
+			},
+		},
+		{
+			name:  "Happy path. Search for schema type. All",
+			auth:  authOk,
+			query: common.ToPointer("schemaType"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    20,
+			},
+		},
+		{
+			name:  "Happy path. Search for one schema but many attr. Return all",
+			auth:  authOk,
+			query: common.ToPointer("schemaType-11 attr1"),
+			expected: expected{
+				httpCode: http.StatusOK,
 				count:    20,
 			},
 		},
@@ -355,7 +391,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			rr := httptest.NewRecorder()
 			endpoint := "/v1/schemas"
 			if tc.query != nil {
-				endpoint = url.QueryEscape(endpoint + "?query=" + *tc.query)
+				endpoint = endpoint + "?query=" + url.QueryEscape(*tc.query)
 			}
 			req, err := http.NewRequest("GET", endpoint, nil)
 			req.SetBasicAuth(tc.auth())
@@ -368,7 +404,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			case http.StatusOK:
 				var response GetSchemas200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.GreaterOrEqual(t, len(response), 20)
+				assert.Equal(t, len(response), 20)
 			}
 		})
 	}

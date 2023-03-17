@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -38,19 +39,54 @@ func NewSchema(conn db.Storage) *schema {
 
 // Save stores a new entry in schemas table
 func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
-	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type, attributes, hash, created_at) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7);`
+	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type, attributes, hash, ts_words, created_at) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, to_tsvector($7::text), $8);`
 	hash, err := s.Hash.MarshalText()
 	if err != nil {
 		return err
 	}
-	_, err = r.conn.Pgx.Exec(ctx, insertSchema, s.ID, s.IssuerDID.String(), s.URL, s.Type, s.Attributes.String(), string(hash), s.CreatedAt)
+	_, err = r.conn.Pgx.Exec(
+		ctx,
+		insertSchema,
+		s.ID,
+		s.IssuerDID.String(),
+		s.URL,
+		s.Type,
+		s.Attributes.String(),
+		string(hash),
+		r.toFullTextSearchDocument(s.Type, s.Attributes),
+		s.CreatedAt)
 	return err
 }
 
-// GetAll returns all the schemas that match the query filter
-func (r *schema) GetAll(ctx context.Context, _ *string) ([]domain.Schema, error) {
-	const all = `SELECT id, issuer_id, url, type, attributes, hash, created_at FROM schemas ORDER BY created_at DESC`
-	rows, err := r.conn.Pgx.Query(ctx, all)
+func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaAttrs) string {
+	var sb strings.Builder
+	sb.WriteString(sType + " ")
+	sb.WriteString(" ")
+	for _, attr := range attrs {
+		sb.WriteString(attr + " ")
+	}
+	return sb.String()
+}
+
+// GetAll returns all the schemas that match any of the words that are included in the query string.
+// For each word, it will search for attributes that start with it or include it following postgres full text search tokenization
+func (r *schema) GetAll(ctx context.Context, query *string) ([]domain.Schema, error) {
+	const all = `SELECT id, issuer_id, url, type, attributes, hash, created_at
+	FROM schemas
+	ORDER BY created_at DESC`
+	const allFTS = `
+SELECT id, issuer_id, url, type, attributes, hash, created_at 
+FROM schemas 
+WHERE ts_words @@ to_tsquery($1)
+ORDER BY created_at DESC`
+	var err error
+	var rows pgx.Rows
+
+	if query != nil && *query != "" {
+		rows, err = r.conn.Pgx.Query(ctx, allFTS, fullTextSearchQuery(*query, " | "))
+	} else {
+		rows, err = r.conn.Pgx.Query(ctx, all)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -68,6 +104,22 @@ func (r *schema) GetAll(ctx context.Context, _ *string) ([]domain.Schema, error)
 		schemaCol = append(schemaCol, *item)
 	}
 	return schemaCol, nil
+}
+
+// fullTextSearchQuery accepts a query with a list of words and returns a tsquery that includes words that
+// begin or contains that words. operator is used to pass an operator between words.
+// https://www.postgresql.org/docs/current/datatype-textsearch.html#DATATYPE-TSQUERY
+func fullTextSearchQuery(query string, operator string) string {
+	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
+	terms := make([]string, 0, len(words))
+	for _, word := range words {
+		word = strings.TrimSpace(word)
+		if word == "" {
+			continue
+		}
+		terms = append(terms, "("+word+":* | "+word+")")
+	}
+	return strings.Join(terms, operator)
 }
 
 // GetByID searches and returns an schema by id
