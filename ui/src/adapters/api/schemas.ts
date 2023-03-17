@@ -89,7 +89,7 @@ export async function schemasGetAll({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: btoa(`Basic ${API_USERNAME}:${API_PASSWORD}`),
       },
       method: "GET",
       params: new URLSearchParams({
