@@ -2,7 +2,7 @@ import { Form, Select, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 
 import { generatePath, useNavigate } from "react-router-dom";
-import { Schema, schemasGetAll } from "src/adapters/api/schemas";
+import { Schema, getSchemas } from "src/adapters/api/schemas";
 import { ROUTES } from "src/routes";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_TYPE } from "src/utils/constants";
@@ -15,14 +15,14 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
 
   const navigate = useNavigate();
 
-  const getSchemas = useCallback(async (signal: AbortSignal) => {
+  const onGetSchemas = useCallback(async (signal: AbortSignal) => {
     setSchemas((oldState) =>
       isAsyncTaskDataAvailable(oldState)
         ? { data: oldState.data, status: "reloading" }
         : { status: "loading" }
     );
 
-    const response = await schemasGetAll({
+    const response = await getSchemas({
       params: {},
       signal,
     });
@@ -38,10 +38,10 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
   }, []);
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(getSchemas);
+    const { aborter } = makeRequestAbortable(onGetSchemas);
 
     return aborter;
-  }, [getSchemas]);
+  }, [onGetSchemas]);
 
   return (
     <Form layout="vertical">

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Credential, credentialIssue } from "src/adapters/api/credentials";
-import { Schema, schemasGetSingle } from "src/adapters/api/schemas";
+import { Schema, getSchema } from "src/adapters/api/schemas";
 import { issueCredentialFormData } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
 import {
@@ -48,12 +48,12 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const getSchema = useCallback(
+  const onGetSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
         setSchema({ status: "loading" });
 
-        const response = await schemasGetSingle({
+        const response = await getSchema({
           schemaID,
           signal,
         });
@@ -101,13 +101,13 @@ export function IssueCredential() {
     setFormData(defaultFormData);
 
     if (schemaID) {
-      const { aborter } = makeRequestAbortable(getSchema);
+      const { aborter } = makeRequestAbortable(onGetSchema);
       return aborter;
     } else {
       setSchema({ status: "pending" });
     }
     return;
-  }, [getSchema, schemaID]);
+  }, [onGetSchema, schemaID]);
 
   return (
     <SiderLayoutContent

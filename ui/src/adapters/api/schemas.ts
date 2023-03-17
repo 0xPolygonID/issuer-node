@@ -1,6 +1,7 @@
 import axios from "axios";
 import { z } from "zod";
 
+import { JsonLdType } from "src/domain";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -8,13 +9,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import {
-  API_PASSWORD,
-  API_URL,
-  API_USERNAME,
-  ISSUER_DID,
-  QUERY_SEARCH_PARAM,
-} from "src/utils/constants";
+import { API_PASSWORD, API_URL, API_USERNAME, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface Schema {
@@ -43,7 +38,35 @@ export type SchemaAttribute = {
     }
 );
 
-export async function schemasGetSingle({
+export async function importSchema({
+  jsonLdType,
+  url,
+}: {
+  jsonLdType: JsonLdType;
+  url: string;
+}): Promise<APIResponse<{ id: string }>> {
+  try {
+    const response = await axios({
+      baseURL: API_URL,
+      data: {
+        schemaType: jsonLdType.name,
+        url: url,
+      },
+      headers: {
+        Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
+      },
+      method: "POST",
+      url: "schemas",
+    });
+    const { id } = z.object({ id: z.string() }).parse(response.data);
+
+    return { data: { id }, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function getSchema({
   schemaID,
   signal,
 }: {
@@ -54,11 +77,11 @@ export async function schemasGetSingle({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
       },
       method: "GET",
       signal,
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}`,
+      url: `schemas/${schemaID}`,
     });
     const { data } = resultOKSchema.parse(response);
 
@@ -68,7 +91,7 @@ export async function schemasGetSingle({
   }
 }
 
-export async function schemasGetAll({
+export async function getSchemas({
   params: { query },
   signal,
 }: {
@@ -163,7 +186,7 @@ export const schema = StrictSchema<Schema>()(
   })
 );
 
-export const resultCreatedSchema = StrictSchema<ResultCreated<Schema>>()(
+export const resultImportSchema = StrictSchema<ResultCreated<Schema>>()(
   z.object({
     data: schema,
     status: z.literal(HTTPStatusSuccess.Created),
