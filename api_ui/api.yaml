@@ -20,41 +20,10 @@ tags:
     description: Collection of endpoints related to Connections
 
 paths:
-  /:
-    get:
-      summary: Get the documentation
-      operationId: GetDocumentation
-      x-internal: true
-      responses:
-        200:
-          description: success and returns the documentation in HTML format
-
-  /static/docs/api_admin/api.yaml:
-    get:
-      summary: Get the documentation yaml file
-      operationId: GetYaml
-      x-internal: true
-      responses:
-        200:
-          description: success and returns the documentation in Yaml format
-
-  /status:
-    get:
-      summary: Healthcheck
-      operationId: Health
-      responses:
-        '200':
-          description: All services are running
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Health'
-        '500':
-          $ref: '#/components/responses/500'
-
+  #authentication
   /v1/authentication/qrcode:
     get:
-      summary: get authentication qrcode
+      summary: Get Authentication QRCode
       operationId: authQRCode
       description: Authentication qrcode
       tags:
@@ -71,7 +40,7 @@ paths:
 
   /v1/authentication/callback:
     post:
-      summary: authentication callback
+      summary: Authentication Callback
       operationId: authCallback
       description: Authentication callback
       tags:
@@ -93,30 +62,10 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  #connections:
   /v1/connections/{id}:
-    delete:
-      summary: delete connection
-      operationId: deleteConnection
-      description: delete connection
-      tags:
-        - Connection
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/id'
-      responses:
-        '200':
-          description: ok
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericMessage'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
     get:
-      summary: get connection
+      summary: Get Connection
       operationId: getConnection
       description: get connection
       tags:
@@ -136,14 +85,12 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
-
-  /v1/credentials/{id}:
-    get:
-      summary: get credential
-      operationId: getCredential
-      description: get credential details
+    delete:
+      summary: Delete Connection
+      operationId: deleteConnection
+      description: delete connection
       tags:
-        - Credential
+        - Connection
       security:
         - basicAuth: [ ]
       parameters:
@@ -154,39 +101,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Credential'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
-    delete:
-      summary: Delete a Credential
-      operationId: DeleteCredential
-      description: Endpoint to delete a Credential
-      tags:
-        - Credential
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/id'
-      responses:
-        '200':
-          description: Claim deleted
-          content:
-            application/json:
-              schema:
                 $ref: '#/components/schemas/GenericMessage'
         '400':
           $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
+
 
   #credentials:
   /v1/credentials:
     post:
-      summary: Create a Credential
+      summary: Create Credential
       operationId: CreateCredential
       description: Endpoint to create a Credential
       tags:
@@ -221,7 +146,7 @@ paths:
       operationId: RevokeCredential
       description: Endpoint to revoke a credential
       tags:
-        - Credentials
+        - Credential
       security:
         - basicAuth: [ ]
       parameters:
@@ -240,9 +165,56 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/{id}:
+    get:
+      summary: Get Credential
+      operationId: getCredential
+      description: Get credential details
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credential'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete Credential
+      operationId: DeleteCredential
+      description: Endpoint to delete a Credential
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Claim deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  #schemas:
   /v1/schemas/{id}:
     get:
-      summary: Retrieves schema from id
+      summary: Get Schema
       operationId: GetSchema
       security:
         - basicAuth: [ ]
@@ -266,7 +238,7 @@ paths:
 
   /v1/schemas:
     get:
-      summary: Search for schemas.
+      summary: Get Schemas
       operationId : GetSchemas
       security:
         - basicAuth: [ ]
@@ -317,6 +289,38 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  #others:
+  /:
+    get:
+      summary: Get the documentation
+      operationId: GetDocumentation
+      x-internal: true
+      responses:
+        200:
+          description: success and returns the documentation in HTML format
+
+  /static/docs/api_admin/api.yaml:
+    get:
+      summary: Get the documentation yaml file
+      operationId: GetYaml
+      x-internal: true
+      responses:
+        200:
+          description: success and returns the documentation in Yaml format
+
+  /status:
+    get:
+      summary: Healthcheck
+      operationId: Health
+      responses:
+        '200':
+          description: All services are running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/500'
 
 components:
   securitySchemes:
@@ -563,9 +567,14 @@ components:
     sessionID:
       name: sessionID
       in: query
+      required: true
       description: Session ID
       schema:
         type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
 
     id:
       name: id
