@@ -2,13 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { JsonLdType } from "src/domain";
-import {
-  APIResponse,
-  HTTPStatusSuccess,
-  ResultCreated,
-  ResultOK,
-  buildAPIError,
-} from "src/utils/adapters";
+import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
 import { API_PASSWORD, API_URL, API_USERNAME, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
