@@ -56,9 +56,9 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
           value={schemaID && isAsyncTaskDataAvailable(schemas) ? schemaID : undefined}
         >
           {isAsyncTaskDataAvailable(schemas) &&
-            schemas.data.map(({ id, schema }) => (
+            schemas.data.map(({ id, type }) => (
               <Select.Option key={id} value={id}>
-                {schema}
+                {type}
               </Select.Option>
             ))}
         </Select>

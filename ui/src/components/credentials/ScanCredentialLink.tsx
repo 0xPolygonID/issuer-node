@@ -188,9 +188,9 @@ export function ScanCredentialLink() {
             }}
           >
             <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
-              <Typography.Title ellipsis={{ tooltip: true }} level={3}>
+              {/* <Typography.Title ellipsis={{ tooltip: true }} level={3}>
                 {shareCredentialQRCode.data.offerDetails.schemaTemplate.schema}
-              </Typography.Title>
+              </Typography.Title> */}
 
               <Typography.Title level={5} type="secondary">
                 Attributes
@@ -199,7 +199,8 @@ export function ScanCredentialLink() {
               {shareCredentialQRCode.data.offerDetails.attributeValues.map((attribute) => {
                 const formattedValue = formatAttributeValue(
                   attribute,
-                  shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
+                  // shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
+                  []
                 );
 
                 return (

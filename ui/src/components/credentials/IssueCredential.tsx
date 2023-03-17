@@ -70,9 +70,10 @@ export function IssueCredential() {
     [schemaID]
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const issueCredential = (formData: FormData, schema: Schema) => {
     if (schemaID) {
-      const parsedForm = issueCredentialFormData(schema.attributes).safeParse(formData);
+      const parsedForm = issueCredentialFormData([]).safeParse(formData);
 
       if (parsedForm.success) {
         setCredential({ status: "loading" });

@@ -27,15 +27,15 @@ export function MySchemas() {
 
   const tableContents: ColumnsType<Schema> = [
     {
-      dataIndex: "schema",
+      dataIndex: "type",
       ellipsis: { showTitle: false },
-      key: "schema",
-      render: (name: string) => (
-        <Tooltip placement="topLeft" title={name}>
-          <Typography.Text strong>{name}</Typography.Text>
+      key: "type",
+      render: (type: string) => (
+        <Tooltip placement="topLeft" title={type}>
+          <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schema: a }, { schema: b }) => a.localeCompare(b),
+      sorter: ({ type: a }, { type: b }) => a.localeCompare(b),
       title: SCHEMA_TYPE,
     },
     {

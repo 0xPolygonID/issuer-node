@@ -18,15 +18,12 @@ import {
 import { StrictSchema } from "src/utils/types";
 
 export interface Schema {
-  attributes: SchemaAttribute[];
+  bigInt: string;
   createdAt: Date;
+  hash: string;
   id: string;
-  issuerID: string;
-  mandatoryExpiration: boolean;
-  schema: string;
-  schemaHash: string;
-  schemaURL: string;
-  version: string;
+  type: string;
+  url: string;
 }
 
 export type SchemaAttribute = {
@@ -89,7 +86,7 @@ export async function schemasGetAll({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Basic ${btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
+        Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
       },
       method: "GET",
       params: new URLSearchParams({
@@ -157,15 +154,12 @@ export const schemaAttribute = StrictSchema<SchemaAttribute>()(
 
 export const schema = StrictSchema<Schema>()(
   z.object({
-    attributes: z.array(schemaAttribute),
+    bigInt: z.string(),
     createdAt: z.coerce.date(),
+    hash: z.string(),
     id: z.string(),
-    issuerID: z.string(),
-    mandatoryExpiration: z.boolean(),
-    schema: z.string(),
-    schemaHash: z.string(),
-    schemaURL: z.string(),
-    version: z.string(),
+    type: z.string(),
+    url: z.string(),
   })
 );
 
