@@ -105,7 +105,7 @@ Follow these steps:
 
 ### Creating the issuer DID
 
-This determines the owner of the credentials that are issued. You can either reuse an existing DID already configured, or you can generate a new identity running:`make generate-issuer-did` and a new issuer did must be in the environment variable `ISSUER_API_UI_ISSUER_DID` in `.env-api`
+This determines the owner of the credentials that are issued. You can either reuse an existing DID already configured, or you can generate a new identity running:`make generate-issuer-did` (or `generate-issuer-did-arm`) and a new issuer did must be in the environment variable `ISSUER_API_UI_ISSUER_DID` in `.env-api`
 
 
 ### Advanced setup
