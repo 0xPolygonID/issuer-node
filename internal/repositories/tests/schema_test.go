@@ -193,7 +193,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			collection, err := store.GetAll(ctx, tc.query)
 			require.NoError(t, err)
 			require.Len(t, collection, len(tc.expected.collection))
-			for i, _ := range collection {
+			for i := range collection {
 				assert.Equal(t, collection[i].Type, tc.expected.collection[i].Type)
 				assert.Equal(t, collection[i].Attributes, tc.expected.collection[i].Attributes)
 			}
@@ -203,7 +203,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 
 func insertSchemaGetAllData(t *testing.T, ctx context.Context, did core.DID, store ports.SchemaRepository) {
 	t.Helper()
-	var data = []struct {
+	data := []struct {
 		typ        string
 		attributes domain.SchemaAttrs
 	}{

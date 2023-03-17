@@ -314,7 +314,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			ID:         uuid.New(),
 			IssuerDID:  *issuerDID,
 			URL:        fmt.Sprintf("https://domain.org/this/is/an/url/%d", i),
-			Type:       fmt.Sprintf("schemaType-%s"),
+			Type:       fmt.Sprintf("schemaType-%d", i),
 			Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
 			CreatedAt:  time.Now(),
 		}
@@ -325,7 +325,6 @@ func TestServer_GetSchemas(t *testing.T) {
 	handler := getHandler(ctx, server)
 	type expected struct {
 		httpCode int
-		errorMsg string
 		count    int
 	}
 	type testConfig struct {

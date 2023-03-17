@@ -111,7 +111,7 @@ ORDER BY created_at DESC`
 // https://www.postgresql.org/docs/current/datatype-textsearch.html#DATATYPE-TSQUERY
 func fullTextSearchQuery(query string, operator string) string {
 	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
-	terms := make([]string, 0, 2*len(words))
+	terms := make([]string, 0, len(words))
 	for _, word := range words {
 		word = strings.TrimSpace(word)
 		if word == "" {
