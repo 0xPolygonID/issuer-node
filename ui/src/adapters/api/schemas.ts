@@ -96,7 +96,7 @@ export async function schemasGetAll({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `issuers/${ISSUER_DID}/schemas`,
+      url: `schemas`,
     });
     const { data } = resultOKSchemasGetAll.parse(response);
 
