@@ -1,6 +1,8 @@
 package errors
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // AuthError is a special error type used to signal an authorization error
 type AuthError struct {

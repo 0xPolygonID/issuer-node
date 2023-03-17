@@ -2,6 +2,7 @@ package api_admin
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
 	"testing"
@@ -81,14 +82,19 @@ func TestMain(m *testing.M) {
 func getHandler(ctx context.Context, server *Server) http.Handler {
 	mux := chi.NewRouter()
 	RegisterStatic(mux)
-	return HandlerFromMux(NewStrictHandlerWithOptions(
-		server,
-		middlewares(ctx),
-		StrictHTTPServerOptions{
-			RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
-			ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
+	return HandlerWithOptions(
+		NewStrictHandlerWithOptions(
+			server,
+			middlewares(ctx),
+			StrictHTTPServerOptions{
+				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
+			}),
+		ChiServerOptions{
+			BaseRouter:       mux,
+			ErrorHandlerFunc: errorHandlerFunc,
 		},
-	), mux)
+	)
 }
 
 func middlewares(ctx context.Context) []StrictMiddlewareFunc {
@@ -96,6 +102,17 @@ func middlewares(ctx context.Context) []StrictMiddlewareFunc {
 	return []StrictMiddlewareFunc{
 		LogMiddleware(ctx),
 		BasicAuthMiddleware(ctx, usr, pass),
+	}
+}
+
+func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
+	switch err.(type) {
+	case *InvalidParamFormatError:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
+	default:
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }
 
