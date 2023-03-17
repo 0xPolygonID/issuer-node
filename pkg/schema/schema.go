@@ -1,14 +1,31 @@
 package schema
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
+	core "github.com/iden3/go-iden3-core"
+	jsonSuite "github.com/iden3/go-schema-processor/json"
+	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 )
+
+// LoadSchema loads schema from url
+func LoadSchema(ctx context.Context, loader loader.Loader) (jsonSuite.Schema, error) {
+	var schema jsonSuite.Schema
+	schemaBytes, _, err := loader.Load(ctx)
+	if err != nil {
+		return schema, err
+	}
+	err = json.Unmarshal(schemaBytes, &schema)
+
+	return schema, err
+}
 
 // FromClaimModelToW3CCredential JSON-LD response base on claim
 func FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.W3CCredential, error) {
@@ -61,4 +78,37 @@ func FromClaimsModelToW3CCredential(claims []*domain.Claim) ([]*verifiable.W3CCr
 	}
 
 	return w3Credentials, nil
+}
+
+// Process data and schema and create Index and Value slots
+func Process(ctx context.Context, ld loader.Loader, credentialType string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
+	var parser processor.Parser
+	var validator processor.Validator
+	pr := &processor.Processor{}
+
+	validator = jsonSuite.Validator{}
+	parser = jsonSuite.Parser{}
+
+	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(ld))
+
+	schema, _, err := pr.Load(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonCredential, err := json.Marshal(credential)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pr.ValidateData(jsonCredential, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	claim, err := pr.ParseClaim(ctx, credential, credentialType, schema, options)
+	if err != nil {
+		return nil, err
+	}
+	return claim, nil
 }

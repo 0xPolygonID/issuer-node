@@ -107,13 +107,12 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil)
-	schemaService := services.NewSchema(schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
-		schemaService,
 		identityService,
 		mtService,
 		identityStateRepository,
+		schemaLoader,
 		storage,
 		services.ClaimCfg{
 			RHSEnabled: cfg.ReverseHashService.Enabled,
@@ -162,7 +161,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, schemaService, publisher, packageManager, serverHealth),
+			api.NewServer(cfg, identityService, claimsService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
