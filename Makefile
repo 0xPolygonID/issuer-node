@@ -139,13 +139,35 @@ add-vault-token:
 	@echo ISSUER_KEY_STORE_TOKEN=$(TOKEN) >> .env-issuer.tmp
 	@MV .env-issuer.tmp .env-issuer
 
+
+.PHONY: run-initializer
+run-initializer:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d initializer
+	sleep 5
+
 .PHONY: generate-issuer-did
-generate-issuer-did:
-	$(eval DID = $(shell docker exec issuer-api-ui-1 ./issuer_initializer | grep "did"))
+generate-issuer-did: run-initializer
+	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
 	@echo $(DID)
 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
 	@MV .env-api.tmp .env-api
+	docker rm issuer-initializer-1
+
+.PHONY: run-initializer-arm
+run-initializer-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d initializer
+	sleep 5
+
+.PHONY: generate-issuer-did-arm
+generate-issuer-did-arm: run-initializer-arm
+	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
+	@echo $(DID)
+	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
+	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
+	@MV .env-api.tmp .env-api
+	docker rm issuer-initializer-1
+
 
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop
