@@ -33,5 +33,4 @@ func TestFullTextSearchQuery(t *testing.T) {
 			assert.Equal(t, tc.expect, fullTextSearchQuery(tc.input, tc.operator))
 		})
 	}
-
 }
