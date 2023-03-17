@@ -186,13 +186,6 @@ export const schema = StrictSchema<Schema>()(
   })
 );
 
-export const resultImportSchema = StrictSchema<ResultCreated<Schema>>()(
-  z.object({
-    data: schema,
-    status: z.literal(HTTPStatusSuccess.Created),
-  })
-);
-
 export const resultOKSchema = StrictSchema<ResultOK<Schema>>()(
   z.object({
     data: schema,
