@@ -25,11 +25,11 @@ _NB: There is no compatibility with Windows environments at this time._
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
-3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts Docker containers for the issuer application.
+3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose admin frontend can be accessed via the browser (default <http://localhost:3001>).
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
-5. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for documentation and credentials issuer setup.
+5. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
+7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
 
 ### Option 2 - Standalone mode
 
@@ -58,13 +58,13 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
     - `pending_publisher`
     - `configurator`
 3. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
-4. Check the file `infrastructure/local/.vault/data/init.out` for the Vault token and copy it under `[KeyStore] Token` in `config.toml`.
+4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Run `./bin/platform` command to start the issuer.
 6. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
-8. Open <http://localhost:3001> in a browser (or whatever was set in the `[Server] URL` config entry). This shows an admin interface for issuer node documentation and credentials setup.
+8. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
 9. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. Its own API will be running on <http://localhost:3002>, unless its URL and port are set otherwise in `.env-api`.
+10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
 
 ## Configuration
 
@@ -78,7 +78,7 @@ In `.env-api`:
 
 - `ISSUER_API_UI_AUTH_USER`
 - `ISSUER_API_UI_AUTH_PASSWORD`
-- `ISSUER_API_UI_ISSUER_DID`
+- `ISSUER_API_UI_ISSUER_DID` - obtained from [here](#creating-the-issuer-did).
 - `ISSUER_ETHEREUM_URL` - this is the Ethereum address of the issuer's DApp.
 - `ISSUER_API_UI_ISSUER_LOGO` - optional (placeholder used if left blank). A valid URL to a minimum 40x40 pixel PNG, JPEG or SVG of the issuer's logo.
 
@@ -86,7 +86,7 @@ In `.env-issuer`:
 
 - `ISSUER_API_AUTH_USER`
 - `ISSUER_API_AUTH_PASSWORD`
-- `ISSUER_KEY_STORE_TOKEN` - obtained from step 4.
+- `ISSUER_KEY_STORE_TOKEN` - obtained from step 3 [here](#adding-ethereum-private-key-to-the-vault).
 
 If you are running the UI, in `.env-ui`:
 
@@ -95,16 +95,22 @@ If you are running the UI, in `.env-ui`:
 
 ### Adding Ethereum private key to the Vault
 
-This allows signing on-chain transactions. In a basic use-case this can be retrieved from an Ethereum wallet that can connect to Polygon Mumbai Testnet.
+This is required for signing on-chain transactions. In a basic use-case this can be retrieved from an Ethereum wallet that can connect to Polygon Mumbai Testnet.
 
-Run the following commands, then exit the CLI:
+Follow these steps:
 
-1. `docker exec -it sh-id-platform-test-vault sh`
-2. `vault write iden3/import/pbkey key_type=ethereum private_key=<private_key>`
+1. Copy your Ethereum private key, pasting it into `<private_key>` in step 2.
+2. Run `make private_key=<private_key> add-private-key`
+3. Run `make add-vault-token`
 
-Alternatively, you can run the following command:
+### Creating the issuer DID
 
-`make private_key=<private_key> add-private-key`
+This determines the owner of the credentials that are issued. You can either reuse an existing DID, or you can generate a new identity by following these steps:
+
+1. Navigate to the issuer API frontend (default <http://localhost:3001>).
+2. Under "AUTHENTICATION", enter the credentials provided in `.env-api` (`ISSUER_API_AUTH_USER` & `ISSUER_API_UI_AUTH_PASSWORD`), then click "SET".
+3. Under "IDENTITY" > "Create Identity", click "TRY".
+4. In the resulting JSON response, copy the "identity" value to `ISSUER_API_UI_ISSUER_DID` in `.env-api`.
 
 ### Advanced setup
 

@@ -1,11 +1,11 @@
 import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
-import { ClaimAttribute } from "src/adapters/api/claims";
+import { CredentialAttribute } from "src/adapters/api/credentials";
 import { SchemaAttribute } from "src/adapters/api/schemas";
-import { ClaimForm, ClaimFormAttribute } from "src/domain";
+import { CredentialForm, CredentialFormAttribute } from "src/domain";
 import { numericBoolean } from "src/utils/adapters";
-import { FORM_LABEL } from "src/utils/constants";
+import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { StrictSchema } from "src/utils/types";
 
@@ -15,9 +15,9 @@ const dayjsInstance = StrictSchema<dayjs.Dayjs>()(
   })
 );
 
-type IssueClaimFormDataAttributesParsingResult =
+type IssueCredentialFormDataAttributesParsingResult =
   | {
-      data: ClaimFormAttribute[];
+      data: CredentialFormAttribute[];
       success: true;
     }
   | {
@@ -25,15 +25,15 @@ type IssueClaimFormDataAttributesParsingResult =
       success: false;
     };
 
-const parseIssueClaimFormDataAttributes = (
+const parseIssueCredentialFormDataAttributes = (
   attributes: Record<string, unknown>,
   schemaAttributes: SchemaAttribute[]
-): IssueClaimFormDataAttributesParsingResult => {
+): IssueCredentialFormDataAttributesParsingResult => {
   return Object.entries(attributes).reduce(
     (
-      acc: IssueClaimFormDataAttributesParsingResult,
+      acc: IssueCredentialFormDataAttributesParsingResult,
       [attributeKey, attributeValue]: [string, unknown]
-    ): IssueClaimFormDataAttributesParsingResult => {
+    ): IssueCredentialFormDataAttributesParsingResult => {
       if (!acc.success) {
         return acc;
       }
@@ -57,6 +57,7 @@ const parseIssueClaimFormDataAttributes = (
         switch (foundSchemaAttribute.type) {
           case "date": {
             const parsedValue = dayjsInstance.safeParse(attributeValue);
+
             return parsedValue.success
               ? {
                   data: [
@@ -76,6 +77,7 @@ const parseIssueClaimFormDataAttributes = (
           }
           case "number": {
             const parsedValue = z.number().safeParse(attributeValue);
+
             return parsedValue.success
               ? {
                   data: [
@@ -95,6 +97,7 @@ const parseIssueClaimFormDataAttributes = (
           }
           case "boolean": {
             const parsedValue = numericBoolean.safeParse(attributeValue);
+
             return parsedValue.success
               ? {
                   data: [
@@ -114,6 +117,7 @@ const parseIssueClaimFormDataAttributes = (
           }
           case "singlechoice": {
             const parsedValue = z.number().safeParse(attributeValue);
+
             return parsedValue.success
               ? {
                   data: [
@@ -138,67 +142,69 @@ const parseIssueClaimFormDataAttributes = (
   );
 };
 
-export const parseClaimLinkExpirationDate = StrictSchema<{
-  claimLinkExpirationDate: dayjs.Dayjs | null;
+export const parseLinkExpirationDate = StrictSchema<{
+  linkExpirationDate: dayjs.Dayjs | null;
 }>()(
   z.object({
-    claimLinkExpirationDate: dayjsInstance.nullable(),
+    linkExpirationDate: dayjsInstance.nullable(),
   })
 );
 
-const issueClaimFormDataInput = z.object({
+const issueCredentialFormDataInput = z.object({
   attributes: z.object({
     attributes: z.record(z.unknown()),
     expirationDate: dayjsInstance.nullish(),
   }),
   issuanceMethod: z.object({
-    claimLinkExpirationDate: dayjsInstance.nullish(),
-    claimLinkExpirationTime: dayjsInstance.nullish(),
-    limitedClaims: z.number().optional(),
+    linkExpirationDate: dayjsInstance.nullish(),
+    linkExpirationTime: dayjsInstance.nullish(),
+    linkMaximumIssuance: z.number().optional(),
   }),
 });
 
-type IssueClaimFormDataInput = z.infer<typeof issueClaimFormDataInput>;
+type IssueCredentialFormDataInput = z.infer<typeof issueCredentialFormDataInput>;
 
-export const issueClaimFormData = (schemaAttributes: SchemaAttribute[]) => {
-  return StrictSchema<IssueClaimFormDataInput, ClaimForm>()(
-    issueClaimFormDataInput.transform(
+export const issueCredentialFormData = (schemaAttributes: SchemaAttribute[]) => {
+  return StrictSchema<IssueCredentialFormDataInput, CredentialForm>()(
+    issueCredentialFormDataInput.transform(
       (
         {
           attributes: { attributes, expirationDate },
-          issuanceMethod: { claimLinkExpirationDate, claimLinkExpirationTime, limitedClaims },
+          issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
         },
         zodRefinementCtx
       ) => {
-        const attributesParsingResult = parseIssueClaimFormDataAttributes(
+        const attributesParsingResult = parseIssueCredentialFormDataAttributes(
           attributes,
           schemaAttributes
         );
 
         if (attributesParsingResult.success) {
-          const claimLinkExpiration = buildClaimLinkExpiration(
-            claimLinkExpirationDate || undefined,
-            claimLinkExpirationTime || undefined
+          const linkAccessibleUntil = buildLinkAccessibleUntil(
+            linkExpirationDate || undefined,
+            linkExpirationTime || undefined
           );
 
           const now = new Date().getTime();
-          if (claimLinkExpiration && claimLinkExpiration.getTime() < now) {
+          if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
             zodRefinementCtx.addIssue({
               code: z.ZodIssueCode.custom,
               fatal: true,
-              message: `"${FORM_LABEL.LINK_VALIDITY}" must be a date/time in the future.`,
+              message: `${ACCESSIBLE_UNTIL} must be a date/time in the future.`,
             });
+
             return z.NEVER;
           }
 
           return {
             attributes: attributesParsingResult.data,
-            claimLinkExpiration,
-            expirationDate: expirationDate ? expirationDate.toDate() : undefined,
-            limitedClaims,
+            expiration: expirationDate ? expirationDate.toDate() : undefined,
+            linkAccessibleUntil,
+            linkMaximumIssuance,
           };
         } else {
           attributesParsingResult.error.issues.forEach(zodRefinementCtx.addIssue);
+
           return z.NEVER;
         }
       }
@@ -206,7 +212,7 @@ export const issueClaimFormData = (schemaAttributes: SchemaAttribute[]) => {
   );
 };
 
-const buildClaimLinkExpiration = (date?: dayjs.Dayjs, time?: dayjs.Dayjs): Date | undefined => {
+const buildLinkAccessibleUntil = (date?: dayjs.Dayjs, time?: dayjs.Dayjs): Date | undefined => {
   if (date) {
     if (time) {
       return dayjs(date)
@@ -227,7 +233,7 @@ const buildClaimLinkExpiration = (date?: dayjs.Dayjs, time?: dayjs.Dayjs): Date 
 };
 
 export function formatAttributeValue(
-  attribute: ClaimAttribute,
+  attribute: CredentialAttribute,
   schemaAttributes: SchemaAttribute[]
 ):
   | {

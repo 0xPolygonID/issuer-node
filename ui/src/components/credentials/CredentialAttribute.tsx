@@ -13,7 +13,7 @@ import { SchemaAttribute } from "src/adapters/api/schemas";
 import { Attribute } from "src/components/schemas/Attribute";
 import { DATE_VALIDITY_MESSAGE } from "src/utils/constants";
 
-export function ClaimAttribute({
+export function CredentialAttribute({
   index,
   schemaAttribute,
 }: {
@@ -22,12 +22,7 @@ export function ClaimAttribute({
 }) {
   const { name, type } = schemaAttribute;
   const sharedFormItemProps: Partial<FormItemProps> = {
-    label: (
-      <>
-        <Typography.Text ellipsis={{ tooltip: true }}>{name}</Typography.Text>
-        {" *"}
-      </>
-    ),
+    label: <Typography.Text ellipsis={{ tooltip: true }}>{name}</Typography.Text>,
     name: ["attributes", name],
   };
 

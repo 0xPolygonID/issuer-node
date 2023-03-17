@@ -7,9 +7,11 @@ import { DEBOUNCE_INPUT_TIMEOUT } from "src/utils/constants";
 
 export function SearchBox({
   onSearch,
+  placeholder,
   query,
 }: {
   onSearch: (value: string) => void;
+  placeholder: string;
   query: string | null;
 }) {
   const [isSearching, setIsSearching] = useState<boolean>(false);
@@ -46,7 +48,7 @@ export function SearchBox({
   return (
     <Input
       onChange={({ target: { value } }) => setSearchValue(value)}
-      placeholder="Search for schemas, attributes..."
+      placeholder={placeholder}
       prefix={isSearching ? <Spinner size="default" /> : <IconSearch />}
       value={searchValue || undefined}
     />

@@ -15,18 +15,30 @@ import {
   API_USERNAME,
   ISSUER_DID,
   QUERY_SEARCH_PARAM,
-  VALID_SEARCH_PARAM,
 } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
-export interface ClaimAttribute {
+export interface CredentialAttribute {
   attributeKey: string;
   attributeValue: number;
 }
 
-export interface Claim {
+export interface Credential {
   active: boolean;
-  attributeValues: ClaimAttribute[];
+  attributeValues: CredentialAttribute[];
+  createdAt: Date;
+  expiresAt: Date | null;
+  id: string;
+  linkAccessibleUntil: Date | null;
+  linkCurrentIssuance: number | null;
+  linkMaximumIssuance: number | null;
+  schemaTemplate: Schema;
+  valid: boolean;
+}
+
+export interface CredentialPayload {
+  active: boolean;
+  attributeValues: CredentialAttribute[];
   claimLinkExpiration: Date | null;
   createdAt: Date;
   expiresAt: Date | null;
@@ -37,20 +49,20 @@ export interface Claim {
   valid: boolean;
 }
 
-export interface ClaimIssuePayload {
-  attributes: ClaimAttribute[];
+export interface CredentialIssuePayload {
+  attributes: CredentialAttribute[];
   claimLinkExpiration?: string;
   expirationDate?: string;
   limitedClaims?: number;
 }
 
-export async function claimIssue({
+export async function credentialIssue({
   payload,
   schemaID,
 }: {
-  payload: ClaimIssuePayload;
+  payload: CredentialIssuePayload;
   schemaID: string;
-}): Promise<APIResponse<Claim>> {
+}): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
       baseURL: API_URL,
@@ -61,7 +73,7 @@ export async function claimIssue({
       method: "POST",
       url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers`,
     });
-    const { data } = resultCreatedClaim.parse(response);
+    const { data } = resultCreatedCredential.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -69,19 +81,19 @@ export async function claimIssue({
   }
 }
 
-interface ClaimUpdatePayload {
+interface CredentialUpdatePayload {
   active: boolean;
 }
 
-export async function claimUpdate({
-  claimID,
+export async function credentialUpdate({
+  credentialID,
   payload,
   schemaID,
 }: {
-  claimID: string;
-  payload: ClaimUpdatePayload;
+  credentialID: string;
+  payload: CredentialUpdatePayload;
   schemaID: string;
-}): Promise<APIResponse<Claim>> {
+}): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
       baseURL: API_URL,
@@ -90,9 +102,9 @@ export async function claimUpdate({
         Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
       },
       method: "PATCH",
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers/${claimID}`,
+      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers/${credentialID}`,
     });
-    const { data } = resultOKClaim.parse(response);
+    const { data } = resultOKCredential.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -100,7 +112,7 @@ export async function claimUpdate({
   }
 }
 
-export async function claimsGetAll({
+export async function credentialsGetAll({
   params: { query, valid },
   signal,
 }: {
@@ -111,8 +123,8 @@ export async function claimsGetAll({
   signal?: AbortSignal;
 }): Promise<
   APIResponse<{
-    claims: Claim[];
-    errors: z.ZodError<Claim>[];
+    credentials: Credential[];
+    errors: z.ZodError<Credential>[];
   }>
 > {
   try {
@@ -124,16 +136,16 @@ export async function claimsGetAll({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(valid !== undefined ? { [VALID_SEARCH_PARAM]: valid.toString() } : {}),
+        ...(valid !== undefined ? { valid: valid.toString() } : {}),
       }),
       signal,
       url: `issuers/${ISSUER_DID}/offers`,
     });
-    const { data } = resultOKClaimsGetAll.parse(response);
+    const { data } = resultOKCredentialsGetAll.parse(response);
 
     return {
       data: {
-        claims: data.claims.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        credentials: data.credentials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
         errors: data.errors,
       },
       isSuccessful: true,
@@ -143,34 +155,7 @@ export async function claimsGetAll({
   }
 }
 
-export async function claimsGetSingle({
-  claimID,
-  schemaID,
-  signal,
-}: {
-  claimID: string;
-  schemaID: string;
-  signal: AbortSignal;
-}): Promise<APIResponse<Claim>> {
-  try {
-    const response = await axios({
-      baseURL: API_URL,
-      headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
-      },
-      method: "GET",
-      signal,
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers/${claimID}`,
-    });
-    const { data } = resultOKClaim.parse(response);
-
-    return { data, isSuccessful: true };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
-interface ClaimQRCode {
+interface CredentialQRCode {
   body: {
     callbackUrl: string;
     reason: string;
@@ -183,7 +168,7 @@ interface ClaimQRCode {
   type: string;
 }
 
-const claimQRCode = StrictSchema<ClaimQRCode>()(
+const credentialQRCode = StrictSchema<CredentialQRCode>()(
   z.object({
     body: z.object({
       callbackUrl: z.string(),
@@ -198,61 +183,100 @@ const claimQRCode = StrictSchema<ClaimQRCode>()(
   })
 );
 
-export interface ShareClaimQRCode {
+export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
-  offerDetails: Claim;
-  qrcode: ClaimQRCode;
+  offerDetails: Credential;
+  qrcode: CredentialQRCode;
   sessionID: string;
 }
 
-const apiClaimAttribute = StrictSchema<ClaimAttribute>()(
+export interface ShareCredentialQRCodePayload {
+  issuer: { displayName: string; logo: string };
+  offerDetails: CredentialPayload;
+  qrcode: CredentialQRCode;
+  sessionID: string;
+}
+
+const apiCredentialAttribute = StrictSchema<CredentialAttribute>()(
   z.object({
     attributeKey: z.string(),
     attributeValue: z.number(),
   })
 );
 
-const claim = StrictSchema<Claim>()(
-  z.object({
-    active: z.boolean(),
-    attributeValues: z.array(apiClaimAttribute),
-    claimLinkExpiration: z.coerce.date().nullable(),
-    createdAt: z.coerce.date(),
-    expiresAt: z.coerce.date().nullable(),
-    id: z.string(),
-    issuedClaims: z.number().nullable(),
-    limitedClaims: z.number().nullable(),
-    schemaTemplate: schema,
-    valid: z.boolean(),
-  })
+const credential = StrictSchema<CredentialPayload, Credential>()(
+  z
+    .object({
+      active: z.boolean(),
+      attributeValues: z.array(apiCredentialAttribute),
+      claimLinkExpiration: z.coerce.date().nullable(),
+      createdAt: z.coerce.date(),
+      expiresAt: z.coerce.date().nullable(),
+      id: z.string(),
+      issuedClaims: z.number().nullable(),
+      limitedClaims: z.number().nullable(),
+      schemaTemplate: schema,
+      valid: z.boolean(),
+    })
+    .transform(
+      ({
+        active,
+        attributeValues,
+        claimLinkExpiration: linkAccessibleUntil,
+        createdAt,
+        expiresAt,
+        id,
+        issuedClaims: linkCurrentIssuance,
+        limitedClaims: linkMaximumIssuance,
+        schemaTemplate,
+        valid,
+      }): Credential => ({
+        active,
+        attributeValues,
+        createdAt,
+        expiresAt,
+        id,
+        linkAccessibleUntil,
+        linkCurrentIssuance,
+        linkMaximumIssuance,
+        schemaTemplate,
+        valid,
+      })
+    )
 );
 
-export const shareClaimQRCode = StrictSchema<ShareClaimQRCode>()(
+export const shareCredentialQRCode = StrictSchema<
+  ShareCredentialQRCodePayload,
+  ShareCredentialQRCode
+>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
       logo: z.string(),
     }),
-    offerDetails: claim,
-    qrcode: claimQRCode,
+    offerDetails: credential,
+    qrcode: credentialQRCode,
     sessionID: z.string(),
   })
 );
 
-const resultOKShareClaimQRCode = StrictSchema<ResultOK<ShareClaimQRCode>>()(
+const resultOKShareCredentialQRCode = StrictSchema<
+  ResultOK<ShareCredentialQRCodePayload>,
+  ResultOK<ShareCredentialQRCode>
+>()(
   z.object({
-    data: shareClaimQRCode,
+    data: shareCredentialQRCode,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-export async function claimsQRCreate({
+export async function credentialsQRCreate({
   id,
   signal,
 }: {
   id: string;
   signal?: AbortSignal;
-}): Promise<APIResponse<ShareClaimQRCode>> {
+}): Promise<APIResponse<ShareCredentialQRCode>> {
   try {
     const response = await axios({
       baseURL: API_URL,
@@ -261,7 +285,7 @@ export async function claimsQRCreate({
       url: `offers-qrcode/${id}`,
     });
 
-    const { data } = resultOKShareClaimQRCode.parse(response);
+    const { data } = resultOKShareCredentialQRCode.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -269,42 +293,45 @@ export async function claimsQRCreate({
   }
 }
 
-const resultCreatedClaim = StrictSchema<ResultCreated<Claim>>()(
+const resultCreatedCredential = StrictSchema<
+  ResultCreated<CredentialPayload>,
+  ResultCreated<Credential>
+>()(
   z.object({
-    data: claim,
+    data: credential,
     status: z.literal(HTTPStatusSuccess.Created),
   })
 );
 
-const resultOKClaim = StrictSchema<ResultOK<Claim>>()(
+const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<Credential>>()(
   z.object({
-    data: claim,
+    data: credential,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-interface ClaimsGetAll {
-  claims: Claim[];
-  errors: z.ZodError<Claim>[];
+interface CredentialsGetAll {
+  credentials: Credential[];
+  errors: z.ZodError<Credential>[];
 }
 
-const resultOKClaimsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<ClaimsGetAll>>()(
+const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<CredentialsGetAll>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: ClaimsGetAll, curr: unknown, index) => {
-          const parsedClaim = claim.safeParse(curr);
-          return parsedClaim.success
+        (acc: CredentialsGetAll, curr: unknown, index) => {
+          const parsedCredential = credential.safeParse(curr);
+          return parsedCredential.success
             ? {
                 ...acc,
-                claims: [...acc.claims, parsedClaim.data],
+                credentials: [...acc.credentials, parsedCredential.data],
               }
             : {
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<Claim>(
-                    parsedClaim.error.issues.map((issue) => ({
+                  new z.ZodError<Credential>(
+                    parsedCredential.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],
                     }))
@@ -312,7 +339,7 @@ const resultOKClaimsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<ClaimsGe
                 ],
               };
         },
-        { claims: [], errors: [] }
+        { credentials: [], errors: [] }
       )
     ),
     status: z.literal(HTTPStatusSuccess.OK),
@@ -353,64 +380,67 @@ const addingQRCode = StrictSchema<AddingQRCode>()(
   })
 );
 
-export enum ClaimQRStatus {
+export enum CredentialQRStatus {
   Done = "done",
   Error = "error",
   Pending = "pending",
 }
 
-interface ClaimQRCheckDone {
+interface CredentialQRCheckDone {
   qrcode: AddingQRCode;
-  status: ClaimQRStatus.Done;
+  status: CredentialQRStatus.Done;
 }
 
-interface ClaimQRCheckError {
-  status: ClaimQRStatus.Error;
+interface CredentialQRCheckError {
+  status: CredentialQRStatus.Error;
 }
 
-interface ClaimQRCheckPending {
-  status: ClaimQRStatus.Pending;
+interface CredentialQRCheckPending {
+  status: CredentialQRStatus.Pending;
 }
 
-export type ClaimQRCheck = ClaimQRCheckDone | ClaimQRCheckError | ClaimQRCheckPending;
+export type CredentialQRCheck =
+  | CredentialQRCheckDone
+  | CredentialQRCheckError
+  | CredentialQRCheckPending;
 
-const claimQRCheckDone = StrictSchema<ClaimQRCheckDone>()(
+const credentialQRCheckDone = StrictSchema<CredentialQRCheckDone>()(
   z.object({
     qrcode: addingQRCode,
-    status: z.literal(ClaimQRStatus.Done),
+    status: z.literal(CredentialQRStatus.Done),
   })
 );
 
-const claimQRCheckError = StrictSchema<ClaimQRCheckError>()(
+const credentialQRCheckError = StrictSchema<CredentialQRCheckError>()(
   z.object({
-    status: z.literal(ClaimQRStatus.Error),
+    status: z.literal(CredentialQRStatus.Error),
   })
 );
 
-const claimQRCheckPending = StrictSchema<ClaimQRCheckPending>()(
+const credentialQRCheckPending = StrictSchema<CredentialQRCheckPending>()(
   z.object({
-    status: z.literal(ClaimQRStatus.Pending),
+    status: z.literal(CredentialQRStatus.Pending),
   })
 );
 
-export const claimQRCheck = StrictSchema<ClaimQRCheck>()(
-  z.union([claimQRCheckDone, claimQRCheckError, claimQRCheckPending])
+export const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
+  z.union([credentialQRCheckDone, credentialQRCheckError, credentialQRCheckPending])
 );
 
-const resultOKClaimQRCheck = StrictSchema<ResultOK<ClaimQRCheck>>()(
+const resultOKCredentialQRCheck = StrictSchema<ResultOK<CredentialQRCheck>>()(
   z.object({
-    data: claimQRCheck,
+    data: credentialQRCheck,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-export async function claimsQRCheck({
-  claimID,
+export async function credentialsQRCheck({
+  credentialID,
   sessionID,
 }: {
-  claimID: string;
+  credentialID: string;
   sessionID: string;
-}): Promise<APIResponse<ClaimQRCheck>> {
+}): Promise<APIResponse<CredentialQRCheck>> {
   try {
     const response = await axios({
       baseURL: API_URL,
@@ -418,10 +448,10 @@ export async function claimsQRCheck({
       params: {
         sessionID,
       },
-      url: `offers-qrcode/${claimID}`,
+      url: `offers-qrcode/${credentialID}`,
     });
 
-    const { data } = resultOKClaimQRCheck.parse(response);
+    const { data } = resultOKCredentialQRCheck.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -429,11 +459,11 @@ export async function claimsQRCheck({
   }
 }
 
-export async function claimsQRDownload({
-  claimID,
+export async function credentialsQRDownload({
+  credentialID,
   sessionID,
 }: {
-  claimID: string;
+  credentialID: string;
   sessionID: string;
 }): Promise<APIResponse<Blob>> {
   try {
@@ -444,7 +474,7 @@ export async function claimsQRDownload({
         sessionID,
       },
       responseType: "blob",
-      url: `offers-qrcode/${claimID}/download`,
+      url: `offers-qrcode/${credentialID}/download`,
     });
 
     if (response.data instanceof Blob) {
