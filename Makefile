@@ -142,7 +142,7 @@ add-vault-token:
 
 .PHONY: run-initializer
 run-initializer:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d initializer
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d initializer
 	sleep 5
 
 .PHONY: generate-issuer-did
