@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -185,7 +186,7 @@ func main() {
 		cors.AllowAll().Handler,
 		chiMiddleware.NoCache,
 	)
-	api_admin.HandlerFromMux(
+	api_admin.HandlerWithOptions(
 		api_admin.NewStrictHandlerWithOptions(
 			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
@@ -193,7 +194,11 @@ func main() {
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
-		mux)
+		api_admin.ChiServerOptions{
+			BaseRouter:       mux,
+			ErrorHandlerFunc: errorHandlerFunc,
+		},
+	)
 	api_admin.RegisterStatic(mux)
 
 	server := &http.Server{
@@ -223,5 +228,16 @@ func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictM
 	return []api_admin.StrictMiddlewareFunc{
 		api_admin.LogMiddleware(ctx),
 		api_admin.BasicAuthMiddleware(ctx, auth.User, auth.Password),
+	}
+}
+
+func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
+	switch err.(type) {
+	case *api_admin.InvalidParamFormatError:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
+	default:
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }

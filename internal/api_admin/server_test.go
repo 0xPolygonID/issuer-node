@@ -230,6 +230,15 @@ func TestServer_GetSchema(t *testing.T) {
 			},
 		},
 		{
+			name: "Invalid uuid",
+			auth: authOk,
+			id:   "someInvalidDID",
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "Invalid format for parameter id: error unmarshalling 'someInvalidDID' text as *uuid.UUID: invalid UUID length: 14",
+			},
+		},
+		{
 			name: "Non existing uuid",
 			auth: authOk,
 			id:   uuid.NewString(),
