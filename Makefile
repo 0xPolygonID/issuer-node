@@ -138,3 +138,13 @@ add-vault-token:
 	sed '/ISSUER_KEY_STORE_TOKEN/d' .env-issuer > .env-issuer.tmp
 	@echo ISSUER_KEY_STORE_TOKEN=$(TOKEN) >> .env-issuer.tmp
 	@MV .env-issuer.tmp .env-issuer
+
+.PHONY: rm-issuer-imgs
+rm-issuer-imgs: stop
+	$(shell docker rmi -f issuer_api issuer_ui issuer_api-ui) || true
+
+.PHONY: restart-ui
+restart-ui: rm-issuer-imgs run-ui
+
+.PHONY: restart-arm-ui
+restart-arm-ui: rm-issuer-imgs run-arm-ui run-arm
