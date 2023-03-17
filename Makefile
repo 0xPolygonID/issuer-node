@@ -71,8 +71,8 @@ run-arm:
 run-ui:
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
 
-.PHONY: run-arm-ui
-run-arm-ui:
+.PHONY: run-ui-arm
+run-ui-arm:
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
 
 .PHONY: down
@@ -146,5 +146,5 @@ rm-issuer-imgs: stop
 .PHONY: restart-ui
 restart-ui: rm-issuer-imgs run-ui
 
-.PHONY: restart-arm-ui
-restart-arm-ui: rm-issuer-imgs run-arm-ui run-arm
+.PHONY: restart-ui-arm
+restart-ui-arm: rm-issuer-imgs run-ui-arm
