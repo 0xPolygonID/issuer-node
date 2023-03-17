@@ -76,20 +76,13 @@ func TestServer_AuthCallback(t *testing.T) {
 	type testConfig struct {
 		name      string
 		expected  expected
-		sessionID *string
+		sessionID *uuid.UUID
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "should get an error empty param sessionID",
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-				message:  "Cannot proceed with empty sessionID",
-			},
-		},
-		{
 			name:      "should get an error no body",
-			sessionID: common.ToPointer("12345"),
+			sessionID: common.ToPointer(uuid.New()),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				message:  "Cannot proceed with empty body",
@@ -100,7 +93,7 @@ func TestServer_AuthCallback(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := "/v1/authentication/callback"
 			if tc.sessionID != nil {
-				url += "?sessionID=" + *tc.sessionID
+				url += "?sessionID=" + tc.sessionID.String()
 			}
 
 			req, err := http.NewRequest("POST", url, strings.NewReader(``))

@@ -1,11 +1,11 @@
 import { Avatar, Col, Space, Typography } from "antd";
 
-import { ReactComponent as IconSearch } from "src/assets/icons/search-lg.svg";
+import { ReactComponent as SearchIcon } from "src/assets/icons/search-lg.svg";
 
 export function NoResults({ searchQuery }: { searchQuery: string | null }) {
   return (
     <Space direction="vertical" size="middle" style={{ padding: 24 }}>
-      <Avatar className="avatar-color-cyan" icon={<IconSearch />} size={48} />
+      <Avatar className="avatar-color-cyan" icon={<SearchIcon />} size={48} />
 
       <Typography.Text strong>No results found</Typography.Text>
 

@@ -1,73 +1,74 @@
 import dayjs from "dayjs";
 
-import { ClaimAttribute, ClaimIssuePayload } from "src/adapters/api/claims";
+import { CredentialAttribute, CredentialIssuePayload } from "src/adapters/api/credentials";
 import {
-  BooleanClaimFormAttribute,
-  ClaimForm,
-  ClaimFormAttribute,
-  DateClaimFormAttribute,
-  NumberClaimFormAttribute,
-  SingleChoiceClaimFormAttribute,
+  BooleanCredentialFormAttribute,
+  CredentialForm,
+  CredentialFormAttribute,
+  DateCredentialFormAttribute,
+  NumberCredentialFormAttribute,
+  SingleChoiceCredentialFormAttribute,
 } from "src/domain";
 
-export const serializeBooleanClaimFormAttribute = (
-  booleanClaimFormAttribute: BooleanClaimFormAttribute
-): ClaimAttribute => ({
-  attributeKey: booleanClaimFormAttribute.name,
-  attributeValue: booleanClaimFormAttribute.value ? 1 : 0,
+export const serializeBooleanCredentialFormAttribute = (
+  booleanCredentialFormAttribute: BooleanCredentialFormAttribute
+): CredentialAttribute => ({
+  attributeKey: booleanCredentialFormAttribute.name,
+  attributeValue: booleanCredentialFormAttribute.value ? 1 : 0,
 });
 
-export const serializeDateClaimFormAttribute = (
-  dateClaimFormAttribute: DateClaimFormAttribute
-): ClaimAttribute => {
-  const momentInstance = dayjs(dateClaimFormAttribute.value);
+export const serializeDateCredentialFormAttribute = (
+  dateCredentialFormAttribute: DateCredentialFormAttribute
+): CredentialAttribute => {
+  const momentInstance = dayjs(dateCredentialFormAttribute.value);
   const numericDateString = momentInstance.format("YYYYMMDD");
 
   return {
-    attributeKey: dateClaimFormAttribute.name,
+    attributeKey: dateCredentialFormAttribute.name,
     attributeValue: parseInt(numericDateString),
   };
 };
 
-export const serializeNumberClaimFormAttribute = (
-  numberClaimFormAttribute: NumberClaimFormAttribute
-): ClaimAttribute => ({
-  attributeKey: numberClaimFormAttribute.name,
-  attributeValue: numberClaimFormAttribute.value,
+export const serializeNumberCredentialFormAttribute = (
+  numberCredentialFormAttribute: NumberCredentialFormAttribute
+): CredentialAttribute => ({
+  attributeKey: numberCredentialFormAttribute.name,
+  attributeValue: numberCredentialFormAttribute.value,
 });
 
-export const serializeSingleChoiceClaimFormAttribute = (
-  singleChoiceClaimFormAttribute: SingleChoiceClaimFormAttribute
-): ClaimAttribute => ({
-  attributeKey: singleChoiceClaimFormAttribute.name,
-  attributeValue: singleChoiceClaimFormAttribute.value,
+export const serializeSingleChoiceCredentialFormAttribute = (
+  singleChoiceCredentialFormAttribute: SingleChoiceCredentialFormAttribute
+): CredentialAttribute => ({
+  attributeKey: singleChoiceCredentialFormAttribute.name,
+  attributeValue: singleChoiceCredentialFormAttribute.value,
 });
 
-export const serializeClaimFormAttribute = (
-  claimFormAttribute: ClaimFormAttribute
-): ClaimAttribute => {
-  switch (claimFormAttribute.type) {
+export const serializeCredentialFormAttribute = (
+  credentialFormAttribute: CredentialFormAttribute
+): CredentialAttribute => {
+  switch (credentialFormAttribute.type) {
     case "boolean": {
-      return serializeBooleanClaimFormAttribute(claimFormAttribute);
+      return serializeBooleanCredentialFormAttribute(credentialFormAttribute);
     }
     case "date": {
-      return serializeDateClaimFormAttribute(claimFormAttribute);
+      return serializeDateCredentialFormAttribute(credentialFormAttribute);
     }
     case "number": {
-      return serializeNumberClaimFormAttribute(claimFormAttribute);
+      return serializeNumberCredentialFormAttribute(credentialFormAttribute);
     }
     case "singlechoice": {
-      return serializeSingleChoiceClaimFormAttribute(claimFormAttribute);
+      return serializeSingleChoiceCredentialFormAttribute(credentialFormAttribute);
     }
   }
 };
 
-export const serializeClaimForm = (claimForm: ClaimForm): ClaimIssuePayload => {
-  const attributes = claimForm.attributes.map(serializeClaimFormAttribute);
-  const expirationDate = claimForm.expirationDate && dayjs(claimForm.expirationDate).toISOString();
+export const serializeCredentialForm = (credentialForm: CredentialForm): CredentialIssuePayload => {
+  const attributes = credentialForm.attributes.map(serializeCredentialFormAttribute);
+  const expirationDate =
+    credentialForm.expiration && dayjs(credentialForm.expiration).toISOString();
   const claimLinkExpiration =
-    claimForm.claimLinkExpiration && claimForm.claimLinkExpiration.toISOString();
-  const limitedClaims = claimForm.limitedClaims;
+    credentialForm.linkAccessibleUntil && credentialForm.linkAccessibleUntil.toISOString();
+  const limitedClaims = credentialForm.linkMaximumIssuance;
 
   return {
     attributes,

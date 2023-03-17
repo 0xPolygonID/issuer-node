@@ -173,7 +173,7 @@ func main() {
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
 	if !identifierExists(ctx, &cfg.APIUI.IssuerDID, identityService) {
-		log.Error(ctx, "issuer did must exists")
+		log.Error(ctx, "issuer DID must exist")
 		return
 	}
 
@@ -182,7 +182,7 @@ func main() {
 		chiMiddleware.RequestID,
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
-		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
+		cors.AllowAll().Handler,
 		chiMiddleware.NoCache,
 	)
 	api_admin.HandlerFromMux(

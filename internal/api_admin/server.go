@@ -115,17 +115,12 @@ func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestOb
 
 // AuthCallback receives the authentication information of a holder
 func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error) {
-	if request.Params.SessionID == nil || *request.Params.SessionID == "" {
-		log.Debug(ctx, "empty sessionID auth-callback request")
-		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty sessionID"}}, nil
-	}
-
 	if request.Body == nil || *request.Body == "" {
 		log.Debug(ctx, "empty request body auth-callback request")
 		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	err := s.identityService.Authenticate(ctx, *request.Body, *request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Debug(ctx, "error authenticating", err.Error())
 		return AuthCallback500JSONResponse{}, nil

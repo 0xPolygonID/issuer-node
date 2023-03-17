@@ -316,20 +316,192 @@ const attributeParser = (name: string, required: boolean) =>
     ])
   );
 
-type RootSchemaProps = {
-  $id?: string;
-  $schema?: string;
-};
+type Schema = AnySchema & domain.SchemaProps;
 
-type Schema = RootSchemaProps & AnySchema;
-
-const rootSchemaPropsParser = StrictSchema<RootSchemaProps>()(
+const schemaPropsParser = StrictSchema<domain.SchemaProps>()(
   z.object({
-    $id: z.string().optional(),
-    $schema: z.string().optional(),
+    $metadata: z.object({ uris: z.object({ jsonLdContext: z.string() }) }),
   })
 );
 
 export const schemaParser = StrictSchema<Schema, domain.Schema>()(
-  rootSchemaPropsParser.and(attributeParser("schema", false))
+  schemaPropsParser.and(attributeParser("schema", false))
 );
+
+export const sertoJsonLdTypeParser = (schema: domain.Schema) =>
+  StrictSchema<
+    {
+      "@context": Record<string, unknown>;
+    },
+    domain.JsonLdType[]
+  >()(
+    z
+      .object({
+        "@context": z.record(z.unknown()),
+      })
+      .transform((ldContext, zodContext): domain.JsonLdType[] => {
+        const schemaCredentialSubject =
+          schema.type === "object" && schema.schema.properties
+            ? schema.schema.properties.reduce(
+                (acc: domain.ObjectAttribute | undefined, curr: domain.Attribute) =>
+                  curr.type === "object" && curr.name === "credentialSubject" ? curr : acc,
+                undefined
+              )
+            : undefined;
+        if (!schemaCredentialSubject) {
+          zodContext.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: "Couldn't find attribute credentialSubject in the schema",
+          });
+          return z.NEVER;
+        }
+
+        const { credentialSubject: ldContextCredentialSubject, "schema-id": schemaId } = z
+          .object({
+            credentialSubject: z.object({
+              "@context": z.record(z.unknown()),
+            }),
+            "schema-id": z.string().url(),
+          })
+          .parse(ldContext["@context"]);
+
+        const jsonLdTypeParseResult = Object.entries(ldContext["@context"]).reduce(
+          (
+            acc: { success: false } | { jsonLdType: domain.JsonLdType; success: true },
+            [key, value]
+          ) => {
+            const parsedValue = z.object({ "@id": z.literal("schema-id") }).safeParse(value);
+
+            return !acc.success && parsedValue.success
+              ? {
+                  jsonLdType: { id: `${schemaId}${key}`, name: key },
+                  success: true,
+                }
+              : acc;
+          },
+          { success: false }
+        );
+
+        const ldContextTypePropsParseResult = schemaCredentialSubject.schema.properties?.reduce(
+          (acc: { success: true } | { error: string; success: false }, attribute) =>
+            acc.success && attribute.name in ldContextCredentialSubject["@context"]
+              ? acc
+              : {
+                  error: `Couldn't find Property "${attribute.name}" of the JSON schema in the context`,
+                  success: false,
+                },
+          { success: true }
+        ) || {
+          error: "Couldn't find any properties in schema's credentialSubject",
+          success: false,
+        };
+
+        if (jsonLdTypeParseResult.success && ldContextTypePropsParseResult.success) {
+          return [jsonLdTypeParseResult.jsonLdType];
+        } else {
+          zodContext.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: !ldContextTypePropsParseResult.success
+              ? ldContextTypePropsParseResult.error
+              : "Couldn't find any valid type in the JSON LD context of the schema",
+          });
+          return z.NEVER;
+        }
+      })
+  );
+
+const iden3JsonLdTypeParser = (schema: domain.Schema) =>
+  StrictSchema<
+    {
+      "@context": [Record<string, unknown>];
+    },
+    domain.JsonLdType[]
+  >()(
+    z
+      .object({
+        "@context": z.tuple([z.record(z.unknown())]),
+      })
+      .transform((ldContext, zodContext): domain.JsonLdType[] => {
+        const schemaCredentialSubject =
+          schema.type === "object" && schema.schema.properties
+            ? schema.schema.properties.reduce(
+                (acc: domain.ObjectAttribute | undefined, curr: domain.Attribute) =>
+                  curr.type === "object" && curr.name === "credentialSubject" ? curr : acc,
+                undefined
+              )
+            : undefined;
+
+        if (!schemaCredentialSubject) {
+          zodContext.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: "Couldn't find attribute credentialSubject in the schema",
+          });
+          return z.NEVER;
+        }
+
+        const ldContextTypeParseResult = Object.entries(ldContext["@context"][0]).reduce(
+          (
+            acc: { success: false } | { success: true; value: domain.JsonLdType[] },
+            [key, value]
+          ) => {
+            const parsedValue = z
+              .object({
+                "@context": z.record(z.unknown()),
+                "@id": z.string().url("Property @id of the type is not a valid URL"),
+              })
+              .safeParse(value);
+
+            const ldContextTypePropsParseResult = parsedValue.success
+              ? schemaCredentialSubject.schema.properties?.reduce(
+                  (acc: { success: true } | { error: string; success: false }, attribute) =>
+                    acc.success && attribute.name in parsedValue.data["@context"]
+                      ? acc
+                      : {
+                          error: `Couldn't find Property "${attribute.name}" of the JSON schema in the context`,
+                          success: false,
+                        },
+                  { success: true }
+                ) || {
+                  error: "Couldn't find any properties in schema's credentialSubject",
+                  success: false,
+                }
+              : { error: parsedValue.error.message, success: false };
+
+            return parsedValue.success && ldContextTypePropsParseResult.success
+              ? {
+                  success: true,
+                  value: acc.success
+                    ? [...acc.value, { id: parsedValue.data["@id"], name: key }]
+                    : [{ id: parsedValue.data["@id"], name: key }],
+                }
+              : acc;
+          },
+          { success: false }
+        );
+
+        if (ldContextTypeParseResult.success) {
+          return ldContextTypeParseResult.value;
+        } else {
+          zodContext.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: "Couldn't find any valid type in the JSON LD context of the schema",
+          });
+          return z.NEVER;
+        }
+      })
+  );
+
+export const jsonLdTypeParser = (schema: domain.Schema) =>
+  StrictSchema<
+    | {
+        "@context": Record<string, unknown>;
+      }
+    | {
+        "@context": [Record<string, unknown>];
+      },
+    domain.JsonLdType[]
+  >()(z.union([sertoJsonLdTypeParser(schema), iden3JsonLdTypeParser(schema)]));
