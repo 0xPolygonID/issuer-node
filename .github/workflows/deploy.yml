@@ -1,0 +1,38 @@
+name: Deploy
+
+on:
+ push:
+   branches:
+     - "*"
+
+env:
+  # BRANCH: ${GITHUB_REF##*/}
+  BRANCH: develop
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using ssh key on testing env
+        if: ${{ env.BRANCH == 'develop' }} || ${{ env.BRANCH == 'main' }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}_${{ env.BRANCH }}
+          username: ${{ secrets.USERNAME }}_${{ env.BRANCH }}
+          key: ${{ secrets.KEY }}_${{ env.BRANCH }}
+          passphrase: ${{ secrets.PASSPHRASE }}_${{ env.BRANCH }}
+          port: ${{ secrets.PORT }}_${{ env.BRANCH }}
+          script: sh hello.sh
+      
+      # - name: executing remote ssh commands using ssh key on main env
+      #   if: ${{ env.BRANCH == 'main' }}
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.HOST_MAIN }}
+      #     username: ${{ secrets.USERNAME_MAIN }}
+      #     key: ${{ secrets.KEY_ED25519_MAIN }}
+      #     passphrase: ${{ secrets.PASSPHRASE_MAIN }}
+      #     port: ${{ secrets.PORT_MAIN }}
+      #     script: sh update.sh
+
+     
