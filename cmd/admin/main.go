@@ -182,7 +182,7 @@ func main() {
 		chiMiddleware.RequestID,
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
-		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
+		cors.AllowAll().Handler,
 		chiMiddleware.NoCache,
 	)
 	api_admin.HandlerFromMux(
