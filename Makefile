@@ -142,3 +142,9 @@ add-vault-token:
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop
 	$(shell docker rmi -f issuer_api issuer_ui issuer_api-ui)
+
+.PHONY: restart-ui
+restart-ui: rm-issuer-imgs run-ui
+
+.PHONY: restart-arm-ui
+restart-arm-ui: rm-issuer-imgs run-arm-ui run-arm
