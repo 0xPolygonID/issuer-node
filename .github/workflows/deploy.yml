@@ -1,13 +1,10 @@
 name: Deploy
 
 on:
- push:
-   branches:
-     - "*"
+  workflow_dispatch
 
 env:
-  # BRANCH: ${GITHUB_REF##*/}
-  BRANCH: develop
+  BRANCH: ${GITHUB_REF##*/}
 
 jobs:
   Deploy:
@@ -22,7 +19,7 @@ jobs:
           key: ${{ secrets.KEY_DEVELOP }}
           passphrase: ${{ secrets.PASSPHRASE_DEVELOP }}
           port: ${{ secrets.PORT_DEVELOP }}
-          script: sh hello.sh
+          script: sh update.sh
       
       - name: executing remote ssh commands using ssh key on main env
         if: ${{ env.BRANCH == 'main' }}
@@ -33,6 +30,6 @@ jobs:
           key: ${{ secrets.KEY_MAIN }}
           passphrase: ${{ secrets.PASSPHRASE_MAIN }}
           port: ${{ secrets.PORT_MAIN }}
-          script: sh hello.sh
+          script: sh update.sh
 
      
