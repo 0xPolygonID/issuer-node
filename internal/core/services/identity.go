@@ -8,9 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -43,7 +41,6 @@ const (
 	transitionDelay = time.Minute * 5
 	serviceContext  = "https://www.w3.org/ns/did/v1"
 	authReason      = "authentication"
-	randSessions    = 1000000
 )
 
 // ErrWrongDIDMetada - represents an error in the identity metadata
@@ -371,8 +368,8 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverURL string, issuerDID core.DID) error {
-	authReq, err := i.sessionManager.Get(ctx, sessionID)
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) error {
+	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
 		return err
@@ -411,26 +408,25 @@ func (i *identity) Authenticate(ctx context.Context, message, sessionID, serverU
 }
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
-	sessionID := rand.Intn(randSessions)
-
-	id, err := uuid.NewUUID()
+	sessionID := uuid.New().String()
+	reqID, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
 	}
 
 	qrCode := &protocol.AuthorizationRequestMessage{
 		From:     issuerDID.String(),
-		ID:       id.String(),
-		ThreadID: id.String(),
+		ID:       reqID.String(),
+		ThreadID: reqID.String(),
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%d", serverURL, sessionID),
+			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
 			Reason:      authReason,
 		},
 	}
 
-	err = i.sessionManager.Set(ctx, strconv.Itoa(sessionID), *qrCode)
+	err = i.sessionManager.Set(ctx, sessionID, *qrCode)
 
 	return qrCode, err
 }
