@@ -563,9 +563,14 @@ components:
     sessionID:
       name: sessionID
       in: query
+      required: true
       description: Session ID
       schema:
         type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
 
     id:
       name: id

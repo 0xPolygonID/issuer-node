@@ -146,3 +146,13 @@ generate-issuer-did:
 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
 	@MV .env-api.tmp .env-api
+
+.PHONY: rm-issuer-imgs
+rm-issuer-imgs: stop
+	$(shell docker rmi -f issuer_api issuer_ui issuer_api-ui) || true
+
+.PHONY: restart-ui
+restart-ui: rm-issuer-imgs run-ui
+
+.PHONY: restart-arm-ui
+restart-arm-ui: rm-issuer-imgs run-arm-ui run-arm

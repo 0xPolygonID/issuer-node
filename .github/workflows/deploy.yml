@@ -1,30 +1,35 @@
-name: Deploy to Testing
-
-#on:
-#  push:
-#    branches:
-#      - "*"
+name: Deploy
 
 on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Define branch name'
-        required: true
-        default: 'master'
+  workflow_dispatch
+
+env:
+  BRANCH: ${GITHUB_REF##*/}
+
 jobs:
   Deploy:
-    name: Deploy to Testing
     runs-on: ubuntu-latest
     steps:
-      - name: executing remote ssh commands using ssh key
+      - name: executing remote ssh commands using ssh key on testing env
+        if: ${{ env.BRANCH == 'develop' }}
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST_TESTING }}
-          username: ${{ secrets.USERNAME_TESTING }}
-          key: ${{ secrets.KEY_ED25519_TESTING }}
-          passphrase: ${{ secrets.PASSPHRASE_TESTING }}
-          port: ${{ secrets.PORT_TESTING }}
-          script: sh hello.sh
-      - run: |
-          echo "Branch: ${{ github.event.inputs.branch }}"
+          host: ${{ secrets.HOST_DEVELOP }}
+          username: ${{ secrets.USERNAME_DEVELOP }}
+          key: ${{ secrets.KEY_DEVELOP }}
+          passphrase: ${{ secrets.PASSPHRASE_DEVELOP }}
+          port: ${{ secrets.PORT_DEVELOP }}
+          script: sh update.sh
+      
+      - name: executing remote ssh commands using ssh key on main env
+        if: ${{ env.BRANCH == 'main' }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_MAIN }}
+          username: ${{ secrets.USERNAME_MAIN }}
+          key: ${{ secrets.KEY_MAIN }}
+          passphrase: ${{ secrets.PASSPHRASE_MAIN }}
+          port: ${{ secrets.PORT_MAIN }}
+          script: sh update.sh
+
+     
