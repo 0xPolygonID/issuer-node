@@ -180,37 +180,37 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
-	// authentication callback
+	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
-	// get authentication qrcode
+	// Get Authentication QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request)
-	// delete connection
+	// Delete Connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id)
-	// get connection
+	// Get Connection
 	// (GET /v1/connections/{id})
 	GetConnection(w http.ResponseWriter, r *http.Request, id Id)
-	// Create a Credential
+	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
 	// Revoke Credential
 	// (POST /v1/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, nonce PathNonce)
-	// Delete a Credential
+	// Delete Credential
 	// (DELETE /v1/credentials/{id})
 	DeleteCredential(w http.ResponseWriter, r *http.Request, id Id)
-	// get credential
+	// Get Credential
 	// (GET /v1/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, id Id)
-	// Search for schemas.
+	// Get Schemas
 	// (GET /v1/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, params GetSchemasParams)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(w http.ResponseWriter, r *http.Request)
-	// Retrieves schema from id
+	// Get Schema
 	// (GET /v1/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, id Id)
 }
@@ -1206,37 +1206,37 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
-	// authentication callback
+	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
-	// get authentication qrcode
+	// Get Authentication QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
-	// delete connection
+	// Delete Connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
-	// get connection
+	// Get Connection
 	// (GET /v1/connections/{id})
 	GetConnection(ctx context.Context, request GetConnectionRequestObject) (GetConnectionResponseObject, error)
-	// Create a Credential
+	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
 	// Revoke Credential
 	// (POST /v1/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
-	// Delete a Credential
+	// Delete Credential
 	// (DELETE /v1/credentials/{id})
 	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
-	// get credential
+	// Get Credential
 	// (GET /v1/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
-	// Search for schemas.
+	// Get Schemas
 	// (GET /v1/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
-	// Retrieves schema from id
+	// Get Schema
 	// (GET /v1/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 }
@@ -1648,41 +1648,41 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, id Id
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"sPt/AAAA//+zv2bmmiwAAA==",
+	"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",
+	"AA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
