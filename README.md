@@ -86,7 +86,7 @@ In `.env-issuer`:
 
 - `ISSUER_API_AUTH_USER`
 - `ISSUER_API_AUTH_PASSWORD`
-- `ISSUER_KEY_STORE_TOKEN` - obtained from step 3 [here](#adding-ethereum-private-key-to-the-vault).
+- `ISSUER_KEY_STORE_TOKEN` - obtained from step 4 [here](#adding-ethereum-private-key-to-the-vault).
 
 If you are running the UI, in `.env-ui`:
 
@@ -99,9 +99,9 @@ This is required for signing on-chain transactions. In a basic use-case this can
 
 Follow these steps:
 
-1. Copy your Ethereum private key, pasting it into `<private_key>` in step 2.
+1. Copy your Ethereum private key, pasting it into `<private_key>` in the next step.
 2. Run `make private_key=<private_key> add-private-key`
-3. Run `docker logs sh-id-platform-test-vault`
+3. Run `docker logs issuer-vault-1`
 4. Look for the end of the output starting with `===== ENABLED IDEN3 =====`, and copy `<X>` in `token:<X>`.
 5. Paste that token into the `ISSUER_KEY_STORE_TOKEN` variable in `.env-issuer`.
 
@@ -110,9 +110,9 @@ Follow these steps:
 This determines the owner of the credentials that are issued. You can either reuse an existing DID, or you can generate a new identity by following these steps:
 
 1. Navigate to the issuer API frontend (default <http://localhost:3001>).
-2. Under "AUTHENTICATION", enter the credentials provided in `.env-api` (`ISSUER_API_AUTH_USER` & `ISSUER_API_UI_AUTH_PASSWORD`), then click "SET".
+2. Under "AUTHENTICATION", enter the credentials provided in `.env-issuer` (`ISSUER_API_AUTH_USER` & `ISSUER_API_AUTH_PASSWORD`), then click "SET".
 3. Under "IDENTITY" > "Create Identity", click "TRY".
-4. In the resulting JSON response, copy the "identity" value to `ISSUER_API_UI_ISSUER_DID` in `.env-api`.
+4. In the resulting JSON response, copy the did value in "identifier" to `ISSUER_API_UI_ISSUER_DID` in `.env-api`.
 
 ### Advanced setup
 
@@ -141,7 +141,7 @@ In case any of the spun-up domains shows a 404 or 401 error when accessing their
 
 For example, for inspecting the issuer API node, run:
 
-`docker logs sh-id-platform-api-issuer-1`
+`docker logs issuer-api-1`
 
 In most cases, a startup failure will be due to erroneous env variables.
 
