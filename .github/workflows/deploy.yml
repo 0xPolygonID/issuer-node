@@ -1,0 +1,33 @@
+name: Deploy
+
+on:
+  workflow_dispatch
+
+env:
+  BRANCH: ${GITHUB_REF##*/}
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using ssh key on testing env
+        if: ${{ env.BRANCH == 'develop' }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_DEVELOP }}
+          username: ${{ secrets.USERNAME_DEVELOP }}
+          key: ${{ secrets.KEY_DEVELOP }}
+          passphrase: ${{ secrets.PASSPHRASE_DEVELOP }}
+          port: ${{ secrets.PORT_DEVELOP }}
+          script: sh update.sh
+
+      - name: executing remote ssh commands using ssh key on main env
+        if: ${{ env.BRANCH == 'main' }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST_MAIN }}
+          username: ${{ secrets.USERNAME_MAIN }}
+          key: ${{ secrets.KEY_MAIN }}
+          passphrase: ${{ secrets.PASSPHRASE_MAIN }}
+          port: ${{ secrets.PORT_MAIN }}
+          script: sh update.sh
