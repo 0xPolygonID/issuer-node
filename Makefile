@@ -139,6 +139,14 @@ add-vault-token:
 	@echo ISSUER_KEY_STORE_TOKEN=$(TOKEN) >> .env-issuer.tmp
 	@MV .env-issuer.tmp .env-issuer
 
+.PHONY: generate-issuer-did
+generate-issuer-did:
+	$(eval DID = $(shell docker exec issuer-api-ui-1 ./issuer_initializer | grep "did"))
+	@echo $(DID)
+	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
+	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
+	@MV .env-api.tmp .env-api
+
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop
 	$(shell docker rmi -f issuer_api issuer_ui issuer_api-ui) || true
