@@ -26,7 +26,7 @@ export function ImportSchema() {
   const onSchemaImport = ({ jsonLdType, schemaUrl: url }: FormData) => {
     void importSchema({ jsonLdType, url }).then((result) => {
       if (result.isSuccessful) {
-        void message.info("Schema successfully imported");
+        void message.success("Schema successfully imported");
         navigate(ROUTES.schemas.path);
       } else {
         void message.error(result.error.message);
