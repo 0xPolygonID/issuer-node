@@ -23,8 +23,8 @@ export function ImportSchema() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>({ type: "form" });
 
-  const onSchemaImport = ({ jsonLdType, schemaUrl: url }: FormData) => {
-    void importSchema({ jsonLdType, url }).then((result) => {
+  const onSchemaImport = ({ jsonLdType, schemaUrl }: FormData) => {
+    void importSchema({ jsonLdType, schemaUrl }).then((result) => {
       if (result.isSuccessful) {
         void message.success("Schema successfully imported");
         navigate(ROUTES.schemas.path);

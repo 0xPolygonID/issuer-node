@@ -34,17 +34,17 @@ export type SchemaAttribute = {
 
 export async function importSchema({
   jsonLdType,
-  url,
+  schemaUrl,
 }: {
   jsonLdType: JsonLdType;
-  url: string;
+  schemaUrl: string;
 }): Promise<APIResponse<{ id: string }>> {
   try {
     const response = await axios({
       baseURL: API_URL,
       data: {
         schemaType: jsonLdType.name,
-        url: url,
+        url: schemaUrl,
       },
       headers: {
         Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
