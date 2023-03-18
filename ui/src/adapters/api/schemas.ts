@@ -110,7 +110,7 @@ export async function getSchemas({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `schemas`,
+      url: "schemas",
     });
     const { data } = resultOKSchemasGetAll.parse(response);
 
