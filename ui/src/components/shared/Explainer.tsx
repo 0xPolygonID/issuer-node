@@ -18,9 +18,9 @@ export function Explainer({
   title: string;
 }) {
   const [isShowing, setShowing] = useState(
-    !localStorageKey
-      ? true
-      : getStorageByKey({ defaultValue: true, key: localStorageKey, parser: z.boolean() })
+    localStorageKey
+      ? getStorageByKey({ defaultValue: true, key: localStorageKey, parser: z.boolean() })
+      : true
   );
 
   const { xl } = Grid.useBreakpoint();
