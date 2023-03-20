@@ -15,7 +15,7 @@ import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { useEnvContext } from "src/contexts/env.context";
+import { useEnvContext } from "src/contexts/env";
 import { APIError, HTTPStatusError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {

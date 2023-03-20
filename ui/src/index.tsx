@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import { Router } from "src/components/shared/Router";
-import { EnvProvider } from "src/contexts/env.context";
+import { EnvProvider } from "src/contexts/env";
 import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";
 

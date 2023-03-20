@@ -16,7 +16,7 @@ import { Summary } from "src/components/credentials/Summary";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { useEnvContext } from "src/contexts/env.context";
+import { useEnvContext } from "src/contexts/env";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";

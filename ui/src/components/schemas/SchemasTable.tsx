@@ -9,7 +9,7 @@ import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
-import { useEnvContext } from "src/contexts/env.context";
+import { useEnvContext } from "src/contexts/env";
 import { ROUTES } from "src/routes";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";

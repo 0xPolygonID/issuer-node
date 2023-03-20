@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { generatePath, useNavigate } from "react-router-dom";
 import { Schema, schemasGetAll } from "src/adapters/api/schemas";
-import { useEnvContext } from "src/contexts/env.context";
+import { useEnvContext } from "src/contexts/env";
 import { ROUTES } from "src/routes";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_TYPE } from "src/utils/constants";
