@@ -1,20 +1,29 @@
 import { Button, Card, Grid, Image, Space, Typography } from "antd";
+import { useState } from "react";
+import { z } from "zod";
 
-import { useLocalStorage } from "src/hooks/useLocalStorage";
-import { kebabCase } from "src/utils/string";
+import { getStorageByKey, setStorageByKey } from "src/utils/localStorage";
 
 export function Explainer({
   CTA,
   description,
   image,
+  isDismissable,
+  localStorageKey,
   title,
 }: {
   CTA: { label: string; url: string };
   description: string;
   image: string;
+  isDismissable: boolean;
+  localStorageKey: string;
   title: string;
 }) {
-  const [isShowing, setShowing] = useLocalStorage(`explainer-${kebabCase(title)}`, true);
+  const [isShowing, setShowing] = useState(
+    !isDismissable
+      ? true
+      : getStorageByKey({ defaultValue: true, key: localStorageKey, parser: z.boolean() })
+  );
 
   const { xl } = Grid.useBreakpoint();
   const { label, url } = CTA;
@@ -37,9 +46,17 @@ export function Explainer({
             </Button>
           )}
 
-          <Button onClick={() => setShowing(false)} type="primary">
-            Dismiss
-          </Button>
+          {isDismissable && (
+            <Button
+              onClick={() => {
+                setShowing(false);
+                setStorageByKey({ key: localStorageKey, value: false });
+              }}
+              type="primary"
+            >
+              Dismiss
+            </Button>
+          )}
         </Space>
       </Space>
     </Card>
