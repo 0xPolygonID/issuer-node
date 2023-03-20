@@ -188,9 +188,9 @@ export function ScanCredentialLink() {
             }}
           >
             <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
-              {/* <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {shareCredentialQRCode.data.offerDetails.schemaTemplate.schema}
-              </Typography.Title> */}
+              <Typography.Title ellipsis={{ tooltip: true }} level={3}>
+                {shareCredentialQRCode.data.offerDetails.schemaTemplate.type}
+              </Typography.Title>
 
               <Typography.Title level={5} type="secondary">
                 Attributes
