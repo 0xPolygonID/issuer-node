@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-import * as domain from "src/domain";
+import { Env } from "src/domain";
 import { StrictSchema } from "src/utils/types";
 
-export interface Env {
+export interface EnvInput {
   VITE_API_PASSWORD: string;
   VITE_API_URL: string;
   VITE_API_USERNAME: string;
@@ -12,7 +12,7 @@ export interface Env {
   VITE_ISSUER_NAME?: string;
 }
 
-export const envParser = StrictSchema<Env, domain.Env>()(
+export const envParser = StrictSchema<EnvInput, Env>()(
   z
     .object({
       VITE_API_PASSWORD: z.string().min(1),
@@ -30,7 +30,7 @@ export const envParser = StrictSchema<Env, domain.Env>()(
         VITE_ISSUER_DID,
         VITE_ISSUER_LOGO,
         VITE_ISSUER_NAME,
-      }): domain.Env => ({
+      }): Env => ({
         api: {
           password: VITE_API_PASSWORD,
           url: VITE_API_URL,

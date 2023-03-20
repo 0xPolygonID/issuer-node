@@ -9,12 +9,12 @@ import {
 } from "react";
 
 import { z } from "zod";
-import * as adapter from "src/adapters/env";
+import { EnvInput, envParser } from "src/adapters/env";
 import { ErrorResult } from "src/components/shared/ErrorResult";
-import * as domain from "src/domain";
+import { Env } from "src/domain";
 import { processZodError } from "src/utils/adapters";
 
-const envDefaultValue: domain.Env = {
+const envDefaultValue: Env = {
   api: {
     password: "",
     url: "",
@@ -25,13 +25,13 @@ const envDefaultValue: domain.Env = {
   },
 };
 
-const envContext = createContext<domain.Env>(envDefaultValue);
+const envContext = createContext<Env>(envDefaultValue);
 
 const EnvProvider: FC<PropsWithChildren> = (props) => {
-  const [env, setEnv] = useState<z.SafeParseReturnType<adapter.Env, domain.Env>>();
+  const [env, setEnv] = useState<z.SafeParseReturnType<EnvInput, Env>>();
 
   useEffect(() => {
-    setEnv(adapter.envParser.safeParse(import.meta.env));
+    setEnv(envParser.safeParse(import.meta.env));
   }, []);
 
   const value = useMemo(() => {
@@ -51,7 +51,7 @@ const EnvProvider: FC<PropsWithChildren> = (props) => {
   );
 };
 
-const useEnvContext = (): domain.Env => {
+const useEnvContext = (): Env => {
   return useContext(envContext);
 };
 
