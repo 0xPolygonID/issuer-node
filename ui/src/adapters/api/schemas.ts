@@ -1,6 +1,7 @@
 import axios from "axios";
 import { z } from "zod";
 
+import { Env } from "src/domain";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -8,13 +9,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import {
-  API_PASSWORD,
-  API_URL,
-  API_USERNAME,
-  ISSUER_DID,
-  QUERY_SEARCH_PARAM,
-} from "src/utils/constants";
+import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface Schema {
@@ -47,21 +42,23 @@ export type SchemaAttribute = {
 );
 
 export async function schemasGetSingle({
+  env,
   schemaID,
   signal,
 }: {
+  env: Env;
   schemaID: string;
   signal: AbortSignal;
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: `Basic ${env.api.username}:${env.api.password}`,
       },
       method: "GET",
       signal,
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}`,
+      url: `issuers/${env.issuer.did}/schemas/${schemaID}`,
     });
     const { data } = resultOKSchema.parse(response);
 
@@ -72,9 +69,11 @@ export async function schemasGetSingle({
 }
 
 export async function schemasGetAll({
+  env,
   params: { query },
   signal,
 }: {
+  env: Env;
   params: {
     query?: string;
   };
@@ -87,16 +86,16 @@ export async function schemasGetAll({
 > {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: `Basic ${env.api.username}:${env.api.password}`,
       },
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `issuers/${ISSUER_DID}/schemas`,
+      url: `issuers/${env.issuer.did}/schemas`,
     });
     const { data } = resultOKSchemasGetAll.parse(response);
 

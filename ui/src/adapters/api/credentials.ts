@@ -2,6 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Schema, schema } from "src/adapters/api/schemas";
+import { Env } from "src/domain";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -9,13 +10,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import {
-  API_PASSWORD,
-  API_URL,
-  API_USERNAME,
-  ISSUER_DID,
-  QUERY_SEARCH_PARAM,
-} from "src/utils/constants";
+import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface CredentialAttribute {
@@ -57,21 +52,23 @@ export interface CredentialIssuePayload {
 }
 
 export async function credentialIssue({
+  env,
   payload,
   schemaID,
 }: {
+  env: Env;
   payload: CredentialIssuePayload;
   schemaID: string;
 }): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: `Basic ${env.api.username}:${env.api.password}`,
       },
       method: "POST",
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers`,
+      url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
     });
     const { data } = resultCreatedCredential.parse(response);
 
@@ -87,22 +84,24 @@ interface CredentialUpdatePayload {
 
 export async function credentialUpdate({
   credentialID,
+  env,
   payload,
   schemaID,
 }: {
   credentialID: string;
+  env: Env;
   payload: CredentialUpdatePayload;
   schemaID: string;
 }): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: `Basic ${env.api.username}:${env.api.password}`,
       },
       method: "PATCH",
-      url: `issuers/${ISSUER_DID}/schemas/${schemaID}/offers/${credentialID}`,
+      url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
     });
     const { data } = resultOKCredential.parse(response);
 
@@ -113,9 +112,11 @@ export async function credentialUpdate({
 }
 
 export async function credentialsGetAll({
+  env,
   params: { query, valid },
   signal,
 }: {
+  env: Env;
   params: {
     query?: string;
     valid?: boolean;
@@ -129,9 +130,9 @@ export async function credentialsGetAll({
 > {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${API_USERNAME}:${API_PASSWORD}`,
+        Authorization: `Basic ${env.api.username}:${env.api.password}`,
       },
       method: "GET",
       params: new URLSearchParams({
@@ -139,7 +140,7 @@ export async function credentialsGetAll({
         ...(valid !== undefined ? { valid: valid.toString() } : {}),
       }),
       signal,
-      url: `issuers/${ISSUER_DID}/offers`,
+      url: `issuers/${env.issuer.did}/offers`,
     });
     const { data } = resultOKCredentialsGetAll.parse(response);
 
@@ -271,15 +272,17 @@ const resultOKShareCredentialQRCode = StrictSchema<
 );
 
 export async function credentialsQRCreate({
+  env,
   id,
   signal,
 }: {
+  env: Env;
   id: string;
   signal?: AbortSignal;
 }): Promise<APIResponse<ShareCredentialQRCode>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       method: "POST",
       signal,
       url: `offers-qrcode/${id}`,
@@ -436,14 +439,16 @@ const resultOKCredentialQRCheck = StrictSchema<ResultOK<CredentialQRCheck>>()(
 
 export async function credentialsQRCheck({
   credentialID,
+  env,
   sessionID,
 }: {
   credentialID: string;
+  env: Env;
   sessionID: string;
 }): Promise<APIResponse<CredentialQRCheck>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       method: "GET",
       params: {
         sessionID,
@@ -461,14 +466,16 @@ export async function credentialsQRCheck({
 
 export async function credentialsQRDownload({
   credentialID,
+  env,
   sessionID,
 }: {
   credentialID: string;
+  env: Env;
   sessionID: string;
 }): Promise<APIResponse<Blob>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       method: "GET",
       params: {
         sessionID,

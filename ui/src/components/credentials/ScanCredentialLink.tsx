@@ -15,6 +15,7 @@ import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
+import { useEnvContext } from "src/contexts/env.context";
 import { APIError, HTTPStatusError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
@@ -26,6 +27,7 @@ import {
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function ScanCredentialLink() {
+  const env = useEnvContext();
   const [shareCredentialQRCode, setShareCredentialQRCode] = useState<
     AsyncTask<ShareCredentialQRCode, APIError>
   >({
@@ -43,7 +45,7 @@ export function ScanCredentialLink() {
       if (credentialID) {
         setShareCredentialQRCode({ status: "loading" });
 
-        const response = await credentialsQRCreate({ id: credentialID, signal });
+        const response = await credentialsQRCreate({ env, id: credentialID, signal });
 
         if (response.isSuccessful) {
           setShareCredentialQRCode({ data: response.data, status: "successful" });
@@ -54,7 +56,7 @@ export function ScanCredentialLink() {
         }
       }
     },
-    [credentialID]
+    [credentialID, env]
   );
 
   useEffect(() => {
@@ -68,6 +70,7 @@ export function ScanCredentialLink() {
       if (isAsyncTaskDataAvailable(shareCredentialQRCode) && credentialID) {
         const response = await credentialsQRCheck({
           credentialID,
+          env,
           sessionID: shareCredentialQRCode.data.sessionID,
         });
 
@@ -91,7 +94,7 @@ export function ScanCredentialLink() {
     }, QR_CODE_POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [shareCredentialQRCode, credentialID, credentialQRCheck]);
+  }, [shareCredentialQRCode, credentialID, credentialQRCheck, env]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
