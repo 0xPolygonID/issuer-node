@@ -709,7 +709,7 @@ func TestServer_CreateCredential(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
-				var response CreateCredentialResponse
+				var response UUIDResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
