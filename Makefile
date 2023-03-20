@@ -137,7 +137,7 @@ add-vault-token:
 	$(eval TOKEN = $(shell docker logs issuer-vault-1 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
 	sed '/ISSUER_KEY_STORE_TOKEN/d' .env-issuer > .env-issuer.tmp
 	@echo ISSUER_KEY_STORE_TOKEN=$(TOKEN) >> .env-issuer.tmp
-	@MV .env-issuer.tmp .env-issuer
+	mv .env-issuer.tmp .env-issuer
 
 
 .PHONY: run-initializer
@@ -151,7 +151,7 @@ generate-issuer-did: run-initializer
 	@echo $(DID)
 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-	@MV .env-api.tmp .env-api
+	mv .env-api.tmp .env-api
 	docker rm issuer-initializer-1
 
 .PHONY: run-initializer-arm
@@ -165,7 +165,7 @@ generate-issuer-did-arm: run-initializer-arm
 	@echo $(DID)
 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-	@MV .env-api.tmp .env-api
+	mv .env-api.tmp .env-api
 	docker rm issuer-initializer-1
 
 
