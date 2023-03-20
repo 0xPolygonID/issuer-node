@@ -8,19 +8,17 @@ export function Explainer({
   CTA,
   description,
   image,
-  isDismissable,
   localStorageKey,
   title,
 }: {
   CTA: { label: string; url: string };
   description: string;
   image: string;
-  isDismissable: boolean;
-  localStorageKey: string;
+  localStorageKey?: string;
   title: string;
 }) {
   const [isShowing, setShowing] = useState(
-    !isDismissable
+    !localStorageKey
       ? true
       : getStorageByKey({ defaultValue: true, key: localStorageKey, parser: z.boolean() })
   );
@@ -46,12 +44,9 @@ export function Explainer({
             </Button>
           )}
 
-          {isDismissable && (
+          {localStorageKey && (
             <Button
-              onClick={() => {
-                setShowing(false);
-                setStorageByKey({ key: localStorageKey, value: false });
-              }}
+              onClick={() => setShowing(setStorageByKey({ key: localStorageKey, value: false }))}
               type="primary"
             >
               Dismiss

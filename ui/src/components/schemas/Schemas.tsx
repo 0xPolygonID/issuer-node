@@ -43,7 +43,6 @@ export function Schemas() {
           CTA={{ label: "Learn more", url: TUTORIALS_URL }}
           description="Learn about schema types, attributes, naming conventions, data types and more."
           image="/images/illustration-explainer.svg"
-          isDismissable
           localStorageKey="explainerSchemas"
           title="Credential schemas explained"
         />
