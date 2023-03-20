@@ -43,9 +43,9 @@ const EnvProvider: FC<PropsWithChildren> = (props) => {
   ) : !value ? null : (
     <ErrorResult
       error={[
-        "An error occurred while trying to parse the env:\n",
+        "An error occurred while reading the environment variables:\n",
         ...processZodError(value.error).map((e) => `"${e}"`),
-        "\nPlease provide a valid env and try again.",
+        "\nPlease provide valid environment variables.",
       ].join("\n")}
     />
   );
