@@ -137,7 +137,7 @@ add-vault-token:
 	$(eval TOKEN = $(shell docker logs issuer-vault-1 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
 	sed '/ISSUER_KEY_STORE_TOKEN/d' .env-issuer > .env-issuer.tmp
 	@echo ISSUER_KEY_STORE_TOKEN=$(TOKEN) >> .env-issuer.tmp
-	@MV .env-issuer.tmp .env-issuer
+	mv .env-issuer.tmp .env-issuer
 
 
 .PHONY: run-initializer
