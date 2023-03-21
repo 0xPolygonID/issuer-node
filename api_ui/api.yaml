@@ -535,6 +535,10 @@ components:
         expiration:
           type: integer
           format: int64
+        signatureProof:
+          type: boolean
+        mtProof:
+          type: boolean
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -543,6 +547,8 @@ components:
           birthday: 19960424
           documentType: 2
         expiration: 20250424
+        signatureProof: true
+        mtProof: true
 
     Schema:
       type: object
