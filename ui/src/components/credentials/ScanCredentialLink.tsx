@@ -199,6 +199,7 @@ export function ScanCredentialLink() {
               {shareCredentialQRCode.data.offerDetails.attributeValues.map((attribute) => {
                 const formattedValue = formatAttributeValue(
                   attribute,
+                  //TODO Credentials epic
                   // shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
                   []
                 );

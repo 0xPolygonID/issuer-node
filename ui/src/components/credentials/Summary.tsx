@@ -121,6 +121,7 @@ export function Summary({
               </Row>
 
               {credential.attributeValues.map((attribute, index) => {
+                //TODO Credentials epic
                 // const formattedValue = formatAttributeValue(attribute, schema.attributes);
                 const formattedValue = formatAttributeValue(attribute, []);
 
