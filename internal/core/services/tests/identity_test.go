@@ -32,7 +32,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
-	schemaService := services.NewSchema(loader.CachedFactory(loader.HTTPFactory, cachex))
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -40,10 +40,10 @@ func Test_identity_UpdateState(t *testing.T) {
 	}
 	claimsService := services.NewClaim(
 		claimsRepo,
-		schemaService,
 		identityService,
 		mtService,
 		identityStateRepo,
+		schemaLoader,
 		storage,
 		claimsConf,
 	)

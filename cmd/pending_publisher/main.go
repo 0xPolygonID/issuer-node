@@ -91,13 +91,12 @@ func main() {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
-	schemaService := services.NewSchema(loader.HTTPFactory)
 	claimsService := services.NewClaim(
 		claimsRepo,
-		schemaService,
 		identityService,
 		mtService,
 		identityStateRepo,
+		loader.HTTPFactory,
 		storage,
 		services.ClaimCfg{
 			RHSEnabled: cfg.ReverseHashService.Enabled,

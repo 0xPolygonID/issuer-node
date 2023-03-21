@@ -22,9 +22,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
+	schemaPkg "github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 var (
@@ -46,15 +48,15 @@ type ClaimCfg struct {
 type claim struct {
 	cfg                     ClaimCfg
 	icRepo                  ports.ClaimsRepository
-	schemaSrv               ports.SchemaService
 	identitySrv             ports.IdentityService
 	mtService               ports.MtService
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
+	loaderFactory           loader.Factory
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -62,11 +64,11 @@ func NewClaim(repo ports.ClaimsRepository, schemaSrv ports.SchemaService, idenSr
 			Host:       cfg.Host,
 		},
 		icRepo:                  repo,
-		schemaSrv:               schemaSrv,
 		identitySrv:             idenSrv,
 		mtService:               mtService,
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
+		loaderFactory:           ld,
 	}
 	return s
 }
@@ -87,7 +89,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, err
 	}
 
-	schema, err := c.schemaSrv.LoadSchema(ctx, req.Schema)
+	schema, err := schemaPkg.LoadSchema(ctx, c.loaderFactory(req.Schema))
 	if err != nil {
 		log.Error(ctx, "loading schema", "err", err, "schema", req.Schema)
 		return nil, ErrLoadingSchema
@@ -113,7 +115,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, req.Type)
 	mtRootPostion := common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition)
 
-	coreClaim, err := c.schemaSrv.Process(ctx, req.Schema, credentialType, vc, &processor.CoreClaimOptions{
+	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, &processor.CoreClaimOptions{
 		RevNonce:              nonce,
 		MerklizedRootPosition: mtRootPostion,
 		Version:               req.Version,
@@ -309,7 +311,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, err
 	}
 
-	vc, err := c.schemaSrv.FromClaimModelToW3CCredential(*claim)
+	vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		log.Error(ctx, "creating W3 credential", err)
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)

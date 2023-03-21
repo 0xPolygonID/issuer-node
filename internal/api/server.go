@@ -33,19 +33,17 @@ type Server struct {
 	cfg              *config.Configuration
 	identityService  ports.IdentityService
 	claimService     ports.ClaimsService
-	schemaService    ports.SchemaService
 	publisherGateway ports.Publisher
 	packageManager   *iden3comm.PackageManager
 	health           *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:              cfg,
 		identityService:  identityService,
 		claimService:     claimsService,
-		schemaService:    schemaService,
 		publisherGateway: publisherGateway,
 		packageManager:   packageManager,
 		health:           health,
@@ -218,7 +216,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	w3c, err := s.schemaService.FromClaimModelToW3CCredential(*claim)
+	w3c, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		return GetClaim500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
