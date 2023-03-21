@@ -66,7 +66,7 @@ func connectionsResponse(conns []*domain.Connection) GetConnectionsResponse {
 
 func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {
 	var credResp *[]Credential
-	if len(credentials) > 0 {
+	if w3cs != nil {
 		creds := make([]Credential, len(w3cs))
 		for i := range credentials {
 			creds[i] = credentialResponse(w3cs[i], credentials[i])
