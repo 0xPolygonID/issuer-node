@@ -359,7 +359,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID, filter *ports.Filter) ([]*domain.Claim, error) {
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID *core.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
@@ -382,7 +382,7 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifi
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 			`
 
-	filters := buildGetAllQueryAndFilters(identifier, filter, &query)
+	filters := buildGetAllQueryAndFilters(issuerID, filter, &query)
 
 	rows, err := conn.Query(ctx, query, filters...)
 	if err != nil {
@@ -527,8 +527,8 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	return claims, rows.Err()
 }
 
-func buildGetAllQueryAndFilters(identifier *core.DID, filter *ports.Filter, query *string) []interface{} {
-	filters := []interface{}{identifier.String()}
+func buildGetAllQueryAndFilters(issuerID *core.DID, filter *ports.ClaimsFilter, query *string) []interface{} {
+	filters := []interface{}{issuerID.String()}
 	*query = fmt.Sprintf("%s WHERE claims.identifier = $%d", *query, len(filters))
 
 	if filter.Self != nil && *filter.Self {

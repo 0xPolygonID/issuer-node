@@ -254,7 +254,6 @@ func TestServer_GetSchema(t *testing.T) {
 			id:   s.ID.String(),
 			expected: expected{
 				httpCode: http.StatusOK,
-				errorMsg: "schema not found",
 				schema: &Schema{
 					BigInt:    s.Hash.BigInt().String(),
 					CreatedAt: s.CreatedAt,
@@ -330,6 +329,16 @@ func TestServer_GetSchemas(t *testing.T) {
 		s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
 		fixture.CreateSchema(t, ctx, s)
 	}
+	s := &domain.Schema{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		URL:        "https://domain.org/this/is/an/url/ubiprogram",
+		Type:       "UbiProgram",
+		Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
+		CreatedAt:  time.Now(),
+	}
+	s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
+	fixture.CreateSchema(t, ctx, s)
 
 	handler := getHandler(ctx, server)
 	type expected struct {
@@ -386,6 +395,15 @@ func TestServer_GetSchemas(t *testing.T) {
 				count:    20,
 			},
 		},
+		{
+			name:  "Exact search, return 1",
+			auth:  authOk,
+			query: common.ToPointer("UbiProgram"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -404,7 +422,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			case http.StatusOK:
 				var response GetSchemas200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, len(response), 20)
+				assert.Equal(t, len(response), tc.expected.count)
 			}
 		})
 	}

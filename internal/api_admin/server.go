@@ -165,7 +165,7 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
 	}
 
-	filter := &ports.Filter{
+	filter := &ports.ClaimsFilter{
 		Subject: conn.UserDID.String(),
 	}
 	credentials, err := s.claimService.GetAll(ctx, &s.cfg.APIUI.IssuerDID, filter)
@@ -216,6 +216,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
+	//col, err := s.claimService.GetAll()
 	panic("implement me")
 }
 

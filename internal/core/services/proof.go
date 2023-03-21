@@ -270,7 +270,7 @@ func (p *Proof) findClaimForQuery(ctx context.Context, identifier *core.DID, que
 
 	// TODO "query_value":    value,
 	// TODO "query_operator": operator,
-	filter := &ports.Filter{QueryField: field, SchemaType: query.SchemaType()}
+	filter := &ports.ClaimsFilter{QueryField: field, SchemaType: query.SchemaType()}
 	if !query.SkipClaimRevocationCheck {
 		filter.Revoked = common.ToPointer(false)
 	}
