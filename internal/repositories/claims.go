@@ -69,8 +69,9 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
           			credential_status,
 					revoked,
                     core_claim,
-                    index_hash)
-		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                    index_hash,
+					mtp)
+		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		RETURNING id`
 
 		err = conn.QueryRow(ctx, s,
@@ -91,7 +92,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.CredentialStatus,
 			claim.Revoked,
 			claim.CoreClaim,
-			claim.HIndex).Scan(&id)
+			claim.HIndex,
+			claim.MtProof).Scan(&id)
 	} else {
 		s := `INSERT INTO claims (
 					id,
@@ -112,18 +114,19 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     credential_status,
                     revoked,
                     core_claim,
-                    index_hash
+                    index_hash,
+					mtp
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		)
 		ON CONFLICT ON CONSTRAINT claims_pkey 
 		DO UPDATE SET 
 			( expiration, updatable, version, rev_nonce, signature_proof, mtp_proof, data, identity_state, 
-			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim)
+			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp)
 			= (EXCLUDED.expiration, EXCLUDED.updatable, EXCLUDED.version, EXCLUDED.rev_nonce, EXCLUDED.signature_proof,
 		EXCLUDED.mtp_proof, EXCLUDED.data, EXCLUDED.identity_state, EXCLUDED.other_identifier, EXCLUDED.schema_hash, 
-		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim)
+		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp)
 			RETURNING id`
 		err = conn.QueryRow(ctx, s,
 			claim.ID,
@@ -144,7 +147,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.CredentialStatus,
 			claim.Revoked,
 			claim.CoreClaim,
-			claim.HIndex).Scan(&id)
+			claim.HIndex,
+			claim.MtProof).Scan(&id)
 	}
 
 	if err == nil {
@@ -330,7 +334,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
        				claims.identifier,
         			identity_state,
        				credential_status,
-       				core_claim
+       				core_claim,
+					mtp
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -349,7 +354,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 		&claim.Identifier,
 		&claim.IdentityState,
 		&claim.CredentialStatus,
-		&claim.CoreClaim)
+		&claim.CoreClaim,
+		&claim.MtProof)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
