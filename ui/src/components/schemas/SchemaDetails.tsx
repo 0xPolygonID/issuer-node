@@ -166,13 +166,7 @@ export function SchemaDetails() {
       title="Schema details"
     >
       {(() => {
-        if (loading) {
-          return (
-            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
-              <LoadingResult />
-            </Card>
-          );
-        } else if (
+        if (
           apiSchema.status === "failed" ||
           schema.status === "failed" ||
           jsonLdType.status === "failed"
@@ -183,6 +177,12 @@ export function SchemaDetails() {
                 <ErrorResult error={errorMsg} />
               </Card>
             )
+          );
+        } else if (loading) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <LoadingResult />
+            </Card>
           );
         } else {
           const schemaHashResult = getSchemaHash(jsonLdType.data);
