@@ -48,7 +48,7 @@ services:
       dockerfile: ${DOCKER_FILE}
     env_file:
       - ../../.env-issuer
-    command: sh -c "sleep 4s &&  ./issuer_initializer"
+    command: sh -c "sleep 4s && ./migrate && ./issuer_initializer"
 
 
 networks:

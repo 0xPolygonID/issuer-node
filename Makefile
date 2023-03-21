@@ -8,9 +8,7 @@ BUILD_CMD := $(GO) install -ldflags "-X main.build=${VERSION}"
 
 LOCAL_DEV_PATH = $(shell pwd)/infrastructure/local
 DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
-DOCKER_COMPOSE_FILE_INFRA := $(LOCAL_DEV_PATH)/docker-compose-infra.yml
 DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
-DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
 
 
 # Local environment overrides via godotenv
@@ -59,7 +57,7 @@ api-ui: $(BIN)/oapi-codegen
 
 .PHONY: up
 up:
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
+	$(DOCKER_COMPOSE_CMD) up -d redis postgres vault
 
 .PHONY: run
 run:
@@ -79,17 +77,15 @@ run-ui-arm:
 
 .PHONY: down
 down:
-	$(DOCKER_COMPOSE_INFRA_CMD) down --remove-orphans
 	$(DOCKER_COMPOSE_CMD) down --remove-orphans
 
 .PHONY: stop
 stop:
-	$(DOCKER_COMPOSE_INFRA_CMD) stop
 	$(DOCKER_COMPOSE_CMD) stop
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault
+	$(DOCKER_COMPOSE_CMD) up -d test_postgres vault
 
 $(BIN)/configurator:
 	$(BUILD_CMD) ./cmd/configurator
