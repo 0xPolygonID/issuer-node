@@ -7,6 +7,7 @@ ALTER TABLE claims
 
 -- +goose Down
 -- +goose StatementBegin
+ALTER TABLE claims DROP COLUMN mtp;
 ALTER TABLE claims
-ALTER COLUMN mtp TYPE jsonb;
+    ADD COLUMN mtp jsonb not null;
 -- +goose StatementEnd
