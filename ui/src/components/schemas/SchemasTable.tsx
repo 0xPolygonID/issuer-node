@@ -50,13 +50,24 @@ export function MySchemas() {
       dataIndex: "id",
       key: "id",
       render: (schemaID: string) => (
-        <Link
-          to={generatePath(ROUTES.issueCredential.path, {
-            schemaID,
-          })}
-        >
-          Issue
-        </Link>
+        <Row>
+          <Space size="large">
+            <Link
+              to={generatePath(ROUTES.schemaDetails.path, {
+                schemaID,
+              })}
+            >
+              Details
+            </Link>
+            <Link
+              to={generatePath(ROUTES.issueCredential.path, {
+                schemaID,
+              })}
+            >
+              Issue
+            </Link>
+          </Space>
+        </Row>
       ),
       title: "Actions",
     },
