@@ -17,10 +17,6 @@ services:
       dockerfile: ${DOCKER_FILE}
     ports:
       - "3001:3001"
-    depends_on:
-      - postgres
-      - redis
-      - vault
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -32,10 +28,6 @@ services:
       dockerfile: ${DOCKER_FILE}
     ports:
       - "3002:3002"
-    depends_on:
-      - postgres
-      - redis
-      - vault
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -45,9 +37,6 @@ services:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
-    depends_on:
-      - postgres
-      - vault
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -57,72 +46,11 @@ services:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
-    depends_on:
-      - postgres
-      - vault
     env_file:
       - ../../.env-issuer
     command: sh -c "sleep 4s &&  ./issuer_initializer"
 
-  postgres:
-    image: postgres:14-alpine
-    hostname: postgres
-    environment:
-      - PGPORT=5432
-      - PGUSER=postgres
-      - POSTGRES_HOST_AUTH_METHOD=trust
-      - POSTGRES_USER=postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./scripts/sql:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  test_postgres:
-    image: postgres:14-alpine
-    environment:
-      - PGPORT=5435
-      - PGUSER=postgres
-      - POSTGRES_HOST_AUTH_METHOD=trust
-      - POSTGRES_USER=postgres
-    command: -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-    ports:
-      - "5435:5435"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:6-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "6379", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  vault:
-    image: vault:latest
-    volumes:
-      - ./.vault/config:/vault/config
-      - ./.vault/policies:/vault/policies
-      - ./.vault/data:/vault/data
-      - ./.vault/file:/vault/file:rw
-      - ./.vault/scripts:/vault/scripts
-      - ./.vault/plugins:/vault/plugins
-    ports:
-      - 8200:8200
-    environment:
-      - VAULT_ADDR=http://0.0.0.0:8200
-      - VAULT_API_ADDR=http://0.0.0.0:8200
-      - VAULT_ADDRESS=http://0.0.0.0:8200
-    cap_add:
-      - IPC_LOCK
-    command: ./vault/scripts/init.sh
+networks:
+  default:
+      name: issuer-network
