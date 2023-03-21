@@ -183,6 +183,17 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 	return GetConnection200JSONResponse(connectionResponse(conn, w3credentials, credentials)), nil
 }
 
+// GetConnections returns the list of credentials of a determined issuer
+func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
+	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
+	if err != nil {
+		log.Error(ctx, "get connection request", err, "query", request.Params.Query)
+		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
+	}
+
+	return GetConnections200JSONResponse(connectionsResponse(conns)), nil
+}
+
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
 	err := s.connectionsService.Delete(ctx, request.Id)
