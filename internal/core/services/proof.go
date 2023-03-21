@@ -275,7 +275,7 @@ func (p *Proof) findClaimForQuery(ctx context.Context, identifier *core.DID, que
 		filter.Revoked = common.ToPointer(false)
 	}
 
-	claim, err := p.claimsRepository.GetAllByIssuerID(ctx, p.storage.Pgx, identifier, filter)
+	claim, err := p.claimsRepository.GetAllByIssuerID(ctx, p.storage.Pgx, *identifier, filter)
 	if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 		return nil, fmt.Errorf("claim with credential type %v was not found", query)
 	}

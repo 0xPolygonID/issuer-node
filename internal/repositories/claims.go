@@ -359,7 +359,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID *core.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID core.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
@@ -527,7 +527,7 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	return claims, rows.Err()
 }
 
-func buildGetAllQueryAndFilters(issuerID *core.DID, filter *ports.ClaimsFilter, query *string) []interface{} {
+func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter, query *string) []interface{} {
 	filters := []interface{}{issuerID.String()}
 	*query = fmt.Sprintf("%s WHERE claims.identifier = $%d", *query, len(filters))
 
