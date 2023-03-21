@@ -192,6 +192,9 @@ type ServerInterface interface {
 	// Get Connection
 	// (GET /v1/connections/{id})
 	GetConnection(w http.ResponseWriter, r *http.Request, id Id)
+	// Get all credentials. Optional filter by status and text query search.
+	// (GET /v1/credentials)
+	GetCredentials(w http.ResponseWriter, r *http.Request)
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
@@ -366,6 +369,23 @@ func (siw *ServerInterfaceWrapper) GetConnection(w http.ResponseWriter, r *http.
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetConnection(w, r, id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetCredentials operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCredentials(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -686,6 +706,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/connections/{id}", wrapper.GetConnection)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/credentials", wrapper.GetCredentials)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/credentials", wrapper.CreateCredential)
 	})
 	r.Group(func(r chi.Router) {
@@ -899,6 +922,49 @@ func (response GetConnection400JSONResponse) VisitGetConnectionResponse(w http.R
 type GetConnection500JSONResponse struct{ N500JSONResponse }
 
 func (response GetConnection500JSONResponse) VisitGetConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialsRequestObject struct {
+}
+
+type GetCredentialsResponseObject interface {
+	VisitGetCredentialsResponse(w http.ResponseWriter) error
+}
+
+type GetCredentials200JSONResponse []Credential
+
+func (response GetCredentials200JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentials400JSONResponse struct{ N400JSONResponse }
+
+func (response GetCredentials400JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentials404JSONResponse struct{ N404JSONResponse }
+
+func (response GetCredentials404JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentials500JSONResponse struct{ N500JSONResponse }
+
+func (response GetCredentials500JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -1218,6 +1284,9 @@ type StrictServerInterface interface {
 	// Get Connection
 	// (GET /v1/connections/{id})
 	GetConnection(ctx context.Context, request GetConnectionRequestObject) (GetConnectionResponseObject, error)
+	// Get all credentials. Optional filter by status and text query search.
+	// (GET /v1/credentials)
+	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
@@ -1453,6 +1522,30 @@ func (sh *strictHandler) GetConnection(w http.ResponseWriter, r *http.Request, i
 	}
 }
 
+// GetCredentials operation middleware
+func (sh *strictHandler) GetCredentials(w http.ResponseWriter, r *http.Request) {
+	var request GetCredentialsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCredentials(ctx, request.(GetCredentialsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCredentials")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCredentialsResponseObject); ok {
+		if err := validResponse.VisitGetCredentialsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // CreateCredential operation middleware
 func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request) {
 	var request CreateCredentialRequestObject
@@ -1648,41 +1741,42 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, id Id
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AA==",
+	"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",
+	"VQD15PM+NLjf/h0AAP//jsevcpsuAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

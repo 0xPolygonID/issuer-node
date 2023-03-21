@@ -107,9 +107,31 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
   #credentials:
   /v1/credentials:
+    get:
+      summary: Get all credentials. Optional filter by status and text query search.
+      operationId: GetCredentials
+      description: Return all the credentials that matches the filter
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Credential'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
     post:
       summary: Create Credential
       operationId: CreateCredential

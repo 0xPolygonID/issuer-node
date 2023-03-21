@@ -214,6 +214,11 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
 }
 
+// GetCredentials returns a collection of credentials that matches the request.
+func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
+	panic("implement me")
+}
+
 // DeleteCredential deletes a credential
 func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
 	err := s.claimService.Delete(ctx, request.Id)
