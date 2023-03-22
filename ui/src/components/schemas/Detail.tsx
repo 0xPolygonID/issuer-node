@@ -11,7 +11,6 @@ export function Detail({
   copyable?: boolean;
   data: string;
   label: string;
-  maxWidth?: number;
 }) {
   return (
     <Row justify="space-between">

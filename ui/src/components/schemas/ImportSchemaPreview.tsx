@@ -46,8 +46,6 @@ export function ImportSchemaPreview({
   const bigintResult = getBigint(jsonLdType);
   const bigint = bigintResult && bigintResult.success ? bigintResult.data : undefined;
 
-  const DETAIL_WIDTH = 350;
-
   return (
     <Card
       extra={
@@ -97,17 +95,15 @@ export function ImportSchemaPreview({
               copyable={bigint !== undefined}
               data={bigint || "An error occurred while calculating BigInt"}
               label="BigInt"
-              maxWidth={DETAIL_WIDTH}
             />
 
             <Detail
               copyable={schemaHash !== undefined}
               data={schemaHash || "An error occurred while calculating Hash"}
               label="Hash"
-              maxWidth={DETAIL_WIDTH}
             />
 
-            <Detail copyable data={url} label="URL" maxWidth={DETAIL_WIDTH} />
+            <Detail copyable data={url} label="URL" />
 
             <Row justify="space-between">
               <Typography.Text type="secondary">Download</Typography.Text>

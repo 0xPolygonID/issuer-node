@@ -184,8 +184,6 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const DETAIL_WIDTH = 350;
-
           return (
             <Card
               extra={
@@ -231,32 +229,13 @@ export function SchemaDetails() {
                       <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
                     </Row>
 
-                    <Detail
-                      copyable
-                      data={apiSchema.data.bigInt}
-                      label="BigInt"
-                      maxWidth={DETAIL_WIDTH}
-                    />
+                    <Detail copyable data={apiSchema.data.bigInt} label="BigInt" />
 
-                    <Detail
-                      copyable
-                      data={apiSchema.data.hash}
-                      label="Hash"
-                      maxWidth={DETAIL_WIDTH}
-                    />
+                    <Detail copyable data={apiSchema.data.hash} label="Hash" />
 
-                    <Detail
-                      copyable
-                      data={apiSchema.data.url}
-                      label="URL"
-                      maxWidth={DETAIL_WIDTH}
-                    />
+                    <Detail copyable data={apiSchema.data.url} label="URL" />
 
-                    <Detail
-                      data={formatDate(apiSchema.data.createdAt, true)}
-                      label="Import date"
-                      maxWidth={DETAIL_WIDTH}
-                    />
+                    <Detail data={formatDate(apiSchema.data.createdAt, true)} label="Import date" />
 
                     <Row justify="space-between">
                       <Typography.Text type="secondary">Download</Typography.Text>
