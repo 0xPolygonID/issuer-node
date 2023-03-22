@@ -123,7 +123,7 @@ Completing either option of the [installation](#installation) process yields the
 
 1. Make sure that the UI API is set up and running properly (default <http://localhost:3002>).
 2. Go to the `ui/` folder.
-3. Copy the `.env-sample` file as `.env`
+3. Copy the `.env.sample` file as `.env`
 4. All variables are required to be set, with the exception of `VITE_ISSUER_LOGO`. The following are the corresponding variables present in the parent folder's `.env-api`, which need to be the same. Only `VITE_ISSUER_NAME` can differ for the UI to function in development mode.
     - `VITE_API_URL -> ISSUER_API_UI_SERVER_URL`
     - `VITE_API_USERNAME -> ISSUER_API_UI_AUTH_USER`
