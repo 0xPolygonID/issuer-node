@@ -1,7 +1,7 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { authorization, env } from "src/components/shared/EnvHoC";
+import { apiAuth, env } from "src/components/shared/EnvHoC";
 import { JsonLdType } from "src/domain";
 import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
 import { QUERY_SEARCH_PARAM } from "src/utils/constants";
@@ -48,7 +48,7 @@ export async function importSchema({
         url: schemaUrl,
       },
       headers: {
-        Authorization: authorization,
+        Authorization: apiAuth,
       },
       method: "POST",
       url: "schemas",
@@ -72,7 +72,7 @@ export async function getSchema({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: authorization,
+        Authorization: apiAuth,
       },
       method: "GET",
       signal,
@@ -104,7 +104,7 @@ export async function getSchemas({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: authorization,
+        Authorization: apiAuth,
       },
       method: "GET",
       params: new URLSearchParams({

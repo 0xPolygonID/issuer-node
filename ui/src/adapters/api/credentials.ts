@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Schema, schema } from "src/adapters/api/schemas";
-import { authorization, env } from "src/components/shared/EnvHoC";
+import { apiAuth, env } from "src/components/shared/EnvHoC";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -63,7 +63,7 @@ export async function credentialIssue({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: authorization,
+        Authorization: apiAuth,
       },
       method: "POST",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
@@ -94,7 +94,7 @@ export async function credentialUpdate({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: authorization,
+        Authorization: apiAuth,
       },
       method: "PATCH",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
@@ -126,7 +126,7 @@ export async function credentialsGetAll({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: authorization,
+        Authorization: apiAuth,
       },
       method: "GET",
       params: new URLSearchParams({
