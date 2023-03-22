@@ -1,12 +1,13 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { JsonLdType } from "src/domain";
+import { Env, JsonLdType } from "src/domain";
 import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
-import { API_PASSWORD, API_URL, API_USERNAME, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
-const Authorization = `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`;
+const buildAuthorizationHeader = (env: Env) =>
+  `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
 
 export interface Schema {
   bigInt: string;
@@ -35,21 +36,23 @@ export type SchemaAttribute = {
 );
 
 export async function importSchema({
+  env,
   jsonLdType,
   schemaUrl,
 }: {
+  env: Env;
   jsonLdType: JsonLdType;
   schemaUrl: string;
 }): Promise<APIResponse<{ id: string }>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       data: {
         schemaType: jsonLdType.name,
         url: schemaUrl,
       },
       headers: {
-        Authorization,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
       url: "schemas",
@@ -63,17 +66,19 @@ export async function importSchema({
 }
 
 export async function getSchema({
+  env,
   schemaID,
   signal,
 }: {
+  env: Env;
   schemaID: string;
   signal: AbortSignal;
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       headers: {
-        Authorization,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
       signal,
@@ -88,9 +93,11 @@ export async function getSchema({
 }
 
 export async function getSchemas({
+  env,
   params: { query },
   signal,
 }: {
+  env: Env;
   params: {
     query?: string;
   };
@@ -103,9 +110,9 @@ export async function getSchemas({
 > {
   try {
     const response = await axios({
-      baseURL: API_URL,
+      baseURL: env.api.url,
       headers: {
-        Authorization,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
       params: new URLSearchParams({
