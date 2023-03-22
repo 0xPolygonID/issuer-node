@@ -429,11 +429,12 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 			`
 
 	rows, err := conn.Query(ctx, query, connID.String(), issuerID.String())
-	defer rows.Close()
 
 	if err != nil && err != pgx.ErrNoRows {
 		return nil, err
 	}
+
+	defer rows.Close()
 
 	return processClaims(rows)
 }
