@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -579,16 +578,6 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		}
 	}
 	return query, filters
-}
-
-func getDIDFromQuery(query string) string {
-	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
-	for _, word := range words {
-		if strings.HasPrefix(word, "did:") {
-			return word
-		}
-	}
-	return ""
 }
 
 func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
