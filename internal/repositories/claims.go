@@ -540,6 +540,8 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 	filters := []interface{}{issuerID.String()}
 	query = fmt.Sprintf("%s WHERE claims.identifier = $%d ", query, len(filters))
 
+	query = fmt.Sprintf("%s AND claims.schema_type <> '%s' ", query, domain.AuthBJJCredentialJSONSchemaURL)
+
 	if filter.Self != nil && *filter.Self {
 		query = fmt.Sprintf("%s and other_identifier = '' ", query)
 	}

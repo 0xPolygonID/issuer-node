@@ -245,7 +245,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 	if err != nil {
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-	response := make([]Credential, 0, len(credentials))
+	response := make([]Credential, len(credentials))
 	for i, credential := range credentials {
 		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
 		if err != nil {
