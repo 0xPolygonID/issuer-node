@@ -138,6 +138,7 @@ export function ImportSchemaForm({
           <Form.Item label="URL to JSON schema" required>
             <Row>
               <Input
+                autoFocus
                 onChange={(event) => setSchemaUrlInput(event.target.value)}
                 onPressEnter={loadSchema}
                 placeholder="Enter URL"
