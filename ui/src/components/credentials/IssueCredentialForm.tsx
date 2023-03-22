@@ -41,7 +41,7 @@ export function IssueCredentialForm({
                 <Typography.Text
                   copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
                 >
-                  {schema.schemaHash}
+                  {schema.hash}
                 </Typography.Text>
               </Row>
             </Space>
@@ -49,18 +49,20 @@ export function IssueCredentialForm({
 
           <Form.Item>
             <Space direction="vertical" size="middle">
-              {schema.attributes.map((schemaAttribute, index) => (
+              {/* //TODO Credentials epic */}
+              {[].map((schemaAttribute, index) => (
                 <CredentialAttribute index={index} key={index} schemaAttribute={schemaAttribute} />
               ))}
             </Space>
           </Form.Item>
-
           <Form.Item
             label="Credential expiration date"
             name="expirationDate"
-            rules={
-              schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
-            }
+            rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
+            // TODO Credentials epic
+            // rules={
+            //   schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
+            // }
           >
             <DatePicker disabledDate={(current) => current < dayjs()} />
           </Form.Item>

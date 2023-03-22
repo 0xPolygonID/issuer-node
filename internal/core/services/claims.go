@@ -133,34 +133,36 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, err
 	}
 
-	authClaim, err := c.GetAuthClaim(ctx, req.DID)
-	if err != nil {
-		log.Error(ctx, "Can not retrieve the auth claim", "err", err)
-		return nil, err
-	}
-
-	proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
-	if err != nil {
-		log.Error(ctx, "Can not sign claim entry", "err", err)
-		return nil, err
-	}
-
 	issuerDIDString := req.DID.String()
 	claim.Identifier = &issuerDIDString
 	claim.Issuer = issuerDIDString
 	claim.ID = vcID
 
-	proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
+	if req.SignatureProof {
+		authClaim, err := c.GetAuthClaim(ctx, req.DID)
+		if err != nil {
+			log.Error(ctx, "Can not retrieve the auth claim", "err", err)
+			return nil, err
+		}
 
-	jsonSignatureProof, err := json.Marshal(proof)
-	if err != nil {
-		log.Error(ctx, "Can not encode the json signature proof", "err", err)
-		return nil, err
-	}
-	err = claim.SignatureProof.Set(jsonSignatureProof)
-	if err != nil {
-		log.Error(ctx, "Can not set the json signature proof", "err", err)
-		return nil, err
+		proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
+		if err != nil {
+			log.Error(ctx, "Can not sign claim entry", "err", err)
+			return nil, err
+		}
+
+		proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
+
+		jsonSignatureProof, err := json.Marshal(proof)
+		if err != nil {
+			log.Error(ctx, "Can not encode the json signature proof", "err", err)
+			return nil, err
+		}
+		err = claim.SignatureProof.Set(jsonSignatureProof)
+		if err != nil {
+			log.Error(ctx, "Can not set the json signature proof", "err", err)
+			return nil, err
+		}
 	}
 
 	err = claim.Data.Set(vc)
@@ -175,6 +177,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 		return nil, err
 	}
 
+	claim.MtProof = req.MTProof
 	claimResp, err := c.save(ctx, claim)
 	if err != nil {
 		log.Error(ctx, "Can not save the claim", "err", err)
