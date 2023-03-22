@@ -2,26 +2,18 @@ import axios from "axios";
 import { z } from "zod";
 
 import { authorization, env } from "src/components/shared/EnvHoC";
-import {
-  APIResponse,
-  HTTPStatusSuccess,
-  ResultCreated,
-  ResultOK,
-  buildAPIError,
-} from "src/utils/adapters";
+import { JsonLdType } from "src/domain";
+import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
 import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface Schema {
-  attributes: SchemaAttribute[];
+  bigInt: string;
   createdAt: Date;
+  hash: string;
   id: string;
-  issuerID: string;
-  mandatoryExpiration: boolean;
-  schema: string;
-  schemaHash: string;
-  schemaURL: string;
-  version: string;
+  type: string;
+  url: string;
 }
 
 export type SchemaAttribute = {
@@ -41,7 +33,35 @@ export type SchemaAttribute = {
     }
 );
 
-export async function schemasGetSingle({
+export async function importSchema({
+  jsonLdType,
+  schemaUrl,
+}: {
+  jsonLdType: JsonLdType;
+  schemaUrl: string;
+}): Promise<APIResponse<{ id: string }>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: {
+        schemaType: jsonLdType.name,
+        url: schemaUrl,
+      },
+      headers: {
+        Authorization: authorization,
+      },
+      method: "POST",
+      url: "schemas",
+    });
+    const { id } = z.object({ id: z.string() }).parse(response.data);
+
+    return { data: { id }, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function getSchema({
   schemaID,
   signal,
 }: {
@@ -56,7 +76,7 @@ export async function schemasGetSingle({
       },
       method: "GET",
       signal,
-      url: `issuers/${env.issuer.did}/schemas/${schemaID}`,
+      url: `schemas/${schemaID}`,
     });
     const { data } = resultOKSchema.parse(response);
 
@@ -66,7 +86,7 @@ export async function schemasGetSingle({
   }
 }
 
-export async function schemasGetAll({
+export async function getSchemas({
   params: { query },
   signal,
 }: {
@@ -91,7 +111,7 @@ export async function schemasGetAll({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `issuers/${env.issuer.did}/schemas`,
+      url: "schemas",
     });
     const { data } = resultOKSchemasGetAll.parse(response);
 
@@ -152,22 +172,12 @@ export const schemaAttribute = StrictSchema<SchemaAttribute>()(
 
 export const schema = StrictSchema<Schema>()(
   z.object({
-    attributes: z.array(schemaAttribute),
+    bigInt: z.string(),
     createdAt: z.coerce.date(),
+    hash: z.string(),
     id: z.string(),
-    issuerID: z.string(),
-    mandatoryExpiration: z.boolean(),
-    schema: z.string(),
-    schemaHash: z.string(),
-    schemaURL: z.string(),
-    version: z.string(),
-  })
-);
-
-export const resultCreatedSchema = StrictSchema<ResultCreated<Schema>>()(
-  z.object({
-    data: schema,
-    status: z.literal(HTTPStatusSuccess.Created),
+    type: z.string(),
+    url: z.string(),
   })
 );
 

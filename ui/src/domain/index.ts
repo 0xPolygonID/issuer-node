@@ -7,7 +7,7 @@ export interface Env {
   issuer: {
     did: string;
     logo?: string;
-    name?: string;
+    name: string;
   };
 }
 

@@ -9,7 +9,7 @@ export interface EnvInput {
   VITE_API_USERNAME: string;
   VITE_ISSUER_DID: string;
   VITE_ISSUER_LOGO?: string;
-  VITE_ISSUER_NAME?: string;
+  VITE_ISSUER_NAME: string;
 }
 
 export const envParser = StrictSchema<EnvInput, Env>()(
@@ -20,7 +20,7 @@ export const envParser = StrictSchema<EnvInput, Env>()(
       VITE_API_USERNAME: z.string().min(1),
       VITE_ISSUER_DID: z.string(),
       VITE_ISSUER_LOGO: z.string().optional(),
-      VITE_ISSUER_NAME: z.string().optional(),
+      VITE_ISSUER_NAME: z.string().min(1),
     })
     .transform(
       ({

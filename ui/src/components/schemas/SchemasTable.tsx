@@ -3,7 +3,7 @@ import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
-import { Schema, schemasGetAll } from "src/adapters/api/schemas";
+import { Schema, getSchemas } from "src/adapters/api/schemas";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -27,15 +27,15 @@ export function MySchemas() {
 
   const tableContents: ColumnsType<Schema> = [
     {
-      dataIndex: "schema",
+      dataIndex: "type",
       ellipsis: { showTitle: false },
-      key: "schema",
-      render: (name: string) => (
-        <Tooltip placement="topLeft" title={name}>
-          <Typography.Text strong>{name}</Typography.Text>
+      key: "type",
+      render: (type: string) => (
+        <Tooltip placement="topLeft" title={type}>
+          <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schema: a }, { schema: b }) => a.localeCompare(b),
+      sorter: ({ type: a }, { type: b }) => a.localeCompare(b),
       title: SCHEMA_TYPE,
     },
     {
@@ -62,14 +62,14 @@ export function MySchemas() {
     },
   ];
 
-  const getSchemas = useCallback(
+  const onGetSchemas = useCallback(
     async (signal: AbortSignal) => {
       setSchemas((oldState) =>
         isAsyncTaskDataAvailable(oldState)
           ? { data: oldState.data, status: "reloading" }
           : { status: "loading" }
       );
-      const response = await schemasGetAll({
+      const response = await getSchemas({
         params: {
           query: queryParam || undefined,
         },
@@ -112,10 +112,10 @@ export function MySchemas() {
   );
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(getSchemas);
+    const { aborter } = makeRequestAbortable(onGetSchemas);
 
     return aborter;
-  }, [getSchemas]);
+  }, [onGetSchemas]);
 
   const schemaList = isAsyncTaskDataAvailable(schemas) ? schemas.data : [];
 

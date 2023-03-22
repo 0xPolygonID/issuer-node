@@ -16,6 +16,7 @@ export const env: Env = envParsed.success
       },
       issuer: {
         did: "",
+        name: "",
       },
     };
 
