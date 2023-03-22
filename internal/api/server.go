@@ -134,7 +134,12 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 // RevokeClaim is the revocation claim controller
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
-	if err := s.claimService.Revoke(ctx, request.Identifier, uint64(request.Nonce), ""); err != nil {
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return RevokeClaim400JSONResponse{N400JSONResponse{err.Error()}}, nil
+	}
+
+	if err := s.claimService.Revoke(ctx, *did, uint64(request.Nonce), ""); err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 			return RevokeClaim404JSONResponse{N404JSONResponse{
 				Message: "the claim does not exist",
