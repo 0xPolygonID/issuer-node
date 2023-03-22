@@ -12,5 +12,6 @@ import (
 // ConnectionsService  is the interface implemented by the Connections service
 type ConnectionsService interface {
 	Delete(ctx context.Context, id uuid.UUID) error
+	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID) error
 	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
 }

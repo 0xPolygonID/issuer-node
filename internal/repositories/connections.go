@@ -63,6 +63,13 @@ func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID)
 	return nil
 }
 
+func (c *connections) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) error {
+	sql := `DELETE FROM claims USING connections WHERE claims.issuer = connections.issuer_id AND claims.other_identifier = connections.user_id AND connections.id = $1 AND connections.issuer_id = $2`
+	_, err := conn.Exec(ctx, sql, id.String(), issuerID.String())
+
+	return err
+}
+
 func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) (*domain.Connection, error) {
 	connection := dbConnection{}
 	err := conn.QueryRow(ctx,
