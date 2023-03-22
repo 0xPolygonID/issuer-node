@@ -65,7 +65,7 @@ export async function credentialIssue({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
       },
       method: "POST",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
@@ -98,7 +98,7 @@ export async function credentialUpdate({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
       },
       method: "PATCH",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
@@ -132,7 +132,7 @@ export async function credentialsGetAll({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
       },
       method: "GET",
       params: new URLSearchParams({
