@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Schema, schema } from "src/adapters/api/schemas";
-import { apiAuth, env } from "src/components/shared/EnvHoC";
+import { env } from "src/adapters/parsers/env";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -10,7 +10,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/utils/adapters";
-import { QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { API_AUTH, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface CredentialAttribute {
@@ -63,7 +63,7 @@ export async function credentialIssue({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: apiAuth,
+        Authorization: API_AUTH,
       },
       method: "POST",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
@@ -94,7 +94,7 @@ export async function credentialUpdate({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: apiAuth,
+        Authorization: API_AUTH,
       },
       method: "PATCH",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
@@ -126,7 +126,7 @@ export async function credentialsGetAll({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: apiAuth,
+        Authorization: API_AUTH,
       },
       method: "GET",
       params: new URLSearchParams({

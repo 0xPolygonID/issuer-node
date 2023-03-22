@@ -1,3 +1,4 @@
+import { env } from "src/adapters/parsers/env";
 import { TabsCredentialsIDs } from "src/domain";
 
 // Literals used more than once
@@ -14,6 +15,8 @@ export const LINKS = "Links";
 export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
+
+export const API_AUTH = `Basic ${env.api.username}:${env.api.password}`;
 
 export const AUTH_TOKEN_KEY = "authToken";
 
