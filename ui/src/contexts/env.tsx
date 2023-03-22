@@ -22,6 +22,7 @@ const envDefaultValue: Env = {
   },
   issuer: {
     did: "",
+    name: "",
   },
 };
 
