@@ -14,5 +14,6 @@ import (
 type ConnectionsRepository interface {
 	Save(ctx context.Context, conn db.Querier, connection *domain.Connection) (uuid.UUID, error)
 	Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error
-	GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) (*domain.Connection, error)
+	GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
+	GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query *string) ([]*domain.Connection, error)
 }

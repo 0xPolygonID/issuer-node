@@ -107,7 +107,32 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
+  /v1/connections:
+    get:
+      summary: Get Connections
+      operationId: getConnections
+      description: get connections
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in connections.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetConnectionsResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
   #credentials:
   /v1/credentials:
     post:
@@ -502,12 +527,15 @@ components:
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
 
+    GetConnectionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GetConnectionResponse'
 
     GetConnectionResponse:
       type: object
       required:
         - connection
-        - credentials
       properties:
         connection:
           $ref: '#/components/schemas/Connection'
