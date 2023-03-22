@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"testing"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
