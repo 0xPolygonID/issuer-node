@@ -85,12 +85,12 @@ export function LinkTable() {
       dataIndex: "schemaTemplate",
       ellipsis: true,
       key: "schemaTemplate",
-      render: ({ schema }: Schema) => (
-        <Tooltip placement="topLeft" title={schema}>
-          <Typography.Text strong>{schema}</Typography.Text>
+      render: ({ type }: Schema) => (
+        <Tooltip placement="topLeft" title={type}>
+          <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaTemplate: { schema: a } }, { schemaTemplate: { schema: b } }) =>
+      sorter: ({ schemaTemplate: { type: a } }, { schemaTemplate: { type: b } }) =>
         a.localeCompare(b),
       title: "Credential",
     },

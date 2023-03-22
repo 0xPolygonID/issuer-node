@@ -119,12 +119,14 @@ export function Summary({
                   ellipsis={{ tooltip: true }}
                   style={{ maxWidth: CARD_ELLIPSIS_MAXIMUM_WIDTH }}
                 >
-                  {schema.schema}
+                  {schema.type}
                 </Typography.Text>
               </Row>
 
               {credential.attributeValues.map((attribute, index) => {
-                const formattedValue = formatAttributeValue(attribute, schema.attributes);
+                //TODO Credentials epic
+                // const formattedValue = formatAttributeValue(attribute, schema.attributes);
+                const formattedValue = formatAttributeValue(attribute, []);
 
                 return (
                   <Row justify="space-between" key={attribute.attributeKey}>
@@ -184,7 +186,7 @@ export function Summary({
                   copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
                   ellipsis
                 >
-                  {schema.schemaHash}
+                  {schema.hash}
                 </Typography.Text>
               </Row>
             </Space>

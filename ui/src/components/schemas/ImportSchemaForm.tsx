@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Radio, Row, Space } from "antd";
+import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -106,99 +106,106 @@ export function ImportSchemaForm({
   };
 
   return (
-    <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }} title="Provide JSON schema URL">
-      <Form
-        layout="vertical"
-        onFinish={() => {
-          if (
-            schemaUrl &&
-            isAsyncTaskDataAvailable(schema) &&
-            jsonLdTypeInput &&
-            rawJsonSchema &&
-            rawJsonLdContext
-          ) {
-            onFinish({
-              jsonLdType: jsonLdTypeInput,
-              jsonLdTypes: jsonLdTypes,
-              rawJsonLdContext,
-              rawJsonSchema,
-              schema: schema.data,
-              schemaUrl: schemaUrl,
-              schemaUrlInput: schemaUrlInput,
-            });
-          }
-        }}
-      >
-        <Form.Item label="URL to JSON schema" required>
-          <Row>
-            <Input
-              onChange={(event) => setSchemaUrlInput(event.target.value)}
-              onPressEnter={loadSchema}
-              placeholder="Enter URL"
-              style={{ flex: 1, marginRight: 8 }}
-              value={schemaUrlInput}
-            />
+    <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+      <Space direction="vertical" size="large">
+        <Card.Meta
+          description="The schema URL must remain publicly accessible after import because the schema will continue to be retrieved in the future."
+          title="Provide JSON schema URL"
+        />
 
-            <Button onClick={loadSchema}>Fetch</Button>
-          </Row>
-        </Form.Item>
+        <Form
+          layout="vertical"
+          onFinish={() => {
+            if (
+              schemaUrl &&
+              isAsyncTaskDataAvailable(schema) &&
+              jsonLdTypeInput &&
+              rawJsonSchema &&
+              rawJsonLdContext
+            ) {
+              onFinish({
+                jsonLdType: jsonLdTypeInput,
+                jsonLdTypes: jsonLdTypes,
+                rawJsonLdContext,
+                rawJsonSchema,
+                schema: schema.data,
+                schemaUrl: schemaUrl,
+                schemaUrlInput: schemaUrlInput,
+              });
+            }
+          }}
+        >
+          <Form.Item label="URL to JSON schema" required>
+            <Row>
+              <Input
+                onChange={(event) => setSchemaUrlInput(event.target.value)}
+                onPressEnter={loadSchema}
+                placeholder="Enter URL"
+                style={{ flex: 1, marginRight: 8 }}
+                value={schemaUrlInput}
+              />
 
-        {isAsyncTaskDataAvailable(jsonLdTypes) && (
-          <Form.Item label="Select schema type" required>
-            <Radio.Group value={jsonLdTypeInput?.name}>
-              <Space direction="vertical">
-                {jsonLdTypes.data.map((jsonLdType) => (
-                  <Radio
-                    key={jsonLdType.name}
-                    onClick={() => {
-                      setJsonLdTypeInput(jsonLdType);
-                    }}
-                    value={jsonLdType.name}
-                  >
-                    {jsonLdType.name}
-                  </Radio>
-                ))}
-              </Space>
-            </Radio.Group>
+              <Button onClick={loadSchema}>Fetch</Button>
+            </Row>
           </Form.Item>
-        )}
 
-        {(schema.status === "loading" || jsonLdTypes.status === "loading") && <LoadingResult />}
+          {isAsyncTaskDataAvailable(jsonLdTypes) && (
+            <Form.Item label="Select schema type" required>
+              <Radio.Group value={jsonLdTypeInput?.name}>
+                <Space direction="vertical">
+                  {jsonLdTypes.data.map((jsonLdType) => (
+                    <Radio
+                      key={jsonLdType.name}
+                      onClick={() => {
+                        setJsonLdTypeInput(jsonLdType);
+                      }}
+                      value={jsonLdType.name}
+                    >
+                      {jsonLdType.name}
+                    </Radio>
+                  ))}
+                </Space>
+              </Radio.Group>
+            </Form.Item>
+          )}
 
-        {schema.status === "failed" && (
-          <ErrorResult
-            error={
-              schema.error instanceof z.ZodError
-                ? [
-                    "An error occurred while trying to parse this schema:",
-                    ...processZodError(schema.error).map((e) => `"${e}"`),
-                    "Please provide a valid JSON Schema.",
-                  ].join("\n")
-                : `An error occurred while downloading this schema:\n"${schema.error}"\nPlease try again.`
-            }
-          />
-        )}
+          {(schema.status === "loading" || jsonLdTypes.status === "loading") && <LoadingResult />}
 
-        {jsonLdTypes.status === "failed" && (
-          <ErrorResult
-            error={
-              jsonLdTypes.error instanceof z.ZodError
-                ? [
-                    "An error occurred while trying to parse the JSON LD Type referenced in this schema:",
-                    ...processZodError(jsonLdTypes.error).map((e) => `"${e}"`),
-                    "Please provide a schema with a valid JSON LD Type.",
-                  ].join("\n")
-                : `An error occurred while downloading the JSON LD Type referenced in this schema:\n"${jsonLdTypes.error}"\nPlease try again.`
-            }
-          />
-        )}
+          {schema.status === "failed" && (
+            <ErrorResult
+              error={
+                schema.error instanceof z.ZodError
+                  ? [
+                      "An error occurred while trying to parse this schema:",
+                      ...processZodError(schema.error).map((e) => `"${e}"`),
+                      "Please provide a valid JSON Schema.",
+                    ].join("\n")
+                  : `An error occurred while downloading this schema:\n"${schema.error}"\nPlease try again.`
+              }
+            />
+          )}
 
-        <Row justify="end">
-          <Button disabled={!jsonLdTypeInput} htmlType="submit" type="primary">
-            Preview import
-          </Button>
-        </Row>
-      </Form>
+          {jsonLdTypes.status === "failed" && (
+            <ErrorResult
+              error={
+                jsonLdTypes.error instanceof z.ZodError
+                  ? [
+                      "An error occurred while trying to parse the JSON LD Type referenced in this schema:",
+                      ...processZodError(jsonLdTypes.error).map((e) => `"${e}"`),
+                      "Please provide a schema with a valid JSON LD Type.",
+                    ].join("\n")
+                  : `An error occurred while downloading the JSON LD Type referenced in this schema:\n"${jsonLdTypes.error}"\nPlease try again.`
+              }
+            />
+          )}
+          <Divider />
+          <Row justify="end">
+            <Button disabled={!jsonLdTypeInput} htmlType="submit" type="primary">
+              Preview import
+            </Button>
+          </Row>
+        </Form>
+      </Space>
     </Card>
   );
 }

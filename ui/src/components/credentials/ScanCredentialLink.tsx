@@ -192,7 +192,7 @@ export function ScanCredentialLink() {
           >
             <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {shareCredentialQRCode.data.offerDetails.schemaTemplate.schema}
+                {shareCredentialQRCode.data.offerDetails.schemaTemplate.type}
               </Typography.Title>
 
               <Typography.Title level={5} type="secondary">
@@ -202,7 +202,9 @@ export function ScanCredentialLink() {
               {shareCredentialQRCode.data.offerDetails.attributeValues.map((attribute) => {
                 const formattedValue = formatAttributeValue(
                   attribute,
-                  shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
+                  //TODO Credentials epic
+                  // shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
+                  []
                 );
 
                 return (
