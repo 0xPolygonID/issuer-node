@@ -277,7 +277,7 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 				Message: "the claim does not exist",
 			}}, nil
 		}
-
+		log.Error(ctx, "revoke credential", "err", err, "req", request)
 		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return RevokeCredential202JSONResponse{
@@ -305,6 +305,7 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 func (s *Server) RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error) {
 	err := s.claimService.RevokeAllFromConnection(ctx, request.Id, s.cfg.APIUI.IssuerDID)
 	if err != nil {
+		log.Error(ctx, "revoke connection credentials", "err", err, "req", request)
 		return RevokeConnectionCredentials500JSONResponse{N500JSONResponse{"There was an error revoking the credentials of the given connection"}}, nil
 	}
 

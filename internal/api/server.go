@@ -136,6 +136,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
 	did, err := core.ParseDID(request.Identifier)
 	if err != nil {
+		log.Warn(ctx, "revoke claim invalid did", "err", err, "req", request)
 		return RevokeClaim400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
