@@ -167,7 +167,7 @@ func (c *Client) waitReceipt(ctx context.Context, txID common.Hash, timeout time
 	for {
 		receipt, err = c.client.TransactionReceipt(ctx, txID)
 		if err != nil {
-			log.Debug(ctx, "get transaction receipt: ", err)
+			log.Debug(ctx, "get transaction receipt: ", "error", err)
 		}
 
 		if receipt != nil || time.Since(start) >= timeout {
