@@ -13,6 +13,9 @@ import {
 import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
+const buildAuthorizationHeader = (env: Env) =>
+  `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
+
 export interface CredentialAttribute {
   attributeKey: string;
   attributeValue: number;
@@ -65,7 +68,7 @@ export async function credentialIssue({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
@@ -98,7 +101,7 @@ export async function credentialUpdate({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "PATCH",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
@@ -132,7 +135,7 @@ export async function credentialsGetAll({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
       params: new URLSearchParams({

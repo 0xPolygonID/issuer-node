@@ -6,6 +6,9 @@ import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/uti
 import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
+const buildAuthorizationHeader = (env: Env) =>
+  `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
+
 export interface Schema {
   bigInt: string;
   createdAt: Date;
@@ -49,7 +52,7 @@ export async function importSchema({
         url: schemaUrl,
       },
       headers: {
-        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
       url: "schemas",
@@ -75,7 +78,7 @@ export async function getSchema({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
       signal,
@@ -109,7 +112,7 @@ export async function getSchemas({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`,
+        Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
       params: new URLSearchParams({
