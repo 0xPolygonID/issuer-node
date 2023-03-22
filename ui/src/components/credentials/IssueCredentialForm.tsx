@@ -49,16 +49,17 @@ export function IssueCredentialForm({
 
           <Form.Item>
             <Space direction="vertical" size="middle">
+              {/* //TODO Credentials epic */}
               {[].map((schemaAttribute, index) => (
                 <CredentialAttribute index={index} key={index} schemaAttribute={schemaAttribute} />
               ))}
             </Space>
           </Form.Item>
-
           <Form.Item
             label="Credential expiration date"
             name="expirationDate"
             rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
+            // TODO Credentials epic
             // rules={
             //   schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
             // }

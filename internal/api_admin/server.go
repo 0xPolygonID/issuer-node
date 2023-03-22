@@ -183,6 +183,17 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 	return GetConnection200JSONResponse(connectionResponse(conn, w3credentials, credentials)), nil
 }
 
+// GetConnections returns the list of credentials of a determined issuer
+func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
+	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
+	if err != nil {
+		log.Error(ctx, "get connection request", err)
+		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
+	}
+
+	return GetConnections200JSONResponse(connectionsResponse(conns)), nil
+}
+
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
 	err := s.connectionsService.Delete(ctx, request.Id)
@@ -259,7 +270,11 @@ func writeFile(path string, w http.ResponseWriter) {
 
 // CreateCredential - creates a new credential
 func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil)
+	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
+	}
+
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof)
 	resp, err := s.claimService.CreateClaim(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -292,5 +307,21 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 	}
 	return RevokeCredential202JSONResponse{
 		Message: "claim revocation request sent",
+	}, nil
+}
+
+// PublishState - pubish the state onchange
+func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
+	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		return PublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return PublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
 	}, nil
 }

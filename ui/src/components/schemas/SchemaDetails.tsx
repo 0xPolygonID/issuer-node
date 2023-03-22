@@ -13,6 +13,7 @@ import { ReactComponent as ChevronDownIcon } from "src/assets/icons/chevron-down
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { Detail } from "src/components/schemas/Detail";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
+import { useEnvContext } from "src/contexts/env";
 import { Json, JsonLdType, Schema } from "src/domain";
 import {
   APIError,
@@ -35,6 +36,8 @@ const JSON_VIEW_LABELS: Record<JsonView, string> = {
 };
 
 export function SchemaDetails() {
+  const env = useEnvContext();
+
   const { schemaID } = useParams();
 
   const [jsonView, setJsonView] = useState<JsonView>("formatted");
@@ -100,6 +103,7 @@ export function SchemaDetails() {
         setApiSchema({ status: "loading" });
 
         const response = await getSchema({
+          env,
           schemaID,
           signal,
         });
@@ -114,7 +118,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [fetchSchemaFromUrl, schemaID]
+    [env, fetchSchemaFromUrl, schemaID]
   );
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
+import { useEnvContext } from "src/contexts/env";
 import { ROUTES } from "src/routes";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -17,6 +18,7 @@ import { formatDate } from "src/utils/forms";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function MySchemas() {
+  const env = useEnvContext();
   const [schemas, setSchemas] = useState<AsyncTask<Schema[], APIError>>({
     status: "pending",
   });
@@ -81,6 +83,7 @@ export function MySchemas() {
           : { status: "loading" }
       );
       const response = await getSchemas({
+        env,
         params: {
           query: queryParam || undefined,
         },
@@ -98,7 +101,7 @@ export function MySchemas() {
         }
       }
     },
-    [queryParam]
+    [env, queryParam]
   );
 
   const onSearch = useCallback(

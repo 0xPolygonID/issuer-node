@@ -16,6 +16,7 @@ import { Summary } from "src/components/credentials/Summary";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
+import { useEnvContext } from "src/contexts/env";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
@@ -36,6 +37,7 @@ const defaultFormData: FormData = {
 };
 
 export function IssueCredential() {
+  const env = useEnvContext();
   const [credential, setCredential] = useState<AsyncTask<Credential, undefined>>({
     status: "pending",
   });
@@ -48,12 +50,13 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const onGetSchema = useCallback(
+  const fetchSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
         setSchema({ status: "loading" });
 
         const response = await getSchema({
+          env,
           schemaID,
           signal,
         });
@@ -67,7 +70,7 @@ export function IssueCredential() {
         }
       }
     },
-    [schemaID]
+    [env, schemaID]
   );
 
   const issueCredential = (formData: FormData) => {
@@ -77,6 +80,7 @@ export function IssueCredential() {
       if (parsedForm.success) {
         setCredential({ status: "loading" });
         void credentialIssue({
+          env,
           payload: serializeCredentialForm(parsedForm.data),
           schemaID,
         }).then((response) => {
@@ -100,13 +104,13 @@ export function IssueCredential() {
     setFormData(defaultFormData);
 
     if (schemaID) {
-      const { aborter } = makeRequestAbortable(onGetSchema);
+      const { aborter } = makeRequestAbortable(fetchSchema);
       return aborter;
     } else {
       setSchema({ status: "pending" });
     }
     return;
-  }, [onGetSchema, schemaID]);
+  }, [fetchSchema, schemaID]);
 
   return (
     <SiderLayoutContent
