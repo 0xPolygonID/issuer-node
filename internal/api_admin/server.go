@@ -342,3 +342,19 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 		Message: "claim revocation request sent",
 	}, nil
 }
+
+// PublishState - pubish the state onchange
+func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
+	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		return PublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return PublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
+}
