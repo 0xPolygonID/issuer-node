@@ -29,7 +29,9 @@ _NB: There is no compatibility with Windows environments at this time._
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
+7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
+
+> If you want to run the UI app in development mode, i.e. with HMR enabled, please follow the steps in the [Development (UI)](#development-ui) section.
 
 ### Option 2 - Standalone mode
 
@@ -64,7 +66,9 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 8. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
 9. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088>. Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
+10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
+
+> If you want to run the UI app in development mode, i.e. with HMR enabled, please follow the steps in the [Development (UI)](#development-ui) section.
 
 ## Configuration
 
@@ -78,15 +82,15 @@ In `.env-api`:
 
 - `ISSUER_API_UI_AUTH_USER`
 - `ISSUER_API_UI_AUTH_PASSWORD`
-- `ISSUER_API_UI_ISSUER_DID` - obtained from [here](#creating-the-issuer-did).
-- `ISSUER_ETHEREUM_URL` - this is the Ethereum address of the issuer's DApp.
+- `ISSUER_API_UI_ISSUER_DID` - obtained when following the steps in [creating the issuer DID](#creating-the-issuer-did).
+- `ISSUER_ETHEREUM_URL` - this is the URL of the issuer's DApp.
 - `ISSUER_API_UI_ISSUER_LOGO` - optional (placeholder used if left blank). A valid URL to a minimum 40x40 pixel PNG, JPEG or SVG of the issuer's logo.
 
 In `.env-issuer`:
 
 - `ISSUER_API_AUTH_USER`
 - `ISSUER_API_AUTH_PASSWORD`
-- `ISSUER_KEY_STORE_TOKEN` - obtained from step 4 [here](#adding-ethereum-private-key-to-the-vault).
+- `ISSUER_KEY_STORE_TOKEN` - obtained when following the steps in [adding Ethereum private key to the Vault](#adding-ethereum-private-key-to-the-vault).
 
 If you are running the UI, in `.env-ui`:
 
@@ -107,24 +111,32 @@ Follow these steps:
 
 This determines the owner of the credentials that are issued. You can either reuse an existing DID already configured, or you can generate a new identity running:`make generate-issuer-did` (or `generate-issuer-did-arm`) and a new issuer did must be in the environment variable `ISSUER_API_UI_ISSUER_DID` in `.env-api`
 
-
 ### Advanced setup
 
 Any variable defined in the config file can be overwritten using environment variables. The binding for this environment variables is defined in the function `bindEnv()` in the file `internal/config/config.go`
 
 An _experimental_ helper command is provided via `make config` to allow an interactive generation of the config file, but this requires Go 1.19.
 
-## Development
+## Development (UI)
 
-[TODO]
+Completing either option of the [installation](#installation) process yields the UI as a minified Javascript app. Any changes to the UI source code would necessitate a Docker image removal and re-build to apply them. In most development scenarios this is undesirable, so the UI app can also be run in development mode like any [React](https://17.reactjs.org/) application to enable hot module replacement ([HMR](https://webpack.js.org/guides/hot-module-replacement/)).
 
-- Developing the issuer API
-- Developing the UI API
-- Developing the UI (HMR enabled with env config)
+1. Make sure that the UI API is set up and running properly (default <http://localhost:3002>).
+2. Go to the `ui/` folder.
+3. Copy the `.env-sample` file as `.env`
+4. All variables are required to be set, with the exception of `VITE_ISSUER_LOGO`. The following are the corresponding variables present in the parent folder's `.env-api`, which need to be the same. Only `VITE_ISSUER_NAME` can differ for the UI to function in development mode.
+    - `VITE_API_URL -> ISSUER_API_UI_SERVER_URL`
+    - `VITE_API_USERNAME -> ISSUER_API_UI_AUTH_USER`
+    - `VITE_API_PASSWORD -> ISSUER_API_UI_AUTH_PASSWORD`
+    - `VITE_ISSUER_DID -> ISSUER_API_UI_ISSUER_DID`
+    - `VITE_ISSUER_NAME -> ISSUER_API_UI_ISSUER_NAME`
+    - `VITE_ISSUER_LOGO -> ISSUER_API_UI_ISSUER_LOGO`
+5. Run `npm start`
+6. The app will be running on <http://localhost:5173>.
 
 ## Testing
 
-Start the testing environment with `make up-test`
+Start the testing environment with `make up-test`.
 
 - Run tests with `make tests` to run test or `make test-race` to run tests with the Go parameter `test --race`
 - Run the linter with `make lint`
@@ -148,7 +160,7 @@ For example, for inspecting the issuer API node, run:
 
 `docker logs issuer-api-1`
 
-In most cases, a startup failure will be due to erroneous env variables.
+In most cases, a startup failure will be due to erroneous environment variables. In the case of the UI, the specific environment variable missing will show as part of the error message.
 
 ## License
 
