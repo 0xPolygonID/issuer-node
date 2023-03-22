@@ -6,7 +6,7 @@
 
 # env vars
 .env*
-!.env.sample
+!.env.example
 
 # linter
 .eslintcache
