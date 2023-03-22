@@ -3,8 +3,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
+import { EnvHoC } from "src/components/shared/EnvHoC";
 import { Router } from "src/components/shared/Router";
-import { EnvProvider } from "src/contexts/env";
 import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";
 
@@ -24,9 +24,9 @@ root.render(
   <StrictMode>
     <BrowserRouter>
       <ConfigProvider theme={theme}>
-        <EnvProvider>
+        <EnvHoC>
           <Router />
-        </EnvProvider>
+        </EnvHoC>
       </ConfigProvider>
     </BrowserRouter>
   </StrictMode>

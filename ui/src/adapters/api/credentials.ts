@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Schema, schema } from "src/adapters/api/schemas";
-import { Env } from "src/domain";
+import { authorization, env } from "src/components/shared/EnvHoC";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -52,11 +52,9 @@ export interface CredentialIssuePayload {
 }
 
 export async function credentialIssue({
-  env,
   payload,
   schemaID,
 }: {
-  env: Env;
   payload: CredentialIssuePayload;
   schemaID: string;
 }): Promise<APIResponse<Credential>> {
@@ -65,7 +63,7 @@ export async function credentialIssue({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: authorization,
       },
       method: "POST",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
@@ -84,12 +82,10 @@ interface CredentialUpdatePayload {
 
 export async function credentialUpdate({
   credentialID,
-  env,
   payload,
   schemaID,
 }: {
   credentialID: string;
-  env: Env;
   payload: CredentialUpdatePayload;
   schemaID: string;
 }): Promise<APIResponse<Credential>> {
@@ -98,7 +94,7 @@ export async function credentialUpdate({
       baseURL: env.api.url,
       data: payload,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: authorization,
       },
       method: "PATCH",
       url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
@@ -112,11 +108,9 @@ export async function credentialUpdate({
 }
 
 export async function credentialsGetAll({
-  env,
   params: { query, valid },
   signal,
 }: {
-  env: Env;
   params: {
     query?: string;
     valid?: boolean;
@@ -132,7 +126,7 @@ export async function credentialsGetAll({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: authorization,
       },
       method: "GET",
       params: new URLSearchParams({
@@ -272,11 +266,9 @@ const resultOKShareCredentialQRCode = StrictSchema<
 );
 
 export async function credentialsQRCreate({
-  env,
   id,
   signal,
 }: {
-  env: Env;
   id: string;
   signal?: AbortSignal;
 }): Promise<APIResponse<ShareCredentialQRCode>> {
@@ -439,11 +431,9 @@ const resultOKCredentialQRCheck = StrictSchema<ResultOK<CredentialQRCheck>>()(
 
 export async function credentialsQRCheck({
   credentialID,
-  env,
   sessionID,
 }: {
   credentialID: string;
-  env: Env;
   sessionID: string;
 }): Promise<APIResponse<CredentialQRCheck>> {
   try {
@@ -466,11 +456,9 @@ export async function credentialsQRCheck({
 
 export async function credentialsQRDownload({
   credentialID,
-  env,
   sessionID,
 }: {
   credentialID: string;
-  env: Env;
   sessionID: string;
 }): Promise<APIResponse<Blob>> {
   try {

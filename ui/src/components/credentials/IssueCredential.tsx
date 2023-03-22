@@ -16,7 +16,6 @@ import { Summary } from "src/components/credentials/Summary";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { useEnvContext } from "src/contexts/env";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
@@ -37,7 +36,6 @@ const defaultFormData: FormData = {
 };
 
 export function IssueCredential() {
-  const env = useEnvContext();
   const [credential, setCredential] = useState<AsyncTask<Credential, undefined>>({
     status: "pending",
   });
@@ -56,7 +54,6 @@ export function IssueCredential() {
         setSchema({ status: "loading" });
 
         const response = await schemasGetSingle({
-          env,
           schemaID,
           signal,
         });
@@ -70,7 +67,7 @@ export function IssueCredential() {
         }
       }
     },
-    [env, schemaID]
+    [schemaID]
   );
 
   const issueCredential = (formData: FormData, schema: Schema) => {
@@ -80,7 +77,6 @@ export function IssueCredential() {
       if (parsedForm.success) {
         setCredential({ status: "loading" });
         void credentialIssue({
-          env,
           payload: serializeCredentialForm(parsedForm.data),
           schemaID,
         }).then((response) => {

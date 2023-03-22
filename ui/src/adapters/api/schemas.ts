@@ -1,7 +1,7 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { Env } from "src/domain";
+import { authorization, env } from "src/components/shared/EnvHoC";
 import {
   APIResponse,
   HTTPStatusSuccess,
@@ -42,11 +42,9 @@ export type SchemaAttribute = {
 );
 
 export async function schemasGetSingle({
-  env,
   schemaID,
   signal,
 }: {
-  env: Env;
   schemaID: string;
   signal: AbortSignal;
 }): Promise<APIResponse<Schema>> {
@@ -54,7 +52,7 @@ export async function schemasGetSingle({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: authorization,
       },
       method: "GET",
       signal,
@@ -69,11 +67,9 @@ export async function schemasGetSingle({
 }
 
 export async function schemasGetAll({
-  env,
   params: { query },
   signal,
 }: {
-  env: Env;
   params: {
     query?: string;
   };
@@ -88,7 +84,7 @@ export async function schemasGetAll({
     const response = await axios({
       baseURL: env.api.url,
       headers: {
-        Authorization: `Basic ${env.api.username}:${env.api.password}`,
+        Authorization: authorization,
       },
       method: "GET",
       params: new URLSearchParams({
