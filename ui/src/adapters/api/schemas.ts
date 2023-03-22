@@ -6,6 +6,8 @@ import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/uti
 import { API_PASSWORD, API_URL, API_USERNAME, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
+const Authorization = `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`;
+
 export interface Schema {
   bigInt: string;
   createdAt: Date;
@@ -47,7 +49,7 @@ export async function importSchema({
         url: schemaUrl,
       },
       headers: {
-        Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
+        Authorization,
       },
       method: "POST",
       url: "schemas",
@@ -71,7 +73,7 @@ export async function getSchema({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
+        Authorization,
       },
       method: "GET",
       signal,
@@ -103,7 +105,7 @@ export async function getSchemas({
     const response = await axios({
       baseURL: API_URL,
       headers: {
-        Authorization: `Basic ${window.btoa(`${API_USERNAME}:${API_PASSWORD}`)}`,
+        Authorization,
       },
       method: "GET",
       params: new URLSearchParams({
