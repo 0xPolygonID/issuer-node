@@ -24,7 +24,6 @@ import {
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CARD_WIDTH } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import { getBigint, getSchemaHash } from "src/utils/iden3";
 import { AsyncTask, isAsyncTaskStarting } from "src/utils/types";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
@@ -185,13 +184,6 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const schemaHashResult = getSchemaHash(jsonLdType.data);
-          const schemaHash =
-            schemaHashResult && schemaHashResult.success ? schemaHashResult.data : undefined;
-
-          const bigintResult = getBigint(jsonLdType.data);
-          const bigint = bigintResult && bigintResult.success ? bigintResult.data : undefined;
-
           const DETAIL_WIDTH = 350;
 
           return (
@@ -240,15 +232,15 @@ export function SchemaDetails() {
                     </Row>
 
                     <Detail
-                      copyable={bigint !== undefined}
-                      data={bigint || "An error occurred while calculating BigInt"}
+                      copyable
+                      data={apiSchema.data.bigInt}
                       label="BigInt"
                       maxWidth={DETAIL_WIDTH}
                     />
 
                     <Detail
-                      copyable={schemaHash !== undefined}
-                      data={schemaHash || "An error occurred while calculating Hash"}
+                      copyable
+                      data={apiSchema.data.hash}
                       label="Hash"
                       maxWidth={DETAIL_WIDTH}
                     />
