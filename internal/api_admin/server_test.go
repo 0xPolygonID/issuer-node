@@ -1097,13 +1097,14 @@ func TestServer_GetCredentials(t *testing.T) {
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	day0 := time.Time{}.Unix()
+	future := time.Now().Add(1000 * time.Hour).Unix()
 	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
-	revoked, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	revoked, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	require.NoError(t, claimsService.Revoke(ctx, *revoked.Identifier, uint64(revoked.RevNonce), "because I can"))
