@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -360,31 +361,9 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 
 // GetAllByIssuerID returns all the claims of the given issuer
 func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID core.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
-	query := `SELECT claims.id,
-				   issuer,
-				   schema_hash,
-				   schema_url,
-				   schema_type,
-				   other_identifier,
-				   expiration,
-				   updatable,
-				   claims.version,
-				   rev_nonce,
-				   signature_proof,
-				   mtp_proof,
-				   data,
-				   claims.identifier,
-				   identity_state,
-				   identity_states.status,
-				   credential_status,
-				   core_claim
-			FROM claims
-			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
-			`
+	query, args := buildGetAllQueryAndFilters(issuerID, filter)
 
-	filters := buildGetAllQueryAndFilters(issuerID, filter, &query)
-
-	rows, err := conn.Query(ctx, query, filters...)
+	rows, err := conn.Query(ctx, query, args...)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, ErrClaimDoesNotExist
@@ -527,40 +506,83 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	return claims, rows.Err()
 }
 
-func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter, query *string) []interface{} {
+func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (string, []interface{}) {
+	query := `SELECT claims.id,
+				   issuer,
+				   schema_hash,
+				   schema_url,
+				   schema_type,
+				   other_identifier,
+				   expiration,
+				   updatable,
+				   claims.version,
+				   rev_nonce,
+				   signature_proof,
+				   mtp_proof,
+				   data,
+				   claims.identifier,
+				   identity_state,
+				   identity_states.status,
+				   credential_status,
+				   core_claim
+			FROM claims
+			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+			`
+	if filter.FTSQuery != "" {
+		query = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash = schemas.hash AND claims.issuer = schemas.issuer_id ", query)
+	}
+
 	filters := []interface{}{issuerID.String()}
-	*query = fmt.Sprintf("%s WHERE claims.identifier = $%d", *query, len(filters))
+	query = fmt.Sprintf("%s WHERE claims.identifier = $%d ", query, len(filters))
 
 	if filter.Self != nil && *filter.Self {
-		*query = fmt.Sprintf("%s and other_identifier = ''", *query)
+		query = fmt.Sprintf("%s and other_identifier = '' ", query)
 	}
-
 	if filter.Subject != "" {
 		filters = append(filters, filter.Subject)
-		*query = fmt.Sprintf("%s and other_identifier = $%d", *query, len(filters))
+		query = fmt.Sprintf("%s and other_identifier = $%d ", query, len(filters))
 	}
-
 	if filter.SchemaHash != "" {
 		filters = append(filters, fmt.Sprintf("%s%%", filter.SchemaHash))
-		*query = fmt.Sprintf("%s and schema_hash like $%d", *query, len(filters))
+		query = fmt.Sprintf("%s and schema_hash like $%d", query, len(filters))
 	}
-
 	if filter.SchemaType != "" {
 		filters = append(filters, fmt.Sprintf("%%%s%%", filter.SchemaType))
-		*query = fmt.Sprintf("%s and schema_type like $%d", *query, len(filters))
+		query = fmt.Sprintf("%s and schema_type like $%d", query, len(filters))
 	}
-
 	if filter.Revoked != nil {
 		filters = append(filters, *filter.Revoked)
-		*query = fmt.Sprintf("%s and claims.revoked = $%d", *query, len(filters))
-
+		query = fmt.Sprintf("%s and claims.revoked = $%d", query, len(filters))
 	}
-
+	/* TODO: SQL injection risk
 	if filter.QueryField != "" {
-		*query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s'", *query, filter.QueryField, filter.QueryField)
+		query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s' ", query, filter.QueryField, filter.QueryField)
 	}
+	*/
+	if filter.ExpiredOn != nil {
+		t := *filter.ExpiredOn
+		filters = append(filters, t.Unix())
+		query = fmt.Sprintf("%s AND claims.expiration<$%d", query, len(filters))
+	}
+	if filter.FTSQuery != "" {
+		filters = append(filters, fullTextSearchQuery(filter.FTSQuery, " | "))
+		query = fmt.Sprintf("%s AND claims.ts_words @@ to_tsquery($%d)", query, len(filters))
+		if did := getDIDFromQuery(filter.FTSQuery); did != "" {
+			filters = append(filters, did)
+			query = fmt.Sprintf("claims.identifier LIKE CONCAT($%d::text,'%%')` ", len(filters))
+		}
+	}
+	return query, filters
+}
 
-	return filters
+func getDIDFromQuery(query string) string {
+	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
+	for _, word := range words {
+		if strings.HasPrefix(word, "did:") {
+			return word
+		}
+	}
+	return ""
 }
 
 func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {

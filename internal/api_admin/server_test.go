@@ -365,7 +365,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			query: nil,
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    20,
+				count:    21,
 			},
 		},
 		{
@@ -374,7 +374,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			query: common.ToPointer(""),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    20,
+				count:    21,
 			},
 		},
 		{
@@ -392,7 +392,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			query: common.ToPointer("schemaType-11 attr1"),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    20,
+				count:    21,
 			},
 		},
 		{

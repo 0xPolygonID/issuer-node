@@ -42,10 +42,12 @@ type AgentRequest struct {
 type ClaimsFilter struct {
 	Self       *bool
 	Revoked    *bool
+	ExpiredOn  *time.Time
 	SchemaHash string
 	SchemaType string
 	Subject    string
 	QueryField string
+	FTSQuery   string
 }
 
 // NewClaimsFilter returns a valid claims filter

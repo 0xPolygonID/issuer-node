@@ -8,10 +8,12 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/iden3comm"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -216,7 +218,19 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, nil)
+	filter := &ports.ClaimsFilter{}
+	if request.Params.Type != nil {
+		switch GetCredentialsParamsType(strings.ToLower(string(*request.Params.Type))) {
+		case Revoked:
+			filter.Revoked = common.ToPointer(true)
+		case Expired:
+			filter.ExpiredOn = common.ToPointer(time.Now())
+		}
+	}
+	if request.Params.Query != nil {
+		filter.FTSQuery = *request.Params.Query
+	}
+	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
