@@ -4,7 +4,7 @@ import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 
 export function Detail({
-  copyable = true,
+  copyable = false,
   data,
   label,
 }: {
