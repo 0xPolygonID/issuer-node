@@ -356,7 +356,7 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 		return err
 	}
 
-	claims, err := c.icRepo.GetAllByState(ctx, c.storage.Pgx, did, currState)
+	claims, err := c.icRepo.GetAllByStateWithMTProof(ctx, c.storage.Pgx, did, currState)
 	if err != nil {
 		return err
 	}

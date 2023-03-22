@@ -1,15 +1,5 @@
 import { TabsCredentialsIDs } from "src/domain";
 
-// TODO - see Jira issue PID-389
-export const {
-  VITE_API_PASSWORD: API_PASSWORD,
-  VITE_API_URL: API_URL,
-  VITE_API_USERNAME: API_USERNAME,
-  VITE_ISSUER_DID: ISSUER_DID,
-  VITE_ISSUER_LOGO: ISSUER_LOGO,
-  VITE_ISSUER_NAME: ISSUER_NAME,
-} = import.meta.env;
-
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
 export const AUTH_CONTEXT_NOT_READY_MESSAGE = "Auth Context is not ready yet";

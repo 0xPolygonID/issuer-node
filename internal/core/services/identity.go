@@ -687,6 +687,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 
 	authClaimModel.IdentityState = identity.State.State
 	authClaimModel.Identifier = &identity.Identifier
+	authClaimModel.MtProof = true
 	_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't save auth claim: %w", err)

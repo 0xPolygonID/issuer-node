@@ -285,6 +285,22 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 	}, nil
 }
 
+// PublishState - pubish the state onchange
+func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
+	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		return PublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return PublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
+}
+
 // RevokeConnectionCredentials revoke all the non revoked credentials of the given connection
 func (s *Server) RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error) {
 	err := s.claimService.RevokeAllFromConnection(ctx, request.Id, s.cfg.APIUI.IssuerDID)
