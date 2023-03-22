@@ -30,7 +30,7 @@ paths:
         - auth
       responses:
         '200':
-          description: authentication qrcode
+          description: ok
           content:
             application/json:
               schema:
@@ -155,7 +155,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateCredentialResponse'
+                $ref: '#/components/schemas/UUIDResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -385,12 +385,16 @@ components:
       properties:
         id:
           type: string
+          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
         typ:
           type: string
+          example: application/iden3comm-plain-json
         type:
           type: string
+          example: https://iden3-communication.io/authorization/1.0/request
         thid:
           type: string
+          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
         body:
           type: object
           required:
@@ -400,12 +404,18 @@ components:
           properties:
             callbackUrl:
               type: string
+              example: https://validURL/v1/authentication/callback?sessionID=89d298fa-15a6-4a1d-ab13-d1069467eedd
             reason:
               type: string
+              example: authentication
             scope:
               type: array
+              items:
+                type:
+              example: [ ]
         from:
           type: string
+          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
     UUIDResponse:
       type: object
@@ -415,6 +425,7 @@ components:
         id:
           type: string
           x-omitempty: false
+          example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
 
     GenericErrorMessage:
       type: object
@@ -444,30 +455,44 @@ components:
           x-go-type-import:
             name: uuid
             path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
         proofTypes:
           type: array
           items:
             type: string
+          example: ["BJJSignature2021"]
         createdAt:
           type: string
           format: date-time
+          example: "2023-03-20T11:54:01.110295+01:00"
         expiresAt:
           type: string
           format: date-time
+          example: "2025-03-20T11:54:01.110295+01:00"
         expired:
           type: boolean
+          example: true
         schemaHash:
           type: string
+          example: "c9b2370371b7fa8b3dab2a5ba81b6838"
         schemaType:
           type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential"
         revoked:
           type: boolean
+          example: false
         revNonce:
           type: integer
           format: uint64
+          example: 2136005230
         attributes:
           type: object
           x-omitempty: false
+          example:
+            birthday: 19960424
+            documentType: 2
+            id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
+            type: "KYCAgeCredential"
 
     GenericMessage:
       type: object
@@ -488,15 +513,19 @@ components:
         id:
           type: string
           x-omitempty: false
+          example: 7fff8112-c415-11ed-b036-debe37e1cbd6
         userID:
           type: string
           x-omitempty: false
+          example: did:polygonid:polygon:mumbai:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
         issuerID:
           type: string
           x-omitempty: false
+          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         createdAt:
           type: string
           format: date-time
+          example: 2023-03-17T10:18:01.400722+01:00
 
     GetConnectionsResponse:
       type: array
@@ -534,14 +563,20 @@ components:
         expiration:
           type: integer
           format: int64
+        signatureProof:
+          type: boolean
+        mtProof:
+          type: boolean
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
         credentialSubject:
-          id: "fill with did"
+          id: "{fill with did}"
           birthday: 19960424
           documentType: 2
-        expiration: 12345
+        expiration: 20250424
+        signatureProof: true
+        mtProof: true
 
     Schema:
       type: object
@@ -556,31 +591,28 @@ components:
         id:
           type: string
           x-omitempty: false
+          example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
         hash:
           type: string
           x-omitempty: false
+          example: 18f30714a35a5db88ca24728c0c53dfd
         bigInt:
           type: string
           x-omitempty: false
+          example: 336615423900919464193075592850483704600
         url:
           type: string
           x-omitempty: false
+          example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json
         type:
           type: string
           x-omitempty: false
+          example: KYCCountryOfResidenceCredential
         createdAt:
           type: string
           format: date-time
           x-omitempty: false
-
-    CreateCredentialResponse:
-      type: object
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          x-omitempty: false
+          example: 2023-03-20T17:01:33.564119+01:00
 
     RevokeCredentialResponse:
       type: object
@@ -596,7 +628,8 @@ components:
       name: sessionID
       in: query
       required: true
-      description: Session ID
+      description: | 
+        Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
       schema:
         type: string
         x-go-type: uuid.UUID
@@ -608,7 +641,8 @@ components:
       name: id
       in: path
       required: true
-      description: id
+      description: | 
+        UUID parameter, e.g: 8edd8112-c415-11ed-b036-debe37e1cbd6
       schema:
         type: string
         x-go-type: uuid.UUID
@@ -620,7 +654,8 @@ components:
       name: nonce
       in: path
       required: true
-      description: Claim nonce
+      description: |
+        Claim nonce, e.g: 4182463773
       schema:
         type: integer
         format: int64

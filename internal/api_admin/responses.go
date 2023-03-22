@@ -5,6 +5,7 @@ import (
 
 	"github.com/iden3/go-schema-processor/verifiable"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
@@ -36,10 +37,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		}
 	}
 
-	proofs := make([]string, len(w3c.Proof))
-	for i := range w3c.Proof {
-		proofs[i] = string(w3c.Proof[i].ProofType())
-	}
+	proofs := getProofs(w3c, credential)
 
 	return Credential{
 		Attributes: w3c.CredentialSubject,
@@ -53,6 +51,18 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		SchemaHash: credential.SchemaHash,
 		SchemaType: credential.SchemaType,
 	}
+}
+
+func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string {
+	proofs := make([]string, 0)
+	if sp := getSigProof(w3c); sp != nil {
+		proofs = append(proofs, *sp)
+	}
+
+	if credential.MtProof {
+		proofs = append(proofs, "MTP")
+	}
+	return proofs
 }
 
 func connectionsResponse(conns []*domain.Connection) GetConnectionsResponse {
@@ -83,4 +93,13 @@ func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredentia
 		},
 		Credentials: credResp,
 	}
+}
+
+func getSigProof(w3c *verifiable.W3CCredential) *string {
+	for i := range w3c.Proof {
+		if string(w3c.Proof[i].ProofType()) == "BJJSignature2021" {
+			return common.ToPointer("BJJSignature2021")
+		}
+	}
+	return nil
 }

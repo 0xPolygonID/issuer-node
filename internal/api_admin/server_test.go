@@ -22,6 +22,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/health"
@@ -651,11 +652,30 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration:     common.ToPointer(int64(12345)),
+				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
 				response: CreateCredential201JSONResponse{},
 				httpCode: http.StatusCreated,
+			},
+		},
+		{
+			name: "Wrong request - no proof provided",
+			auth: authOk,
+			body: CreateCredentialRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(int64(12345)),
+			},
+			expected: expected{
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}},
+				httpCode: http.StatusBadRequest,
 			},
 		},
 		{
@@ -669,7 +689,8 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration:     common.ToPointer(int64(12345)),
+				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
 				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "malformed url"}},
@@ -687,7 +708,8 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration:     common.ToPointer(int64(12345)),
+				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
 				response: CreateCredential422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
@@ -709,7 +731,7 @@ func TestServer_CreateCredential(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
-				var response CreateCredentialResponse
+				var response UUIDResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
@@ -857,10 +879,23 @@ func TestServer_GetCredential(t *testing.T) {
 	cfg.APIUI.IssuerDID = *did
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
-	fixture := tests.NewFixture(storage)
-	claim := fixture.NewClaim(t, did.String())
-	fixture.CreateClaim(t, claim)
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
 
+	merklizedRootPosition := "index"
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	createdClaim1, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	assert.NoError(t, err)
+
+	createdClaim2, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	assert.NoError(t, err)
+
+	createdClaim3, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
 	type expected struct {
@@ -898,10 +933,10 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path",
+			name: "happy path with two proof",
 			auth: authOk,
 			request: GetCredentialRequestObject{
-				Id: claim.ID,
+				Id: createdClaim1.ID,
 			},
 			expected: expected{
 				response: Credential{
@@ -914,12 +949,66 @@ func TestServer_GetCredential(t *testing.T) {
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
 					ExpiresAt:  nil,
-					Id:         claim.ID,
-					ProofTypes: []string{},
-					RevNonce:   uint64(claim.RevNonce),
-					Revoked:    claim.Revoked,
-					SchemaHash: claim.SchemaHash,
-					SchemaType: claim.SchemaType,
+					Id:         createdClaim1.ID,
+					ProofTypes: []string{"BJJSignature2021", "MTP"},
+					RevNonce:   uint64(createdClaim1.RevNonce),
+					Revoked:    createdClaim1.Revoked,
+					SchemaHash: createdClaim1.SchemaHash,
+					SchemaType: createdClaim1.SchemaType,
+				},
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "happy path with signature proof",
+			auth: authOk,
+			request: GetCredentialRequestObject{
+				Id: createdClaim2.ID,
+			},
+			expected: expected{
+				response: Credential{
+					Attributes: map[string]interface{}{
+						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+						"birthday":     19960424,
+						"documentType": 2,
+						"type":         "KYCAgeCredential",
+					},
+					CreatedAt:  time.Now().UTC(),
+					Expired:    false,
+					ExpiresAt:  nil,
+					Id:         createdClaim2.ID,
+					ProofTypes: []string{"BJJSignature2021"},
+					RevNonce:   uint64(createdClaim2.RevNonce),
+					Revoked:    createdClaim2.Revoked,
+					SchemaHash: createdClaim2.SchemaHash,
+					SchemaType: createdClaim2.SchemaType,
+				},
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "happy path with MTP proof",
+			auth: authOk,
+			request: GetCredentialRequestObject{
+				Id: createdClaim3.ID,
+			},
+			expected: expected{
+				response: Credential{
+					Attributes: map[string]interface{}{
+						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+						"birthday":     19960424,
+						"documentType": 2,
+						"type":         "KYCAgeCredential",
+					},
+					CreatedAt:  time.Now().UTC(),
+					Expired:    false,
+					ExpiresAt:  nil,
+					Id:         createdClaim3.ID,
+					ProofTypes: []string{"MTP"},
+					RevNonce:   uint64(createdClaim3.RevNonce),
+					Revoked:    createdClaim3.Revoked,
+					SchemaHash: createdClaim3.SchemaHash,
+					SchemaType: createdClaim3.SchemaType,
 				},
 				httpCode: http.StatusOK,
 			},
