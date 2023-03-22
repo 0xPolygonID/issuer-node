@@ -15,7 +15,7 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
 
   const navigate = useNavigate();
 
-  const onGetSchemas = useCallback(async (signal: AbortSignal) => {
+  const fetchSchemas = useCallback(async (signal: AbortSignal) => {
     setSchemas((oldState) =>
       isAsyncTaskDataAvailable(oldState)
         ? { data: oldState.data, status: "reloading" }
@@ -38,10 +38,10 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
   }, []);
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(onGetSchemas);
+    const { aborter } = makeRequestAbortable(fetchSchemas);
 
     return aborter;
-  }, [onGetSchemas]);
+  }, [fetchSchemas]);
 
   return (
     <Form layout="vertical">

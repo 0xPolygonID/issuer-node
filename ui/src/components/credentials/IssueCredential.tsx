@@ -48,7 +48,7 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const onGetSchema = useCallback(
+  const fetchSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
         setSchema({ status: "loading" });
@@ -100,13 +100,13 @@ export function IssueCredential() {
     setFormData(defaultFormData);
 
     if (schemaID) {
-      const { aborter } = makeRequestAbortable(onGetSchema);
+      const { aborter } = makeRequestAbortable(fetchSchema);
       return aborter;
     } else {
       setSchema({ status: "pending" });
     }
     return;
-  }, [onGetSchema, schemaID]);
+  }, [fetchSchema, schemaID]);
 
   return (
     <SiderLayoutContent
