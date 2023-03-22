@@ -103,7 +103,7 @@ ORDER BY created_at DESC`
 		}
 		schemaCol = append(schemaCol, *item)
 	}
-	return schemaCol, nil
+	return schemaCol, rows.Err()
 }
 
 // GetByID searches and returns an schema by id

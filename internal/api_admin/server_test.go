@@ -1096,20 +1096,22 @@ func TestServer_GetCredentials(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	day0 := time.Time{}.Unix()
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	revoked, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
+
+	require.NoError(t, claimsService.Revoke(ctx, *revoked.Identifier, uint64(revoked.RevNonce), "because I can"))
 
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		message  *string
-		response []Credential
+		count    int
 		httpCode int
 	}
 
@@ -1122,11 +1124,64 @@ func TestServer_GetCredentials(t *testing.T) {
 	}
 	for _, tc := range []testConfig{
 		{
-			name:     "lala",
-			auth:     authOk,
-			query:    nil,
-			rType:    nil,
-			expected: expected{},
+			name: "Not authorized",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Get all implicit",
+			auth: authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    3,
+			},
+		},
+		{
+			name:  "Get all explicit",
+			auth:  authOk,
+			rType: common.ToPointer("all"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    3,
+			},
+		},
+		{
+			name:  "Revoked",
+			auth:  authOk,
+			rType: common.ToPointer("revoked"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:  "REVOKED",
+			auth:  authOk,
+			rType: common.ToPointer("REVOKED"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:  "Expired",
+			auth:  authOk,
+			rType: common.ToPointer("expired"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:  "Search by did:",
+			auth:  authOk,
+			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    3,
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1144,10 +1199,15 @@ func TestServer_GetCredentials(t *testing.T) {
 
 			handler.ServeHTTP(rr, req)
 
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetCredentials200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Len(t, response, tc.expected.count)
+			}
 		})
-
 	}
-
 }
 
 func TestServer_GetConnection(t *testing.T) {

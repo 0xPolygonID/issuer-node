@@ -534,7 +534,7 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 			`
 	if filter.FTSQuery != "" {
-		query = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash = schemas.hash AND claims.issuer = schemas.issuer_id ", query)
+		query = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash=schemas.hash AND claims.issuer=schemas.issuer_id ", query)
 	}
 
 	filters := []interface{}{issuerID.String()}
@@ -561,11 +561,9 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		filters = append(filters, *filter.Revoked)
 		query = fmt.Sprintf("%s and claims.revoked = $%d", query, len(filters))
 	}
-	/* TODO: SQL injection risk
 	if filter.QueryField != "" {
 		query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s' ", query, filter.QueryField, filter.QueryField)
 	}
-	*/
 	if filter.ExpiredOn != nil {
 		t := *filter.ExpiredOn
 		filters = append(filters, t.Unix())
@@ -573,11 +571,12 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 	}
 	if filter.FTSQuery != "" {
 		filters = append(filters, fullTextSearchQuery(filter.FTSQuery, " | "))
-		query = fmt.Sprintf("%s AND claims.ts_words @@ to_tsquery($%d)", query, len(filters))
+		ftsConds := fmt.Sprintf("schemas.ts_words @@ to_tsquery($%d) ", len(filters))
 		if did := getDIDFromQuery(filter.FTSQuery); did != "" {
 			filters = append(filters, did)
-			query = fmt.Sprintf("claims.identifier LIKE CONCAT($%d::text,'%%')` ", len(filters))
+			ftsConds = fmt.Sprintf("%s OR claims.other_identifier LIKE CONCAT($%d::text,'%%') ", ftsConds, len(filters))
 		}
+		query = fmt.Sprintf("%s AND (%s) ", query, ftsConds)
 	}
 	return query, filters
 }

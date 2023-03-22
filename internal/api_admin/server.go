@@ -243,12 +243,14 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 	}
 	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
+		log.Error(ctx, "loading credentials", "err", err, "req", request)
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	response := make([]Credential, len(credentials))
 	for i, credential := range credentials {
 		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
 		if err != nil {
+			log.Error(ctx, "creating credentials response", "err", err, "req", request)
 			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 		}
 		response[i] = credentialResponse(w3c, credential)
