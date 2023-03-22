@@ -86,7 +86,7 @@ In `.env-issuer`:
 
 - `ISSUER_API_AUTH_USER`
 - `ISSUER_API_AUTH_PASSWORD`
-- `ISSUER_KEY_STORE_TOKEN` - obtained from step 3 [here](#adding-ethereum-private-key-to-the-vault).
+- `ISSUER_KEY_STORE_TOKEN` - obtained from step 4 [here](#adding-ethereum-private-key-to-the-vault).
 
 If you are running the UI, in `.env-ui`:
 
@@ -99,7 +99,7 @@ This is required for signing on-chain transactions. In a basic use-case this can
 
 Follow these steps:
 
-1. Copy your Ethereum private key, pasting it into `<private_key>` in step 2.
+1. Copy your Ethereum private key, pasting it into `<private_key>` in the next step.
 2. Run `make private_key=<private_key> add-private-key`
 3. Run `make add-vault-token`
 
