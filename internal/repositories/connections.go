@@ -94,14 +94,16 @@ FROM connections
 WHERE connections.issuer_id = $1`
 	var err error
 	var rows pgx.Rows
+	attrs := []interface{}{issuerDID.String()}
 	if query != nil && *query != "" {
 		did := getDIDFromQuery(*query)
 		if did != "" {
-			all += fmt.Sprintf(` AND connections.user_id LIKE '%s`, did) + "%'"
+			all += ` AND connections.user_id LIKE CONCAT($2::text,'%%')`
+			attrs = append(attrs, did)
 		}
 	}
 
-	rows, err = conn.Query(ctx, all, issuerDID.String())
+	rows, err = conn.Query(ctx, all, attrs...)
 
 	if err != nil {
 		return nil, err

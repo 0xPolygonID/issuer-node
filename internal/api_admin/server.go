@@ -187,7 +187,7 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
 	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
 	if err != nil {
-		log.Error(ctx, "get connection request", err, "query", request.Params.Query)
+		log.Error(ctx, "get connection request", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
 	}
 
