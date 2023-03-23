@@ -34,7 +34,7 @@ export interface Credential {
   valid: boolean;
 }
 
-export interface CredentialPayload {
+interface CredentialPayload {
   active: boolean;
   attributeValues: CredentialAttribute[];
   claimLinkExpiration: Date | null;
@@ -194,7 +194,7 @@ export interface ShareCredentialQRCode {
   sessionID: string;
 }
 
-export interface ShareCredentialQRCodePayload {
+interface ShareCredentialQRCodePayload {
   issuer: { displayName: string; logo: string };
   offerDetails: CredentialPayload;
   qrcode: CredentialQRCode;
@@ -429,7 +429,7 @@ const credentialQRCheckPending = StrictSchema<CredentialQRCheckPending>()(
   })
 );
 
-export const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
+const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
   z.union([credentialQRCheckDone, credentialQRCheckError, credentialQRCheckPending])
 );
 

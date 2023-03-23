@@ -5,7 +5,7 @@ import { StyleVariables } from "src/domain";
 import variables from "src/styles/variables.module.scss";
 import { StrictSchema } from "src/utils/types";
 
-export const parseStyleVariables = StrictSchema<StyleVariables>()(
+const parseStyleVariables = StrictSchema<StyleVariables>()(
   z.object({
     avatarBg: z.string(),
     bgLight: z.string(),

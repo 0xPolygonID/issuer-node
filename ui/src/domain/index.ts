@@ -11,14 +11,6 @@ export interface Env {
   };
 }
 
-export interface Organization {
-  did: string;
-  displayName: string;
-  legalName: string | null;
-  logo: string;
-  modifiedAt: Date;
-}
-
 export type TabsCredentialsIDs = "issued" | "links";
 
 export interface StyleVariables {

@@ -43,12 +43,12 @@ export interface ResultCreated<D> {
   status: HTTPStatusSuccess.Created;
 }
 
-export interface ResponseError {
+interface ResponseError {
   data: { message: string };
   status: number;
 }
 
-export const responseError = StrictSchema<ResponseError>()(
+const responseError = StrictSchema<ResponseError>()(
   z.object({
     data: z.object({ message: z.string() }),
     status: z.number(),
