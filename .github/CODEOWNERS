@@ -9,7 +9,8 @@
 /internal           @0xPolygonID/backend
 /pkg                @0xPolygonID/backend
 
+/ui                 @0xPolygonID/frontend
+
 ./.github           @martinsaporiti
 
-# No prefixed code owners
-/ui
+
