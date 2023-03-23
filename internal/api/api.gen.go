@@ -1150,6 +1150,15 @@ func (response RevokeClaim202JSONResponse) VisitRevokeClaimResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type RevokeClaim400JSONResponse struct{ N400JSONResponse }
+
+func (response RevokeClaim400JSONResponse) VisitRevokeClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type RevokeClaim401JSONResponse struct{ N401JSONResponse }
 
 func (response RevokeClaim401JSONResponse) VisitRevokeClaimResponse(w http.ResponseWriter) error {
@@ -1796,12 +1805,12 @@ var swaggerSpec = []string{
 	"l/z2199HDFK60gLXOyyY2t3EQLh2M2ovXb5zqN461VfRrAzL7rnadjne7dKR38uxbwuX17usDhrPMb5L",
 	"abDUfe4A2lMUBf6t1pq5/f7OUOkrhhI2y7jsrhXiRTPOn4Dje/ukcL7xOcIEpsUuqOqptoqA5ebiY5QD",
 	"G6xwj0h2GvY626YBUF7Yq5inOTSaYLXgDVVq3xIfN1AHxfoQ59Yg4vJVCwq1vuL3hkD/USFwsz4knSQJ",
-	"5FU02iLCuNeo6+Ye7yzCOPkeEmHuGZ1vdyQhZczuyJFllfFE6HG0nqRuWp/Ndl41fXekVRXW9jCLb2X5",
-	"ojeItkvfUSaIIGMgpCdE26Ps4hhbFmgmrf1yiU6FqcMFUmbWSEhErAczPi7j234nPt1rn/8/lC69Ygpg",
-	"VdxsD9E/CuyM1RNnt03gZ68h49zdCm+WH/3kqsmH3FXmMoxCN82PcybYGT42/DMHpCXhiiTmg7IacX93",
-	"YH40fjdmU6j1QOfRo6bqlTf4oSb/gll0fla1BdwuQJE33//aSdaroWozohJgoWaj3VdOS9A1FfSzSGxj",
-	"zT4EtHetgzhOzceJUHpwdGCkuK42bv2Nk0hTcOoVo+pmSSEJqS0CtKi3Qn23Y9FYjR6wX3WC97v54PmQ",
-	"rdy12GIrdzEzv57/NwAA//+e2Rrg5jYAAA==",
+	"5LuORu7l6rq5xzuLRk4XD4lG94zOtzu+kDK+d+TTsiJ5IqQ5Wk9SY63PfDuvsL470qpqbHuYxbeyfP0b",
+	"RNul7z4TRJAxENITou2xd3HkLYs5kwJ/uUSnwtTsAikzayQkItbbGR+XsXC/E5/uZdD/H0qXXjwFsCpu",
+	"tofoHwV2xuqJs9sm8LNXlnHubpA3y6V+ctUQRO7acxlGoVvpxzk/7AwfG/5JBNKScEUS80FZjbi/UTA/",
+	"Gr8bsynU+qXz6FHT+srb/tCFwIJZdH5WtRDcLkCRN9//2qnXq6FqSaISYKHGpN1XTkvQNRX0s0hsE84+",
+	"GrT3soM4Ts3HiVB6cHRgpLiuNm79PZRIU3DqFaPqFkohCaktArSot019Z2TRhI0esF912ve7+eD5kK3c",
+	"FdpiK3eJM7+e/zcAAP//flp7LhI3AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
