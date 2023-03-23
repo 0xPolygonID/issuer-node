@@ -1,4 +1,4 @@
-import { Button, Card, Col, Dropdown, Row, Space, Typography, message } from "antd";
+import { Button, Card, Dropdown, Row, Space, Typography, message } from "antd";
 import { useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
@@ -85,11 +85,9 @@ export function ImportSchemaPreview({
       title={jsonLdType.name}
     >
       <Space direction="vertical" size="large">
-        <Col style={{ background: "#F2F4F7", borderRadius: 8, padding: 24 }}>
+        <Card className="background-grey">
           <Space direction="vertical">
-            <Row justify="space-between">
-              <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
-            </Row>
+            <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
             <Detail
               copyable={bigint !== undefined}
@@ -127,27 +125,26 @@ export function ImportSchemaPreview({
               </Button>
             </Row>
           </Space>
-        </Col>
+        </Card>
 
         {(() => {
           switch (jsonView) {
             case "formatted": {
               return (
-                <Col style={{ background: "#F2F4F7", borderRadius: 8, padding: 24 }}>
+                <Card className="background-grey">
                   <Space direction="vertical">
-                    <Row justify="space-between">
-                      <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>
-                    </Row>
-                    <SchemaTree schema={schema} style={{ background: "#F2F4F7" }} />
+                    <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>
+
+                    <SchemaTree className="background-grey" schema={schema} />
                   </Space>
-                </Col>
+                </Card>
               );
             }
             case "jsonLdContext": {
               return (
                 <SyntaxHighlighter
+                  className="background-grey"
                   customStyle={{
-                    background: "#F2F4F7",
                     borderRadius: 8,
                     margin: 0,
                     padding: 16,
@@ -162,8 +159,8 @@ export function ImportSchemaPreview({
             case "jsonSchema": {
               return (
                 <SyntaxHighlighter
+                  className="background-grey"
                   customStyle={{
-                    background: "#F2F4F7",
                     borderRadius: 8,
                     margin: 0,
                     padding: 16,

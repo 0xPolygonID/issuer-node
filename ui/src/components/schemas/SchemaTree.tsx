@@ -33,7 +33,15 @@ const attributeToTreeDataNode = ({
   };
 };
 
-export function SchemaTree({ schema, style }: { schema: Schema; style?: React.CSSProperties }) {
+export function SchemaTree({
+  className,
+  schema,
+  style,
+}: {
+  className?: string;
+  schema: Schema;
+  style?: React.CSSProperties;
+}) {
   const [treeWidth, setTreeWidth] = useState(0);
 
   const ref = useRef<HTMLDivElement | null>(null);
@@ -58,6 +66,7 @@ export function SchemaTree({ schema, style }: { schema: Schema; style?: React.CS
   return (
     <Col ref={ref}>
       <Tree.DirectoryTree
+        className={className}
         defaultExpandAll
         selectable={false}
         showIcon={false}
