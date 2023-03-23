@@ -336,7 +336,7 @@ curl --location 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qEeo6LxF
 # {"body":{"credentials":[{"description":"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential","id":"6dd268dc-c906-11ed-9922-0242c0a82005"}],"url":"https://unique-forwading-address.eu.ngrok.io/v1/agent"},"from":"did:polygonid:polygon:mumbai:2qEeo6LxFqEcUEsqbc9hXUXq6PPSv3YHibinJyvY3N","id":"d1c90cf3-f7b6-44b0-b4ce-f5bd9f9735b0","thid":"d1c90cf3-f7b6-44b0-b4ce-f5bd9f9735b0","to":"did:polygonid:polygon:mumbai:2qEsg1BeTohAq7Euc4hBaDapfLVfQiWS6DSfvutWEq","typ":"application/iden3comm-plain-json","type":"https://iden3-communication.io/credentials/1.0/offer"}
 ```
 
-Take this JSON data, copy, and paste into (https://qr.io)[https://qr.io].
+Take this JSON data, copy, and paste into [https://qr.io](https://qr.io).
 
 !["QR.io"](/docs/qrio.png)
 
