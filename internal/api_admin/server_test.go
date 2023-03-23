@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/deepmap/oapi-codegen/pkg/types"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -13,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/utils"
@@ -1933,7 +1933,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID: importedSchema.ID,
 				ExpirationDate: &types.Date{
-					time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
@@ -2007,7 +2007,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID: importedSchema.ID,
 				ExpirationDate: &types.Date{
-					time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
@@ -2026,7 +2026,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID: uuid.New(),
 				ExpirationDate: &types.Date{
-					time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),

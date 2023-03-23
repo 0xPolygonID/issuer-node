@@ -2,9 +2,10 @@ package ports
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
-	"time"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )

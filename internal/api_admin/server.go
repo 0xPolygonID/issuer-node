@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -348,12 +348,10 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		})
 	}
 
-	var lc *int
 	if request.Body.LimitedClaims != nil {
 		if *request.Body.LimitedClaims <= 0 {
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "limitedClaims must be higher than 0"}}, nil
 		}
-		lc = common.ToPointer(int(*request.Body.LimitedClaims))
 	}
 
 	var expirationDate *time.Time
@@ -362,7 +360,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	}
 
 	// Todo improve validations errors
-	createdLink, err := s.linkService.Save(ctx, uuid.New(), s.cfg.APIUI.IssuerDID, lc, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
+	createdLink, err := s.linkService.Save(ctx, uuid.New(), s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
 	if err != nil {
 		log.Error(ctx, "error saving the link", err.Error())
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
@@ -374,25 +372,6 @@ func isBeforeTomorrow(t time.Time) bool {
 	today := time.Now().UTC()
 	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
 	return t.Before(tomorrow)
-}
-
-func isAfter(t1 time.Time, t2 time.Time) bool {
-	return t1.After(t2)
-}
-
-func isBefore(t1 time.Time, t2 time.Time) bool {
-	return t1.Before(t2)
-}
-
-func isClaimLinkValid(cl time.Time, offerExpiresAt *time.Time) bool {
-	if offerExpiresAt != nil && isAfter(cl, *offerExpiresAt) {
-		return false
-	}
-	if isBefore(cl, time.Now().UTC()) {
-		return false
-	}
-
-	return true
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

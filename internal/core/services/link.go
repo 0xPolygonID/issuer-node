@@ -2,9 +2,10 @@ package services
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
-	"time"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -21,8 +22,7 @@ func NewLinkService(linkRepository ports.LinkRepository) ports.LinkService {
 }
 
 // Save - save a new credential
-func (ls *Link) Save(ctx context.Context, ID uuid.UUID, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID,
-	credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error) {
+func (ls *Link) Save(ctx context.Context, ID uuid.UUID, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error) {
 	link := domain.NewLink(ID, did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialAttributes)
 
 	_, err := ls.linkRepository.Save(ctx, link)
