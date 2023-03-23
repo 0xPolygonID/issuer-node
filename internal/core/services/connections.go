@@ -64,7 +64,7 @@ func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID core.DID, q
 }
 
 func (c *connection) delete(ctx context.Context, id uuid.UUID, issuerDID core.DID, pgx db.Querier) error {
-	err := c.connRepo.Delete(ctx, c.storage.Pgx, id, issuerDID)
+	err := c.connRepo.Delete(ctx, pgx, id, issuerDID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
 			return ErrConnectionDoesNotExist
