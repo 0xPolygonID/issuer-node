@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { APIError, HTTPStatusError } from "src/adapters/api";
 import {
   CredentialQRCheck,
   CredentialQRStatus,
@@ -16,7 +17,6 @@ import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.s
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/env";
-import { APIError, HTTPStatusError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   IMAGE_PLACEHOLDER_PATH,

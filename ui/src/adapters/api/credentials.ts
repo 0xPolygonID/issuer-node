@@ -1,15 +1,15 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { Schema, schema } from "src/adapters/api/schemas";
-import { Env } from "src/domain";
 import {
   APIResponse,
   HTTPStatusSuccess,
   ResultCreated,
   ResultOK,
   buildAPIError,
-} from "src/utils/adapters";
+} from "src/adapters/api";
+import { Schema, schema } from "src/adapters/api/schemas";
+import { Env } from "src/domain";
 import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 

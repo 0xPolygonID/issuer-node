@@ -1,8 +1,8 @@
 import axios from "axios";
 import { z } from "zod";
 
+import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
 import { Env, JsonLdType } from "src/domain";
-import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
 import { QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 

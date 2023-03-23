@@ -1,4 +1,4 @@
-import { APIError, HTTPStatusError } from "src/utils/adapters";
+import { APIError, HTTPStatusError } from "src/adapters/api";
 
 export function isAbortedError(response: APIError) {
   return HTTPStatusError.Aborted === response.status;
