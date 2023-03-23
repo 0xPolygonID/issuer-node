@@ -1311,13 +1311,16 @@ func TestServer_GetCredentials(t *testing.T) {
 	revoked, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 
-	require.NoError(t, claimsService.Revoke(ctx, *revoked.Identifier, uint64(revoked.RevNonce), "because I can"))
+	id, err := core.ParseDID(*revoked.Identifier)
+	require.NoError(t, err)
+	require.NoError(t, claimsService.Revoke(ctx, *id, uint64(revoked.RevNonce), "because I can"))
 
 	handler := getHandler(ctx, server)
 
 	type expected struct {
 		count    int
 		httpCode int
+		errorMsg string
 	}
 
 	type testConfig struct {
@@ -1333,6 +1336,15 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:  "Wrong type",
+			auth:  authOk,
+			rType: common.ToPointer("wrong"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "Wrong type value. Allowed values: [all, revoked, expired]",
 			},
 		},
 		{
@@ -1410,6 +1422,10 @@ func TestServer_GetCredentials(t *testing.T) {
 				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Len(t, response, tc.expected.count)
+			case http.StatusBadRequest:
+				var response GetCredentials400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
 			}
 		})
 	}

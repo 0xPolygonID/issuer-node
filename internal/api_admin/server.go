@@ -247,6 +247,10 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 			filter.Revoked = common.ToPointer(true)
 		case Expired:
 			filter.ExpiredOn = common.ToPointer(time.Now())
+		case All:
+			// Nothing to be done
+		default:
+			return GetCredentials400JSONResponse{N400JSONResponse{Message: "Wrong type value. Allowed values: [all, revoked, expired]"}}, nil
 		}
 	}
 	if request.Params.Query != nil {
