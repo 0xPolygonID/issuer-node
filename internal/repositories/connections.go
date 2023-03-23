@@ -50,9 +50,9 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 	return id, err
 }
 
-func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error {
-	sql := `DELETE FROM connections WHERE id = $1`
-	cmd, err := conn.Exec(ctx, sql, id.String())
+func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) error {
+	sql := `DELETE FROM connections WHERE id = $1 AND issuer_id = $2`
+	cmd, err := conn.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {
 		return err
 	}
@@ -62,6 +62,13 @@ func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID)
 	}
 
 	return nil
+}
+
+func (c *connections) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) error {
+	sql := `DELETE FROM claims USING connections WHERE claims.issuer = connections.issuer_id AND claims.other_identifier = connections.user_id AND connections.id = $1 AND connections.issuer_id = $2`
+	_, err := conn.Exec(ctx, sql, id.String(), issuerID.String())
+
+	return err
 }
 
 func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) (*domain.Connection, error) {
