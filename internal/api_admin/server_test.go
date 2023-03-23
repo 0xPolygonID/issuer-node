@@ -1790,62 +1790,23 @@ func TestServer_CreateLink(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
-		//{
-		//	name: "Wrong request - no proof provided",
-		//	auth: authOk,
-		//	body: CreateCredentialRequest{
-		//		CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-		//		Type:             "KYCAgeCredential",
-		//		CredentialSubject: map[string]any{
-		//			"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-		//			"birthday":     19960424,
-		//			"documentType": 2,
-		//		},
-		//		Expiration: common.ToPointer(int64(12345)),
-		//	},
-		//	expected: expected{
-		//		response: CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}},
-		//		httpCode: http.StatusBadRequest,
-		//	},
-		//},
-		//{
-		//	name: "Wrong credential url",
-		//	auth: authOk,
-		//	body: CreateCredentialRequest{
-		//		CredentialSchema: "wrong url",
-		//		Type:             "KYCAgeCredential",
-		//		CredentialSubject: map[string]any{
-		//			"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-		//			"birthday":     19960424,
-		//			"documentType": 2,
-		//		},
-		//		Expiration:     common.ToPointer(int64(12345)),
-		//		SignatureProof: common.ToPointer(true),
-		//	},
-		//	expected: expected{
-		//		response: CreateCredential400JSONResponse{N400JSONResponse{Message: "malformed url"}},
-		//		httpCode: http.StatusBadRequest,
-		//	},
-		//},
-		//{
-		//	name: "Unreachable well formed credential url",
-		//	auth: authOk,
-		//	body: CreateCredentialRequest{
-		//		CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
-		//		Type:             "KYCAgeCredential",
-		//		CredentialSubject: map[string]any{
-		//			"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-		//			"birthday":     19960424,
-		//			"documentType": 2,
-		//		},
-		//		Expiration:     common.ToPointer(int64(12345)),
-		//		SignatureProof: common.ToPointer(true),
-		//	},
-		//	expected: expected{
-		//		response: CreateCredential422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
-		//		httpCode: http.StatusUnprocessableEntity,
-		//	},
-		//},
+		{
+			name: "Claim link wrong schema id",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID:            uuid.New(),
+				ExpirationDate:      common.ToPointer("2025/12/20"),
+				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				LimitedClaims:       common.ToPointer(10),
+				AttributeValues:     []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				MtProof:             true,
+				SignatureProof:      true,
+			},
+			expected: expected{
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema id not found"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -1867,10 +1828,6 @@ func TestServer_CreateLink(t *testing.T) {
 				assert.NoError(t, err)
 			case http.StatusBadRequest:
 				var response CreateCredential400JSONResponse
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.EqualValues(t, tc.expected.response, response)
-			case http.StatusUnprocessableEntity:
-				var response CreateCredential422JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			}
