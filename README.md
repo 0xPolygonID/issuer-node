@@ -161,7 +161,7 @@ For example, for inspecting the issuer API node, run:
 
 `docker logs issuer-api-1`
 
-In most cases, a startup failure will be due to erroneous environment variables. In the case of the UI, the specific environment variable missing will show as part of the error message.
+In most cases, a startup failure will be due to erroneous environment variables. In the case of the UI, any missing environment variable(s) will show as part of the error message.
 
 ## License
 
