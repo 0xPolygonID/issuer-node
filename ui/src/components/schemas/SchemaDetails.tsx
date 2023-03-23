@@ -1,6 +1,6 @@
 import { Button, Card, Col, Dropdown, Row, Space, Typography, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
@@ -15,6 +15,7 @@ import { Detail } from "src/components/schemas/Detail";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
 import { useEnvContext } from "src/contexts/env";
 import { Json, JsonLdType, Schema } from "src/domain";
+import { ROUTES } from "src/routes";
 import {
   APIError,
   downloadJsonFromUrl,
@@ -37,6 +38,8 @@ const JSON_VIEW_LABELS: Record<JsonView, string> = {
 
 export function SchemaDetails() {
   const env = useEnvContext();
+
+  const navigate = useNavigate();
 
   const { schemaID } = useParams();
 
@@ -322,7 +325,7 @@ export function SchemaDetails() {
                     <Button
                       icon={<CreditCardIcon />}
                       onClick={() => {
-                        void message.warning("Not yet implemented");
+                        navigate(generatePath(ROUTES.issueCredential.path, { schemaID }));
                       }}
                       type="primary"
                     >
