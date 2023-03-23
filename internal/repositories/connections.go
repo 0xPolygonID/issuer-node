@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,9 +50,9 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 	return id, err
 }
 
-func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error {
-	sql := `DELETE FROM connections WHERE id = $1`
-	cmd, err := conn.Exec(ctx, sql, id.String())
+func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) error {
+	sql := `DELETE FROM connections WHERE id = $1 AND issuer_id = $2`
+	cmd, err := conn.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {
 		return err
 	}
@@ -92,6 +93,55 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 	}
 
 	return toConnectionDomain(&connection)
+}
+
+func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query *string) ([]*domain.Connection, error) {
+	all := `SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
+FROM connections 
+WHERE connections.issuer_id = $1`
+	var err error
+	var rows pgx.Rows
+	attrs := []interface{}{issuerDID.String()}
+	if query != nil && *query != "" {
+		did := getDIDFromQuery(*query)
+		if did != "" {
+			all += ` AND connections.user_id LIKE CONCAT($2::text,'%%')`
+			attrs = append(attrs, did)
+		}
+	}
+
+	rows, err = conn.Query(ctx, all, attrs...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	domainConns := make([]*domain.Connection, 0)
+	dbConn := dbConnection{}
+	for rows.Next() {
+		if err := rows.Scan(&dbConn.ID, &dbConn.IssuerDID, &dbConn.UserDID, &dbConn.IssuerDoc, &dbConn.UserDoc, &dbConn.CreatedAt, &dbConn.ModifiedAt); err != nil {
+			return nil, err
+		}
+		domainConn, err := toConnectionDomain(&dbConn)
+		if err != nil {
+			return nil, err
+		}
+		domainConns = append(domainConns, domainConn)
+	}
+
+	return domainConns, nil
+}
+
+func getDIDFromQuery(query string) string {
+	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
+	for _, word := range words {
+		if strings.HasPrefix(word, "did:") {
+			return word
+		}
+	}
+
+	return ""
 }
 
 func toConnectionDomain(c *dbConnection) (*domain.Connection, error) {

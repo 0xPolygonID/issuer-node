@@ -65,10 +65,23 @@ func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string
 	return proofs
 }
 
+func connectionsResponse(conns []*domain.Connection) GetConnectionsResponse {
+	resp := make([]GetConnectionResponse, 0)
+	for _, conn := range conns {
+		resp = append(resp, connectionResponse(conn, nil, nil))
+	}
+
+	return resp
+}
+
 func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {
-	credResp := make([]Credential, len(w3cs))
-	for i := range credentials {
-		credResp[i] = credentialResponse(w3cs[i], credentials[i])
+	var credResp *[]Credential
+	if w3cs != nil {
+		creds := make([]Credential, len(w3cs))
+		for i := range credentials {
+			creds[i] = credentialResponse(w3cs[i], credentials[i])
+		}
+		credResp = &creds
 	}
 
 	return GetConnectionResponse{

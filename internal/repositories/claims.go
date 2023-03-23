@@ -403,6 +403,42 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifi
 	return processClaims(rows)
 }
 
+func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID core.DID) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+				   issuer,
+				   schema_hash,
+				   schema_url,
+				   schema_type,
+				   other_identifier,
+				   expiration,
+				   updatable,
+				   claims.version,
+				   rev_nonce,
+				   signature_proof,
+				   mtp_proof,
+				   data,
+				   claims.identifier,
+				   identity_state,
+				   identity_states.status,
+				   credential_status,
+				   core_claim
+			FROM claims
+			JOIN connections ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
+			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+			WHERE connections.id = $1 AND claims.issuer = $2 AND  claims.revoked = false
+			`
+
+	rows, err := conn.Query(ctx, query, connID.String(), issuerID.String())
+
+	if err != nil && err != pgx.ErrNoRows {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	return processClaims(rows)
+}
+
 func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows
@@ -454,6 +490,95 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.D
 		FROM claims
 		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
 		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer
+		`, did.String(), state.Hex())
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaURL,
+			&claim.SchemaType,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.SignatureProof,
+			&claim.MTPProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.Status,
+			&claim.CredentialStatus,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, claim)
+	}
+
+	return claims, err
+}
+
+func (c *claims) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+	claims = make([]domain.Claim, 0)
+	var rows pgx.Rows
+	if state == nil {
+		rows, err = conn.Query(ctx,
+			`
+		SELECT id,
+			issuer,
+			schema_hash,
+			schema_url,
+			schema_type,
+			other_identifier,
+			expiration,
+			updatable,
+			version,
+			rev_nonce,
+			signature_proof,
+			mtp_proof,
+			data,
+			identifier,
+			identity_state,
+			NULL AS status,
+			credential_status,
+			core_claim 
+		FROM claims
+		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer AND mtp = true
+		`, did.String())
+	} else {
+		rows, err = conn.Query(ctx, `
+		SELECT
+			id,
+			issuer,
+			schema_hash,
+			schema_url,
+			schema_type,
+			other_identifier,
+			expiration,
+			updatable,
+			version,
+			rev_nonce,
+			signature_proof,
+			mtp_proof,
+			data,
+			claims.identifier,
+			identity_state,
+			status,
+			credential_status,
+			core_claim 
+		FROM claims
+		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
+		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer AND mtp = true
 		`, did.String(), state.Hex())
 	}
 

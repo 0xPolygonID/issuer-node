@@ -129,6 +129,57 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/connections:
+    get:
+      summary: Get Connections
+      operationId: getConnections
+      description: get connections
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in connections.
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetConnectionsResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/connections/{id}/credentials/revoke:
+    post:
+      summary: Revoke Connection Credentials
+      operationId: revokeConnectionCredentials
+      description: revoke connection credentials
+      tags:
+        - Connection
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   #credentials:
   /v1/credentials:
     post:
@@ -307,6 +358,23 @@ paths:
                 $ref: '#/components/schemas/UUIDResponse'
         '400':
           $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+
+  /v1/state/publish:
+    post:
+      summary: Endpoint to publish identity state
+      operationId: PublishState
+      tags:
+        - State
+      responses:
+        '202':
+          description: Publish state successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishIdentityStateResponse'
         '500':
           $ref: '#/components/responses/500'
 
@@ -523,12 +591,15 @@ components:
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
 
+    GetConnectionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GetConnectionResponse'
 
     GetConnectionResponse:
       type: object
       required:
         - connection
-        - credentials
       properties:
         connection:
           $ref: '#/components/schemas/Connection'
@@ -616,6 +687,29 @@ components:
           type: string
           x-omitempty: false
           example: pending
+
+    PublishIdentityStateResponse:
+      type: object
+      properties:
+        txID:
+          type: string
+        claimsTreeRoot:
+          type: string
+        state:
+          type: string
+        revocationTreeRoot:
+          type: string
+        rootOfRoots:
+          type: string
+      example:
+        claimsTreeRoot: "3608a07d1d455974054065d6138bb4e634afa7a965f29919f4d0f494eba0f91c"
+        revocationTreeRoot: "0000000000000000000000000000000000000000000000000000000000000000"
+        rootOfRoots: "53b5e088b1c93b2ea4748bc29649c1cd6b0f4749bab3f96d2d9f0aac8eab1b19"
+        state: "8d0dfb1b7bc910e347efbba324e604359815c40b56b77e191fdac1eb7f770119"
+        txID: "0x45aef0730854606bf9ea3cabba80541fa3dc61833c7a08b6c722d732451fea46"
+
+
+
   parameters:
     sessionID:
       name: sessionID

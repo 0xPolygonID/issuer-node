@@ -2,46 +2,52 @@ import { Form, Select, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 
 import { generatePath, useNavigate } from "react-router-dom";
-import { Schema, schemasGetAll } from "src/adapters/api/schemas";
+import { Schema, getSchemas } from "src/adapters/api/schemas";
+import { useEnvContext } from "src/contexts/env";
 import { ROUTES } from "src/routes";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_TYPE } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
+  const env = useEnvContext();
   const [schemas, setSchemas] = useState<AsyncTask<Schema[], undefined>>({
     status: "pending",
   });
 
   const navigate = useNavigate();
 
-  const getSchemas = useCallback(async (signal: AbortSignal) => {
-    setSchemas((oldState) =>
-      isAsyncTaskDataAvailable(oldState)
-        ? { data: oldState.data, status: "reloading" }
-        : { status: "loading" }
-    );
+  const fetchSchemas = useCallback(
+    async (signal: AbortSignal) => {
+      setSchemas((oldState) =>
+        isAsyncTaskDataAvailable(oldState)
+          ? { data: oldState.data, status: "reloading" }
+          : { status: "loading" }
+      );
 
-    const response = await schemasGetAll({
-      params: {},
-      signal,
-    });
+      const response = await getSchemas({
+        env,
+        params: {},
+        signal,
+      });
 
-    if (response.isSuccessful) {
-      setSchemas({ data: response.data.schemas, status: "successful" });
-    } else {
-      if (!isAbortedError(response.error)) {
-        setSchemas({ error: undefined, status: "failed" });
-        void message.error(response.error.message);
+      if (response.isSuccessful) {
+        setSchemas({ data: response.data.schemas, status: "successful" });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setSchemas({ error: undefined, status: "failed" });
+          void message.error(response.error.message);
+        }
       }
-    }
-  }, []);
+    },
+    [env]
+  );
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(getSchemas);
+    const { aborter } = makeRequestAbortable(fetchSchemas);
 
     return aborter;
-  }, [getSchemas]);
+  }, [fetchSchemas]);
 
   return (
     <Form layout="vertical">
@@ -56,9 +62,9 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
           value={schemaID && isAsyncTaskDataAvailable(schemas) ? schemaID : undefined}
         >
           {isAsyncTaskDataAvailable(schemas) &&
-            schemas.data.map(({ id, schema }) => (
+            schemas.data.map(({ id, type }) => (
               <Select.Option key={id} value={id}>
-                {schema}
+                {type}
               </Select.Option>
             ))}
         </Select>

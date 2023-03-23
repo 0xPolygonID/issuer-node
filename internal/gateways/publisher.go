@@ -363,7 +363,6 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	blockTime := int(header.Time)
 	state.BlockTimestamp = &blockTime
 
-	// TODO - Check type of proof.
 	if receipt.Status == types.ReceiptStatusSuccessful {
 		state.Status = domain.StatusConfirmed
 		err = p.claimService.UpdateClaimsMTPAndState(ctx, state)

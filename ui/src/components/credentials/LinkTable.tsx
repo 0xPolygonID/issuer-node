@@ -24,6 +24,7 @@ import { ReactComponent as IconLink } from "src/assets/icons/link-03.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
+import { useEnvContext } from "src/contexts/env";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, LINKS, QUERY_SEARCH_PARAM } from "src/utils/constants";
@@ -44,6 +45,7 @@ const showParser = StrictSchema<Show>()(
 );
 
 export function LinkTable() {
+  const env = useEnvContext();
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
   });
@@ -83,12 +85,12 @@ export function LinkTable() {
       dataIndex: "schemaTemplate",
       ellipsis: true,
       key: "schemaTemplate",
-      render: ({ schema }: Schema) => (
-        <Tooltip placement="topLeft" title={schema}>
-          <Typography.Text strong>{schema}</Typography.Text>
+      render: ({ type }: Schema) => (
+        <Tooltip placement="topLeft" title={type}>
+          <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaTemplate: { schema: a } }, { schemaTemplate: { schema: b } }) =>
+      sorter: ({ schemaTemplate: { type: a } }, { schemaTemplate: { type: b } }) =>
         a.localeCompare(b),
       title: "Credential",
     },
@@ -154,6 +156,7 @@ export function LinkTable() {
       );
 
       const response = await credentialsGetAll({
+        env,
         params: {
           query: queryParam || undefined,
           valid: show === "exceeded" ? false : undefined,
@@ -173,7 +176,7 @@ export function LinkTable() {
         }
       }
     },
-    [queryParam, show]
+    [env, queryParam, show]
   );
 
   const handleShowChange = ({ target: { value } }: RadioChangeEvent) => {
@@ -216,6 +219,7 @@ export function LinkTable() {
 
     void credentialUpdate({
       credentialID,
+      env,
       payload: { active },
       schemaID: schemaTemplate.id,
     }).then((response) => {
