@@ -9,12 +9,14 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+// DeleteRequest struct
 type DeleteRequest struct {
 	ConnID            uuid.UUID
 	DeleteCredentials bool
 	RevokeCredentials bool
 }
 
+// NewDeleteRequest creates a new DeleteRequest
 func NewDeleteRequest(connID uuid.UUID, deleteCredentials *bool, revokeCredentials *bool) *DeleteRequest {
 	return &DeleteRequest{
 		ConnID:            connID,

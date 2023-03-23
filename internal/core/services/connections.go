@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v4"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -22,7 +22,7 @@ type connection struct {
 	storage  *db.Storage
 }
 
-// NewConnection returnas a new connection service
+// NewConnection returns a new connection service
 func NewConnection(connRepo ports.ConnectionsRepository, storage *db.Storage) ports.ConnectionsService {
 	return &connection{
 		connRepo: connRepo,
