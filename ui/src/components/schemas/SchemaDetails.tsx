@@ -155,14 +155,13 @@ export function SchemaDetails() {
     isAsyncTaskStarting(schema) ||
     isAsyncTaskStarting(jsonLdType);
 
-  const errorMsg =
-    apiSchema.status === "failed"
-      ? apiSchema.error.message
-      : schema.status === "failed"
-      ? schemaErrorToString(schema.error)
-      : jsonLdType.status === "failed"
-      ? jsonLdTypeErrorToString(jsonLdType.error)
-      : undefined;
+  const errorMsg = hasAsyncTaskFailed(apiSchema)
+    ? apiSchema.error.message
+    : hasAsyncTaskFailed(schema)
+    ? schemaErrorToString(schema.error)
+    : hasAsyncTaskFailed(jsonLdType)
+    ? jsonLdTypeErrorToString(jsonLdType.error)
+    : undefined;
 
   return (
     <SiderLayoutContent
