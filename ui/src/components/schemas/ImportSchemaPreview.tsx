@@ -2,13 +2,13 @@ import { Button, Card, Col, Dropdown, Row, Space, Typography, message } from "an
 import { useState } from "react";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { a11yLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { downloadJsonFromUrl } from "src/adapters/json";
 
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as ChevronDownIcon } from "src/assets/icons/chevron-down.svg";
 import { Detail } from "src/components/schemas/Detail";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
 import { Json, JsonLdType, Schema } from "src/domain";
-import { downloadJsonFromUrl } from "src/utils/adapters";
 import { CARD_WIDTH } from "src/utils/constants";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
