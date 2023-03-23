@@ -589,6 +589,95 @@ func TestServer_DeleteConnection(t *testing.T) {
 	}
 }
 
+func TestServer_DeleteConnectionCredentials(t *testing.T) {
+	connectionsRepository := repositories.NewConnections()
+
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	handler := getHandler(context.Background(), server)
+
+	fixture := tests.NewFixture(storage)
+
+	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	conn := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	_ = fixture.CreateClaim(t, &domain.Claim{
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		OtherIdentifier: userDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246563",
+	})
+
+	_ = fixture.CreateClaim(t, &domain.Claim{
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		OtherIdentifier: userDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246562",
+	})
+
+	type expected struct {
+		httpCode int
+		message  *string
+	}
+
+	type testConfig struct {
+		name     string
+		connID   uuid.UUID
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+
+		{
+			name:   "should delete the connection",
+			connID: conn,
+			auth:   authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				message:  common.ToPointer("Credentials of the connection successfully deleted"),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/connections/%s/credentials", tc.connID.String())
+			req, err := http.NewRequest("DELETE", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response DeleteConnectionCredentials200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
 func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	const (
 		method     = "polygonid"

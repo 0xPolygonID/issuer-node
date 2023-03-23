@@ -207,6 +207,17 @@ func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionR
 	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
 }
 
+// DeleteConnectionCredentials deletes all the credentials of the given connection
+func (s *Server) DeleteConnectionCredentials(ctx context.Context, request DeleteConnectionCredentialsRequestObject) (DeleteConnectionCredentialsResponseObject, error) {
+	err := s.connectionsService.DeleteCredentials(ctx, request.Id, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "delete connection request", err, "req", request)
+		return DeleteConnectionCredentials500JSONResponse{N500JSONResponse{"There was an error deleting the credentials of the given connection"}}, nil
+	}
+
+	return DeleteConnectionCredentials200JSONResponse{Message: "Credentials of the connection successfully deleted"}, nil
+}
+
 // GetCredential returns a credential
 func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
 	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)

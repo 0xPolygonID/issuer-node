@@ -107,6 +107,28 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/connections/{id}/credentials:
+    delete:
+      summary: Delete Connection Credentials
+      operationId: deleteConnectionCredentials
+      description: delete connection credentials
+      tags:
+        - Connection
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/connections:
     get:
       summary: Get Connections
