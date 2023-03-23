@@ -52,11 +52,15 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("should get an error, deleting non existing connection", func(t *testing.T) {
-		assert.Error(t, connectionsRepo.Delete(context.Background(), storage.Pgx, uuid.New()))
+		assert.Error(t, connectionsRepo.Delete(context.Background(), storage.Pgx, uuid.New(), *issuerDID))
+	})
+
+	t.Run("should get an error, deleting non existing issuer connection", func(t *testing.T) {
+		assert.Error(t, connectionsRepo.Delete(context.Background(), storage.Pgx, uuid.New(), *userDID))
 	})
 
 	t.Run("should delete an existing connection", func(t *testing.T) {
-		assert.NoError(t, connectionsRepo.Delete(context.Background(), storage.Pgx, conn))
+		assert.NoError(t, connectionsRepo.Delete(context.Background(), storage.Pgx, conn, *issuerDID))
 	})
 }
 
@@ -112,5 +116,46 @@ func TestGetConnections(t *testing.T) {
 		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *issuerDID, common.ToPointer("did:polygonid:polygon:mumbai:2qH7XAwnonexisting"))
 		require.NoError(t, err)
 		assert.Equal(t, len(conns), 0)
+	})
+}
+
+func TestDeleteConnectionCredentials(t *testing.T) {
+	connectionsRepo := repositories.NewConnections()
+	fixture := tests.NewFixture(storage)
+
+	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	conn := fixture.CreateConnection(t, &domain.Connection{
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		OtherIdentifier: userDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246564",
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		OtherIdentifier: userDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246563",
+	})
+
+	t.Run("should delete all the credentials", func(t *testing.T) {
+		assert.NoError(t, connectionsRepo.DeleteCredentials(context.Background(), storage.Pgx, conn, *issuerDID))
+	})
+
+	t.Run("should return no error for non existing connection", func(t *testing.T) {
+		assert.NoError(t, connectionsRepo.DeleteCredentials(context.Background(), storage.Pgx, uuid.New(), *issuerDID))
 	})
 }

@@ -172,8 +172,9 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
-	Revoke(ctx context.Context, id string, nonce uint64, description string) error
+	Revoke(ctx context.Context, id core.DID, nonce uint64, description string) error
 	GetAll(ctx context.Context, did core.DID, filter *ClaimsFilter) ([]*domain.Claim, error)
+	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID core.DID) error
 	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
 	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)

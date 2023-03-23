@@ -107,6 +107,28 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/connections/{id}/credentials:
+    delete:
+      summary: Delete Connection Credentials
+      operationId: deleteConnectionCredentials
+      description: delete connection credentials
+      tags:
+        - Connection
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/connections:
     get:
       summary: Get Connections
@@ -133,6 +155,31 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+
+  /v1/connections/{id}/credentials/revoke:
+    post:
+      summary: Revoke Connection Credentials
+      operationId: revokeConnectionCredentials
+      description: revoke connection credentials
+      tags:
+        - Connection
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   #credentials:
   /v1/credentials:
     get:

@@ -29,8 +29,8 @@ func NewConnection(connRepo ports.ConnectionsRepository, storage *db.Storage) po
 	}
 }
 
-func (c *connection) Delete(ctx context.Context, id uuid.UUID) error {
-	err := c.connRepo.Delete(ctx, c.storage.Pgx, id)
+func (c *connection) Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error {
+	err := c.connRepo.Delete(ctx, c.storage.Pgx, id, issuerDID)
 	if err != nil {
 		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
 			return ErrConnectionDoesNotExist
@@ -39,6 +39,10 @@ func (c *connection) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (c *connection) DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID) error {
+	return c.connRepo.DeleteCredentials(ctx, c.storage.Pgx, id, issuerID)
 }
 
 func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error) {
