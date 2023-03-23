@@ -52,11 +52,15 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("should get an error, deleting non existing connection", func(t *testing.T) {
-		assert.Error(t, connectionsRepo.Delete(context.Background(), storage.Pgx, uuid.New()))
+		assert.Error(t, connectionsRepo.Delete(context.Background(), storage.Pgx, uuid.New(), *issuerDID))
+	})
+
+	t.Run("should get an error, deleting non existing issuer connection", func(t *testing.T) {
+		assert.Error(t, connectionsRepo.Delete(context.Background(), storage.Pgx, uuid.New(), *userDID))
 	})
 
 	t.Run("should delete an existing connection", func(t *testing.T) {
-		assert.NoError(t, connectionsRepo.Delete(context.Background(), storage.Pgx, conn))
+		assert.NoError(t, connectionsRepo.Delete(context.Background(), storage.Pgx, conn, *issuerDID))
 	})
 }
 

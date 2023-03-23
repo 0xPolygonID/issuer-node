@@ -196,7 +196,7 @@ func (s *Server) GetConnections(ctx context.Context, request GetConnectionsReque
 
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
-	err := s.connectionsService.Delete(ctx, request.Id)
+	err := s.connectionsService.Delete(ctx, request.Id, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		if errors.Is(err, services.ErrConnectionDoesNotExist) {
 			return DeleteConnection400JSONResponse{N400JSONResponse{"The given connection does not exist"}}, nil
