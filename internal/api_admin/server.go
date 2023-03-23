@@ -8,11 +8,14 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/iden3comm"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
@@ -29,19 +32,21 @@ type Server struct {
 	claimService       ports.ClaimsService
 	schemaService      ports.SchemaAdminService
 	connectionsService ports.ConnectionsService
+	linkService        ports.LinkService
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
 		claimService:       claimsService,
 		schemaService:      schemaService,
 		connectionsService: connectionsService,
+		linkService:        linkService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
@@ -324,4 +329,79 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 		State:              publishedState.State,
 		TxID:               publishedState.TxID,
 	}, nil
+}
+
+// CreateLink - creates a link for issuing a credential
+func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
+	var expiresAt *time.Time
+	if request.Body.ExpirationDate != nil {
+		layout := "2006/01/02"
+		t, err := time.Parse(layout, *request.Body.ExpirationDate)
+		expiresAt = &t
+		if err != nil {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "wrong expirationDate attribute format"}}, nil
+		}
+		if isBeforeTomorrow(t) {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "expirationDate cannot be a date before tomorrow"}}, nil
+		}
+	}
+
+	if request.Body.ClaimLinkExpiration != nil {
+		if !isClaimLinkValid(*request.Body.ClaimLinkExpiration, expiresAt) {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time or after the expiration date"}}, nil
+		}
+	}
+
+	if len(request.Body.AttributeValues) == 0 {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
+	}
+
+	attrs := make([]domain.CredentialAttributes, 0)
+	for _, at := range request.Body.AttributeValues {
+		attrs = append(attrs, domain.CredentialAttributes{
+			Name:  at.AttributeName,
+			Value: at.AttributeValue,
+		})
+	}
+
+	var lc *int32
+	if request.Body.LimitedClaims != nil {
+		if *request.Body.LimitedClaims <= 0 {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "limitedClaims must be higher than 0"}}, nil
+		}
+		lc = common.ToPointer(int32(*request.Body.LimitedClaims))
+	}
+
+	// Todo improve validations errors
+	link := domain.NewLink(s.cfg.APIUI.IssuerDID, lc, request.Body.ClaimLinkExpiration, request.Body.SchemaID, request.Body.SignatureProof, request.Body.MtProof, attrs)
+	id, err := s.linkService.Save(ctx, *link)
+	if err != nil {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateLink201JSONResponse{Id: id.String()}, nil
+}
+
+func isBeforeTomorrow(t time.Time) bool {
+	today := time.Now().UTC()
+	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
+	return t.Before(tomorrow)
+}
+
+func isAfter(t1 time.Time, t2 time.Time) bool {
+	return t1.After(t2)
+}
+
+func isBefore(t1 time.Time, t2 time.Time) bool {
+	return t1.Before(t2)
+}
+
+func isClaimLinkValid(cl time.Time, offerExpiresAt *time.Time) bool {
+	if offerExpiresAt != nil && isAfter(cl, *offerExpiresAt) {
+		return false
+	}
+	if isBefore(cl, time.Now().UTC()) {
+		return false
+	}
+
+	return true
 }

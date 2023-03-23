@@ -2,19 +2,18 @@ package tests
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSaveLink(t *testing.T) {
@@ -39,7 +38,7 @@ func TestSaveLink(t *testing.T) {
 	linkID, err := linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
-	linkFetched, err := linkStore.GetByID(ctx, linkID)
+	linkFetched, err := linkStore.GetByID(ctx, *linkID)
 	assert.NoError(t, err)
 	assert.Equal(t, linkToSave.Active, linkFetched.Active)
 	assert.Equal(t, linkToSave.MaxIssuance, linkFetched.MaxIssuance)
@@ -66,7 +65,7 @@ func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaR
 	s := &domain.Schema{
 		ID:         uuid.New(),
 		IssuerDID:  did,
-		URL:        fmt.Sprintf("url is not important in this test but need to be unique"),
+		URL:        "url is not important in this test but need to be unique",
 		Type:       data.typ,
 		Attributes: data.attributes,
 		CreatedAt:  time.Now(),

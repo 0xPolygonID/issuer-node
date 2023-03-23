@@ -2,20 +2,24 @@ package domain
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"strings"
-	"time"
 )
 
+// CredentialAttributes - credential's attributes
 type CredentialAttributes struct {
-	Name  string
-	Value string
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
+// LinkCoreDID - represents a credential offer ID
 type LinkCoreDID core.DID
 
+// Link - represents a credential offer
 type Link struct {
 	ID                       uuid.UUID
 	IssuerDID                LinkCoreDID
@@ -30,6 +34,7 @@ type Link struct {
 	Active                   bool
 }
 
+// NewLink - Constructor
 func NewLink(IssuerDID core.DID, maxIssuance *int32, validUntil *time.Time, schemaID uuid.UUID, CredentialSignatureProof bool, CredentialMTPProof bool, credentialAttributes []CredentialAttributes) *Link {
 	return &Link{
 		IssuerDID:                LinkCoreDID(IssuerDID),
@@ -43,38 +48,12 @@ func NewLink(IssuerDID core.DID, maxIssuance *int32, validUntil *time.Time, sche
 	}
 }
 
+// IssuerCoreDID - return the Core DID value
 func (l *Link) IssuerCoreDID() *core.DID {
 	return common.ToPointer(core.DID(l.IssuerDID))
 }
 
-func (l *Link) CredentialAttributesString() string {
-	if len(l.CredentialAttributes) == 0 {
-		return ""
-	}
-
-	credentialAttributesAsString := ""
-	for i, v := range l.CredentialAttributes {
-		credentialAttributesAsString += v.Name + ":" + v.Value
-		if i != len(l.CredentialAttributes)-1 {
-			credentialAttributesAsString += " "
-		}
-	}
-
-	return credentialAttributesAsString
-}
-
-func (l *Link) StrToCredentialAttributes(schemaAttributess string) {
-	l.CredentialAttributes = []CredentialAttributes{}
-	attributes := strings.Split(schemaAttributess, " ")
-	for _, attrElem := range attributes {
-		attr := strings.Split(attrElem, ":")
-		l.CredentialAttributes = append(l.CredentialAttributes, CredentialAttributes{
-			Name:  attr[0],
-			Value: attr[1],
-		})
-	}
-}
-
+// Scan - scan the value for LinkCoreDID
 func (l *LinkCoreDID) Scan(value interface{}) error {
 	didStr, ok := value.(string)
 	if !ok {

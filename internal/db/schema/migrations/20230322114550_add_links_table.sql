@@ -11,9 +11,10 @@ CREATE TABLE links
     credential_expiration           timestamptz NULL,
     credential_signature_proof      bool NULL DEFAULT false,
     credential_mtp_proof            bool NULL DEFAULT false,
-    credential_attributes           text NOT NULL,
+    credential_attributes           jsonb NOT NULL,
     active                          bool NULL DEFAULT true,
-    CONSTRAINT links_schemas_id_key foreign key (schema_id) references schemas (id)
+    CONSTRAINT links_schemas_id_key foreign key (schema_id) references schemas (id),
+    CONSTRAINT links_indetities_id_key foreign key (issuer_id) references identities (identifier)
 );
 -- +goose StatementEnd
 
