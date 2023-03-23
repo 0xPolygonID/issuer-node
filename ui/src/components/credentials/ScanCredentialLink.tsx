@@ -45,7 +45,7 @@ export function ScanCredentialLink() {
       if (credentialID) {
         setShareCredentialQRCode({ status: "loading" });
 
-        const response = await credentialsQRCreate({ env, id: credentialID, signal });
+        const response = await credentialsQRCreate({ id: credentialID, signal });
 
         if (response.isSuccessful) {
           setShareCredentialQRCode({ data: response.data, status: "successful" });
@@ -56,7 +56,7 @@ export function ScanCredentialLink() {
         }
       }
     },
-    [credentialID, env]
+    [credentialID]
   );
 
   useEffect(() => {
@@ -70,7 +70,6 @@ export function ScanCredentialLink() {
       if (isAsyncTaskDataAvailable(shareCredentialQRCode) && credentialID) {
         const response = await credentialsQRCheck({
           credentialID,
-          env,
           sessionID: shareCredentialQRCode.data.sessionID,
         });
 
