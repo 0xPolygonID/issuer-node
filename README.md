@@ -131,8 +131,9 @@ Completing either option of the [installation](#installation) process yields the
     - `VITE_ISSUER_DID -> ISSUER_API_UI_ISSUER_DID`
     - `VITE_ISSUER_NAME -> ISSUER_API_UI_ISSUER_NAME`
     - `VITE_ISSUER_LOGO -> ISSUER_API_UI_ISSUER_LOGO`
-5. Run `npm start`
-6. The app will be running on <http://localhost:5173>.
+5. Run `npm install`
+6. Run `npm start`
+7. The app will be running on <http://localhost:5173>.
 
 ## Testing
 
