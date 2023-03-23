@@ -114,7 +114,7 @@ ServerUrl="https://unique-forwading-address.eu.ngrok.io"
 
 ### RPC Provider
 
-Using one of the following RPC providers get appropriate address to paste in the `config.toml` file.
+Using one of the following RPC providers get the appropriate address to paste into the `config.toml` file.
 
 **RPC Providers:**
 
@@ -288,9 +288,9 @@ curl --location --request GET 'http://localhost:3001/v1/identities' \
 
 ### Creating Claim/Credentials
 
-We're going to create a KYCAgeCredential claim base off the following (KYC Age Credential Schema)[https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json]
+We're going to create a KYCAgeCredent0ial claim based off the following [KYC Age Credential Schema](https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json
 
-But before we can create a claim, we need to know the identity of the service/person we are generating this for. We can get the id from the Polygon ID and copy it to our clipboard.
+But before we can create a claim, we need to know the identifier of the service/person we are generating this for. We can get the id from the Polygon ID and copy it to our clipboard.
 
 !["ID Within Polygon ID App"](/docs/polygonid-app-id.png)
 
@@ -340,7 +340,7 @@ Take this JSON data, copy, and paste into [https://qr.io](https://qr.io).
 
 !["QR.io"](/docs/qrio.png)
 
-With your phone that has the Polygon ID app installed on it, open it up and scan the QR code.
+With your phone, that has the Polygon ID app installed on it, open it up and scan the QR code.
 
 !["Polygon ID App Adding Claim/Credential"](/docs/polygonid-app-claim.png)
 
