@@ -749,6 +749,7 @@ components:
           x-omitempty: false
         expirationDate:
           type: string
+          format: date
           example: "2022/12/20"
         claimLinkExpiration:
           type: string

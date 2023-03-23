@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"os"
@@ -330,25 +331,11 @@ func (s *Server) RevokeConnectionCredentials(ctx context.Context, request Revoke
 
 // CreateLink - creates a link for issuing a credential
 func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
-	var expiresAt *time.Time
-	if request.Body.ExpirationDate != nil {
-		layout := "2006/01/02"
-		t, err := time.Parse(layout, *request.Body.ExpirationDate)
-		expiresAt = &t
-		if err != nil {
-			return CreateLink400JSONResponse{N400JSONResponse{Message: "wrong expirationDate attribute format"}}, nil
-		}
-		if isBeforeTomorrow(t) {
-			return CreateLink400JSONResponse{N400JSONResponse{Message: "expirationDate cannot be a date before tomorrow"}}, nil
-		}
-	}
-
 	if request.Body.ClaimLinkExpiration != nil {
-		if !isClaimLinkValid(*request.Body.ClaimLinkExpiration, expiresAt) {
-			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time or after the expiration date"}}, nil
+		if isBeforeTomorrow(*request.Body.ClaimLinkExpiration) {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
-
 	if len(request.Body.AttributeValues) == 0 {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
 	}
@@ -361,21 +348,26 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		})
 	}
 
-	var lc *int32
+	var lc *int
 	if request.Body.LimitedClaims != nil {
 		if *request.Body.LimitedClaims <= 0 {
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "limitedClaims must be higher than 0"}}, nil
 		}
-		lc = common.ToPointer(int32(*request.Body.LimitedClaims))
+		lc = common.ToPointer(int(*request.Body.LimitedClaims))
+	}
+
+	var expirationDate *time.Time
+	if request.Body.ExpirationDate != nil {
+		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
 	}
 
 	// Todo improve validations errors
-	link := domain.NewLink(s.cfg.APIUI.IssuerDID, lc, request.Body.ClaimLinkExpiration, request.Body.SchemaID, request.Body.SignatureProof, request.Body.MtProof, attrs)
-	id, err := s.linkService.Save(ctx, *link)
+	createdLink, err := s.linkService.Save(ctx, uuid.New(), s.cfg.APIUI.IssuerDID, lc, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
 	if err != nil {
+		log.Error(ctx, "error saving the link", err.Error())
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
-	return CreateLink201JSONResponse{Id: id.String()}, nil
+	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {

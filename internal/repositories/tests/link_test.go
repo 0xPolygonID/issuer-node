@@ -32,7 +32,8 @@ func TestSaveLink(t *testing.T) {
 	require.NoError(t, did.SetString(didStr))
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer[int32](10), &validUntil, schemaID, true, false,
+	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
+	linkToSave := domain.NewLink(uuid.New(), did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false,
 		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
 
 	linkID, err := linkStore.Save(ctx, linkToSave)

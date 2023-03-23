@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE links
 (
-    id                              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id                              UUID PRIMARY KEY NOT NULL,
     issuer_id                       text NOT NULL,
     created_at                      timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
     max_issuance                    numeric NULL,

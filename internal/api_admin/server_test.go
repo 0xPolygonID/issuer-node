@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/deepmap/oapi-codegen/pkg/types"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1930,8 +1931,10 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Happy path",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID:            importedSchema.ID,
-				ExpirationDate:      common.ToPointer("2025/12/20"),
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
 				AttributeValues:     []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
@@ -1944,45 +1947,68 @@ func TestServer_CreateLink(t *testing.T) {
 			},
 		},
 		{
-			name: "Expiration date before tomorrow",
+			name: "Claim link expiration invalid",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID:            importedSchema.ID,
-				ExpirationDate:      common.ToPointer("2019/12/20"),
-				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
 				AttributeValues:     []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "expirationDate cannot be a date before tomorrow"}},
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
 		{
-			name: "Claim link expiration invalid",
+			name: "Claim link expiration nil",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID:            importedSchema.ID,
-				ExpirationDate:      common.ToPointer("2025/12/20"),
-				ClaimLinkExpiration: common.ToPointer(time.Date(2026, 8, 15, 14, 30, 45, 100, time.Local)),
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: nil,
 				LimitedClaims:       common.ToPointer(10),
 				AttributeValues:     []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time or after the expiration date"}},
-				httpCode: http.StatusBadRequest,
+				response: CreateCredential201JSONResponse{},
+				httpCode: http.StatusCreated,
+			},
+		},
+		{
+			name: "Claim expiration date nil",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID:            importedSchema.ID,
+				ExpirationDate:      nil,
+				ClaimLinkExpiration: nil,
+				LimitedClaims:       common.ToPointer(10),
+				AttributeValues:     []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				MtProof:             true,
+				SignatureProof:      true,
+			},
+			expected: expected{
+				response: CreateCredential201JSONResponse{},
+				httpCode: http.StatusCreated,
 			},
 		},
 		{
 			name: "Claim link wrong number of attributes",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID:            importedSchema.ID,
-				ExpirationDate:      common.ToPointer("2025/12/20"),
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
 				AttributeValues:     []LinkRequestAttributesType{},
@@ -1998,8 +2024,10 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Claim link wrong schema id",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID:            uuid.New(),
-				ExpirationDate:      common.ToPointer("2025/12/20"),
+				SchemaID: uuid.New(),
+				ExpirationDate: &types.Date{
+					time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
 				AttributeValues:     []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
