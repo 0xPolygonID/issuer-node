@@ -7,6 +7,7 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -70,7 +71,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	expiration := int64(12345)
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition))
+	_, err = claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	assert.NoError(t, err)
 
 	type testConfig struct {

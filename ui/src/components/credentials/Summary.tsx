@@ -13,6 +13,7 @@ import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
+import { useEnvContext } from "src/contexts/env";
 import { ROUTES } from "src/routes";
 import { downloadFile } from "src/utils/browser";
 import {
@@ -31,6 +32,7 @@ export function Summary({
   credential: Credential;
   schema: Schema;
 }) {
+  const env = useEnvContext();
   const navigate = useNavigate();
 
   const credentialLinkURL = `${window.location.origin}${generatePath(ROUTES.credentialLink.path, {
@@ -58,10 +60,11 @@ export function Summary({
   };
 
   const onDownloadQRCode = () => {
-    void credentialsQRCreate({ id: credential.id }).then((qrData) => {
+    void credentialsQRCreate({ env, id: credential.id }).then((qrData) => {
       if (qrData.isSuccessful) {
         void credentialsQRDownload({
           credentialID: credential.id,
+          env,
           sessionID: qrData.data.sessionID,
         }).then((qrBlobData) => {
           if (qrBlobData.isSuccessful) {
@@ -116,12 +119,14 @@ export function Summary({
                   ellipsis={{ tooltip: true }}
                   style={{ maxWidth: CARD_ELLIPSIS_MAXIMUM_WIDTH }}
                 >
-                  {schema.schema}
+                  {schema.type}
                 </Typography.Text>
               </Row>
 
               {credential.attributeValues.map((attribute, index) => {
-                const formattedValue = formatAttributeValue(attribute, schema.attributes);
+                //TODO Credentials epic
+                // const formattedValue = formatAttributeValue(attribute, schema.attributes);
+                const formattedValue = formatAttributeValue(attribute, []);
 
                 return (
                   <Row justify="space-between" key={attribute.attributeKey}>
@@ -181,7 +186,7 @@ export function Summary({
                   copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
                   ellipsis
                 >
-                  {schema.schemaHash}
+                  {schema.hash}
                 </Typography.Text>
               </Row>
             </Space>

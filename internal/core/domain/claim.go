@@ -40,6 +40,8 @@ type Claim struct {
 	Status           *IdentityStatus `json:"status"`
 	CredentialStatus pgtype.JSONB    `json:"credential_status"`
 	HIndex           string          `json:"-"`
+
+	MtProof bool `json:"mt_poof"`
 }
 
 // FromClaimer TODO add description

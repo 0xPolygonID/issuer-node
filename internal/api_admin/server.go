@@ -183,6 +183,17 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 	return GetConnection200JSONResponse(connectionResponse(conn, w3credentials, credentials)), nil
 }
 
+// GetConnections returns the list of credentials of a determined issuer
+func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
+	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
+	if err != nil {
+		log.Error(ctx, "get connection request", err)
+		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
+	}
+
+	return GetConnections200JSONResponse(connectionsResponse(conns)), nil
+}
+
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
 	err := s.connectionsService.Delete(ctx, request.Id, s.cfg.APIUI.IssuerDID)
@@ -232,6 +243,75 @@ func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResp
 	return nil, nil
 }
 
+// CreateCredential - creates a new credential
+func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
+	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
+	}
+
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof)
+	resp, err := s.claimService.CreateClaim(ctx, req)
+	if err != nil {
+		if errors.Is(err, services.ErrJSONLdContext) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
+}
+
+// RevokeCredential - revokes a credential per a given nonce
+func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error) {
+	if err := s.claimService.Revoke(ctx, s.cfg.APIUI.IssuerDID, uint64(request.Nonce), ""); err != nil {
+		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
+			return RevokeCredential404JSONResponse{N404JSONResponse{
+				Message: "the claim does not exist",
+			}}, nil
+		}
+		log.Error(ctx, "revoke credential", "err", err, "req", request)
+		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RevokeCredential202JSONResponse{
+		Message: "claim revocation request sent",
+	}, nil
+}
+
+// PublishState - pubish the state onchange
+func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
+	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		return PublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return PublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
+}
+
+// RevokeConnectionCredentials revoke all the non revoked credentials of the given connection
+func (s *Server) RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error) {
+	err := s.claimService.RevokeAllFromConnection(ctx, request.Id, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "revoke connection credentials", "err", err, "req", request)
+		return RevokeConnectionCredentials500JSONResponse{N500JSONResponse{"There was an error revoking the credentials of the given connection"}}, nil
+	}
+
+	return RevokeConnectionCredentials202JSONResponse{Message: "Credentials revocation request sent"}, nil
+}
+
 // RegisterStatic add method to the mux that are not documented in the API.
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)
@@ -255,42 +335,4 @@ func writeFile(path string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
-}
-
-// CreateCredential - creates a new credential
-func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil)
-	resp, err := s.claimService.CreateClaim(ctx, req)
-	if err != nil {
-		if errors.Is(err, services.ErrJSONLdContext) {
-			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		}
-		if errors.Is(err, services.ErrProcessSchema) {
-			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		}
-		if errors.Is(err, services.ErrLoadingSchema) {
-			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
-		}
-		if errors.Is(err, services.ErrMalformedURL) {
-			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		}
-		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
-}
-
-// RevokeCredential - revokes a credential per a given nonce
-func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error) {
-	if err := s.claimService.Revoke(ctx, s.cfg.APIUI.IssuerDID.String(), uint64(request.Nonce), ""); err != nil {
-		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return RevokeCredential404JSONResponse{N404JSONResponse{
-				Message: "the claim does not exist",
-			}}, nil
-		}
-
-		return RevokeCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	return RevokeCredential202JSONResponse{
-		Message: "claim revocation request sent",
-	}, nil
 }

@@ -13,4 +13,5 @@ import (
 type ConnectionsService interface {
 	Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error
 	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
+	GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query *string) ([]*domain.Connection, error)
 }

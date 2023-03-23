@@ -17,6 +17,7 @@ infrastructure/local/.vault/policies
 infrastructure/local/.vault/file
 
 .fleet
+.vscode/
 
 # Test binary, built with `go test -c`
 *.test

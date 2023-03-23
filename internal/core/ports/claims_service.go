@@ -12,6 +12,7 @@ import (
 	comm "github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/protocol"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
@@ -25,6 +26,8 @@ type CreateClaimRequest struct {
 	Version               uint32
 	SubjectPos            string
 	MerklizedRootPosition string
+	SignatureProof        bool
+	MTProof               bool
 }
 
 // AgentRequest struct
@@ -83,12 +86,22 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, 
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string) *CreateClaimRequest {
+func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool) *CreateClaimRequest {
+	if sigProof == nil {
+		sigProof = common.ToPointer(false)
+	}
+
+	if mtProof == nil {
+		mtProof = common.ToPointer(false)
+	}
+
 	req := &CreateClaimRequest{
 		DID:               did,
 		Schema:            credentialSchema,
 		CredentialSubject: credentialSubject,
 		Type:              typ,
+		SignatureProof:    *sigProof,
+		MTProof:           *mtProof,
 	}
 	if expiration != nil {
 		t := time.Unix(*expiration, 0)
@@ -157,7 +170,8 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
-	Revoke(ctx context.Context, id string, nonce uint64, description string) error
+	Revoke(ctx context.Context, id core.DID, nonce uint64, description string) error
+	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID core.DID) error
 	GetAll(ctx context.Context, did *core.DID, filter *Filter) ([]*domain.Claim, error)
 	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)

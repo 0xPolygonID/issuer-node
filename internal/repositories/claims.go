@@ -69,8 +69,9 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
           			credential_status,
 					revoked,
                     core_claim,
-                    index_hash)
-		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+                    index_hash,
+					mtp)
+		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
 		RETURNING id`
 
 		err = conn.QueryRow(ctx, s,
@@ -91,7 +92,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.CredentialStatus,
 			claim.Revoked,
 			claim.CoreClaim,
-			claim.HIndex).Scan(&id)
+			claim.HIndex,
+			claim.MtProof).Scan(&id)
 	} else {
 		s := `INSERT INTO claims (
 					id,
@@ -112,18 +114,19 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     credential_status,
                     revoked,
                     core_claim,
-                    index_hash
+                    index_hash,
+					mtp
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		)
 		ON CONFLICT ON CONSTRAINT claims_pkey 
 		DO UPDATE SET 
 			( expiration, updatable, version, rev_nonce, signature_proof, mtp_proof, data, identity_state, 
-			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim)
+			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp)
 			= (EXCLUDED.expiration, EXCLUDED.updatable, EXCLUDED.version, EXCLUDED.rev_nonce, EXCLUDED.signature_proof,
 		EXCLUDED.mtp_proof, EXCLUDED.data, EXCLUDED.identity_state, EXCLUDED.other_identifier, EXCLUDED.schema_hash, 
-		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim)
+		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp)
 			RETURNING id`
 		err = conn.QueryRow(ctx, s,
 			claim.ID,
@@ -144,7 +147,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.CredentialStatus,
 			claim.Revoked,
 			claim.CoreClaim,
-			claim.HIndex).Scan(&id)
+			claim.HIndex,
+			claim.MtProof).Scan(&id)
 	}
 
 	if err == nil {
@@ -330,7 +334,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
        				claims.identifier,
         			identity_state,
        				credential_status,
-       				core_claim
+       				core_claim,
+					mtp
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -349,7 +354,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 		&claim.Identifier,
 		&claim.IdentityState,
 		&claim.CredentialStatus,
-		&claim.CoreClaim)
+		&claim.CoreClaim,
+		&claim.MtProof)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -392,6 +398,42 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, identifi
 
 		return nil, err
 	}
+	defer rows.Close()
+
+	return processClaims(rows)
+}
+
+func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID core.DID) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+				   issuer,
+				   schema_hash,
+				   schema_url,
+				   schema_type,
+				   other_identifier,
+				   expiration,
+				   updatable,
+				   claims.version,
+				   rev_nonce,
+				   signature_proof,
+				   mtp_proof,
+				   data,
+				   claims.identifier,
+				   identity_state,
+				   identity_states.status,
+				   credential_status,
+				   core_claim
+			FROM claims
+			JOIN connections ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
+			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+			WHERE connections.id = $1 AND claims.issuer = $2 AND  claims.revoked = false
+			`
+
+	rows, err := conn.Query(ctx, query, connID.String(), issuerID.String())
+
+	if err != nil && err != pgx.ErrNoRows {
+		return nil, err
+	}
+
 	defer rows.Close()
 
 	return processClaims(rows)
@@ -448,6 +490,95 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.D
 		FROM claims
 		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
 		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer
+		`, did.String(), state.Hex())
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaURL,
+			&claim.SchemaType,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.SignatureProof,
+			&claim.MTPProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.Status,
+			&claim.CredentialStatus,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, claim)
+	}
+
+	return claims, err
+}
+
+func (c *claims) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+	claims = make([]domain.Claim, 0)
+	var rows pgx.Rows
+	if state == nil {
+		rows, err = conn.Query(ctx,
+			`
+		SELECT id,
+			issuer,
+			schema_hash,
+			schema_url,
+			schema_type,
+			other_identifier,
+			expiration,
+			updatable,
+			version,
+			rev_nonce,
+			signature_proof,
+			mtp_proof,
+			data,
+			identifier,
+			identity_state,
+			NULL AS status,
+			credential_status,
+			core_claim 
+		FROM claims
+		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer AND mtp = true
+		`, did.String())
+	} else {
+		rows, err = conn.Query(ctx, `
+		SELECT
+			id,
+			issuer,
+			schema_hash,
+			schema_url,
+			schema_type,
+			other_identifier,
+			expiration,
+			updatable,
+			version,
+			rev_nonce,
+			signature_proof,
+			mtp_proof,
+			data,
+			claims.identifier,
+			identity_state,
+			status,
+			credential_status,
+			core_claim 
+		FROM claims
+		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
+		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer AND mtp = true
 		`, did.String(), state.Hex())
 	}
 

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Credential, credentialIssue } from "src/adapters/api/credentials";
-import { Schema, schemasGetSingle } from "src/adapters/api/schemas";
+import { Schema, getSchema } from "src/adapters/api/schemas";
 import { issueCredentialFormData } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
 import {
@@ -16,6 +16,7 @@ import { Summary } from "src/components/credentials/Summary";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
+import { useEnvContext } from "src/contexts/env";
 import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
@@ -36,6 +37,7 @@ const defaultFormData: FormData = {
 };
 
 export function IssueCredential() {
+  const env = useEnvContext();
   const [credential, setCredential] = useState<AsyncTask<Credential, undefined>>({
     status: "pending",
   });
@@ -48,12 +50,13 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const getSchema = useCallback(
+  const fetchSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
         setSchema({ status: "loading" });
 
-        const response = await schemasGetSingle({
+        const response = await getSchema({
+          env,
           schemaID,
           signal,
         });
@@ -67,16 +70,17 @@ export function IssueCredential() {
         }
       }
     },
-    [schemaID]
+    [env, schemaID]
   );
 
-  const issueCredential = (formData: FormData, schema: Schema) => {
+  const issueCredential = (formData: FormData) => {
     if (schemaID) {
-      const parsedForm = issueCredentialFormData(schema.attributes).safeParse(formData);
+      const parsedForm = issueCredentialFormData([]).safeParse(formData);
 
       if (parsedForm.success) {
         setCredential({ status: "loading" });
         void credentialIssue({
+          env,
           payload: serializeCredentialForm(parsedForm.data),
           schemaID,
         }).then((response) => {
@@ -100,13 +104,13 @@ export function IssueCredential() {
     setFormData(defaultFormData);
 
     if (schemaID) {
-      const { aborter } = makeRequestAbortable(getSchema);
+      const { aborter } = makeRequestAbortable(fetchSchema);
       return aborter;
     } else {
       setSchema({ status: "pending" });
     }
     return;
-  }, [getSchema, schemaID]);
+  }, [fetchSchema, schemaID]);
 
   return (
     <SiderLayoutContent
@@ -181,7 +185,7 @@ export function IssueCredential() {
                         const newFormData = { ...formData, issuanceMethod: values };
 
                         setFormData(newFormData);
-                        issueCredential(newFormData, schema.data);
+                        issueCredential(newFormData);
                       }}
                     />
                   )

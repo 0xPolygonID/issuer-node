@@ -23,6 +23,7 @@ const JSON_VIEW_LABELS: Record<JsonView, string> = {
 export function ImportSchemaPreview({
   jsonLdType,
   onBack,
+  onImport,
   rawJsonLdContext,
   rawJsonSchema,
   schema,
@@ -30,6 +31,7 @@ export function ImportSchemaPreview({
 }: {
   jsonLdType: JsonLdType;
   onBack: () => void;
+  onImport: () => void;
   rawJsonLdContext: Json;
   rawJsonSchema: Json;
   schema: Schema;
@@ -186,7 +188,7 @@ export function ImportSchemaPreview({
               Previous step
             </Button>
 
-            <Button onClick={() => void message.warning("Not yet implemented!")} type="primary">
+            <Button onClick={onImport} type="primary">
               Import
             </Button>
           </Space>
