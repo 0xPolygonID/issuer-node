@@ -100,7 +100,7 @@ export function SchemaDetails() {
       });
   }, []);
 
-  const onGetApiSchema = useCallback(
+  const fetchApiSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
         setApiSchema({ status: "loading" });
@@ -126,11 +126,11 @@ export function SchemaDetails() {
 
   useEffect(() => {
     if (schemaID) {
-      const { aborter } = makeRequestAbortable(onGetApiSchema);
+      const { aborter } = makeRequestAbortable(fetchApiSchema);
       return aborter;
     }
     return;
-  }, [onGetApiSchema, schemaID]);
+  }, [fetchApiSchema, schemaID]);
 
   const jsonLdTypeErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
