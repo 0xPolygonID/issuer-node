@@ -135,33 +135,25 @@ export function SchemaDetails() {
   const jsonLdTypeErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
-          "An error occurred while trying to parse the JSON LD Type referenced in this schema:",
+          "An error occurred while parsing the context referenced in the schema:",
           ...processZodError(error).map((e) => `"${e}"`),
-          "Please provide a schema with a valid JSON LD Type.",
+          "Please provide a schema with a valid context.",
         ].join("\n")
-      : `An error occurred while downloading the JSON LD Type referenced in this schema:\n"${error}"\nPlease try again.`;
+      : `An error occurred while downloading the context referenced in the schema:\n"${error}"\nPlease try again.`;
 
   const schemaErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
-          "An error occurred while trying to parse this schema:",
+          "An error occurred while parsing the schema from the URL:",
           ...processZodError(error).map((e) => `"${e}"`),
-          "Please provide a valid JSON Schema.",
+          "Please provide a valid schema.",
         ].join("\n")
-      : `An error occurred while downloading this schema:\n"${error}"\nPlease try again.`;
+      : `An error occurred while downloading the schema from the URL:\n"${error}"\nPlease try again.`;
 
   const loading =
     isAsyncTaskStarting(apiSchema) ||
     isAsyncTaskStarting(schema) ||
     isAsyncTaskStarting(jsonLdType);
-
-  const errorMsg = hasAsyncTaskFailed(apiSchema)
-    ? apiSchema.error.message
-    : hasAsyncTaskFailed(schema)
-    ? schemaErrorToString(schema.error)
-    : hasAsyncTaskFailed(jsonLdType)
-    ? jsonLdTypeErrorToString(jsonLdType.error)
-    : undefined;
 
   return (
     <SiderLayoutContent
@@ -171,17 +163,28 @@ export function SchemaDetails() {
       title="Schema details"
     >
       {(() => {
-        if (
-          hasAsyncTaskFailed(apiSchema) ||
-          hasAsyncTaskFailed(schema) ||
-          hasAsyncTaskFailed(jsonLdType)
-        ) {
+        if (hasAsyncTaskFailed(apiSchema)) {
           return (
-            errorMsg && (
-              <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
-                <ErrorResult error={errorMsg} />
-              </Card>
-            )
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <ErrorResult
+                error={[
+                  "An error occurred while downloading or parsing the schema from the API:",
+                  apiSchema.error.message,
+                ].join("\n")}
+              />
+            </Card>
+          );
+        } else if (hasAsyncTaskFailed(schema)) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <ErrorResult error={schemaErrorToString(schema.error)} />
+            </Card>
+          );
+        } else if (hasAsyncTaskFailed(jsonLdType)) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <ErrorResult error={jsonLdTypeErrorToString(jsonLdType.error)} />
+            </Card>
           );
         } else if (loading) {
           return (
