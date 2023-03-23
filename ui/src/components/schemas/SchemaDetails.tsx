@@ -26,7 +26,7 @@ import {
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CARD_WIDTH } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, isAsyncTaskStarting } from "src/utils/types";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
 
@@ -173,9 +173,9 @@ export function SchemaDetails() {
     >
       {(() => {
         if (
-          apiSchema.status === "failed" ||
-          schema.status === "failed" ||
-          jsonLdType.status === "failed"
+          hasAsyncTaskFailed(apiSchema) ||
+          hasAsyncTaskFailed(schema) ||
+          hasAsyncTaskFailed(jsonLdType)
         ) {
           return (
             errorMsg && (
