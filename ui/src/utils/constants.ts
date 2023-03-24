@@ -15,6 +15,8 @@ export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 
+export const API_VERSION = "v1";
+
 export const AUTH_TOKEN_KEY = "authToken";
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
