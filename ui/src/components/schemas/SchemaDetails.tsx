@@ -23,12 +23,7 @@ import {
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CARD_WIDTH } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import {
-  AsyncTask,
-  hasAsyncTaskFailed,
-  isAsyncTaskDataAvailable,
-  isAsyncTaskStarting,
-} from "src/utils/types";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
 export function SchemaDetails() {
   const navigate = useNavigate();
@@ -172,12 +167,7 @@ export function SchemaDetails() {
           result = <ErrorResult error={jsonLdTypeErrorToString(jsonLdType.error)} />;
         } else if (loading) {
           result = <LoadingResult />;
-        } else if (
-          isAsyncTaskDataAvailable(jsonLdType) &&
-          isAsyncTaskDataAvailable(schema) &&
-          rawJsonLdContext &&
-          rawJsonSchema
-        ) {
+        } else if (rawJsonLdContext && rawJsonSchema) {
           return (
             <SchemaViewer
               actions={
