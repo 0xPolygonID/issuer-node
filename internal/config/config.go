@@ -309,6 +309,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
+	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
 
 	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
 	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")
