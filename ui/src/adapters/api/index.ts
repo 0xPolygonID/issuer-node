@@ -62,7 +62,7 @@ export function buildAPIError(error: unknown): APIError {
 
   if (axios.isAxiosError(error)) {
     try {
-      // This is a Polygon ID API error.
+      // This is a UI API error.
       const { data, status } = responseError.parse(error.response);
       const { message } = data;
 
