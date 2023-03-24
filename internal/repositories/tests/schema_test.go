@@ -188,6 +188,13 @@ func TestGetAllFullTextSearch(t *testing.T) {
 				collection: []domain.Schema{},
 			},
 		},
+		{
+			name:  "Something including did:******",
+			query: common.ToPointer("some words and did:polygonid:polygon:mumbai:2qE1BZ"),
+			expected: expected{
+				collection: []domain.Schema{},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			collection, err := store.GetAll(ctx, tc.query)

@@ -255,7 +255,6 @@ func TestServer_GetSchema(t *testing.T) {
 			id:   s.ID.String(),
 			expected: expected{
 				httpCode: http.StatusOK,
-				errorMsg: "schema not found",
 				schema: &Schema{
 					BigInt:    s.Hash.BigInt().String(),
 					CreatedAt: s.CreatedAt,
@@ -331,6 +330,16 @@ func TestServer_GetSchemas(t *testing.T) {
 		s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
 		fixture.CreateSchema(t, ctx, s)
 	}
+	s := &domain.Schema{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		URL:        "https://domain.org/this/is/an/url/ubiprogram",
+		Type:       "UbiProgram",
+		Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
+		CreatedAt:  time.Now(),
+	}
+	s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
+	fixture.CreateSchema(t, ctx, s)
 
 	handler := getHandler(ctx, server)
 	type expected struct {
@@ -357,7 +366,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			query: nil,
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    20,
+				count:    21,
 			},
 		},
 		{
@@ -366,7 +375,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			query: common.ToPointer(""),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    20,
+				count:    21,
 			},
 		},
 		{
@@ -384,7 +393,16 @@ func TestServer_GetSchemas(t *testing.T) {
 			query: common.ToPointer("schemaType-11 attr1"),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    20,
+				count:    21,
+			},
+		},
+		{
+			name:  "Exact search, return 1",
+			auth:  authOk,
+			query: common.ToPointer("UbiProgram"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
 			},
 		},
 	} {
@@ -405,7 +423,7 @@ func TestServer_GetSchemas(t *testing.T) {
 			case http.StatusOK:
 				var response GetSchemas200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, len(response), 20)
+				assert.Equal(t, len(response), tc.expected.count)
 			}
 		})
 	}
@@ -1089,17 +1107,16 @@ func TestServer_GetCredential(t *testing.T) {
 		"documentType": 2,
 	}
 	typeC := "KYCAgeCredential"
-
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim1, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
-	assert.NoError(t, err)
+	createdClaim1, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	require.NoError(t, err)
 
-	createdClaim2, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
-	assert.NoError(t, err)
+	createdClaim2, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	require.NoError(t, err)
 
-	createdClaim3, err := claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
-	assert.NoError(t, err)
+	createdClaim3, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 
 	type expected struct {
@@ -1239,6 +1256,176 @@ func TestServer_GetCredential(t *testing.T) {
 				var response GetCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
+func TestServer_GetCredentials(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
+	merklizedRootPosition := "index"
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	day0 := time.Time{}.Unix()
+	future := time.Now().Add(1000 * time.Hour).Unix()
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	require.NoError(t, err)
+
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	require.NoError(t, err)
+
+	revoked, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	require.NoError(t, err)
+
+	id, err := core.ParseDID(*revoked.Identifier)
+	require.NoError(t, err)
+	require.NoError(t, claimsService.Revoke(ctx, *id, uint64(revoked.RevNonce), "because I can"))
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		count    int
+		httpCode int
+		errorMsg string
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		query    *string
+		rType    *string
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "Not authorized",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:  "Wrong type",
+			auth:  authOk,
+			rType: common.ToPointer("wrong"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "Wrong type value. Allowed values: [all, revoked, expired]",
+			},
+		},
+		{
+			name: "Get all implicit",
+			auth: authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    3,
+			},
+		},
+		{
+			name:  "Get all explicit",
+			auth:  authOk,
+			rType: common.ToPointer("all"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    3,
+			},
+		},
+		{
+			name:  "Revoked",
+			auth:  authOk,
+			rType: common.ToPointer("revoked"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:  "REVOKED",
+			auth:  authOk,
+			rType: common.ToPointer("REVOKED"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:  "Expired",
+			auth:  authOk,
+			rType: common.ToPointer("expired"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:  "Search by did:",
+			auth:  authOk,
+			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    3,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			endpoint := url.URL{Path: "/v1/credentials"}
+			if tc.query != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "query=" + *tc.query
+			}
+			if tc.rType != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "type=" + *tc.rType
+			}
+			req, err := http.NewRequest("GET", endpoint.String(), nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetCredentials200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Len(t, response, tc.expected.count)
+			case http.StatusBadRequest:
+				var response GetCredentials400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
 			}
 		})
 	}

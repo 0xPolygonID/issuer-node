@@ -182,6 +182,45 @@ paths:
 
   #credentials:
   /v1/credentials:
+    get:
+      summary: Get all credentials. Optional filter by status and text query search.
+      operationId: GetCredentials
+      description: Return all the credentials that matches the filter
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [all, revoked, expired]
+          description: >
+             Schema type:
+               * `all` - All schemas. Default value if query parameter is not present
+               * `revoked` - Only revoked schemas
+               * `expired` - Only expired schemas
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Credential'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
     post:
       summary: Create Credential
       operationId: CreateCredential
