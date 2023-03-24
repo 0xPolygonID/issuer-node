@@ -1,9 +1,26 @@
 import { ThemeConfig } from "antd/es/config-provider/context";
 import z from "zod";
 
-import { StyleVariables } from "src/domain";
 import variables from "src/styles/variables.module.scss";
 import { StrictSchema } from "src/utils/types";
+
+interface StyleVariables {
+  avatarBg: string;
+  bgLight: string;
+  borderColor: string;
+  cyanBg: string;
+  cyanColor: string;
+  errorBg: string;
+  errorColor: string;
+  primaryBg: string;
+  primaryColor: string;
+  successColor: string;
+  tagBg: string;
+  tagBgSuccess: string;
+  tagColor: string;
+  textColor: string;
+  textColorSecondary: string;
+}
 
 const parseStyleVariables = StrictSchema<StyleVariables>()(
   z.object({
