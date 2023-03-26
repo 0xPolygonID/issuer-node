@@ -22,7 +22,7 @@ interface StyleVariables {
   textColorSecondary: string;
 }
 
-const parseStyleVariables = StrictSchema<StyleVariables>()(
+const parsedStyleVariables = StrictSchema<StyleVariables>()(
   z.object({
     avatarBg: z.string(),
     bgLight: z.string(),
@@ -40,13 +40,7 @@ const parseStyleVariables = StrictSchema<StyleVariables>()(
     textColor: z.string(),
     textColorSecondary: z.string(),
   })
-);
-
-const parsedStyleVariables = parseStyleVariables.safeParse(variables);
-
-if (!parsedStyleVariables.success) {
-  throw new Error("Invalid style variables");
-}
+).parse(variables);
 
 const {
   avatarBg,
@@ -57,7 +51,7 @@ const {
   tagColor,
   textColor,
   textColorSecondary,
-} = parsedStyleVariables.data;
+} = parsedStyleVariables;
 
 export const theme: ThemeConfig = {
   components: {
