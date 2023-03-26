@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
 import { Env, JsonLdType } from "src/domain";
-import { QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 const buildAuthorizationHeader = (env: Env) =>
@@ -46,7 +46,7 @@ export async function importSchema({
 }): Promise<APIResponse<{ id: string }>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       data: {
         schemaType: jsonLdType.name,
         url: schemaUrl,
@@ -76,7 +76,7 @@ export async function getSchema({
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -110,7 +110,7 @@ export async function getSchemas({
 > {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },

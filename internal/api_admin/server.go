@@ -8,10 +8,12 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/iden3comm"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -165,10 +167,10 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
 	}
 
-	filter := &ports.Filter{
+	filter := &ports.ClaimsFilter{
 		Subject: conn.UserDID.String(),
 	}
-	credentials, err := s.claimService.GetAll(ctx, &s.cfg.APIUI.IssuerDID, filter)
+	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
 		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
@@ -207,6 +209,17 @@ func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionR
 	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
 }
 
+// DeleteConnectionCredentials deletes all the credentials of the given connection
+func (s *Server) DeleteConnectionCredentials(ctx context.Context, request DeleteConnectionCredentialsRequestObject) (DeleteConnectionCredentialsResponseObject, error) {
+	err := s.connectionsService.DeleteCredentials(ctx, request.Id, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "delete connection request", err, "req", request)
+		return DeleteConnectionCredentials500JSONResponse{N500JSONResponse{"There was an error deleting the credentials of the given connection"}}, nil
+	}
+
+	return DeleteConnectionCredentials200JSONResponse{Message: "Credentials of the connection successfully deleted"}, nil
+}
+
 // GetCredential returns a credential
 func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
 	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
@@ -223,6 +236,41 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	}
 
 	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
+}
+
+// GetCredentials returns a collection of credentials that matches the request.
+func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
+	filter := &ports.ClaimsFilter{}
+	if request.Params.Type != nil {
+		switch GetCredentialsParamsType(strings.ToLower(string(*request.Params.Type))) {
+		case Revoked:
+			filter.Revoked = common.ToPointer(true)
+		case Expired:
+			filter.ExpiredOn = common.ToPointer(time.Now())
+		case All:
+			// Nothing to be done
+		default:
+			return GetCredentials400JSONResponse{N400JSONResponse{Message: "Wrong type value. Allowed values: [all, revoked, expired]"}}, nil
+		}
+	}
+	if request.Params.Query != nil {
+		filter.FTSQuery = *request.Params.Query
+	}
+	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	if err != nil {
+		log.Error(ctx, "loading credentials", "err", err, "req", request)
+		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	response := make([]Credential, len(credentials))
+	for i, credential := range credentials {
+		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
+		if err != nil {
+			log.Error(ctx, "creating credentials response", "err", err, "req", request)
+			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+		}
+		response[i] = credentialResponse(w3c, credential)
+	}
+	return GetCredentials200JSONResponse(response), nil
 }
 
 // DeleteCredential deletes a credential

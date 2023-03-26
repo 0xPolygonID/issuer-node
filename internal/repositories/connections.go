@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -62,6 +61,13 @@ func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID,
 	}
 
 	return nil
+}
+
+func (c *connections) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) error {
+	sql := `DELETE FROM claims USING connections WHERE claims.issuer = connections.issuer_id AND claims.other_identifier = connections.user_id AND connections.id = $1 AND connections.issuer_id = $2`
+	_, err := conn.Exec(ctx, sql, id.String(), issuerID.String())
+
+	return err
 }
 
 func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) (*domain.Connection, error) {
@@ -124,17 +130,6 @@ WHERE connections.issuer_id = $1`
 	}
 
 	return domainConns, nil
-}
-
-func getDIDFromQuery(query string) string {
-	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
-	for _, word := range words {
-		if strings.HasPrefix(word, "did:") {
-			return word
-		}
-	}
-
-	return ""
 }
 
 func toConnectionDomain(c *dbConnection) (*domain.Connection, error) {

@@ -42,7 +42,7 @@ func (f *Fixture) GetDefaultAuthClaimOfIssuer(t *testing.T, issuerID string) *do
 	ctx := context.Background()
 	did, err := core.ParseDID(issuerID)
 	assert.NoError(t, err)
-	claims, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, did, &ports.Filter{})
+	claims, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, *did, &ports.ClaimsFilter{})
 	assert.NoError(t, err)
 	require.Equal(t, len(claims), defualtAuthClaims)
 
