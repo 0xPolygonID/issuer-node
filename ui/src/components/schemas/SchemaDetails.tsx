@@ -23,7 +23,12 @@ import {
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CARD_WIDTH } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
+import {
+  AsyncTask,
+  hasAsyncTaskFailed,
+  isAsyncTaskDataAvailable,
+  isAsyncTaskStarting,
+} from "src/utils/types";
 
 export function SchemaDetails() {
   const navigate = useNavigate();
@@ -150,24 +155,15 @@ export function SchemaDetails() {
       title="Schema details"
     >
       {(() => {
-        let result = null;
+        if (
+          isAsyncTaskDataAvailable(apiSchema) &&
+          isAsyncTaskDataAvailable(schema) &&
+          isAsyncTaskDataAvailable(jsonLdType) &&
+          rawJsonLdContext &&
+          rawJsonSchema
+        ) {
+          const { bigInt, createdAt, hash, url } = apiSchema.data;
 
-        if (hasAsyncTaskFailed(apiSchema)) {
-          result = (
-            <ErrorResult
-              error={[
-                "An error occurred while downloading or parsing the schema from the API:",
-                apiSchema.error.message,
-              ].join("\n")}
-            />
-          );
-        } else if (hasAsyncTaskFailed(schema)) {
-          result = <ErrorResult error={schemaErrorToString(schema.error)} />;
-        } else if (hasAsyncTaskFailed(jsonLdType)) {
-          result = <ErrorResult error={jsonLdTypeErrorToString(jsonLdType.error)} />;
-        } else if (loading) {
-          result = <LoadingResult />;
-        } else if (rawJsonLdContext && rawJsonSchema) {
           return (
             <SchemaViewer
               actions={
@@ -187,13 +183,13 @@ export function SchemaDetails() {
                 <Space direction="vertical">
                   <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
-                  <Detail copyable data={apiSchema.data.bigInt} label="BigInt" />
+                  <Detail copyable data={bigInt} label="BigInt" />
 
-                  <Detail copyable data={apiSchema.data.hash} label="Hash" />
+                  <Detail copyable data={hash} label="Hash" />
 
-                  <Detail copyable data={apiSchema.data.url} label="URL" />
+                  <Detail copyable data={url} label="URL" />
 
-                  <Detail data={formatDate(apiSchema.data.createdAt, true)} label="Import date" />
+                  <Detail data={formatDate(createdAt, true)} label="Import date" />
 
                   <Row justify="space-between">
                     <Typography.Text type="secondary">Download</Typography.Text>
@@ -202,14 +198,14 @@ export function SchemaDetails() {
                       onClick={() => {
                         downloadJsonFromUrl({
                           fileName: schema.data.name,
-                          url: apiSchema.data.url,
+                          url: url,
                         })
                           .then(() => {
-                            void message.success("Schema successfully downloaded");
+                            void message.success("Schema downloaded successfully.");
                           })
                           .catch(() => {
                             void message.error(
-                              "An error occurred while downloading the schema. Please try again"
+                              "An error occurred while downloading the schema. Please try again."
                             );
                           });
                       }}
@@ -227,11 +223,32 @@ export function SchemaDetails() {
               schema={schema.data}
             />
           );
-        } else {
-          result = <ErrorResult error="Unknown error" />;
         }
 
-        return <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>{result}</Card>;
+        return (
+          <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+            {(() => {
+              if (hasAsyncTaskFailed(apiSchema)) {
+                return (
+                  <ErrorResult
+                    error={[
+                      "An error occurred while downloading or parsing the schema from the API:",
+                      apiSchema.error.message,
+                    ].join("\n")}
+                  />
+                );
+              } else if (hasAsyncTaskFailed(schema)) {
+                return <ErrorResult error={schemaErrorToString(schema.error)} />;
+              } else if (hasAsyncTaskFailed(jsonLdType)) {
+                return <ErrorResult error={jsonLdTypeErrorToString(jsonLdType.error)} />;
+              } else if (loading) {
+                return <LoadingResult />;
+              }
+
+              return <ErrorResult error="Unknown error" />;
+            })()}
+          </Card>
+        );
       })()}
     </SiderLayoutContent>
   );
