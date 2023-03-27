@@ -16,8 +16,8 @@ import { ROUTES } from "src/routes";
 import {
   APIError,
   downloadJsonFromUrl,
-  getJsonLdTypesFromUrl,
   getSchemaFromUrl,
+  getSchemaJsonLdTypes,
   processZodError,
 } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -54,7 +54,7 @@ export function SchemaDetails() {
       .then(([schema, rawJsonSchema]) => {
         setSchemaTuple({ data: [schema, rawJsonSchema], status: "successful" });
         setContextTuple({ status: "loading" });
-        getJsonLdTypesFromUrl({
+        getSchemaJsonLdTypes({
           schema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {

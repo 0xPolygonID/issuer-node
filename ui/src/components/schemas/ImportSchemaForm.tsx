@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, Schema } from "src/domain";
-import { getJsonLdTypesFromUrl, getSchemaFromUrl, processZodError } from "src/utils/adapters";
+import { getSchemaFromUrl, getSchemaJsonLdTypes, processZodError } from "src/utils/adapters";
 import { CARD_WIDTH } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
@@ -67,7 +67,7 @@ export function ImportSchemaForm({
         setSchema({ data: schema, status: "successful" });
         setRawJsonSchema(rawSchema);
         setJsonLdTypes({ status: "loading" });
-        getJsonLdTypesFromUrl({
+        getSchemaJsonLdTypes({
           schema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {

@@ -181,7 +181,7 @@ export function getSchemaFromUrl({ url }: { url: string }): Promise<[Schema, Jso
   }).then((json) => [schemaParser.parse(json), json]);
 }
 
-export function getJsonLdTypesFromUrl({
+export function getSchemaJsonLdTypes({
   schema,
 }: {
   schema: Schema;
