@@ -402,6 +402,20 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
 }
 
+// AcivateLink - Activates or deactivates a link
+func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error) {
+	err := s.linkService.Activate(ctx, request.Id, request.Body.Active)
+	if err != nil {
+		log.Error(ctx, "error activating or deactivating link", err.Error())
+		if errors.Is(err, services.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
+			return AcivateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		} else {
+			return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+		}
+	}
+	return AcivateLink200JSONResponse{Message: "Link updated"}, nil
+}
+
 func isBeforeTomorrow(t time.Time) bool {
 	today := time.Now().UTC()
 	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
