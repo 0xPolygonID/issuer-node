@@ -35,9 +35,9 @@ type Link struct {
 }
 
 // NewLink - Constructor
-func NewLink(id uuid.UUID, issuerDID core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, CredentialSignatureProof bool, CredentialMTPProof bool, credentialAttributes []CredentialAttributes) *Link {
+func NewLink(issuerDID core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, CredentialSignatureProof bool, CredentialMTPProof bool, credentialAttributes []CredentialAttributes) *Link {
 	return &Link{
-		ID:                       id,
+		ID:                       uuid.New(),
 		IssuerDID:                LinkCoreDID(issuerDID),
 		MaxIssuance:              maxIssuance,
 		ValidUntil:               validUntil,

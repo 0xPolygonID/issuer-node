@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -360,7 +359,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	}
 
 	// Todo improve validations errors
-	createdLink, err := s.linkService.Save(ctx, uuid.New(), s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
 	if err != nil {
 		log.Error(ctx, "error saving the link", err.Error())
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil

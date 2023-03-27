@@ -12,6 +12,6 @@ import (
 
 // LinkService - the interface that defines the available methods
 type LinkService interface {
-	Save(ctx context.Context, ID uuid.UUID, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID,
+	Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID,
 		credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error)
 }
