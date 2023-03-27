@@ -417,6 +417,33 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+
+  # Links
+  /v1/credentials/links:
+    post:
+      summary: Endpoint to create a link
+      operationId: CreateLink
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+      responses:
+        '201':
+          description: Link created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
   #others:
   /:
     get:
@@ -747,7 +774,49 @@ components:
         state: "8d0dfb1b7bc910e347efbba324e604359815c40b56b77e191fdac1eb7f770119"
         txID: "0x45aef0730854606bf9ea3cabba80541fa3dc61833c7a08b6c722d732451fea46"
 
+    CreateLinkRequest:
+      type: object
+      required:
+        - schemaID
+        - signatureProof
+        - mtProof
+        - attributes
+      properties:
+        schemaID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
+        expirationDate:
+          type: string
+          format: date
+          example: "2022/12/20"
+        claimLinkExpiration:
+          type: string
+          format: date-time
+          example: 2022-08-17T12:43:32.720Z
+        limitedClaims:
+          type: integer
+          x-omitempty: false
+        signatureProof:
+          type: boolean
+        mtProof:
+          type: boolean
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkRequestAttributesType'
 
+    LinkRequestAttributesType:
+      allOf:
+        - type: object
+          required: [ "name", "value" ]
+          properties:
+            name:
+              type: string
+              example: birthday
+            value:
+              type: string
+              x-omitempty: false
 
   parameters:
     sessionID:

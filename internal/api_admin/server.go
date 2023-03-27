@@ -15,6 +15,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
@@ -31,19 +32,21 @@ type Server struct {
 	claimService       ports.ClaimsService
 	schemaService      ports.SchemaAdminService
 	connectionsService ports.ConnectionsService
+	linkService        ports.LinkService
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
 		claimService:       claimsService,
 		schemaService:      schemaService,
 		connectionsService: connectionsService,
+		linkService:        linkService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
@@ -358,6 +361,51 @@ func (s *Server) RevokeConnectionCredentials(ctx context.Context, request Revoke
 	}
 
 	return RevokeConnectionCredentials202JSONResponse{Message: "Credentials revocation request sent"}, nil
+}
+
+// CreateLink - creates a link for issuing a credential
+func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
+	if request.Body.ClaimLinkExpiration != nil {
+		if isBeforeTomorrow(*request.Body.ClaimLinkExpiration) {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
+		}
+	}
+	if len(request.Body.Attributes) == 0 {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
+	}
+
+	attrs := make([]domain.CredentialAttributes, 0)
+	for _, at := range request.Body.Attributes {
+		attrs = append(attrs, domain.CredentialAttributes{
+			Name:  at.Name,
+			Value: at.Value,
+		})
+	}
+
+	if request.Body.LimitedClaims != nil {
+		if *request.Body.LimitedClaims <= 0 {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "limitedClaims must be higher than 0"}}, nil
+		}
+	}
+
+	var expirationDate *time.Time
+	if request.Body.ExpirationDate != nil {
+		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
+	}
+
+	// Todo improve validations errors
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
+	if err != nil {
+		log.Error(ctx, "error saving the link", err.Error())
+		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
+}
+
+func isBeforeTomorrow(t time.Time) bool {
+	today := time.Now().UTC()
+	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
+	return t.Before(tomorrow)
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.
