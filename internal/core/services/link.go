@@ -13,8 +13,6 @@ import (
 )
 
 var (
-	// ErrLinkDoesNotExist link does not exist
-	ErrLinkDoesNotExist = errors.New("link does not exist")
 	// ErrLinkAlreadyActive link is already active
 	ErrLinkAlreadyActive = errors.New("link is already active")
 	// ErrLinkAlreadyInactive link is already inactive
@@ -46,7 +44,7 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) error {
 	link, err := ls.linkRepository.GetByID(ctx, linkID)
 	if err != nil {
-		return ErrLinkDoesNotExist
+		return err
 	}
 
 	if link.Active && active {

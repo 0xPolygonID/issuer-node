@@ -407,7 +407,7 @@ func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObje
 	err := s.linkService.Activate(ctx, request.Id, request.Body.Active)
 	if err != nil {
 		log.Error(ctx, "error activating or deactivating link", err.Error())
-		if errors.Is(err, services.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
+		if errors.Is(err, repositories.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
 			return AcivateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		} else {
 			return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
