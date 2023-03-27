@@ -14,7 +14,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-var errorShemaNotFound = errors.New("schema id not found")
+var (
+	errorShemaNotFound = errors.New("schema id not found")
+
+	// ErrLinkDoesNotExist link does not exist
+	ErrLinkDoesNotExist = errors.New("link does not exist")
+)
 
 type link struct {
 	conn db.Storage
@@ -54,9 +59,29 @@ func (l link) GetByID(ctx context.Context, id uuid.UUID) (*domain.Link, error) {
 	err := l.conn.Pgx.QueryRow(ctx, sql, id).
 		Scan(&link.ID, &link.IssuerDID, &link.CreatedAt, &link.MaxIssuance, &link.ValidUntil, &link.SchemaID, &link.CredentialExpiration,
 			&link.CredentialSignatureProof, &link.CredentialMTPProof, &credentialAttributtes, &link.Active)
+	if err != nil {
+		if err.Error() == "no rows in result set" {
+			return nil, ErrLinkDoesNotExist
+		}
+	}
 
 	if err := credentialAttributtes.AssignTo(&link.CredentialAttributes); err != nil {
 		return nil, fmt.Errorf("parsing credential attributes: %w", err)
 	}
 	return &link, err
+}
+
+func (l link) Delete(ctx context.Context, id uuid.UUID) error {
+	sql := `DELETE FROM links 
+       		where id = $1`
+
+	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String())
+	if err != nil {
+		return err
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return ErrLinkDoesNotExist
+	}
+	return nil
 }

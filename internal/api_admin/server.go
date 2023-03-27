@@ -402,6 +402,17 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
 }
 
+// DeleteLink - delete a link
+func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error) {
+	if err := s.linkService.Delete(ctx, request.Id); err != nil {
+		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+			return DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}}, nil
+		}
+		return DeleteLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return DeleteLink200JSONResponse{Message: "link deleted"}, nil
+}
+
 func isBeforeTomorrow(t time.Time) bool {
 	today := time.Now().UTC()
 	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
