@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -131,17 +130,6 @@ WHERE connections.issuer_id = $1`
 	}
 
 	return domainConns, nil
-}
-
-func getDIDFromQuery(query string) string {
-	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
-	for _, word := range words {
-		if strings.HasPrefix(word, "did:") {
-			return word
-		}
-	}
-
-	return ""
 }
 
 func toConnectionDomain(c *dbConnection) (*domain.Connection, error) {

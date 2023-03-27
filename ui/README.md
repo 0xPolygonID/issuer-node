@@ -1,10 +1,11 @@
 # Polygon ID Issuer Node UI
 
-The frontend application entirely dependent on the [Polygon ID Issuer Node](../README.md).
+The frontend application of the [Polygon ID Issuer Node](../README.md).
 
 ## Installation
 
-Configure, install and set up the [issuer node](../README.md#installation) first and follow the instructions for the UI.
+1. Configure, install and set up the [issuer node](../README.md#installation), following the optional steps about setting up the UI
+2. _Optional_ Follow the instructions for [developing the UI](../README.md#development-ui).
 
 ## Built with
 
