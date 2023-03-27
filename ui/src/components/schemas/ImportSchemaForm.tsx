@@ -68,8 +68,7 @@ export function ImportSchemaForm({
         setRawJsonSchema(rawSchema);
         setJsonLdTypes({ status: "loading" });
         getJsonLdTypesFromUrl({
-          schema: schema,
-          url: schema.$metadata.uris.jsonLdContext,
+          schema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {
             setJsonLdTypes({ data: jsonLdTypes, status: "successful" });

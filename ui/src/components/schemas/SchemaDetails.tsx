@@ -23,12 +23,7 @@ import {
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CARD_WIDTH } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import {
-  AsyncTask,
-  hasAsyncTaskFailed,
-  isAsyncTaskDataAvailable,
-  isAsyncTaskStarting,
-} from "src/utils/types";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
 export function SchemaDetails() {
   const navigate = useNavigate();
@@ -36,41 +31,38 @@ export function SchemaDetails() {
 
   const env = useEnvContext();
 
-  const [schema, setSchema] = useState<AsyncTask<Schema, string | z.ZodError>>({
+  const [schemaTuple, setSchemaTuple] = useState<AsyncTask<[Schema, Json], string | z.ZodError>>({
     status: "pending",
   });
   const [apiSchema, setApiSchema] = useState<AsyncTask<ApiSchema, APIError>>({
     status: "pending",
   });
-  const [rawJsonSchema, setRawJsonSchema] = useState<Json | undefined>();
-  const [jsonLdType, setJsonLdType] = useState<AsyncTask<JsonLdType, string | z.ZodError>>({
+  const [contextTuple, setContextTuple] = useState<
+    AsyncTask<[JsonLdType, Json], string | z.ZodError>
+  >({
     status: "pending",
   });
-  const [rawJsonLdContext, setRawJsonLdContext] = useState<Json | undefined>();
 
   const extractError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
   const fetchSchemaFromUrl = useCallback((apiSchema: ApiSchema): void => {
-    setSchema({ status: "loading" });
+    setSchemaTuple({ status: "loading" });
     getSchemaFromUrl({
       url: apiSchema.url,
     })
-      .then(([schema, rawSchema]) => {
-        setSchema({ data: schema, status: "successful" });
-        setRawJsonSchema(rawSchema);
-        setJsonLdType({ status: "loading" });
+      .then(([schema, rawJsonSchema]) => {
+        setSchemaTuple({ data: [schema, rawJsonSchema], status: "successful" });
+        setContextTuple({ status: "loading" });
         getJsonLdTypesFromUrl({
-          schema: schema,
-          url: schema.$metadata.uris.jsonLdContext,
+          schema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {
-            setRawJsonLdContext(rawJsonLdContext);
             const jsonLdType = jsonLdTypes.find((type) => type.name === apiSchema.type);
             if (jsonLdType) {
-              setJsonLdType({ data: jsonLdType, status: "successful" });
+              setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
             } else {
-              setJsonLdType({
+              setContextTuple({
                 error:
                   "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL",
                 status: "failed",
@@ -78,14 +70,14 @@ export function SchemaDetails() {
             }
           })
           .catch((error) => {
-            setJsonLdType({
+            setContextTuple({
               error: extractError(error),
               status: "failed",
             });
           });
       })
       .catch((error) => {
-        setSchema({
+        setSchemaTuple({
           error: extractError(error),
           status: "failed",
         });
@@ -144,8 +136,8 @@ export function SchemaDetails() {
 
   const loading =
     isAsyncTaskStarting(apiSchema) ||
-    isAsyncTaskStarting(schema) ||
-    isAsyncTaskStarting(jsonLdType);
+    isAsyncTaskStarting(schemaTuple) ||
+    isAsyncTaskStarting(contextTuple);
 
   return (
     <SiderLayoutContent
@@ -155,14 +147,39 @@ export function SchemaDetails() {
       title="Schema details"
     >
       {(() => {
-        if (
-          isAsyncTaskDataAvailable(apiSchema) &&
-          isAsyncTaskDataAvailable(schema) &&
-          isAsyncTaskDataAvailable(jsonLdType) &&
-          rawJsonLdContext &&
-          rawJsonSchema
-        ) {
+        if (hasAsyncTaskFailed(apiSchema)) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <ErrorResult
+                error={[
+                  "An error occurred while downloading or parsing the schema from the API:",
+                  apiSchema.error.message,
+                ].join("\n")}
+              />
+            </Card>
+          );
+        } else if (hasAsyncTaskFailed(schemaTuple)) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <ErrorResult error={schemaErrorToString(schemaTuple.error)} />
+            </Card>
+          );
+        } else if (hasAsyncTaskFailed(contextTuple)) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <ErrorResult error={jsonLdTypeErrorToString(contextTuple.error)} />
+            </Card>
+          );
+        } else if (loading) {
+          return (
+            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+              <LoadingResult />
+            </Card>
+          );
+        } else {
           const { bigInt, createdAt, hash, url } = apiSchema.data;
+          const [schema, rawJsonSchema] = schemaTuple.data;
+          const [jsonLdType, rawJsonLdContext] = contextTuple.data;
 
           return (
             <SchemaViewer
@@ -197,7 +214,7 @@ export function SchemaDetails() {
                     <Button
                       onClick={() => {
                         downloadJsonFromUrl({
-                          fileName: schema.data.name,
+                          fileName: schema.name,
                           url: url,
                         })
                           .then(() => {
@@ -217,38 +234,13 @@ export function SchemaDetails() {
                   </Row>
                 </Space>
               }
-              jsonLdType={jsonLdType.data}
+              jsonLdType={jsonLdType}
               rawJsonLdContext={rawJsonLdContext}
               rawJsonSchema={rawJsonSchema}
-              schema={schema.data}
+              schema={schema}
             />
           );
         }
-
-        return (
-          <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
-            {(() => {
-              if (hasAsyncTaskFailed(apiSchema)) {
-                return (
-                  <ErrorResult
-                    error={[
-                      "An error occurred while downloading or parsing the schema from the API:",
-                      apiSchema.error.message,
-                    ].join("\n")}
-                  />
-                );
-              } else if (hasAsyncTaskFailed(schema)) {
-                return <ErrorResult error={schemaErrorToString(schema.error)} />;
-              } else if (hasAsyncTaskFailed(jsonLdType)) {
-                return <ErrorResult error={jsonLdTypeErrorToString(jsonLdType.error)} />;
-              } else if (loading) {
-                return <LoadingResult />;
-              }
-
-              return <ErrorResult error="Unknown error" />;
-            })()}
-          </Card>
-        );
       })()}
     </SiderLayoutContent>
   );
