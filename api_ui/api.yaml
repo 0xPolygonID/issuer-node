@@ -780,7 +780,7 @@ components:
         - schemaID
         - signatureProof
         - mtProof
-        - attributeValues
+        - attributes
       properties:
         schemaID:
           type: string
@@ -801,7 +801,7 @@ components:
           type: boolean
         mtProof:
           type: boolean
-        attributeValues:
+        attributes:
           type: array
           items:
             $ref: '#/components/schemas/LinkRequestAttributesType'
@@ -809,12 +809,12 @@ components:
     LinkRequestAttributesType:
       allOf:
         - type: object
-          required: [ "attributeName", "attributeValue" ]
+          required: [ "name", "value" ]
           properties:
-            attributeName:
+            name:
               type: string
               example: birthday
-            attributeValue:
+            value:
               type: string
               x-omitempty: false
 

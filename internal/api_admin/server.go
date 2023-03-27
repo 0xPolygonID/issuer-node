@@ -370,15 +370,15 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
-	if len(request.Body.AttributeValues) == 0 {
+	if len(request.Body.Attributes) == 0 {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
 	}
 
 	attrs := make([]domain.CredentialAttributes, 0)
-	for _, at := range request.Body.AttributeValues {
+	for _, at := range request.Body.Attributes {
 		attrs = append(attrs, domain.CredentialAttributes{
-			Name:  at.AttributeName,
-			Value: at.AttributeValue,
+			Name:  at.Name,
+			Value: at.Value,
 		})
 	}
 
