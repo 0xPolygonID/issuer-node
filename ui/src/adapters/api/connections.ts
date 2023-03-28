@@ -1,9 +1,9 @@
 import axios from "axios";
 import { z } from "zod";
 
+import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
 import { Env } from "src/domain";
-import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
-import { QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 const buildAuthorizationHeader = (env: Env) =>
@@ -18,17 +18,15 @@ export interface Credential {
 }
 
 export interface Connection {
-  connection: {
-    createdAt: string;
-    id: string;
-    issuerID: string;
-    userID: string;
-  };
-  credentials?: Credential[];
+  createdAt: string;
+  credentials: Credential[];
+  id: string;
+  issuerID: string;
+  userID: string;
 }
 
 export async function getConnections({
-  credentials = true,
+  credentials = false,
   env,
   params: { query },
   signal,
@@ -52,7 +50,7 @@ export async function getConnections({
         ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,
-      url: `connections`,
+      url: `${API_VERSION}/connections`,
     });
     const { data } = resultOKConnections.parse(response);
 
@@ -73,13 +71,11 @@ export const credential = StrictSchema<Credential>()(
 
 export const connection = StrictSchema<Connection>()(
   z.object({
-    connection: z.object({
-      createdAt: z.string(),
-      id: z.string(),
-      issuerID: z.string(),
-      userID: z.string(),
-    }),
+    createdAt: z.string(),
     credentials: z.array(credential),
+    id: z.string(),
+    issuerID: z.string(),
+    userID: z.string(),
   })
 );
 
