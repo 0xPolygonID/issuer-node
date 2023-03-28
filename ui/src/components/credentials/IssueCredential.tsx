@@ -2,6 +2,7 @@ import { Card, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { APIError } from "src/adapters/api";
 import { Credential, credentialIssue } from "src/adapters/api/credentials";
 import { Schema, getSchema } from "src/adapters/api/schemas";
 import { issueCredentialFormData } from "src/adapters/parsers/forms";
@@ -17,9 +18,9 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
-import { APIError, processZodError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
+import { processZodError } from "src/utils/error";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 type IssuanceStep = "attributes" | "issuanceMethod" | "summary";

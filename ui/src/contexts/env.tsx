@@ -12,7 +12,7 @@ import { z } from "zod";
 import { EnvInput, envParser } from "src/adapters/env";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { Env } from "src/domain";
-import { processZodError } from "src/utils/adapters";
+import { processZodError } from "src/utils/error";
 
 const envDefaultValue: Env = {
   api: {

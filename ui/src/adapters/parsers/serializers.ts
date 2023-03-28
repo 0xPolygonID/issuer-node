@@ -10,14 +10,14 @@ import {
   SingleChoiceCredentialFormAttribute,
 } from "src/domain";
 
-export const serializeBooleanCredentialFormAttribute = (
+const serializeBooleanCredentialFormAttribute = (
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute
 ): CredentialAttribute => ({
   attributeKey: booleanCredentialFormAttribute.name,
   attributeValue: booleanCredentialFormAttribute.value ? 1 : 0,
 });
 
-export const serializeDateCredentialFormAttribute = (
+const serializeDateCredentialFormAttribute = (
   dateCredentialFormAttribute: DateCredentialFormAttribute
 ): CredentialAttribute => {
   const momentInstance = dayjs(dateCredentialFormAttribute.value);
@@ -29,21 +29,21 @@ export const serializeDateCredentialFormAttribute = (
   };
 };
 
-export const serializeNumberCredentialFormAttribute = (
+const serializeNumberCredentialFormAttribute = (
   numberCredentialFormAttribute: NumberCredentialFormAttribute
 ): CredentialAttribute => ({
   attributeKey: numberCredentialFormAttribute.name,
   attributeValue: numberCredentialFormAttribute.value,
 });
 
-export const serializeSingleChoiceCredentialFormAttribute = (
+const serializeSingleChoiceCredentialFormAttribute = (
   singleChoiceCredentialFormAttribute: SingleChoiceCredentialFormAttribute
 ): CredentialAttribute => ({
   attributeKey: singleChoiceCredentialFormAttribute.name,
   attributeValue: singleChoiceCredentialFormAttribute.value,
 });
 
-export const serializeCredentialFormAttribute = (
+const serializeCredentialFormAttribute = (
   credentialFormAttribute: CredentialFormAttribute
 ): CredentialAttribute => {
   switch (credentialFormAttribute.type) {
