@@ -9,11 +9,30 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
+// NewGetAllConnectionsRequest struct
+type NewGetAllConnectionsRequest struct {
+	WithCredentials bool
+	Query           string
+}
+
 // DeleteRequest struct
 type DeleteRequest struct {
 	ConnID            uuid.UUID
 	DeleteCredentials bool
 	RevokeCredentials bool
+}
+
+// NewGetAllRequest returns the request object for obtaining all connections
+func NewGetAllRequest(withCredentials *bool, query *string) *NewGetAllConnectionsRequest {
+	var connQuery string
+	if query != nil {
+		connQuery = *query
+	}
+
+	return &NewGetAllConnectionsRequest{
+		WithCredentials: withCredentials != nil && *withCredentials,
+		Query:           connQuery,
+	}
 }
 
 // NewDeleteRequest creates a new DeleteRequest
@@ -30,5 +49,5 @@ type ConnectionsService interface {
 	Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID core.DID) error
 	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID) error
 	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
-	GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query *string) ([]*domain.Connection, error)
+	GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query string, withCredentials bool) ([]*domain.Connection, error)
 }

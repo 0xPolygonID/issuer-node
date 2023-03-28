@@ -59,7 +59,11 @@ func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issue
 	return conn, nil
 }
 
-func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query *string) ([]*domain.Connection, error) {
+func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query string, withCredentials bool) ([]*domain.Connection, error) {
+	if withCredentials {
+		return c.connRepo.GetAllWithCredentialsByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
+	}
+
 	return c.connRepo.GetAllByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
 }
 
