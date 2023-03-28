@@ -404,7 +404,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 
 // DeleteLink - delete a link
 func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error) {
-	if err := s.linkService.Delete(ctx, request.Id); err != nil {
+	if err := s.linkService.Delete(ctx, request.Id, s.cfg.APIUI.IssuerDID); err != nil {
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
 			return DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}}, nil
 		}

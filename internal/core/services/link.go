@@ -33,6 +33,6 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 }
 
 // Delete - delete a link by id
-func (ls *Link) Delete(ctx context.Context, id uuid.UUID) error {
-	return ls.linkRepository.Delete(ctx, id)
+func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did core.DID) error {
+	return ls.linkRepository.Delete(ctx, id, did)
 }
