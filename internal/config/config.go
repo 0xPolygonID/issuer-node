@@ -37,8 +37,8 @@ type Configuration struct {
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
 	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
-
-	APIUI APIUI `mapstructure:"APIUI"`
+	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
+	APIUI                        APIUI              `mapstructure:"APIUI"`
 }
 
 // Database has the database configuration
@@ -319,6 +319,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Circuit.Path", "ISSUER_CIRCUIT_PATH")
 
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
+	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -431,6 +432,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 
 	if cfg.Cache.RedisUrl == "" {
 		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
+	}
+
+	if cfg.SchemaCache == nil {
+		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
+		cfg.SchemaCache = common.ToPointer(false)
 	}
 
 	if cfg.APIUI.ServerPort == 0 {
