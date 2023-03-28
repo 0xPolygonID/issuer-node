@@ -21,7 +21,6 @@ import {
   processZodError,
 } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CARD_WIDTH } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
@@ -149,7 +148,7 @@ export function SchemaDetails() {
       {(() => {
         if (hasAsyncTaskFailed(apiSchema)) {
           return (
-            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+            <Card className="centered">
               <ErrorResult
                 error={[
                   "An error occurred while downloading or parsing the schema from the API:",
@@ -160,19 +159,19 @@ export function SchemaDetails() {
           );
         } else if (hasAsyncTaskFailed(schemaTuple)) {
           return (
-            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+            <Card className="centered">
               <ErrorResult error={schemaErrorToString(schemaTuple.error)} />
             </Card>
           );
         } else if (hasAsyncTaskFailed(contextTuple)) {
           return (
-            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+            <Card className="centered">
               <ErrorResult error={jsonLdTypeErrorToString(contextTuple.error)} />
             </Card>
           );
         } else if (loading) {
           return (
-            <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+            <Card className="centered">
               <LoadingResult />
             </Card>
           );

@@ -6,7 +6,6 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, Schema } from "src/domain";
 import { getSchemaFromUrl, getSchemaJsonLdTypes, processZodError } from "src/utils/adapters";
-import { CARD_WIDTH } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export type FormData = {
@@ -105,7 +104,7 @@ export function ImportSchemaForm({
   };
 
   return (
-    <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+    <Card className="centered">
       <Space direction="vertical" size="large">
         <Card.Meta
           description="The schema URL must remain publicly accessible after import because the schema will continue to be retrieved in the future."

@@ -19,8 +19,6 @@ export const AUTH_TOKEN_KEY = "authToken";
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 
-export const CARD_WIDTH = 720;
-
 export const CONTENT_WIDTH = 585;
 
 export const CREDENTIALS_TABS: { id: TabsCredentialsIDs; tabID: string; title: string }[] = [

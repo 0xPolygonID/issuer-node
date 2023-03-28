@@ -5,7 +5,6 @@ import { ReactComponent as ChevronDownIcon } from "src/assets/icons/chevron-down
 import { JSONHighlighter } from "src/components/schemas/JSONHighlighter";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
 import { Json, JsonLdType, Schema } from "src/domain";
-import { CARD_WIDTH } from "src/utils/constants";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
 
@@ -34,6 +33,7 @@ export function SchemaViewer({
 
   return (
     <Card
+      className="centered"
       extra={
         <Dropdown
           menu={{
@@ -67,7 +67,6 @@ export function SchemaViewer({
           </Button>
         </Dropdown>
       }
-      style={{ margin: "auto", maxWidth: CARD_WIDTH }}
       title={jsonLdType.name}
     >
       <Space direction="vertical" size="large">
