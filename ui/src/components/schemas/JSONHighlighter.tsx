@@ -4,7 +4,7 @@ import { a11yLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 import { Json } from "src/domain";
 
-export function JSONHighlighter({ json }: { json?: Json }) {
+export function JSONHighlighter({ json }: { json: Json }) {
   return (
     <Card className="background-grey">
       <SyntaxHighlighter
