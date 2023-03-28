@@ -181,15 +181,13 @@ export function getSchemaFromUrl({ url }: { url: string }): Promise<[Schema, Jso
   }).then((json) => [schemaParser.parse(json), json]);
 }
 
-export function getJsonLdTypesFromUrl({
+export function getSchemaJsonLdTypes({
   schema,
-  url,
 }: {
   schema: Schema;
-  url: string;
 }): Promise<[JsonLdType[], Json]> {
   return getJsonFromUrl({
-    url,
+    url: schema.$metadata.uris.jsonLdContext,
   }).then((json) => [jsonLdTypeParser(schema).parse(json), json]);
 }
 
