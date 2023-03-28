@@ -448,7 +448,7 @@ paths:
   /v1/credentials/links/{id}:
     get:
       summary: Returns a link to a credential offer
-      operationID: GetLink
+      operationId: GetLink
       tags:
         - Links
       parameters:
@@ -460,6 +460,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Link'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
 
     delete:
       summary: Endpoint to delete a link

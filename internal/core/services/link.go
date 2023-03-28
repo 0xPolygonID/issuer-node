@@ -32,6 +32,10 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 	return link, nil
 }
 
+func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
+	return ls.linkRepository.GetByID(ctx, id)
+}
+
 // Delete - delete a link by id
 func (ls *Link) Delete(ctx context.Context, id uuid.UUID) error {
 	return ls.linkRepository.Delete(ctx, id)

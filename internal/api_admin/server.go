@@ -402,6 +402,26 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
 }
 
+// GetLink returns a link from an id
+func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error) {
+	link, err := s.linkService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
+		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+	return GetLink200JSONResponse{
+		Active:       link.Active,
+		Attributes:   nil,
+		Expiration:   link.CredentialExpiration,
+		Id:           link.ID,
+		IssuedClaims: 0,
+		MaxIssuance:  link.MaxIssuance,
+		SchemaType:   "",
+		SchemaUrl:    "",
+		Status:       "",
+	}, nil
+}
+
 // DeleteLink - delete a link
 func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error) {
 	if err := s.linkService.Delete(ctx, request.Id); err != nil {
