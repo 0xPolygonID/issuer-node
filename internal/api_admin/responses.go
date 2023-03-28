@@ -7,6 +7,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 func schemaResponse(s *domain.Schema) Schema {
@@ -65,13 +66,23 @@ func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string
 	return proofs
 }
 
-func connectionsResponse(conns []*domain.Connection) GetConnectionsResponse {
+func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, error) {
 	resp := make([]GetConnectionResponse, 0)
+	var err error
 	for _, conn := range conns {
-		resp = append(resp, connectionResponse(conn, nil, nil))
+		var w3creds []*verifiable.W3CCredential
+		var connCreds domain.Credentials
+		if conn.Credentials != nil {
+			connCreds = *conn.Credentials
+			w3creds, err = schema.FromClaimsModelToW3CCredential(connCreds)
+			if err != nil {
+				return nil, err
+			}
+		}
+		resp = append(resp, connectionResponse(conn, w3creds, connCreds))
 	}
 
-	return resp
+	return resp, nil
 }
 
 func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {
@@ -85,12 +96,10 @@ func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredentia
 	}
 
 	return GetConnectionResponse{
-		Connection: Connection{
-			CreatedAt: conn.CreatedAt,
-			Id:        conn.ID.String(),
-			UserID:    conn.UserDID.String(),
-			IssuerID:  conn.IssuerDID.String(),
-		},
+		CreatedAt:   conn.CreatedAt,
+		Id:          conn.ID.String(),
+		UserID:      conn.UserDID.String(),
+		IssuerID:    conn.IssuerDID.String(),
 		Credentials: credResp,
 	}
 }

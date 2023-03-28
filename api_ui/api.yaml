@@ -144,6 +144,11 @@ paths:
           schema:
             type: string
           description: Query string to do full text search in connections.
+        - in: query
+          name: credentials
+          schema:
+            type: boolean
+          description: credentials=true to include the connection credentials.
       responses:
         '200':
           description: ok
@@ -605,7 +610,12 @@ components:
         message:
           type: string
 
-    Connection:
+    GetConnectionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GetConnectionResponse'
+
+    GetConnectionResponse:
       type: object
       required:
         - id
@@ -629,19 +639,6 @@ components:
           type: string
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
-
-    GetConnectionsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/GetConnectionResponse'
-
-    GetConnectionResponse:
-      type: object
-      required:
-        - connection
-      properties:
-        connection:
-          $ref: '#/components/schemas/Connection'
         credentials:
           type: array
           items:

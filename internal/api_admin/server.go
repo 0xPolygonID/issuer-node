@@ -187,13 +187,21 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 
 // GetConnections returns the list of credentials of a determined issuer
 func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
-	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
+	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query)
+	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req.Query, req.WithCredentials)
 	if err != nil {
-		log.Error(ctx, "get connection request", err)
+		log.Error(ctx, "get connection request", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
 	}
 
-	return GetConnections200JSONResponse(connectionsResponse(conns)), nil
+	resp, err := connectionsResponse(conns)
+	if err != nil {
+		log.Error(ctx, "get connection request invalid claim format", "err", err)
+		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
+
+	}
+
+	return GetConnections200JSONResponse(resp), nil
 }
 
 // DeleteConnection deletes a connection

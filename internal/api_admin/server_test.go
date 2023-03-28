@@ -1537,12 +1537,10 @@ func TestServer_GetConnection(t *testing.T) {
 			},
 			expected: expected{
 				response: GetConnection200JSONResponse{
-					Connection: Connection{
-						CreatedAt: time.Now(),
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-					},
+					CreatedAt: time.Now(),
+					Id:        connID.String(),
+					IssuerID:  did.String(),
+					UserID:    usrDID.String(),
 					Credentials: common.ToPointer([]Credential{
 						{
 							Attributes: map[string]interface{}{
@@ -1574,12 +1572,10 @@ func TestServer_GetConnection(t *testing.T) {
 			},
 			expected: expected{
 				response: GetConnection200JSONResponse{
-					Connection: Connection{
-						CreatedAt: time.Now(),
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-					},
+					CreatedAt:   time.Now(),
+					Id:          connID2.String(),
+					IssuerID:    did.String(),
+					UserID:      usrDID2.String(),
 					Credentials: common.ToPointer([]Credential{}),
 				},
 				httpCode: http.StatusOK,
@@ -1609,10 +1605,10 @@ func TestServer_GetConnection(t *testing.T) {
 						validateCredential(t, (*tc.expected.response.Credentials)[i], (*response.Credentials)[i])
 					}
 				}
-				assert.Equal(t, tc.expected.response.Connection.Id, response.Connection.Id)
-				assert.Equal(t, tc.expected.response.Connection.IssuerID, response.Connection.IssuerID)
-				assert.Equal(t, tc.expected.response.Connection.UserID, response.Connection.UserID)
-				assert.InDelta(t, tc.expected.response.Connection.CreatedAt.Unix(), response.Connection.CreatedAt.Unix(), 10)
+				assert.Equal(t, tc.expected.response.Id, response.Id)
+				assert.Equal(t, tc.expected.response.IssuerID, response.IssuerID)
+				assert.Equal(t, tc.expected.response.UserID, response.UserID)
+				assert.InDelta(t, tc.expected.response.CreatedAt.Unix(), response.CreatedAt.Unix(), 10)
 			case http.StatusBadRequest:
 				var response GetConnection400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1655,8 +1651,37 @@ func TestServer_GetConnections(t *testing.T) {
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	fixture := tests.NewFixture(storage)
-	claim := fixture.NewClaim(t, did.String())
-	fixture.CreateClaim(t, claim)
+
+	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	schemaContext := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"
+	schemaType := "KYCAgeCredential"
+	s := &domain.Schema{
+		ID:         uuid.New(),
+		IssuerDID:  *did,
+		URL:        schemaURL,
+		Type:       schemaType,
+		Attributes: []string{"birthday", "id", "hello"},
+		CreatedAt:  time.Now(),
+		Hash:       utils.CreateSchemaHash([]byte(schemaContext + "#" + schemaType)),
+	}
+	fixture.CreateSchema(t, ctx, s)
+
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	credentialSubject2 := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960423,
+		"documentType": 2,
+	}
+
+	merklizedRootPosition := "index"
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	require.NoError(t, err)
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	require.NoError(t, err)
 
 	usrDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
@@ -1664,8 +1689,10 @@ func TestServer_GetConnections(t *testing.T) {
 	usrDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qFBp1sRF1bFbTybVHHZQRgSWE2nKrdWeAxyZ67PdG")
 	require.NoError(t, err)
 
+	uuid1, err := uuid.Parse("9736cf94-cd42-11ed-9618-debe37e1cbd6")
+	require.NoError(t, err)
 	connID := fixture.CreateConnection(t, &domain.Connection{
-		ID:         uuid.New(),
+		ID:         uuid1,
 		IssuerDID:  *did,
 		UserDID:    *usrDID,
 		IssuerDoc:  nil,
@@ -1674,8 +1701,10 @@ func TestServer_GetConnections(t *testing.T) {
 		ModifiedAt: time.Now(),
 	})
 
+	uuid2, err := uuid.Parse("5736cf94-cd42-11ed-9618-debe37e1cbd6")
+	require.NoError(t, err)
 	connID2 := fixture.CreateConnection(t, &domain.Connection{
-		ID:         uuid.New(),
+		ID:         uuid2,
 		IssuerDID:  *did,
 		UserDID:    *usrDID2,
 		IssuerDoc:  nil,
@@ -1714,20 +1743,16 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 					{
-						Connection: Connection{
-							Id:        connID2.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1757,12 +1782,10 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1779,12 +1802,10 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1801,22 +1822,162 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 					{
-						Connection: Connection{
-							Id:        connID2.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+						CreatedAt: time.Now(),
 					},
 				},
+			},
+		},
+		{
+			name: "should return two connections, one of it with credentials",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: common.ToPointer([]Credential{{}, {}}),
+					},
+					{
+						Id:          connID2.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID2.String(),
+						CreatedAt:   time.Now(),
+						Credentials: common.ToPointer([]Credential{}),
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with credentials",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: common.ToPointer([]Credential{{}, {}}),
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with credentials partial did",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 "),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: common.ToPointer([]Credential{{}, {}}),
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with credentials partial did and attributes",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 birthday"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: common.ToPointer([]Credential{{}, {}}),
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with invalid did and valid attributes",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk birthday"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: common.ToPointer([]Credential{{}, {}}),
+					},
+				},
+			},
+		},
+		{
+			name: "should return 0 connections with invalid did and invalid attributes",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk nothingValid here"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{},
+			},
+		},
+		{
+			name: "should return no connections, did not found",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{},
 			},
 		},
 		{
@@ -1831,20 +1992,16 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 					{
-						Connection: Connection{
-							Id:        connID2.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1853,11 +2010,18 @@ func TestServer_GetConnections(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			addr := "/v1/connections"
-			if tc.request.Params.Query != nil {
-				addr += "?query=" + *tc.request.Params.Query
-			}
 
-			req, err := http.NewRequest(http.MethodGet, addr, nil)
+			parsedURL, err := url.Parse(addr)
+			require.NoError(t, err)
+			values := parsedURL.Query()
+			if tc.request.Params.Query != nil {
+				values.Add("query", *tc.request.Params.Query)
+			}
+			if tc.request.Params.Credentials != nil && *tc.request.Params.Credentials {
+				values.Add("credentials", "true")
+			}
+			parsedURL.RawQuery = values.Encode()
+			req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -1874,14 +2038,11 @@ func TestServer_GetConnections(t *testing.T) {
 					if tc.expected.response[i].Credentials != nil {
 						require.NotNil(t, response[i].Credentials)
 						require.Equal(t, len(*tc.expected.response[i].Credentials), len(*response[i].Credentials))
-						for j := range *tc.expected.response[i].Credentials {
-							validateCredential(t, (*tc.expected.response[i].Credentials)[j], (*response[i].Credentials)[j])
-						}
 					}
-					assert.Equal(t, tc.expected.response[i].Connection.Id, response[i].Connection.Id)
-					assert.Equal(t, tc.expected.response[i].Connection.IssuerID, response[i].Connection.IssuerID)
-					assert.Equal(t, tc.expected.response[i].Connection.UserID, response[i].Connection.UserID)
-					assert.InDelta(t, tc.expected.response[i].Connection.CreatedAt.Unix(), response[i].Connection.CreatedAt.Unix(), 10)
+					assert.Equal(t, tc.expected.response[i].Id, response[i].Id)
+					assert.Equal(t, tc.expected.response[i].IssuerID, response[i].IssuerID)
+					assert.Equal(t, tc.expected.response[i].UserID, response[i].UserID)
+					assert.InDelta(t, tc.expected.response[i].CreatedAt.Unix(), response[i].CreatedAt.Unix(), 10)
 				}
 			}
 		})
