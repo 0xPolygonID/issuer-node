@@ -1,11 +1,28 @@
 import { ThemeConfig } from "antd/es/config-provider/context";
 import z from "zod";
 
-import { StyleVariables } from "src/domain";
 import variables from "src/styles/variables.module.scss";
 import { StrictSchema } from "src/utils/types";
 
-export const parseStyleVariables = StrictSchema<StyleVariables>()(
+interface StyleVariables {
+  avatarBg: string;
+  bgLight: string;
+  borderColor: string;
+  cyanBg: string;
+  cyanColor: string;
+  errorBg: string;
+  errorColor: string;
+  primaryBg: string;
+  primaryColor: string;
+  successColor: string;
+  tagBg: string;
+  tagBgSuccess: string;
+  tagColor: string;
+  textColor: string;
+  textColorSecondary: string;
+}
+
+const parsedStyleVariables = StrictSchema<StyleVariables>()(
   z.object({
     avatarBg: z.string(),
     bgLight: z.string(),
@@ -23,13 +40,7 @@ export const parseStyleVariables = StrictSchema<StyleVariables>()(
     textColor: z.string(),
     textColorSecondary: z.string(),
   })
-);
-
-const parsedStyleVariables = parseStyleVariables.safeParse(variables);
-
-if (!parsedStyleVariables.success) {
-  throw new Error("Invalid style variables");
-}
+).parse(variables);
 
 const {
   avatarBg,
@@ -40,7 +51,7 @@ const {
   tagColor,
   textColor,
   textColorSecondary,
-} = parsedStyleVariables.data;
+} = parsedStyleVariables;
 
 export const theme: ThemeConfig = {
   components: {
