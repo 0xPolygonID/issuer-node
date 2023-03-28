@@ -77,7 +77,7 @@ func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaR
 
 func TestGetLinkById(t *testing.T) {
 	ctx := context.Background()
-	didStr := "did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63"
+	didStr := "did:polygonid:polygon:mumbai:2qP8C6HFRANi79HDdnak4b2QJeGewKWbQBYakNXJTh"
 	schemaStore := repositories.NewSchema(*storage)
 
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
@@ -109,7 +109,7 @@ func TestGetLinkById(t *testing.T) {
 
 func TestDeleteLink(t *testing.T) {
 	ctx := context.Background()
-	didStr := "did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63"
+	didStr := "did:polygonid:polygon:mumbai:2qJ8RWkEpMtsAwnACo5oUktJSeS1wqPfnXMF99Y4Hj"
 	schemaStore := repositories.NewSchema(*storage)
 
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
