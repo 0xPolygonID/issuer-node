@@ -671,6 +671,7 @@ components:
         - userID
         - issuerID
         - createdAt
+        - credentials
       properties:
         id:
           type: string
@@ -690,6 +691,7 @@ components:
           example: 2023-03-17T10:18:01.400722+01:00
         credentials:
           type: array
+          x-omitempty: false
           items:
             $ref: '#/components/schemas/Credential'
 

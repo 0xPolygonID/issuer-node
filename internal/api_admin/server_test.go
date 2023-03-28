@@ -1542,7 +1542,7 @@ func TestServer_GetConnection(t *testing.T) {
 					Id:        connID.String(),
 					IssuerID:  did.String(),
 					UserID:    usrDID.String(),
-					Credentials: common.ToPointer([]Credential{
+					Credentials: []Credential{
 						{
 							Attributes: map[string]interface{}{
 								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
@@ -1560,7 +1560,7 @@ func TestServer_GetConnection(t *testing.T) {
 							SchemaHash: claim.SchemaHash,
 							SchemaType: claim.SchemaType,
 						},
-					}),
+					},
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1577,7 +1577,7 @@ func TestServer_GetConnection(t *testing.T) {
 					Id:          connID2.String(),
 					IssuerID:    did.String(),
 					UserID:      usrDID2.String(),
-					Credentials: common.ToPointer([]Credential{}),
+					Credentials: []Credential{},
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1601,9 +1601,9 @@ func TestServer_GetConnection(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				if tc.expected.response.Credentials != nil {
 					require.NotNil(t, response.Credentials)
-					require.Equal(t, len(*tc.expected.response.Credentials), len(*response.Credentials))
-					for i := range *tc.expected.response.Credentials {
-						validateCredential(t, (*tc.expected.response.Credentials)[i], (*response.Credentials)[i])
+					require.Equal(t, len(tc.expected.response.Credentials), len(response.Credentials))
+					for i := range tc.expected.response.Credentials {
+						validateCredential(t, (tc.expected.response.Credentials)[i], (response.Credentials)[i])
 					}
 				}
 				assert.Equal(t, tc.expected.response.Id, response.Id)
@@ -1853,14 +1853,14 @@ func TestServer_GetConnections(t *testing.T) {
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
 						CreatedAt:   time.Now(),
-						Credentials: common.ToPointer([]Credential{{}, {}}),
+						Credentials: []Credential{{}, {}},
 					},
 					{
 						Id:          connID2.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID2.String(),
 						CreatedAt:   time.Now(),
-						Credentials: common.ToPointer([]Credential{}),
+						Credentials: []Credential{},
 					},
 				},
 			},
@@ -1882,7 +1882,7 @@ func TestServer_GetConnections(t *testing.T) {
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
 						CreatedAt:   time.Now(),
-						Credentials: common.ToPointer([]Credential{{}, {}}),
+						Credentials: []Credential{{}, {}},
 					},
 				},
 			},
@@ -1904,7 +1904,7 @@ func TestServer_GetConnections(t *testing.T) {
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
 						CreatedAt:   time.Now(),
-						Credentials: common.ToPointer([]Credential{{}, {}}),
+						Credentials: []Credential{{}, {}},
 					},
 				},
 			},
@@ -1926,7 +1926,7 @@ func TestServer_GetConnections(t *testing.T) {
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
 						CreatedAt:   time.Now(),
-						Credentials: common.ToPointer([]Credential{{}, {}}),
+						Credentials: []Credential{{}, {}},
 					},
 				},
 			},
@@ -1948,7 +1948,7 @@ func TestServer_GetConnections(t *testing.T) {
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
 						CreatedAt:   time.Now(),
-						Credentials: common.ToPointer([]Credential{{}, {}}),
+						Credentials: []Credential{{}, {}},
 					},
 				},
 			},
@@ -2038,7 +2038,7 @@ func TestServer_GetConnections(t *testing.T) {
 				for i := range response {
 					if tc.expected.response[i].Credentials != nil {
 						require.NotNil(t, response[i].Credentials)
-						require.Equal(t, len(*tc.expected.response[i].Credentials), len(*response[i].Credentials))
+						require.Equal(t, len(tc.expected.response[i].Credentials), len(response[i].Credentials))
 					}
 					assert.Equal(t, tc.expected.response[i].Id, response[i].Id)
 					assert.Equal(t, tc.expected.response[i].IssuerID, response[i].IssuerID)
