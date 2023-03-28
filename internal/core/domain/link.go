@@ -12,8 +12,8 @@ import (
 
 // CredentialAttributes - credential's attributes
 type CredentialAttributes struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name  string      `json:"name"`
+	Value interface{} `json:"value"`
 }
 
 // LinkCoreDID - represents a credential offer ID

@@ -123,11 +123,12 @@ func main() {
 	connectionsRepository := repositories.NewConnections()
 	sessionRepository := repositories.NewSessionCached(cachex)
 	linkRepository := repositories.NewLink(*storage)
+	schemaRepository := repositories.NewSchema(*storage)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository)
-	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(*storage), schemaLoader)
+	schemaAdminService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
 		identityService,
@@ -142,7 +143,7 @@ func main() {
 		},
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(linkRepository)
+	linkService := services.NewLinkService(linkRepository, schemaRepository, schemaLoader)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)

@@ -2146,6 +2146,7 @@ func TestServer_CreateLink(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	linkRepository := repositories.NewLink(*storage)
+	schemaRespository := repositories.NewSchema(*storage)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
@@ -2154,7 +2155,7 @@ func TestServer_CreateLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(linkRepository)
+	linkService := services.NewLinkService(linkRepository, schemaRespository, loader.HTTPFactory)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2283,6 +2284,25 @@ func TestServer_CreateLink(t *testing.T) {
 			},
 		},
 		{
+			name: "Claim link wrong attribute type",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				LimitedClaims:       common.ToPointer(10),
+				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "true"}},
+				MtProof:             true,
+				SignatureProof:      true,
+			},
+			expected: expected{
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "error converting the attribute: documentType. Must be an integer"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "Claim link wrong schema id",
 			auth: authOk,
 			body: CreateLinkRequest{
@@ -2297,7 +2317,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema id not found"}},
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2340,6 +2360,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
+	schemaRepository := repositories.NewSchema(*storage)
 	identityStateRepo := repositories.NewIdentityState()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
@@ -2355,7 +2376,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(linkRepository)
+	linkService := services.NewLinkService(linkRepository, schemaRepository, loader.HTTPFactory)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
