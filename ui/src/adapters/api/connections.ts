@@ -24,14 +24,16 @@ export interface Connection {
     issuerID: string;
     userID: string;
   };
-  credentials: Credential[];
+  credentials?: Credential[];
 }
 
 export async function getConnections({
+  credentials = true,
   env,
   params: { query },
   signal,
 }: {
+  credentials?: boolean;
   env: Env;
   params: {
     query?: string;
@@ -47,6 +49,7 @@ export async function getConnections({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,
       url: `connections`,
