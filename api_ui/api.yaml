@@ -95,6 +95,20 @@ paths:
         - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
+        - name: revokeCredentials
+          in: query
+          required: false
+          description: |
+            Set revokeCredentials to true if you want to revoke the credentials of the connection
+          schema:
+            type: boolean
+        - name: deleteCredentials
+          in: query
+          required: false
+          description: |
+            Set deleteCredentials to true if you want to delete the credentials of the connection
+          schema:
+            type: boolean
       responses:
         '200':
           description: ok

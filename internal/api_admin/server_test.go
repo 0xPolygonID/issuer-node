@@ -521,18 +521,45 @@ func TestServer_ImportSchema(t *testing.T) {
 }
 
 func TestServer_DeleteConnection(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
+
+	issuerDID, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	server.cfg.APIUI.IssuerDID = *issuerDID
 	handler := getHandler(context.Background(), server)
 
 	fixture := tests.NewFixture(storage)
 
 	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	userDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R64")
 	require.NoError(t, err)
 
 	conn := fixture.CreateConnection(t, &domain.Connection{
@@ -545,16 +572,43 @@ func TestServer_DeleteConnection(t *testing.T) {
 		ModifiedAt: time.Now(),
 	})
 
+	conn2 := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID2,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	_ = fixture.CreateClaim(t, &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: userDID2.String(),
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        0,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+	})
+
 	type expected struct {
 		httpCode int
 		message  *string
 	}
 
 	type testConfig struct {
-		name     string
-		connID   uuid.UUID
-		auth     func() (string, string)
-		expected expected
+		name             string
+		connID           uuid.UUID
+		deleteCredential bool
+		revokeCredential bool
+		auth             func() (string, string)
+		expected         expected
 	}
 
 	for _, tc := range []testConfig{
@@ -580,14 +634,35 @@ func TestServer_DeleteConnection(t *testing.T) {
 			auth:   authOk,
 			expected: expected{
 				httpCode: http.StatusOK,
-				message:  common.ToPointer("Connection successfully deleted"),
+				message:  common.ToPointer("Connection successfully deleted."),
+			},
+		},
+		{
+			name:             "should delete the connection and revoke + delete credentials",
+			connID:           conn2,
+			deleteCredential: true,
+			revokeCredential: true,
+			auth:             authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				message:  common.ToPointer("Connection successfully deleted. Credentials successfully deleted. Credentials successfully revoked."),
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/connections/%s", tc.connID.String())
-			req, err := http.NewRequest("DELETE", url, nil)
+			urlTest := fmt.Sprintf("/v1/connections/%s", tc.connID.String())
+			parsedURL, err := url.Parse(urlTest)
+			require.NoError(t, err)
+			values := parsedURL.Query()
+			if tc.deleteCredential {
+				values.Add("deleteCredentials", "true")
+			}
+			if tc.revokeCredential {
+				values.Add("revokeCredentials", "true")
+			}
+			parsedURL.RawQuery = values.Encode()
+			req, err := http.NewRequest("DELETE", parsedURL.String(), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
