@@ -406,7 +406,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error) {
 	err := s.linkService.Activate(ctx, request.Id, request.Body.Active)
 	if err != nil {
-		log.Error(ctx, "error activating or deactivating link", err.Error())
+		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
 			return AcivateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		} else {
