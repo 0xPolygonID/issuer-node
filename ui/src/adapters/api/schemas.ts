@@ -1,8 +1,8 @@
 import axios from "axios";
 import { z } from "zod";
 
+import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
 import { Env, JsonLdType } from "src/domain";
-import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
@@ -121,7 +121,7 @@ export async function getSchemas({
       signal,
       url: "schemas",
     });
-    const { data } = resultOKSchemasGetAll.parse(response);
+    const { data } = resultOKSchemas.parse(response);
 
     return {
       data: {
@@ -189,23 +189,23 @@ export const schema = StrictSchema<Schema>()(
   })
 );
 
-export const resultOKSchema = StrictSchema<ResultOK<Schema>>()(
+const resultOKSchema = StrictSchema<ResultOK<Schema>>()(
   z.object({
     data: schema,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-interface SchemasGetAll {
+interface Schemas {
   errors: z.ZodError<Schema>[];
   schemas: Schema[];
 }
 
-export const resultOKSchemasGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<SchemasGetAll>>()(
+const resultOKSchemas = StrictSchema<ResultOK<unknown[]>, ResultOK<Schemas>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: SchemasGetAll, curr: unknown, index) => {
+        (acc: Schemas, curr: unknown, index) => {
           const parsedSchema = schema.safeParse(curr);
           return parsedSchema.success
             ? {

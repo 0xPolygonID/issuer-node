@@ -46,7 +46,7 @@ export function hasAsyncTaskFailed<D, E>(task: AsyncTask<D, E>): task is AsyncTa
   return task.status === "failed";
 }
 
-export type Exact<T, U> = [T, U] extends [U, T] ? true : false;
+type Exact<T, U> = [T, U] extends [U, T] ? true : false;
 
 export const StrictSchema: <Input, Output = Input>() => <ParserOutput, ParserInput = ParserOutput>(
   parser: Exact<

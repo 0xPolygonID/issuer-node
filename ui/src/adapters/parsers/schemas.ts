@@ -328,7 +328,7 @@ export const schemaParser = StrictSchema<Schema, domain.Schema>()(
   schemaPropsParser.and(attributeParser("schema", false))
 );
 
-export const sertoJsonLdTypeParser = (schema: domain.Schema) =>
+const sertoJsonLdTypeParser = (schema: domain.Schema) =>
   StrictSchema<
     {
       "@context": Record<string, unknown>;
