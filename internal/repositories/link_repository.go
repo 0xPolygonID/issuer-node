@@ -16,6 +16,7 @@ import (
 
 var (
 	errorShemaNotFound = errors.New("schema id not found")
+
 	// ErrLinkDoesNotExist link does not exist
 	ErrLinkDoesNotExist = errors.New("link does not exist")
 )
@@ -69,4 +70,19 @@ func (l link) GetByID(ctx context.Context, id uuid.UUID) (*domain.Link, error) {
 		return nil, fmt.Errorf("parsing credential attributes: %w", err)
 	}
 	return &link, err
+}
+
+func (l link) Delete(ctx context.Context, id uuid.UUID) error {
+	sql := `DELETE FROM links 
+       		where id = $1`
+
+	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String())
+	if err != nil {
+		return err
+	}
+
+	if cmd.RowsAffected() == 0 {
+		return ErrLinkDoesNotExist
+	}
+	return nil
 }

@@ -59,3 +59,8 @@ func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) err
 	_, err = ls.linkRepository.Save(ctx, link)
 	return err
 }
+
+// Delete - delete a link by id
+func (ls *Link) Delete(ctx context.Context, id uuid.UUID) error {
+	return ls.linkRepository.Delete(ctx, id)
+}

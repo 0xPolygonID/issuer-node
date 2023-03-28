@@ -479,6 +479,27 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+    delete:
+      summary: Endpoint to delete a link
+      operationId: DeleteLink
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   #others:
   /:
     get:

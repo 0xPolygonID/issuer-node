@@ -4,7 +4,6 @@ import { z } from "zod";
 import { CredentialAttribute } from "src/adapters/api/credentials";
 import { SchemaAttribute } from "src/adapters/api/schemas";
 import { CredentialForm, CredentialFormAttribute } from "src/domain";
-import { numericBoolean } from "src/utils/adapters";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { StrictSchema } from "src/utils/types";
@@ -13,6 +12,10 @@ const dayjsInstance = StrictSchema<dayjs.Dayjs>()(
   z.custom<dayjs.Dayjs>(isDayjs, {
     message: "The provided input is not a valid Dayjs instance",
   })
+);
+
+const numericBoolean = StrictSchema<0 | 1, boolean>()(
+  z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1)
 );
 
 type IssueCredentialFormDataAttributesParsingResult =

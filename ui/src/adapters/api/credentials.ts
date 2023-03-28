@@ -1,15 +1,15 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { Schema, schema } from "src/adapters/api/schemas";
-import { Env } from "src/domain";
 import {
   APIResponse,
   HTTPStatusSuccess,
   ResultCreated,
   ResultOK,
   buildAPIError,
-} from "src/utils/adapters";
+} from "src/adapters/api";
+import { Schema, schema } from "src/adapters/api/schemas";
+import { Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
@@ -34,7 +34,7 @@ export interface Credential {
   valid: boolean;
 }
 
-export interface CredentialPayload {
+interface CredentialPayload {
   active: boolean;
   attributeValues: CredentialAttribute[];
   claimLinkExpiration: Date | null;
@@ -194,7 +194,7 @@ export interface ShareCredentialQRCode {
   sessionID: string;
 }
 
-export interface ShareCredentialQRCodePayload {
+interface ShareCredentialQRCodePayload {
   issuer: { displayName: string; logo: string };
   offerDetails: CredentialPayload;
   qrcode: CredentialQRCode;
@@ -249,10 +249,7 @@ const credential = StrictSchema<CredentialPayload, Credential>()(
     )
 );
 
-export const shareCredentialQRCode = StrictSchema<
-  ShareCredentialQRCodePayload,
-  ShareCredentialQRCode
->()(
+const shareCredentialQRCode = StrictSchema<ShareCredentialQRCodePayload, ShareCredentialQRCode>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
@@ -429,7 +426,7 @@ const credentialQRCheckPending = StrictSchema<CredentialQRCheckPending>()(
   })
 );
 
-export const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
+const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
   z.union([credentialQRCheckDone, credentialQRCheckError, credentialQRCheckPending])
 );
 

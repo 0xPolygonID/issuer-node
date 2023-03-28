@@ -11,33 +11,7 @@ export interface Env {
   };
 }
 
-export interface Organization {
-  did: string;
-  displayName: string;
-  legalName: string | null;
-  logo: string;
-  modifiedAt: Date;
-}
-
 export type TabsCredentialsIDs = "issued" | "links";
-
-export interface StyleVariables {
-  avatarBg: string;
-  bgLight: string;
-  borderColor: string;
-  cyanBg: string;
-  cyanColor: string;
-  errorBg: string;
-  errorColor: string;
-  primaryBg: string;
-  primaryColor: string;
-  successColor: string;
-  tagBg: string;
-  tagBgSuccess: string;
-  tagColor: string;
-  textColor: string;
-  textColorSecondary: string;
-}
 
 // Credentials
 export interface BooleanCredentialFormAttribute {
