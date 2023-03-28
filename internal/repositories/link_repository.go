@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -72,11 +73,11 @@ func (l link) GetByID(ctx context.Context, id uuid.UUID) (*domain.Link, error) {
 	return &link, err
 }
 
-func (l link) Delete(ctx context.Context, id uuid.UUID) error {
+func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error {
 	sql := `DELETE FROM links 
-       		where id = $1`
+       		where id = $1 and issuer_id =$2`
 
-	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String())
+	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {
 		return err
 	}

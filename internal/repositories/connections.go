@@ -29,6 +29,11 @@ type dbConnection struct {
 	ModifiedAt time.Time
 }
 
+type dbConnectionWithCredentials struct {
+	dbConnection
+	dbClaim
+}
+
 type connections struct{}
 
 // NewConnections returns a new connections repository
@@ -94,15 +99,15 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query *string) ([]*domain.Connection, error) {
+func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error) {
 	all := `SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
 FROM connections 
 WHERE connections.issuer_id = $1`
 	var err error
 	var rows pgx.Rows
 	attrs := []interface{}{issuerDID.String()}
-	if query != nil && *query != "" {
-		did := getDIDFromQuery(*query)
+	if query != "" {
+		did := getDIDFromQuery(query)
 		if did != "" {
 			all += ` AND connections.user_id LIKE CONCAT($2::text,'%%')`
 			attrs = append(attrs, did)
@@ -130,6 +135,138 @@ WHERE connections.issuer_id = $1`
 	}
 
 	return domainConns, nil
+}
+
+func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error) {
+	sqlQuery, filters := buildGetAllWithCredentialsQueryAndFilters(issuerDID, query)
+	rows, err := conn.Query(ctx, sqlQuery, filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	return toConnectionsWithCredentials(rows)
+}
+
+func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string) (string, []interface{}) {
+	sqlQuery := `SELECT connections.id, 
+       			   connections.issuer_id,
+       			   connections.user_id,
+       			   connections.issuer_doc,
+       			   connections.user_doc,
+       			   connections.created_at,
+       			   connections.modified_at,
+				   claims.id,
+				   claims.issuer,
+				   claims.schema_hash,
+				   claims.schema_url,
+				   claims.schema_type,
+				   claims.other_identifier,
+				   claims.expiration,
+				   claims.version,
+				   claims.rev_nonce,
+				   claims.updatable,
+				   claims.signature_proof,
+				   claims.mtp_proof,
+				   claims.data,
+				   claims.identifier,
+				   claims.identity_state,
+				   identity_states.status,
+				   claims.credential_status,
+				   claims.core_claim
+	FROM connections 
+	LEFT JOIN claims
+	ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
+	LEFT JOIN identity_states  ON claims.identity_state = identity_states.state`
+
+	if query != "" {
+		sqlQuery = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash=schemas.hash AND claims.issuer=schemas.issuer_id ", sqlQuery)
+	}
+
+	filters := []interface{}{issuerDID.String()}
+	sqlQuery = fmt.Sprintf("%s WHERE connections.issuer_id = $%d", sqlQuery, len(filters))
+	if query != "" {
+		filters = append(filters, fullTextSearchQuery(query, " | "))
+		ftsConds := fmt.Sprintf("(schemas.ts_words @@ to_tsquery($%d))", len(filters))
+		if did := getDIDFromQuery(query); did != "" {
+			if did != "" {
+				filters = append(filters, did)
+				ftsConds = fmt.Sprintf(`%s OR connections.user_id LIKE CONCAT($%d::text,'%%')`, ftsConds, len(filters))
+			}
+		}
+		sqlQuery = fmt.Sprintf("%s AND (%s) ", sqlQuery, ftsConds)
+	}
+
+	sqlQuery += " ORDER BY connections.id DESC"
+
+	return sqlQuery, filters
+}
+
+func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {
+	dbConns := make([]*domain.Connection, 0)
+
+	for rows.Next() {
+		var dbConn dbConnectionWithCredentials
+		err := rows.Scan(
+			&dbConn.dbConnection.ID,
+			&dbConn.IssuerDID,
+			&dbConn.UserDID,
+			&dbConn.IssuerDoc,
+			&dbConn.UserDoc,
+			&dbConn.CreatedAt,
+			&dbConn.ModifiedAt,
+			&dbConn.dbClaim.ID,
+			&dbConn.Issuer,
+			&dbConn.SchemaHash,
+			&dbConn.SchemaURL,
+			&dbConn.SchemaType,
+			&dbConn.OtherIdentifier,
+			&dbConn.Expiration,
+			&dbConn.Version,
+			&dbConn.RevNonce,
+			&dbConn.Updatable,
+			&dbConn.SignatureProof,
+			&dbConn.MTPProof,
+			&dbConn.Data,
+			&dbConn.Identifier,
+			&dbConn.IdentityState,
+			&dbConn.Status,
+			&dbConn.CredentialStatus,
+			&dbConn.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+
+		switch {
+		case len(dbConns) > 0 && dbConns[len(dbConns)-1].UserDID.String() == dbConn.dbConnection.UserDID:
+			*dbConns[len(dbConns)-1].Credentials = append(*dbConns[len(dbConns)-1].Credentials, toCredentialDomain(&dbConn.dbClaim))
+		default:
+			domainConn, err := toConnectionWithCredentialsDomain(dbConn)
+			if err != nil {
+				return nil, err
+			}
+			dbConns = append(dbConns, domainConn)
+		}
+	}
+
+	return dbConns, nil
+}
+
+func toConnectionWithCredentialsDomain(dbConn dbConnectionWithCredentials) (*domain.Connection, error) {
+	domainConn, err := toConnectionDomain(&dbConn.dbConnection)
+	if err != nil {
+		return nil, err
+	}
+
+	creds := make(domain.Credentials, 0)
+	cred := toCredentialDomain(&dbConn.dbClaim)
+	if cred != nil {
+		creds = append(creds, cred)
+	}
+
+	domainConn.Credentials = &creds
+
+	return domainConn, err
 }
 
 func toConnectionDomain(c *dbConnection) (*domain.Connection, error) {

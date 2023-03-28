@@ -66,10 +66,10 @@ func FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.W3CCredentia
 }
 
 // FromClaimsModelToW3CCredential JSON-LD response base on claim
-func FromClaimsModelToW3CCredential(claims []*domain.Claim) ([]*verifiable.W3CCredential, error) {
-	w3Credentials := make([]*verifiable.W3CCredential, len(claims))
-	for i := range claims {
-		w3Cred, err := FromClaimModelToW3CCredential(*claims[i])
+func FromClaimsModelToW3CCredential(credentials domain.Credentials) ([]*verifiable.W3CCredential, error) {
+	w3Credentials := make([]*verifiable.W3CCredential, len(credentials))
+	for i := range credentials {
+		w3Cred, err := FromClaimModelToW3CCredential(*credentials[i])
 		if err != nil {
 			return nil, err
 		}

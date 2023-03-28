@@ -44,6 +44,9 @@ type Claim struct {
 	MtProof bool `json:"mt_poof"`
 }
 
+// Credentials is the type of array of credential
+type Credentials []*Claim
+
 // FromClaimer TODO add description
 func FromClaimer(claim *core.Claim, schemaURL, schemaType string) (*Claim, error) {
 	otherIdentifier := ""
