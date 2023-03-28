@@ -191,3 +191,7 @@ func NewConnectionsMock() ports.ConnectionsService {
 func NewSchemaAdminMock() ports.SchemaAdminService {
 	return nil
 }
+
+func NewLinkMock() ports.LinkService {
+	return nil
+}

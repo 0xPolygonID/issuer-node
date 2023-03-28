@@ -1,16 +1,16 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { Schema, schema } from "src/adapters/api/schemas";
-import { Env } from "src/domain";
 import {
   APIResponse,
   HTTPStatusSuccess,
   ResultCreated,
   ResultOK,
   buildAPIError,
-} from "src/utils/adapters";
-import { QUERY_SEARCH_PARAM } from "src/utils/constants";
+} from "src/adapters/api";
+import { Schema, schema } from "src/adapters/api/schemas";
+import { Env } from "src/domain";
+import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 const buildAuthorizationHeader = (env: Env) =>
@@ -34,7 +34,7 @@ export interface Credential {
   valid: boolean;
 }
 
-export interface CredentialPayload {
+interface CredentialPayload {
   active: boolean;
   attributeValues: CredentialAttribute[];
   claimLinkExpiration: Date | null;
@@ -65,7 +65,7 @@ export async function credentialIssue({
 }): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       data: payload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
@@ -98,7 +98,7 @@ export async function credentialUpdate({
 }): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       data: payload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
@@ -133,7 +133,7 @@ export async function credentialsGetAll({
 > {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -194,7 +194,7 @@ export interface ShareCredentialQRCode {
   sessionID: string;
 }
 
-export interface ShareCredentialQRCodePayload {
+interface ShareCredentialQRCodePayload {
   issuer: { displayName: string; logo: string };
   offerDetails: CredentialPayload;
   qrcode: CredentialQRCode;
@@ -249,10 +249,7 @@ const credential = StrictSchema<CredentialPayload, Credential>()(
     )
 );
 
-export const shareCredentialQRCode = StrictSchema<
-  ShareCredentialQRCodePayload,
-  ShareCredentialQRCode
->()(
+const shareCredentialQRCode = StrictSchema<ShareCredentialQRCodePayload, ShareCredentialQRCode>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
@@ -285,7 +282,7 @@ export async function credentialsQRCreate({
 }): Promise<APIResponse<ShareCredentialQRCode>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       method: "POST",
       signal,
       url: `offers-qrcode/${id}`,
@@ -429,7 +426,7 @@ const credentialQRCheckPending = StrictSchema<CredentialQRCheckPending>()(
   })
 );
 
-export const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
+const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
   z.union([credentialQRCheckDone, credentialQRCheckError, credentialQRCheckPending])
 );
 
@@ -451,7 +448,7 @@ export async function credentialsQRCheck({
 }): Promise<APIResponse<CredentialQRCheck>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       method: "GET",
       params: {
         sessionID,
@@ -478,7 +475,7 @@ export async function credentialsQRDownload({
 }): Promise<APIResponse<Blob>> {
   try {
     const response = await axios({
-      baseURL: env.api.url,
+      baseURL: `${env.api.url}/${API_VERSION}`,
       method: "GET",
       params: {
         sessionID,

@@ -247,7 +247,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
-	claims, err := s.claimService.GetAll(ctx, did, filter)
+	claims, err := s.claimService.GetAll(ctx, *did, filter)
 	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
 		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
 	}

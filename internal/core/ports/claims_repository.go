@@ -19,7 +19,7 @@ type ClaimsRepository interface {
 	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *core.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error)
 	GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error)
 	FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error)
-	GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier *core.DID, filter *Filter) ([]*domain.Claim, error)
+	GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier core.DID, filter *ClaimsFilter) ([]*domain.Claim, error)
 	GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID core.DID) ([]*domain.Claim, error)
 	GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error)
 	GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error)
