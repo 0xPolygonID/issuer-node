@@ -13,7 +13,7 @@ import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { APIError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CONNECTIONS, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function Connections() {
@@ -39,7 +39,7 @@ export function Connections() {
         </Tooltip>
       ),
       sorter: ({ connection: { id: a } }, { connection: { id: b } }) => a.localeCompare(b),
-      title: "Identifier",
+      title: IDENTIFIER,
     },
     {
       dataIndex: "credentials",

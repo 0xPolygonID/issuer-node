@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { Env } from "src/domain";
 import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
-import { QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 const buildAuthorizationHeader = (env: Env) =>
@@ -19,12 +19,39 @@ export interface Credential {
 
 export interface Connection {
   connection: {
-    createdAt: string;
+    createdAt: Date;
     id: string;
     issuerID: string;
     userID: string;
   };
   credentials?: Credential[];
+}
+
+export async function getConnection({
+  env,
+  id,
+  signal,
+}: {
+  env: Env;
+  id: string;
+  signal: AbortSignal;
+}): Promise<APIResponse<Connection>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/connections/${id}`,
+    });
+    const { data } = resultOKConnection.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
 }
 
 export async function getConnections({
@@ -49,9 +76,10 @@ export async function getConnections({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,
-      url: `connections`,
+      url: `${API_VERSION}/connections`,
     });
     const { data } = resultOKConnections.parse(response);
 
@@ -73,12 +101,19 @@ export const credential = StrictSchema<Credential>()(
 export const connection = StrictSchema<Connection>()(
   z.object({
     connection: z.object({
-      createdAt: z.string(),
+      createdAt: z.coerce.date(),
       id: z.string(),
       issuerID: z.string(),
       userID: z.string(),
     }),
     credentials: z.array(credential).optional(),
+  })
+);
+
+export const resultOKConnection = StrictSchema<ResultOK<Connection>>()(
+  z.object({
+    data: connection,
+    status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 

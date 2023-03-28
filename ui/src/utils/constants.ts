@@ -8,6 +8,7 @@ export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
 export const DATE_VALIDITY_MESSAGE = "Valid date required";
 export const ERROR_MESSAGE = "Something went wrong";
+export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
 export const ISSUED = "Issued";
