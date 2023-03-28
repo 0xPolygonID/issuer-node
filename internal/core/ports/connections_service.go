@@ -15,14 +15,12 @@ type NewGetAllConnectionsRequest struct {
 	Query           string
 }
 
-
 // DeleteRequest struct
 type DeleteRequest struct {
 	ConnID            uuid.UUID
 	DeleteCredentials bool
 	RevokeCredentials bool
 }
-
 
 // NewGetAllRequest returns the request object for obtaining all connections
 func NewGetAllRequest(withCredentials *bool, query *string) *NewGetAllConnectionsRequest {
