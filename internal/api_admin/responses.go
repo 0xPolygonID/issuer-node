@@ -110,3 +110,27 @@ func getSigProof(w3c *verifiable.W3CCredential) *string {
 	}
 	return nil
 }
+
+func deleteConnectionResponse(deleteCredentials bool, revokeCredentials bool) string {
+	msg := "Connection successfully deleted."
+	if deleteCredentials {
+		msg += " Credentials successfully deleted."
+	}
+	if revokeCredentials {
+		msg += " Credentials successfully revoked."
+	}
+
+	return msg
+}
+
+func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool) string {
+	msg := "There was an error deleting the connection."
+	if deleteCredentials {
+		msg += " There was an error deleting the connection credentials."
+	}
+	if revokeCredentials {
+		msg += " Credentials successfully revoked."
+	}
+
+	return msg
+}

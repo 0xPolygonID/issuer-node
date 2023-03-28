@@ -209,15 +209,26 @@ func (s *Server) GetConnections(ctx context.Context, request GetConnectionsReque
 
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
-	err := s.connectionsService.Delete(ctx, request.Id, s.cfg.APIUI.IssuerDID)
-	if err != nil {
-		if errors.Is(err, services.ErrConnectionDoesNotExist) {
-			return DeleteConnection400JSONResponse{N400JSONResponse{"The given connection does not exist"}}, nil
+	req := ports.NewDeleteRequest(request.Id, request.Params.DeleteCredentials, request.Params.RevokeCredentials)
+	if req.RevokeCredentials {
+		err := s.claimService.RevokeAllFromConnection(ctx, req.ConnID, s.cfg.APIUI.IssuerDID)
+		if err != nil {
+			log.Error(ctx, "delete connection, revoking credentials", "err", err, "req", request.Id.String())
+			return DeleteConnection500JSONResponse{N500JSONResponse{"There was an error revoking the credentials of the given connection"}}, nil
 		}
-		return DeleteConnection500JSONResponse{N500JSONResponse{"There was an error deleting the connection"}}, nil
 	}
 
-	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
+	err := s.connectionsService.Delete(ctx, request.Id, req.DeleteCredentials, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		if errors.Is(err, services.ErrConnectionDoesNotExist) {
+			log.Info(ctx, "delete connection, non existing conn", "err", err, "req", request.Id.String())
+			return DeleteConnection400JSONResponse{N400JSONResponse{"The given connection does not exist"}}, nil
+		}
+		log.Error(ctx, "delete connection", "err", err, "req", request.Id.String())
+		return DeleteConnection500JSONResponse{N500JSONResponse{deleteConnection500Response(req.DeleteCredentials, req.RevokeCredentials)}}, nil
+	}
+
+	return DeleteConnection200JSONResponse{Message: deleteConnectionResponse(req.DeleteCredentials, req.RevokeCredentials)}, nil
 }
 
 // DeleteConnectionCredentials deletes all the credentials of the given connection
