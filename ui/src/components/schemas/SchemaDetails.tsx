@@ -112,7 +112,7 @@ export function SchemaDetails() {
     return;
   }, [fetchApiSchema, schemaID]);
 
-  const jsonLdTypeErrorToString = (error: string | z.ZodError) =>
+  const contextTupleErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
           "An error occurred while parsing the context referenced in the schema:",
@@ -121,7 +121,7 @@ export function SchemaDetails() {
         ].join("\n")
       : `An error occurred while downloading the context referenced in the schema:\n"${error}"\nPlease try again.`;
 
-  const schemaErrorToString = (error: string | z.ZodError) =>
+  const schemaTupleErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
           "An error occurred while parsing the schema from the URL:",
@@ -157,13 +157,13 @@ export function SchemaDetails() {
         } else if (hasAsyncTaskFailed(schemaTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={schemaErrorToString(schemaTuple.error)} />
+              <ErrorResult error={schemaTupleErrorToString(schemaTuple.error)} />
             </Card>
           );
         } else if (hasAsyncTaskFailed(contextTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={jsonLdTypeErrorToString(contextTuple.error)} />
+              <ErrorResult error={contextTupleErrorToString(contextTuple.error)} />
             </Card>
           );
         } else if (loading) {
