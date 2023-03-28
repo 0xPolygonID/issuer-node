@@ -37,6 +37,6 @@ func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*
 }
 
 // Delete - delete a link by id
-func (ls *Link) Delete(ctx context.Context, id uuid.UUID) error {
-	return ls.linkRepository.Delete(ctx, id)
+func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did core.DID) error {
+	return ls.linkRepository.Delete(ctx, id, did)
 }

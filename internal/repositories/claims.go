@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/lib/pq"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -28,6 +30,31 @@ var (
 )
 
 type claims struct{}
+
+type dbClaim struct {
+	ID               *uuid.UUID
+	Identifier       sql.NullString
+	Issuer           sql.NullString
+	SchemaHash       sql.NullString
+	SchemaURL        sql.NullString
+	SchemaType       sql.NullString
+	OtherIdentifier  sql.NullString
+	Expiration       *int64
+	Updatable        sql.NullBool
+	Version          *int64
+	RevNonce         *uint64
+	Revoked          sql.NullBool
+	Data             *pgtype.JSONB
+	CoreClaim        *domain.CoreClaim
+	MTPProof         *pgtype.JSONB
+	SignatureProof   *pgtype.JSONB
+	IdentityState    sql.NullString
+	Status           sql.NullString
+	CredentialStatus *pgtype.JSONB
+	HIndex           sql.NullString
+
+	MtProof sql.NullBool
+}
 
 // NewClaims returns a new claim repository
 func NewClaims() ports.ClaimsRepository {
@@ -756,4 +783,71 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	}
 
 	return claims, nil
+}
+
+func toCredentialDomain(c *dbClaim) *domain.Claim {
+	if c.ID == nil {
+		return nil
+	}
+
+	credential := &domain.Claim{
+		ID: *c.ID,
+	}
+
+	if c.CoreClaim != nil {
+		credential.CoreClaim = *c.CoreClaim
+	}
+	if c.Data != nil {
+		credential.Data = *c.Data
+	}
+	if c.SignatureProof != nil {
+		credential.SignatureProof = *c.SignatureProof
+	}
+	if c.CredentialStatus != nil {
+		credential.CredentialStatus = *c.CredentialStatus
+	}
+	if c.Identifier.Valid {
+		credential.Identifier = common.ToPointer(c.Identifier.String)
+	}
+	if c.Issuer.Valid {
+		credential.Issuer = c.Issuer.String
+	}
+	if c.SchemaHash.Valid {
+		credential.SchemaHash = c.SchemaHash.String
+	}
+	if c.SchemaURL.Valid {
+		credential.SchemaURL = c.SchemaURL.String
+	}
+	if c.SchemaType.Valid {
+		credential.SchemaType = c.SchemaType.String
+	}
+	if c.OtherIdentifier.Valid {
+		credential.OtherIdentifier = c.OtherIdentifier.String
+	}
+	if c.Expiration != nil {
+		credential.Expiration = *c.Expiration
+	}
+	if c.Updatable.Valid {
+		credential.Updatable = c.Updatable.Bool
+	}
+	if c.RevNonce != nil {
+		credential.RevNonce = domain.RevNonceUint64(*c.RevNonce)
+	}
+	if c.Revoked.Valid {
+		credential.Revoked = c.Revoked.Bool
+	}
+	if c.IdentityState.Valid {
+		credential.IdentityState = common.ToPointer(c.IdentityState.String)
+	}
+	if c.Status.Valid {
+		credential.Status = common.ToPointer(domain.IdentityStatus(c.Status.String))
+	}
+	if c.HIndex.Valid {
+		credential.HIndex = c.HIndex.String
+	}
+	if c.MtProof.Valid {
+		credential.MtProof = c.MtProof.Bool
+	}
+
+	return credential
 }

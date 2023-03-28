@@ -14,6 +14,6 @@ import (
 type LinkService interface {
 	Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID,
 		credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error)
+	Delete(ctx context.Context, id uuid.UUID, did core.DID) error
 	GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error)
-	Delete(ctx context.Context, id uuid.UUID) error
 }
