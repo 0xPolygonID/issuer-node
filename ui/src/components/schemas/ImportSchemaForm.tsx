@@ -2,10 +2,11 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
+import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, Schema } from "src/domain";
-import { getSchemaFromUrl, getSchemaJsonLdTypes, processZodError } from "src/utils/adapters";
+import { processZodError } from "src/utils/error";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export type FormData = {

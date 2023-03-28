@@ -4,6 +4,9 @@
 # production
 /dist
 
+# development
+.env*
+
 # linter
 .eslintcache
 

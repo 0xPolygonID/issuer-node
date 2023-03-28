@@ -41,19 +41,21 @@ type AgentRequest struct {
 	Type      comm.ProtocolMessage
 }
 
-// Filter struct
-type Filter struct {
+// ClaimsFilter struct
+type ClaimsFilter struct {
 	Self       *bool
 	Revoked    *bool
+	ExpiredOn  *time.Time
 	SchemaHash string
 	SchemaType string
 	Subject    string
 	QueryField string
+	FTSQuery   string
 }
 
 // NewClaimsFilter returns a valid claims filter
-func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, revoked *bool) (*Filter, error) {
-	var filter Filter
+func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, revoked *bool) (*ClaimsFilter, error) {
+	var filter ClaimsFilter
 
 	if self != nil && *self {
 		if subject != nil && *subject != "" {
@@ -171,8 +173,8 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 type ClaimsService interface {
 	CreateClaim(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id core.DID, nonce uint64, description string) error
+	GetAll(ctx context.Context, did core.DID, filter *ClaimsFilter) ([]*domain.Claim, error)
 	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID core.DID) error
-	GetAll(ctx context.Context, did *core.DID, filter *Filter) ([]*domain.Claim, error)
 	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
 	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)

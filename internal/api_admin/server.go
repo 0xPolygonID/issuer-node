@@ -8,11 +8,14 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/iden3comm"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/health"
@@ -29,19 +32,21 @@ type Server struct {
 	claimService       ports.ClaimsService
 	schemaService      ports.SchemaAdminService
 	connectionsService ports.ConnectionsService
+	linkService        ports.LinkService
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
 		claimService:       claimsService,
 		schemaService:      schemaService,
 		connectionsService: connectionsService,
+		linkService:        linkService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
@@ -165,10 +170,10 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
 	}
 
-	filter := &ports.Filter{
+	filter := &ports.ClaimsFilter{
 		Subject: conn.UserDID.String(),
 	}
-	credentials, err := s.claimService.GetAll(ctx, &s.cfg.APIUI.IssuerDID, filter)
+	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
 		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
@@ -234,6 +239,41 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	}
 
 	return GetCredential200JSONResponse(credentialResponse(w3c, credential)), nil
+}
+
+// GetCredentials returns a collection of credentials that matches the request.
+func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
+	filter := &ports.ClaimsFilter{}
+	if request.Params.Type != nil {
+		switch GetCredentialsParamsType(strings.ToLower(string(*request.Params.Type))) {
+		case Revoked:
+			filter.Revoked = common.ToPointer(true)
+		case Expired:
+			filter.ExpiredOn = common.ToPointer(time.Now())
+		case All:
+			// Nothing to be done
+		default:
+			return GetCredentials400JSONResponse{N400JSONResponse{Message: "Wrong type value. Allowed values: [all, revoked, expired]"}}, nil
+		}
+	}
+	if request.Params.Query != nil {
+		filter.FTSQuery = *request.Params.Query
+	}
+	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	if err != nil {
+		log.Error(ctx, "loading credentials", "err", err, "req", request)
+		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	response := make([]Credential, len(credentials))
+	for i, credential := range credentials {
+		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
+		if err != nil {
+			log.Error(ctx, "creating credentials response", "err", err, "req", request)
+			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+		}
+		response[i] = credentialResponse(w3c, credential)
+	}
+	return GetCredentials200JSONResponse(response), nil
 }
 
 // DeleteCredential deletes a credential
@@ -321,6 +361,62 @@ func (s *Server) RevokeConnectionCredentials(ctx context.Context, request Revoke
 	}
 
 	return RevokeConnectionCredentials202JSONResponse{Message: "Credentials revocation request sent"}, nil
+}
+
+// CreateLink - creates a link for issuing a credential
+func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
+	if request.Body.ClaimLinkExpiration != nil {
+		if isBeforeTomorrow(*request.Body.ClaimLinkExpiration) {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
+		}
+	}
+	if len(request.Body.Attributes) == 0 {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
+	}
+
+	attrs := make([]domain.CredentialAttributes, 0)
+	for _, at := range request.Body.Attributes {
+		attrs = append(attrs, domain.CredentialAttributes{
+			Name:  at.Name,
+			Value: at.Value,
+		})
+	}
+
+	if request.Body.LimitedClaims != nil {
+		if *request.Body.LimitedClaims <= 0 {
+			return CreateLink400JSONResponse{N400JSONResponse{Message: "limitedClaims must be higher than 0"}}, nil
+		}
+	}
+
+	var expirationDate *time.Time
+	if request.Body.ExpirationDate != nil {
+		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
+	}
+
+	// Todo improve validations errors
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
+	if err != nil {
+		log.Error(ctx, "error saving the link", err.Error())
+		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
+}
+
+// DeleteLink - delete a link
+func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error) {
+	if err := s.linkService.Delete(ctx, request.Id); err != nil {
+		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+			return DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}}, nil
+		}
+		return DeleteLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return DeleteLink200JSONResponse{Message: "link deleted"}, nil
+}
+
+func isBeforeTomorrow(t time.Time) bool {
+	today := time.Now().UTC()
+	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
+	return t.Before(tomorrow)
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

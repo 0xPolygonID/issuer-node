@@ -175,10 +175,10 @@ generate-issuer-did-arm: run-initializer-arm
 
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop
-	$(shell docker rmi -f issuer_api issuer_ui issuer_api-ui) || true
+	docker rmi -f issuer-api issuer-ui issuer-api-ui || true
 
 .PHONY: restart-ui
-restart-ui: rm-issuer-imgs run-ui
+restart-ui: rm-issuer-imgs up run run-ui
 
 .PHONY: restart-ui-arm
-restart-ui-arm: rm-issuer-imgs run-ui-arm
+restart-ui-arm: rm-issuer-imgs up run-arm run-ui-arm

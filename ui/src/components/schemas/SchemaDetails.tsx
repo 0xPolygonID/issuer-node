@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
+import { APIError } from "src/adapters/api";
 import { Schema as ApiSchema, getSchema } from "src/adapters/api/schemas";
+import { downloadJsonFromUrl } from "src/adapters/json";
+import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { Detail } from "src/components/schemas/Detail";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
@@ -13,14 +16,8 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
 import { Json, JsonLdType, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
-import {
-  APIError,
-  downloadJsonFromUrl,
-  getSchemaFromUrl,
-  getSchemaJsonLdTypes,
-  processZodError,
-} from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
