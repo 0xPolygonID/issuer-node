@@ -1,8 +1,10 @@
 import { Dropdown, MenuProps, Row, message } from "antd";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { ROUTES } from "src/routes";
 
 const MENU_ITEMS = [
   {
@@ -17,10 +19,11 @@ const MENU_ITEMS = [
   },
 ];
 
-export function ConnectionsRowDropdown() {
+export function ConnectionsRowDropdown({ id }: { id: string }) {
+  const navigate = useNavigate();
   const menuFunction: Record<"details" | "delete", () => Promise<void> | void> = {
     delete: () => void message.error("To develop"),
-    details: () => void message.error("To develop"),
+    details: () => navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
   };
 
   const onMenuSelect: MenuProps["onClick"] = ({ domEvent, key }) => {

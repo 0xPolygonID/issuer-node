@@ -32,7 +32,9 @@ export function SiderMenu() {
       matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
     ) {
       return [credentialsPath];
-    } else if (matchRoutes([{ path: connectionsPath }], pathname)) {
+    } else if (
+      matchRoutes([{ path: connectionsPath }, { path: ROUTES.connectionDetails.path }], pathname)
+    ) {
       return [connectionsPath];
     }
 

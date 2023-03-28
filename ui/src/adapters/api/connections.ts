@@ -49,7 +49,6 @@ export async function getConnections({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,
       url: `connections`,
@@ -79,7 +78,7 @@ export const connection = StrictSchema<Connection>()(
       issuerID: z.string(),
       userID: z.string(),
     }),
-    credentials: z.array(credential),
+    credentials: z.array(credential).optional(),
   })
 );
 

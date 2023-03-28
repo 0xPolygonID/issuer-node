@@ -32,8 +32,10 @@ export function Connections() {
       ellipsis: { showTitle: false },
       key: "type",
       render: (connection: Connection["connection"]) => (
-        <Tooltip placement="topLeft" title={connection.id}>
-          <Typography.Text strong>{connection.id}</Typography.Text>
+        <Tooltip placement="topLeft" title={connection.userID.replace(/did:\w*:\w*:\w+:/, "")}>
+          <Typography.Text strong>
+            {connection.userID.replace(/did:\w*:\w*:\w+:/, "")}
+          </Typography.Text>
         </Tooltip>
       ),
       sorter: ({ connection: { id: a } }, { connection: { id: b } }) => a.localeCompare(b),
@@ -42,18 +44,20 @@ export function Connections() {
     {
       dataIndex: "credentials",
       key: "credentials",
-      render: (credentials: Credential[]) =>
-        [...credentials]
-          .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
-          .map((credential) => (
-            <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
-          )),
+      render: (credentials: Credential[] | undefined) =>
+        credentials
+          ? [...credentials]
+              .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
+              .map((credential) => (
+                <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
+              ))
+          : null,
       title: "Issued credentials",
     },
     {
-      dataIndex: "active",
-      key: "active",
-      render: () => <ConnectionsRowDropdown />,
+      dataIndex: "connection",
+      key: "dropdown",
+      render: ({ id }: { id: string }) => <ConnectionsRowDropdown id={id} />,
       width: 55,
     },
   ];
@@ -70,24 +74,7 @@ export function Connections() {
       });
       if (response.isSuccessful) {
         setConnections({
-          data: [
-            {
-              connection: {
-                createdAt: "2023-03-23T11:32:39.940Z",
-                id: "7fff8112-c415-11ed-b036-debe37e1cbd6",
-                issuerID: "did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe",
-                userID: "did:polygonid:polygon:mumbai:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs",
-              },
-              credentials: [
-                {
-                  attributes: {
-                    type: "KYCAgeCredential",
-                  },
-                  id: "8edd8112-c415-11ed-b036-debe37e1cbd6",
-                },
-              ],
-            },
-          ],
+          data: response.data,
           status: "successful",
         });
       } else {
