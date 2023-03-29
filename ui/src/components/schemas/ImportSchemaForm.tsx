@@ -2,11 +2,10 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { getJsonLdTypesFromUrl, getSchemaFromUrl } from "src/adapters/schemas";
+import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, Schema } from "src/domain";
-import { CARD_WIDTH } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
@@ -68,9 +67,8 @@ export function ImportSchemaForm({
         setSchema({ data: schema, status: "successful" });
         setRawJsonSchema(rawSchema);
         setJsonLdTypes({ status: "loading" });
-        getJsonLdTypesFromUrl({
-          schema: schema,
-          url: schema.$metadata.uris.jsonLdContext,
+        getSchemaJsonLdTypes({
+          schema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {
             setJsonLdTypes({ data: jsonLdTypes, status: "successful" });
@@ -107,7 +105,7 @@ export function ImportSchemaForm({
   };
 
   return (
-    <Card style={{ margin: "auto", maxWidth: CARD_WIDTH }}>
+    <Card className="centered">
       <Space direction="vertical" size="large">
         <Card.Meta
           description="The schema URL must remain publicly accessible after import because the schema will continue to be retrieved in the future."

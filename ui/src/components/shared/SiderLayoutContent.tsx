@@ -3,7 +3,6 @@ import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconArrowLeft } from "src/assets/icons/arrow-narrow-left.svg";
-import { CONTENT_WIDTH } from "src/utils/constants";
 
 export function SiderLayoutContent({
   children,
@@ -36,7 +35,7 @@ export function SiderLayoutContent({
               />
             )}
 
-            <Col style={{ lineHeight: "1rem", maxWidth: CONTENT_WIDTH }}>
+            <Col style={{ lineHeight: "1rem", maxWidth: 585 }}>
               <Typography.Title level={3}>{title}</Typography.Title>
 
               {description && <Typography.Text type="secondary">{description}</Typography.Text>}

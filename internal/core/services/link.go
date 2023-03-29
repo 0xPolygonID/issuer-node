@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,27 +10,76 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
+	"github.com/polygonid/sh-id-platform/internal/loader"
+)
+
+var (
+	// ErrLinkAlreadyActive link is already active
+	ErrLinkAlreadyActive = errors.New("link is already active")
+	// ErrLinkAlreadyInactive link is already inactive
+	ErrLinkAlreadyInactive = errors.New("link is already inactive")
 )
 
 // Link - represents a link in the issuer node
 type Link struct {
-	linkRepository ports.LinkRepository
+	linkRepository   ports.LinkRepository
+	schemaRepository ports.SchemaRepository
+	loaderFactory    loader.Factory
 }
 
 // NewLinkService - constructor
-func NewLinkService(linkRepository ports.LinkRepository) ports.LinkService {
-	return &Link{linkRepository: linkRepository}
+func NewLinkService(linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory) ports.LinkService {
+	return &Link{
+		linkRepository:   linkRepository,
+		schemaRepository: schemaRepository,
+		loaderFactory:    loaderFactory,
+	}
 }
 
 // Save - save a new credential
 func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error) {
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialAttributes)
+	schema, err := ls.schemaRepository.GetByID(ctx, schemaID)
+	if err != nil {
+		return nil, err
+	}
 
-	_, err := ls.linkRepository.Save(ctx, link)
+	remoteSchema, err := jsonschema.Load(ctx, ls.loaderFactory(schema.URL))
+	if err != nil {
+		return nil, ErrLoadingSchema
+	}
+
+	credentialAttributes, err = remoteSchema.ValidateAndConvert(credentialAttributes)
+	if err != nil {
+		return nil, err
+	}
+
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialAttributes)
+	_, err = ls.linkRepository.Save(ctx, link)
 	if err != nil {
 		return nil, err
 	}
 	return link, nil
+}
+
+// Activate - activates or deactivates a credential link
+func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) error {
+	link, err := ls.linkRepository.GetByID(ctx, linkID)
+	if err != nil {
+		return err
+	}
+
+	if link.Active && active {
+		return ErrLinkAlreadyActive
+	}
+
+	if !link.Active && !active {
+		return ErrLinkAlreadyInactive
+	}
+
+	link.Active = active
+	_, err = ls.linkRepository.Save(ctx, link)
+	return err
 }
 
 // Delete - delete a link by id
