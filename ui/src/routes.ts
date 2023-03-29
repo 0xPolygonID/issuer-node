@@ -4,6 +4,7 @@ export type RouteID =
   | "importSchema"
   | "issueCredential"
   | "notFound"
+  | "schemaDetails"
   | "schemas";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
@@ -36,6 +37,10 @@ export const ROUTES: Routes = {
   notFound: {
     layout: "fullWidth",
     path: "/*",
+  },
+  schemaDetails: {
+    layout: "sider",
+    path: "/schemas/:schemaID",
   },
   schemas: {
     layout: "sider",

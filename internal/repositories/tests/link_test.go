@@ -49,6 +49,38 @@ func TestSaveLink(t *testing.T) {
 	assert.Equal(t, linkToSave.CredentialMTPProof, linkFetched.CredentialMTPProof)
 	assert.Equal(t, linkToSave.CredentialAttributes[0], linkFetched.CredentialAttributes[0])
 	assert.Equal(t, linkToSave.CredentialAttributes[1], linkFetched.CredentialAttributes[1])
+
+	didStr2 := "did:polygonid:polygon:mumbai:2qFrLQA6R1bfUTxjRnZEN9st77g6ZN2c7Vw1Dq6Vpp"
+	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr2)
+	assert.NoError(t, err)
+	did2 := core.DID{}
+	require.NoError(t, did2.SetString(didStr2))
+	schemaID2 := insertSchemaForLink(ctx, didStr2, schemaStore, t)
+	validUntil = time.Date(2055, 8, 15, 14, 30, 45, 100, time.Local)
+	linkToSave.Active = false
+	linkToSave.MaxIssuance = common.ToPointer[int](20)
+	linkToSave.CredentialExpiration = common.ToPointer(time.Date(2055, 8, 15, 14, 30, 45, 100, time.Local))
+	linkToSave.CredentialMTPProof = false
+	linkToSave.CredentialSignatureProof = false
+	linkToSave.ValidUntil = &validUntil
+	linkToSave.SchemaID = schemaID2
+	linkToSave.IssuerDID = domain.LinkCoreDID(did2)
+	linkToSave.CredentialAttributes = []domain.CredentialAttributes{{Name: "birthday", Value: "19791011"}, {Name: "documentTpe", Value: "2"}}
+
+	linkID, err = linkStore.Save(ctx, linkToSave)
+	assert.NoError(t, err)
+	linkFetched, err = linkStore.GetByID(ctx, *linkID)
+	assert.NoError(t, err)
+	assert.Equal(t, linkToSave.SchemaID, linkFetched.SchemaID)
+	assert.Equal(t, linkToSave.IssuerDID, linkFetched.IssuerDID)
+	assert.Equal(t, linkToSave.Active, linkFetched.Active)
+	assert.Equal(t, linkToSave.MaxIssuance, linkFetched.MaxIssuance)
+	assert.InDelta(t, linkToSave.CredentialExpiration.Unix(), linkFetched.CredentialExpiration.Unix(), 100)
+	assert.InDelta(t, linkToSave.ValidUntil.Unix(), linkFetched.ValidUntil.Unix(), 100)
+	assert.Equal(t, linkToSave.CredentialMTPProof, linkFetched.CredentialMTPProof)
+	assert.Equal(t, linkToSave.CredentialSignatureProof, linkFetched.CredentialSignatureProof)
+	assert.Equal(t, linkToSave.CredentialAttributes[0], linkFetched.CredentialAttributes[0])
+	assert.Equal(t, linkToSave.CredentialAttributes[1], linkFetched.CredentialAttributes[1])
 }
 
 func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaRepository, t *testing.T) uuid.UUID {

@@ -42,7 +42,8 @@ func (l link) Save(ctx context.Context, link *domain.Link) (*uuid.UUID, error) {
 
 	var id uuid.UUID
 	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO
+			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10 
 			RETURNING id`
 	err := l.conn.Pgx.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
 		link.CredentialMTPProof, pgAttrs, link.Active).Scan(&id)
