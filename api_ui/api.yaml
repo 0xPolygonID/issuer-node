@@ -519,6 +519,55 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+
+  /v1/credentials/links/{id}/qrcode:
+    post:
+      summary: Endpoint to create a link qr code
+      operationId: CrateLinkQrCode
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link qrcode generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/credentials/links/callback:
+    post:
+      summary: Create Link QR Code Callback
+      operationId: CreateLinkQrCodeCallback
+      description: Create Link QR Code Callback
+      tags:
+        - auth
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
+        - $ref: '#/components/parameters/linkID'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: ok
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+
   #others:
   /:
     get:
@@ -621,6 +670,29 @@ components:
         from:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+
+
+    CredentialLinkQrCodeResponse:
+      type: object
+      properties:
+        issuer:
+          $ref: '#/components/schemas/IssuerDescription'
+        qrCode:
+          $ref: '#/components/schemas/AuthenticationQrCodeResponse'
+        sessionID:
+          type: string
+          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
+
+
+    IssuerDescription:
+      type: object
+      properties:
+        displayName:
+          type: string
+          example: my issuer
+        logo:
+          type: string
+          example: "http://my-public-logo/logo.jpg"
 
     UUIDResponse:
       type: object
@@ -893,6 +965,19 @@ components:
       in: query
       required: true
       description: | 
+        Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
+
+    linkID:
+      name: linkID
+      in: query
+      required: true
+      description: |
         Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
       schema:
         type: string

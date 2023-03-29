@@ -39,3 +39,8 @@ func (c *cached) Get(ctx context.Context, key string) (protocol.AuthorizationReq
 func (c *cached) Set(ctx context.Context, key string, value protocol.AuthorizationRequestMessage) error {
 	return c.cache.Set(ctx, key, value, defaultTTL)
 }
+
+// SetLink - stores the given session information
+func (c *cached) SetLink(ctx context.Context, key string, value string) error {
+	return c.cache.Set(ctx, key, value, defaultTTL)
+}

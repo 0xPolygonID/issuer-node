@@ -368,30 +368,30 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) error {
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) (*protocol.AuthorizationResponseMessage, error) {
 	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
-		return err
+		return nil, err
 	}
 
 	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
 	if err != nil {
 		log.Error(ctx, "authentication failed", err)
-		return err
+		return nil, err
 	}
 
 	issuerDoc := newDIDDocument(serverURL, issuerDID)
 	bytesIssuerDoc, err := json.Marshal(issuerDoc)
 	if err != nil {
 		log.Error(ctx, "failed to marshal issuerDoc", err)
-		return err
+		return nil, err
 	}
 
 	userDID, err := core.ParseDID(arm.From)
 	if err != nil {
 		log.Error(ctx, "failed to parse userDID", err)
-		return err
+		return nil, err
 	}
 
 	conn := &domain.Connection{
@@ -404,7 +404,10 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		ModifiedAt: time.Now(),
 	}
 	_, err = i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return arm, nil
 }
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {

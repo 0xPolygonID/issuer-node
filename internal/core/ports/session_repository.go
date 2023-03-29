@@ -10,4 +10,5 @@ import (
 type SessionRepository interface {
 	Get(ctx context.Context, key string) (protocol.AuthorizationRequestMessage, error)
 	Set(ctx context.Context, key string, value protocol.AuthorizationRequestMessage) error
+	SetLink(ctx context.Context, key string, value string) error
 }

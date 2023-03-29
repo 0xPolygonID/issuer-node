@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -125,7 +126,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	_, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Debug(ctx, "error authenticating", err.Error())
 		return AuthCallback500JSONResponse{}, nil
@@ -444,6 +445,66 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 		return DeleteLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return DeleteLink200JSONResponse{Message: "link deleted"}, nil
+}
+
+// CrateLinkQrCode - Creates a link QrCode
+func (s *Server) CrateLinkQrCode(ctx context.Context, request CrateLinkQrCodeRequestObject) (CrateLinkQrCodeResponseObject, error) {
+	qrCode, sessionID, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+	if err != nil {
+		return CrateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
+	}
+
+	return CrateLinkQrCode200JSONResponse{
+		Issuer: &IssuerDescription{
+			DisplayName: common.ToPointer(s.cfg.APIUI.IssuerName),
+			Logo:        common.ToPointer(s.cfg.APIUI.IssuerLogo),
+		},
+		QrCode: &AuthenticationQrCodeResponse{
+			Body: struct {
+				CallbackUrl string        `json:"callbackUrl"`
+				Reason      string        `json:"reason"`
+				Scope       []interface{} `json:"scope"`
+			}{
+				qrCode.Body.CallbackURL,
+				qrCode.Body.Reason,
+				[]interface{}{},
+			},
+			From: qrCode.From,
+			Id:   qrCode.ID,
+			Thid: qrCode.ThreadID,
+			Typ:  string(qrCode.Typ),
+			Type: string(qrCode.Type),
+		},
+		SessionID: common.ToPointer(sessionID),
+	}, nil
+}
+
+// CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
+func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error) {
+	if request.Body == nil || *request.Body == "" {
+		log.Debug(ctx, "empty request body auth-callback request")
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
+	}
+
+	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Debug(ctx, "error authenticating", err.Error())
+		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+	}
+
+	userDID, err := core.ParseDID(arm.From)
+	if err != nil {
+		log.Debug(ctx, "error getting user DID", err.Error())
+		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+	}
+
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
+	if err != nil {
+		log.Debug(ctx, "error issuing the claim", err.Error())
+		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+	}
+
+	return CreateLinkQrCodeCallback200Response{}, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {

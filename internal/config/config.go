@@ -418,6 +418,10 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
 	}
 
+	if cfg.Ethereum.ResolverPrefix == "" {
+		log.Info(ctx, "ISSUER_ETHEREUM_RESOLVER_PREFIX value is missing")
+	}
+
 	if cfg.Prover.ServerURL == "" {
 		log.Info(ctx, "ISSUER_PROVER_SERVER_URL value is missing")
 	}
