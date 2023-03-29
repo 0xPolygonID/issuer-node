@@ -53,8 +53,11 @@ export function Connections() {
     {
       dataIndex: "active",
       key: "active",
-      render: () => <ConnectionsRowDropdown />,
-      width: 55,
+      render: () => (
+        <Row justify="end">
+          <ConnectionsRowDropdown />
+        </Row>
+      ),
     },
   ];
 
