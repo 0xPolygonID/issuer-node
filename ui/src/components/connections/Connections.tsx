@@ -41,23 +41,24 @@ export function Connections() {
     },
     {
       dataIndex: "credentials",
+      ellipsis: { showTitle: false },
       key: "credentials",
-      render: (credentials: Credential[]) =>
-        [...credentials]
-          .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
-          .map((credential) => (
-            <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
-          )),
+      render: (credentials: Credential[]) => (
+        <Space>
+          {[...credentials]
+            .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
+            .map((credential) => (
+              <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
+            ))}
+        </Space>
+      ),
       title: "Issued credentials",
     },
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Connection["id"]) => (
-        <Row justify="end">
-          <ConnectionsRowDropdown id={id} />
-        </Row>
-      ),
+      render: (id: Connection["id"]) => <ConnectionsRowDropdown id={id} />,
+      width: 55,
     },
   ];
 

@@ -64,10 +64,9 @@ export function ConnectionDetails() {
     return aborter;
   }, [fetchConnection]);
 
-  const credentialsList =
-    isAsyncTaskDataAvailable(connection) && connection.data.credentials
+  const credentialsList = []; /* isAsyncTaskDataAvailable(connection) && connection.data.credentials
       ? connection.data.credentials
-      : [];
+      : []; */
 
   return (
     <SiderLayoutContent
