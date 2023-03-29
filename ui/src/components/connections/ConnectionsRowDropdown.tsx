@@ -11,6 +11,11 @@ const MENU_ITEMS = [
     label: "Details",
   },
   {
+    key: "divider",
+    type: "divider",
+  },
+  {
+    danger: true,
     icon: <IconTrash />,
     key: "delete",
     label: "Delete connection",
