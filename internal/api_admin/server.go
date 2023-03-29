@@ -190,26 +190,45 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 
 // GetConnections returns the list of credentials of a determined issuer
 func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
-	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
+	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query)
+	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req.Query, req.WithCredentials)
 	if err != nil {
-		log.Error(ctx, "get connection request", err)
+		log.Error(ctx, "get connection request", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
 	}
 
-	return GetConnections200JSONResponse(connectionsResponse(conns)), nil
+	resp, err := connectionsResponse(conns)
+	if err != nil {
+		log.Error(ctx, "get connection request invalid claim format", "err", err)
+		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
+
+	}
+
+	return GetConnections200JSONResponse(resp), nil
 }
 
 // DeleteConnection deletes a connection
 func (s *Server) DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error) {
-	err := s.connectionsService.Delete(ctx, request.Id, s.cfg.APIUI.IssuerDID)
-	if err != nil {
-		if errors.Is(err, services.ErrConnectionDoesNotExist) {
-			return DeleteConnection400JSONResponse{N400JSONResponse{"The given connection does not exist"}}, nil
+	req := ports.NewDeleteRequest(request.Id, request.Params.DeleteCredentials, request.Params.RevokeCredentials)
+	if req.RevokeCredentials {
+		err := s.claimService.RevokeAllFromConnection(ctx, req.ConnID, s.cfg.APIUI.IssuerDID)
+		if err != nil {
+			log.Error(ctx, "delete connection, revoking credentials", "err", err, "req", request.Id.String())
+			return DeleteConnection500JSONResponse{N500JSONResponse{"There was an error revoking the credentials of the given connection"}}, nil
 		}
-		return DeleteConnection500JSONResponse{N500JSONResponse{"There was an error deleting the connection"}}, nil
 	}
 
-	return DeleteConnection200JSONResponse{Message: "Connection successfully deleted"}, nil
+	err := s.connectionsService.Delete(ctx, request.Id, req.DeleteCredentials, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		if errors.Is(err, services.ErrConnectionDoesNotExist) {
+			log.Info(ctx, "delete connection, non existing conn", "err", err, "req", request.Id.String())
+			return DeleteConnection400JSONResponse{N400JSONResponse{"The given connection does not exist"}}, nil
+		}
+		log.Error(ctx, "delete connection", "err", err, "req", request.Id.String())
+		return DeleteConnection500JSONResponse{N500JSONResponse{deleteConnection500Response(req.DeleteCredentials, req.RevokeCredentials)}}, nil
+	}
+
+	return DeleteConnection200JSONResponse{Message: deleteConnectionResponse(req.DeleteCredentials, req.RevokeCredentials)}, nil
 }
 
 // DeleteConnectionCredentials deletes all the credentials of the given connection
@@ -400,6 +419,17 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
+}
+
+// DeleteLink - delete a link
+func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error) {
+	if err := s.linkService.Delete(ctx, request.Id, s.cfg.APIUI.IssuerDID); err != nil {
+		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+			return DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}}, nil
+		}
+		return DeleteLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return DeleteLink200JSONResponse{Message: "link deleted"}, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {

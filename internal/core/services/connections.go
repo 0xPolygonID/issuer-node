@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -21,7 +22,7 @@ type connection struct {
 	storage  *db.Storage
 }
 
-// NewConnection returnas a new connection service
+// NewConnection returns a new connection service
 func NewConnection(connRepo ports.ConnectionsRepository, storage *db.Storage) ports.ConnectionsService {
 	return &connection{
 		connRepo: connRepo,
@@ -29,20 +30,21 @@ func NewConnection(connRepo ports.ConnectionsRepository, storage *db.Storage) po
 	}
 }
 
-func (c *connection) Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error {
-	err := c.connRepo.Delete(ctx, c.storage.Pgx, id, issuerDID)
-	if err != nil {
-		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
-			return ErrConnectionDoesNotExist
-		}
-		return err
-	}
-
-	return nil
+func (c *connection) Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID core.DID) error {
+	return c.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			if deleteCredentials {
+				err := c.deleteCredentials(ctx, id, issuerDID, tx)
+				if err != nil {
+					return err
+				}
+			}
+			return c.delete(ctx, id, issuerDID, tx)
+		})
 }
 
 func (c *connection) DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID) error {
-	return c.connRepo.DeleteCredentials(ctx, c.storage.Pgx, id, issuerID)
+	return c.deleteCredentials(ctx, id, issuerID, c.storage.Pgx)
 }
 
 func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error) {
@@ -57,6 +59,26 @@ func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issue
 	return conn, nil
 }
 
-func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query *string) ([]*domain.Connection, error) {
+func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query string, withCredentials bool) ([]*domain.Connection, error) {
+	if withCredentials {
+		return c.connRepo.GetAllWithCredentialsByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
+	}
+
 	return c.connRepo.GetAllByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
+}
+
+func (c *connection) delete(ctx context.Context, id uuid.UUID, issuerDID core.DID, pgx db.Querier) error {
+	err := c.connRepo.Delete(ctx, pgx, id, issuerDID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
+			return ErrConnectionDoesNotExist
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (c *connection) deleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID, pgx db.Querier) error {
+	return c.connRepo.DeleteCredentials(ctx, pgx, id, issuerID)
 }

@@ -521,18 +521,45 @@ func TestServer_ImportSchema(t *testing.T) {
 }
 
 func TestServer_DeleteConnection(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
+
+	issuerDID, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	server.cfg.APIUI.IssuerDID = *issuerDID
 	handler := getHandler(context.Background(), server)
 
 	fixture := tests.NewFixture(storage)
 
 	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	userDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qNytPv6dKKhfqopjBdXJU1vSVb3Lbgcidved32R64")
 	require.NoError(t, err)
 
 	conn := fixture.CreateConnection(t, &domain.Connection{
@@ -545,16 +572,43 @@ func TestServer_DeleteConnection(t *testing.T) {
 		ModifiedAt: time.Now(),
 	})
 
+	conn2 := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID2,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	_ = fixture.CreateClaim(t, &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: userDID2.String(),
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        0,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+	})
+
 	type expected struct {
 		httpCode int
 		message  *string
 	}
 
 	type testConfig struct {
-		name     string
-		connID   uuid.UUID
-		auth     func() (string, string)
-		expected expected
+		name             string
+		connID           uuid.UUID
+		deleteCredential bool
+		revokeCredential bool
+		auth             func() (string, string)
+		expected         expected
 	}
 
 	for _, tc := range []testConfig{
@@ -580,14 +634,35 @@ func TestServer_DeleteConnection(t *testing.T) {
 			auth:   authOk,
 			expected: expected{
 				httpCode: http.StatusOK,
-				message:  common.ToPointer("Connection successfully deleted"),
+				message:  common.ToPointer("Connection successfully deleted."),
+			},
+		},
+		{
+			name:             "should delete the connection and revoke + delete credentials",
+			connID:           conn2,
+			deleteCredential: true,
+			revokeCredential: true,
+			auth:             authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				message:  common.ToPointer("Connection successfully deleted. Credentials successfully deleted. Credentials successfully revoked."),
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/connections/%s", tc.connID.String())
-			req, err := http.NewRequest("DELETE", url, nil)
+			urlTest := fmt.Sprintf("/v1/connections/%s", tc.connID.String())
+			parsedURL, err := url.Parse(urlTest)
+			require.NoError(t, err)
+			values := parsedURL.Query()
+			if tc.deleteCredential {
+				values.Add("deleteCredentials", "true")
+			}
+			if tc.revokeCredential {
+				values.Add("revokeCredentials", "true")
+			}
+			parsedURL.RawQuery = values.Encode()
+			req, err := http.NewRequest("DELETE", parsedURL.String(), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -1538,13 +1613,11 @@ func TestServer_GetConnection(t *testing.T) {
 			},
 			expected: expected{
 				response: GetConnection200JSONResponse{
-					Connection: Connection{
-						CreatedAt: time.Now(),
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-					},
-					Credentials: common.ToPointer([]Credential{
+					CreatedAt: time.Now(),
+					Id:        connID.String(),
+					IssuerID:  did.String(),
+					UserID:    usrDID.String(),
+					Credentials: []Credential{
 						{
 							Attributes: map[string]interface{}{
 								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
@@ -1562,7 +1635,7 @@ func TestServer_GetConnection(t *testing.T) {
 							SchemaHash: claim.SchemaHash,
 							SchemaType: claim.SchemaType,
 						},
-					}),
+					},
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1575,13 +1648,11 @@ func TestServer_GetConnection(t *testing.T) {
 			},
 			expected: expected{
 				response: GetConnection200JSONResponse{
-					Connection: Connection{
-						CreatedAt: time.Now(),
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-					},
-					Credentials: common.ToPointer([]Credential{}),
+					CreatedAt:   time.Now(),
+					Id:          connID2.String(),
+					IssuerID:    did.String(),
+					UserID:      usrDID2.String(),
+					Credentials: []Credential{},
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1605,15 +1676,15 @@ func TestServer_GetConnection(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				if tc.expected.response.Credentials != nil {
 					require.NotNil(t, response.Credentials)
-					require.Equal(t, len(*tc.expected.response.Credentials), len(*response.Credentials))
-					for i := range *tc.expected.response.Credentials {
-						validateCredential(t, (*tc.expected.response.Credentials)[i], (*response.Credentials)[i])
+					require.Equal(t, len(tc.expected.response.Credentials), len(response.Credentials))
+					for i := range tc.expected.response.Credentials {
+						validateCredential(t, (tc.expected.response.Credentials)[i], (response.Credentials)[i])
 					}
 				}
-				assert.Equal(t, tc.expected.response.Connection.Id, response.Connection.Id)
-				assert.Equal(t, tc.expected.response.Connection.IssuerID, response.Connection.IssuerID)
-				assert.Equal(t, tc.expected.response.Connection.UserID, response.Connection.UserID)
-				assert.InDelta(t, tc.expected.response.Connection.CreatedAt.Unix(), response.Connection.CreatedAt.Unix(), 10)
+				assert.Equal(t, tc.expected.response.Id, response.Id)
+				assert.Equal(t, tc.expected.response.IssuerID, response.IssuerID)
+				assert.Equal(t, tc.expected.response.UserID, response.UserID)
+				assert.InDelta(t, tc.expected.response.CreatedAt.Unix(), response.CreatedAt.Unix(), 10)
 			case http.StatusBadRequest:
 				var response GetConnection400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1656,8 +1727,37 @@ func TestServer_GetConnections(t *testing.T) {
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	fixture := tests.NewFixture(storage)
-	claim := fixture.NewClaim(t, did.String())
-	fixture.CreateClaim(t, claim)
+
+	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	schemaContext := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"
+	schemaType := "KYCAgeCredential"
+	s := &domain.Schema{
+		ID:         uuid.New(),
+		IssuerDID:  *did,
+		URL:        schemaURL,
+		Type:       schemaType,
+		Attributes: []string{"birthday", "id", "hello"},
+		CreatedAt:  time.Now(),
+		Hash:       utils.CreateSchemaHash([]byte(schemaContext + "#" + schemaType)),
+	}
+	fixture.CreateSchema(t, ctx, s)
+
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	credentialSubject2 := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960423,
+		"documentType": 2,
+	}
+
+	merklizedRootPosition := "index"
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	require.NoError(t, err)
+	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	require.NoError(t, err)
 
 	usrDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
@@ -1665,8 +1765,10 @@ func TestServer_GetConnections(t *testing.T) {
 	usrDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qFBp1sRF1bFbTybVHHZQRgSWE2nKrdWeAxyZ67PdG")
 	require.NoError(t, err)
 
+	uuid1, err := uuid.Parse("9736cf94-cd42-11ed-9618-debe37e1cbd6")
+	require.NoError(t, err)
 	connID := fixture.CreateConnection(t, &domain.Connection{
-		ID:         uuid.New(),
+		ID:         uuid1,
 		IssuerDID:  *did,
 		UserDID:    *usrDID,
 		IssuerDoc:  nil,
@@ -1675,8 +1777,10 @@ func TestServer_GetConnections(t *testing.T) {
 		ModifiedAt: time.Now(),
 	})
 
+	uuid2, err := uuid.Parse("5736cf94-cd42-11ed-9618-debe37e1cbd6")
+	require.NoError(t, err)
 	connID2 := fixture.CreateConnection(t, &domain.Connection{
-		ID:         uuid.New(),
+		ID:         uuid2,
 		IssuerDID:  *did,
 		UserDID:    *usrDID2,
 		IssuerDoc:  nil,
@@ -1715,20 +1819,16 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 					{
-						Connection: Connection{
-							Id:        connID2.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1758,12 +1858,10 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1780,12 +1878,10 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1802,22 +1898,162 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 					{
-						Connection: Connection{
-							Id:        connID2.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+						CreatedAt: time.Now(),
 					},
 				},
+			},
+		},
+		{
+			name: "should return two connections, one of it with credentials",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: []Credential{{}, {}},
+					},
+					{
+						Id:          connID2.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID2.String(),
+						CreatedAt:   time.Now(),
+						Credentials: []Credential{},
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with credentials",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: []Credential{{}, {}},
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with credentials partial did",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 "),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: []Credential{{}, {}},
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with credentials partial did and attributes",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 birthday"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: []Credential{{}, {}},
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection with invalid did and valid attributes",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk birthday"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					{
+						Id:          connID.String(),
+						IssuerID:    did.String(),
+						UserID:      usrDID.String(),
+						CreatedAt:   time.Now(),
+						Credentials: []Credential{{}, {}},
+					},
+				},
+			},
+		},
+		{
+			name: "should return 0 connections with invalid did and invalid attributes",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk nothingValid here"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{},
+			},
+		},
+		{
+			name: "should return no connections, did not found",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk"),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{},
 			},
 		},
 		{
@@ -1832,20 +2068,16 @@ func TestServer_GetConnections(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
 					{
-						Connection: Connection{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID.String(),
+						CreatedAt: time.Now(),
 					},
 					{
-						Connection: Connection{
-							Id:        connID2.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: time.Now(),
-						},
+						Id:        connID2.String(),
+						IssuerID:  did.String(),
+						UserID:    usrDID2.String(),
+						CreatedAt: time.Now(),
 					},
 				},
 			},
@@ -1854,11 +2086,18 @@ func TestServer_GetConnections(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			addr := "/v1/connections"
-			if tc.request.Params.Query != nil {
-				addr += "?query=" + *tc.request.Params.Query
-			}
 
-			req, err := http.NewRequest(http.MethodGet, addr, nil)
+			parsedURL, err := url.Parse(addr)
+			require.NoError(t, err)
+			values := parsedURL.Query()
+			if tc.request.Params.Query != nil {
+				values.Add("query", *tc.request.Params.Query)
+			}
+			if tc.request.Params.Credentials != nil && *tc.request.Params.Credentials {
+				values.Add("credentials", "true")
+			}
+			parsedURL.RawQuery = values.Encode()
+			req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -1874,15 +2113,12 @@ func TestServer_GetConnections(t *testing.T) {
 				for i := range response {
 					if tc.expected.response[i].Credentials != nil {
 						require.NotNil(t, response[i].Credentials)
-						require.Equal(t, len(*tc.expected.response[i].Credentials), len(*response[i].Credentials))
-						for j := range *tc.expected.response[i].Credentials {
-							validateCredential(t, (*tc.expected.response[i].Credentials)[j], (*response[i].Credentials)[j])
-						}
+						require.Equal(t, len(tc.expected.response[i].Credentials), len(response[i].Credentials))
 					}
-					assert.Equal(t, tc.expected.response[i].Connection.Id, response[i].Connection.Id)
-					assert.Equal(t, tc.expected.response[i].Connection.IssuerID, response[i].Connection.IssuerID)
-					assert.Equal(t, tc.expected.response[i].Connection.UserID, response[i].Connection.UserID)
-					assert.InDelta(t, tc.expected.response[i].Connection.CreatedAt.Unix(), response[i].Connection.CreatedAt.Unix(), 10)
+					assert.Equal(t, tc.expected.response[i].Id, response[i].Id)
+					assert.Equal(t, tc.expected.response[i].IssuerID, response[i].IssuerID)
+					assert.Equal(t, tc.expected.response[i].UserID, response[i].UserID)
+					assert.InDelta(t, tc.expected.response[i].CreatedAt.Unix(), response[i].CreatedAt.Unix(), 10)
 				}
 			}
 		})
@@ -2247,6 +2483,233 @@ func TestServer_CreateLink(t *testing.T) {
 				assert.NoError(t, err)
 			case http.StatusBadRequest:
 				var response CreateCredential400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			}
+		})
+	}
+}
+
+func TestServer_DeleteLink(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(linkRepository)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	assert.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	assert.NoError(t, err)
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response DeleteLinkResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		id       uuid.UUID
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			id:   link.ID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Claim link does not exist",
+			auth: authOk,
+			id:   uuid.New(),
+			expected: expected{
+				response: DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Happy path",
+			auth: authOk,
+			id:   link.ID,
+			expected: expected{
+				response: DeleteLink200JSONResponse{Message: "link deleted"},
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/links/%s", tc.id)
+
+			req, err := http.NewRequest(http.MethodDelete, url, tests.JSONBody(t, nil))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GenericMessage
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				expected, ok := tc.expected.response.(DeleteLink200JSONResponse)
+				assert.True(t, ok)
+				assert.Equal(t, expected.Message, response.Message)
+
+			case http.StatusBadRequest:
+				var response DeleteLink400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			}
+		})
+	}
+}
+
+func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(linkRepository)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	iden2, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	assert.NoError(t, err)
+
+	did2, err := core.ParseDID(iden2.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did2
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	assert.NoError(t, err)
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response DeleteLinkResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		id       uuid.UUID
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			id:   link.ID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Claim link does not exist for a did",
+			auth: authOk,
+			id:   link.ID,
+			expected: expected{
+				response: DeleteLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/links/%s", tc.id)
+
+			req, err := http.NewRequest(http.MethodDelete, url, tests.JSONBody(t, nil))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GenericMessage
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				expected, ok := tc.expected.response.(DeleteLink200JSONResponse)
+				assert.True(t, ok)
+				assert.Equal(t, expected.Message, response.Message)
+
+			case http.StatusBadRequest:
+				var response DeleteLink400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			}

@@ -1,8 +1,8 @@
 import axios from "axios";
 import { z } from "zod";
 
+import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
 import { Env } from "src/domain";
-import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/utils/adapters";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
@@ -18,13 +18,11 @@ export interface Credential {
 }
 
 export interface Connection {
-  connection: {
-    createdAt: Date;
-    id: string;
-    issuerID: string;
-    userID: string;
-  };
-  credentials?: Credential[];
+  createdAt: Date;
+  credentials: Credential[];
+  id: string;
+  issuerID: string;
+  userID: string;
 }
 
 export async function getConnection({
@@ -100,13 +98,11 @@ export const credential = StrictSchema<Credential>()(
 
 export const connection = StrictSchema<Connection>()(
   z.object({
-    connection: z.object({
-      createdAt: z.coerce.date(),
-      id: z.string(),
-      issuerID: z.string(),
-      userID: z.string(),
-    }),
-    credentials: z.array(credential).optional(),
+    createdAt: z.coerce.date(),
+    credentials: z.array(credential),
+    id: z.string(),
+    issuerID: z.string(),
+    userID: z.string(),
   })
 );
 

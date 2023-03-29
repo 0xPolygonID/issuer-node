@@ -2,8 +2,9 @@ import { Avatar, Card, Divider, Row, Space, Table, Tag, Tooltip, Typography } fr
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Connection, Credential, getConnections } from "src/adapters/api/connections";
 
+import { APIError } from "src/adapters/api";
+import { Connection, Credential, getConnections } from "src/adapters/api/connections";
 import { ReactComponent as IconUsers } from "src/assets/icons/users-01.svg";
 import { ConnectionsRowDropdown } from "src/components/connections/ConnectionsRowDropdown";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -11,9 +12,8 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
-import { APIError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { CONNECTIONS, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function Connections() {
@@ -28,36 +28,32 @@ export function Connections() {
 
   const tableContents: ColumnsType<Connection> = [
     {
-      dataIndex: "connection",
+      dataIndex: "userID",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (connection: Connection["connection"]) => (
-        <Tooltip placement="topLeft" title={connection.userID.replace(/did:\w*:\w*:\w+:/, "")}>
-          <Typography.Text strong>
-            {connection.userID.replace(/did:\w*:\w*:\w+:/, "")}
-          </Typography.Text>
+      render: (userID: Connection["userID"]) => (
+        <Tooltip placement="topLeft" title={userID}>
+          <Typography.Text strong>{userID.replace(/did:\w*:\w*:\w+:/, "")}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ connection: { id: a } }, { connection: { id: b } }) => a.localeCompare(b),
-      title: IDENTIFIER,
+      sorter: ({ id: a }, { id: b }) => a.localeCompare(b),
+      title: "Identifier",
     },
     {
       dataIndex: "credentials",
       key: "credentials",
-      render: (credentials: Credential[] | undefined) =>
-        credentials
-          ? [...credentials]
-              .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
-              .map((credential) => (
-                <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
-              ))
-          : null,
+      render: (credentials: Credential[]) =>
+        [...credentials]
+          .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
+          .map((credential) => (
+            <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
+          )),
       title: "Issued credentials",
     },
     {
-      dataIndex: "connection",
-      key: "dropdown",
-      render: ({ id }: { id: string }) => <ConnectionsRowDropdown id={id} />,
+      dataIndex: "active",
+      key: "active",
+      render: ({ id }: Connection) => <ConnectionsRowDropdown id={id} />,
       width: 55,
     },
   ];
@@ -73,10 +69,7 @@ export function Connections() {
         signal,
       });
       if (response.isSuccessful) {
-        setConnections({
-          data: response.data,
-          status: "successful",
-        });
+        setConnections({ data: response.data, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {
           setConnections({ error: response.error, status: "failed" });
@@ -114,6 +107,7 @@ export function Connections() {
   }, [fetchConnections]);
 
   const connectionsList = isAsyncTaskDataAvailable(connections) ? connections.data : [];
+
   return (
     <SiderLayoutContent
       description="Connections are established via a secure channel upon issuing credentials to users."

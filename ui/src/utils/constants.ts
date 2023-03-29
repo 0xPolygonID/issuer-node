@@ -2,7 +2,6 @@ import { TabsCredentialsIDs } from "src/domain";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
-export const AUTH_CONTEXT_NOT_READY_MESSAGE = "Auth Context is not ready yet";
 export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
@@ -18,8 +17,6 @@ export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 
 export const API_VERSION = "v1";
-
-export const AUTH_TOKEN_KEY = "authToken";
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 

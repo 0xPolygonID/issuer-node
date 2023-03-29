@@ -74,3 +74,77 @@ func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaR
 	require.NoError(t, store.Save(ctx, s))
 	return s.ID
 }
+
+func TestGetLinkById(t *testing.T) {
+	ctx := context.Background()
+	didStr := "did:polygonid:polygon:mumbai:2qP8C6HFRANi79HDdnak4b2QJeGewKWbQBYakNXJTh"
+	schemaStore := repositories.NewSchema(*storage)
+
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	assert.NoError(t, err)
+
+	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
+
+	linkStore := repositories.NewLink(*storage)
+
+	did := core.DID{}
+	require.NoError(t, did.SetString(didStr))
+
+	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
+	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
+	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false,
+		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
+
+	linkID, err := linkStore.Save(ctx, linkToSave)
+	assert.NoError(t, err)
+	assert.NotNil(t, linkID)
+	linkFetched, err := linkStore.GetByID(ctx, *linkID)
+	assert.NoError(t, err)
+	assert.NotNil(t, linkFetched)
+
+	_, err = linkStore.GetByID(ctx, uuid.New())
+	assert.Error(t, err)
+	assert.Equal(t, repositories.ErrLinkDoesNotExist, err)
+}
+
+func TestDeleteLink(t *testing.T) {
+	ctx := context.Background()
+	didStr := "did:polygonid:polygon:mumbai:2qJ8RWkEpMtsAwnACo5oUktJSeS1wqPfnXMF99Y4Hj"
+	didStr2 := "did:polygonid:polygon:mumbai:2qPKWbeUSqzk6zGx4cv1EspaDMJXu2suprCr6yHfkQ"
+	schemaStore := repositories.NewSchema(*storage)
+
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	assert.NoError(t, err)
+
+	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr2)
+	assert.NoError(t, err)
+
+	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
+
+	linkStore := repositories.NewLink(*storage)
+
+	did := core.DID{}
+	require.NoError(t, did.SetString(didStr))
+
+	did2 := core.DID{}
+	require.NoError(t, did2.SetString(didStr2))
+
+	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
+	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
+	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false,
+		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
+
+	linkID, err := linkStore.Save(ctx, linkToSave)
+	assert.NoError(t, err)
+	assert.NotNil(t, linkID)
+
+	err = linkStore.Delete(ctx, *linkID, did2)
+	assert.Error(t, err)
+
+	err = linkStore.Delete(ctx, *linkID, did)
+	assert.NoError(t, err)
+
+	err = linkStore.Delete(ctx, uuid.New(), did)
+	assert.Error(t, err)
+	assert.Equal(t, repositories.ErrLinkDoesNotExist, err)
+}

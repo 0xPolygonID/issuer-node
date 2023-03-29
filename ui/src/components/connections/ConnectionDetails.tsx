@@ -3,18 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Spinner } from "../shared/Spinner";
 import { TableCard } from "../shared/TableCard";
-import { Connection, getConnection } from "src/adapters/api/connections";
 
+import { APIError } from "src/adapters/api";
+import { Connection, getConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
-
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
-import { APIError } from "src/utils/adapters";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IDENTIFIER, ISSUE_CREDENTIAL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -103,13 +102,13 @@ export function ConnectionDetails() {
                         <Typography.Text
                           copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
                         >
-                          {connection.data.connection.userID}
+                          {connection.data.userID}
                         </Typography.Text>
                       </Row>
                       <Row justify="space-between">
                         <Typography.Text type="secondary">Creation date</Typography.Text>
                         <Typography.Text>
-                          {formatDate(connection.data.connection.createdAt, true)}
+                          {formatDate(connection.data.createdAt, true)}
                         </Typography.Text>
                       </Row>
                     </Card>
