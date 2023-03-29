@@ -1,8 +1,6 @@
 import { Avatar, Button, Card, Row, Space, Tag, Typography, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Spinner } from "../shared/Spinner";
-import { TableCard } from "../shared/TableCard";
 
 import { APIError } from "src/adapters/api";
 import { Connection, getConnection } from "src/adapters/api/connections";
@@ -12,7 +10,9 @@ import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-ca
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
+import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
+import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IDENTIFIER, ISSUE_CREDENTIAL } from "src/utils/constants";
@@ -81,7 +81,7 @@ export function ConnectionDetails() {
             switch (connection.status) {
               case "pending":
               case "loading": {
-                return <Spinner />;
+                return <LoadingResult />;
               }
               case "failed": {
                 return <ErrorResult error={connection.error.message} />;
@@ -118,41 +118,43 @@ export function ConnectionDetails() {
             }
           })()}
         </Card>
-        <TableCard
-          defaultContents={
-            <>
-              <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
+        {isAsyncTaskDataAvailable(connection) && (
+          <TableCard
+            defaultContents={
+              <>
+                <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
 
-              <Typography.Text strong>No credentials issued</Typography.Text>
+                <Typography.Text strong>No credentials issued</Typography.Text>
 
-              <Typography.Text type="secondary">
-                Credentials for this connection will be listed here.
-              </Typography.Text>
-            </>
-          }
-          isLoading={isAsyncTaskStarting(connection)}
-          onSearch={onClickToImplement}
-          query="To be implemented"
-          searchPlaceholder="Search credentials, attributes..."
-          showDefaultContents={connection.status === "successful" && credentialsList.length === 0}
-          table={<></>}
-          title={
-            <Row align="middle" justify="space-between">
-              <Space align="end" size="middle">
-                <Card.Meta title={ISSUE_CREDENTIAL} />
+                <Typography.Text type="secondary">
+                  Credentials for this connection will be listed here.
+                </Typography.Text>
+              </>
+            }
+            isLoading={isAsyncTaskStarting(connection)}
+            onSearch={onClickToImplement}
+            query="To be implemented"
+            searchPlaceholder="Search credentials, attributes..."
+            showDefaultContents={connection.status === "successful" && credentialsList.length === 0}
+            table={<></>}
+            title={
+              <Row align="middle" justify="space-between">
+                <Space align="end" size="middle">
+                  <Card.Meta title={ISSUE_CREDENTIAL} />
 
-                <Tag color="blue">{credentialsList.length}</Tag>
-              </Space>
-              <Button
-                icon={<IconCreditCardPlus />}
-                onClick={() => void message.error("To be implemented")}
-                type="primary"
-              >
-                Issue directly
-              </Button>
-            </Row>
-          }
-        />
+                  <Tag color="blue">{credentialsList.length}</Tag>
+                </Space>
+                <Button
+                  icon={<IconCreditCardPlus />}
+                  onClick={() => void message.error("To be implemented")}
+                  type="primary"
+                >
+                  Issue directly
+                </Button>
+              </Row>
+            }
+          />
+        )}
       </Space>
     </SiderLayoutContent>
   );
