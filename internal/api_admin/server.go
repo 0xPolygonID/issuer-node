@@ -321,7 +321,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 
 	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof)
-	resp, err := s.claimService.CreateClaim(ctx, req)
+	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil

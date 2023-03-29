@@ -2,12 +2,12 @@ package ports
 
 import (
 	"context"
-	"github.com/polygonid/sh-id-platform/internal/db"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
 // LinkRepository the interface that defines the available methods

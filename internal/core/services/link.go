@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/polygonid/sh-id-platform/internal/db"
 	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -28,12 +29,15 @@ var (
 	ErrLinkAlreadyInactive = errors.New("link is already inactive")
 	// ErrLinkAlreadyExpired - link already expired
 	ErrLinkAlreadyExpired = errors.New("can not issue a credential for an expired link")
+	// ErrLinkMaxExceeded - link max exceeded
+	ErrLinkMaxExceeded = errors.New("can not issue a credential for an expired link")
 )
 
 // Link - represents a link in the issuer node
 type Link struct {
 	storage          *db.Storage
 	claimsService    ports.ClaimsService
+	claimRepository  ports.ClaimsRepository
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
 	loaderFactory    loader.Factory
@@ -41,10 +45,11 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
+		claimRepository:  claimRepository,
 		linkRepository:   linkRepository,
 		schemaRepository: schemaRepository,
 		loaderFactory:    loaderFactory,
@@ -168,11 +173,31 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		common.ToPointer(link.CredentialSignatureProof),
 		common.ToPointer(link.CredentialMTPProof))
 
-	claimIssued, err := ls.claimsService.CreateClaim(ctx, claimReq)
+	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
 	if err != nil {
 		log.Error(ctx, "Can not create the claim", err.Error())
 		return err
 	}
+
+	var credentialIssuedID uuid.UUID
+	err = ls.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			link.Issued += 1
+			_, err := ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
+			if err != nil {
+				return err
+			}
+
+			credentialIssuedID, err = ls.claimRepository.Save(ctx, ls.storage.Pgx, credentialIssued)
+			if err != nil {
+				return err
+			}
+			return nil
+		})
+	if err != nil {
+		return err
+	}
+	credentialIssued.ID = credentialIssuedID
 
 	r := &ports.LinkQRCodeMessage{
 		ID:       uuid.NewString(),
@@ -182,7 +207,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		Body: ports.CredentialsLinkMessageBody{
 			URL: fmt.Sprintf("%s/api/v1/agent", hostURL),
 			Credentials: []ports.CredentialLink{{
-				ID:          claimIssued.ID.String(),
+				ID:          credentialIssued.ID.String(),
 				Description: schema.Type,
 			}},
 		},
@@ -210,5 +235,17 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 
 		return ErrLinkAlreadyExpired
 	}
+
+	if link.MaxIssuance != nil && *link.MaxIssuance <= link.Issued {
+		log.Debug(ctx, "can not dispatch more claims for this link")
+		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStateError(ErrLinkMaxExceeded).String())
+		if err != nil {
+			log.Error(ctx, "can not set the sate", err)
+			return err
+		}
+
+		return ErrLinkMaxExceeded
+	}
+
 	return nil
 }

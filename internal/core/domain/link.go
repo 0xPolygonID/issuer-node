@@ -56,6 +56,7 @@ type Link struct {
 	CredentialMTPProof       bool
 	CredentialAttributes     []CredentialAttributes
 	Active                   bool
+	Issued                   int
 }
 
 // NewLink - Constructor
@@ -71,6 +72,7 @@ func NewLink(issuerDID core.DID, maxIssuance *int, validUntil *time.Time, schema
 		CredentialMTPProof:       CredentialMTPProof,
 		CredentialAttributes:     credentialAttributes,
 		Active:                   true,
+		Issued:                   0,
 	}
 }
 

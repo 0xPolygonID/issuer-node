@@ -71,7 +71,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	expiration := int64(12345)
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.CreateClaim(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	assert.NoError(t, err)
 
 	type testConfig struct {

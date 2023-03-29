@@ -1185,13 +1185,13 @@ func TestServer_GetCredential(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim1, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
-	createdClaim2, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
-	createdClaim3, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -1378,13 +1378,13 @@ func TestServer_GetCredentials(t *testing.T) {
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	day0 := time.Time{}.Unix()
 	future := time.Now().Add(1000 * time.Hour).Unix()
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
-	revoked, err := claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	id, err := core.ParseDID(*revoked.Identifier)
@@ -1754,9 +1754,9 @@ func TestServer_GetConnections(t *testing.T) {
 	}
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
-	_, err = claimsService.CreateClaim(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	usrDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -2317,7 +2317,7 @@ func TestServer_CreateLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2539,7 +2539,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2687,7 +2687,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2804,7 +2804,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 

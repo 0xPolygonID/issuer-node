@@ -113,7 +113,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true))
 
-	resp, err := s.claimService.CreateClaim(ctx, req)
+	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
