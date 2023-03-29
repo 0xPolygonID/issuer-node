@@ -61,7 +61,12 @@ func main() {
 		return
 	}
 	cachex := cache.NewRedisCache(rdb)
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	var schemaLoader loader.Factory
+	if cfg.SchemaCache == nil || !*cfg.SchemaCache {
+		schemaLoader = loader.HTTPFactory
+	} else {
+		schemaLoader = loader.CachedFactory(loader.HTTPFactory, cachex)
+	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
