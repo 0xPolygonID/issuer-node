@@ -36,7 +36,12 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 		return nil, err
 	}
 
-	credentialAttributes, err = jsonschema.ValidateAndConvert(ctx, ls.loaderFactory(schema.URL), credentialAttributes)
+	remoteSchema, err := jsonschema.Load(ctx, ls.loaderFactory(schema.URL))
+	if err != nil {
+		return nil, ErrLoadingSchema
+	}
+
+	credentialAttributes, err = remoteSchema.ValidateAndConvert(credentialAttributes)
 	if err != nil {
 		return nil, err
 	}

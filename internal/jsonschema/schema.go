@@ -17,12 +17,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
-var (
-	// ErrProcessSchema - something wrong happened when the schema loaded is processed
-	ErrProcessSchema = errors.New("cannot process schema")
-	// ErrLoadingSchema - something wrong happened we try to download the schema.
-	ErrLoadingSchema = errors.New("cannot load schema") // ErrLoadingSchema means the system cannot load the schema file
-)
+// ErrProcessSchema - something wrong happened when the schema loaded is processed
+var ErrProcessSchema = errors.New("cannot process schema")
 
 // Attributes is a list of Attribute entities
 type Attributes []Attribute
@@ -133,12 +129,8 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 }
 
 // ValidateAndConvert - validates an array of attributes against the schema. Returns a new array with the credential attributes types converted.
-func ValidateAndConvert(ctx context.Context, loader loader.Loader, credentialAttributes []domain.CredentialAttributes) ([]domain.CredentialAttributes, error) {
-	remoteSchema, err := Load(ctx, loader)
-	if err != nil {
-		return nil, ErrLoadingSchema
-	}
-	schemaAttributes, err := remoteSchema.AttributeNames()
+func (s *JSONSchema) ValidateAndConvert(credentialAttributes []domain.CredentialAttributes) ([]domain.CredentialAttributes, error) {
+	schemaAttributes, err := s.AttributeNames()
 	if err != nil {
 		return nil, ErrProcessSchema
 	}
