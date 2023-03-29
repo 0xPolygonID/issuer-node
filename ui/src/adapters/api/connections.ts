@@ -24,12 +24,12 @@ export interface Connection {
 }
 
 export async function getConnections({
-  credentials = false,
+  credentials,
   env,
   params: { query },
   signal,
 }: {
-  credentials?: boolean;
+  credentials: boolean;
   env: Env;
   params: {
     query?: string;
