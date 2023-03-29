@@ -500,7 +500,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 
 	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
 	if err != nil {
-		log.Debug(ctx, "error issuing the claim", err.Error())
+		log.Debug(ctx, "error issuing the claim", "error", err.Error())
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 

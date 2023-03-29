@@ -25,6 +25,8 @@ var (
 	ErrLinkAlreadyActive = errors.New("link is already active")
 	// ErrLinkAlreadyInactive link is already inactive
 	ErrLinkAlreadyInactive = errors.New("link is already inactive")
+	// ErrLinkAlreadyExpired - link already expired
+	ErrLinkAlreadyExpired = errors.New("can not issue a credential for an expired link")
 )
 
 // Link - represents a link in the issuer node
@@ -133,10 +135,17 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error {
 	link, err := ls.linkRepository.GetByID(ctx, linkID)
 	if err != nil {
+		log.Error(ctx, "can not fetch the link", err)
 		return err
 	}
+
+	if err := ls.validate(ctx, sessionID, link, linkID); err != nil {
+		return err
+	}
+
 	schema, err := ls.schemaRepository.GetByID(ctx, link.SchemaID)
 	if err != nil {
+		log.Error(ctx, "can not fetch the schema", err)
 		return err
 	}
 
@@ -180,8 +189,23 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 
 	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStateDone(r))
 	if err != nil {
+		log.Error(ctx, "can not set the sate", err)
 		return err
 	}
 
+	return nil
+}
+
+func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Link, linkID uuid.UUID) error {
+	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
+		log.Debug(ctx, "can not issue a credential for an expired link")
+		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStateError(ErrLinkAlreadyExpired).String())
+		if err != nil {
+			log.Error(ctx, "can not set the sate", err)
+			return err
+		}
+
+		return ErrLinkAlreadyExpired
+	}
 	return nil
 }

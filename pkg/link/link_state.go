@@ -10,6 +10,8 @@ import (
 const (
 	// StatusPending - status pending
 	StatusPending = "pending"
+	// StatusError - status error
+	StatusError = "error"
 	// StatusDone - status done
 	StatusDone = "done"
 )
@@ -36,12 +38,13 @@ func CredentialStateCacheKey(linkID, sessionID string) string {
 	return fmt.Sprintf("credential_link_%s_%s", linkID, sessionID)
 }
 
-//	func NewOfferClaimStateError(err error) *State {
-//		return &State{
-//			Status:  OfferClaimStatusError,
-//			Message: err.Error(),
-//		}
-//	}
+// NewStateError - NewStateError
+func NewStateError(err error) *State {
+	return &State{
+		Status:  StatusError,
+		Message: err.Error(),
+	}
+}
 
 // NewStateDone - TODO
 func NewStateDone(qrcode *ports.LinkQRCodeMessage) string {
