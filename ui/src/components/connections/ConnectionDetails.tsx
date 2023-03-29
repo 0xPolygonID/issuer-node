@@ -68,6 +68,7 @@ export function ConnectionDetails() {
     isAsyncTaskDataAvailable(connection) && connection.data.credentials
       ? connection.data.credentials
       : [];
+
   return (
     <SiderLayoutContent
       description="View connection information, credential attribute data. Revoke and delete issued credentials."
