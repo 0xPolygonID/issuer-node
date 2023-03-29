@@ -51,9 +51,9 @@ export function Connections() {
       title: "Issued credentials",
     },
     {
-      dataIndex: "active",
-      key: "active",
-      render: ({ id }: Connection) => <ConnectionsRowDropdown id={id} />,
+      dataIndex: "id",
+      key: "id",
+      render: (id: Connection["id"]) => <ConnectionsRowDropdown id={id} />,
       width: 55,
     },
   ];
