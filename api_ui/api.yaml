@@ -465,6 +465,39 @@ paths:
           $ref: '#/components/responses/500'
 
   /v1/credentials/links/{id}:
+    patch:
+      summary: Endpoint to activate|deactivate a link
+      operationId: AcivateLink
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - active
+              properties:
+                active:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Link updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
     delete:
       summary: Endpoint to delete a link
       operationId: DeleteLink
@@ -485,6 +518,7 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+
   #others:
   /:
     get:

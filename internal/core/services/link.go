@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +10,13 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+)
+
+var (
+	// ErrLinkAlreadyActive link is already active
+	ErrLinkAlreadyActive = errors.New("link is already active")
+	// ErrLinkAlreadyInactive link is already inactive
+	ErrLinkAlreadyInactive = errors.New("link is already inactive")
 )
 
 // Link - represents a link in the issuer node
@@ -30,6 +38,26 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 		return nil, err
 	}
 	return link, nil
+}
+
+// Activate - activates or deactivates a credential link
+func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) error {
+	link, err := ls.linkRepository.GetByID(ctx, linkID)
+	if err != nil {
+		return err
+	}
+
+	if link.Active && active {
+		return ErrLinkAlreadyActive
+	}
+
+	if !link.Active && !active {
+		return ErrLinkAlreadyInactive
+	}
+
+	link.Active = active
+	_, err = ls.linkRepository.Save(ctx, link)
+	return err
 }
 
 // Delete - delete a link by id
