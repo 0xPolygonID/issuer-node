@@ -41,23 +41,24 @@ export function Connections() {
     },
     {
       dataIndex: "credentials",
+      ellipsis: { showTitle: false },
       key: "credentials",
-      render: (credentials: Credential[]) =>
-        [...credentials]
-          .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
-          .map((credential) => (
-            <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
-          )),
+      render: (credentials: Credential[]) => (
+        <Space>
+          {[...credentials]
+            .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
+            .map((credential) => (
+              <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
+            ))}
+        </Space>
+      ),
       title: "Issued credentials",
     },
     {
       dataIndex: "active",
       key: "active",
-      render: () => (
-        <Row justify="end">
-          <ConnectionsRowDropdown />
-        </Row>
-      ),
+      render: () => <ConnectionsRowDropdown />,
+      width: 55,
     },
   ];
 
@@ -65,6 +66,7 @@ export function Connections() {
     async (signal: AbortSignal) => {
       setConnections({ status: "loading" });
       const response = await getConnections({
+        credentials: true,
         env,
         params: {
           query: queryParam || undefined,
