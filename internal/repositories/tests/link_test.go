@@ -33,13 +33,13 @@ func TestSaveLink(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false,
+	linkToSave := domain.NewLink(did, common.ToPointer(10), &validUntil, schemaID, &credentialExpiration, true, false,
 		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
 
 	linkID, err := linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
-	linkFetched, err := linkStore.GetByID(ctx, *linkID)
+	linkFetched, err := linkStore.GetByID(ctx, did, *linkID)
 	assert.NoError(t, err)
 	assert.Equal(t, linkToSave.Active, linkFetched.Active)
 	assert.Equal(t, linkToSave.MaxIssuance, linkFetched.MaxIssuance)
@@ -98,11 +98,11 @@ func TestGetLinkById(t *testing.T) {
 	linkID, err := linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
-	linkFetched, err := linkStore.GetByID(ctx, *linkID)
+	linkFetched, err := linkStore.GetByID(ctx, did, *linkID)
 	assert.NoError(t, err)
 	assert.NotNil(t, linkFetched)
 
-	_, err = linkStore.GetByID(ctx, uuid.New())
+	_, err = linkStore.GetByID(ctx, did, uuid.New())
 	assert.Error(t, err)
 	assert.Equal(t, repositories.ErrLinkDoesNotExist, err)
 }

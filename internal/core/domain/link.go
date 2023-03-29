@@ -16,6 +16,12 @@ type CredentialAttributes struct {
 	Value string `json:"value"`
 }
 
+const (
+	linkActive   = "active"   // LinkActive Link is active and can be used
+	linkInactive = "inactive" // LinkInactive Link is inactive
+	LinkExceed   = "exceed"   // LinkExceed link usage exceeded.
+)
+
 // LinkCoreDID - represents a credential offer ID
 type LinkCoreDID core.DID
 
@@ -32,6 +38,31 @@ type Link struct {
 	CredentialMTPProof       bool
 	CredentialAttributes     []CredentialAttributes
 	Active                   bool
+	Schema                   *Schema
+	IssuedClaims             int // TODO: Give a value when link redemption is implemented
+}
+
+// Status returns the status of the link based on the Active field, the number of issued claims or whether is expired or not
+// If active is set to false, return "inactive"
+// If maxIssuance is set and bypassed, returns "exceed"
+// If validUntil is set and bypassed, returns ""exceed"
+// Otherwise return active.
+func (l *Link) Status() string {
+	if !l.Active {
+		return linkInactive
+	}
+	if l.ValidUntil != nil && l.ValidUntil.Before(time.Now()) {
+		return LinkExceed
+	}
+	if l.MaxIssuance != nil {
+		if l.IssuedClaims == *l.MaxIssuance {
+			return linkInactive
+		}
+		if l.IssuedClaims > *l.MaxIssuance {
+			return LinkExceed
+		}
+	}
+	return linkActive
 }
 
 // NewLink - Constructor

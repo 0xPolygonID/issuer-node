@@ -134,3 +134,21 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 	return msg
 }
+
+func getLinkResponse(link *domain.Link) GetLink200JSONResponse {
+	attrs := make([]LinkRequestAttributesType, len(link.CredentialAttributes))
+	for i, attr := range link.CredentialAttributes {
+		attrs[i].Name, attrs[i].Value = attr.Name, attr.Value
+	}
+	return GetLink200JSONResponse{
+		Active:       link.Active,
+		Attributes:   attrs,
+		Expiration:   link.CredentialExpiration,
+		Id:           link.ID,
+		IssuedClaims: link.IssuedClaims, // TODO: Give a value when link redemption is implemented
+		MaxIssuance:  link.MaxIssuance,
+		SchemaType:   link.Schema.URL,
+		SchemaUrl:    link.Schema.Type,
+		Status:       LinkStatus(link.Status()),
+	}
+}

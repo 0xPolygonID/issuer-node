@@ -428,17 +428,7 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
 		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
-	return GetLink200JSONResponse{
-		Active:       link.Active,
-		Attributes:   nil,
-		Expiration:   link.CredentialExpiration,
-		Id:           link.ID,
-		IssuedClaims: 0,
-		MaxIssuance:  link.MaxIssuance,
-		SchemaType:   "",
-		SchemaUrl:    "",
-		Status:       "",
-	}, nil
+	return getLinkResponse(link), nil
 }
 
 // DeleteLink - delete a link
