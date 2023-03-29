@@ -100,9 +100,15 @@ export function ConnectionDetails() {
                       <Row justify="space-between">
                         <Typography.Text type="secondary">{IDENTIFIER}</Typography.Text>
                         <Typography.Text
-                          copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
+                          copyable={{
+                            icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+                            text: connection.data.userID,
+                          }}
                         >
-                          {connection.data.userID}
+                          {connection.data.userID.replace(
+                            /(did:\w*:\w*:\w+:.{5}).+(.{5})$/,
+                            "$1...$2"
+                          )}
                         </Typography.Text>
                       </Row>
                       <Row justify="space-between">
