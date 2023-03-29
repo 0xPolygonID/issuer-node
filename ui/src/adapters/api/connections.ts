@@ -3,11 +3,9 @@ import { z } from "zod";
 
 import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
 import { Env } from "src/domain";
+import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
-
-const buildAuthorizationHeader = (env: Env) =>
-  `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
 
 //TODO move it to credentials when is properly cleaned
 export interface Credential {
