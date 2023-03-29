@@ -53,8 +53,11 @@ export function Connections() {
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Connection["id"]) => <ConnectionsRowDropdown id={id} />,
-      width: 55,
+      render: (id: Connection["id"]) => (
+        <Row justify="end">
+          <ConnectionsRowDropdown id={id} />
+        </Row>
+      ),
     },
   ];
 
@@ -62,6 +65,7 @@ export function Connections() {
     async (signal: AbortSignal) => {
       setConnections({ status: "loading" });
       const response = await getConnections({
+        credentials: true,
         env,
         params: {
           query: queryParam || undefined,
