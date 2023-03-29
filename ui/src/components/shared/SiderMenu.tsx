@@ -26,7 +26,16 @@ export function SiderMenu() {
   const schemasPath = ROUTES.schemas.path;
 
   const getSelectedKey = (): string[] => {
-    if (matchRoutes([{ path: schemasPath }, { path: ROUTES.importSchema.path }], pathname)) {
+    if (
+      matchRoutes(
+        [
+          { path: schemasPath },
+          { path: ROUTES.importSchema.path },
+          { path: ROUTES.schemaDetails.path },
+        ],
+        pathname
+      )
+    ) {
       return [schemasPath];
     } else if (
       matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)

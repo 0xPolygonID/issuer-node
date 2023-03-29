@@ -9,6 +9,7 @@ import { ScanCredentialLink } from "src/components/credentials/ScanCredentialLin
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
+import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
 import { Layout, ROUTES, RouteID } from "src/routes";
@@ -22,6 +23,7 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
   notFound: NotFound,
+  schemaDetails: SchemaDetails,
   schemas: Schemas,
 };
 

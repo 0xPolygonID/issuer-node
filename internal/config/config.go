@@ -14,6 +14,7 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/spf13/viper"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
@@ -36,8 +37,8 @@ type Configuration struct {
 	Circuit                      Circuit            `mapstructure:"Circuit"`
 	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
 	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
-
-	APIUI APIUI `mapstructure:"APIUI"`
+	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
+	APIUI                        APIUI              `mapstructure:"APIUI"`
 }
 
 // Database has the database configuration
@@ -119,13 +120,14 @@ type HTTPBasicAuth struct {
 
 // APIUI - APIUI backend service configuration.
 type APIUI struct {
-	ServerPort int       `mapstructure:"ServerPort" tip:"Server UI API backend port"`
-	ServerURL  string    `mapstructure:"ServerUrl" tip:"Server UI API backend url"`
-	APIUIAuth  APIUIAuth `mapstructure:"APIUIAuth" tip:"Server UI API backend basic auth credentials"`
-	IssuerName string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
-	IssuerLogo string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
-	Issuer     string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID  core.DID  `mapstructure:"-"`
+	ServerPort  int       `mapstructure:"ServerPort" tip:"Server UI API backend port"`
+	ServerURL   string    `mapstructure:"ServerUrl" tip:"Server UI API backend url"`
+	APIUIAuth   APIUIAuth `mapstructure:"APIUIAuth" tip:"Server UI API backend basic auth credentials"`
+	IssuerName  string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
+	IssuerLogo  string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
+	Issuer      string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
+	IssuerDID   core.DID  `mapstructure:"-"`
+	SchemaCache *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -317,6 +319,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Circuit.Path", "ISSUER_CIRCUIT_PATH")
 
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
+	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -325,6 +328,7 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IssuerName", "ISSUER_API_UI_ISSUER_NAME")
 	_ = viper.BindEnv("APIUI.IssuerLogo", "ISSUER_API_UI_ISSUER_LOGO")
 	_ = viper.BindEnv("APIUI.IssuerDID", "ISSUER_API_UI_ISSUER_DID")
+	_ = viper.BindEnv("APIUI.SchemaCache", "ISSUER_API_UI_SCHEMA_CACHE")
 
 	viper.AutomaticEnv()
 }
@@ -430,6 +434,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
 	}
 
+	if cfg.SchemaCache == nil {
+		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
+		cfg.SchemaCache = common.ToPointer(false)
+	}
+
 	if cfg.APIUI.ServerPort == 0 {
 		log.Info(ctx, "ISSUER_API_UI_SERVER_PORT value is missing")
 	}
@@ -452,6 +461,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 
 	if cfg.APIUI.Issuer == "" {
 		log.Info(ctx, "ISSUER_API_UI_ISSUER_DID value is missing")
+	}
+
+	if cfg.APIUI.SchemaCache == nil {
+		log.Info(ctx, "ISSUER_API_UI_SCHEMA_CACHE is missing and the server set up it as false")
+		cfg.APIUI.SchemaCache = common.ToPointer(false)
 	}
 }
 

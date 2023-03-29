@@ -2307,6 +2307,7 @@ func TestServer_CreateLink(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	linkRepository := repositories.NewLink(*storage)
+	schemaRespository := repositories.NewSchema(*storage)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
@@ -2315,7 +2316,7 @@ func TestServer_CreateLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(linkRepository)
+	linkService := services.NewLinkService(linkRepository, schemaRespository, loader.HTTPFactory)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2444,6 +2445,25 @@ func TestServer_CreateLink(t *testing.T) {
 			},
 		},
 		{
+			name: "Claim link wrong attribute type",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				LimitedClaims:       common.ToPointer(10),
+				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "true"}},
+				MtProof:             true,
+				SignatureProof:      true,
+			},
+			expected: expected{
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "error converting the attribute: documentType. Must be an integer"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "Claim link wrong schema id",
 			auth: authOk,
 			body: CreateLinkRequest{
@@ -2458,7 +2478,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema id not found"}},
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2490,7 +2510,7 @@ func TestServer_CreateLink(t *testing.T) {
 	}
 }
 
-func TestServer_DeleteLink(t *testing.T) {
+func TestServer_ActivateLink(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
@@ -2517,6 +2537,153 @@ func TestServer_DeleteLink(t *testing.T) {
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(linkRepository)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	assert.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	assert.NoError(t, err)
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response AcivateLinkResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		id       uuid.UUID
+		auth     func() (string, string)
+		body     AcivateLinkJSONBody
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			id:   link.ID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Claim link does not exist",
+			auth: authOk,
+			id:   uuid.New(),
+			body: AcivateLinkJSONBody{
+				Active: true,
+			},
+			expected: expected{
+				response: AcivateLink400JSONResponse{N400JSONResponse{Message: "link does not exist"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Claim link already activated",
+			auth: authOk,
+			id:   link.ID,
+			body: AcivateLinkJSONBody{
+				Active: true,
+			},
+			expected: expected{
+				response: AcivateLink400JSONResponse{N400JSONResponse{Message: "link is already active"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Happy path",
+			auth: authOk,
+			id:   link.ID,
+			body: AcivateLinkJSONBody{
+				Active: false,
+			},
+			expected: expected{
+				response: AcivateLink200JSONResponse{Message: "Link updated"},
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "Claim link already deactivated",
+			auth: authOk,
+			id:   link.ID,
+			body: AcivateLinkJSONBody{
+				Active: false,
+			},
+			expected: expected{
+				response: AcivateLink400JSONResponse{N400JSONResponse{Message: "link is already inactive"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/links/%s", tc.id)
+
+			req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, tc.body))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GenericMessage
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				expected, ok := tc.expected.response.(AcivateLink200JSONResponse)
+				assert.True(t, ok)
+				assert.Equal(t, expected.Message, response.Message)
+
+			case http.StatusBadRequest:
+				var response AcivateLink400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.response, response)
+			}
+		})
+	}
+}
+
+func TestServer_DeleteLink(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	schemaRepository := repositories.NewSchema(*storage)
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(linkRepository, schemaRepository, loader.HTTPFactory)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
