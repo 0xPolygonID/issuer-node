@@ -149,7 +149,7 @@ func main() {
 		},
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(claimsService, linkRepository, schemaRepository, schemaLoader, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, linkRepository, schemaRepository, schemaLoader, sessionRepository)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)

@@ -33,7 +33,7 @@ func NewLink(conn db.Storage) ports.LinkRepository {
 	}
 }
 
-func (l link) Save(ctx context.Context, link *domain.Link) (*uuid.UUID, error) {
+func (l link) Save(ctx context.Context, conn db.Querier, link *domain.Link) (*uuid.UUID, error) {
 	pgAttrs := pgtype.JSONB{}
 	if err := pgAttrs.Set(link.CredentialAttributes); err != nil {
 		return nil, fmt.Errorf("cannot set schema attributes values: %w", err)
@@ -44,7 +44,7 @@ func (l link) Save(ctx context.Context, link *domain.Link) (*uuid.UUID, error) {
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO
 			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10 
 			RETURNING id`
-	err := l.conn.Pgx.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
+	err := conn.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
 		link.CredentialMTPProof, pgAttrs, link.Active).Scan(&id)
 
 	if err != nil && strings.Contains(err.Error(), `table "links" violates foreign key constraint "links_schemas_id_key"`) {

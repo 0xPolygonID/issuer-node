@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polygonid/sh-id-platform/internal/db"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ var (
 
 // Link - represents a link in the issuer node
 type Link struct {
+	storage          *db.Storage
 	claimsService    ports.ClaimsService
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
@@ -39,8 +41,9 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(claimsService ports.ClaimsService, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
 	return &Link{
+		storage:          storage,
 		claimsService:    claimsService,
 		linkRepository:   linkRepository,
 		schemaRepository: schemaRepository,
@@ -67,7 +70,7 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 	}
 
 	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialAttributes)
-	_, err = ls.linkRepository.Save(ctx, link)
+	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +93,7 @@ func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) err
 	}
 
 	link.Active = active
-	_, err = ls.linkRepository.Save(ctx, link)
+	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	return err
 }
 
