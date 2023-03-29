@@ -90,13 +90,13 @@ export function ConnectionDetails() {
               case "reloading": {
                 return (
                   <Space direction="vertical" size="middle">
-                    <Row justify="space-between">
+                    <Row align="middle" justify="space-between">
                       <Card.Meta title="Connection" />
                       <Button danger icon={<IconTrash />} onClick={onClickToImplement} type="text">
                         Delete connection
                       </Button>
                     </Row>
-                    <Card type="inner">
+                    <Card className="background-grey">
                       <Row justify="space-between">
                         <Typography.Text type="secondary">{IDENTIFIER}</Typography.Text>
                         <Typography.Text
