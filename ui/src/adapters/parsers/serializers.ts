@@ -64,16 +64,19 @@ const serializeCredentialFormAttribute = (
 
 export const serializeCredentialForm = (credentialForm: CredentialForm): CredentialIssuePayload => {
   const attributes = credentialForm.attributes.map(serializeCredentialFormAttribute);
-  const expirationDate =
-    credentialForm.expiration && dayjs(credentialForm.expiration).toISOString();
-  const claimLinkExpiration =
-    credentialForm.linkAccessibleUntil && credentialForm.linkAccessibleUntil.toISOString();
-  const limitedClaims = credentialForm.linkMaximumIssuance;
+  const expirationDate = credentialForm.expiration
+    ? dayjs(credentialForm.expiration).toISOString()
+    : null;
+  const claimLinkExpiration = credentialForm.linkAccessibleUntil
+    ? credentialForm.linkAccessibleUntil.toISOString()
+    : null;
+  const limitedClaims =
+    credentialForm.linkMaximumIssuance !== undefined ? credentialForm.linkMaximumIssuance : null;
 
   return {
     attributes,
-    ...(expirationDate ? { expirationDate } : {}),
-    ...(claimLinkExpiration ? { claimLinkExpiration } : {}),
-    ...(limitedClaims ? { limitedClaims } : {}),
+    claimLinkExpiration,
+    expirationDate,
+    limitedClaims,
   };
 };
