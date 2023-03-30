@@ -44,13 +44,12 @@ export function Connections() {
       ellipsis: { showTitle: false },
       key: "credentials",
       render: (credentials: Credential[]) => (
-        <Space>
+        <Typography.Text>
           {[...credentials]
             .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
-            .map((credential) => (
-              <Typography.Text key={credential.id}>{credential.attributes.type}</Typography.Text>
-            ))}
-        </Space>
+            .map((credential) => credential.attributes.type)
+            .join(", ")}
+        </Typography.Text>
       ),
       title: "Issued credentials",
     },
