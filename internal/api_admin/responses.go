@@ -1,6 +1,7 @@
 package api_admin
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/iden3/go-schema-processor/verifiable"
@@ -135,12 +136,34 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	return msg
 }
 
-func getLinkResponse(link *domain.Link) GetLink200JSONResponse {
+func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 	attrs := make([]LinkRequestAttributesType, len(link.CredentialAttributes))
 	for i, attr := range link.CredentialAttributes {
-		attrs[i].Name, attrs[i].Value = attr.Name, attr.Value
+		attrs[i].Name = attr.Name
+		switch attr.AttrType {
+		case domain.TypeString:
+			s, ok := attr.Value.(string)
+			if !ok {
+				return nil, fmt.Errorf("error converting <%v> to string", attr.Value)
+			}
+			attrs[i].Value = s
+		case domain.TypeInteger:
+			i, ok := attr.Value.(int)
+			if !ok {
+				return nil, fmt.Errorf("error converting <%v> to integer", attr.Value)
+			}
+			attrs[i].Value = fmt.Sprintf("%d", i)
+		case domain.TypeBoolean:
+			b, ok := attr.Value.(bool)
+			if !ok {
+				return nil, fmt.Errorf("error converting <%v> to boolean", attr.Value)
+			}
+			attrs[i].Value = fmt.Sprintf("%t", b)
+		default:
+			return nil, fmt.Errorf("unknown type <%s>. Error converting <%v>", attr.AttrType, attr.Value)
+		}
 	}
-	return GetLink200JSONResponse{
+	return &GetLink200JSONResponse{
 		Active:       link.Active,
 		Attributes:   attrs,
 		Expiration:   link.CredentialExpiration,
@@ -150,5 +173,5 @@ func getLinkResponse(link *domain.Link) GetLink200JSONResponse {
 		SchemaType:   link.Schema.URL,
 		SchemaUrl:    link.Schema.Type,
 		Status:       LinkStatus(link.Status()),
-	}
+	}, nil
 }

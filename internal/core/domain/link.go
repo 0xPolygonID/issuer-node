@@ -1,19 +1,36 @@
 package domain
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 )
+
+const (
+	TypeString  = "string"  // TypeString is a string schema attribute type
+	TypeInteger = "integer" // TypeInteger is an integer schema attribute type
+	TypeBoolean = "boolean" // TypeBoolean is a boolean schema attribute type
+)
+
+// CredentialAttrsRequest holds a credential attribute item in string, string format as it is coming in the request.
+type CredentialAttrsRequest struct {
+	Name  string
+	Value string
+}
 
 // CredentialAttributes - credential's attributes
 type CredentialAttributes struct {
-	Name  string      `json:"name"`
-	Value interface{} `json:"value"`
+	Name     string
+	Value    interface{}
+	AttrType string
 }
 
 const (
@@ -42,6 +59,49 @@ type Link struct {
 	IssuedClaims             int // TODO: Give a value when link redemption is implemented
 }
 
+// NewLink - Constructor
+func NewLink(
+	issuerDID core.DID,
+	maxIssuance *int,
+	validUntil *time.Time,
+	schemaID uuid.UUID,
+	credentialExpiration *time.Time,
+	CredentialSignatureProof bool,
+	CredentialMTPProof bool,
+) *Link {
+	return &Link{
+		ID:                       uuid.New(),
+		IssuerDID:                LinkCoreDID(issuerDID),
+		MaxIssuance:              maxIssuance,
+		ValidUntil:               validUntil,
+		SchemaID:                 schemaID,
+		CredentialExpiration:     credentialExpiration,
+		CredentialSignatureProof: CredentialSignatureProof,
+		CredentialMTPProof:       CredentialMTPProof,
+		CredentialAttributes:     make([]CredentialAttributes, 0),
+		Active:                   true,
+	}
+}
+
+// IssuerCoreDID - return the Core DID value
+func (l *Link) IssuerCoreDID() *core.DID {
+	return common.ToPointer(core.DID(l.IssuerDID))
+}
+
+// Scan - scan the value for LinkCoreDID
+func (l *LinkCoreDID) Scan(value interface{}) error {
+	didStr, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("invalid value type, expected string")
+	}
+	did, err := core.ParseDID(didStr)
+	if err != nil {
+		return err
+	}
+	*l = LinkCoreDID(*did)
+	return nil
+}
+
 // Status returns the status of the link based on the Active field, the number of issued claims or whether is expired or not
 // If active is set to false, return "inactive"
 // If maxIssuance is set and bypassed, returns "exceed"
@@ -65,37 +125,70 @@ func (l *Link) Status() string {
 	return linkActive
 }
 
-// NewLink - Constructor
-func NewLink(issuerDID core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, CredentialSignatureProof bool, CredentialMTPProof bool, credentialAttributes []CredentialAttributes) *Link {
-	return &Link{
-		ID:                       uuid.New(),
-		IssuerDID:                LinkCoreDID(issuerDID),
-		MaxIssuance:              maxIssuance,
-		ValidUntil:               validUntil,
-		SchemaID:                 schemaID,
-		CredentialExpiration:     credentialExpiration,
-		CredentialSignatureProof: CredentialSignatureProof,
-		CredentialMTPProof:       CredentialMTPProof,
-		CredentialAttributes:     credentialAttributes,
-		Active:                   true,
-	}
-}
-
-// IssuerCoreDID - return the Core DID value
-func (l *Link) IssuerCoreDID() *core.DID {
-	return common.ToPointer(core.DID(l.IssuerDID))
-}
-
-// Scan - scan the value for LinkCoreDID
-func (l *LinkCoreDID) Scan(value interface{}) error {
-	didStr, ok := value.(string)
-	if !ok {
-		return fmt.Errorf("invalid value type, expected string")
-	}
-	did, err := core.ParseDID(didStr)
+// LoadAttributeTypes uses the remote schema to add attribute types to the list of CredentialAttributes.
+// This is needed to load data from the DB because we are not storing the attribute types on it.
+func (l *Link) LoadAttributeTypes(ctx context.Context, ld loader.Loader) error {
+	schema, err := jsonschema.Load(ctx, ld)
 	if err != nil {
 		return err
 	}
-	*l = LinkCoreDID(*did)
+	for i, credentialAttr := range l.CredentialAttributes {
+		attrData, err := schema.AttributeByID(credentialAttr.Name)
+		if err != nil {
+			return err
+		}
+		l.CredentialAttributes[i].AttrType = attrData.Type
+	}
 	return nil
+}
+
+// ProcessAttributes - validates an array of attributes against the schema and populates field CredentialAttributes
+func (l *Link) ProcessAttributes(ctx context.Context, ld loader.Loader, attrs []CredentialAttrsRequest) error {
+	schema, err := jsonschema.Load(ctx, ld)
+	if err != nil {
+		return err
+	}
+	schemaAttributes, err := schema.Attributes()
+	if err != nil {
+		return fmt.Errorf("processing schema: %w", err)
+	}
+	if len(schemaAttributes) != (len(attrs) + 1) { // +1 because of extra attr @context in json credential files
+		return fmt.Errorf("the number of attributes is not valid")
+	}
+	for _, attr := range attrs {
+		attrData, err := schema.AttributeByID(attr.Name)
+		if err != nil {
+			return err
+		}
+		value, aType, err := validateCredentialLinkAttribute(*attrData, attr.Name, attr.Value)
+		if err != nil {
+			return err
+		}
+		l.CredentialAttributes = append(l.CredentialAttributes, CredentialAttributes{
+			Name:     attr.Name,
+			Value:    value,
+			AttrType: aType,
+		})
+	}
+	return nil
+}
+
+func validateCredentialLinkAttribute(attr jsonschema.Attribute, name string, val string) (interface{}, string, error) {
+	switch attr.Type {
+	case TypeString:
+		return val, TypeString, nil
+	case TypeInteger:
+		i, err := strconv.Atoi(val)
+		if err != nil {
+			return nil, TypeInteger, fmt.Errorf("converting attribute <%s> :%w", name, err)
+		}
+		return i, TypeInteger, nil
+	case TypeBoolean:
+		b, err := strconv.ParseBool(val)
+		if err != nil {
+			return nil, TypeBoolean, fmt.Errorf("converting attribute <%s> :%w", name, err)
+		}
+		return b, TypeBoolean, nil
+	}
+	return nil, attr.Type, fmt.Errorf("converting attribute <%s>", name)
 }

@@ -2459,7 +2459,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "error converting the attribute: documentType. Must be an integer"}},
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "converting attribute <documentType> :strconv.Atoi: parsing \"true\": invalid syntax"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2553,7 +2553,7 @@ func TestServer_ActivateLink(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -2700,7 +2700,7 @@ func TestServer_DeleteLink(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -2822,7 +2822,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 

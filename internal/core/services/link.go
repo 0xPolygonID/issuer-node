@@ -10,7 +10,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
@@ -38,23 +37,26 @@ func NewLinkService(linkRepository ports.LinkRepository, schemaRepository ports.
 }
 
 // Save - save a new credential
-func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error) {
+func (ls *Link) Save(
+	ctx context.Context,
+	did core.DID,
+	maxIssuance *int,
+	validUntil *time.Time,
+	schemaID uuid.UUID,
+	credentialExpiration *time.Time,
+	credentialSignatureProof bool,
+	credentialMTPProof bool,
+	credentialAttributes []domain.CredentialAttrsRequest,
+) (*domain.Link, error) {
 	schema, err := ls.schemaRepository.GetByID(ctx, schemaID)
 	if err != nil {
 		return nil, err
 	}
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof)
 
-	remoteSchema, err := jsonschema.Load(ctx, ls.loaderFactory(schema.URL))
-	if err != nil {
-		return nil, ErrLoadingSchema
-	}
-
-	credentialAttributes, err = remoteSchema.ValidateAndConvert(credentialAttributes)
-	if err != nil {
+	if err := link.ProcessAttributes(ctx, ls.loaderFactory(schema.URL), credentialAttributes); err != nil {
 		return nil, err
 	}
-
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialAttributes)
 	_, err = ls.linkRepository.Save(ctx, link)
 	if err != nil {
 		return nil, err
@@ -63,8 +65,8 @@ func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validU
 }
 
 // Activate - activates or deactivates a credential link
-func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) error {
-	link, err := ls.linkRepository.GetByID(ctx, linkID)
+func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUID, active bool) error {
+	link, err := ls.linkRepository.GetByID(ctx, issuerID, linkID)
 	if err != nil {
 		return err
 	}
@@ -84,7 +86,14 @@ func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) err
 
 // GetByID returns a link by id and issuerDID
 func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
-	return ls.linkRepository.GetByID(ctx, issuerID, id)
+	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := link.LoadAttributeTypes(ctx, ls.loaderFactory(link.Schema.URL)); err != nil {
+		return nil, err
+	}
+	return link, nil
 }
 
 // Delete - delete a link by id

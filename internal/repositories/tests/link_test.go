@@ -33,8 +33,8 @@ func TestSaveLink(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer(10), &validUntil, schemaID, &credentialExpiration, true, false,
-		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
+	linkToSave := domain.NewLink(did, common.ToPointer(10), &validUntil, schemaID, &credentialExpiration, true, false)
+	linkToSave.CredentialAttributes = []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}}
 
 	linkID, err := linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
@@ -47,6 +47,7 @@ func TestSaveLink(t *testing.T) {
 	assert.Equal(t, linkToSave.SchemaID, linkFetched.SchemaID)
 	assert.Equal(t, linkToSave.CredentialSignatureProof, linkFetched.CredentialSignatureProof)
 	assert.Equal(t, linkToSave.CredentialMTPProof, linkFetched.CredentialMTPProof)
+
 	assert.Equal(t, linkToSave.CredentialAttributes[0], linkFetched.CredentialAttributes[0])
 	assert.Equal(t, linkToSave.CredentialAttributes[1], linkFetched.CredentialAttributes[1])
 
@@ -69,8 +70,8 @@ func TestSaveLink(t *testing.T) {
 
 	linkID, err = linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
-	linkFetched, err = linkStore.GetByID(ctx, *linkID)
-	assert.NoError(t, err)
+	linkFetched, err = linkStore.GetByID(ctx, did2, *linkID)
+	require.NoError(t, err)
 	assert.Equal(t, linkToSave.SchemaID, linkFetched.SchemaID)
 	assert.Equal(t, linkToSave.IssuerDID, linkFetched.IssuerDID)
 	assert.Equal(t, linkToSave.Active, linkFetched.Active)
@@ -124,8 +125,8 @@ func TestGetLinkById(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false,
-		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
+	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false)
+	/*[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})*/
 
 	linkID, err := linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
@@ -163,8 +164,7 @@ func TestDeleteLink(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false,
-		[]domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}})
+	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false)
 
 	linkID, err := linkStore.Save(ctx, linkToSave)
 	assert.NoError(t, err)
