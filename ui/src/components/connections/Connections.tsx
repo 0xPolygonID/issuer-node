@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { Connection, Credential, getConnections } from "src/adapters/api/connections";
+import { Connection, getConnections } from "src/adapters/api/connections";
+import { Credential } from "src/adapters/api/credentials";
 import { ReactComponent as IconUsers } from "src/assets/icons/users-01.svg";
 import { ConnectionsRowDropdown } from "src/components/connections/ConnectionsRowDropdown";
 import { ErrorResult } from "src/components/shared/ErrorResult";
