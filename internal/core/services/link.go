@@ -128,7 +128,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		return nil, "", err
 	}
 
-	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStatePending().String())
+	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePending())
 	if err != nil {
 		return nil, "", err
 	}
@@ -199,14 +199,14 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 	}
 	credentialIssued.ID = credentialIssuedID
 
-	r := &ports.LinkQRCodeMessage{
+	r := &linkState.QRCodeMessage{
 		ID:       uuid.NewString(),
 		Typ:      "application/iden3comm-plain-json",
-		Type:     ports.CredentialOfferMessageType,
+		Type:     linkState.CredentialOfferMessageType,
 		ThreadID: uuid.NewString(),
-		Body: ports.CredentialsLinkMessageBody{
-			URL: fmt.Sprintf("%s/api/v1/agent", hostURL),
-			Credentials: []ports.CredentialLink{{
+		Body: linkState.CredentialsLinkMessageBody{
+			URL: fmt.Sprintf("%s/v1/agent", hostURL),
+			Credentials: []linkState.CredentialLink{{
 				ID:          credentialIssued.ID.String(),
 				Description: schema.Type,
 			}},
@@ -215,7 +215,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		To:   userDID.String(),
 	}
 
-	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStateDone(r))
+	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateDone(r))
 	if err != nil {
 		log.Error(ctx, "can not set the sate", err)
 		return err
@@ -224,10 +224,20 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 	return nil
 }
 
+// GetQRCode - return the link qr code.
+func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, linkID uuid.UUID) (*linkState.State, error) {
+	linkStateInCache, err := ls.sessionManager.GetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID.String()))
+	if err != nil {
+		log.Error(ctx, "error fetching the link state from the cache", "error", err)
+		return nil, err
+	}
+	return &linkStateInCache, nil
+}
+
 func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Link, linkID uuid.UUID) error {
 	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
 		log.Debug(ctx, "can not issue a credential for an expired link")
-		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStateError(ErrLinkAlreadyExpired).String())
+		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkAlreadyExpired))
 		if err != nil {
 			log.Error(ctx, "can not set the sate", err)
 			return err
@@ -238,7 +248,7 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 
 	if link.MaxIssuance != nil && *link.MaxIssuance <= link.Issued {
 		log.Debug(ctx, "can not dispatch more claims for this link")
-		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), linkState.NewStateError(ErrLinkMaxExceeded).String())
+		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkMaxExceeded))
 		if err != nil {
 			log.Error(ctx, "can not set the sate", err)
 			return err

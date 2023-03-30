@@ -519,6 +519,28 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+    get:
+      summary: Endpoint to get a link
+      operationId: GetLink
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/sessionID'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 
   /v1/credentials/links/{id}/qrcode:
     post:
@@ -671,6 +693,67 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
+    GetLinkQrCodeResponseType:
+      type: object
+      required:
+        - id
+        - typ
+        - type
+        - thid
+        - body
+        - from
+        - to
+      properties:
+        id:
+          type: string
+          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
+        typ:
+          type: string
+          example: application/iden3comm-plain-json
+        type:
+          type: string
+          example: https://iden3-communication.io/authorization/1.0/request
+        thid:
+          type: string
+          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
+        body:
+          $ref: '#/components/schemas/GetLinkQrCodeResponseBodyType'
+        from:
+          type: string
+          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        to:
+          type: string
+          example: did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63
+
+    GetLinkQrCodeResponseBodyType:
+      type: object
+      required:
+        - url
+        - credentials
+      properties:
+        url:
+          type: string
+          example: https://validURL/v1/agent
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/GetLinkQrCodeCredentialsResponseType'
+          example: [ ]
+
+    GetLinkQrCodeCredentialsResponseType:
+      type: object
+      required:
+        - id
+        - description
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+          example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
+        description:
+          type: string
+          example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential
+
 
     CredentialLinkQrCodeResponse:
       type: object
@@ -682,7 +765,9 @@ components:
         sessionID:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
-
+        linkID:
+          type: string
+          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
 
     IssuerDescription:
       type: object
@@ -693,6 +778,15 @@ components:
         logo:
           type: string
           example: "http://my-public-logo/logo.jpg"
+
+    GetLinkQrCodeResponse:
+      type: object
+      properties:
+        qrCode:
+          $ref: '#/components/schemas/GetLinkQrCodeResponseType'
+        status:
+          type: string
+          example: done | pending
 
     UUIDResponse:
       type: object

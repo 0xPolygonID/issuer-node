@@ -328,7 +328,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Error(ctx, "agent error", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
-
 	return Agent200JSONResponse{
 		Body:     agent.Body,
 		From:     agent.From,

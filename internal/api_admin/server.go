@@ -22,6 +22,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -476,6 +477,7 @@ func (s *Server) CrateLinkQrCode(ctx context.Context, request CrateLinkQrCodeReq
 			Type: string(qrCode.Type),
 		},
 		SessionID: common.ToPointer(sessionID),
+		LinkID:    common.ToPointer(request.Id.String()),
 	}, nil
 }
 
@@ -505,6 +507,23 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 	}
 
 	return CreateLinkQrCodeCallback200Response{}, nil
+}
+
+// GetLink - returns te qr code for adding the credential
+func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error) {
+	linkState, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, request.Id)
+	if err != nil {
+		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting the link qr code"}}, nil
+	}
+	if linkState.Status == link_state.StatusPending || linkState.Status == link_state.StatusDone {
+		return GetLink200JSONResponse{
+			Status: common.ToPointer(linkState.Status),
+			QrCode: getLinQrCodeResponse(linkState.QRCode),
+		}, nil
+	}
+	return GetLink400JSONResponse{N400JSONResponse{
+		Message: fmt.Sprintf("error fetching the link qr code: %s", err.Error()),
+	}}, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {

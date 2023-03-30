@@ -3,8 +3,6 @@ package link
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
 const (
@@ -16,11 +14,37 @@ const (
 	StatusDone = "done"
 )
 
+// CredentialOfferMessageType - TODO
+const CredentialOfferMessageType string = "https://iden3-communication.io/credentials/1.0/offer"
+
+// CredentialLink is structure to fetch credential
+type CredentialLink struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
+}
+
+// CredentialsLinkMessageBody is struct the represents offer message
+type CredentialsLinkMessageBody struct {
+	URL         string           `json:"url"`
+	Credentials []CredentialLink `json:"credentials"`
+}
+
+// QRCodeMessage - TODO
+type QRCodeMessage struct {
+	ID       string                     `json:"id"`
+	Typ      string                     `json:"typ,omitempty"`
+	Type     string                     `json:"type"`
+	ThreadID string                     `json:"thid,omitempty"`
+	Body     CredentialsLinkMessageBody `json:"body,omitempty"`
+	From     string                     `json:"from,omitempty"`
+	To       string                     `json:"to,omitempty"`
+}
+
 // State - Link state.
 type State struct {
-	Status  string                   `json:"status,omitempty"`
-	Message string                   `json:"message,omitempty"`
-	QRCode  *ports.LinkQRCodeMessage `json:"qrcode,omitempty"`
+	Status  string         `json:"status,omitempty"`
+	Message string         `json:"message,omitempty"`
+	QRCode  *QRCodeMessage `json:"qrcode,omitempty"`
 }
 
 // NewStatePending - TODO
@@ -47,10 +71,10 @@ func NewStateError(err error) *State {
 }
 
 // NewStateDone - TODO
-func NewStateDone(qrcode *ports.LinkQRCodeMessage) string {
+func NewStateDone(qrcode *QRCodeMessage) *State {
 	state := &State{
 		Status: StatusDone,
 		QRCode: qrcode,
 	}
-	return state.String()
+	return state
 }

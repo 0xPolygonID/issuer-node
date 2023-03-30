@@ -93,6 +93,7 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	return claim, nil
 }
 
+// CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
 func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
 		log.Warn(ctx, "validating create claim request", "req", req)
