@@ -217,7 +217,7 @@ paths:
             enum: [all, revoked, expired]
           description: >
              Schema type:
-               * `all` - All schemas. Default value if query parameter is not present
+               * `all` - All Schemas. (default value)
                * `revoked` - Only revoked schemas
                * `expired` - Only expired schemas
         - in: query
@@ -465,6 +465,27 @@ paths:
           $ref: '#/components/responses/500'
 
   /v1/credentials/links/{id}:
+    get:
+      summary: Returns a link to a credential offer
+      operationId: GetLink
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Credential link response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
     patch:
       summary: Endpoint to activate|deactivate a link
       operationId: AcivateLink
@@ -519,9 +540,32 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+
+  /v1/credentials/links/{id}/qrcode:
+    post:
+      summary: Endpoint to create a link qr code
+      operationId: CreateLinkQrCode
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link qrcode generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
     get:
       summary: Endpoint to get a link
-      operationId: GetLink
+      operationId: GetLinkQRCode
       security:
         - basicAuth: [ ]
       parameters:
@@ -536,29 +580,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetLinkQrCodeResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
-
-
-  /v1/credentials/links/{id}/qrcode:
-    post:
-      summary: Endpoint to create a link qr code
-      operationId: CrateLinkQrCode
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/id'
-      tags:
-        - Links
-      responses:
-        '200':
-          description: Link qrcode generated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CredentialLinkQrCodeResponse'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -872,6 +893,47 @@ components:
             documentType: 2
             id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
             type: "KYCAgeCredential"
+
+    Link:
+      type: object
+      required:
+        - id
+        - schemaUrl
+        - schemaType
+        - attributes
+        - issuedClaims
+        - active
+        - status
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        schemaUrl:
+          type: string
+        schemaType:
+          type: string
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkRequestAttributesType'
+        maxIssuance:
+          type: integer
+          x-omitempty: false
+        issuedClaims:
+          type: integer
+        expiration:
+          type: string
+          format: date-time
+          example: 2023-03-17T10:18:01.400722+01:00
+        active:
+          type: boolean
+        status:
+          type: string
+          enum: [ active, inactive, exceed ]
 
     GenericMessage:
       type: object

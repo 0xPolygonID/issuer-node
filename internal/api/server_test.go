@@ -1206,7 +1206,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	expiration := int64(12345)
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	assert.NoError(t, err)
 
 	type expected struct {

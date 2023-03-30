@@ -28,6 +28,13 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for LinkStatus.
+const (
+	Active   LinkStatus = "active"
+	Exceed   LinkStatus = "exceed"
+	Inactive LinkStatus = "inactive"
+)
+
 // Defines values for GetCredentialsParamsType.
 const (
 	All     GetCredentialsParamsType = "all"
@@ -158,6 +165,22 @@ type IssuerDescription struct {
 	Logo        string `json:"logo"`
 }
 
+// Link defines model for Link.
+type Link struct {
+	Active       bool                        `json:"active"`
+	Attributes   []LinkRequestAttributesType `json:"attributes"`
+	Expiration   *time.Time                  `json:"expiration,omitempty"`
+	Id           uuid.UUID                   `json:"id"`
+	IssuedClaims int                         `json:"issuedClaims"`
+	MaxIssuance  *int                        `json:"maxIssuance"`
+	SchemaType   string                      `json:"schemaType"`
+	SchemaUrl    string                      `json:"schemaUrl"`
+	Status       LinkStatus                  `json:"status"`
+}
+
+// LinkStatus defines model for Link.Status.
+type LinkStatus string
+
 // LinkRequestAttributesType defines model for LinkRequestAttributesType.
 type LinkRequestAttributesType struct {
 	Name  string `json:"name"`
@@ -250,7 +273,7 @@ type DeleteConnectionParams struct {
 // GetCredentialsParams defines parameters for GetCredentials.
 type GetCredentialsParams struct {
 	// Type Schema type:
-	//   * `all` - All schemas. Default value if query parameter is not present
+	//   * `all` - All Schemas. (default value)
 	//   * `revoked` - Only revoked schemas
 	//   * `expired` - Only expired schemas
 	Type *GetCredentialsParamsType `form:"type,omitempty" json:"type,omitempty"`
@@ -274,15 +297,15 @@ type CreateLinkQrCodeCallbackParams struct {
 	LinkID LinkID `form:"linkID" json:"linkID"`
 }
 
-// GetLinkParams defines parameters for GetLink.
-type GetLinkParams struct {
-	// SessionID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
-	SessionID SessionID `form:"sessionID" json:"sessionID"`
-}
-
 // AcivateLinkJSONBody defines parameters for AcivateLink.
 type AcivateLinkJSONBody struct {
 	Active bool `json:"active"`
+}
+
+// GetLinkQRCodeParams defines parameters for GetLinkQRCode.
+type GetLinkQRCodeParams struct {
+	// SessionID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+	SessionID SessionID `form:"sessionID" json:"sessionID"`
 }
 
 // GetSchemasParams defines parameters for GetSchemas.
@@ -356,15 +379,18 @@ type ServerInterface interface {
 	// Endpoint to delete a link
 	// (DELETE /v1/credentials/links/{id})
 	DeleteLink(w http.ResponseWriter, r *http.Request, id Id)
-	// Endpoint to get a link
+	// Returns a link to a credential offer
 	// (GET /v1/credentials/links/{id})
-	GetLink(w http.ResponseWriter, r *http.Request, id Id, params GetLinkParams)
+	GetLink(w http.ResponseWriter, r *http.Request, id Id)
 	// Endpoint to activate|deactivate a link
 	// (PATCH /v1/credentials/links/{id})
 	AcivateLink(w http.ResponseWriter, r *http.Request, id Id)
+	// Endpoint to get a link
+	// (GET /v1/credentials/links/{id}/qrcode)
+	GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams)
 	// Endpoint to create a link qr code
 	// (POST /v1/credentials/links/{id}/qrcode)
-	CrateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id)
+	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id)
 	// Revoke Credential
 	// (POST /v1/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, nonce PathNonce)
@@ -828,26 +854,8 @@ func (siw *ServerInterfaceWrapper) GetLink(w http.ResponseWriter, r *http.Reques
 
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetLinkParams
-
-	// ------------- Required query parameter "sessionID" -------------
-
-	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
-		return
-	}
-
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetLink(w, r, id, params)
+		siw.Handler.GetLink(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -885,8 +893,54 @@ func (siw *ServerInterfaceWrapper) AcivateLink(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// CrateLinkQrCode operation middleware
-func (siw *ServerInterfaceWrapper) CrateLinkQrCode(w http.ResponseWriter, r *http.Request) {
+// GetLinkQRCode operation middleware
+func (siw *ServerInterfaceWrapper) GetLinkQRCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLinkQRCodeParams
+
+	// ------------- Required query parameter "sessionID" -------------
+
+	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLinkQRCode(w, r, id, params)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateLinkQrCode operation middleware
+func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -903,7 +957,7 @@ func (siw *ServerInterfaceWrapper) CrateLinkQrCode(w http.ResponseWriter, r *htt
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CrateLinkQrCode(w, r, id)
+		siw.Handler.CreateLinkQrCode(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1252,7 +1306,10 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/v1/credentials/links/{id}", wrapper.AcivateLink)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/credentials/links/{id}/qrcode", wrapper.CrateLinkQrCode)
+		r.Get(options.BaseURL+"/v1/credentials/links/{id}/qrcode", wrapper.GetLinkQRCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/credentials/revoke/{nonce}", wrapper.RevokeCredential)
@@ -1774,15 +1831,14 @@ func (response DeleteLink500JSONResponse) VisitDeleteLinkResponse(w http.Respons
 }
 
 type GetLinkRequestObject struct {
-	Id     Id `json:"id"`
-	Params GetLinkParams
+	Id Id `json:"id"`
 }
 
 type GetLinkResponseObject interface {
 	VisitGetLinkResponse(w http.ResponseWriter) error
 }
 
-type GetLink200JSONResponse GetLinkQrCodeResponse
+type GetLink200JSONResponse Link
 
 func (response GetLink200JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -1791,11 +1847,11 @@ func (response GetLink200JSONResponse) VisitGetLinkResponse(w http.ResponseWrite
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetLink400JSONResponse struct{ N400JSONResponse }
+type GetLink404JSONResponse struct{ N404JSONResponse }
 
-func (response GetLink400JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
+func (response GetLink404JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
+	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1845,35 +1901,71 @@ func (response AcivateLink500JSONResponse) VisitAcivateLinkResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CrateLinkQrCodeRequestObject struct {
-	Id Id `json:"id"`
+type GetLinkQRCodeRequestObject struct {
+	Id     Id `json:"id"`
+	Params GetLinkQRCodeParams
 }
 
-type CrateLinkQrCodeResponseObject interface {
-	VisitCrateLinkQrCodeResponse(w http.ResponseWriter) error
+type GetLinkQRCodeResponseObject interface {
+	VisitGetLinkQRCodeResponse(w http.ResponseWriter) error
 }
 
-type CrateLinkQrCode200JSONResponse CredentialLinkQrCodeResponse
+type GetLinkQRCode200JSONResponse GetLinkQrCodeResponse
 
-func (response CrateLinkQrCode200JSONResponse) VisitCrateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response GetLinkQRCode200JSONResponse) VisitGetLinkQRCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CrateLinkQrCode400JSONResponse struct{ N400JSONResponse }
+type GetLinkQRCode400JSONResponse struct{ N400JSONResponse }
 
-func (response CrateLinkQrCode400JSONResponse) VisitCrateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response GetLinkQRCode400JSONResponse) VisitGetLinkQRCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CrateLinkQrCode500JSONResponse struct{ N500JSONResponse }
+type GetLinkQRCode500JSONResponse struct{ N500JSONResponse }
 
-func (response CrateLinkQrCode500JSONResponse) VisitCrateLinkQrCodeResponse(w http.ResponseWriter) error {
+func (response GetLinkQRCode500JSONResponse) VisitGetLinkQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type CreateLinkQrCodeResponseObject interface {
+	VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error
+}
+
+type CreateLinkQrCode200JSONResponse CredentialLinkQrCodeResponse
+
+func (response CreateLinkQrCode200JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCode400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateLinkQrCode400JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCode500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2189,15 +2281,18 @@ type StrictServerInterface interface {
 	// Endpoint to delete a link
 	// (DELETE /v1/credentials/links/{id})
 	DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error)
-	// Endpoint to get a link
+	// Returns a link to a credential offer
 	// (GET /v1/credentials/links/{id})
 	GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error)
 	// Endpoint to activate|deactivate a link
 	// (PATCH /v1/credentials/links/{id})
 	AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error)
+	// Endpoint to get a link
+	// (GET /v1/credentials/links/{id}/qrcode)
+	GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error)
 	// Endpoint to create a link qr code
 	// (POST /v1/credentials/links/{id}/qrcode)
-	CrateLinkQrCode(ctx context.Context, request CrateLinkQrCodeRequestObject) (CrateLinkQrCodeResponseObject, error)
+	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
 	// Revoke Credential
 	// (POST /v1/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
@@ -2661,11 +2756,10 @@ func (sh *strictHandler) DeleteLink(w http.ResponseWriter, r *http.Request, id I
 }
 
 // GetLink operation middleware
-func (sh *strictHandler) GetLink(w http.ResponseWriter, r *http.Request, id Id, params GetLinkParams) {
+func (sh *strictHandler) GetLink(w http.ResponseWriter, r *http.Request, id Id) {
 	var request GetLinkRequestObject
 
 	request.Id = id
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetLink(ctx, request.(GetLinkRequestObject))
@@ -2720,25 +2814,52 @@ func (sh *strictHandler) AcivateLink(w http.ResponseWriter, r *http.Request, id 
 	}
 }
 
-// CrateLinkQrCode operation middleware
-func (sh *strictHandler) CrateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id) {
-	var request CrateLinkQrCodeRequestObject
+// GetLinkQRCode operation middleware
+func (sh *strictHandler) GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams) {
+	var request GetLinkQRCodeRequestObject
 
 	request.Id = id
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CrateLinkQrCode(ctx, request.(CrateLinkQrCodeRequestObject))
+		return sh.ssi.GetLinkQRCode(ctx, request.(GetLinkQRCodeRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CrateLinkQrCode")
+		handler = middleware(handler, "GetLinkQRCode")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CrateLinkQrCodeResponseObject); ok {
-		if err := validResponse.VisitCrateLinkQrCodeResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetLinkQRCodeResponseObject); ok {
+		if err := validResponse.VisitGetLinkQRCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// CreateLinkQrCode operation middleware
+func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id) {
+	var request CreateLinkQrCodeRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLinkQrCode(ctx, request.(CreateLinkQrCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLinkQrCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLinkQrCodeResponseObject); ok {
+		if err := validResponse.VisitCreateLinkQrCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -2934,74 +3055,76 @@ func (sh *strictHandler) PublishState(w http.ResponseWriter, r *http.Request) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+x8aXPbOJ73V0FxnlfPiBIviaSqprYcO4fTSSex49pOMq4dEAQlxBRBk6ATJaPvvoVD",
-	"4i3RTpxW12y/SNskCPyP3/8E4O8aoquUJjhhuTb/rqUwgyvMcCZ+IyH/N8Q5ykjKCE20uXZ1dX4GdsNG",
-	"AI8Xc+DhMPRM09KRY05108ShHhj2TA9xgG0XmygIZ/9MtJFG+BQpZEttpCVwhbU5X2SkZfi2IBkOtTnL",
-	"CjzScrTEK8hXZ+uUj8pZRpKFNtK+6guqq4dFQcIxJ6j6XCerlGaMf6tW4MO0kVx2ri0IWxbBGNHVZEHp",
-	"IsYT8X6z2Yy0mCQ352dtpi9xnhOagPMzxa8fWr4XQd2cwpnuQDPUYWDaemgaM9+ZuRiHYcnvbYGzdcmw",
-	"WuRomOZDfqcJwm2+T2NIViDhL5WmHdOznJntunafPsXovdxFNFtBxlWfsJmjjbbskoThBc40TlQuJf7o",
-	"yijXORJ9bDgdeUqTHAsbdAyD/w/RhOFETAjTNCYIcmlMPudcJN8rpP6/DEfaXPvbpDTsiXybT57jBGcE",
-	"Pc0ymr3GeQ4XWEKgLuAnMAQX+LbAOdM2I80xzF9NwVUCC7akGfmGQ0mC86tJeJowwtYgoQxEtEgkGZb1",
-	"6yWRZhTx90GMwalaeTPSpr8eF+cJw1kCY3CJszucAczHS2uVE/F1Tgq2xAlThLzLTmmILxSgRYTJaIoz",
-	"RiS6Axqu208RjOMAopurLOa/4q9wlcbciJaMpfl8MrmDMQmvLl5N7swJrC042X77XzvL/scQB1F6IWXk",
-	"wg6hEmNJQX21rq9yRFNc++jT9UgjDK84b5vdFzDL4FqT9r71O59qrO8o2E56vfuYBp8xEjiIMrqqkxiS",
-	"cJ7SeL2gSfnTfFWsAkjm1u2z9O0Lym5mdA3/MCOUpe+evXeevE5WC+9D/u3qy9cPDNLnFHfxJhOCcqnI",
-	"RTMURr7uuR7WHQPZuudHpu5Ng8iMAs/wZtOuedjyp820ThsKqlgBCXFiI7pa6WkMSaJ/zrtVJh90AU3M",
-	"oPMpikTNOiZ0svVOchlzbEwy5S9bszf0SxTStgOVLEbSEpQ6u/R8mmHI8GmGQw4/GG8ddJXs7xravb9U",
-	"lr9jJYNfxjLsFDnOlN8QEUgwOUE81uvSkvU7imAwWUGS7JwEF97ktw+nJ4sKFfqdPVZSrSxdSKq5fZOM",
-	"LUO41uam788Mx3JGWkhRscIJey9YtCSqtO8RiWPwhbAlCEm44SzjrynJpJ3NLcOays9X7G1GabQL0mSR",
-	"QFZkuPZUia9JLp+14WpaAuuK9nTF7Tdla20ewTjHmx5261rr+bLK1oBkqMLxboGA0hjDRLibBv9dY7b4",
-	"HsBY0x01xbODbZv/ftS+IslNBa91DUDGMhIUTP629ZN741VlvpPd1wJOLfc60gSu+RdPa3Ivbd0yLEs3",
-	"PN1035vW3LHntjV2rY/cGLe6CSHDOiOrTqdY6vMMMtyee2JaE8toTtc1U0y4OkKRdecVhW2x0AOo/fgQ",
-	"MpN59PA0tmOVw0BrYGe3cuvbkuRRVf09ANra7gHkVLzgcK9zIFaenZ39tqKOPXv68fnpk5O7m9uPn0/O",
-	"PtDfL17m326eu1fr1Ud8+uKdttfjDPIKSFhKeMJaALJ1w9Yt471pzqfO3DDHpmlY/vTvhjk3jPuhFNej",
-	"bs1XVjAjx+YdtEx/Ci3N4D+kfdCa5zGrMBElaMSxUsfWJ+3Jy5eXWzRbhmVqleSuL7MonVGG73al9m5S",
-	"y7RnhjG1bKMiwKI/HmT4jt40VClgNOq1/xcwX9ZljvzAsl3Dds3AjaAX2CEMLDgNoGcGM8/2ulNbPtf7",
-	"3mzpZ6QYehxObtZom1jocfi3lk0NSrIqGqxaV2kJNdnUmKvoqeagStHvd1U82hyqfEieFzg7FOnOxaiz",
-	"ShlW61JV0t5gGk7DINIhhFAPgiDQA9+z9cjxYIThzMFGZ/58K8g8RMbeoq7ZrflRoprKlILakTqq9WyU",
-	"LLr00VXVttSwKl+UdF/SFWZLkizAEqYpTg7SuJ1lDxlDKPiRRdgpTRKMuH76QXcgyPAMyJibHnfsjmG4",
-	"lnVPx14mhcOTuc5YKR1mT6hshg83iqIHhY+uuQXamkB+rJK6hwjuPe9JwuuPWfQk/6N4/uz9l8vbm9sP",
-	"N8T1vj2zU2zesT/o7QtnffEqj/JhJHT5U0VURUR1t1rV/UGI5lWMDoJJN8I7QuxzzEr/W4Jrt+I2fNUt",
-	"o9bpOqrY1sY7cn3kI8PRPeR7umNElg5daOhTjGEQGV7o2bOH67kqiR49DolvwwJL52TbSi5nkBV5wwxo",
-	"gsG/QYqTUHLV9pnDKH5Cw3U3FBpOrLONN5ypPgR2ILcY1O5c4ORwm6kQ7cMBJtkj/d5G7b2VuZPz//Uq",
-	"Gb0X82/Z6a3532cpWbHb/NnbmzR48uHb4ttZ8NIjdpr4dy/OXq2fzez/mLaokGAXjl9gGDNR38AwJHxx",
-	"GL+twbevJ3agKD8X9aNsffU2sPqqojuIEEmELE756IhLqhOqvYb/2D3bIU6kwl6X7NsVSju2kjyN4fp3",
-	"UYJX2VytwS67bzfD6IK2pTKfTFZrPS2CmCCdD5nwf8af08VBdqpkqOm7GOpvLnJ8xfGbSJt/arKYtHjb",
-	"9aA6WLuDcfHAhmwiqZcztMm/3oy0t1w4+fJcqJutLxlktThd3S4Qncb3GcYXlPLs3p4ZHjTc0Ayd6dR3",
-	"HWPqGLNpODNtLwgcPLMdGEEX+rNpZPm+6UdOaESO7+AAGpFvIlUiS5dQmdf4wf/4vJSyNxGfL9fm2tQO",
-	"ptjwvMBEvh1YGDqu4wXI8meOj0wUzgIjclzHD2BgR/4stEI/MiBEHoaBGZi+JtML0X0KjTAKzMANkG8a",
-	"2HZcHAUBtC0HzwzHnvqeOUWOEUxngeti0zejECITB27kuoYppmJfebquGV+dKcSR4dqGN3VmxiyIfAxt",
-	"BIMAesbUMSNoh2hmeraNXGh4wQy5lhW6tuVMzQhDZ9axQdFQ0feufcq2xLuGVQXY8V7Jo6uL9bWrf9yZ",
-	"a12IBkl1m6ovQeysvPvyuiGmsa8+Ljd3GmkNWZwn9WrYHtuzmTl1LNs3DN/0nSn+u+2NBu8KHeriunPD",
-	"nNv2eDpzTNO/T4Hds+ay1dszvcg2XNOB9hROw8DzELQc1/KQgaZ2GIWDi+FHKzy6kovfPpye0iJh2fpN",
-	"dIFzHuHQvsqor3g+jmA6uN5ayvajQuJIRd1yl03hqQvVV1fnZ3s6jL+wbGxTJ7qCqMh4BOICVPYGc4JO",
-	"CpmsCcGKWMmflktzhcnzJySJaPsA2JnayhEuD0Q0A2yJgUxEgA6uzsHJ23Nx4osRJlh/K3NrcH4G9OZA",
-	"Hk1xlsupjbE5NrhoaYoTmBIeEsUjuWcgeJjwfxZYmDiXtyDjPNTmvJ6q0aY1znJZ8sxOnZu8QAjnOYBJ",
-	"CDLMiizJBT9hjUuSgBfvX78Cyk0I8RarFczWct32J0J1RB3ZkXs9/KsJd/METUKK8glMyf/AcEUS/tN4",
-	"DVfxPt4+8Pc/lSU+4z1YAmsxnsR4H3OyZdDJhCoUunn4KUep1Aodp6dO4hjkOLsjCOcAZhhkRZKoAKsO",
-	"c3VNvKN0wgfVhSQXQ0uMbsSbPcehhHugsnxp0FX7AOw+GDVkx8edli+rJ4U/dZNeDpmULfvNtXQeOGdP",
-	"VE+hIniGv7KJqErrIi+92Ocv33RGbzqb8pvmGc7NELTSG3nEcIAK+KCHq6sh6YowGVxwMYrTZdp1jypv",
-	"M6Q6agrbe/WoRndp8d2F2kh5NCvYv1/Utg2pggeKlbuKBvM7DrsFi8o+dK84F5iB6rhR2x+e1l43DKI+",
-	"27sCZ2sggQoYBSEFURHHgOMd5BhmaMn9YWXBcc+B5e2vfYeTN5tRc/FKG/Af3Co4ASRBcRFi4WPLVUFl",
-	"aB8B1aZiBxnlaZDrRwRYz2ZCL7Qez7pVjiN0XsluPl1z/usgreNlC83yaSdAJ99JuJHwjDHrOKMvn1eU",
-	"2ILqmRhxWh1wP+9NQq2NqkvMQNao9nIOLQExEoE1LcAXmDD+TA6UaKuMplEDgL3n9Fsr7cdeJ7VSUgOo",
-	"VSJ9OLWtlf5MS6ltPx+vhUiUghpMO21kNMRh7/fXD7KAX+bP/nLu7J7ebNLYYRvs2UA99uz3cnXrOzZ1",
-	"DzPKX2NooC6qDlXWzmEO0utEOuz+skNFhIHKVW3FR1Su9QuVe4IQTtn2atOfbMpStD8DDnWr7nTSF6Ib",
-	"ACBPfRvRlS0hAyvI0BLLbkFEYia2htqOfJ/2G3FfKAXwkDv/ZwLA/wf/gnH8L6ADUY9LlY3BGY5gETMg",
-	"9lV4OiACennPFZBcXAVLM5zjhKmZ1GlAPtubJF6rLCfcTqtGqfOGu1Hq93JUTxKhWoCVIjgpVqKYiePK",
-	"UcTyQOP16HAtMKAQeXDh8aMe80ePi3VY2iuSM563VbF5T6NTdw8PjXUeNdZyg6nWZuBNKre5lZWAgCsV",
-	"skI23YQ2JYSlTsdVQ67a7qjHPT9NwpQSmQ7LJjSAoNaMr1tl83qStq/L83Df2ncLalDv5+ddY6013jtg",
-	"J+9Nq+b9/QFnDhlrVm6kHhhrWY8GTqmQOjI6gdYOEpOYJDd5NUPogtQrktw8Kpiql5OODEactIei6FG0",
-	"3ekVYqmhrdZfCa32K3xAS1qBSrD/7gKc0hBXu6V9MFEH7n5Cj3p0cLA6d/4f3M0+oKSezmsLDe32VldZ",
-	"p7zAX62KE8KRnB2fAavyuteAR70bgQ/WxujeG0WP12/pOMT8V9PggmeG/epLeTHVVuAJInfwR03qYdG4",
-	"cX8TMXKHB9xIbJw3UN91nDkY6jJ/pfkXaXiU8VtIETL87xBvf3xAMBd9n3Jnsi+Tq0Xoo3Pke2/u9elV",
-	"Mg0WHAXHn6CB2wyg+p7oHt3K3sLku/hbTpv+RK26nGrowUqd2tfGqw64HxLKv1X1qC283lOMB5t59yjd",
-	"/uy+wrbx95DS7dCmZGeesad9cNbYMPsL5nqy5n9gqnAf4DzqpsBBMPTsvj3HrGL4IMQMkjjf37w94jhw",
-	"7FtvQ2228oe5+pL5SzXk55xgyct+u2xFltfnx8fdWFZHxAc0ldWeAqJxrDZEjgUXpS63oNg+qXZ66xCo",
-	"3nF6pEZb1zWqI2u1KZ3KPxhyJMmcFBt4efnmd2VXnYqtm/ouNO+396PzvVvz61dNIg8KP8DejmIL5/Kw",
-	"BhlkeJLK61v91ZS63yXudWmPmATvvUfWoSc1XuxDYaDOgPMYsf6BLmM1kVSSAURRJFeqSlT8fr2Rqsnu",
-	"uiPZK4pE3BQXRbaXCmP+cElzNrcNwxJQV7O2mtM7tw9oBLCiLwcZjnkZyAndiqyMcbsn7R3ZAfPVwr2a",
-	"sbYP+oA5X9NAnqNX850s5B8WfQh5tXONW/rK4wKb683/BgAA//+25+v+aFoAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

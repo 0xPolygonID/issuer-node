@@ -50,7 +50,7 @@ func (s *schemaAdmin) ImportSchema(ctx context.Context, did core.DID, url string
 		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", url)
 		return nil, ErrLoadingSchema
 	}
-	attributeNames, err := remoteSchema.AttributeNames()
+	attributeNames, err := remoteSchema.Attributes()
 	if err != nil {
 		log.Error(ctx, "processing jsonschema", "err", err, "jsonschema", url)
 		return nil, ErrProcessSchema

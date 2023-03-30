@@ -32,7 +32,8 @@ import (
 
 var (
 	ErrClaimNotFound  = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim
-	ErrSchemaNotFound = errors.New("claim not found")                // ErrSchemaNotFound Cannot retrieve the given schema from DB
+	ErrSchemaNotFound = errors.New("schema not found")               // ErrSchemaNotFound Cannot retrieve the given schema from DB
+	ErrLinkNotFound   = errors.New("link not found")                 // ErrLinkNotFound Cannot get the given link from the DB
 	ErrJSONLdContext  = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
 	ErrLoadingSchema  = errors.New("cannot load schema")             // ErrLoadingSchema means the system cannot load the schema file
 	ErrMalformedURL   = errors.New("malformed url")                  // ErrMalformedURL The schema url is wrong

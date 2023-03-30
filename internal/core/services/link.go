@@ -16,9 +16,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 )
 
@@ -58,33 +58,37 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, clai
 }
 
 // Save - save a new credential
-func (ls *Link) Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttributes) (*domain.Link, error) {
+func (ls *Link) Save(
+	ctx context.Context,
+	did core.DID,
+	maxIssuance *int,
+	validUntil *time.Time,
+	schemaID uuid.UUID,
+	credentialExpiration *time.Time,
+	credentialSignatureProof bool,
+	credentialMTPProof bool,
+	credentialAttributes []domain.CredentialAttrsRequest,
+) (*domain.Link, error) {
 	schema, err := ls.schemaRepository.GetByID(ctx, schemaID)
 	if err != nil {
 		return nil, err
 	}
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof)
 
-	remoteSchema, err := jsonschema.Load(ctx, ls.loaderFactory(schema.URL))
-	if err != nil {
-		return nil, ErrLoadingSchema
-	}
-
-	credentialAttributes, err = remoteSchema.ValidateAndConvert(credentialAttributes)
-	if err != nil {
+	if err := link.ProcessAttributes(ctx, ls.loaderFactory(schema.URL), credentialAttributes); err != nil {
 		return nil, err
 	}
-
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialAttributes)
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
 	}
+	link.Schema = schema
 	return link, nil
 }
 
 // Activate - activates or deactivates a credential link
-func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) error {
-	link, err := ls.linkRepository.GetByID(ctx, linkID)
+func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUID, active bool) error {
+	link, err := ls.linkRepository.GetByID(ctx, issuerID, linkID)
 	if err != nil {
 		return err
 	}
@@ -100,6 +104,21 @@ func (ls *Link) Activate(ctx context.Context, linkID uuid.UUID, active bool) err
 	link.Active = active
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	return err
+}
+
+// GetByID returns a link by id and issuerDID
+func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
+	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
+	if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+		return nil, ErrLinkNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := link.LoadAttributeTypes(ctx, ls.loaderFactory(link.Schema.URL)); err != nil {
+		return nil, err
+	}
+	return link, nil
 }
 
 // Delete - delete a link by id
@@ -141,7 +160,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 
 // IssueClaim - Create a new claim
 func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error {
-	link, err := ls.linkRepository.GetByID(ctx, linkID)
+	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "can not fetch the link", err)
 		return err
@@ -182,7 +201,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 	var credentialIssuedID uuid.UUID
 	err = ls.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
-			link.Issued += 1
+			link.IssuedClaims += 1
 			_, err := ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 			if err != nil {
 				return err
@@ -246,7 +265,7 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 		return ErrLinkAlreadyExpired
 	}
 
-	if link.MaxIssuance != nil && *link.MaxIssuance <= link.Issued {
+	if link.MaxIssuance != nil && *link.MaxIssuance <= link.IssuedClaims {
 		log.Debug(ctx, "can not dispatch more claims for this link")
 		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkMaxExceeded))
 		if err != nil {
