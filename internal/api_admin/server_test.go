@@ -2939,7 +2939,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		response CrateLinkQrCodeResponseObject
 		httpCode int
 	}
 
