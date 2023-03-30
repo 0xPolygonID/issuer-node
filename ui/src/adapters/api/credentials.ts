@@ -7,10 +7,10 @@ import {
   ResultCreated,
   ResultOK,
   buildAPIError,
+  buildAuthorizationHeader,
 } from "src/adapters/api";
 import { Schema, schema } from "src/adapters/api/schemas";
 import { Env } from "src/domain";
-import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
@@ -63,13 +63,13 @@ export async function credentialIssue({
 }): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       data: payload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
+      url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
     });
     const { data } = resultCreatedCredential.parse(response);
 
@@ -96,13 +96,13 @@ export async function credentialUpdate({
 }): Promise<APIResponse<Credential>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       data: payload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
       method: "PATCH",
-      url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
+      url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
     });
     const { data } = resultOKCredential.parse(response);
 
@@ -131,7 +131,7 @@ export async function credentialsGetAll({
 > {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -141,7 +141,7 @@ export async function credentialsGetAll({
         ...(valid !== undefined ? { valid: valid.toString() } : {}),
       }),
       signal,
-      url: `issuers/${env.issuer.did}/offers`,
+      url: `${API_VERSION}/issuers/${env.issuer.did}/offers`,
     });
     const { data } = resultOKCredentialsGetAll.parse(response);
 
@@ -280,10 +280,10 @@ export async function credentialsQRCreate({
 }): Promise<APIResponse<ShareCredentialQRCode>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       method: "POST",
       signal,
-      url: `offers-qrcode/${id}`,
+      url: `${API_VERSION}/offers-qrcode/${id}`,
     });
 
     const { data } = resultOKShareCredentialQRCode.parse(response);
@@ -446,12 +446,12 @@ export async function credentialsQRCheck({
 }): Promise<APIResponse<CredentialQRCheck>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       method: "GET",
       params: {
         sessionID,
       },
-      url: `offers-qrcode/${credentialID}`,
+      url: `${API_VERSION}/offers-qrcode/${credentialID}`,
     });
 
     const { data } = resultOKCredentialQRCheck.parse(response);
@@ -473,13 +473,13 @@ export async function credentialsQRDownload({
 }): Promise<APIResponse<Blob>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       method: "GET",
       params: {
         sessionID,
       },
       responseType: "blob",
-      url: `offers-qrcode/${credentialID}/download`,
+      url: `${API_VERSION}/offers-qrcode/${credentialID}/download`,
     });
 
     if (response.data instanceof Blob) {

@@ -1,9 +1,4 @@
 import { APIError, HTTPStatusError } from "src/adapters/api";
-import { Env } from "src/domain";
-
-export function buildAuthorizationHeader(env: Env) {
-  return `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
-}
 
 export function isAbortedError(response: APIError) {
   return HTTPStatusError.Aborted === response.status;
