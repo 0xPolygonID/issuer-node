@@ -8,7 +8,7 @@ export function getStorageByKey<I, O>({
   defaultValue: O;
   key: string;
   parser: z.ZodSchema<O, z.ZodTypeDef, I>;
-}): O {
+}) {
   const value = localStorage.getItem(key);
 
   if (value === null) {
@@ -34,7 +34,7 @@ export function getStorageByKey<I, O>({
   }
 }
 
-export function setStorageByKey<T>({ key, value }: { key: string; value: T }): T {
+export function setStorageByKey<T>({ key, value }: { key: string; value: T }) {
   const string = typeof value === "string" ? value : JSON.stringify(value);
 
   localStorage.setItem(key, string);

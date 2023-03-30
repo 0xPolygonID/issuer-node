@@ -12,14 +12,16 @@ import {
 
 const serializeBooleanCredentialFormAttribute = (
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute
-): CredentialAttribute => ({
-  attributeKey: booleanCredentialFormAttribute.name,
-  attributeValue: booleanCredentialFormAttribute.value ? 1 : 0,
-});
-
-const serializeDateCredentialFormAttribute = (
-  dateCredentialFormAttribute: DateCredentialFormAttribute
 ): CredentialAttribute => {
+  return {
+    attributeKey: booleanCredentialFormAttribute.name,
+    attributeValue: booleanCredentialFormAttribute.value ? 1 : 0,
+  };
+};
+
+function serializeDateCredentialFormAttribute(
+  dateCredentialFormAttribute: DateCredentialFormAttribute
+): CredentialAttribute {
   const momentInstance = dayjs(dateCredentialFormAttribute.value);
   const numericDateString = momentInstance.format("YYYYMMDD");
 
@@ -27,25 +29,29 @@ const serializeDateCredentialFormAttribute = (
     attributeKey: dateCredentialFormAttribute.name,
     attributeValue: parseInt(numericDateString),
   };
-};
+}
 
-const serializeNumberCredentialFormAttribute = (
+function serializeNumberCredentialFormAttribute(
   numberCredentialFormAttribute: NumberCredentialFormAttribute
-): CredentialAttribute => ({
-  attributeKey: numberCredentialFormAttribute.name,
-  attributeValue: numberCredentialFormAttribute.value,
-});
+): CredentialAttribute {
+  return {
+    attributeKey: numberCredentialFormAttribute.name,
+    attributeValue: numberCredentialFormAttribute.value,
+  };
+}
 
-const serializeSingleChoiceCredentialFormAttribute = (
+function serializeSingleChoiceCredentialFormAttribute(
   singleChoiceCredentialFormAttribute: SingleChoiceCredentialFormAttribute
-): CredentialAttribute => ({
-  attributeKey: singleChoiceCredentialFormAttribute.name,
-  attributeValue: singleChoiceCredentialFormAttribute.value,
-});
+): CredentialAttribute {
+  return {
+    attributeKey: singleChoiceCredentialFormAttribute.name,
+    attributeValue: singleChoiceCredentialFormAttribute.value,
+  };
+}
 
-const serializeCredentialFormAttribute = (
+function serializeCredentialFormAttribute(
   credentialFormAttribute: CredentialFormAttribute
-): CredentialAttribute => {
+): CredentialAttribute {
   switch (credentialFormAttribute.type) {
     case "boolean": {
       return serializeBooleanCredentialFormAttribute(credentialFormAttribute);
@@ -60,9 +66,9 @@ const serializeCredentialFormAttribute = (
       return serializeSingleChoiceCredentialFormAttribute(credentialFormAttribute);
     }
   }
-};
+}
 
-export const serializeCredentialForm = (credentialForm: CredentialForm): CredentialIssuePayload => {
+export function serializeCredentialForm(credentialForm: CredentialForm): CredentialIssuePayload {
   const attributes = credentialForm.attributes.map(serializeCredentialFormAttribute);
   const expirationDate = credentialForm.expiration
     ? dayjs(credentialForm.expiration).toISOString()
@@ -79,4 +85,4 @@ export const serializeCredentialForm = (credentialForm: CredentialForm): Credent
     expirationDate,
     limitedClaims,
   };
-};
+}

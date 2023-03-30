@@ -324,10 +324,6 @@ const schemaPropsParser = StrictSchema<domain.SchemaProps>()(
   })
 );
 
-export const schemaParser = StrictSchema<Schema, domain.Schema>()(
-  schemaPropsParser.and(attributeParser("schema", false))
-);
-
 const sertoJsonLdTypeParser = (schema: domain.Schema) =>
   StrictSchema<
     {
@@ -495,8 +491,12 @@ const iden3JsonLdTypeParser = (schema: domain.Schema) =>
       })
   );
 
-export const jsonLdTypeParser = (schema: domain.Schema) =>
-  StrictSchema<
+export const schemaParser = StrictSchema<Schema, domain.Schema>()(
+  schemaPropsParser.and(attributeParser("schema", false))
+);
+
+export function jsonLdTypeParser(schema: domain.Schema) {
+  return StrictSchema<
     | {
         "@context": Record<string, unknown>;
       }
@@ -505,3 +505,4 @@ export const jsonLdTypeParser = (schema: domain.Schema) =>
       },
     domain.JsonLdType[]
   >()(z.union([sertoJsonLdTypeParser(schema), iden3JsonLdTypeParser(schema)]));
+}

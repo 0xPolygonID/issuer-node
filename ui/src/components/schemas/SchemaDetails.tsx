@@ -55,6 +55,7 @@ export function SchemaDetails() {
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {
             const jsonLdType = jsonLdTypes.find((type) => type.name === apiSchema.type);
+
             if (jsonLdType) {
               setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
             } else {

@@ -28,10 +28,10 @@ type IssueCredentialFormDataAttributesParsingResult =
       success: false;
     };
 
-const parseIssueCredentialFormDataAttributes = (
+function parseIssueCredentialFormDataAttributes(
   attributes: Record<string, unknown>,
   schemaAttributes: SchemaAttribute[]
-): IssueCredentialFormDataAttributesParsingResult => {
+): IssueCredentialFormDataAttributesParsingResult {
   return Object.entries(attributes).reduce(
     (
       acc: IssueCredentialFormDataAttributesParsingResult,
@@ -143,7 +143,7 @@ const parseIssueCredentialFormDataAttributes = (
     },
     { data: [], success: true }
   );
-};
+}
 
 export const parseLinkExpirationDate = StrictSchema<{
   linkExpirationDate: dayjs.Dayjs | null;
@@ -167,7 +167,7 @@ const issueCredentialFormDataInput = z.object({
 
 type IssueCredentialFormDataInput = z.infer<typeof issueCredentialFormDataInput>;
 
-export const issueCredentialFormData = (schemaAttributes: SchemaAttribute[]) => {
+export function issueCredentialFormData(schemaAttributes: SchemaAttribute[]) {
   return StrictSchema<IssueCredentialFormDataInput, CredentialForm>()(
     issueCredentialFormDataInput.transform(
       (
@@ -189,6 +189,7 @@ export const issueCredentialFormData = (schemaAttributes: SchemaAttribute[]) => 
           );
 
           const now = new Date().getTime();
+
           if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
             zodRefinementCtx.addIssue({
               code: z.ZodIssueCode.custom,
@@ -213,9 +214,9 @@ export const issueCredentialFormData = (schemaAttributes: SchemaAttribute[]) => 
       }
     )
   );
-};
+}
 
-const buildLinkAccessibleUntil = (date?: dayjs.Dayjs, time?: dayjs.Dayjs): Date | undefined => {
+function buildLinkAccessibleUntil(date?: dayjs.Dayjs, time?: dayjs.Dayjs) {
   if (date) {
     if (time) {
       return dayjs(date)
@@ -233,7 +234,7 @@ const buildLinkAccessibleUntil = (date?: dayjs.Dayjs, time?: dayjs.Dayjs): Date 
       return undefined;
     }
   }
-};
+}
 
 export function formatAttributeValue(
   attribute: CredentialAttribute,
@@ -298,6 +299,7 @@ export function formatAttributeValue(
         const name = schemaAttribute.values.find(
           (choice) => choice.value === attribute.attributeValue
         );
+
         if (name) {
           return {
             data: `${name.name} (${attribute.attributeValue})`,
