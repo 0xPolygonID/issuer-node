@@ -425,6 +425,9 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error) {
 	link, err := s.linkService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
+		if errors.Is(err, services.ErrLinkNotFound) {
+			return GetLink404JSONResponse{N404JSONResponse{Message: "link not found"}}, nil
+		}
 		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
 		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
@@ -440,12 +443,11 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error) {
 	err := s.linkService.Activate(ctx, s.cfg.APIUI.IssuerDID, request.Id, request.Body.Active)
 	if err != nil {
-		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
 			return AcivateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		} else {
-			return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 		}
+		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
+		return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return AcivateLink200JSONResponse{Message: "Link updated"}, nil
 }

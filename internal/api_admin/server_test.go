@@ -2551,10 +2551,10 @@ func TestServer_ActivateLink(t *testing.T) {
 	cfg.APIUI.IssuerDID = *did
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
-	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
-	assert.NoError(t, err)
+	tomorrow := time.Now().Add(24 * time.Hour)
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+
 	handler := getHandler(ctx, server)
 
 	type expected struct {
@@ -2652,6 +2652,169 @@ func TestServer_ActivateLink(t *testing.T) {
 				var response AcivateLink400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
+			}
+		})
+	}
+}
+
+// TestServer_GetLink does an end 2 end test for the get link endpoint.
+// TIP: Link status test is better covered in the internal/repositories/tests/link_test.go unit tests
+// as it is really verbose to do it here.
+func TestServer_GetLink(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	schemaRepository := repositories.NewSchema(*storage)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(linkRepository, schemaRepository, loader.HTTPFactory)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	assert.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	tomorrow := time.Now().Add(24 * time.Hour)
+	yesterday := time.Now().Add(-24 * time.Hour)
+
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response GetLinkResponseObject
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		id       uuid.UUID
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			id:   link.ID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Claim link does not exist",
+			auth: authOk,
+			id:   uuid.New(),
+			expected: expected{
+				response: GetLink404JSONResponse{N404JSONResponse{Message: "link not found"}},
+				httpCode: http.StatusNotFound,
+			},
+		},
+		{
+			name: "Happy path, link active by date",
+			auth: authOk,
+			id:   link.ID,
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLink200JSONResponse{
+					Active:       link.Active,
+					Attributes:   []LinkRequestAttributesType{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}},
+					Expiration:   link.ValidUntil,
+					Id:           link.ID,
+					IssuedClaims: link.IssuedClaims,
+					MaxIssuance:  link.MaxIssuance,
+					SchemaType:   link.Schema.Type,
+					SchemaUrl:    link.Schema.URL,
+					Status:       Active,
+				},
+			},
+		},
+		{
+			name: "Happy path, link expired by date",
+			auth: authOk,
+			id:   linkExpired.ID,
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLink200JSONResponse{
+					Active:       linkExpired.Active,
+					Attributes:   []LinkRequestAttributesType{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}},
+					Expiration:   linkExpired.ValidUntil,
+					Id:           linkExpired.ID,
+					IssuedClaims: linkExpired.IssuedClaims,
+					MaxIssuance:  linkExpired.MaxIssuance,
+					SchemaType:   linkExpired.Schema.Type,
+					SchemaUrl:    linkExpired.Schema.URL,
+					Status:       Exceed,
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/links/%s", tc.id)
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetLink200JSONResponse
+				expected, ok := tc.expected.response.(GetLink200JSONResponse)
+				require.True(t, ok)
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, expected.Active, response.Active)
+				assert.Equal(t, expected.MaxIssuance, response.MaxIssuance)
+				assert.Equal(t, expected.Status, response.Status)
+				assert.Equal(t, expected.IssuedClaims, response.IssuedClaims)
+				assert.Equal(t, expected.Id, response.Id)
+				assert.Equal(t, expected.Attributes, response.Attributes)
+				assert.Equal(t, expected.SchemaType, response.SchemaType)
+				assert.Equal(t, expected.SchemaUrl, response.SchemaUrl)
+				assert.Equal(t, expected.Active, response.Active)
+				assert.InDelta(t, expected.Expiration.UnixMilli(), response.Expiration.UnixMilli(), 10)
+			case http.StatusNotFound:
+				var response GetLink404JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				expected, ok := tc.expected.response.(GetLink404JSONResponse)
+				require.True(t, ok)
+				assert.EqualValues(t, expected.Message, response.Message)
 			}
 		})
 	}

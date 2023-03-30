@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -105,7 +107,13 @@ WHERE links.id = $1 AND links.issuer_id = $2`
 	if err != nil {
 		return nil, err
 	}
-	if err := credentialAttributtes.AssignTo(&link.CredentialAttributes); err != nil {
+	raw, err := credentialAttributtes.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("parsing credential attributes: %w", err)
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.UseNumber()
+	if err := d.Decode(&link.CredentialAttributes); err != nil {
 		return nil, fmt.Errorf("parsing credential attributes: %w", err)
 	}
 	link.Schema, err = toSchemaDomain(&s)

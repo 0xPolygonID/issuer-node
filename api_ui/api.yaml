@@ -217,7 +217,7 @@ paths:
             enum: [all, revoked, expired]
           description: >
              Schema type:
-               * `all` - All schemas. Default value if query parameter is not present
+               * `all` - All Schemas. (default value)
                * `revoked` - Only revoked schemas
                * `expired` - Only expired schemas
         - in: query
@@ -468,6 +468,8 @@ paths:
     get:
       summary: Returns a link to a credential offer
       operationId: GetLink
+      security:
+        - basicAuth: [ ]
       tags:
         - Links
       parameters:

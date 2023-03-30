@@ -11,6 +11,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 var (
@@ -61,6 +62,7 @@ func (ls *Link) Save(
 	if err != nil {
 		return nil, err
 	}
+	link.Schema = schema
 	return link, nil
 }
 
@@ -87,6 +89,9 @@ func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUI
 // GetByID returns a link by id and issuerDID
 func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
+	if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+		return nil, ErrLinkNotFound
+	}
 	if err != nil {
 		return nil, err
 	}

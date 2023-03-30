@@ -1,6 +1,7 @@
 package api_admin
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -148,11 +149,14 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 			}
 			attrs[i].Value = s
 		case domain.TypeInteger:
-			i, ok := attr.Value.(int)
-			if !ok {
-				return nil, fmt.Errorf("error converting <%v> to integer", attr.Value)
+			switch n := attr.Value.(type) {
+			case int, int8, int16, int32, int64, float32, float64:
+				attrs[i].Value = fmt.Sprintf("%d", n)
+			case json.Number:
+				attrs[i].Value = n.String()
+			default:
+				return nil, fmt.Errorf("error converting <%v> to string", attr.Value)
 			}
-			attrs[i].Value = fmt.Sprintf("%d", i)
 		case domain.TypeBoolean:
 			b, ok := attr.Value.(bool)
 			if !ok {
@@ -166,12 +170,12 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 	return &GetLink200JSONResponse{
 		Active:       link.Active,
 		Attributes:   attrs,
-		Expiration:   link.CredentialExpiration,
+		Expiration:   link.ValidUntil,
 		Id:           link.ID,
 		IssuedClaims: link.IssuedClaims, // TODO: Give a value when link redemption is implemented
 		MaxIssuance:  link.MaxIssuance,
-		SchemaType:   link.Schema.URL,
-		SchemaUrl:    link.Schema.Type,
+		SchemaType:   link.Schema.Type,
+		SchemaUrl:    link.Schema.URL,
 		Status:       LinkStatus(link.Status()),
 	}, nil
 }
