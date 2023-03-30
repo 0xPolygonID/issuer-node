@@ -757,6 +757,11 @@ components:
 
     CredentialLinkQrCodeResponse:
       type: object
+      required:
+        - issuer
+        - qrCode
+        - sessionID
+        - linkID
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
@@ -771,6 +776,9 @@ components:
 
     IssuerDescription:
       type: object
+      required:
+        - displayName
+        - logo
       properties:
         displayName:
           type: string

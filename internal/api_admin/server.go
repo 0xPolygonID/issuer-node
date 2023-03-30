@@ -456,11 +456,11 @@ func (s *Server) CrateLinkQrCode(ctx context.Context, request CrateLinkQrCodeReq
 	}
 
 	return CrateLinkQrCode200JSONResponse{
-		Issuer: &IssuerDescription{
-			DisplayName: common.ToPointer(s.cfg.APIUI.IssuerName),
-			Logo:        common.ToPointer(s.cfg.APIUI.IssuerLogo),
+		Issuer: IssuerDescription{
+			DisplayName: s.cfg.APIUI.IssuerName,
+			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode: &AuthenticationQrCodeResponse{
+		QrCode: AuthenticationQrCodeResponse{
 			Body: struct {
 				CallbackUrl string        `json:"callbackUrl"`
 				Reason      string        `json:"reason"`
@@ -476,8 +476,8 @@ func (s *Server) CrateLinkQrCode(ctx context.Context, request CrateLinkQrCodeReq
 			Typ:  string(qrCode.Typ),
 			Type: string(qrCode.Type),
 		},
-		SessionID: common.ToPointer(sessionID),
-		LinkID:    common.ToPointer(request.Id.String()),
+		SessionID: sessionID,
+		LinkID:    request.Id.String(),
 	}, nil
 }
 
