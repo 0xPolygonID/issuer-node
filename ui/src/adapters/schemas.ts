@@ -1,6 +1,7 @@
 import { getJsonFromUrl } from "src/adapters/json";
 import { jsonLdTypeParser, schemaParser } from "src/adapters/parsers/schemas";
-import { Json, JsonLdType, Schema } from "src/domain";
+import { Json, JsonLdType } from "src/domain";
+import { Schema } from "src/domain/schemas";
 
 export async function getSchemaFromUrl({ url }: { url: string }): Promise<[Schema, Json]> {
   const json = await getJsonFromUrl({

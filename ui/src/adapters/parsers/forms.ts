@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { CredentialAttribute } from "src/adapters/api/credentials";
 import { SchemaAttribute } from "src/adapters/api/schemas";
-import { CredentialForm, CredentialFormAttribute } from "src/domain";
+import { CredentialForm, CredentialFormAttribute } from "src/domain/credentials";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { StrictSchema } from "src/utils/types";

@@ -8,7 +8,7 @@ import {
   DateCredentialFormAttribute,
   NumberCredentialFormAttribute,
   SingleChoiceCredentialFormAttribute,
-} from "src/domain";
+} from "src/domain/credentials";
 
 const serializeBooleanCredentialFormAttribute = (
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute
@@ -18,6 +18,25 @@ const serializeBooleanCredentialFormAttribute = (
     attributeValue: booleanCredentialFormAttribute.value ? 1 : 0,
   };
 };
+
+function serializeCredentialFormAttribute(
+  credentialFormAttribute: CredentialFormAttribute
+): CredentialAttribute {
+  switch (credentialFormAttribute.type) {
+    case "boolean": {
+      return serializeBooleanCredentialFormAttribute(credentialFormAttribute);
+    }
+    case "date": {
+      return serializeDateCredentialFormAttribute(credentialFormAttribute);
+    }
+    case "number": {
+      return serializeNumberCredentialFormAttribute(credentialFormAttribute);
+    }
+    case "singlechoice": {
+      return serializeSingleChoiceCredentialFormAttribute(credentialFormAttribute);
+    }
+  }
+}
 
 function serializeDateCredentialFormAttribute(
   dateCredentialFormAttribute: DateCredentialFormAttribute
@@ -47,25 +66,6 @@ function serializeSingleChoiceCredentialFormAttribute(
     attributeKey: singleChoiceCredentialFormAttribute.name,
     attributeValue: singleChoiceCredentialFormAttribute.value,
   };
-}
-
-function serializeCredentialFormAttribute(
-  credentialFormAttribute: CredentialFormAttribute
-): CredentialAttribute {
-  switch (credentialFormAttribute.type) {
-    case "boolean": {
-      return serializeBooleanCredentialFormAttribute(credentialFormAttribute);
-    }
-    case "date": {
-      return serializeDateCredentialFormAttribute(credentialFormAttribute);
-    }
-    case "number": {
-      return serializeNumberCredentialFormAttribute(credentialFormAttribute);
-    }
-    case "singlechoice": {
-      return serializeSingleChoiceCredentialFormAttribute(credentialFormAttribute);
-    }
-  }
 }
 
 export function serializeCredentialForm(credentialForm: CredentialForm): CredentialIssuePayload {

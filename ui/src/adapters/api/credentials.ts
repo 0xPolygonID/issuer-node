@@ -8,7 +8,7 @@ import {
   ResultOK,
   buildAPIError,
 } from "src/adapters/api";
-import { Schema, schema } from "src/adapters/api/schemas";
+import { SchemaPayload, schemaStrict } from "src/adapters/api/schemas";
 import { Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
@@ -30,7 +30,7 @@ export interface Credential {
   linkAccessibleUntil: Date | null;
   linkCurrentIssuance: number | null;
   linkMaximumIssuance: number | null;
-  schemaTemplate: Schema;
+  schemaTemplate: SchemaPayload;
   valid: boolean;
 }
 
@@ -43,7 +43,7 @@ interface CredentialPayload {
   id: string;
   issuedClaims: number | null;
   limitedClaims: number | null;
-  schemaTemplate: Schema;
+  schemaTemplate: SchemaPayload;
   valid: boolean;
 }
 
@@ -219,7 +219,7 @@ const credential = StrictSchema<CredentialPayload, Credential>()(
       id: z.string(),
       issuedClaims: z.number().nullable(),
       limitedClaims: z.number().nullable(),
-      schemaTemplate: schema,
+      schemaTemplate: schemaStrict,
       valid: z.boolean(),
     })
     .transform(

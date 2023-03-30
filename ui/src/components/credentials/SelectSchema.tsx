@@ -2,7 +2,7 @@ import { Form, Select, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 
 import { generatePath, useNavigate } from "react-router-dom";
-import { Schema, getSchemas } from "src/adapters/api/schemas";
+import { SchemaPayload, getSchemas } from "src/adapters/api/schemas";
 import { useEnvContext } from "src/contexts/env";
 import { ROUTES } from "src/routes";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -11,7 +11,7 @@ import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
   const env = useEnvContext();
-  const [schemas, setSchemas] = useState<AsyncTask<Schema[], undefined>>({
+  const [schemas, setSchemas] = useState<AsyncTask<SchemaPayload[], undefined>>({
     status: "pending",
   });
 

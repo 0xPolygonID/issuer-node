@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { Credential, credentialIssue } from "src/adapters/api/credentials";
-import { Schema, getSchema } from "src/adapters/api/schemas";
+import { SchemaPayload, getSchema } from "src/adapters/api/schemas";
 import { issueCredentialFormData } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
 import {
@@ -43,7 +43,7 @@ export function IssueCredential() {
     status: "pending",
   });
   const [formData, setFormData] = useState<FormData>(defaultFormData);
-  const [schema, setSchema] = useState<AsyncTask<Schema, APIError>>({
+  const [schema, setSchema] = useState<AsyncTask<SchemaPayload, APIError>>({
     status: "pending",
   });
 

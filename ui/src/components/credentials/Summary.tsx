@@ -7,7 +7,7 @@ import {
   credentialsQRCreate,
   credentialsQRDownload,
 } from "src/adapters/api/credentials";
-import { Schema } from "src/adapters/api/schemas";
+import { SchemaPayload } from "src/adapters/api/schemas";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
@@ -30,7 +30,7 @@ export function Summary({
   schema,
 }: {
   credential: Credential;
-  schema: Schema;
+  schema: SchemaPayload;
 }) {
   const env = useEnvContext();
   const navigate = useNavigate();

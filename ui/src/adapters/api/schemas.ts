@@ -9,7 +9,7 @@ import { StrictSchema } from "src/utils/types";
 const buildAuthorizationHeader = (env: Env) =>
   `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
 
-export interface Schema {
+export interface SchemaPayload {
   bigInt: string;
   createdAt: Date;
   hash: string;
@@ -73,7 +73,7 @@ export async function getSchema({
   env: Env;
   schemaID: string;
   signal: AbortSignal;
-}): Promise<APIResponse<Schema>> {
+}): Promise<APIResponse<SchemaPayload>> {
   try {
     const response = await axios({
       baseURL: `${env.api.url}/${API_VERSION}`,
@@ -104,8 +104,8 @@ export async function getSchemas({
   signal: AbortSignal;
 }): Promise<
   APIResponse<{
-    errors: z.ZodError<Schema>[];
-    schemas: Schema[];
+    errors: z.ZodError<SchemaPayload>[];
+    schemas: SchemaPayload[];
   }>
 > {
   try {
@@ -178,7 +178,7 @@ export const schemaAttribute = StrictSchema<SchemaAttribute>()(
     )
 );
 
-export const schema = StrictSchema<Schema>()(
+export const schemaStrict = StrictSchema<SchemaPayload>()(
   z.object({
     bigInt: z.string(),
     createdAt: z.coerce.date(),
@@ -189,24 +189,24 @@ export const schema = StrictSchema<Schema>()(
   })
 );
 
-const resultOKSchema = StrictSchema<ResultOK<Schema>>()(
+const resultOKSchema = StrictSchema<ResultOK<SchemaPayload>>()(
   z.object({
-    data: schema,
+    data: schemaStrict,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-interface Schemas {
-  errors: z.ZodError<Schema>[];
-  schemas: Schema[];
+interface SchemaPayloads {
+  errors: z.ZodError<SchemaPayload>[];
+  schemas: SchemaPayload[];
 }
 
-const resultOKSchemas = StrictSchema<ResultOK<unknown[]>, ResultOK<Schemas>>()(
+const resultOKSchemas = StrictSchema<ResultOK<unknown[]>, ResultOK<SchemaPayloads>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: Schemas, curr: unknown, index) => {
-          const parsedSchema = schema.safeParse(curr);
+        (acc: SchemaPayloads, curr: unknown, index) => {
+          const parsedSchema = schemaStrict.safeParse(curr);
           return parsedSchema.success
             ? {
                 ...acc,
@@ -216,7 +216,7 @@ const resultOKSchemas = StrictSchema<ResultOK<unknown[]>, ResultOK<Schemas>>()(
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<Schema>(
+                  new z.ZodError<SchemaPayload>(
                     parsedSchema.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],

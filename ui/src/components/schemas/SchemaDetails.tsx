@@ -4,7 +4,7 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
-import { Schema as ApiSchema, getSchema } from "src/adapters/api/schemas";
+import { SchemaPayload, getSchema } from "src/adapters/api/schemas";
 import { downloadJsonFromUrl } from "src/adapters/json";
 import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
@@ -14,7 +14,8 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
-import { Json, JsonLdType, Schema } from "src/domain";
+import { Json, JsonLdType } from "src/domain";
+import { Schema } from "src/domain/schemas";
 import { ROUTES } from "src/routes";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { processZodError } from "src/utils/error";
@@ -30,7 +31,7 @@ export function SchemaDetails() {
   const [schemaTuple, setSchemaTuple] = useState<AsyncTask<[Schema, Json], string | z.ZodError>>({
     status: "pending",
   });
-  const [apiSchema, setApiSchema] = useState<AsyncTask<ApiSchema, APIError>>({
+  const [apiSchema, setApiSchema] = useState<AsyncTask<SchemaPayload, APIError>>({
     status: "pending",
   });
   const [contextTuple, setContextTuple] = useState<
@@ -42,7 +43,7 @@ export function SchemaDetails() {
   const extractError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const fetchSchemaFromUrl = useCallback((apiSchema: ApiSchema): void => {
+  const fetchSchemaFromUrl = useCallback((apiSchema: SchemaPayload): void => {
     setSchemaTuple({ status: "loading" });
     getSchemaFromUrl({
       url: apiSchema.url,

@@ -1,23 +1,47 @@
 import { z } from "zod";
 
-import * as domain from "src/domain";
+import { JsonLdType } from "src/domain";
+import {
+  ArrayAttribute,
+  ArrayProps,
+  Attribute,
+  BooleanAttribute,
+  BooleanProps,
+  BooleanSchema,
+  CommonProps,
+  IntegerAttribute,
+  IntegerSchema,
+  MultiAttribute,
+  MultiSchema,
+  NullAttribute,
+  NullSchema,
+  NumberAttribute,
+  NumberSchema,
+  ObjectAttribute,
+  ObjectProps,
+  Schema,
+  SchemaProps,
+  StringAttribute,
+  StringProps,
+  StringSchema,
+} from "src/domain/schemas";
 import { StrictSchema } from "src/utils/types";
 
-const commonPropsParser = StrictSchema<domain.CommonProps>()(
+const commonPropsParser = StrictSchema<CommonProps>()(
   z.object({
     description: z.string().optional(),
     title: z.string().optional(),
   })
 );
 
-const stringPropsParser = StrictSchema<domain.StringProps>()(
+const stringPropsParser = StrictSchema<StringProps>()(
   z.object({
     enum: z.string().array().min(1).optional(),
     format: z.string().optional(),
   })
 );
 
-const stringSchemaParser = StrictSchema<domain.StringSchema>()(
+const stringSchemaParser = StrictSchema<StringSchema>()(
   commonPropsParser.and(stringPropsParser).and(
     z.object({
       type: z.literal("string"),
@@ -26,9 +50,9 @@ const stringSchemaParser = StrictSchema<domain.StringSchema>()(
 );
 
 const stringAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<domain.StringSchema, domain.StringAttribute>()(
+  StrictSchema<StringSchema, StringAttribute>()(
     stringSchemaParser.transform(
-      (schema): domain.StringAttribute => ({
+      (schema): StringAttribute => ({
         name,
         required,
         schema,
@@ -37,7 +61,7 @@ const stringAttributeParser = (name: string, required: boolean) =>
     )
   );
 
-const integerSchemaParser = StrictSchema<domain.IntegerSchema>()(
+const integerSchemaParser = StrictSchema<IntegerSchema>()(
   commonPropsParser.and(
     z.object({
       enum: z.number().int().array().min(1).optional(),
@@ -47,9 +71,9 @@ const integerSchemaParser = StrictSchema<domain.IntegerSchema>()(
 );
 
 const integerAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<domain.IntegerSchema, domain.IntegerAttribute>()(
+  StrictSchema<IntegerSchema, IntegerAttribute>()(
     integerSchemaParser.transform(
-      (schema): domain.IntegerAttribute => ({
+      (schema): IntegerAttribute => ({
         name,
         required,
         schema,
@@ -58,7 +82,7 @@ const integerAttributeParser = (name: string, required: boolean) =>
     )
   );
 
-const numberSchemaParser = StrictSchema<domain.NumberSchema>()(
+const numberSchemaParser = StrictSchema<NumberSchema>()(
   commonPropsParser.and(
     z.object({
       enum: z.number().array().min(1).optional(),
@@ -68,9 +92,9 @@ const numberSchemaParser = StrictSchema<domain.NumberSchema>()(
 );
 
 const numberAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<domain.NumberSchema, domain.NumberAttribute>()(
+  StrictSchema<NumberSchema, NumberAttribute>()(
     numberSchemaParser.transform(
-      (schema): domain.NumberAttribute => ({
+      (schema): NumberAttribute => ({
         name,
         required,
         schema,
@@ -79,13 +103,13 @@ const numberAttributeParser = (name: string, required: boolean) =>
     )
   );
 
-const booleanPropsParser = StrictSchema<domain.BooleanProps>()(
+const booleanPropsParser = StrictSchema<BooleanProps>()(
   z.object({
     enum: z.boolean().array().min(1).optional(),
   })
 );
 
-const booleanSchemaParser = StrictSchema<domain.BooleanSchema>()(
+const booleanSchemaParser = StrictSchema<BooleanSchema>()(
   commonPropsParser.and(booleanPropsParser).and(
     z.object({
       type: z.literal("boolean"),
@@ -94,9 +118,9 @@ const booleanSchemaParser = StrictSchema<domain.BooleanSchema>()(
 );
 
 const booleanAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<domain.BooleanSchema, domain.BooleanAttribute>()(
+  StrictSchema<BooleanSchema, BooleanAttribute>()(
     booleanSchemaParser.transform(
-      (schema): domain.BooleanAttribute => ({
+      (schema): BooleanAttribute => ({
         name,
         required,
         schema,
@@ -105,7 +129,7 @@ const booleanAttributeParser = (name: string, required: boolean) =>
     )
   );
 
-const nullSchemaParser = StrictSchema<domain.NullSchema>()(
+const nullSchemaParser = StrictSchema<NullSchema>()(
   commonPropsParser.and(
     z.object({
       type: z.literal("null"),
@@ -114,9 +138,9 @@ const nullSchemaParser = StrictSchema<domain.NullSchema>()(
 );
 
 const nullAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<domain.NullSchema, domain.NullAttribute>()(
+  StrictSchema<NullSchema, NullAttribute>()(
     nullSchemaParser.transform(
-      (schema): domain.NullAttribute => ({
+      (schema): NullAttribute => ({
         name,
         required,
         schema,
@@ -125,13 +149,13 @@ const nullAttributeParser = (name: string, required: boolean) =>
     )
   );
 
-type ObjectProps = Omit<domain.ObjectProps, "properties"> & {
+type ObjectPropsWithoutProperties = Omit<ObjectProps, "properties"> & {
   properties?: Record<string, unknown>;
 };
 
-type ObjectSchema = domain.CommonProps & ObjectProps & { type: "object" };
+type ObjectSchema = CommonProps & ObjectPropsWithoutProperties & { type: "object" };
 
-const objectPropsParser = StrictSchema<ObjectProps>()(
+const objectPropsParser = StrictSchema<ObjectPropsWithoutProperties>()(
   z.object({
     properties: z.record(z.unknown()).optional(),
     required: z.string().array().optional(),
@@ -147,9 +171,9 @@ const objectSchemaParser = StrictSchema<ObjectSchema>()(
 );
 
 const objectAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<ObjectSchema, domain.ObjectAttribute>()(
+  StrictSchema<ObjectSchema, ObjectAttribute>()(
     objectSchemaParser.transform(
-      (schema): domain.ObjectAttribute => ({
+      (schema): ObjectAttribute => ({
         name,
         required,
         schema: {
@@ -168,13 +192,13 @@ const objectAttributeParser = (name: string, required: boolean) =>
     )
   );
 
-type ArrayProps = Omit<domain.ArrayProps, "items"> & {
+type ArrayPropsWithoutItems = Omit<ArrayProps, "items"> & {
   items?: unknown;
 };
 
-type ArraySchema = domain.CommonProps & ArrayProps & { type: "array" };
+type ArraySchema = CommonProps & ArrayPropsWithoutItems & { type: "array" };
 
-const arrayPropsParser = StrictSchema<ArrayProps>()(
+const arrayPropsParser = StrictSchema<ArrayPropsWithoutItems>()(
   z.object({
     items: z.unknown().optional(),
   })
@@ -189,9 +213,9 @@ const arraySchemaParser = StrictSchema<ArraySchema>()(
 );
 
 const arrayAttributeParser = (name: string, required: boolean) =>
-  StrictSchema<ArraySchema, domain.ArrayAttribute>()(
+  StrictSchema<ArraySchema, ArrayAttribute>()(
     arraySchemaParser.transform(
-      (schema): domain.ArrayAttribute => ({
+      (schema): ArrayAttribute => ({
         name,
         required,
         schema: {
@@ -205,19 +229,22 @@ const arrayAttributeParser = (name: string, required: boolean) =>
 
 type MultiSchemaType = {
   type: (
-    | domain.StringSchema["type"]
-    | domain.IntegerSchema["type"]
-    | domain.NumberSchema["type"]
-    | domain.BooleanSchema["type"]
-    | domain.NullSchema["type"]
-    | domain.ObjectSchema["type"]
-    | domain.ArraySchema["type"]
+    | StringSchema["type"]
+    | IntegerSchema["type"]
+    | NumberSchema["type"]
+    | BooleanSchema["type"]
+    | NullSchema["type"]
+    | ObjectSchema["type"]
+    | ArraySchema["type"]
   )[];
 };
 
-type MultiProps = domain.StringProps & domain.BooleanProps & ObjectProps & ArrayProps;
+type MultiProps = StringProps &
+  BooleanProps &
+  ObjectPropsWithoutProperties &
+  ArrayPropsWithoutItems;
 
-type MultiSchema = domain.CommonProps & MultiProps & MultiSchemaType;
+type MultiSchemaComposite = CommonProps & MultiProps & MultiSchemaType;
 
 const multiPropsParser = StrictSchema<MultiProps>()(
   stringPropsParser.and(booleanPropsParser).and(objectPropsParser).and(arrayPropsParser)
@@ -241,11 +268,11 @@ const multiSchemaTypeParser = StrictSchema<MultiSchemaType>()(
 );
 
 const unsafelyParseMultiSchemaToDomain = (
-  multiSchema: MultiSchema,
+  multiSchema: MultiSchemaComposite,
   name: string,
   required: boolean
-): domain.MultiSchema => {
-  return multiSchema.type.map((type): domain.MultiSchema[number] => {
+): MultiSchema => {
+  return multiSchema.type.map((type): MultiSchema[number] => {
     switch (type) {
       case "string": {
         return stringAttributeParser(name, required).parse({ ...multiSchema, type: "string" })
@@ -278,12 +305,12 @@ const unsafelyParseMultiSchemaToDomain = (
 };
 
 const multiSchemaParser = (name: string, required: boolean) =>
-  StrictSchema<MultiSchema, domain.MultiAttribute>()(
+  StrictSchema<MultiSchemaComposite, MultiAttribute>()(
     commonPropsParser
       .and(multiPropsParser)
       .and(multiSchemaTypeParser)
       .transform(
-        (schema): domain.MultiAttribute => ({
+        (schema): MultiAttribute => ({
           name,
           required,
           schemas: unsafelyParseMultiSchemaToDomain(schema, name, required),
@@ -293,17 +320,17 @@ const multiSchemaParser = (name: string, required: boolean) =>
   );
 
 type AnySchema =
-  | domain.StringSchema
-  | domain.IntegerSchema
-  | domain.NumberSchema
-  | domain.BooleanSchema
-  | domain.NullSchema
+  | StringSchema
+  | IntegerSchema
+  | NumberSchema
+  | BooleanSchema
+  | NullSchema
   | ObjectSchema
   | ArraySchema
-  | MultiSchema;
+  | MultiSchemaComposite;
 
 const attributeParser = (name: string, required: boolean) =>
-  StrictSchema<AnySchema, domain.Attribute>()(
+  StrictSchema<AnySchema, Attribute>()(
     z.union([
       stringAttributeParser(name, required),
       integerAttributeParser(name, required),
@@ -316,30 +343,30 @@ const attributeParser = (name: string, required: boolean) =>
     ])
   );
 
-type Schema = AnySchema & domain.SchemaProps;
+type SchemaComposite = AnySchema & SchemaProps;
 
-const schemaPropsParser = StrictSchema<domain.SchemaProps>()(
+const schemaPropsParser = StrictSchema<SchemaProps>()(
   z.object({
     $metadata: z.object({ uris: z.object({ jsonLdContext: z.string() }) }),
   })
 );
 
-const sertoJsonLdTypeParser = (schema: domain.Schema) =>
+const sertoJsonLdTypeParser = (schema: Schema) =>
   StrictSchema<
     {
       "@context": Record<string, unknown>;
     },
-    domain.JsonLdType[]
+    JsonLdType[]
   >()(
     z
       .object({
         "@context": z.record(z.unknown()),
       })
-      .transform((ldContext, zodContext): domain.JsonLdType[] => {
+      .transform((ldContext, zodContext): JsonLdType[] => {
         const schemaCredentialSubject =
           schema.type === "object" && schema.schema.properties
             ? schema.schema.properties.reduce(
-                (acc: domain.ObjectAttribute | undefined, curr: domain.Attribute) =>
+                (acc: ObjectAttribute | undefined, curr: Attribute) =>
                   curr.type === "object" && curr.name === "credentialSubject" ? curr : acc,
                 undefined
               )
@@ -363,10 +390,7 @@ const sertoJsonLdTypeParser = (schema: domain.Schema) =>
           .parse(ldContext["@context"]);
 
         const jsonLdTypeParseResult = Object.entries(ldContext["@context"]).reduce(
-          (
-            acc: { success: false } | { jsonLdType: domain.JsonLdType; success: true },
-            [key, value]
-          ) => {
+          (acc: { success: false } | { jsonLdType: JsonLdType; success: true }, [key, value]) => {
             const parsedValue = z.object({ "@id": z.literal("schema-id") }).safeParse(value);
 
             return !acc.success && parsedValue.success
@@ -408,22 +432,22 @@ const sertoJsonLdTypeParser = (schema: domain.Schema) =>
       })
   );
 
-const iden3JsonLdTypeParser = (schema: domain.Schema) =>
+const iden3JsonLdTypeParser = (schema: Schema) =>
   StrictSchema<
     {
       "@context": [Record<string, unknown>];
     },
-    domain.JsonLdType[]
+    JsonLdType[]
   >()(
     z
       .object({
         "@context": z.tuple([z.record(z.unknown())]),
       })
-      .transform((ldContext, zodContext): domain.JsonLdType[] => {
+      .transform((ldContext, zodContext): JsonLdType[] => {
         const schemaCredentialSubject =
           schema.type === "object" && schema.schema.properties
             ? schema.schema.properties.reduce(
-                (acc: domain.ObjectAttribute | undefined, curr: domain.Attribute) =>
+                (acc: ObjectAttribute | undefined, curr: Attribute) =>
                   curr.type === "object" && curr.name === "credentialSubject" ? curr : acc,
                 undefined
               )
@@ -439,10 +463,7 @@ const iden3JsonLdTypeParser = (schema: domain.Schema) =>
         }
 
         const ldContextTypeParseResult = Object.entries(ldContext["@context"][0]).reduce(
-          (
-            acc: { success: false } | { success: true; value: domain.JsonLdType[] },
-            [key, value]
-          ) => {
+          (acc: { success: false } | { success: true; value: JsonLdType[] }, [key, value]) => {
             const parsedValue = z
               .object({
                 "@context": z.record(z.unknown()),
@@ -491,11 +512,11 @@ const iden3JsonLdTypeParser = (schema: domain.Schema) =>
       })
   );
 
-export const schemaParser = StrictSchema<Schema, domain.Schema>()(
+export const schemaParser = StrictSchema<SchemaComposite, Schema>()(
   schemaPropsParser.and(attributeParser("schema", false))
 );
 
-export function jsonLdTypeParser(schema: domain.Schema) {
+export function jsonLdTypeParser(schema: Schema) {
   return StrictSchema<
     | {
         "@context": Record<string, unknown>;
@@ -503,6 +524,6 @@ export function jsonLdTypeParser(schema: domain.Schema) {
     | {
         "@context": [Record<string, unknown>];
       },
-    domain.JsonLdType[]
+    JsonLdType[]
   >()(z.union([sertoJsonLdTypeParser(schema), iden3JsonLdTypeParser(schema)]));
 }
