@@ -470,9 +470,15 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 
 // CreateLinkQrCode - Creates a link QrCode
 func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
-	qrCode, sessionID, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
+	}
+
+	linkDetail, err := getLinkResponse(createLinkQrCodeResponse.Link)
+	if err != nil {
+		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		return CreateLinkQrCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
 
 	return CreateLinkQrCode200JSONResponse{
@@ -486,18 +492,18 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 				Reason      string        `json:"reason"`
 				Scope       []interface{} `json:"scope"`
 			}{
-				qrCode.Body.CallbackURL,
-				qrCode.Body.Reason,
+				createLinkQrCodeResponse.QrCode.Body.CallbackURL,
+				createLinkQrCodeResponse.QrCode.Body.Reason,
 				[]interface{}{},
 			},
-			From: qrCode.From,
-			Id:   qrCode.ID,
-			Thid: qrCode.ThreadID,
-			Typ:  string(qrCode.Typ),
-			Type: string(qrCode.Type),
+			From: createLinkQrCodeResponse.QrCode.From,
+			Id:   createLinkQrCodeResponse.QrCode.ID,
+			Thid: createLinkQrCodeResponse.QrCode.ThreadID,
+			Typ:  string(createLinkQrCodeResponse.QrCode.Typ),
+			Type: string(createLinkQrCodeResponse.QrCode.Type),
 		},
-		SessionID: sessionID,
-		LinkID:    request.Id.String(),
+		SessionID:  createLinkQrCodeResponse.SessionID,
+		LinkDetail: (*Link)(linkDetail),
 	}, nil
 }
 

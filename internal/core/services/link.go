@@ -127,7 +127,7 @@ func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did core.DID) error {
 }
 
 // CreateQRCode - generates a qr code for a link
-func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*protocol.AuthorizationRequestMessage, string, error) {
+func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*ports.CreateQRCodeResponse, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 	qrCode := &protocol.AuthorizationRequestMessage{
@@ -144,18 +144,26 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 
 	err := ls.sessionManager.Set(ctx, sessionID, *qrCode)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePending())
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return qrCode, sessionID, err
+	link, err := ls.GetByID(ctx, issuerDID, linkID)
+	if err != nil {
+		return nil, err
+	}
+	return &ports.CreateQRCodeResponse{
+		SessionID: sessionID,
+		QrCode:    qrCode,
+		Link:      link,
+	}, nil
 }
 
 // IssueClaim - Create a new claim

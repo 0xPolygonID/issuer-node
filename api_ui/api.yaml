@@ -791,9 +791,8 @@ components:
         sessionID:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
-        linkID:
-          type: string
-          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
+        linkDetail:
+          $ref: '#/components/schemas/Link'
 
     IssuerDescription:
       type: object

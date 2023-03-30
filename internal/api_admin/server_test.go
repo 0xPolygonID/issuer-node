@@ -3177,7 +3177,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.NotNil(t, response.QrCode.Typ)
 				assert.NotNil(t, response.QrCode.Thid)
 				assert.NotNil(t, response.SessionID)
-				assert.NotNil(t, response.LinkID)
+				assert.NotNil(t, response.LinkDetail)
 			}
 		})
 	}
