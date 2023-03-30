@@ -513,7 +513,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error) {
 	linkState, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, request.Id)
 	if err != nil {
-		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting the link qr code"}}, nil
+		return GetLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	if linkState.Status == link_state.StatusPending || linkState.Status == link_state.StatusDone {
 		return GetLink200JSONResponse{
