@@ -389,6 +389,9 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
+	if request.Body.MtProof == false && request.Body.SignatureProof == false {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}}, nil
+	}
 	if len(request.Body.Attributes) == 0 {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
 	}

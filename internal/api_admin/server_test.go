@@ -2371,6 +2371,25 @@ func TestServer_CreateLink(t *testing.T) {
 			},
 		},
 		{
+			name: "No merkle tree proof or signature proof selected. At least one should be enabled",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
+				LimitedClaims:       common.ToPointer(10),
+				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				MtProof:             false,
+				SignatureProof:      false,
+			},
+			expected: expected{
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "Claim link expiration invalid",
 			auth: authOk,
 			body: CreateLinkRequest{
