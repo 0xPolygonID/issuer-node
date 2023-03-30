@@ -389,16 +389,19 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
+	if !request.Body.MtProof && !request.Body.SignatureProof {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}}, nil
+	}
 	if len(request.Body.Attributes) == 0 {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
 	}
 
-	attrs := make([]domain.CredentialAttributes, 0)
-	for _, at := range request.Body.Attributes {
-		attrs = append(attrs, domain.CredentialAttributes{
+	attrs := make([]domain.CredentialAttrsRequest, len(request.Body.Attributes))
+	for i, at := range request.Body.Attributes {
+		attrs[i] = domain.CredentialAttrsRequest{
 			Name:  at.Name,
 			Value: at.Value,
-		})
+		}
 	}
 
 	if request.Body.LimitedClaims != nil {
@@ -421,16 +424,33 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
 }
 
+// GetLink returns a link from an id
+func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error) {
+	link, err := s.linkService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrLinkNotFound) {
+			return GetLink404JSONResponse{N404JSONResponse{Message: "link not found"}}, nil
+		}
+		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
+		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+	response200, err := getLinkResponse(link)
+	if err != nil {
+		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+	return response200, nil
+}
+
 // AcivateLink - Activates or deactivates a link
 func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error) {
-	err := s.linkService.Activate(ctx, request.Id, request.Body.Active)
+	err := s.linkService.Activate(ctx, s.cfg.APIUI.IssuerDID, request.Id, request.Body.Active)
 	if err != nil {
-		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
 			return AcivateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		} else {
-			return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 		}
+		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
+		return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return AcivateLink200JSONResponse{Message: "Link updated"}, nil
 }

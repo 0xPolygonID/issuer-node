@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -9,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/jackc/pgtype"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -53,30 +56,75 @@ func (l link) Save(ctx context.Context, link *domain.Link) (*uuid.UUID, error) {
 	return &id, err
 }
 
-func (l link) GetByID(ctx context.Context, id uuid.UUID) (*domain.Link, error) {
+func (l link) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Link, error) {
+	const sql = `
+SELECT links.id, 
+       links.issuer_id, 
+       links.created_at, 
+       links.max_issuance, 
+       links.valid_until, 
+       links.schema_id, 
+       links.credential_expiration, 
+       links.credential_signature_proof,
+       links.credential_mtp_proof, 
+       links.credential_attributes, 
+       links.active, 
+       schemas.id as schema_id,
+       schemas.issuer_id as schema_issuer_id,
+       schemas.url,
+       schemas.type,
+       schemas.hash,
+       schemas.attributes, 
+       schemas.created_at
+FROM links
+LEFT JOIN schemas ON schemas.id = links.schema_id AND schemas.issuer_id = links.issuer_id
+WHERE links.id = $1 AND links.issuer_id = $2`
 	link := domain.Link{}
+	s := dbSchema{}
 	var credentialAttributtes pgtype.JSONB
-	sql := `SELECT * FROM links 
-			WHERE id = $1`
-	err := l.conn.Pgx.QueryRow(ctx, sql, id).
-		Scan(&link.ID, &link.IssuerDID, &link.CreatedAt, &link.MaxIssuance, &link.ValidUntil, &link.SchemaID, &link.CredentialExpiration,
-			&link.CredentialSignatureProof, &link.CredentialMTPProof, &credentialAttributtes, &link.Active)
-	if err != nil {
-		if err.Error() == "no rows in result set" {
-			return nil, ErrLinkDoesNotExist
-		}
+	err := l.conn.Pgx.QueryRow(ctx, sql, id, issuerDID.String()).Scan(
+		&link.ID,
+		&link.IssuerDID,
+		&link.CreatedAt,
+		&link.MaxIssuance,
+		&link.ValidUntil,
+		&link.SchemaID,
+		&link.CredentialExpiration,
+		&link.CredentialSignatureProof,
+		&link.CredentialMTPProof, &credentialAttributtes,
+		&link.Active,
+		&s.ID,
+		&s.IssuerID,
+		&s.URL,
+		&s.Type,
+		&s.Hash,
+		&s.Attributes,
+		&s.CreatedAt,
+	)
+	if err == pgx.ErrNoRows {
+		return nil, ErrLinkDoesNotExist
 	}
-
-	if err := credentialAttributtes.AssignTo(&link.CredentialAttributes); err != nil {
+	if err != nil {
+		return nil, err
+	}
+	raw, err := credentialAttributtes.MarshalJSON()
+	if err != nil {
 		return nil, fmt.Errorf("parsing credential attributes: %w", err)
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.UseNumber()
+	if err := d.Decode(&link.CredentialAttributes); err != nil {
+		return nil, fmt.Errorf("parsing credential attributes: %w", err)
+	}
+	link.Schema, err = toSchemaDomain(&s)
+	if err != nil {
+		return nil, fmt.Errorf("parsing link schema: %w", err)
 	}
 	return &link, err
 }
 
 func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error {
-	sql := `DELETE FROM links 
-       		where id = $1 and issuer_id =$2`
-
+	const sql = `DELETE FROM links WHERE id = $1 AND issuer_id =$2`
 	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {
 		return err
