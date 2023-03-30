@@ -15,7 +15,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IDENTIFIER, ISSUE_CREDENTIAL } from "src/utils/constants";
+import { IDENTIFIER, ISSUE_CREDENTIAL, TO_DEVELOP } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
@@ -29,7 +29,7 @@ export function ConnectionDetails() {
   const { connectionID } = useParams();
 
   const onClickToImplement = () => {
-    void message.error("To be implemented");
+    void message.error(TO_DEVELOP);
   };
 
   const fetchConnection = useCallback(
@@ -64,6 +64,7 @@ export function ConnectionDetails() {
     return aborter;
   }, [fetchConnection]);
 
+  // TODO PID-481
   const credentialsList = []; /* isAsyncTaskDataAvailable(connection) && connection.data.credentials
       ? connection.data.credentials
       : []; */
@@ -139,7 +140,7 @@ export function ConnectionDetails() {
             }
             isLoading={isAsyncTaskStarting(connection)}
             onSearch={onClickToImplement}
-            query="To be implemented"
+            query={TO_DEVELOP}
             searchPlaceholder="Search credentials, attributes..."
             showDefaultContents={connection.status === "successful" && credentialsList.length === 0}
             table={<></>}
@@ -152,7 +153,7 @@ export function ConnectionDetails() {
                 </Space>
                 <Button
                   icon={<IconCreditCardPlus />}
-                  onClick={() => void message.error("To be implemented")}
+                  onClick={() => void message.error(TO_DEVELOP)}
                   type="primary"
                 >
                   Issue directly

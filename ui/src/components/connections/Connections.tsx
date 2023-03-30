@@ -13,7 +13,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CONNECTIONS, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function Connections() {
@@ -37,7 +37,7 @@ export function Connections() {
         </Tooltip>
       ),
       sorter: ({ id: a }, { id: b }) => a.localeCompare(b),
-      title: "Identifier",
+      title: IDENTIFIER,
     },
     {
       dataIndex: "credentials",

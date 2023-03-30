@@ -5,6 +5,7 @@ import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ROUTES } from "src/routes";
+import { TO_DEVELOP } from "src/utils/constants";
 
 const MENU_ITEMS = [
   {
@@ -27,7 +28,7 @@ const MENU_ITEMS = [
 export function ConnectionsRowDropdown({ id }: { id: string }) {
   const navigate = useNavigate();
   const menuFunction: Record<"details" | "delete", () => Promise<void> | void> = {
-    delete: () => void message.error("To develop"),
+    delete: () => void message.error(TO_DEVELOP),
     details: () => navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
   };
 
