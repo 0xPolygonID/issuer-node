@@ -1,9 +1,14 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
+import {
+  APIResponse,
+  HTTPStatusSuccess,
+  ResultOK,
+  buildAPIError,
+  buildAuthorizationHeader,
+} from "src/adapters/api";
 import { Env, JsonLdType } from "src/domain";
-import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
@@ -44,7 +49,7 @@ export async function importSchema({
 }): Promise<APIResponse<{ id: string }>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       data: {
         schemaType: jsonLdType.name,
         url: schemaUrl,
@@ -53,7 +58,7 @@ export async function importSchema({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: "schemas",
+      url: `${API_VERSION}/schemas`,
     });
     const { id } = z.object({ id: z.string() }).parse(response.data);
 
@@ -74,13 +79,13 @@ export async function getSchema({
 }): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
       signal,
-      url: `schemas/${schemaID}`,
+      url: `${API_VERSION}/schemas/${schemaID}`,
     });
     const { data } = resultOKSchema.parse(response);
 
@@ -108,7 +113,7 @@ export async function getSchemas({
 > {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -117,7 +122,7 @@ export async function getSchemas({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: "schemas",
+      url: `${API_VERSION}/schemas`,
     });
     const { data } = resultOKSchemas.parse(response);
 

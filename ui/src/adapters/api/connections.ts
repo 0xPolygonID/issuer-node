@@ -1,19 +1,17 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { APIResponse, HTTPStatusSuccess, ResultOK, buildAPIError } from "src/adapters/api";
+import {
+  APIResponse,
+  HTTPStatusSuccess,
+  ResultOK,
+  buildAPIError,
+  buildAuthorizationHeader,
+} from "src/adapters/api";
+import { Credential, credential } from "src/adapters/api/credentials";
 import { Env } from "src/domain";
-import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
-
-//TODO move it to credentials when is properly cleaned
-export interface Credential {
-  attributes: {
-    type: string;
-  };
-  id: string;
-}
 
 export interface Connection {
   createdAt: Date;
@@ -84,15 +82,6 @@ export async function getConnections({
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
-
-export const credential = StrictSchema<Credential>()(
-  z.object({
-    attributes: z.object({
-      type: z.string(),
-    }),
-    id: z.string(),
-  })
-);
 
 export const connection = StrictSchema<Connection>()(
   z.object({

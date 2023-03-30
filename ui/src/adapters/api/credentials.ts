@@ -7,19 +7,35 @@ import {
   ResultCreated,
   ResultOK,
   buildAPIError,
+  buildAuthorizationHeader,
 } from "src/adapters/api";
 import { Schema, schema } from "src/adapters/api/schemas";
 import { Env } from "src/domain";
-import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
+
+export interface Credential {
+  attributes: {
+    type: string;
+  };
+  id: string;
+}
+
+export const credential = StrictSchema<Credential>()(
+  z.object({
+    attributes: z.object({
+      type: z.string(),
+    }),
+    id: z.string(),
+  })
+);
 
 export interface CredentialAttribute {
   attributeKey: string;
   attributeValue: number;
 }
 
-export interface Credential {
+export interface oldCredential {
   active: boolean;
   attributeValues: CredentialAttribute[];
   createdAt: Date;
@@ -60,16 +76,16 @@ export async function credentialIssue({
   env: Env;
   payload: CredentialIssuePayload;
   schemaID: string;
-}): Promise<APIResponse<Credential>> {
+}): Promise<APIResponse<oldCredential>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       data: payload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
+      url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
     });
     const { data } = resultCreatedCredential.parse(response);
 
@@ -93,16 +109,16 @@ export async function credentialUpdate({
   env: Env;
   payload: CredentialUpdatePayload;
   schemaID: string;
-}): Promise<APIResponse<Credential>> {
+}): Promise<APIResponse<oldCredential>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       data: payload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
       method: "PATCH",
-      url: `issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
+      url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
     });
     const { data } = resultOKCredential.parse(response);
 
@@ -125,13 +141,13 @@ export async function credentialsGetAll({
   signal?: AbortSignal;
 }): Promise<
   APIResponse<{
-    credentials: Credential[];
-    errors: z.ZodError<Credential>[];
+    credentials: oldCredential[];
+    errors: z.ZodError<oldCredential>[];
   }>
 > {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -141,7 +157,7 @@ export async function credentialsGetAll({
         ...(valid !== undefined ? { valid: valid.toString() } : {}),
       }),
       signal,
-      url: `issuers/${env.issuer.did}/offers`,
+      url: `${API_VERSION}/issuers/${env.issuer.did}/offers`,
     });
     const { data } = resultOKCredentialsGetAll.parse(response);
 
@@ -187,7 +203,7 @@ const credentialQRCode = StrictSchema<CredentialQRCode>()(
 
 export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
-  offerDetails: Credential;
+  offerDetails: oldCredential;
   qrcode: CredentialQRCode;
   sessionID: string;
 }
@@ -206,7 +222,7 @@ const apiCredentialAttribute = StrictSchema<CredentialAttribute>()(
   })
 );
 
-const credential = StrictSchema<CredentialPayload, Credential>()(
+const oldCredential = StrictSchema<CredentialPayload, oldCredential>()(
   z
     .object({
       active: z.boolean(),
@@ -232,7 +248,7 @@ const credential = StrictSchema<CredentialPayload, Credential>()(
         limitedClaims: linkMaximumIssuance,
         schemaTemplate,
         valid,
-      }): Credential => ({
+      }): oldCredential => ({
         active,
         attributeValues,
         createdAt,
@@ -253,7 +269,7 @@ const shareCredentialQRCode = StrictSchema<ShareCredentialQRCodePayload, ShareCr
       displayName: z.string(),
       logo: z.string(),
     }),
-    offerDetails: credential,
+    offerDetails: oldCredential,
     qrcode: credentialQRCode,
     sessionID: z.string(),
   })
@@ -280,10 +296,10 @@ export async function credentialsQRCreate({
 }): Promise<APIResponse<ShareCredentialQRCode>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       method: "POST",
       signal,
-      url: `offers-qrcode/${id}`,
+      url: `${API_VERSION}/offers-qrcode/${id}`,
     });
 
     const { data } = resultOKShareCredentialQRCode.parse(response);
@@ -296,24 +312,24 @@ export async function credentialsQRCreate({
 
 const resultCreatedCredential = StrictSchema<
   ResultCreated<CredentialPayload>,
-  ResultCreated<Credential>
+  ResultCreated<oldCredential>
 >()(
   z.object({
-    data: credential,
+    data: oldCredential,
     status: z.literal(HTTPStatusSuccess.Created),
   })
 );
 
-const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<Credential>>()(
+const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<oldCredential>>()(
   z.object({
-    data: credential,
+    data: oldCredential,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
 interface CredentialsGetAll {
-  credentials: Credential[];
-  errors: z.ZodError<Credential>[];
+  credentials: oldCredential[];
+  errors: z.ZodError<oldCredential>[];
 }
 
 const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<CredentialsGetAll>>()(
@@ -321,7 +337,7 @@ const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<Cre
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
         (acc: CredentialsGetAll, curr: unknown, index) => {
-          const parsedCredential = credential.safeParse(curr);
+          const parsedCredential = oldCredential.safeParse(curr);
           return parsedCredential.success
             ? {
                 ...acc,
@@ -331,7 +347,7 @@ const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<Cre
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<Credential>(
+                  new z.ZodError<oldCredential>(
                     parsedCredential.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],
@@ -446,12 +462,12 @@ export async function credentialsQRCheck({
 }): Promise<APIResponse<CredentialQRCheck>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       method: "GET",
       params: {
         sessionID,
       },
-      url: `offers-qrcode/${credentialID}`,
+      url: `${API_VERSION}/offers-qrcode/${credentialID}`,
     });
 
     const { data } = resultOKCredentialQRCheck.parse(response);
@@ -473,13 +489,13 @@ export async function credentialsQRDownload({
 }): Promise<APIResponse<Blob>> {
   try {
     const response = await axios({
-      baseURL: `${env.api.url}/${API_VERSION}`,
+      baseURL: env.api.url,
       method: "GET",
       params: {
         sessionID,
       },
       responseType: "blob",
-      url: `offers-qrcode/${credentialID}/download`,
+      url: `${API_VERSION}/offers-qrcode/${credentialID}/download`,
     });
 
     if (response.data instanceof Blob) {
