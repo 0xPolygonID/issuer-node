@@ -442,6 +442,11 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 	return response200, nil
 }
 
+// GetLinks - Returns a list of links based on a search criteria.
+func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error) {
+	panic("implement me")
+}
+
 // AcivateLink - Activates or deactivates a link
 func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error) {
 	err := s.linkService.Activate(ctx, s.cfg.APIUI.IssuerDID, request.Id, request.Body.Active)

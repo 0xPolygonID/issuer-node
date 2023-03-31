@@ -439,6 +439,44 @@ paths:
 
   # Links
   /v1/credentials/links:
+    get:
+      summary: Returns the list of links to credentials
+      operationId: GetLinks
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in schema types and attributes.
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [ all, active, inactive, exceeded ]
+          description: >
+            Schema type:
+              * `all` - All links. (default value)
+              * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
+              * `inactive` - Only deactivated links
+              * `exceeded` - Expired or maximum issuance exceeded
+          responses:
+            '200':
+              description: Link collection
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Link'
+            '400':
+              $ref: '#/components/responses/400'
+            '500':
+              $ref: '#/components/responses/500'
+
     post:
       summary: Endpoint to create a link
       operationId: CreateLink
@@ -759,7 +797,7 @@ components:
           type: boolean
         status:
           type: string
-          enum: [ active, inactive, exceed ]
+          enum: [ active, inactive, exceeded ]
 
     GenericMessage:
       type: object

@@ -31,7 +31,7 @@ func TestLink_Status(t *testing.T) {
 			expect: linkActive,
 		},
 		{
-			name: "Active to true, max issuance not exceed. No credential expiration",
+			name: "Active to true, max issuance not exceeded. No credential expiration",
 			link: Link{
 				MaxIssuance:  common.ToPointer(100),
 				Active:       true,
@@ -49,13 +49,13 @@ func TestLink_Status(t *testing.T) {
 			expect: linkInactive,
 		},
 		{
-			name: "Active to true, max issuance exceed, No credential expiration",
+			name: "Active to true, max issuance exceeded, No credential expiration",
 			link: Link{
 				MaxIssuance:  common.ToPointer(100),
 				Active:       true,
 				IssuedClaims: 200,
 			},
-			expect: LinkExceed,
+			expect: LinkExceeded,
 		},
 		{
 			name: "Active to true, valid until set to time in the future",
@@ -71,27 +71,27 @@ func TestLink_Status(t *testing.T) {
 				ValidUntil: common.ToPointer(time.Now().Add(-24 * time.Hour)),
 				Active:     true,
 			},
-			expect: LinkExceed,
+			expect: LinkExceeded,
 		},
 		{
-			name: "Active to true, valid until set to time in the past, max issuance no exceed",
+			name: "Active to true, valid until set to time in the past, max issuance no exceeded",
 			link: Link{
 				ValidUntil:   common.ToPointer(time.Now().Add(-24 * time.Hour)),
 				MaxIssuance:  common.ToPointer(100),
 				IssuedClaims: 50,
 				Active:       true,
 			},
-			expect: LinkExceed,
+			expect: LinkExceeded,
 		},
 		{
-			name: "Active to true, valid until set to time in the future but max issuance exceed",
+			name: "Active to true, valid until set to time in the future but max issuance exceeded",
 			link: Link{
 				ValidUntil:   common.ToPointer(time.Now().Add(24 * time.Hour)),
 				MaxIssuance:  common.ToPointer(100),
 				IssuedClaims: 200,
 				Active:       true,
 			},
-			expect: LinkExceed,
+			expect: LinkExceeded,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
