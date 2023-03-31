@@ -6,7 +6,6 @@ import {
   OldCredential,
   credentialsQRCreate,
   credentialsQRDownload,
-  oldCredential,
 } from "src/adapters/api/credentials";
 import { Schema } from "src/adapters/api/schemas";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
