@@ -79,7 +79,23 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 // 1.- Creates document
 // 2.- Signature proof
 // 3.- MerkelTree proof
-func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
+func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
+	claim, err := c.CreateCredential(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	id, err := c.icRepo.Save(ctx, c.storage.Pgx, claim)
+	if err != nil {
+		return nil, err
+	}
+
+	claim.ID = id
+
+	return claim, nil
+}
+
+// CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
+func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
 		log.Warn(ctx, "validating create claim request", "req", req)
 		return nil, err
@@ -180,12 +196,7 @@ func (c *claim) CreateClaim(ctx context.Context, req *ports.CreateClaimRequest) 
 	}
 
 	claim.MtProof = req.MTProof
-	claimResp, err := c.save(ctx, claim)
-	if err != nil {
-		log.Error(ctx, "Can not save the claim", "err", err)
-		return nil, err
-	}
-	return claimResp, err
+	return claim, nil
 }
 
 func (c *claim) Revoke(ctx context.Context, id core.DID, nonce uint64, description string) error {
@@ -513,17 +524,6 @@ func (c *claim) createVC(claimReq *ports.CreateClaimRequest, vcID uuid.UUID, jso
 	}
 
 	return vCredential, nil
-}
-
-func (c *claim) save(ctx context.Context, claim *domain.Claim) (*domain.Claim, error) {
-	id, err := c.icRepo.Save(ctx, c.storage.Pgx, claim)
-	if err != nil {
-		return nil, err
-	}
-
-	claim.ID = id
-
-	return claim, nil
 }
 
 func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {

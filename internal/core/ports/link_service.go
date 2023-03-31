@@ -6,9 +6,18 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 )
+
+// CreateQRCodeResponse - is the result of creating a link QRcode.
+type CreateQRCodeResponse struct {
+	Link      *domain.Link
+	QrCode    *protocol.AuthorizationRequestMessage
+	SessionID string
+}
 
 // LinkService - the interface that defines the available methods
 type LinkService interface {
@@ -16,4 +25,7 @@ type LinkService interface {
 	Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUID, active bool) error
 	Delete(ctx context.Context, id uuid.UUID, did core.DID) error
 	GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error)
+	CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
+	IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error
+	GetQRCode(ctx context.Context, sessionID uuid.UUID, linkID uuid.UUID) (*linkState.State, error)
 }

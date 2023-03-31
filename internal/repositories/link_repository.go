@@ -36,19 +36,19 @@ func NewLink(conn db.Storage) ports.LinkRepository {
 	}
 }
 
-func (l link) Save(ctx context.Context, link *domain.Link) (*uuid.UUID, error) {
+func (l link) Save(ctx context.Context, conn db.Querier, link *domain.Link) (*uuid.UUID, error) {
 	pgAttrs := pgtype.JSONB{}
 	if err := pgAttrs.Set(link.CredentialAttributes); err != nil {
 		return nil, fmt.Errorf("cannot set schema attributes values: %w", err)
 	}
 
 	var id uuid.UUID
-	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO
-			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10 
+	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active, issued_claims)
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO
+			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10, issued_claims=$11 
 			RETURNING id`
-	err := l.conn.Pgx.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
-		link.CredentialMTPProof, pgAttrs, link.Active).Scan(&id)
+	err := conn.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
+		link.CredentialMTPProof, pgAttrs, link.Active, link.IssuedClaims).Scan(&id)
 
 	if err != nil && strings.Contains(err.Error(), `table "links" violates foreign key constraint "links_schemas_id_key"`) {
 		return nil, errorShemaNotFound
@@ -69,6 +69,7 @@ SELECT links.id,
        links.credential_mtp_proof, 
        links.credential_attributes, 
        links.active, 
+       links.issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
        schemas.url,
@@ -93,6 +94,7 @@ WHERE links.id = $1 AND links.issuer_id = $2`
 		&link.CredentialSignatureProof,
 		&link.CredentialMTPProof, &credentialAttributtes,
 		&link.Active,
+		&link.IssuedClaims,
 		&s.ID,
 		&s.IssuerID,
 		&s.URL,
