@@ -11,7 +11,6 @@ import {
 } from "src/adapters/api";
 import { Schema, schema } from "src/adapters/api/schemas";
 import { Env } from "src/domain";
-import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 

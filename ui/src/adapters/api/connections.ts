@@ -10,7 +10,6 @@ import {
 } from "src/adapters/api";
 import { Credential, credential } from "src/adapters/api/credentials";
 import { Env } from "src/domain";
-import { buildAuthorizationHeader } from "src/utils/browser";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
