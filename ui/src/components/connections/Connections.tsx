@@ -34,7 +34,7 @@ export function Connections() {
       key: "type",
       render: (userID: Connection["userID"]) => (
         <Tooltip placement="topLeft" title={userID}>
-          <Typography.Text strong>{userID.replace(/did:\w*:\w*:\w+:/, "")}</Typography.Text>
+          <Typography.Text strong>{userID.split(":").pop()}</Typography.Text>
         </Tooltip>
       ),
       sorter: ({ id: a }, { id: b }) => a.localeCompare(b),
