@@ -1,4 +1,4 @@
-import { Dropdown, MenuProps, Row, message } from "antd";
+import { Dropdown, Row, message } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
