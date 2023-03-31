@@ -3,7 +3,7 @@ import copy from "copy-to-clipboard";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import {
-  Credential,
+  OldCredential,
   credentialsQRCreate,
   credentialsQRDownload,
 } from "src/adapters/api/credentials";
@@ -29,7 +29,7 @@ export function Summary({
   credential: credential,
   schema,
 }: {
-  credential: Credential;
+  credential: OldCredential;
   schema: Schema;
 }) {
   const env = useEnvContext();

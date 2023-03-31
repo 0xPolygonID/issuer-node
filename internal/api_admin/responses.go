@@ -9,6 +9,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -178,4 +179,30 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 		SchemaUrl:    link.Schema.URL,
 		Status:       LinkStatus(link.Status()),
 	}, nil
+}
+
+func getLinQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
+	if linkQrCode == nil {
+		return nil
+	}
+	credentials := make([]GetLinkQrCodeCredentialsResponseType, len(linkQrCode.Body.Credentials))
+	for i, c := range linkQrCode.Body.Credentials {
+		credentials[i] = GetLinkQrCodeCredentialsResponseType{
+			Id:          c.ID,
+			Description: c.Description,
+		}
+	}
+
+	return &GetLinkQrCodeResponseType{
+		Id:   linkQrCode.ID,
+		Thid: linkQrCode.ThreadID,
+		Typ:  linkQrCode.Typ,
+		Type: linkQrCode.Type,
+		From: linkQrCode.From,
+		To:   linkQrCode.To,
+		Body: GetLinkQrCodeResponseBodyType{
+			Url:         linkQrCode.Body.URL,
+			Credentials: credentials,
+		},
+	}
 }

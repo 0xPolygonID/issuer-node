@@ -5,15 +5,23 @@ import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-
 import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
+import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { ROUTES } from "src/routes";
-import { CREDENTIALS, CREDENTIALS_TABS, SCHEMAS, TUTORIALS_URL } from "src/utils/constants";
+import {
+  CONNECTIONS,
+  CREDENTIALS,
+  CREDENTIALS_TABS,
+  SCHEMAS,
+  TUTORIALS_URL,
+} from "src/utils/constants";
 
 export function SiderMenu() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
+  const connectionsPath = ROUTES.connections.path;
   const credentialsPath = ROUTES.credentials.path;
   const schemasPath = ROUTES.schemas.path;
 
@@ -33,6 +41,8 @@ export function SiderMenu() {
       matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
     ) {
       return [credentialsPath];
+    } else if (matchRoutes([{ path: connectionsPath }], pathname)) {
+      return [connectionsPath];
     }
 
     return [];
@@ -63,6 +73,12 @@ export function SiderMenu() {
                     tabID: CREDENTIALS_TABS[0].tabID,
                   })
                 ),
+            },
+            {
+              icon: <IconConnections />,
+              key: connectionsPath,
+              label: CONNECTIONS,
+              onClick: () => navigate(connectionsPath),
             },
           ]}
           selectedKeys={getSelectedKey()}
