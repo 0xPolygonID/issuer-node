@@ -63,9 +63,9 @@ interface CredentialPayload {
 
 export interface CredentialIssuePayload {
   attributes: CredentialAttribute[];
-  claimLinkExpiration?: string;
-  expirationDate?: string;
-  limitedClaims?: number;
+  claimLinkExpiration: string | null;
+  expirationDate: string | null;
+  limitedClaims: number | null;
 }
 
 export async function credentialIssue({

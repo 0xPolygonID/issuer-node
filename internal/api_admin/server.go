@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -21,6 +22,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -125,7 +127,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	_, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Debug(ctx, "error authenticating", err.Error())
 		return AuthCallback500JSONResponse{}, nil
@@ -320,7 +322,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 
 	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof)
-	resp, err := s.claimService.CreateClaim(ctx, req)
+	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
@@ -389,16 +391,19 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
+	if !request.Body.MtProof && !request.Body.SignatureProof {
+		return CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}}, nil
+	}
 	if len(request.Body.Attributes) == 0 {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
 	}
 
-	attrs := make([]domain.CredentialAttributes, 0)
-	for _, at := range request.Body.Attributes {
-		attrs = append(attrs, domain.CredentialAttributes{
+	attrs := make([]domain.CredentialAttrsRequest, len(request.Body.Attributes))
+	for i, at := range request.Body.Attributes {
+		attrs[i] = domain.CredentialAttrsRequest{
 			Name:  at.Name,
 			Value: at.Value,
-		})
+		}
 	}
 
 	if request.Body.LimitedClaims != nil {
@@ -421,16 +426,33 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
 }
 
+// GetLink returns a link from an id
+func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error) {
+	link, err := s.linkService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrLinkNotFound) {
+			return GetLink404JSONResponse{N404JSONResponse{Message: "link not found"}}, nil
+		}
+		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
+		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+	response200, err := getLinkResponse(link)
+	if err != nil {
+		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+	return response200, nil
+}
+
 // AcivateLink - Activates or deactivates a link
 func (s *Server) AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error) {
-	err := s.linkService.Activate(ctx, request.Id, request.Body.Active)
+	err := s.linkService.Activate(ctx, s.cfg.APIUI.IssuerDID, request.Id, request.Body.Active)
 	if err != nil {
-		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) || errors.Is(err, services.ErrLinkAlreadyActive) || errors.Is(err, services.ErrLinkAlreadyInactive) {
 			return AcivateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		} else {
-			return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 		}
+		log.Error(ctx, "error activating or deactivating link", err.Error(), "id", request.Id)
+		return AcivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return AcivateLink200JSONResponse{Message: "Link updated"}, nil
 }
@@ -444,6 +466,90 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 		return DeleteLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return DeleteLink200JSONResponse{Message: "link deleted"}, nil
+}
+
+// CreateLinkQrCode - Creates a link QrCode
+func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
+	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+	if err != nil {
+		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
+	}
+
+	linkDetail, err := getLinkResponse(createLinkQrCodeResponse.Link)
+	if err != nil {
+		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		return CreateLinkQrCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+
+	return CreateLinkQrCode200JSONResponse{
+		Issuer: IssuerDescription{
+			DisplayName: s.cfg.APIUI.IssuerName,
+			Logo:        s.cfg.APIUI.IssuerLogo,
+		},
+		QrCode: AuthenticationQrCodeResponse{
+			Body: struct {
+				CallbackUrl string        `json:"callbackUrl"`
+				Reason      string        `json:"reason"`
+				Scope       []interface{} `json:"scope"`
+			}{
+				createLinkQrCodeResponse.QrCode.Body.CallbackURL,
+				createLinkQrCodeResponse.QrCode.Body.Reason,
+				[]interface{}{},
+			},
+			From: createLinkQrCodeResponse.QrCode.From,
+			Id:   createLinkQrCodeResponse.QrCode.ID,
+			Thid: createLinkQrCodeResponse.QrCode.ThreadID,
+			Typ:  string(createLinkQrCodeResponse.QrCode.Typ),
+			Type: string(createLinkQrCodeResponse.QrCode.Type),
+		},
+		SessionID:  createLinkQrCodeResponse.SessionID,
+		LinkDetail: (*Link)(linkDetail),
+	}, nil
+}
+
+// CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
+func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error) {
+	if request.Body == nil || *request.Body == "" {
+		log.Debug(ctx, "empty request body auth-callback request")
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
+	}
+
+	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Debug(ctx, "error authenticating", err.Error())
+		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+	}
+
+	userDID, err := core.ParseDID(arm.From)
+	if err != nil {
+		log.Debug(ctx, "error getting user DID", err.Error())
+		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+	}
+
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
+	if err != nil {
+		log.Debug(ctx, "error issuing the claim", "error", err.Error())
+		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+	}
+
+	return CreateLinkQrCodeCallback200Response{}, nil
+}
+
+// GetLinkQRCode - returns te qr code for adding the credential
+func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
+	linkState, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, request.Id)
+	if err != nil {
+		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+	if linkState.Status == link_state.StatusPending || linkState.Status == link_state.StatusDone {
+		return GetLinkQRCode200JSONResponse{
+			Status: common.ToPointer(linkState.Status),
+			QrCode: getLinQrCodeResponse(linkState.QRCode),
+		}, nil
+	}
+	return GetLinkQRCode400JSONResponse{N400JSONResponse{
+		Message: fmt.Sprintf("error fetching the link qr code: %s", err.Error()),
+	}}, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {
