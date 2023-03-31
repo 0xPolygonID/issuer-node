@@ -112,7 +112,6 @@ export function Connections() {
   }, [fetchConnections]);
 
   const connectionsList = isAsyncTaskDataAvailable(connections) ? connections.data : [];
-
   return (
     <SiderLayoutContent
       description="Connections are established via a secure channel upon issuing credentials to users."
