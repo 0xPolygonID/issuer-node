@@ -12,6 +12,7 @@ import (
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 )
 
+// CreateQRCodeResponse - is the result of creating a link QRcode.
 type CreateQRCodeResponse struct {
 	Link      *domain.Link
 	QrCode    *protocol.AuthorizationRequestMessage

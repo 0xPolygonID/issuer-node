@@ -3113,10 +3113,12 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
+	cfg.APIUI.ServerURL = "http://localhost/issuer-admin"
+
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
-	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.UTC))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.UTC))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
@@ -3168,16 +3170,31 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
+				callBack := cfg.APIUI.ServerURL + "/v1/credentials/links/callback?"
 				var response CreateLinkQrCode200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.NotNil(t, response.QrCode.Body)
+				assert.Equal(t, "authentication", response.QrCode.Body.Reason)
+				callbackArr := strings.Split(response.QrCode.Body.CallbackUrl, "sessionID")
+				assert.True(t, len(callbackArr) == 2)
+				assert.Equal(t, callBack, callbackArr[0])
+				params := strings.Split(callbackArr[1], "linkID")
+				assert.True(t, len(params) == 2)
 				assert.NotNil(t, response.QrCode.Id)
-				assert.NotNil(t, response.QrCode.Type)
-				assert.NotNil(t, response.QrCode.From)
-				assert.NotNil(t, response.QrCode.Typ)
+				assert.Equal(t, "https://iden3-communication.io/authorization/1.0/request", response.QrCode.Type)
+				assert.Equal(t, cfg.APIUI.IssuerDID.String(), response.QrCode.From)
+				assert.Equal(t, "application/iden3comm-plain-json", response.QrCode.Typ)
 				assert.NotNil(t, response.QrCode.Thid)
 				assert.NotNil(t, response.SessionID)
 				assert.NotNil(t, response.LinkDetail)
+				assert.Equal(t, link.ID, response.LinkDetail.Id)
+				assert.Equal(t, link.MaxIssuance, response.LinkDetail.MaxIssuance)
+				assert.Equal(t, link.Schema.URL, response.LinkDetail.SchemaUrl)
+				assert.Equal(t, link.Schema.Type, response.LinkDetail.SchemaType)
+				assert.Equal(t, link.IssuedClaims, response.LinkDetail.IssuedClaims)
+				assert.Equal(t, link.Status(), string(response.LinkDetail.Status))
+				assert.Equal(t, link.Active, response.LinkDetail.Active)
+				assert.InDelta(t, link.ValidUntil.UTC().Unix(), response.LinkDetail.Expiration.UTC().Unix(), 100)
 			}
 		})
 	}
