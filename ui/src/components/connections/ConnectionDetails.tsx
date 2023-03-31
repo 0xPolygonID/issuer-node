@@ -28,6 +28,15 @@ export function ConnectionDetails() {
 
   const { connectionID } = useParams();
 
+  const obfuscateDID = (did: string) => {
+    const didSplit = did.split(":").slice(0, -1).join(":");
+    const address = did.split(":").pop();
+
+    return address
+      ? `${didSplit}${address.substring(0, 5)}...${address.substring(address.length - 5)}`
+      : "-";
+  };
+
   const onClickToImplement = () => {
     void message.error(TO_DEVELOP);
   };
@@ -106,10 +115,7 @@ export function ConnectionDetails() {
                             text: connection.data.userID,
                           }}
                         >
-                          {connection.data.userID.replace(
-                            /(did:\w*:\w*:\w+:.{5}).+(.{5})$/,
-                            "$1...$2"
-                          )}
+                          {obfuscateDID(connection.data.userID)}
                         </Typography.Text>
                       </Row>
                       <Row justify="space-between">
