@@ -1,4 +1,5 @@
 export type RouteID =
+  | "connections"
   | "credentialLink"
   | "credentials"
   | "importSchema"
@@ -18,6 +19,10 @@ type Routes = Record<
 >;
 
 export const ROUTES: Routes = {
+  connections: {
+    layout: "sider",
+    path: "/connections",
+  },
   credentialLink: {
     layout: "fullWidthGrey",
     path: "/credential-link/:credentialID",
