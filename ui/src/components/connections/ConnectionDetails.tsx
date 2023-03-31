@@ -1,4 +1,4 @@
-import { Avatar, Button, Card, Row, Space, Tag, Typography, message } from "antd";
+import { Avatar, Button, Card, Row, Space, Tag, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -15,7 +15,7 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IDENTIFIER, ISSUE_CREDENTIAL, TO_DEVELOP } from "src/utils/constants";
+import { IDENTIFIER, ISSUE_CREDENTIAL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
@@ -35,10 +35,6 @@ export function ConnectionDetails() {
     return address
       ? `${didSplit}${address.substring(0, 5)}...${address.substring(address.length - 5)}`
       : "-";
-  };
-
-  const onClickToImplement = () => {
-    void message.error(TO_DEVELOP);
   };
 
   const fetchConnection = useCallback(
@@ -102,7 +98,7 @@ export function ConnectionDetails() {
                   <Space direction="vertical" size="middle">
                     <Row align="middle" justify="space-between">
                       <Card.Meta title="Connection" />
-                      <Button danger icon={<IconTrash />} onClick={onClickToImplement} type="text">
+                      <Button danger icon={<IconTrash />} type="text">
                         Delete connection
                       </Button>
                     </Row>
@@ -145,8 +141,8 @@ export function ConnectionDetails() {
               </>
             }
             isLoading={isAsyncTaskStarting(connection)}
-            onSearch={onClickToImplement}
-            query={TO_DEVELOP}
+            onSearch={() => null}
+            query=""
             searchPlaceholder="Search credentials, attributes..."
             showDefaultContents={connection.status === "successful" && credentialsList.length === 0}
             table={<></>}
@@ -157,11 +153,7 @@ export function ConnectionDetails() {
 
                   <Tag color="blue">{credentialsList.length}</Tag>
                 </Space>
-                <Button
-                  icon={<IconCreditCardPlus />}
-                  onClick={() => void message.error(TO_DEVELOP)}
-                  type="primary"
-                >
+                <Button icon={<IconCreditCardPlus />} type="primary">
                   Issue directly
                 </Button>
               </Row>

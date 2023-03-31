@@ -47,8 +47,6 @@ export const ROOT_PATH = "/";
 
 export const SIDER_WIDTH = 320;
 
-export const TO_DEVELOP = "To develop";
-
 export const TOAST_NOTIFICATION_TIMEOUT = 6;
 
 export const TUTORIALS_URL = "https://0xpolygonid.github.io/tutorials";
