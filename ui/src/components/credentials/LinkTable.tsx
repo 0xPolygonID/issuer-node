@@ -61,7 +61,7 @@ export function LinkTable() {
 
   const show = parsedShowParam.success ? parsedShowParam.data : "all";
 
-  const tableContents: ColumnsType<OldCredential> = [
+  const tableColumns: ColumnsType<OldCredential> = [
     {
       dataIndex: "active",
       ellipsis: true,
@@ -286,7 +286,7 @@ export function LinkTable() {
         }
         table={
           <Table
-            columns={tableContents.map(({ title, ...column }) => ({
+            columns={tableColumns.map(({ title, ...column }) => ({
               title: (
                 <Typography.Text type="secondary">
                   <>{title}</>
