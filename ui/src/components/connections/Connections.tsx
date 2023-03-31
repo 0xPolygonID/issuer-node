@@ -27,7 +27,7 @@ export function Connections() {
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
-  const tableContents: ColumnsType<Connection> = [
+  const tableColumns: ColumnsType<Connection> = [
     {
       dataIndex: "userID",
       ellipsis: { showTitle: false },
@@ -141,7 +141,7 @@ export function Connections() {
         }
         table={
           <Table
-            columns={tableContents.map(({ title, ...column }) => ({
+            columns={tableColumns.map(({ title, ...column }) => ({
               title: (
                 <Typography.Text type="secondary">
                   <>{title}</>

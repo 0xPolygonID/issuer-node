@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { credentialIssue, oldCredential } from "src/adapters/api/credentials";
+import { OldCredential, credentialIssue } from "src/adapters/api/credentials";
 import { Schema, getSchema } from "src/adapters/api/schemas";
 import { issueCredentialFormData } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
@@ -39,7 +39,7 @@ const defaultFormData: FormData = {
 
 export function IssueCredential() {
   const env = useEnvContext();
-  const [credential, setCredential] = useState<AsyncTask<oldCredential, undefined>>({
+  const [credential, setCredential] = useState<AsyncTask<OldCredential, undefined>>({
     status: "pending",
   });
   const [formData, setFormData] = useState<FormData>(defaultFormData);

@@ -35,7 +35,7 @@ export interface CredentialAttribute {
   attributeValue: number;
 }
 
-export interface oldCredential {
+export interface OldCredential {
   active: boolean;
   attributeValues: CredentialAttribute[];
   createdAt: Date;
@@ -76,7 +76,7 @@ export async function credentialIssue({
   env: Env;
   payload: CredentialIssuePayload;
   schemaID: string;
-}): Promise<APIResponse<oldCredential>> {
+}): Promise<APIResponse<OldCredential>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -109,7 +109,7 @@ export async function credentialUpdate({
   env: Env;
   payload: CredentialUpdatePayload;
   schemaID: string;
-}): Promise<APIResponse<oldCredential>> {
+}): Promise<APIResponse<OldCredential>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -141,8 +141,8 @@ export async function credentialsGetAll({
   signal?: AbortSignal;
 }): Promise<
   APIResponse<{
-    credentials: oldCredential[];
-    errors: z.ZodError<oldCredential>[];
+    credentials: OldCredential[];
+    errors: z.ZodError<OldCredential>[];
   }>
 > {
   try {
@@ -203,7 +203,7 @@ const credentialQRCode = StrictSchema<CredentialQRCode>()(
 
 export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
-  offerDetails: oldCredential;
+  offerDetails: OldCredential;
   qrcode: CredentialQRCode;
   sessionID: string;
 }
@@ -222,7 +222,7 @@ const apiCredentialAttribute = StrictSchema<CredentialAttribute>()(
   })
 );
 
-const oldCredential = StrictSchema<CredentialPayload, oldCredential>()(
+const oldCredential = StrictSchema<CredentialPayload, OldCredential>()(
   z
     .object({
       active: z.boolean(),
@@ -248,7 +248,7 @@ const oldCredential = StrictSchema<CredentialPayload, oldCredential>()(
         limitedClaims: linkMaximumIssuance,
         schemaTemplate,
         valid,
-      }): oldCredential => ({
+      }): OldCredential => ({
         active,
         attributeValues,
         createdAt,
@@ -312,7 +312,7 @@ export async function credentialsQRCreate({
 
 const resultCreatedCredential = StrictSchema<
   ResultCreated<CredentialPayload>,
-  ResultCreated<oldCredential>
+  ResultCreated<OldCredential>
 >()(
   z.object({
     data: oldCredential,
@@ -320,7 +320,7 @@ const resultCreatedCredential = StrictSchema<
   })
 );
 
-const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<oldCredential>>()(
+const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<OldCredential>>()(
   z.object({
     data: oldCredential,
     status: z.literal(HTTPStatusSuccess.OK),
@@ -328,8 +328,8 @@ const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<ol
 );
 
 interface CredentialsGetAll {
-  credentials: oldCredential[];
-  errors: z.ZodError<oldCredential>[];
+  credentials: OldCredential[];
+  errors: z.ZodError<OldCredential>[];
 }
 
 const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<CredentialsGetAll>>()(
@@ -347,7 +347,7 @@ const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<Cre
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<oldCredential>(
+                  new z.ZodError<OldCredential>(
                     parsedCredential.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],

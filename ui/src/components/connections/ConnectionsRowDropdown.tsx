@@ -27,20 +27,23 @@ const MENU_ITEMS = [
 
 export function ConnectionsRowDropdown({ id }: { id: string }) {
   const navigate = useNavigate();
-  const menuFunction: Record<"details" | "delete", () => Promise<void> | void> = {
-    delete: () => void message.error(TO_DEVELOP),
-    details: () => navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
-  };
-
-  const onMenuSelect: MenuProps["onClick"] = ({ domEvent, key }) => {
-    domEvent.stopPropagation();
-    if (key === "details" || key === "delete") {
-      void menuFunction[key]();
+  const onMenuSelect = (key: string) => {
+    if (key === "details") {
+      void message.error(TO_DEVELOP);
+    } else if (key === "delete") {
+      navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
     }
   };
 
   return (
-    <Dropdown menu={{ items: MENU_ITEMS, onClick: onMenuSelect }}>
+    <Dropdown
+      menu={{
+        items: MENU_ITEMS,
+        onClick: ({ key }) => {
+          onMenuSelect(key);
+        },
+      }}
+    >
       <Row>
         <IconDots className="icon-secondary" />
       </Row>
