@@ -29,9 +29,9 @@ export function ConnectionsRowDropdown({ id }: { id: string }) {
   const navigate = useNavigate();
   const onMenuSelect = (key: string) => {
     if (key === "details") {
-      void message.error(TO_DEVELOP);
-    } else if (key === "delete") {
       navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
+    } else if (key === "delete") {
+      void message.error(TO_DEVELOP);
     }
   };
 
