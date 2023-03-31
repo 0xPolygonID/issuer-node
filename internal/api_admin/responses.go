@@ -138,7 +138,7 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	return msg
 }
 
-func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
+func getLinkResponse(link *domain.Link) (*Link, error) {
 	attrs := make([]LinkRequestAttributesType, len(link.CredentialAttributes))
 	for i, attr := range link.CredentialAttributes {
 		attrs[i].Name = attr.Name
@@ -168,7 +168,7 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 			return nil, fmt.Errorf("unknown type <%s>. Error converting <%v>", attr.AttrType, attr.Value)
 		}
 	}
-	return &GetLink200JSONResponse{
+	return &Link{
 		Active:       link.Active,
 		Attributes:   attrs,
 		Expiration:   link.ValidUntil,
@@ -179,6 +179,18 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 		SchemaUrl:    link.Schema.URL,
 		Status:       LinkStatus(link.Status()),
 	}, nil
+}
+
+func getLinkResponses(links []domain.Link) ([]Link, error) {
+	ret := make([]Link, len(links))
+	for i, link := range links {
+		linkRes, err := getLinkResponse(&link)
+		if err != nil {
+			return nil, err
+		}
+		ret[i] = *linkRes
+	}
+	return ret, nil
 }
 
 func getLinQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
