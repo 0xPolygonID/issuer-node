@@ -2,10 +2,9 @@ import { Avatar, Button, Card, Row, Space, Tag, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { Detail } from "../schemas/Detail";
 import { APIError } from "src/adapters/api";
 import { Connection, getConnection } from "src/adapters/api/connections";
-import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
-import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
@@ -101,23 +100,15 @@ export function ConnectionDetails() {
                       </Button>
                     </Row>
                     <Card className="background-grey">
-                      <Row justify="space-between">
-                        <Typography.Text type="secondary">{IDENTIFIER}</Typography.Text>
-                        <Typography.Text
-                          copyable={{
-                            icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
-                            text: connection.data.userID,
-                          }}
-                        >
-                          {obfuscateDID(connection.data.userID)}
-                        </Typography.Text>
-                      </Row>
-                      <Row justify="space-between">
-                        <Typography.Text type="secondary">Creation date</Typography.Text>
-                        <Typography.Text>
-                          {formatDate(connection.data.createdAt, true)}
-                        </Typography.Text>
-                      </Row>
+                      <Detail
+                        copyable
+                        data={obfuscateDID(connection.data.userID)}
+                        label={IDENTIFIER}
+                      />
+                      <Detail
+                        data={formatDate(connection.data.createdAt, true)}
+                        label="Creation date"
+                      />
                     </Card>
                   </Space>
                 );
