@@ -3119,14 +3119,18 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
-	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.UTC))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.UTC))
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
+	linkDetail, err := getLinkResponse(link)
+	assert.NoError(t, err)
+
 	type expected struct {
-		httpCode int
+		linkDetail *Link
+		httpCode   int
 	}
 
 	type testConfig struct {
@@ -3146,17 +3150,26 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			},
 		},
 		{
+			name: "Wrong link id",
+			auth: authOk,
+			id:   uuid.New(),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "Happy path",
 			auth: authOk,
 			id:   link.ID,
 			expected: expected{
-				httpCode: http.StatusOK,
+				linkDetail: (*Link)(linkDetail),
+				httpCode:   http.StatusOK,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id)
+			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id.String())
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, nil))
 			req.SetBasicAuth(tc.auth())
@@ -3180,19 +3193,11 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.True(t, len(params) == 2)
 				assert.NotNil(t, response.QrCode.Id)
 				assert.Equal(t, "https://iden3-communication.io/authorization/1.0/request", response.QrCode.Type)
-				assert.Equal(t, cfg.APIUI.IssuerDID.String(), response.QrCode.From)
 				assert.Equal(t, "application/iden3comm-plain-json", response.QrCode.Typ)
+				assert.Equal(t, cfg.APIUI.IssuerDID.String(), response.QrCode.From)
 				assert.NotNil(t, response.QrCode.Thid)
 				assert.NotNil(t, response.SessionID)
-				assert.NotNil(t, response.LinkDetail)
-				assert.Equal(t, link.ID, response.LinkDetail.Id)
-				assert.Equal(t, link.MaxIssuance, response.LinkDetail.MaxIssuance)
-				assert.Equal(t, link.Schema.URL, response.LinkDetail.SchemaUrl)
-				assert.Equal(t, link.Schema.Type, response.LinkDetail.SchemaType)
-				assert.Equal(t, link.IssuedClaims, response.LinkDetail.IssuedClaims)
-				assert.Equal(t, link.Status(), string(response.LinkDetail.Status))
-				assert.Equal(t, link.Active, response.LinkDetail.Active)
-				assert.InDelta(t, link.ValidUntil.UTC().Unix(), response.LinkDetail.Expiration.UTC().Unix(), 100)
+				assert.Equal(t, tc.expected.linkDetail, response.LinkDetail)
 			}
 		})
 	}

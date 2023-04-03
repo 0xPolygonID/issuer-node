@@ -472,6 +472,9 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
 	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
+		if errors.Is(services.ErrLinkNotFound, err) {
+			return CreateLinkQrCode400JSONResponse{N400JSONResponse{Message: "error: link not found"}}, nil
+		}
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
