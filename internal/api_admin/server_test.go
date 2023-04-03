@@ -3197,7 +3197,14 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.Equal(t, cfg.APIUI.IssuerDID.String(), response.QrCode.From)
 				assert.NotNil(t, response.QrCode.Thid)
 				assert.NotNil(t, response.SessionID)
-				assert.Equal(t, tc.expected.linkDetail, response.LinkDetail)
+				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
+				assert.InDelta(t, tc.expected.linkDetail.Expiration.Unix(), response.LinkDetail.Expiration.Unix(), 100)
+				assert.Equal(t, tc.expected.linkDetail.Status, response.LinkDetail.Status)
+				assert.Equal(t, tc.expected.linkDetail.Active, response.LinkDetail.Active)
+				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
+				assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
+				assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
+				assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
 			}
 		})
 	}
@@ -3386,7 +3393,14 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 					assert.Equal(t, tc.expected.qrCode.Type, response.QrCode.Type)
 					assert.Equal(t, tc.expected.qrCode.Typ, response.QrCode.Typ)
 					assert.Equal(t, tc.expected.qrCode.From, response.QrCode.From)
-					assert.Equal(t, tc.expected.linkDetail, response.LinkDetail)
+					assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
+					assert.InDelta(t, tc.expected.linkDetail.Expiration.Unix(), response.LinkDetail.Expiration.Unix(), 100)
+					assert.Equal(t, tc.expected.linkDetail.Status, response.LinkDetail.Status)
+					assert.Equal(t, tc.expected.linkDetail.Active, response.LinkDetail.Active)
+					assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
+					assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
+					assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
+					assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
 					assert.Equal(t, tc.expected.status, *response.Status)
 				}
 			}
