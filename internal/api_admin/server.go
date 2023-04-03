@@ -57,7 +57,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
 func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
-	schema, err := s.schemaService.GetByID(ctx, request.Id)
+	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
 	if errors.Is(err, services.ErrSchemaNotFound) {
 		log.Debug(ctx, "schema not found", "id", request.Id)
 		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
@@ -70,7 +70,7 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 
 // GetSchemas returns the list of schemas that match the request.Params.Query filter. If param query is nil it will return all
 func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error) {
-	col, err := s.schemaService.GetAll(ctx, request.Params.Query)
+	col, err := s.schemaService.GetAll(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
 	if err != nil {
 		return GetSchemas500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}

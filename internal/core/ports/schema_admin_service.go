@@ -12,6 +12,6 @@ import (
 // SchemaAdminService defines the methods that Schema manager will expose.
 type SchemaAdminService interface {
 	ImportSchema(ctx context.Context, issuerDID core.DID, url string, sType string) (*domain.Schema, error)
-	GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error)
-	GetAll(ctx context.Context, query *string) ([]domain.Schema, error)
+	GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error)
+	GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error)
 }

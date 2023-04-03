@@ -69,7 +69,7 @@ func (ls *Link) Save(
 	credentialMTPProof bool,
 	credentialAttributes []domain.CredentialAttrsRequest,
 ) (*domain.Link, error) {
-	schema, err := ls.schemaRepository.GetByID(ctx, schemaID)
+	schema, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		return err
 	}
 
-	schema, err := ls.schemaRepository.GetByID(ctx, link.SchemaID)
+	schema, err := ls.schemaRepository.GetByID(ctx, issuerDID, link.SchemaID)
 	if err != nil {
 		log.Error(ctx, "can not fetch the schema", err)
 		return err

@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/google/uuid"
 
@@ -11,6 +12,6 @@ import (
 // SchemaRepository interface that define repo methods for schemas
 type SchemaRepository interface {
 	Save(ctx context.Context, schema *domain.Schema) error
-	GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error)
-	GetAll(ctx context.Context, query *string) ([]domain.Schema, error)
+	GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error)
+	GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error)
 }
