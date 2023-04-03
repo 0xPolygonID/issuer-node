@@ -10,7 +10,7 @@ import {
 } from "src/adapters/api";
 import { Env, JsonLdType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { StrictSchema } from "src/utils/types";
+import { getStrictParser } from "src/utils/types";
 
 export interface SchemaPayload {
   bigInt: string;
@@ -87,7 +87,7 @@ export async function getSchema({
       signal,
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
-    const { data } = resultOKSchema.parse(response);
+    const { data } = resultOKSchemaParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -124,7 +124,7 @@ export async function getSchemas({
       signal,
       url: `${API_VERSION}/schemas`,
     });
-    const { data } = resultOKSchemas.parse(response);
+    const { data } = resultOKSchemasParser.parse(response);
 
     return {
       data: {
@@ -138,7 +138,7 @@ export async function getSchemas({
   }
 }
 
-export const schemaAttribute = StrictSchema<SchemaAttribute>()(
+export const schemaAttributeParser = getStrictParser<SchemaAttribute>()(
   z
     .object({
       description: z.string().optional(),
@@ -181,7 +181,7 @@ export const schemaAttribute = StrictSchema<SchemaAttribute>()(
     )
 );
 
-export const schemaStrict = StrictSchema<SchemaPayload>()(
+export const schemaStrictParser = getStrictParser<SchemaPayload>()(
   z.object({
     bigInt: z.string(),
     createdAt: z.coerce.date(),
@@ -192,9 +192,9 @@ export const schemaStrict = StrictSchema<SchemaPayload>()(
   })
 );
 
-const resultOKSchema = StrictSchema<ResultOK<SchemaPayload>>()(
+const resultOKSchemaParser = getStrictParser<ResultOK<SchemaPayload>>()(
   z.object({
-    data: schemaStrict,
+    data: schemaStrictParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
@@ -204,12 +204,13 @@ interface SchemaPayloads {
   schemas: SchemaPayload[];
 }
 
-const resultOKSchemas = StrictSchema<ResultOK<unknown[]>, ResultOK<SchemaPayloads>>()(
+const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<SchemaPayloads>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
         (acc: SchemaPayloads, curr: unknown, index) => {
-          const parsedSchema = schemaStrict.safeParse(curr);
+          const parsedSchema = schemaStrictParser.safeParse(curr);
+
           return parsedSchema.success
             ? {
                 ...acc,

@@ -95,6 +95,7 @@ export function ImportSchemaForm({
 
   const loadSchema = () => {
     const parsedUrl = z.string().safeParse(schemaUrlInput);
+
     if (parsedUrl.success) {
       setSchema({ status: "pending" });
       setJsonLdTypes({ status: "pending" });

@@ -2,7 +2,7 @@ import { ThemeConfig } from "antd/es/config-provider/context";
 import z from "zod";
 
 import variables from "src/styles/variables.module.scss";
-import { StrictSchema } from "src/utils/types";
+import { getStrictParser } from "src/utils/types";
 
 interface StyleVariables {
   avatarBg: string;
@@ -22,7 +22,7 @@ interface StyleVariables {
   textColorSecondary: string;
 }
 
-const parsedStyleVariables = StrictSchema<StyleVariables>()(
+const parsedStyleVariables = getStrictParser<StyleVariables>()(
   z.object({
     avatarBg: z.string(),
     bgLight: z.string(),

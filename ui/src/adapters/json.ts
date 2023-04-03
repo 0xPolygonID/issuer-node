@@ -2,13 +2,13 @@ import axios from "axios";
 import z from "zod";
 
 import { Json, JsonLiteral } from "src/domain";
-import { StrictSchema } from "src/utils/types";
+import { getStrictParser } from "src/utils/types";
 
-const jsonLiteralParser = StrictSchema<JsonLiteral>()(
+const jsonLiteralParser = getStrictParser<JsonLiteral>()(
   z.union([z.string(), z.number(), z.boolean(), z.null()])
 );
 
-const jsonParser: z.ZodType<Json> = StrictSchema<Json>()(
+const jsonParser: z.ZodType<Json> = getStrictParser<Json>()(
   z.lazy(() => z.union([jsonLiteralParser, z.array(jsonParser), z.record(jsonParser)]))
 );
 

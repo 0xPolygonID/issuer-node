@@ -2,7 +2,7 @@ import axios from "axios";
 import z from "zod";
 
 import { Env } from "src/domain";
-import { StrictSchema } from "src/utils/types";
+import { getStrictParser } from "src/utils/types";
 
 export interface APIError {
   message: string;
@@ -49,16 +49,12 @@ interface ResponseError {
   status: number;
 }
 
-const responseError = StrictSchema<ResponseError>()(
+const responseErrorParser = getStrictParser<ResponseError>()(
   z.object({
     data: z.object({ message: z.string() }),
     status: z.number(),
   })
 );
-
-export function buildAuthorizationHeader(env: Env) {
-  return `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
-}
 
 export function buildAPIError(error: unknown): APIError {
   if (axios.isCancel(error)) {
@@ -68,7 +64,7 @@ export function buildAPIError(error: unknown): APIError {
   if (axios.isAxiosError(error)) {
     try {
       // This is a UI API error.
-      const { data, status } = responseError.parse(error.response);
+      const { data, status } = responseErrorParser.parse(error.response);
       const { message } = data;
 
       return { message, status };
@@ -86,4 +82,8 @@ export function buildAPIError(error: unknown): APIError {
   // This shouldn't happen (catch-all).
   console.error(error);
   return { message: "Unknown error" };
+}
+
+export function buildAuthorizationHeader(env: Env) {
+  return `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
 }

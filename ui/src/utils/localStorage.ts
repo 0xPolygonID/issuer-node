@@ -1,13 +1,13 @@
 import { z } from "zod";
 
-export function getStorageByKey<I, O>({
+export function getStorageByKey<Input, Output>({
   defaultValue,
   key,
   parser,
 }: {
-  defaultValue: O;
+  defaultValue: Output;
   key: string;
-  parser: z.ZodSchema<O, z.ZodTypeDef, I>;
+  parser: z.ZodSchema<Output, z.ZodTypeDef, Input>;
 }) {
   const value = localStorage.getItem(key);
 

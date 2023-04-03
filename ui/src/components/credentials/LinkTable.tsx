@@ -32,7 +32,7 @@ import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 import {
   AsyncTask,
-  StrictSchema,
+  getStrictParser,
   isAsyncTaskDataAvailable,
   isAsyncTaskStarting,
 } from "src/utils/types";
@@ -41,7 +41,7 @@ const SHOW_SEARCH_PARAM = "show";
 
 type Show = "all" | "active" | "inactive" | "exceeded";
 
-const showParser = StrictSchema<Show>()(
+const showParser = getStrictParser<Show>()(
   z.union([z.literal("all"), z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 

@@ -8,10 +8,10 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { Credential, credential } from "src/adapters/api/credentials";
+import { Credential, credentialParser } from "src/adapters/api/credentials";
 import { Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { StrictSchema } from "src/utils/types";
+import { getStrictParser } from "src/utils/types";
 
 export interface Connection {
   createdAt: string;
@@ -20,6 +20,16 @@ export interface Connection {
   issuerID: string;
   userID: string;
 }
+
+const connectionParser = getStrictParser<Connection>()(
+  z.object({
+    createdAt: z.string(),
+    credentials: z.array(credentialParser),
+    id: z.string(),
+    issuerID: z.string(),
+    userID: z.string(),
+  })
+);
 
 export async function getConnections({
   credentials,
@@ -48,7 +58,7 @@ export async function getConnections({
       signal,
       url: `${API_VERSION}/connections`,
     });
-    const { data } = resultOKConnections.parse(response);
+    const { data } = resultOKConnectionsParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -56,19 +66,9 @@ export async function getConnections({
   }
 }
 
-export const connection = StrictSchema<Connection>()(
+export const resultOKConnectionsParser = getStrictParser<ResultOK<Connection[]>>()(
   z.object({
-    createdAt: z.string(),
-    credentials: z.array(credential),
-    id: z.string(),
-    issuerID: z.string(),
-    userID: z.string(),
-  })
-);
-
-export const resultOKConnections = StrictSchema<ResultOK<Connection[]>>()(
-  z.object({
-    data: z.array(connection),
+    data: z.array(connectionParser),
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );

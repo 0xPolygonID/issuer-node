@@ -10,14 +10,14 @@ import {
   SingleChoiceCredentialFormAttribute,
 } from "src/domain/credentials";
 
-const serializeBooleanCredentialFormAttribute = (
+function serializeBooleanCredentialFormAttribute(
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute
-): CredentialAttribute => {
+): CredentialAttribute {
   return {
     attributeKey: booleanCredentialFormAttribute.name,
     attributeValue: booleanCredentialFormAttribute.value ? 1 : 0,
   };
-};
+}
 
 function serializeCredentialFormAttribute(
   credentialFormAttribute: CredentialFormAttribute
@@ -67,6 +67,8 @@ function serializeSingleChoiceCredentialFormAttribute(
     attributeValue: singleChoiceCredentialFormAttribute.value,
   };
 }
+
+// Exports
 
 export function serializeCredentialForm(credentialForm: CredentialForm): CredentialIssuePayload {
   const attributes = credentialForm.attributes.map(serializeCredentialFormAttribute);

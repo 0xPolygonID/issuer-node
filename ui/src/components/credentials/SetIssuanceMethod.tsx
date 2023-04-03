@@ -15,7 +15,7 @@ import {
 import dayjs from "dayjs";
 import { useState } from "react";
 
-import { parseLinkExpirationDate } from "src/adapters/parsers/forms";
+import { linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
@@ -56,7 +56,7 @@ export function SetIssuanceMethod({
         name="issueCredentialMethod"
         onFinish={onSubmit}
         onValuesChange={(changedValues, allValues) => {
-          const parsedLinkExpirationDate = parseLinkExpirationDate.safeParse(changedValues);
+          const parsedLinkExpirationDate = linkExpirationDateParser.safeParse(changedValues);
 
           if (
             allValues.type === "credentialLink" &&

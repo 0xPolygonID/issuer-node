@@ -4,6 +4,8 @@ import { JsonLdType } from "src/domain";
 
 const HEX_TABLE = "0123456789abcdef";
 
+// Helpers
+
 function decode(src: string): Uint8Array {
   let i = 0;
   let j = 1;
@@ -77,6 +79,8 @@ function schemaIdToBytes(schemaId: Uint8Array): Uint8Array {
 
   return sHash.slice(sHash.length - 16, sHash.length);
 }
+
+// Exports
 
 export function getBigint(
   jsonLdType: JsonLdType

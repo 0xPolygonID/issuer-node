@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { Env } from "src/domain";
-import { StrictSchema } from "src/utils/types";
+import { getStrictParser } from "src/utils/types";
 
 export interface EnvInput {
   VITE_API_PASSWORD: string;
@@ -12,7 +12,7 @@ export interface EnvInput {
   VITE_ISSUER_NAME: string;
 }
 
-export const envParser = StrictSchema<EnvInput, Env>()(
+export const envParser = getStrictParser<EnvInput, Env>()(
   z
     .object({
       VITE_API_PASSWORD: z.string().min(1),
