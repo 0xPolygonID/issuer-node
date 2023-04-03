@@ -17,6 +17,8 @@ export interface CredentialForm {
   linkMaximumIssuance: number | undefined;
 }
 
+export type CredentialsTabIDs = "issued" | "links";
+
 export interface DateCredentialFormAttribute {
   name: string;
   type: "date";
@@ -34,5 +36,3 @@ export interface SingleChoiceCredentialFormAttribute {
   type: "singlechoice";
   value: number;
 }
-
-export type CredentialsTabIDs = "issued" | "links";
