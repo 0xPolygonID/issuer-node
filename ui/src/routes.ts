@@ -1,4 +1,5 @@
 export type RouteID =
+  | "connectionDetails"
   | "connections"
   | "credentialLink"
   | "credentials"
@@ -19,6 +20,10 @@ type Routes = Record<
 >;
 
 export const ROUTES: Routes = {
+  connectionDetails: {
+    layout: "sider",
+    path: "/connections/:connectionID",
+  },
   connections: {
     layout: "sider",
     path: "/connections",
