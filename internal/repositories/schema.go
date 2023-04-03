@@ -111,10 +111,10 @@ ORDER BY created_at DESC`
 func (r *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
 	const byID = `SELECT id, issuer_id, url, type, attributes, hash, created_at 
 		FROM schemas 
-		WHERE id=$1 AND issuer_id = $2`
+		WHERE issuer_id = $1 AND id=$2`
 
 	s := dbSchema{}
-	row := r.conn.Pgx.QueryRow(ctx, byID, id, issuerDID.String())
+	row := r.conn.Pgx.QueryRow(ctx, byID, issuerDID.String(), id)
 	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, ErrSchemaDoesNotExist
