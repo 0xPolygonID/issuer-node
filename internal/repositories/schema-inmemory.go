@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"context"
-	core "github.com/iden3/go-iden3-core"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
