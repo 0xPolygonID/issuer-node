@@ -3154,7 +3154,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			auth: authOk,
 			id:   uuid.New(),
 			expected: expected{
-				httpCode: http.StatusBadRequest,
+				httpCode: http.StatusNotFound,
 			},
 		},
 		{
@@ -3326,7 +3326,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 			id:        uuid.New(),
 			state:     nil,
 			expected: expected{
-				httpCode: http.StatusBadRequest,
+				httpCode: http.StatusNotFound,
 			},
 		},
 		{

@@ -473,8 +473,9 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(services.ErrLinkNotFound, err) {
-			return CreateLinkQrCode400JSONResponse{N400JSONResponse{Message: "error: link not found"}}, nil
+			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
 		}
+		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
@@ -542,6 +543,9 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
 	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
+		if errors.Is(services.ErrLinkNotFound, err) {
+			return GetLinkQRCode404JSONResponse{Message: "error: link not found"}, nil
+		}
 		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
