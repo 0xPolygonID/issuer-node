@@ -56,8 +56,6 @@ export function ConnectionDetails() {
             setConnection({ error: response.error, status: "failed" });
           }
         }
-      } else {
-        setConnection({ error: { message: "No ConnectionID" }, status: "failed" });
       }
     },
     [connectionID, env]

@@ -22,7 +22,7 @@ type Routes = Record<
 export const ROUTES: Routes = {
   connectionDetails: {
     layout: "sider",
-    path: "/connection/:connectionID",
+    path: "/connections/:connectionID",
   },
   connections: {
     layout: "sider",
