@@ -537,16 +537,25 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 
 // GetLinkQRCode - returns te qr code for adding the credential
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
-	linkState, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, request.Id)
+	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
 		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
-	if linkState.Status == link_state.StatusPending || linkState.Status == link_state.StatusDone {
+
+	linkDetail, err := getLinkResponse(getQRCodeResponse.Link)
+	if err != nil {
+		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		return GetLinkQRCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+
+	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone {
 		return GetLinkQRCode200JSONResponse{
-			Status: common.ToPointer(linkState.Status),
-			QrCode: getLinQrCodeResponse(linkState.QRCode),
+			Status:     common.ToPointer(getQRCodeResponse.State.Status),
+			QrCode:     getLinQrCodeResponse(getQRCodeResponse.State.QRCode),
+			LinkDetail: (*Link)(linkDetail),
 		}, nil
 	}
+
 	return GetLinkQRCode400JSONResponse{N400JSONResponse{
 		Message: fmt.Sprintf("error fetching the link qr code: %s", err.Error()),
 	}}, nil

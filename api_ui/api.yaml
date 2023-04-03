@@ -815,6 +815,8 @@ components:
         status:
           type: string
           example: done | pending
+        linkDetail:
+          $ref: '#/components/schemas/Link'
 
     UUIDResponse:
       type: object
