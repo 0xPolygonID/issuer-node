@@ -6,11 +6,11 @@ import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-ca
 import { IssuedTable } from "src/components/credentials/IssuedTable";
 import { LinkTable } from "src/components/credentials/LinkTable";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { TabsCredentialsIDs } from "src/domain/credentials";
+import { CredentialsTabIDs } from "src/domain/credentials";
 import { ROUTES } from "src/routes";
 import { CREDENTIALS, CREDENTIALS_TABS, ISSUE_CREDENTIAL } from "src/utils/constants";
 
-const tabComponents: Record<TabsCredentialsIDs, ComponentType> = {
+const tabComponents: Record<CredentialsTabIDs, ComponentType> = {
   issued: IssuedTable,
   links: LinkTable,
 };

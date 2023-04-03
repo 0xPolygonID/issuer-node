@@ -1,4 +1,4 @@
-import { TabsCredentialsIDs } from "src/domain/credentials";
+import { CredentialsTabIDs } from "src/domain/credentials";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
@@ -19,7 +19,7 @@ export const API_VERSION = "v1";
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 
-export const CREDENTIALS_TABS: { id: TabsCredentialsIDs; tabID: string; title: string }[] = [
+export const CREDENTIALS_TABS: { id: CredentialsTabIDs; tabID: string; title: string }[] = [
   {
     id: "issued",
     tabID: "issued",

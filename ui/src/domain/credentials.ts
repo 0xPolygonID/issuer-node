@@ -35,4 +35,4 @@ export interface SingleChoiceCredentialFormAttribute {
   value: number;
 }
 
-export type TabsCredentialsIDs = "issued" | "links";
+export type CredentialsTabIDs = "issued" | "links";
