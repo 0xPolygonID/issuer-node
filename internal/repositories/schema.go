@@ -70,22 +70,23 @@ func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaAttrs
 
 // GetAll returns all the schemas that match any of the words that are included in the query string.
 // For each word, it will search for attributes that start with it or include it following postgres full text search tokenization
-func (r *schema) GetAll(ctx context.Context, query *string) ([]domain.Schema, error) {
+func (r *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
 	const all = `SELECT id, issuer_id, url, type, attributes, hash, created_at
 	FROM schemas
+	WHERE issuer_id=$1
 	ORDER BY created_at DESC`
 	const allFTS = `
 SELECT id, issuer_id, url, type, attributes, hash, created_at 
 FROM schemas 
-WHERE ts_words @@ to_tsquery($1)
+WHERE issuer_id=$1 AND ts_words @@ to_tsquery($2)
 ORDER BY created_at DESC`
 	var err error
 	var rows pgx.Rows
 
 	if query != nil && *query != "" {
-		rows, err = r.conn.Pgx.Query(ctx, allFTS, fullTextSearchQuery(*query, " | "))
+		rows, err = r.conn.Pgx.Query(ctx, allFTS, issuerDID.String(), fullTextSearchQuery(*query, " | "))
 	} else {
-		rows, err = r.conn.Pgx.Query(ctx, all)
+		rows, err = r.conn.Pgx.Query(ctx, all, issuerDID.String())
 	}
 	if err != nil {
 		return nil, err
@@ -107,13 +108,13 @@ ORDER BY created_at DESC`
 }
 
 // GetByID searches and returns an schema by id
-func (r *schema) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
+func (r *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
 	const byID = `SELECT id, issuer_id, url, type, attributes, hash, created_at 
 		FROM schemas 
-		WHERE id=$1`
+		WHERE issuer_id = $1 AND id=$2`
 
 	s := dbSchema{}
-	row := r.conn.Pgx.QueryRow(ctx, byID, id)
+	row := r.conn.Pgx.QueryRow(ctx, byID, issuerDID.String(), id)
 	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, ErrSchemaDoesNotExist
