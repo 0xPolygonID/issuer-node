@@ -28,7 +28,7 @@ export function MySchemas() {
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
-  const tableContents: ColumnsType<SchemaPayload> = [
+  const tableColumns: ColumnsType<SchemaPayload> = [
     {
       dataIndex: "type",
       ellipsis: { showTitle: false },
@@ -163,7 +163,7 @@ export function MySchemas() {
         }
         table={
           <Table
-            columns={tableContents.map(({ title, ...column }) => ({
+            columns={tableColumns.map(({ title, ...column }) => ({
               title: (
                 <Typography.Text type="secondary">
                   <>{title}</>

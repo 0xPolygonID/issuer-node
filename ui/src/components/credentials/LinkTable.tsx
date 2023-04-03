@@ -18,7 +18,7 @@ import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
-import { Credential, credentialUpdate, credentialsGetAll } from "src/adapters/api/credentials";
+import { OldCredential, credentialUpdate, credentialsGetAll } from "src/adapters/api/credentials";
 import { SchemaPayload } from "src/adapters/api/schemas";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-03.svg";
@@ -47,7 +47,7 @@ const showParser = StrictSchema<Show>()(
 
 export function LinkTable() {
   const env = useEnvContext();
-  const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
+  const [credentials, setCredentials] = useState<AsyncTask<OldCredential[], APIError>>({
     status: "pending",
   });
   const [isCredentialUpdating, setCredentialUpdating] = useState<Record<string, boolean>>({});
@@ -61,12 +61,12 @@ export function LinkTable() {
 
   const show = parsedShowParam.success ? parsedShowParam.data : "all";
 
-  const tableContents: ColumnsType<Credential> = [
+  const tableColumns: ColumnsType<OldCredential> = [
     {
       dataIndex: "active",
       ellipsis: true,
       key: "active",
-      render: (active: boolean, credential: Credential) => (
+      render: (active: boolean, credential: OldCredential) => (
         <Switch
           checked={credential.valid && active}
           disabled={!credential.valid}
@@ -129,7 +129,7 @@ export function LinkTable() {
     {
       dataIndex: "active",
       key: "active",
-      render: (active: boolean, credential: Credential) => (
+      render: (active: boolean, credential: OldCredential) => (
         <Row justify="space-between">
           {credential.valid ? (
             active ? (
@@ -197,11 +197,11 @@ export function LinkTable() {
     }
   };
 
-  const updateCredentialInState = (credential: Credential) => {
+  const updateCredentialInState = (credential: OldCredential) => {
     setCredentials((oldCredentials) =>
       isAsyncTaskDataAvailable(oldCredentials)
         ? {
-            data: oldCredentials.data.map((currentCredential: Credential) =>
+            data: oldCredentials.data.map((currentCredential: OldCredential) =>
               currentCredential.id === credential.id ? credential : currentCredential
             ),
             status: "successful",
@@ -212,7 +212,7 @@ export function LinkTable() {
 
   const toggleCredentialActive = (
     active: boolean,
-    { id: credentialID, schemaTemplate }: Credential
+    { id: credentialID, schemaTemplate }: OldCredential
   ) => {
     setCredentialUpdating((currentCredentialsUpdating) => {
       return { ...currentCredentialsUpdating, [credentialID]: true };
@@ -286,7 +286,7 @@ export function LinkTable() {
         }
         table={
           <Table
-            columns={tableContents.map(({ title, ...column }) => ({
+            columns={tableColumns.map(({ title, ...column }) => ({
               title: (
                 <Typography.Text type="secondary">
                   <>{title}</>

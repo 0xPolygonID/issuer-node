@@ -2,6 +2,7 @@ import { TabsCredentialsIDs } from "src/domain/credentials";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
+export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
 export const DATE_VALIDITY_MESSAGE = "Valid date required";

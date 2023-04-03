@@ -217,7 +217,7 @@ paths:
             enum: [all, revoked, expired]
           description: >
              Schema type:
-               * `all` - All schemas. Default value if query parameter is not present
+               * `all` - All Schemas. (default value)
                * `revoked` - Only revoked schemas
                * `expired` - Only expired schemas
         - in: query
@@ -465,6 +465,27 @@ paths:
           $ref: '#/components/responses/500'
 
   /v1/credentials/links/{id}:
+    get:
+      summary: Returns a link to a credential offer
+      operationId: GetLink
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Credential link response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
     patch:
       summary: Endpoint to activate|deactivate a link
       operationId: AcivateLink
@@ -518,6 +539,77 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+
+
+  /v1/credentials/links/{id}/qrcode:
+    post:
+      summary: Endpoint to create a link qr code
+      operationId: CreateLinkQrCode
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link qrcode generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+    get:
+      summary: Endpoint to get a link
+      operationId: GetLinkQRCode
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/sessionID'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/credentials/links/callback:
+    post:
+      summary: Create Link QR Code Callback
+      operationId: CreateLinkQrCodeCallback
+      description: Create Link QR Code Callback
+      tags:
+        - auth
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
+        - $ref: '#/components/parameters/linkID'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: ok
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 
   #others:
   /:
@@ -622,6 +714,108 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
+    GetLinkQrCodeResponseType:
+      type: object
+      required:
+        - id
+        - typ
+        - type
+        - thid
+        - body
+        - from
+        - to
+      properties:
+        id:
+          type: string
+          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
+        typ:
+          type: string
+          example: application/iden3comm-plain-json
+        type:
+          type: string
+          example: https://iden3-communication.io/authorization/1.0/request
+        thid:
+          type: string
+          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
+        body:
+          $ref: '#/components/schemas/GetLinkQrCodeResponseBodyType'
+        from:
+          type: string
+          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        to:
+          type: string
+          example: did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63
+
+    GetLinkQrCodeResponseBodyType:
+      type: object
+      required:
+        - url
+        - credentials
+      properties:
+        url:
+          type: string
+          example: https://validURL/v1/agent
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/GetLinkQrCodeCredentialsResponseType'
+          example: [ ]
+
+    GetLinkQrCodeCredentialsResponseType:
+      type: object
+      required:
+        - id
+        - description
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+          example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
+        description:
+          type: string
+          example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential
+
+
+    CredentialLinkQrCodeResponse:
+      type: object
+      required:
+        - issuer
+        - qrCode
+        - sessionID
+        - linkID
+      properties:
+        issuer:
+          $ref: '#/components/schemas/IssuerDescription'
+        qrCode:
+          $ref: '#/components/schemas/AuthenticationQrCodeResponse'
+        sessionID:
+          type: string
+          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
+        linkDetail:
+          $ref: '#/components/schemas/Link'
+
+    IssuerDescription:
+      type: object
+      required:
+        - displayName
+        - logo
+      properties:
+        displayName:
+          type: string
+          example: my issuer
+        logo:
+          type: string
+          example: "http://my-public-logo/logo.jpg"
+
+    GetLinkQrCodeResponse:
+      type: object
+      properties:
+        qrCode:
+          $ref: '#/components/schemas/GetLinkQrCodeResponseType'
+        status:
+          type: string
+          example: done | pending
+
     UUIDResponse:
       type: object
       required:
@@ -698,6 +892,47 @@ components:
             documentType: 2
             id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
             type: "KYCAgeCredential"
+
+    Link:
+      type: object
+      required:
+        - id
+        - schemaUrl
+        - schemaType
+        - attributes
+        - issuedClaims
+        - active
+        - status
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        schemaUrl:
+          type: string
+        schemaType:
+          type: string
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkRequestAttributesType'
+        maxIssuance:
+          type: integer
+          x-omitempty: false
+        issuedClaims:
+          type: integer
+        expiration:
+          type: string
+          format: date-time
+          example: 2023-03-17T10:18:01.400722+01:00
+        active:
+          type: boolean
+        status:
+          type: string
+          enum: [ active, inactive, exceed ]
 
     GenericMessage:
       type: object
@@ -893,6 +1128,19 @@ components:
       in: query
       required: true
       description: | 
+        Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
+
+    linkID:
+      name: linkID
+      in: query
+      required: true
+      description: |
         Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
       schema:
         type: string

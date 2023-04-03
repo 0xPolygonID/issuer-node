@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 
 	core "github.com/iden3/go-iden3-core"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
@@ -13,19 +12,15 @@ import (
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
-
-// ErrProcessSchema - something wrong happened when the schema loaded is processed
-var ErrProcessSchema = errors.New("cannot process schema")
 
 // Attributes is a list of Attribute entities
 type Attributes []Attribute
 
-// SchemaAttrs converts jsonschema.Attributes into domain.SchemaAttrs
-func (a Attributes) SchemaAttrs() domain.SchemaAttrs {
-	out := make(domain.SchemaAttrs, len(a))
+// SchemaAttrs converts jsonschema.Attributes into []string]
+func (a Attributes) SchemaAttrs() []string {
+	out := make([]string, len(a))
 	for i, attr := range a {
 		out[i] = attr.String()
 	}
@@ -71,8 +66,8 @@ func Load(ctx context.Context, loader loader.Loader) (*JSONSchema, error) {
 	return schema, nil
 }
 
-// AttributeNames returns a list with the attributes in properties.credentialSubject.properties
-func (s *JSONSchema) AttributeNames() (Attributes, error) {
+// Attributes returns a list with the attributes in properties.credentialSubject.properties
+func (s *JSONSchema) Attributes() (Attributes, error) {
 	var props map[string]any
 	var ok bool
 	props, ok = s.content["properties"].(map[string]any)
@@ -97,6 +92,19 @@ func (s *JSONSchema) AttributeNames() (Attributes, error) {
 		attrs = append(attrs, attr)
 	}
 	return attrs, nil
+}
+
+// AttributeByID returns the attribute with this id or an error if not found
+func (s *JSONSchema) AttributeByID(id string) (*Attribute, error) {
+	attrs, err := s.Attributes()
+	if err != nil {
+		return nil, err
+	}
+	i := findIndexForSchemaAttribute(attrs, id)
+	if i < 0 {
+		return nil, fmt.Errorf("schema attribute <%s> not found", id)
+	}
+	return &attrs[i], nil
 }
 
 // JSONLdContext returns the value of $metadata.uris.jsonLdContext
@@ -128,31 +136,6 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 	return utils.CreateSchemaHash([]byte(id)), nil
 }
 
-// ValidateAndConvert - validates an array of attributes against the schema. Returns a new array with the credential attributes types converted.
-func (s *JSONSchema) ValidateAndConvert(credentialAttributes []domain.CredentialAttributes) ([]domain.CredentialAttributes, error) {
-	schemaAttributes, err := s.AttributeNames()
-	if err != nil {
-		return nil, ErrProcessSchema
-	}
-	for i, attributeLink := range credentialAttributes {
-		attributeLinkName := attributeLink.Name
-		attributeLinkValue := attributeLink.Value
-		index := findIndexForSchemaAttribute(schemaAttributes, attributeLinkName)
-		attributeLinkValueConverted, err := validateCredentialLinkAttribute(schemaAttributes[index], attributeLinkName, attributeLinkValue)
-		if err != nil {
-			return nil, err
-		}
-		credentialAttributes[i].Value = attributeLinkValueConverted
-		schemaAttributes = removeIndex(schemaAttributes, index)
-	}
-
-	if len(schemaAttributes) != 1 {
-		return nil, newCredentialLinkAttributeError("the number of attributes is not valid")
-	}
-
-	return credentialAttributes, nil
-}
-
 func findIndexForSchemaAttribute(attributes Attributes, name string) int {
 	for i, attribute := range attributes {
 		if attribute.ID == name {
@@ -160,44 +143,4 @@ func findIndexForSchemaAttribute(attributes Attributes, name string) int {
 		}
 	}
 	return -1
-}
-
-func validateCredentialLinkAttribute(schemaAttribute Attribute, attributeLinkName string, attributeLinkValue interface{}) (interface{}, error) {
-	if schemaAttribute.Type == "string" {
-		s, ok := attributeLinkValue.(string)
-		if !ok {
-			return nil, newCredentialLinkAttributeError(fmt.Sprintf("error converting the attribute: %s", attributeLinkName))
-		}
-		return s, nil
-	}
-
-	if schemaAttribute.Type == "integer" {
-		s, ok := attributeLinkValue.(string)
-		if !ok {
-			return nil, newCredentialLinkAttributeError(fmt.Sprintf("error converting the attribute: %s", attributeLinkName))
-		}
-		newValue, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, newCredentialLinkAttributeError(fmt.Sprintf("error converting the attribute: %s. Must be an integer", attributeLinkName))
-		}
-		return newValue, nil
-	}
-
-	if schemaAttribute.Type == "boolean" {
-		s, ok := attributeLinkValue.(string)
-		if !ok {
-			return nil, newCredentialLinkAttributeError(fmt.Sprintf("error converting the attribute: %s", attributeLinkName))
-		}
-		newValue, err := strconv.ParseBool(s)
-		if err != nil {
-			return nil, newCredentialLinkAttributeError(fmt.Sprintf("error converting the attribute: %s. Must be a boolean", attributeLinkName))
-		}
-		return newValue, nil
-	}
-
-	return nil, newCredentialLinkAttributeError(fmt.Sprintf("error converting the attribute: %s. type not supported", attributeLinkName))
-}
-
-func removeIndex(s []Attribute, index int) []Attribute {
-	return append(s[:index], s[index+1:]...)
 }

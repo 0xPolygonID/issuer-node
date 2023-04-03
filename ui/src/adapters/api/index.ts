@@ -1,6 +1,7 @@
 import axios from "axios";
 import z from "zod";
 
+import { Env } from "src/domain";
 import { StrictSchema } from "src/utils/types";
 
 export interface APIError {
@@ -54,6 +55,10 @@ const responseError = StrictSchema<ResponseError>()(
     status: z.number(),
   })
 );
+
+export function buildAuthorizationHeader(env: Env) {
+  return `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
+}
 
 export function buildAPIError(error: unknown): APIError {
   if (axios.isCancel(error)) {
