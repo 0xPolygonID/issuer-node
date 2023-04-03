@@ -477,7 +477,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 
 	linkDetail, err := getLinkResponse(createLinkQrCodeResponse.Link)
 	if err != nil {
-		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		log.Error(ctx, "link response constructor", "err", err, "id", request.Id)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
 
@@ -528,7 +528,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 
 	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
 	if err != nil {
-		log.Debug(ctx, "error issuing the claim", "error", err.Error())
+		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
@@ -557,7 +557,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 	}
 
 	return GetLinkQRCode400JSONResponse{N400JSONResponse{
-		Message: fmt.Sprintf("error fetching the link qr code: %s", err.Error()),
+		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
 	}}, nil
 }
 
