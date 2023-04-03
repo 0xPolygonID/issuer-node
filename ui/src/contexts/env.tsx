@@ -18,7 +18,7 @@ const envDefaultValue: Env = {
   },
 };
 
-const EnvContext = createContext<Env>(envDefaultValue);
+const EnvContext = createContext(envDefaultValue);
 
 export function EnvProvider(props: PropsWithChildren) {
   const [env, setEnv] = useState<z.SafeParseReturnType<EnvInput, Env>>();
@@ -44,6 +44,6 @@ export function EnvProvider(props: PropsWithChildren) {
   );
 }
 
-export function useEnvContext(): Env {
+export function useEnvContext() {
   return useContext(EnvContext);
 }
