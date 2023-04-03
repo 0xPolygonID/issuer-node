@@ -21,6 +21,7 @@ import {
   CARD_ELLIPSIS_MAXIMUM_WIDTH,
   CREDENTIALS_TABS,
   CREDENTIAL_LINK,
+  ISSUE_DATE,
   SCHEMA_HASH,
 } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -174,7 +175,7 @@ export function Summary({
               </Row>
 
               <Row justify="space-between">
-                <Typography.Text type="secondary">Issue date</Typography.Text>
+                <Typography.Text type="secondary">{ISSUE_DATE}</Typography.Text>
 
                 <Typography.Text>{formatDate(credential.createdAt)}</Typography.Text>
               </Row>

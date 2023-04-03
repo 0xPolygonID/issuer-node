@@ -11,14 +11,17 @@ import {
 } from "src/adapters/api";
 import { Schema, schema } from "src/adapters/api/schemas";
 import { Env } from "src/domain";
-import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM, TYPE_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface Credential {
   attributes: {
     type: string;
   };
+  createdAt: Date;
+  expiresAt?: Date;
   id: string;
+  revoked?: boolean;
 }
 
 export const credential = StrictSchema<Credential>()(
@@ -26,7 +29,57 @@ export const credential = StrictSchema<Credential>()(
     attributes: z.object({
       type: z.string(),
     }),
+    createdAt: z.coerce.date(),
+    expiresAt: z.optional(z.coerce.date()),
     id: z.string(),
+    revoked: z.optional(z.boolean()),
+  })
+);
+
+export type CredentialType = "all" | "revoked" | "expired";
+
+export const typeParser = StrictSchema<CredentialType>()(
+  z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
+);
+
+export async function getCredentials({
+  env,
+  params: { query, type },
+  signal,
+}: {
+  env: Env;
+  params: {
+    query?: string;
+    type?: CredentialType;
+  };
+  signal: AbortSignal;
+}): Promise<APIResponse<Credential[]>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      params: new URLSearchParams({
+        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(type !== undefined && type !== "all" ? { [TYPE_SEARCH_PARAM]: type } : {}),
+      }),
+      signal,
+      url: `${API_VERSION}/credentials`,
+    });
+    const { data } = resultOKCredentials.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export const resultOKCredentials = StrictSchema<ResultOK<Credential[]>>()(
+  z.object({
+    data: z.array(credential),
+    status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 

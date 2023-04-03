@@ -10,6 +10,7 @@ export const ERROR_MESSAGE = "Something went wrong";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
+export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
 export const LINKS = "Links";
 export const SCHEMA_HASH = "Schema hash";
@@ -35,6 +36,8 @@ export const CREDENTIALS_TABS: { id: TabsCredentialsIDs; tabID: string; title: s
 
 export const DEBOUNCE_INPUT_TIMEOUT = 500;
 
+export const DOTS_DROPDOWN_WIDTH = 60;
+
 export const FEEDBACK_URL = "https://forms.gle/ckDgvw1e9yZJBNfH6";
 
 export const IMAGE_PLACEHOLDER_PATH = "/images/image-preview.png";
@@ -48,6 +51,8 @@ export const ROOT_PATH = "/";
 export const SIDER_WIDTH = 320;
 
 export const TOAST_NOTIFICATION_TIMEOUT = 6;
+
+export const TYPE_SEARCH_PARAM = "type";
 
 export const TUTORIALS_URL = "https://0xpolygonid.github.io/tutorials";
 
