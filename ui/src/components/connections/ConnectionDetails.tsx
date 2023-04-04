@@ -330,14 +330,17 @@ export function ConnectionDetails() {
 
                   <Tag color="blue">{credentialsList.length}</Tag>
                 </Space>
-                {showDefaultContent && credentialType === "all" && <IssueDirectlyButton />}
-                <Radio.Group onChange={handleTypeChange} value={credentialType}>
-                  <Radio.Button value="all">All</Radio.Button>
+                {showDefaultContent && credentialType === "all" ? (
+                  <IssueDirectlyButton />
+                ) : (
+                  <Radio.Group onChange={handleTypeChange} value={credentialType}>
+                    <Radio.Button value="all">All</Radio.Button>
 
-                  <Radio.Button value="revoked">Revoked</Radio.Button>
+                    <Radio.Button value="revoked">Revoked</Radio.Button>
 
-                  <Radio.Button value="expired">Expired</Radio.Button>
-                </Radio.Group>
+                    <Radio.Button value="expired">Expired</Radio.Button>
+                  </Radio.Group>
+                )}
               </Row>
             }
           />

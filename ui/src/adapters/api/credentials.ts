@@ -30,9 +30,9 @@ export const credential = StrictSchema<Credential>()(
       type: z.string(),
     }),
     createdAt: z.coerce.date(),
-    expiresAt: z.optional(z.coerce.date()),
+    expiresAt: z.coerce.date().optional(),
     id: z.string(),
-    revoked: z.optional(z.boolean()),
+    revoked: z.boolean().optional(),
   })
 );
 
@@ -76,7 +76,7 @@ export async function getCredentials({
   }
 }
 
-export const resultOKCredentials = StrictSchema<ResultOK<Credential[]>>()(
+const resultOKCredentials = StrictSchema<ResultOK<Credential[]>>()(
   z.object({
     data: z.array(credential),
     status: z.literal(HTTPStatusSuccess.OK),
