@@ -227,7 +227,7 @@ type AgentTextRequestBody = AgentTextBody
 // CreateIdentityJSONRequestBody defines body for CreateIdentity for application/json ContentType.
 type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
-// CreateClaimJSONRequestBody defines body for Save for application/json ContentType.
+// CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
 
 // ServerInterface represents all server handlers.
@@ -1614,7 +1614,7 @@ func (sh *strictHandler) CreateClaim(w http.ResponseWriter, r *http.Request, ide
 		return sh.ssi.CreateClaim(ctx, request.(CreateClaimRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "Save")
+		handler = middleware(handler, "CreateClaim")
 	}
 
 	response, err := handler(r.Context(), w, r, request)

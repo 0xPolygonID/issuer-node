@@ -105,6 +105,44 @@ func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredentia
 	}
 }
 
+func stateTransactionsResponse(states []domain.IdentityState) StateTransactionsResponse {
+	stateTransactions := make([]StateTransaction, len(states))
+	for i := range states {
+		stateTransactions[i] = toStateTransaction(states[i])
+	}
+	return stateTransactions
+}
+
+func toStateTransaction(state domain.IdentityState) StateTransaction {
+	var stateTran, txID string
+	if state.State != nil {
+		stateTran = *state.State
+	}
+	if state.TxID != nil {
+		txID = *state.TxID
+	}
+	return StateTransaction{
+		Id:          state.StateID,
+		PublishDate: state.ModifiedAt,
+		State:       stateTran,
+		Status:      getTransactionStatus(state.Status),
+		TxID:        txID,
+	}
+}
+
+func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
+	switch status {
+	case domain.StatusCreated:
+		return "pending"
+	case domain.StatusTransacted:
+		return "transacted"
+	case domain.StatusConfirmed:
+		return "published"
+	default:
+		return "failed"
+	}
+}
+
 func getSigProof(w3c *verifiable.W3CCredential) *string {
 	for i := range w3c.Proof {
 		if string(w3c.Proof[i].ProofType()) == "BJJSignature2021" {
@@ -181,7 +219,7 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 	}, nil
 }
 
-func getLinQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
+func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
 	if linkQrCode == nil {
 		return nil
 	}
