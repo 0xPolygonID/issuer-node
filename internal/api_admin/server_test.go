@@ -2842,6 +2842,206 @@ func TestServer_GetLink(t *testing.T) {
 	}
 }
 
+func TestServer_GetAllLinks(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		sUrl       = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	schemaRepository := repositories.NewSchema(*storage)
+	sessionRepository := repositories.NewSessionCached(cachex)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, sUrl, schemaType)
+	assert.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	tomorrow := time.Now().Add(24 * time.Hour)
+	yesterday := time.Now().Add(-24 * time.Hour)
+
+	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+	linkActive, err := getLinkResponse(link1)
+	require.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+	linkExpired, err := getLinkResponse(link2)
+	require.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link3.Active = false
+	require.NoError(t, err)
+	require.NoError(t, linkService.Activate(ctx, *did, link3.ID, false))
+	linkInactive, err := getLinkResponse(link3)
+	require.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	handler := getHandler(ctx, server)
+	type expected struct {
+		response []Link
+		httpCode int
+	}
+	type testConfig struct {
+		name     string
+		query    *string
+		typ      *GetLinksParamsType
+		auth     func() (string, string)
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Wrong type",
+			auth: authOk,
+			typ:  common.ToPointer(GetLinksParamsType("unknown-filter-type")),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Happy path. All schemas",
+			auth: authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
+			},
+		},
+		{
+			name: "Happy path. All schemas, explicit",
+			auth: authOk,
+			typ:  common.ToPointer(GetLinksParamsType("all")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
+			},
+		},
+		{
+			name: "Happy path. All schemas, active",
+			auth: authOk,
+			typ:  common.ToPointer(GetLinksParamsType("active")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkActive},
+			},
+		},
+		{
+			name: "Happy path. All schemas, exceeded",
+			auth: authOk,
+			typ:  common.ToPointer(GetLinksParamsType("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+		{
+			name: "Happy path. All schemas, exceeded",
+			auth: authOk,
+			typ:  common.ToPointer(GetLinksParamsType("inactive")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive},
+			},
+		},
+		{
+			name:  "Exceeded with filter found",
+			auth:  authOk,
+			query: common.ToPointer("documentType"),
+			typ:   common.ToPointer(GetLinksParamsType("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+		{
+			name:  "Empty result",
+			auth:  authOk,
+			query: common.ToPointer("documentType"),
+			typ:   common.ToPointer(GetLinksParamsType("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			endpoint := url.URL{Path: "/v1/credentials/links"}
+			if tc.typ != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "type=" + string(*tc.typ)
+			}
+			if tc.query != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "&query=" + *tc.query
+			}
+
+			req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetLinks200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				if assert.Equal(t, len(tc.expected.response), len(response)) {
+					for i, resp := range response {
+						assert.Equal(t, tc.expected.response[i].Id, resp.Id)
+						assert.Equal(t, tc.expected.response[i].Status, resp.Status)
+						assert.Equal(t, tc.expected.response[i].IssuedClaims, resp.IssuedClaims)
+						assert.Equal(t, tc.expected.response[i].Active, resp.Active)
+						assert.Equal(t, tc.expected.response[i].MaxIssuance, resp.MaxIssuance)
+						assert.Equal(t, tc.expected.response[i].SchemaUrl, resp.SchemaUrl)
+						assert.Equal(t, tc.expected.response[i].SchemaType, resp.SchemaType)
+						assert.Equal(t, tc.expected.response[i].Attributes, resp.Attributes)
+						assert.InDelta(t, tc.expected.response[i].Expiration.UnixMilli(), resp.Expiration.UnixMilli(), 10)
+					}
+				}
+			case http.StatusBadRequest:
+				var response GetLinks400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+			}
+		})
+	}
+}
+
 func TestServer_DeleteLink(t *testing.T) {
 	const (
 		method     = "polygonid"

@@ -123,7 +123,7 @@ func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*
 
 // GetAll returns all links from issueDID of type lType filtered by query string
 func (ls *Link) GetAll(ctx context.Context, issuerDID core.DID, lType ports.LinkType, query *string) ([]domain.Link, error) {
-	return nil, nil
+	return ls.linkRepository.GetAll(ctx, issuerDID, lType, query)
 }
 
 // Delete - delete a link by id

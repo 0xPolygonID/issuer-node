@@ -139,7 +139,8 @@ SELECT links.id,
        links.credential_signature_proof,
        links.credential_mtp_proof, 
        links.credential_attributes, 
-       links.active, 
+       links.active,
+       links.issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
        schemas.url,
@@ -148,27 +149,29 @@ SELECT links.id,
        schemas.attributes, 
        schemas.created_at
 FROM links
-LEFT JOIN schemas ON schemas.id = links.schema_id AND schemas.issuer_id = links.issuer_id
+LEFT JOIN schemas ON schemas.id = links.schema_id 
 WHERE links.issuer_id = $1 `
 	switch typ {
 	case ports.LinkActive:
-		sql += " AND links.active"
+		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>links.issued_claims, true)"
 	case ports.LinkInactive:
 		sql += " AND NOT links.active"
 	case ports.LinkExceeded:
-		sql += " AND coalesce(links.valid_until <= $2, true) AND  coalesce(links.max_issuance<=links.issued_claims, true)"
+		sql += " AND (coalesce(links.valid_until <= $2, true) OR coalesce(links.max_issuance<=links.issued_claims, true))"
 	}
 	if query != nil {
-		sql += " schemas.ts_words @@ to_tsquery($3)"
+		sql += " AND schemas.ts_words @@ to_tsquery($3)"
 	}
+	// Dummy condition to include all placeholders in query
+	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl OR $3::text IS NULL)"
+	sql += " ORDER BY links.created_at DESC"
 
-	sql += " ORDER BY link.created_at DESC"
-
-	rows, err := l.conn.Pgx.Query(ctx, sql, issuerDID, time.Now(), query)
+	rows, err := l.conn.Pgx.Query(ctx, sql, issuerDID.String(), time.Now(), query)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
+
 	var credentialAttributtes pgtype.JSONB
 	link := domain.Link{}
 	schema := dbSchema{}

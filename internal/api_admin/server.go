@@ -451,19 +451,17 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 	if request.Params.Type != nil {
 		if typ, err = ports.LinkTypeReqFromString(strings.ToLower(string(*request.Params.Type))); err != nil {
 			log.Warn(ctx, "unknown request type getting links", "err", err, "type", request.Params.Type)
-			return GetLinks404JSONResponse{N404JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
+			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}
 	}
 	links, err := s.linkService.GetAll(ctx, s.cfg.APIUI.IssuerDID, typ, request.Params.Query)
 	if err != nil {
-		// TODO: Treat empty list error
 		log.Error(ctx, "getting links", "err", err, "req", request)
 	}
 	linkCollection, err := getLinkResponses(links)
 	if err != nil {
 		log.Error(ctx, "link collection response constructor", "err", err.Error())
 		return GetLinks500JSONResponse{N500JSONResponse{Message: "error getting link collection"}}, nil
-
 	}
 	return GetLinks200JSONResponse(linkCollection), err
 }
