@@ -5,7 +5,7 @@ import { useParams } from "react-router-dom";
 import { APIError } from "src/adapters/api";
 import { OldCredential, credentialIssue } from "src/adapters/api/credentials";
 import { SchemaPayload, getSchema } from "src/adapters/api/schemas";
-import { getIssueCredentialFormData } from "src/adapters/parsers/forms";
+import { getIssueCredentialFormDataParser } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
 import {
   AttributeValues,
@@ -76,7 +76,7 @@ export function IssueCredential() {
 
   const issueCredential = (formData: FormData) => {
     if (schemaID) {
-      const parsedForm = getIssueCredentialFormData([]).safeParse(formData);
+      const parsedForm = getIssueCredentialFormDataParser([]).safeParse(formData);
 
       if (parsedForm.success) {
         setCredential({ status: "loading" });

@@ -43,20 +43,6 @@ const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
   })
 );
 
-const issueCredentialFormDataInputParser = getStrictParser<IssueCredentialFormDataInput>()(
-  z.object({
-    attributes: z.object({
-      attributes: z.record(z.unknown()),
-      expirationDate: dayjsInstanceParser.nullable().optional(),
-    }),
-    issuanceMethod: z.object({
-      linkExpirationDate: dayjsInstanceParser.nullable().optional(),
-      linkExpirationTime: dayjsInstanceParser.nullable().optional(),
-      linkMaximumIssuance: z.number().optional(),
-    }),
-  })
-);
-
 const numericBooleanParser = getStrictParser<0 | 1, boolean>()(
   z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1)
 );
@@ -210,52 +196,64 @@ function parseIssueCredentialFormDataAttributes(
 
 // Exports
 
-export function getIssueCredentialFormData(schemaAttributes: SchemaAttribute[]) {
+export function getIssueCredentialFormDataParser(schemaAttributes: SchemaAttribute[]) {
   return getStrictParser<IssueCredentialFormDataInput, CredentialForm>()(
-    issueCredentialFormDataInputParser.transform(
-      (
-        {
-          attributes: { attributes, expirationDate },
-          issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
-        },
-        zodRefinementCtx
-      ) => {
-        const attributesParsingResult = parseIssueCredentialFormDataAttributes(
-          attributes,
-          schemaAttributes
-        );
+    z
+      .object({
+        attributes: z.object({
+          attributes: z.record(z.unknown()),
+          expirationDate: dayjsInstanceParser.nullable().optional(),
+        }),
+        issuanceMethod: z.object({
+          linkExpirationDate: dayjsInstanceParser.nullable().optional(),
+          linkExpirationTime: dayjsInstanceParser.nullable().optional(),
+          linkMaximumIssuance: z.number().optional(),
+        }),
+      })
+      .transform(
+        (
+          {
+            attributes: { attributes, expirationDate },
+            issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
+          },
+          zodRefinementCtx
+        ) => {
+          const attributesParsingResult = parseIssueCredentialFormDataAttributes(
+            attributes,
+            schemaAttributes
+          );
 
-        if (attributesParsingResult.success) {
-          const linkAccessibleUntil = buildLinkAccessibleUntil({
-            linkExpirationDate,
-            linkExpirationTime,
-          });
-
-          const now = new Date().getTime();
-
-          if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
-            zodRefinementCtx.addIssue({
-              code: z.ZodIssueCode.custom,
-              fatal: true,
-              message: `${ACCESSIBLE_UNTIL} must be a date/time in the future.`,
+          if (attributesParsingResult.success) {
+            const linkAccessibleUntil = buildLinkAccessibleUntil({
+              linkExpirationDate,
+              linkExpirationTime,
             });
+
+            const now = new Date().getTime();
+
+            if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
+              zodRefinementCtx.addIssue({
+                code: z.ZodIssueCode.custom,
+                fatal: true,
+                message: `${ACCESSIBLE_UNTIL} must be a date/time in the future.`,
+              });
+
+              return z.NEVER;
+            }
+
+            return {
+              attributes: attributesParsingResult.data,
+              expiration: expirationDate ? expirationDate.toDate() : undefined,
+              linkAccessibleUntil,
+              linkMaximumIssuance,
+            };
+          } else {
+            attributesParsingResult.error.issues.forEach(zodRefinementCtx.addIssue);
 
             return z.NEVER;
           }
-
-          return {
-            attributes: attributesParsingResult.data,
-            expiration: expirationDate ? expirationDate.toDate() : undefined,
-            linkAccessibleUntil,
-            linkMaximumIssuance,
-          };
-        } else {
-          attributesParsingResult.error.issues.forEach(zodRefinementCtx.addIssue);
-
-          return z.NEVER;
         }
-      }
-    )
+      )
   );
 }
 
