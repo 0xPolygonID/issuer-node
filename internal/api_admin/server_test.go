@@ -3,6 +3,7 @@ package api_admin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -30,6 +31,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -3117,21 +3119,24 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
-	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.UTC))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.UTC))
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
+	linkDetail, err := getLinkResponse(link)
+	assert.NoError(t, err)
+
 	type expected struct {
-		httpCode int
+		linkDetail *Link
+		httpCode   int
 	}
 
 	type testConfig struct {
 		name     string
 		id       uuid.UUID
 		auth     func() (string, string)
-		body     AcivateLinkJSONBody
 		expected expected
 	}
 
@@ -3145,22 +3150,28 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			},
 		},
 		{
+			name: "Wrong link id",
+			auth: authOk,
+			id:   uuid.New(),
+			expected: expected{
+				httpCode: http.StatusNotFound,
+			},
+		},
+		{
 			name: "Happy path",
 			auth: authOk,
 			id:   link.ID,
-			body: AcivateLinkJSONBody{
-				Active: false,
-			},
 			expected: expected{
-				httpCode: http.StatusOK,
+				linkDetail: (*Link)(linkDetail),
+				httpCode:   http.StatusOK,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id)
+			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id.String())
 
-			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
+			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, nil))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -3182,19 +3193,216 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.True(t, len(params) == 2)
 				assert.NotNil(t, response.QrCode.Id)
 				assert.Equal(t, "https://iden3-communication.io/authorization/1.0/request", response.QrCode.Type)
-				assert.Equal(t, cfg.APIUI.IssuerDID.String(), response.QrCode.From)
 				assert.Equal(t, "application/iden3comm-plain-json", response.QrCode.Typ)
+				assert.Equal(t, cfg.APIUI.IssuerDID.String(), response.QrCode.From)
 				assert.NotNil(t, response.QrCode.Thid)
 				assert.NotNil(t, response.SessionID)
-				assert.NotNil(t, response.LinkDetail)
-				assert.Equal(t, link.ID, response.LinkDetail.Id)
-				assert.Equal(t, link.MaxIssuance, response.LinkDetail.MaxIssuance)
-				assert.Equal(t, link.Schema.URL, response.LinkDetail.SchemaUrl)
-				assert.Equal(t, link.Schema.Type, response.LinkDetail.SchemaType)
-				assert.Equal(t, link.IssuedClaims, response.LinkDetail.IssuedClaims)
-				assert.Equal(t, link.Status(), string(response.LinkDetail.Status))
-				assert.Equal(t, link.Active, response.LinkDetail.Active)
-				assert.InDelta(t, link.ValidUntil.UTC().Unix(), response.LinkDetail.Expiration.UTC().Unix(), 100)
+				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
+				assert.InDelta(t, tc.expected.linkDetail.Expiration.Unix(), response.LinkDetail.Expiration.Unix(), 100)
+				assert.Equal(t, tc.expected.linkDetail.Status, response.LinkDetail.Status)
+				assert.Equal(t, tc.expected.linkDetail.Active, response.LinkDetail.Active)
+				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
+				assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
+				assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
+				assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
+			}
+		})
+	}
+}
+
+func TestServer_GetLinkQRCode(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	schemaRepository := repositories.NewSchema(*storage)
+	sessionRepository := repositories.NewSessionCached(cachex)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	assert.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	cfg.APIUI.ServerURL = "http://localhost/issuer-admin"
+
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
+	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	assert.NoError(t, err)
+	handler := getHandler(ctx, server)
+
+	sessionID := uuid.New()
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qP8KN3KRwBi37jB2ENXrWxhTo3pefaU5u5BFPbjYo")
+	assert.NoError(t, err)
+	qrcode := &linkState.QRCodeMessage{
+		ID:       uuid.New().String(),
+		Typ:      "application/iden3comm-plain-json",
+		Type:     "https://iden3-communication.io/credentials/1.0/offer",
+		ThreadID: uuid.New().String(),
+		Body: linkState.CredentialsLinkMessageBody{
+			URL: "https://domain/issuer/v1/agent",
+			Credentials: []linkState.CredentialLink{
+				{
+					ID:          uuid.NewString(),
+					Description: "KYCAgeCredential",
+				},
+			},
+		},
+		From: did.String(),
+		To:   userDID.String(),
+	}
+
+	linkDetail, err := getLinkResponse(link)
+	assert.NoError(t, err)
+
+	type expected struct {
+		qrCode     *linkState.QRCodeMessage
+		linkDetail *Link
+		status     string
+		httpCode   int
+	}
+
+	type testConfig struct {
+		name      string
+		id        uuid.UUID
+		sessionID uuid.UUID
+		state     *linkState.State
+		auth      func() (string, string)
+		expected  expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			id:   link.ID,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:      "Wrong sessionID",
+			sessionID: uuid.New(),
+			auth:      authOk,
+			id:        link.ID,
+			state:     nil,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:      "Wrong linkID",
+			sessionID: sessionID,
+			auth:      authOk,
+			id:        uuid.New(),
+			state:     nil,
+			expected: expected{
+				httpCode: http.StatusNotFound,
+			},
+		},
+		{
+			name:      "Error state",
+			sessionID: sessionID,
+			auth:      authOk,
+			id:        link.ID,
+			state:     linkState.NewStateError(errors.New("something wrong")),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name:      "Pending state",
+			sessionID: sessionID,
+			auth:      authOk,
+			id:        link.ID,
+			state:     linkState.NewStatePending(),
+			expected: expected{
+				httpCode: http.StatusOK,
+				status:   "pending",
+			},
+		},
+		{
+			name:      "Happy path",
+			auth:      authOk,
+			id:        link.ID,
+			sessionID: sessionID,
+			state:     linkState.NewStateDone(qrcode),
+			expected: expected{
+				linkDetail: (*Link)(linkDetail),
+				qrCode:     qrcode,
+				status:     "done",
+				httpCode:   http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.state != nil {
+				err := sessionRepository.SetLink(ctx, linkState.CredentialStateCacheKey(tc.id.String(), tc.sessionID.String()), *tc.state)
+				assert.NoError(t, err)
+			}
+
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode?sessionID=%s", tc.id, tc.sessionID)
+			req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetLinkQRCode200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				if tc.expected.status == "pending" {
+					assert.Equal(t, tc.expected.status, *response.Status)
+				} else {
+					assert.NotNil(t, response.QrCode.Body)
+					assert.Equal(t, tc.expected.qrCode.Body.Credentials[0].ID, response.QrCode.Body.Credentials[0].Id)
+					assert.Equal(t, tc.expected.qrCode.Body.Credentials[0].Description, response.QrCode.Body.Credentials[0].Description)
+					assert.Equal(t, tc.expected.qrCode.Body.URL, response.QrCode.Body.Url)
+					assert.NotNil(t, response.QrCode.Id)
+					assert.Equal(t, tc.expected.qrCode.Type, response.QrCode.Type)
+					assert.Equal(t, tc.expected.qrCode.Typ, response.QrCode.Typ)
+					assert.Equal(t, tc.expected.qrCode.From, response.QrCode.From)
+					assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
+					assert.InDelta(t, tc.expected.linkDetail.Expiration.Unix(), response.LinkDetail.Expiration.Unix(), 100)
+					assert.Equal(t, tc.expected.linkDetail.Status, response.LinkDetail.Status)
+					assert.Equal(t, tc.expected.linkDetail.Active, response.LinkDetail.Active)
+					assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
+					assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
+					assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
+					assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
+					assert.Equal(t, tc.expected.status, *response.Status)
+				}
 			}
 		})
 	}

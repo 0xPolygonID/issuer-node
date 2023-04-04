@@ -472,12 +472,16 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
 	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
+		if errors.Is(services.ErrLinkNotFound, err) {
+			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
+		}
+		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
 	linkDetail, err := getLinkResponse(createLinkQrCodeResponse.Link)
 	if err != nil {
-		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		log.Error(ctx, "link response constructor", "err", err, "id", request.Id)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
 
@@ -528,7 +532,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 
 	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
 	if err != nil {
-		log.Debug(ctx, "error issuing the claim", "error", err.Error())
+		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
@@ -537,18 +541,30 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 
 // GetLinkQRCode - returns te qr code for adding the credential
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
-	linkState, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, request.Id)
+	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
+		if errors.Is(services.ErrLinkNotFound, err) {
+			return GetLinkQRCode404JSONResponse{Message: "error: link not found"}, nil
+		}
 		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
-	if linkState.Status == link_state.StatusPending || linkState.Status == link_state.StatusDone {
+
+	linkDetail, err := getLinkResponse(getQRCodeResponse.Link)
+	if err != nil {
+		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
+		return GetLinkQRCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
+	}
+
+	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone {
 		return GetLinkQRCode200JSONResponse{
-			Status: common.ToPointer(linkState.Status),
-			QrCode: getLinQrCodeResponse(linkState.QRCode),
+			Status:     common.ToPointer(getQRCodeResponse.State.Status),
+			QrCode:     getLinQrCodeResponse(getQRCodeResponse.State.QRCode),
+			LinkDetail: (*Link)(linkDetail),
 		}, nil
 	}
+
 	return GetLinkQRCode400JSONResponse{N400JSONResponse{
-		Message: fmt.Sprintf("error fetching the link qr code: %s", err.Error()),
+		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
 	}}, nil
 }
 
