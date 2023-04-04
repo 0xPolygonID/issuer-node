@@ -17,6 +17,10 @@ export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 
+// URL params
+export const QUERY_SEARCH_PARAM = "query";
+export const TYPE_SEARCH_PARAM = "type";
+
 export const API_VERSION = "v1";
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
@@ -44,15 +48,11 @@ export const IMAGE_PLACEHOLDER_PATH = "/images/image-preview.png";
 
 export const QR_CODE_POLLING_INTERVAL = 10000;
 
-export const QUERY_SEARCH_PARAM = "query";
-
 export const ROOT_PATH = "/";
 
 export const SIDER_WIDTH = 320;
 
 export const TOAST_NOTIFICATION_TIMEOUT = 6;
-
-export const TYPE_SEARCH_PARAM = "type";
 
 export const TUTORIALS_URL = "https://0xpolygonid.github.io/tutorials";
 

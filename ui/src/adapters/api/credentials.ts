@@ -19,6 +19,7 @@ export interface Credential {
     type: string;
   };
   createdAt: Date;
+  expired?: boolean;
   expiresAt?: Date;
   id: string;
   revoked?: boolean;
@@ -30,6 +31,7 @@ export const credential = StrictSchema<Credential>()(
       type: z.string(),
     }),
     createdAt: z.coerce.date(),
+    expired: z.boolean().optional(),
     expiresAt: z.coerce.date().optional(),
     id: z.string(),
     revoked: z.boolean().optional(),
@@ -38,7 +40,7 @@ export const credential = StrictSchema<Credential>()(
 
 export type CredentialType = "all" | "revoked" | "expired";
 
-export const typeParser = StrictSchema<CredentialType>()(
+export const credentialTypeParser = StrictSchema<CredentialType>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
 
