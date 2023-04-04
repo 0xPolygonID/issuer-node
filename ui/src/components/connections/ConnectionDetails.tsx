@@ -13,8 +13,9 @@ import {
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
+import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
 import { APIError } from "src/adapters/api";
 import { Connection, getConnection } from "src/adapters/api/connections";
 import {
@@ -56,7 +57,7 @@ const obfuscateDID = (did: string) => {
   const address = did.split(":").pop();
 
   return address
-    ? `${didSplit}${address.substring(0, 5)}...${address.substring(address.length - 5)}`
+    ? `${didSplit}:${address.substring(0, 5)}...${address.substring(address.length - 5)}`
     : "-";
 };
 
@@ -83,6 +84,8 @@ const timeToExpire = (date: Date): string => {
 export function ConnectionDetails() {
   const env = useEnvContext();
 
+  const navigate = useNavigate();
+
   const [connection, setConnection] = useState<AsyncTask<Connection, APIError>>({
     status: "pending",
   });
@@ -90,6 +93,7 @@ export function ConnectionDetails() {
     status: "pending",
   });
   const [credentialType, setCredentialType] = useState<CredentialType>("all");
+  const [showModal, setShowModal] = useState<boolean>(false);
   const [query, setQuery] = useState<string | null>(null);
 
   const { connectionID } = useParams();
@@ -256,19 +260,24 @@ export function ConnectionDetails() {
                   <Space direction="vertical" size="middle">
                     <Row align="middle" justify="space-between">
                       <Card.Meta title="Connection" />
-                      <Button danger icon={<IconTrash />} type="text">
+                      <Button
+                        danger
+                        icon={<IconTrash />}
+                        onClick={() => setShowModal(true)}
+                        type="text"
+                      >
                         Delete connection
                       </Button>
                     </Row>
                     <Card className="background-grey">
                       <Detail
-                        copyable
-                        data={obfuscateDID(connection.data.userID)}
+                        copyable={{ enabled: true, text: connection.data.userID }}
                         label={IDENTIFIER}
+                        text={obfuscateDID(connection.data.userID)}
                       />
                       <Detail
-                        data={formatDate(connection.data.createdAt, true)}
                         label="Creation date"
+                        text={formatDate(connection.data.createdAt, true)}
                       />
                     </Card>
                   </Space>
@@ -346,6 +355,14 @@ export function ConnectionDetails() {
           />
         )}
       </Space>
+      {connectionID && (
+        <ConnectionDeleteModal
+          callback={() => navigate(-1)}
+          id={connectionID}
+          onClose={() => setShowModal(false)}
+          open={showModal}
+        />
+      )}
     </SiderLayoutContent>
   );
 }

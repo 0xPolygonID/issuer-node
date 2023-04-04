@@ -4,24 +4,29 @@ import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 
 export function Detail({
-  copyable = false,
-  data,
+  copyable,
   label,
+  text,
 }: {
-  copyable?: boolean;
-  data: string;
+  copyable?: { enabled: true; text?: string } | { enabled: false };
   label: string;
+  text: string;
 }) {
   return (
     <Row justify="space-between">
       <Typography.Text type="secondary">{label}</Typography.Text>
 
       <Typography.Text
-        copyable={copyable && { icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
+        copyable={
+          copyable?.enabled && {
+            icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
+            text: copyable.text || text,
+          }
+        }
         ellipsis
         style={{ textAlign: "right", width: 350 }}
       >
-        {data}
+        {text}
       </Typography.Text>
     </Row>
   );

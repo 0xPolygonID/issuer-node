@@ -83,6 +83,37 @@ export async function getConnections({
   }
 }
 
+export async function deleteConnection({
+  deleteCredentials,
+  env,
+  id,
+  revokeCredentials,
+}: {
+  deleteCredentials: boolean;
+  env: Env;
+  id: string;
+  revokeCredentials: boolean;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios<{ message: string }>({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      params: new URLSearchParams({
+        ...(revokeCredentials ? { revokeCredentials: "true" } : {}),
+        ...(deleteCredentials ? { deleteCredentials: "true" } : {}),
+      }),
+      url: `${API_VERSION}/connections/${id}`,
+    });
+
+    return { data: response.data.message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
 const connection = StrictSchema<Connection>()(
   z.object({
     createdAt: z.coerce.date(),

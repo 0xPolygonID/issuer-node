@@ -19,6 +19,7 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
 
 export function Connections() {
   const env = useEnvContext();
+
   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
     status: "pending",
   });

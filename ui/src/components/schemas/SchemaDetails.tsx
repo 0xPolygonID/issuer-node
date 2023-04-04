@@ -196,13 +196,13 @@ export function SchemaDetails() {
                 <Space direction="vertical">
                   <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
-                  <Detail copyable data={bigInt} label="BigInt" />
+                  <Detail copyable={{ enabled: true }} label="BigInt" text={bigInt} />
 
-                  <Detail copyable data={hash} label="Hash" />
+                  <Detail copyable={{ enabled: true }} label="Hash" text={hash} />
 
-                  <Detail copyable data={url} label="URL" />
+                  <Detail copyable={{ enabled: true }} label="URL" text={url} />
 
-                  <Detail data={formatDate(createdAt, true)} label="Import date" />
+                  <Detail label="Import date" text={formatDate(createdAt, true)} />
 
                   <Row justify="space-between">
                     <Typography.Text type="secondary">Download</Typography.Text>
