@@ -17,7 +17,6 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
 import { APIError } from "src/adapters/api";
 import { Connection, getConnection } from "src/adapters/api/connections";
 import {
@@ -28,6 +27,7 @@ import {
 } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { ConnectionDeleteModal } from "src/components/connections/ConnectionDeleteModal";
 import { ConnectionDetailsRowDropdown } from "src/components/connections/ConnectionDetailsRowDropdown";
 import { IssueDirectlyButton } from "src/components/connections/IssueDirectlyButton";
 import { Detail } from "src/components/shared/Detail";
