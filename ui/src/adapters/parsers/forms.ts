@@ -47,14 +47,6 @@ const numericBooleanParser = getStrictParser<0 | 1, boolean>()(
   z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1)
 );
 
-export const linkExpirationDateParser = getStrictParser<{
-  linkExpirationDate: dayjs.Dayjs | null;
-}>()(
-  z.object({
-    linkExpirationDate: dayjsInstanceParser.nullable(),
-  })
-);
-
 // Helpers
 
 function buildLinkAccessibleUntil({ linkExpirationDate, linkExpirationTime }: LinkExpiration) {
@@ -337,3 +329,11 @@ export function formatAttributeValue(
     }
   }
 }
+
+export const linkExpirationDateParser = getStrictParser<{
+  linkExpirationDate: dayjs.Dayjs | null;
+}>()(
+  z.object({
+    linkExpirationDate: dayjsInstanceParser.nullable(),
+  })
+);
