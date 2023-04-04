@@ -12,6 +12,8 @@ import {
   message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
+import dayjs, { extend as extendDayJsWith } from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -20,8 +22,8 @@ import { Connection, getConnection } from "src/adapters/api/connections";
 import {
   Credential,
   CredentialType,
+  credentialTypeParser,
   getCredentials,
-  typeParser,
 } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
@@ -44,12 +46,7 @@ import {
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-import {
-  AsyncTask,
-  hasAsyncTaskFailed,
-  isAsyncTaskDataAvailable,
-  isAsyncTaskStarting,
-} from "src/utils/types";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 const obfuscateDID = (did: string) => {
   const didSplit = did.split(":").slice(0, -1).join(":");
@@ -60,25 +57,7 @@ const obfuscateDID = (did: string) => {
     : "-";
 };
 
-const timeToExpire = (date: Date): string => {
-  const difference = date.getTime() - new Date().getTime();
-
-  if (difference < 0) {
-    return "Expired";
-  }
-
-  const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((difference / (1000 * 60)) % 60);
-
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  } else if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  } else {
-    return `${minutes}m`;
-  }
-};
+extendDayJsWith(relativeTime);
 
 export function ConnectionDetails() {
   const env = useEnvContext();
@@ -119,9 +98,16 @@ export function ConnectionDetails() {
     {
       dataIndex: "expiresAt",
       key: "expiresAt",
-      render: (expiresAt: Credential["expiresAt"]) => (
-        <Typography.Text>{expiresAt ? timeToExpire(expiresAt) : "-"}</Typography.Text>
-      ),
+      render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
+        expiresAt ? (
+          <Tooltip placement="topLeft" title={formatDate(expiresAt, true)}>
+            <Typography.Text>
+              {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+            </Typography.Text>
+          </Tooltip>
+        ) : (
+          "-"
+        ),
       sorter: ({ expiresAt: a }, { expiresAt: b }) => {
         if (a && b) {
           return a.getTime() - b.getTime();
@@ -203,11 +189,11 @@ export function ConnectionDetails() {
   );
 
   const handleTypeChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedTypeValue = typeParser.safeParse(value);
-    if (parsedTypeValue.success) {
-      setCredentialType(parsedTypeValue.data);
+    const parsedCredentialType = credentialTypeParser.safeParse(value);
+    if (parsedCredentialType.success) {
+      setCredentialType(parsedCredentialType.data);
     } else {
-      processZodError(parsedTypeValue.error).forEach((error) => void message.error(error));
+      processZodError(parsedCredentialType.error).forEach((error) => void message.error(error));
     }
   };
 
@@ -223,11 +209,7 @@ export function ConnectionDetails() {
     return aborter;
   }, [fetchCredentials]);
 
-  const credentialsList = isAsyncTaskDataAvailable(credentials)
-    ? credentials.data
-    : isAsyncTaskDataAvailable(connection) && !hasAsyncTaskFailed(credentials)
-    ? connection.data.credentials
-    : [];
+  const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
 
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && query === null;
@@ -330,14 +312,17 @@ export function ConnectionDetails() {
 
                   <Tag color="blue">{credentialsList.length}</Tag>
                 </Space>
-                {showDefaultContent && credentialType === "all" && <IssueDirectlyButton />}
-                <Radio.Group onChange={handleTypeChange} value={credentialType}>
-                  <Radio.Button value="all">All</Radio.Button>
+                {showDefaultContent && credentialType === "all" ? (
+                  <IssueDirectlyButton />
+                ) : (
+                  <Radio.Group onChange={handleTypeChange} value={credentialType}>
+                    <Radio.Button value="all">All</Radio.Button>
 
-                  <Radio.Button value="revoked">Revoked</Radio.Button>
+                    <Radio.Button value="revoked">Revoked</Radio.Button>
 
-                  <Radio.Button value="expired">Expired</Radio.Button>
-                </Radio.Group>
+                    <Radio.Button value="expired">Expired</Radio.Button>
+                  </Radio.Group>
+                )}
               </Row>
             }
           />

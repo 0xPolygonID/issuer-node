@@ -83,7 +83,7 @@ export async function getConnections({
   }
 }
 
-export const connection = StrictSchema<Connection>()(
+const connection = StrictSchema<Connection>()(
   z.object({
     createdAt: z.coerce.date(),
     credentials: z.array(credential),
@@ -93,14 +93,14 @@ export const connection = StrictSchema<Connection>()(
   })
 );
 
-export const resultOKConnection = StrictSchema<ResultOK<Connection>>()(
+const resultOKConnection = StrictSchema<ResultOK<Connection>>()(
   z.object({
     data: connection,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-export const resultOKConnections = StrictSchema<ResultOK<Connection[]>>()(
+const resultOKConnections = StrictSchema<ResultOK<Connection[]>>()(
   z.object({
     data: z.array(connection),
     status: z.literal(HTTPStatusSuccess.OK),

@@ -12,7 +12,7 @@ const MENU_ITEMS = [
     label: "Details",
   },
   {
-    key: "divider",
+    key: "divider1",
     type: "divider",
   },
   {
@@ -22,7 +22,7 @@ const MENU_ITEMS = [
     label: "Revoke",
   },
   {
-    key: "divider",
+    key: "divider2",
     type: "divider",
   },
   {

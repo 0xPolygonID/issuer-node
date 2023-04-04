@@ -19,6 +19,7 @@ export interface Credential {
     type: string;
   };
   createdAt: Date;
+  expired?: boolean;
   expiresAt?: Date;
   id: string;
   revoked?: boolean;
@@ -30,15 +31,16 @@ export const credential = StrictSchema<Credential>()(
       type: z.string(),
     }),
     createdAt: z.coerce.date(),
-    expiresAt: z.optional(z.coerce.date()),
+    expired: z.boolean().optional(),
+    expiresAt: z.coerce.date().optional(),
     id: z.string(),
-    revoked: z.optional(z.boolean()),
+    revoked: z.boolean().optional(),
   })
 );
 
 export type CredentialType = "all" | "revoked" | "expired";
 
-export const typeParser = StrictSchema<CredentialType>()(
+export const credentialTypeParser = StrictSchema<CredentialType>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
 
@@ -76,7 +78,7 @@ export async function getCredentials({
   }
 }
 
-export const resultOKCredentials = StrictSchema<ResultOK<Credential[]>>()(
+const resultOKCredentials = StrictSchema<ResultOK<Credential[]>>()(
   z.object({
     data: z.array(credential),
     status: z.literal(HTTPStatusSuccess.OK),
