@@ -1041,8 +1041,9 @@ components:
           type: object
           x-omitempty: false
         expiration:
-          type: integer
-          format: int64
+          type: string
+          format: date-time
+          example: "2025-03-20T11:54:01.110295+01:00"
         signatureProof:
           type: boolean
         mtProof:

@@ -374,7 +374,7 @@ func TestServer_CreateClaim(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration: common.ToPointer(time.Now()),
 			},
 			expected: expected{
 				response: CreateClaim201JSONResponse{},
@@ -393,7 +393,7 @@ func TestServer_CreateClaim(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration: common.ToPointer(time.Now()),
 			},
 			expected: expected{
 				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "malformed url"}},
@@ -412,7 +412,7 @@ func TestServer_CreateClaim(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration: common.ToPointer(time.Now()),
 			},
 			expected: expected{
 				response: CreateClaim422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
@@ -1203,10 +1203,9 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 		"documentType": 2,
 	}
 	typeC := "KYCAgeCredential"
-	expiration := int64(12345)
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	assert.NoError(t, err)
 
 	type expected struct {
