@@ -52,15 +52,6 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/types";
 
-const obfuscateDID = (did: string) => {
-  const didSplit = did.split(":").slice(0, -1).join(":");
-  const address = did.split(":").pop();
-
-  return address
-    ? `${didSplit}:${address.substring(0, 5)}...${address.substring(address.length - 5)}`
-    : "-";
-};
-
 const timeToExpire = (date: Date): string => {
   const difference = date.getTime() - new Date().getTime();
 
@@ -270,11 +261,7 @@ export function ConnectionDetails() {
                       </Button>
                     </Row>
                     <Card className="background-grey">
-                      <Detail
-                        copyable={{ enabled: true, text: connection.data.userID }}
-                        label={IDENTIFIER}
-                        text={obfuscateDID(connection.data.userID)}
-                      />
+                      <Detail copyable label={IDENTIFIER} text={connection.data.userID} />
                       <Detail
                         label="Creation date"
                         text={formatDate(connection.data.createdAt, true)}

@@ -5,10 +5,12 @@ import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 
 export function Detail({
   copyable,
+  ellipsisPosition,
   label,
   text,
 }: {
-  copyable?: { enabled: true; text?: string } | { enabled: false };
+  copyable?: boolean;
+  ellipsisPosition?: number;
   label: string;
   text: string;
 }) {
@@ -18,15 +20,15 @@ export function Detail({
 
       <Typography.Text
         copyable={
-          copyable?.enabled && {
+          copyable && {
             icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
-            text: copyable.text || text,
+            text,
           }
         }
-        ellipsis
+        ellipsis={ellipsisPosition ? { suffix: text.slice(-ellipsisPosition) } : true}
         style={{ textAlign: "right", width: 350 }}
       >
-        {text}
+        {ellipsisPosition ? text.slice(0, text.length - ellipsisPosition) : text}
       </Typography.Text>
     </Row>
   );

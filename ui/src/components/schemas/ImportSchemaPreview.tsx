@@ -49,18 +49,18 @@ export function ImportSchemaPreview({
           <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
           <Detail
-            copyable={{ enabled: bigint !== undefined }}
+            copyable={bigint !== undefined}
             label="BigInt"
             text={bigint || "An error occurred while calculating BigInt"}
           />
 
           <Detail
-            copyable={{ enabled: schemaHash !== undefined }}
+            copyable={schemaHash !== undefined}
             label="Hash"
             text={schemaHash || "An error occurred while calculating Hash"}
           />
 
-          <Detail copyable={{ enabled: true }} label="URL" text={url} />
+          <Detail copyable label="URL" text={url} />
 
           <Row justify="space-between">
             <Typography.Text type="secondary">Download</Typography.Text>
