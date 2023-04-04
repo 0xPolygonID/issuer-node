@@ -10,24 +10,29 @@ servers:
     url: http://localhost:3002
 
 tags:
-  - name: Identity
-    description: Collection of endpoints related to Identity
   - name: Credential
     description: Collection of endpoints related to Credential
-  - name: Agent
-    description: Collection of endpoints related to Mobile
+  - name: Schemas
+    description: Collection of endpoints related to Schemas
+  - name: Auth
+    description: Collection of endpoints related to Authentication
   - name: Connection
     description: Collection of endpoints related to Connections
+  - name: Links
+    description: Collection of endpoints related to Links
+  - name: Agent
+    description: Collection of endpoints related to Mobile
 
 paths:
   #authentication
   /v1/authentication/qrcode:
     get:
-      summary: Get Authentication QRCode
+      summary: Get Connection QRCode
       operationId: authQRCode
       description: Authentication qrcode
       tags:
-        - auth
+        - Auth
+        - Connection
       responses:
         '200':
           description: ok
@@ -44,7 +49,7 @@ paths:
       operationId: authCallback
       description: Authentication callback
       tags:
-        - auth
+        - Auth
       parameters:
         - $ref: '#/components/parameters/sessionID'
       requestBody:
@@ -128,7 +133,6 @@ paths:
       description: delete connection credentials
       tags:
         - Connection
-        - Credential
       security:
         - basicAuth: [ ]
       parameters:
@@ -182,7 +186,6 @@ paths:
       description: revoke connection credentials
       tags:
         - Connection
-        - Credential
       security:
         - basicAuth: [ ]
       parameters:
@@ -201,10 +204,41 @@ paths:
 
   #credentials:
   /v1/credentials:
+    post:
+      summary: Create Credential
+      operationId: CreateCredential
+      description: Endpoint to create a Credential
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCredentialRequest'
+      responses:
+        '201':
+          description: Claim created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '422':
+          $ref: '#/components/responses/422'
+        '500':
+          $ref: '#/components/responses/500'
     get:
-      summary: Get all credentials. Optional filter by status and text query search.
+      summary: Get Credentials
       operationId: GetCredentials
-      description: Return all the credentials that matches the filter
+      description: |
+        Return all the credentials. 
+        Filter between all | revoked | expired credentials and also perform a full text search with the query parameter.
       tags:
         - Credential
       security:
@@ -236,60 +270,6 @@ paths:
                   $ref: '#/components/schemas/Credential'
         '400':
           $ref: '#/components/responses/400'
-        '404':
-          $ref: '#/components/responses/404'
-        '500':
-          $ref: '#/components/responses/500'
-    post:
-      summary: Create Credential
-      operationId: CreateCredential
-      description: Endpoint to create a Credential
-      tags:
-        - Credential
-      security:
-        - basicAuth: [ ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCredentialRequest'
-      responses:
-        '201':
-          description: Claim created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UUIDResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '422':
-          $ref: '#/components/responses/422'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/credentials/revoke/{nonce}:
-    post:
-      summary: Revoke Credential
-      operationId: RevokeCredential
-      description: Endpoint to revoke a credential
-      tags:
-        - Credential
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathNonce'
-      responses:
-        '202':
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RevokeCredentialResponse'
-        '401':
-          $ref: '#/components/responses/401'
         '404':
           $ref: '#/components/responses/404'
         '500':
@@ -341,59 +321,33 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  #schemas:
-  /v1/schemas/{id}:
-    get:
-      summary: Get Schema
-      operationId: GetSchema
+  /v1/credentials/revoke/{nonce}:
+    post:
+      summary: Revoke Credential
+      operationId: RevokeCredential
+      description: Endpoint to revoke a credential
+      tags:
+        - Credential
       security:
         - basicAuth: [ ]
-      tags:
-        - Schemas
       parameters:
-        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/pathNonce'
       responses:
-        '200':
-          description: Schema information
+        '202':
+          description: Accepted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Schema'
-        '400':
-          $ref: '#/components/responses/400'
+                $ref: '#/components/schemas/RevokeCredentialResponse'
+        '401':
+          $ref: '#/components/responses/401'
         '404':
           $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
 
+  #schemas:
   /v1/schemas:
-    get:
-      summary: Get Schemas
-      operationId : GetSchemas
-      security:
-        - basicAuth: [ ]
-      tags:
-        - Schemas
-      parameters:
-        - in: query
-          name: query
-          schema:
-            type: string
-          description: Query string to do full text search in schema types and attributes.
-      responses:
-        '200':
-          description: Schema collection
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Schema'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
-
     post:
       summary: Import JSON schema
       operationId: ImportSchema
@@ -418,11 +372,65 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+    get:
+      summary: Get Schemas
+      operationId: GetSchemas
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in schema types and attributes.
+      responses:
+        '200':
+          description: Schema collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/schemas/{id}:
+    get:
+      summary: Get Schema
+      operationId: GetSchema
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
 
 
+
+
+
+  #state:
   /v1/state/publish:
     post:
-      summary: Endpoint to publish identity state
+      summary: Publish Identity State
       operationId: PublishState
       tags:
         - State
@@ -440,7 +448,7 @@ paths:
   # Links
   /v1/credentials/links:
     post:
-      summary: Endpoint to create a link
+      summary: Create Link
       operationId: CreateLink
       security:
         - basicAuth: [ ]
@@ -466,7 +474,7 @@ paths:
 
   /v1/credentials/links/{id}:
     get:
-      summary: Returns a link to a credential offer
+      summary: Get Link
       operationId: GetLink
       security:
         - basicAuth: [ ]
@@ -487,7 +495,7 @@ paths:
           $ref: '#/components/responses/500'
 
     patch:
-      summary: Endpoint to activate|deactivate a link
+      summary: Activate | Deactivate Link
       operationId: AcivateLink
       security:
         - basicAuth: [ ]
@@ -520,7 +528,7 @@ paths:
           $ref: '#/components/responses/500'
 
     delete:
-      summary: Endpoint to delete a link
+      summary: Delete Link
       operationId: DeleteLink
       security:
         - basicAuth: [ ]
@@ -543,7 +551,7 @@ paths:
 
   /v1/credentials/links/{id}/qrcode:
     post:
-      summary: Endpoint to create a link qr code
+      summary: Create Authentication Link QRCode
       operationId: CreateLinkQrCode
       security:
         - basicAuth: [ ]
@@ -566,7 +574,7 @@ paths:
           $ref: '#/components/responses/500'
 
     get:
-      summary: Endpoint to get a link
+      summary: Get Credential Link QRCode
       operationId: GetLinkQRCode
       security:
         - basicAuth: [ ]
@@ -599,7 +607,7 @@ paths:
       operationId: CreateLinkQrCodeCallback
       description: Create Link QR Code Callback
       tags:
-        - auth
+        - Auth
       parameters:
         - $ref: '#/components/parameters/sessionID'
         - $ref: '#/components/parameters/linkID'
