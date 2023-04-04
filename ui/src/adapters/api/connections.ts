@@ -14,11 +14,38 @@ import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { StrictSchema } from "src/utils/types";
 
 export interface Connection {
-  createdAt: string;
+  createdAt: Date;
   credentials: Credential[];
   id: string;
   issuerID: string;
   userID: string;
+}
+
+export async function getConnection({
+  env,
+  id,
+  signal,
+}: {
+  env: Env;
+  id: string;
+  signal: AbortSignal;
+}): Promise<APIResponse<Connection>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/connections/${id}`,
+    });
+    const { data } = resultOKConnection.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
 }
 
 export async function getConnections({
@@ -58,11 +85,18 @@ export async function getConnections({
 
 export const connection = StrictSchema<Connection>()(
   z.object({
-    createdAt: z.string(),
+    createdAt: z.coerce.date(),
     credentials: z.array(credential),
     id: z.string(),
     issuerID: z.string(),
     userID: z.string(),
+  })
+);
+
+export const resultOKConnection = StrictSchema<ResultOK<Connection>>()(
+  z.object({
+    data: connection,
+    status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 

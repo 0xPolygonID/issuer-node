@@ -42,7 +42,7 @@ func TestGetSchema(t *testing.T) {
 	}
 	require.NoError(t, store.Save(ctx, schema1))
 
-	schema2, err := store.GetByID(ctx, schema1.ID)
+	schema2, err := store.GetByID(ctx, did, schema1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, schema1.ID, schema2.ID)
 	assert.Equal(t, schema1.IssuerDID, schema2.IssuerDID)
@@ -197,7 +197,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			collection, err := store.GetAll(ctx, tc.query)
+			collection, err := store.GetAll(ctx, did, tc.query)
 			require.NoError(t, err)
 			require.Len(t, collection, len(tc.expected.collection))
 			for i := range collection {

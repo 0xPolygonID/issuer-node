@@ -27,8 +27,8 @@ func NewSchemaAdmin(repo ports.SchemaRepository, lf loader.Factory) *schemaAdmin
 }
 
 // GetByID returns a domain.Schema by ID
-func (s *schemaAdmin) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema, error) {
-	schema, err := s.repo.GetByID(ctx, id)
+func (s *schemaAdmin) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
+	schema, err := s.repo.GetByID(ctx, issuerDID, id)
 	if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
 		return nil, ErrSchemaNotFound
 	}
@@ -39,8 +39,8 @@ func (s *schemaAdmin) GetByID(ctx context.Context, id uuid.UUID) (*domain.Schema
 }
 
 // GetAll return all schemas in the database that matches the query string
-func (s *schemaAdmin) GetAll(ctx context.Context, query *string) ([]domain.Schema, error) {
-	return s.repo.GetAll(ctx, query)
+func (s *schemaAdmin) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
+	return s.repo.GetAll(ctx, issuerDID, query)
 }
 
 // ImportSchema process an schema url and imports into the system

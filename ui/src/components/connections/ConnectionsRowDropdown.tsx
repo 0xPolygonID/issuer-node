@@ -1,8 +1,10 @@
-import { Dropdown, Row, message } from "antd";
+import { Dropdown, Row } from "antd";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { ROUTES } from "src/routes";
 
 const MENU_ITEMS = [
   {
@@ -22,12 +24,11 @@ const MENU_ITEMS = [
   },
 ];
 
-export function ConnectionsRowDropdown() {
+export function ConnectionsRowDropdown({ id }: { id: string }) {
+  const navigate = useNavigate();
   const onMenuSelect = (key: string) => {
     if (key === "details") {
-      void message.error("Details not yet implemented");
-    } else if (key === "delete") {
-      void message.error("Delete not yet implemented");
+      navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
     }
   };
 

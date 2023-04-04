@@ -69,7 +69,7 @@ func (ls *Link) Save(
 	credentialMTPProof bool,
 	credentialAttributes []domain.CredentialAttrsRequest,
 ) (*domain.Link, error) {
-	schema, err := ls.schemaRepository.GetByID(ctx, schemaID)
+	schema, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		return err
 	}
 
-	schema, err := ls.schemaRepository.GetByID(ctx, link.SchemaID)
+	schema, err := ls.schemaRepository.GetByID(ctx, issuerDID, link.SchemaID)
 	if err != nil {
 		log.Error(ctx, "can not fetch the schema", err)
 		return err
@@ -252,13 +252,22 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 }
 
 // GetQRCode - return the link qr code.
-func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, linkID uuid.UUID) (*linkState.State, error) {
+func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID core.DID, linkID uuid.UUID) (*ports.GetQRCodeResponse, error) {
+	link, err := ls.GetByID(ctx, issuerID, linkID)
+	if err != nil {
+		log.Error(ctx, "error fetching the link from the database", "error", err)
+		return nil, err
+	}
+
 	linkStateInCache, err := ls.sessionManager.GetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID.String()))
 	if err != nil {
 		log.Error(ctx, "error fetching the link state from the cache", "error", err)
 		return nil, err
 	}
-	return &linkStateInCache, nil
+	return &ports.GetQRCodeResponse{
+		State: &linkStateInCache,
+		Link:  link,
+	}, nil
 }
 
 func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Link, linkID uuid.UUID) error {
