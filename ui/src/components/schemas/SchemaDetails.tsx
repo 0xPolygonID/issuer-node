@@ -143,7 +143,7 @@ export function SchemaDetails() {
 
   return (
     <SiderLayoutContent
-      description="Schema details include a hash, schema URL and attributes. Schema can be viewed in a formatted way as well as, LD Context and schema."
+      description="Schema details include a hash, schema URL and attributes. The schema can be viewed formatted by its attributes, as the JSON LD Context or as a JSON."
       showBackButton
       showDivider
       title="Schema details"
