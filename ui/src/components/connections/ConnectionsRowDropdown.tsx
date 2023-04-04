@@ -47,6 +47,7 @@ export function ConnectionsRowDropdown({ id }: { id: string }) {
           onMenuSelect(key);
         },
       }}
+      overlayStyle={{ zIndex: 999 }}
     >
       <Row>
         <IconDots className="icon-secondary" />
