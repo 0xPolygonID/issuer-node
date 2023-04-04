@@ -767,7 +767,8 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 		identity_state,     
 		identity_states.status,
        	credential_status,
-       	core_claim
+       	core_claim,
+       	revoked
 	FROM claims
 	LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 	LEFT JOIN revocation  ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier
