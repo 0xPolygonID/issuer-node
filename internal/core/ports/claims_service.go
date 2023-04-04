@@ -88,7 +88,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, 
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *int64, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool) *CreateClaimRequest {
+func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -106,8 +106,7 @@ func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSub
 		MTProof:           *mtProof,
 	}
 	if expiration != nil {
-		t := time.Unix(*expiration, 0)
-		req.Expiration = &t
+		req.Expiration = expiration
 	}
 	if cVersion != nil {
 		req.Version = *cVersion
