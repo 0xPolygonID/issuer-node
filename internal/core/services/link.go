@@ -199,7 +199,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 	claimReq := ports.NewCreateClaimRequest(&issuerDID,
 		schema.URL,
 		credentialSubject,
-		common.ToPointer(link.CredentialExpiration.Unix()),
+		link.CredentialExpiration,
 		schema.Type,
 		nil, nil, nil,
 		common.ToPointer(link.CredentialSignatureProof),
