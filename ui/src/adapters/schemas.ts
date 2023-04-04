@@ -1,24 +1,24 @@
 import { getJsonFromUrl } from "src/adapters/json";
-import { jsonLdTypeParser, schemaParser } from "src/adapters/parsers/schemas";
+import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/schemas";
 import { Json, JsonLdType } from "src/domain";
-import { Schema } from "src/domain/schemas";
+import { JsonSchema } from "src/domain/jsonSchema";
 
-export async function getSchemaFromUrl({ url }: { url: string }): Promise<[Schema, Json]> {
+export async function getSchemaFromUrl({ url }: { url: string }): Promise<[JsonSchema, Json]> {
   const json = await getJsonFromUrl({
     url,
   });
 
-  return [schemaParser.parse(json), json];
+  return [jsonSchemaParser.parse(json), json];
 }
 
 export async function getSchemaJsonLdTypes({
-  schema,
+  jsonSchema,
 }: {
-  schema: Schema;
+  jsonSchema: JsonSchema;
 }): Promise<[JsonLdType[], Json]> {
   const json = await getJsonFromUrl({
-    url: schema.$metadata.uris.jsonLdContext,
+    url: jsonSchema.$metadata.uris.jsonLdContext,
   });
 
-  return [jsonLdTypeParser(schema).parse(json), json];
+  return [getJsonLdTypeParser(jsonSchema).parse(json), json];
 }

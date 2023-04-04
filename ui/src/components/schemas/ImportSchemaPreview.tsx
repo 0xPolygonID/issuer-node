@@ -5,24 +5,24 @@ import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.s
 import { Detail } from "src/components/schemas/Detail";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Json, JsonLdType } from "src/domain";
-import { Schema } from "src/domain/schemas";
+import { JsonSchema } from "src/domain/jsonSchema";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({
   jsonLdType,
+  jsonSchema,
   onBack,
   onImport,
   rawJsonLdContext,
   rawJsonSchema,
-  schema,
   url,
 }: {
   jsonLdType: JsonLdType;
+  jsonSchema: JsonSchema;
   onBack: () => void;
   onImport: () => void;
   rawJsonLdContext: Json;
   rawJsonSchema: Json;
-  schema: Schema;
   url: string;
 }) {
   const schemaHashResult = getSchemaHash(jsonLdType);
@@ -68,7 +68,7 @@ export function ImportSchemaPreview({
 
             <Button
               onClick={() => {
-                downloadJsonFromUrl({ fileName: schema.name, url })
+                downloadJsonFromUrl({ fileName: jsonSchema.name, url })
                   .then(() => {
                     void message.success("Schema successfully downloaded");
                   })
@@ -87,9 +87,9 @@ export function ImportSchemaPreview({
         </Space>
       }
       jsonLdType={jsonLdType}
+      jsonSchema={jsonSchema}
       rawJsonLdContext={rawJsonLdContext}
       rawJsonSchema={rawJsonSchema}
-      schema={schema}
     />
   );
 }

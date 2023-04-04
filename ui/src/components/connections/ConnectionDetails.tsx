@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { Detail } from "../schemas/Detail";
 import { APIError } from "src/adapters/api";
-import { Connection, getConnection } from "src/adapters/api/connections";
+import { getConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
@@ -13,6 +13,7 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { Connection } from "src/domain/connection";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IDENTIFIER, ISSUE_CREDENTIAL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";

@@ -7,13 +7,13 @@ import {
   credentialsQRCreate,
   credentialsQRDownload,
 } from "src/adapters/api/credentials";
-import { SchemaPayload } from "src/adapters/api/schemas";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { useEnvContext } from "src/contexts/env";
+import { Schema } from "src/domain/schema";
 import { ROUTES } from "src/routes";
 import { downloadFile } from "src/utils/browser";
 import {
@@ -30,7 +30,7 @@ export function Summary({
   schema,
 }: {
   credential: OldCredential;
-  schema: SchemaPayload;
+  schema: Schema;
 }) {
   const env = useEnvContext();
   const navigate = useNavigate();

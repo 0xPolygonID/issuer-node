@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { OldCredential, credentialIssue } from "src/adapters/api/credentials";
-import { SchemaPayload, getSchema } from "src/adapters/api/schemas";
+import { getSchema } from "src/adapters/api/schemas";
 import { getIssueCredentialFormDataParser } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
 import {
@@ -18,6 +18,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
+import { Schema } from "src/domain/schema";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
@@ -43,7 +44,7 @@ export function IssueCredential() {
     status: "pending",
   });
   const [formData, setFormData] = useState<FormData>(defaultFormData);
-  const [schema, setSchema] = useState<AsyncTask<SchemaPayload, APIError>>({
+  const [schema, setSchema] = useState<AsyncTask<Schema, APIError>>({
     status: "pending",
   });
 
@@ -80,6 +81,7 @@ export function IssueCredential() {
 
       if (parsedForm.success) {
         setCredential({ status: "loading" });
+
         void credentialIssue({
           env,
           payload: serializeCredentialForm(parsedForm.data),
@@ -87,10 +89,12 @@ export function IssueCredential() {
         }).then((response) => {
           if (response.isSuccessful) {
             setCredential({ data: response.data, status: "successful" });
-            void message.success("Credential link created");
             setStep("summary");
+
+            void message.success("Credential link created");
           } else {
             setCredential({ error: undefined, status: "failed" });
+
             void message.error(response.error.message);
           }
         });
@@ -106,6 +110,7 @@ export function IssueCredential() {
 
     if (schemaID) {
       const { aborter } = makeRequestAbortable(fetchSchema);
+
       return aborter;
     } else {
       setSchema({ status: "pending" });

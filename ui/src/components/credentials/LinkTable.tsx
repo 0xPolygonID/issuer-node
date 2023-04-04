@@ -19,13 +19,13 @@ import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
 import { OldCredential, credentialUpdate, credentialsGetAll } from "src/adapters/api/credentials";
-import { SchemaPayload } from "src/adapters/api/schemas";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-03.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { Schema } from "src/domain/schema";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, LINKS, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
@@ -86,7 +86,7 @@ export function LinkTable() {
       dataIndex: "schemaTemplate",
       ellipsis: true,
       key: "schemaTemplate",
-      render: ({ type }: SchemaPayload) => (
+      render: ({ type }: Schema) => (
         <Tooltip placement="topLeft" title={type}>
           <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>

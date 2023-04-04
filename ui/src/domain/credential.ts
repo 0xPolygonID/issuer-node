@@ -4,6 +4,13 @@ export interface BooleanCredentialFormAttribute {
   value: boolean;
 }
 
+export interface Credential {
+  attributes: {
+    type: string;
+  };
+  id: string;
+}
+
 export type CredentialFormAttribute =
   | BooleanCredentialFormAttribute
   | DateCredentialFormAttribute

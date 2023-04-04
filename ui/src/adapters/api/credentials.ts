@@ -9,17 +9,12 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { SchemaPayload, schemaStrictParser } from "src/adapters/api/schemas";
+import { schemaParser } from "src/adapters/api/schemas";
 import { Env } from "src/domain";
+import { Credential } from "src/domain/credential";
+import { Schema } from "src/domain/schema";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { getStrictParser } from "src/utils/types";
-
-export interface Credential {
-  attributes: {
-    type: string;
-  };
-  id: string;
-}
 
 export const credentialParser = getStrictParser<Credential>()(
   z.object({
@@ -29,6 +24,21 @@ export const credentialParser = getStrictParser<Credential>()(
     id: z.string(),
   })
 );
+
+// TODO - refactor when credentials is implemented
+
+interface CredentialQRCode {
+  body: {
+    callbackUrl: string;
+    reason: string;
+    scope: unknown[];
+  };
+  from: string;
+  id: string;
+  thid: string;
+  typ: string;
+  type: string;
+}
 
 export interface CredentialAttribute {
   attributeKey: string;
@@ -44,11 +54,11 @@ export interface OldCredential {
   linkAccessibleUntil: Date | null;
   linkCurrentIssuance: number | null;
   linkMaximumIssuance: number | null;
-  schemaTemplate: SchemaPayload;
+  schemaTemplate: Schema;
   valid: boolean;
 }
 
-interface CredentialPayload {
+interface CredentialInput {
   active: boolean;
   attributeValues: CredentialAttribute[];
   claimLinkExpiration: Date | null;
@@ -57,11 +67,11 @@ interface CredentialPayload {
   id: string;
   issuedClaims: number | null;
   limitedClaims: number | null;
-  schemaTemplate: SchemaPayload;
+  schemaTemplate: Schema;
   valid: boolean;
 }
 
-export interface CredentialIssuePayload {
+export interface CredentialIssue {
   attributes: CredentialAttribute[];
   claimLinkExpiration: string | null;
   expirationDate: string | null;
@@ -74,7 +84,7 @@ export async function credentialIssue({
   schemaID,
 }: {
   env: Env;
-  payload: CredentialIssuePayload;
+  payload: CredentialIssue;
   schemaID: string;
 }): Promise<APIResponse<OldCredential>> {
   try {
@@ -95,10 +105,6 @@ export async function credentialIssue({
   }
 }
 
-interface CredentialUpdatePayload {
-  active: boolean;
-}
-
 export async function credentialUpdate({
   credentialID,
   env,
@@ -107,7 +113,9 @@ export async function credentialUpdate({
 }: {
   credentialID: string;
   env: Env;
-  payload: CredentialUpdatePayload;
+  payload: {
+    active: boolean;
+  };
   schemaID: string;
 }): Promise<APIResponse<OldCredential>> {
   try {
@@ -173,19 +181,6 @@ export async function credentialsGetAll({
   }
 }
 
-interface CredentialQRCode {
-  body: {
-    callbackUrl: string;
-    reason: string;
-    scope: unknown[];
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
 const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
   z.object({
     body: z.object({
@@ -208,9 +203,9 @@ export interface ShareCredentialQRCode {
   sessionID: string;
 }
 
-interface ShareCredentialQRCodePayload {
+interface ShareCredentialQRCodeInput {
   issuer: { displayName: string; logo: string };
-  offerDetails: CredentialPayload;
+  offerDetails: CredentialInput;
   qrcode: CredentialQRCode;
   sessionID: string;
 }
@@ -222,7 +217,7 @@ const apiCredentialAttributeParser = getStrictParser<CredentialAttribute>()(
   })
 );
 
-const oldCredentialParser = getStrictParser<CredentialPayload, OldCredential>()(
+const oldCredentialParser = getStrictParser<CredentialInput, OldCredential>()(
   z
     .object({
       active: z.boolean(),
@@ -233,7 +228,7 @@ const oldCredentialParser = getStrictParser<CredentialPayload, OldCredential>()(
       id: z.string(),
       issuedClaims: z.number().nullable(),
       limitedClaims: z.number().nullable(),
-      schemaTemplate: schemaStrictParser,
+      schemaTemplate: schemaParser,
       valid: z.boolean(),
     })
     .transform(
@@ -264,7 +259,7 @@ const oldCredentialParser = getStrictParser<CredentialPayload, OldCredential>()(
 );
 
 const shareCredentialQRCodeParser = getStrictParser<
-  ShareCredentialQRCodePayload,
+  ShareCredentialQRCodeInput,
   ShareCredentialQRCode
 >()(
   z.object({
@@ -279,7 +274,7 @@ const shareCredentialQRCodeParser = getStrictParser<
 );
 
 const resultOKShareCredentialQRCodeParser = getStrictParser<
-  ResultOK<ShareCredentialQRCodePayload>,
+  ResultOK<ShareCredentialQRCodeInput>,
   ResultOK<ShareCredentialQRCode>
 >()(
   z.object({
@@ -314,7 +309,7 @@ export async function credentialsQRCreate({
 }
 
 const resultCreatedCredentialParser = getStrictParser<
-  ResultCreated<CredentialPayload>,
+  ResultCreated<CredentialInput>,
   ResultCreated<OldCredential>
 >()(
   z.object({
@@ -324,7 +319,7 @@ const resultCreatedCredentialParser = getStrictParser<
 );
 
 const resultOKCredentialParser = getStrictParser<
-  ResultOK<CredentialPayload>,
+  ResultOK<CredentialInput>,
   ResultOK<OldCredential>
 >()(
   z.object({

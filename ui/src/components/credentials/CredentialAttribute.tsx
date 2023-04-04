@@ -9,8 +9,8 @@ import {
   Typography,
 } from "antd";
 
-import { SchemaAttribute } from "src/adapters/api/schemas";
 import { Attribute } from "src/components/schemas/Attribute";
+import { SchemaAttribute } from "src/domain/schema";
 import { DATE_VALIDITY_MESSAGE } from "src/utils/constants";
 
 export function CredentialAttribute({

@@ -89,7 +89,7 @@ export type ObjectProps = {
 
 export type ObjectSchema = CommonProps & ObjectProps & { type: "object" };
 
-export type Schema = Attribute & SchemaProps;
+export type JsonSchema = Attribute & SchemaProps;
 
 export type SchemaProps = {
   $metadata: {

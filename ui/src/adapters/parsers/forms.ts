@@ -2,8 +2,8 @@ import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
 import { CredentialAttribute } from "src/adapters/api/credentials";
-import { SchemaAttribute } from "src/adapters/api/schemas";
-import { CredentialForm, CredentialFormAttribute } from "src/domain/credentials";
+import { CredentialForm, CredentialFormAttribute } from "src/domain/credential";
+import { SchemaAttribute } from "src/domain/schema";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 import { getStrictParser } from "src/utils/types";

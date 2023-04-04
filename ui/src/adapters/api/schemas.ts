@@ -9,34 +9,14 @@ import {
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { Env, JsonLdType } from "src/domain";
+import { Schema, SchemaAttribute } from "src/domain/schema";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { getStrictParser } from "src/utils/types";
 
-export interface SchemaPayload {
-  bigInt: string;
-  createdAt: Date;
-  hash: string;
-  id: string;
-  type: string;
-  url: string;
+interface Schemas {
+  errors: z.ZodError<Schema>[];
+  schemas: Schema[];
 }
-
-export type SchemaAttribute = {
-  description?: string;
-  name: string;
-  technicalName: string;
-} & (
-  | {
-      type: "number" | "boolean" | "date";
-    }
-  | {
-      type: "singlechoice";
-      values: {
-        name: string;
-        value: number;
-      }[];
-    }
-);
 
 export async function importSchema({
   env,
@@ -76,7 +56,7 @@ export async function getSchema({
   env: Env;
   schemaID: string;
   signal: AbortSignal;
-}): Promise<APIResponse<SchemaPayload>> {
+}): Promise<APIResponse<Schema>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -107,8 +87,8 @@ export async function getSchemas({
   signal: AbortSignal;
 }): Promise<
   APIResponse<{
-    errors: z.ZodError<SchemaPayload>[];
-    schemas: SchemaPayload[];
+    errors: z.ZodError<Schema>[];
+    schemas: Schema[];
   }>
 > {
   try {
@@ -181,7 +161,7 @@ export const schemaAttributeParser = getStrictParser<SchemaAttribute>()(
     )
 );
 
-export const schemaStrictParser = getStrictParser<SchemaPayload>()(
+export const schemaParser = getStrictParser<Schema>()(
   z.object({
     bigInt: z.string(),
     createdAt: z.coerce.date(),
@@ -192,24 +172,19 @@ export const schemaStrictParser = getStrictParser<SchemaPayload>()(
   })
 );
 
-const resultOKSchemaParser = getStrictParser<ResultOK<SchemaPayload>>()(
+const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
   z.object({
-    data: schemaStrictParser,
+    data: schemaParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-interface SchemaPayloads {
-  errors: z.ZodError<SchemaPayload>[];
-  schemas: SchemaPayload[];
-}
-
-const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<SchemaPayloads>>()(
+const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Schemas>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: SchemaPayloads, curr: unknown, index) => {
-          const parsedSchema = schemaStrictParser.safeParse(curr);
+        (acc: Schemas, curr: unknown, index) => {
+          const parsedSchema = schemaParser.safeParse(curr);
 
           return parsedSchema.success
             ? {
@@ -220,7 +195,7 @@ const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Sche
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<SchemaPayload>(
+                  new z.ZodError<Schema>(
                     parsedSchema.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],

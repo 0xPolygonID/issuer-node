@@ -8,18 +8,11 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { Credential, credentialParser } from "src/adapters/api/credentials";
+import { credentialParser } from "src/adapters/api/credentials";
 import { Env } from "src/domain";
+import { Connection } from "src/domain/connection";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { getStrictParser } from "src/utils/types";
-
-export interface Connection {
-  createdAt: Date;
-  credentials: Credential[];
-  id: string;
-  issuerID: string;
-  userID: string;
-}
 
 const connectionParser = getStrictParser<Connection>()(
   z.object({

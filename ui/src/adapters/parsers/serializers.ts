@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-import { CredentialAttribute, CredentialIssuePayload } from "src/adapters/api/credentials";
+import { CredentialAttribute, CredentialIssue } from "src/adapters/api/credentials";
 import {
   BooleanCredentialFormAttribute,
   CredentialForm,
@@ -8,7 +8,7 @@ import {
   DateCredentialFormAttribute,
   NumberCredentialFormAttribute,
   SingleChoiceCredentialFormAttribute,
-} from "src/domain/credentials";
+} from "src/domain/credential";
 
 function serializeBooleanCredentialFormAttribute(
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute
@@ -70,7 +70,7 @@ function serializeSingleChoiceCredentialFormAttribute(
 
 // Exports
 
-export function serializeCredentialForm(credentialForm: CredentialForm): CredentialIssuePayload {
+export function serializeCredentialForm(credentialForm: CredentialForm): CredentialIssue {
   const attributes = credentialForm.attributes.map(serializeCredentialFormAttribute);
   const expirationDate = credentialForm.expiration
     ? dayjs(credentialForm.expiration).toISOString()

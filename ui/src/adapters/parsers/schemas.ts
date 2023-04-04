@@ -11,6 +11,7 @@ import {
   CommonProps,
   IntegerAttribute,
   IntegerSchema,
+  JsonSchema,
   MultiAttribute,
   MultiSchema,
   NullAttribute,
@@ -19,12 +20,11 @@ import {
   NumberSchema,
   ObjectAttribute,
   ObjectProps,
-  Schema,
   SchemaProps,
   StringAttribute,
   StringProps,
   StringSchema,
-} from "src/domain/schemas";
+} from "src/domain/jsonSchema";
 import { getStrictParser } from "src/utils/types";
 
 // Types
@@ -241,7 +241,7 @@ function getBooleanAttributeParser(name: string, required: boolean) {
   );
 }
 
-function getIden3JsonLdTypeParser(schema: Schema) {
+function getIden3JsonLdTypeParser(schema: JsonSchema) {
   return getStrictParser<
     {
       "@context": [Record<string, unknown>];
@@ -400,7 +400,7 @@ function getObjectAttributeParser(name: string, required: boolean) {
   );
 }
 
-function getSertoJsonLdTypeParser(schema: Schema) {
+function getSertoJsonLdTypeParser(schema: JsonSchema) {
   return getStrictParser<
     {
       "@context": Record<string, unknown>;
@@ -538,11 +538,7 @@ const unsafelyParseMultiSchemaToDomain = (
 
 // Exports
 
-export const schemaParser = getStrictParser<SchemaComposite, Schema>()(
-  schemaPropsParser.and(getAttributeParser("schema", false))
-);
-
-export function jsonLdTypeParser(schema: Schema) {
+export function getJsonLdTypeParser(schema: JsonSchema) {
   return getStrictParser<
     | {
         "@context": Record<string, unknown>;
@@ -553,3 +549,7 @@ export function jsonLdTypeParser(schema: Schema) {
     JsonLdType[]
   >()(z.union([getIden3JsonLdTypeParser(schema), getSertoJsonLdTypeParser(schema)]));
 }
+
+export const jsonSchemaParser = getStrictParser<SchemaComposite, JsonSchema>()(
+  schemaPropsParser.and(getAttributeParser("schema", false))
+);
