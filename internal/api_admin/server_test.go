@@ -1378,9 +1378,9 @@ func TestServer_GetCredentials(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	day0 := time.Now()
+	past := time.Now().Add(-1000 * time.Hour)
 	future := time.Now().Add(1000 * time.Hour)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
