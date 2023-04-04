@@ -719,7 +719,7 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 	if filter.ExpiredOn != nil {
 		t := *filter.ExpiredOn
 		filters = append(filters, t.Unix())
-		query = fmt.Sprintf("%s AND claims.expiration<$%d", query, len(filters))
+		query = fmt.Sprintf("%s AND claims.expiration>0 AND claims.expiration<$%d", query, len(filters))
 	}
 	if filter.FTSQuery != "" {
 		filters = append(filters, fullTextSearchQuery(filter.FTSQuery, " | "))

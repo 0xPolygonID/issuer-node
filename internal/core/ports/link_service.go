@@ -38,6 +38,12 @@ func LinkTypeReqFromString(s string) (LinkType, error) {
 	return LinkType(s), nil
 }
 
+// GetQRCodeResponse - is the get link qrcode response.
+type GetQRCodeResponse struct {
+	Link  *domain.Link
+	State *linkState.State
+}
+
 // LinkService - the interface that defines the available methods
 type LinkService interface {
 	Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes []domain.CredentialAttrsRequest) (*domain.Link, error)
@@ -47,5 +53,5 @@ type LinkService interface {
 	GetAll(ctx context.Context, issuerDID core.DID, lType LinkType, query *string) ([]domain.Link, error)
 	CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
 	IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error
-	GetQRCode(ctx context.Context, sessionID uuid.UUID, linkID uuid.UUID) (*linkState.State, error)
+	GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID core.DID, linkID uuid.UUID) (*GetQRCodeResponse, error)
 }
