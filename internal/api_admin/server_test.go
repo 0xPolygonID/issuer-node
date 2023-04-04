@@ -3369,7 +3369,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			auth: authOk,
 			id:   link.ID,
 			expected: expected{
-				linkDetail: (*Link)(linkDetail),
+				linkDetail: linkDetail,
 				httpCode:   http.StatusOK,
 			},
 		},
@@ -3564,7 +3564,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 			sessionID: sessionID,
 			state:     linkState.NewStateDone(qrcode),
 			expected: expected{
-				linkDetail: (*Link)(linkDetail),
+				linkDetail: linkDetail,
 				qrCode:     qrcode,
 				status:     "done",
 				httpCode:   http.StatusOK,
