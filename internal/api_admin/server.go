@@ -377,7 +377,7 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObject) (GetStateStatusResponseObject, error) {
 	pendingActions, err := s.identityService.HasUnprocessedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
 	if err != nil {
-		log.Error(ctx, "revoke credential", "err", err)
+		log.Error(ctx, "get state status", "err", err)
 		return GetStateStatus500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
