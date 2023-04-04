@@ -424,6 +424,8 @@ paths:
     post:
       summary: Endpoint to publish identity state
       operationId: PublishState
+      security:
+        - basicAuth: [ ]
       tags:
         - State
       responses:
@@ -436,6 +438,23 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/state/status:
+    get:
+      summary: Endpoint to get the identity state status
+      operationId: GetStateStatus
+      security:
+        - basicAuth: [ ]
+      tags:
+        - State
+      responses:
+        '200':
+          description: State status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateStatusResponse'
+        '500':
+          $ref: '#/components/responses/500'
 
   # Links
   /v1/credentials/links:
@@ -933,6 +952,15 @@ components:
         status:
           type: string
           enum: [ active, inactive, exceed ]
+
+    StateStatusResponse:
+      type: object
+      required:
+        - pendingActions
+      properties:
+        pendingActions:
+          type: boolean
+          example: true
 
     GenericMessage:
       type: object

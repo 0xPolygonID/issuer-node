@@ -3199,3 +3199,110 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_GetStateStatus(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
+	merklizedRootPosition := "index"
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, identityService, claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response GetStateStatus200JSONResponse
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		cleanUp  func()
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "No states to process",
+			auth: authOk,
+			expected: expected{
+				response: GetStateStatus200JSONResponse{PendingActions: false},
+				httpCode: http.StatusOK,
+			},
+			cleanUp: func() {
+				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+				require.NoError(t, err)
+				require.NoError(t, claimsService.Revoke(ctx, cfg.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
+			},
+		},
+		{
+			name: "New state to process",
+			auth: authOk,
+			expected: expected{
+				response: GetStateStatus200JSONResponse{PendingActions: true},
+				httpCode: http.StatusOK,
+			},
+			cleanUp: func() {},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := "/v1/state/status"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetStateStatus200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.response.PendingActions, response.PendingActions)
+				tc.cleanUp()
+			}
+		})
+	}
+}

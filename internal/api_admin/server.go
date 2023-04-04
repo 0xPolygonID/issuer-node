@@ -373,6 +373,17 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	}, nil
 }
 
+// GetStateStatus - get the state status
+func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObject) (GetStateStatusResponseObject, error) {
+	pendingActions, err := s.identityService.HasUnprocessedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "revoke credential", "err", err)
+		return GetStateStatus500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return GetStateStatus200JSONResponse{PendingActions: pendingActions}, nil
+}
+
 // RevokeConnectionCredentials revoke all the non revoked credentials of the given connection
 func (s *Server) RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error) {
 	err := s.claimService.RevokeAllFromConnection(ctx, request.Id, s.cfg.APIUI.IssuerDID)
