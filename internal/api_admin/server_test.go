@@ -1376,14 +1376,21 @@ func TestServer_GetCredentials(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	day0 := time.Time{}.Unix()
 	future := time.Now().Add(1000 * time.Hour).Unix()
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	past := time.Now().Add(-1000 * time.Hour).Unix()
+	// Never expires
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
+	// Expires in future
 	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
+	// Expired
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	require.NoError(t, err)
+
+	// non expired, but revoked
 	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 
@@ -1428,7 +1435,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth: authOk,
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    3,
+				count:    4,
 			},
 		},
 		{
@@ -1437,7 +1444,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			rType: common.ToPointer("all"),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    3,
+				count:    4,
 			},
 		},
 		{
@@ -1473,7 +1480,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    3,
+				count:    4,
 			},
 		},
 	} {
