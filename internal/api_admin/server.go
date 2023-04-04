@@ -265,8 +265,8 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
 	filter := &ports.ClaimsFilter{}
-	if request.Params.Type != nil {
-		switch GetCredentialsParamsType(strings.ToLower(string(*request.Params.Type))) {
+	if request.Params.Status != nil {
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*request.Params.Status))) {
 		case Revoked:
 			filter.Revoked = common.ToPointer(true)
 		case Expired:
@@ -458,14 +458,14 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 // GetLinks - Returns a list of links based on a search criteria.
 func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error) {
 	var err error
-	typ := ports.LinkAll
-	if request.Params.Type != nil {
-		if typ, err = ports.LinkTypeReqFromString(strings.ToLower(string(*request.Params.Type))); err != nil {
-			log.Warn(ctx, "unknown request type getting links", "err", err, "type", request.Params.Type)
+	status := ports.LinkAll
+	if request.Params.Status != nil {
+		if status, err = ports.LinkTypeReqFromString(strings.ToLower(string(*request.Params.Status))); err != nil {
+			log.Warn(ctx, "unknown request type getting links", "err", err, "type", request.Params.Status)
 			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}
 	}
-	links, err := s.linkService.GetAll(ctx, s.cfg.APIUI.IssuerDID, typ, request.Params.Query)
+	links, err := s.linkService.GetAll(ctx, s.cfg.APIUI.IssuerDID, status, request.Params.Query)
 	if err != nil {
 		log.Error(ctx, "getting links", "err", err, "req", request)
 	}

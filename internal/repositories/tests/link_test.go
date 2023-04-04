@@ -190,7 +190,7 @@ func TestGetAll(t *testing.T) {
 	}
 	type testConfig struct {
 		name     string
-		filter   ports.LinkType
+		filter   ports.LinkStatus
 		query    *string
 		expected expected
 	}

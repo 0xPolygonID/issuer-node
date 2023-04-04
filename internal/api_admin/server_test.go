@@ -1412,7 +1412,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		name     string
 		auth     func() (string, string)
 		query    *string
-		rType    *string
+		status   *string
 		expected expected
 	}
 	for _, tc := range []testConfig{
@@ -1424,9 +1424,9 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:  "Wrong type",
-			auth:  authOk,
-			rType: common.ToPointer("wrong"),
+			name:   "Wrong type",
+			auth:   authOk,
+			status: common.ToPointer("wrong"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				errorMsg: "Wrong type value. Allowed values: [all, revoked, expired]",
@@ -1441,36 +1441,36 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:  "Get all explicit",
-			auth:  authOk,
-			rType: common.ToPointer("all"),
+			name:   "Get all explicit",
+			auth:   authOk,
+			status: common.ToPointer("all"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    4,
 			},
 		},
 		{
-			name:  "Revoked",
-			auth:  authOk,
-			rType: common.ToPointer("revoked"),
+			name:   "Revoked",
+			auth:   authOk,
+			status: common.ToPointer("revoked"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
 			},
 		},
 		{
-			name:  "REVOKED",
-			auth:  authOk,
-			rType: common.ToPointer("REVOKED"),
+			name:   "REVOKED",
+			auth:   authOk,
+			status: common.ToPointer("REVOKED"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
 			},
 		},
 		{
-			name:  "Expired",
-			auth:  authOk,
-			rType: common.ToPointer("expired"),
+			name:   "Expired",
+			auth:   authOk,
+			status: common.ToPointer("expired"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
@@ -1492,8 +1492,8 @@ func TestServer_GetCredentials(t *testing.T) {
 			if tc.query != nil {
 				endpoint.RawQuery = endpoint.RawQuery + "query=" + *tc.query
 			}
-			if tc.rType != nil {
-				endpoint.RawQuery = endpoint.RawQuery + "type=" + *tc.rType
+			if tc.status != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "status=" + *tc.status
 			}
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
 			req.SetBasicAuth(tc.auth())
@@ -2924,7 +2924,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	type testConfig struct {
 		name     string
 		query    *string
-		typ      *GetLinksParamsType
+		status   *GetLinksParamsStatus
 		auth     func() (string, string)
 		expected expected
 	}
@@ -2937,9 +2937,9 @@ func TestServer_GetAllLinks(t *testing.T) {
 			},
 		},
 		{
-			name: "Wrong type",
-			auth: authOk,
-			typ:  common.ToPointer(GetLinksParamsType("unknown-filter-type")),
+			name:   "Wrong type",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("unknown-filter-type")),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 			},
@@ -2953,56 +2953,56 @@ func TestServer_GetAllLinks(t *testing.T) {
 			},
 		},
 		{
-			name: "Happy path. All schemas, explicit",
-			auth: authOk,
-			typ:  common.ToPointer(GetLinksParamsType("all")),
+			name:   "Happy path. All schemas, explicit",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("all")),
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
 			},
 		},
 		{
-			name: "Happy path. All schemas, active",
-			auth: authOk,
-			typ:  common.ToPointer(GetLinksParamsType("active")),
+			name:   "Happy path. All schemas, active",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("active")),
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLinks200JSONResponse{*linkActive},
 			},
 		},
 		{
-			name: "Happy path. All schemas, exceeded",
-			auth: authOk,
-			typ:  common.ToPointer(GetLinksParamsType("exceeded")),
+			name:   "Happy path. All schemas, exceeded",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
 			},
 		},
 		{
-			name: "Happy path. All schemas, exceeded",
-			auth: authOk,
-			typ:  common.ToPointer(GetLinksParamsType("inactive")),
+			name:   "Happy path. All schemas, exceeded",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("inactive")),
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLinks200JSONResponse{*linkInactive},
 			},
 		},
 		{
-			name:  "Exceeded with filter found",
-			auth:  authOk,
-			query: common.ToPointer("documentType"),
-			typ:   common.ToPointer(GetLinksParamsType("exceeded")),
+			name:   "Exceeded with filter found",
+			auth:   authOk,
+			query:  common.ToPointer("documentType"),
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
 			},
 		},
 		{
-			name:  "Empty result",
-			auth:  authOk,
-			query: common.ToPointer("documentType"),
-			typ:   common.ToPointer(GetLinksParamsType("exceeded")),
+			name:   "Empty result",
+			auth:   authOk,
+			query:  common.ToPointer("documentType"),
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
@@ -3012,8 +3012,8 @@ func TestServer_GetAllLinks(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			endpoint := url.URL{Path: "/v1/credentials/links"}
-			if tc.typ != nil {
-				endpoint.RawQuery = endpoint.RawQuery + "type=" + string(*tc.typ)
+			if tc.status != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "status=" + string(*tc.status)
 			}
 			if tc.query != nil {
 				endpoint.RawQuery = endpoint.RawQuery + "&query=" + *tc.query

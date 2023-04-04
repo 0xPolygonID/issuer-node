@@ -35,19 +35,19 @@ const (
 	LinkStatusInactive LinkStatus = "inactive"
 )
 
-// Defines values for GetCredentialsParamsType.
+// Defines values for GetCredentialsParamsStatus.
 const (
-	All     GetCredentialsParamsType = "all"
-	Expired GetCredentialsParamsType = "expired"
-	Revoked GetCredentialsParamsType = "revoked"
+	All     GetCredentialsParamsStatus = "all"
+	Expired GetCredentialsParamsStatus = "expired"
+	Revoked GetCredentialsParamsStatus = "revoked"
 )
 
-// Defines values for GetLinksParamsType.
+// Defines values for GetLinksParamsStatus.
 const (
-	GetLinksParamsTypeActive   GetLinksParamsType = "active"
-	GetLinksParamsTypeAll      GetLinksParamsType = "all"
-	GetLinksParamsTypeExceeded GetLinksParamsType = "exceeded"
-	GetLinksParamsTypeInactive GetLinksParamsType = "inactive"
+	GetLinksParamsStatusActive   GetLinksParamsStatus = "active"
+	GetLinksParamsStatusAll      GetLinksParamsStatus = "all"
+	GetLinksParamsStatusExceeded GetLinksParamsStatus = "exceeded"
+	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
 // AuthenticationQrCodeResponse defines model for AuthenticationQrCodeResponse.
@@ -60,7 +60,7 @@ type AuthenticationQrCodeResponse struct {
 	From string `json:"from"`
 	Id   string `json:"id"`
 	Thid string `json:"thid"`
-	Typ  string `json:"typ"`
+	Typ  string `json:"status"`
 	Type string `json:"type"`
 }
 
@@ -155,7 +155,7 @@ type GetLinkQrCodeResponseType struct {
 	Id   string                        `json:"id"`
 	Thid string                        `json:"thid"`
 	To   string                        `json:"to"`
-	Typ  string                        `json:"typ"`
+	Typ  string                        `json:"status"`
 	Type string                        `json:"type"`
 }
 
@@ -286,34 +286,34 @@ type DeleteConnectionParams struct {
 
 // GetCredentialsParams defines parameters for GetCredentials.
 type GetCredentialsParams struct {
-	// Type Schema type:
+	// Status Schema type:
 	//   * `all` - All Schemas. (default value)
 	//   * `revoked` - Only revoked schemas
 	//   * `expired` - Only expired schemas
-	Type *GetCredentialsParamsType `form:"type,omitempty" json:"type,omitempty"`
+	Status *GetCredentialsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 
 	// Query Query string to do full text search
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
-// GetCredentialsParamsType defines parameters for GetCredentials.
-type GetCredentialsParamsType string
+// GetCredentialsParamsStatus defines parameters for GetCredentials.
+type GetCredentialsParamsStatus string
 
 // GetLinksParams defines parameters for GetLinks.
 type GetLinksParams struct {
 	// Query Query string to do full text search in schema types and attributes.
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 
-	// Type Schema type:
+	// Status Schema type:
 	//   * `all` - All links. (default value)
 	//   * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
 	//   * `inactive` - Only deactivated links
 	//   * `exceeded` - Expired or maximum issuance exceeded
-	Type *GetLinksParamsType `form:"type,omitempty" json:"type,omitempty"`
+	Status *GetLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
-// GetLinksParamsType defines parameters for GetLinks.
-type GetLinksParamsType string
+// GetLinksParamsStatus defines parameters for GetLinks.
+type GetLinksParamsStatus string
 
 // CreateLinkQrCodeCallbackTextBody defines parameters for CreateLinkQrCodeCallback.
 type CreateLinkQrCodeCallbackTextBody = string
@@ -734,11 +734,11 @@ func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetCredentialsParams
 
-	// ------------- Optional query parameter "type" -------------
+	// ------------- Optional query parameter "status" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
 		return
 	}
 
@@ -797,11 +797,11 @@ func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// ------------- Optional query parameter "type" -------------
+	// ------------- Optional query parameter "status" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
 		return
 	}
 
@@ -3354,22 +3354,22 @@ var swaggerSpec = []string{
 	"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",
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

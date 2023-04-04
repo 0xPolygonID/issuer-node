@@ -245,7 +245,7 @@ paths:
         - basicAuth: [ ]
       parameters:
         - in: query
-          name: type
+          name: status
           schema:
             type: string
             enum: [all, revoked, expired]
@@ -480,7 +480,7 @@ paths:
             type: string
           description: Query string to do full text search in schema types and attributes.
         - in: query
-          name: type
+          name: status
           schema:
             type: string
             enum: [ all, active, inactive, exceeded ]

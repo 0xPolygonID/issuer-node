@@ -130,7 +130,7 @@ func (l *LinkCoreDID) Scan(value interface{}) error {
 // Status returns the status of the link based on the Active field, the number of issued claims or whether is expired or not
 // If active is set to false, return "inactive"
 // If maxIssuance is set and bypassed, returns "exceeded"
-// If validUntil is set and bypassed, returns ""exceeded"
+// If validUntil is set and bypassed, returns "exceeded"
 // Otherwise return active.
 func (l *Link) Status() string {
 	if !l.Active {
@@ -140,10 +140,7 @@ func (l *Link) Status() string {
 		return LinkExceeded
 	}
 	if l.MaxIssuance != nil {
-		if l.IssuedClaims == *l.MaxIssuance {
-			return linkInactive
-		}
-		if l.IssuedClaims > *l.MaxIssuance {
+		if l.IssuedClaims >= *l.MaxIssuance {
 			return LinkExceeded
 		}
 	}

@@ -46,7 +46,7 @@ func TestLink_Status(t *testing.T) {
 				Active:       true,
 				IssuedClaims: 100,
 			},
-			expect: linkInactive,
+			expect: LinkExceeded,
 		},
 		{
 			name: "Active to true, max issuance exceeded, No credential expiration",

@@ -127,7 +127,7 @@ WHERE links.id = $1 AND links.issuer_id = $2`
 	return &link, err
 }
 
-func (l link) GetAll(ctx context.Context, issuerDID core.DID, typ ports.LinkType, query *string) ([]domain.Link, error) {
+func (l link) GetAll(ctx context.Context, issuerDID core.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
 	sql := `
 SELECT links.id, 
        links.issuer_id, 
@@ -151,7 +151,7 @@ SELECT links.id,
 FROM links
 LEFT JOIN schemas ON schemas.id = links.schema_id 
 WHERE links.issuer_id = $1 `
-	switch typ {
+	switch status {
 	case ports.LinkActive:
 		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>links.issued_claims, true)"
 	case ports.LinkInactive:
