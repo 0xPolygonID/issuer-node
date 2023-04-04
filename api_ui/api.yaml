@@ -560,6 +560,8 @@ paths:
                 $ref: '#/components/schemas/CredentialLinkQrCodeResponse'
         '400':
           $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
 
@@ -582,6 +584,12 @@ paths:
                 $ref: '#/components/schemas/GetLinkQrCodeResponse'
         '400':
           $ref: '#/components/responses/400'
+        '404':
+          description: 'Entity not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorMessage'
         '500':
           $ref: '#/components/responses/500'
 
@@ -815,6 +823,8 @@ components:
         status:
           type: string
           example: done | pending
+        linkDetail:
+          $ref: '#/components/schemas/Link'
 
     UUIDResponse:
       type: object
