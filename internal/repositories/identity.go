@@ -143,7 +143,7 @@ func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier
 						SELECT identifier FROM revocation where status = 0
 				), transacted_issuers AS
 				(
-					SELECT identifier from identity_states WHERE status = 'transacted'  
+					SELECT identifier from identity_states WHERE status = 'transacted' or status = 'failed'
 				)
 				
 				SELECT COUNT(*) FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FROM transacted_issuers) AND issuer = $1`, identifier.String())

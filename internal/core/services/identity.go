@@ -765,6 +765,17 @@ func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.Identit
 	return states, nil
 }
 
+func (i *identity) GetFailedState(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatusAndIssuerID(ctx, i.storage.Pgx, domain.StatusFailed, identifier)
+	if err != nil {
+		return nil, fmt.Errorf("error getting failed state: %w", err)
+	}
+	if len(states) > 0 {
+		return &states[0], nil
+	}
+	return nil, nil
+}
+
 // newAuthClaim generate BabyJubKeyTypeAuthorizeKSign claimL
 func newAuthClaim(key *babyjub.PublicKey) (*core.Claim, error) {
 	revNonce, err := common.RandInt64()

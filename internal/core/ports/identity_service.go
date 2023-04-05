@@ -29,4 +29,5 @@ type IdentityService interface {
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error)
 	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) (*protocol.AuthorizationResponseMessage, error)
+	GetFailedState(ctx context.Context, identifier core.DID) (*domain.IdentityState, error)
 }
