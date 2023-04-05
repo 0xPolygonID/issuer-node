@@ -2,10 +2,10 @@ import { Dropdown, Row } from "antd";
 import { useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { ConnectionDeleteModal } from "src/components/connections/ConnectionDeleteModal";
 import { ROUTES } from "src/routes";
 
 const MENU_ITEMS = [
@@ -40,19 +40,21 @@ export function ConnectionsRowDropdown({ id }: { id: string }) {
   };
 
   return (
-    <Dropdown
-      menu={{
-        items: MENU_ITEMS,
-        onClick: ({ key }) => {
-          onMenuSelect(key);
-        },
-      }}
-      overlayStyle={{ zIndex: 999 }}
-    >
-      <Row>
-        <IconDots className="icon-secondary" />
-        <ConnectionDeleteModal id={id} onClose={() => setShowModal(false)} open={showModal} />
-      </Row>
-    </Dropdown>
+    <>
+      <Dropdown
+        menu={{
+          items: MENU_ITEMS,
+          onClick: ({ key }) => {
+            onMenuSelect(key);
+          },
+        }}
+        overlayStyle={{ zIndex: 999 }}
+      >
+        <Row>
+          <IconDots className="icon-secondary" />
+        </Row>
+      </Dropdown>
+      <ConnectionDeleteModal id={id} onClose={() => setShowModal(false)} open={showModal} />
+    </>
   );
 }
