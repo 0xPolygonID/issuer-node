@@ -10,12 +10,10 @@ export function ConnectionDeleteModal({
   id,
   onClose,
   onDelete,
-  open = true,
 }: {
   id: string;
   onClose: () => void;
   onDelete?: () => void;
-  open?: boolean;
 }) {
   const env = useEnvContext();
   const [revokeCredentials, setRevokeCredentials] = useState<boolean>(false);
@@ -46,7 +44,7 @@ export function ConnectionDeleteModal({
       okText="Delete connection"
       onCancel={onClose}
       onOk={handleDeleteConnection}
-      open={open}
+      open
       title="Are you sure you want to delete this connection?"
     >
       <Typography.Text type="secondary">

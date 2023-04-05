@@ -121,12 +121,11 @@ export function ConnectionDetails() {
           <CredentialsTable userID={connection.data.userID} />
         )}
       </Space>
-      {connectionID && (
+      {connectionID && showModal && (
         <ConnectionDeleteModal
           id={connectionID}
           onClose={() => setShowModal(false)}
           onDelete={() => navigate(-1)}
-          open={showModal}
         />
       )}
     </SiderLayoutContent>
