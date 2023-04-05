@@ -148,7 +148,9 @@ func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
 func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn db.Querier, status domain.IdentityStatus, issuerID core.DID) ([]domain.IdentityState, error) {
 	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
        tx_id, previous_state, status, modified_at, created_at 
-	FROM identity_states WHERE identifier = $1 and status = $2 and previous_state IS NOT NULL`, issuerID.String(), status)
+	FROM identity_states WHERE identifier = $1 and status = $2 and previous_state IS NOT NULL
+	ORDER BY created_at DESC
+	`, issuerID.String(), status)
 	if err != nil {
 		return nil, err
 	}
