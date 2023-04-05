@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,24 @@ type CreateQRCodeResponse struct {
 	SessionID string
 }
 
+// LinkStatus is a Link type request. All|Active|Inactive|Exceeded
+type LinkStatus string
+
+const (
+	LinkAll      LinkStatus = "all"      // LinkAll : All links
+	LinkActive   LinkStatus = "active"   // LinkActive : Active links
+	LinkInactive LinkStatus = "inactive" // LinkInactive : Inactive links
+	LinkExceeded LinkStatus = "exceeded" // LinkExceeded : Expired links or with more credentials issued than expected
+)
+
+// LinkTypeReqFromString constructs a LinkStatus from a string
+func LinkTypeReqFromString(s string) (LinkStatus, error) {
+	if s != "all" && s != "active" && s != "inactive" && s != "exceeded" {
+		return "", fmt.Errorf("unknown linkTypeReq: %s", s)
+	}
+	return LinkStatus(s), nil
+}
+
 // GetQRCodeResponse - is the get link qrcode response.
 type GetQRCodeResponse struct {
 	Link  *domain.Link
@@ -31,6 +50,7 @@ type LinkService interface {
 	Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUID, active bool) error
 	Delete(ctx context.Context, id uuid.UUID, did core.DID) error
 	GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error)
+	GetAll(ctx context.Context, issuerDID core.DID, status LinkStatus, query *string) ([]domain.Link, error)
 	CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
 	IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error
 	GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID core.DID, linkID uuid.UUID) (*GetQRCodeResponse, error)
