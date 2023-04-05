@@ -1,6 +1,4 @@
 import { Button, Card, Row, Space } from "antd";
-import { extend as extendDayJsWith } from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -19,8 +17,6 @@ import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IDENTIFIER } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-
-extendDayJsWith(relativeTime);
 
 export function ConnectionDetails() {
   const env = useEnvContext();

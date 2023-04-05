@@ -182,11 +182,11 @@ export function CredentialsTable({ userID }: { userID: string }) {
   );
 
   const handleTypeChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedCredentialType = credentialStatusParser.safeParse(value);
-    if (parsedCredentialType.success) {
-      setCredentialStatus(parsedCredentialType.data);
+    const parsedCredentialStatus = credentialStatusParser.safeParse(value);
+    if (parsedCredentialStatus.success) {
+      setCredentialStatus(parsedCredentialStatus.data);
     } else {
-      processZodError(parsedCredentialType.error).forEach((error) => void message.error(error));
+      processZodError(parsedCredentialStatus.error).forEach((error) => void message.error(error));
     }
   };
 

@@ -13,7 +13,7 @@ export function ConnectionDeleteModal({
 }: {
   id: string;
   onClose: () => void;
-  onDelete?: () => void;
+  onDelete: () => void;
 }) {
   const env = useEnvContext();
   const [revokeCredentials, setRevokeCredentials] = useState<boolean>(false);
@@ -23,10 +23,7 @@ export function ConnectionDeleteModal({
     void deleteConnection({ deleteCredentials, env, id, revokeCredentials }).then((response) => {
       if (response.isSuccessful) {
         onClose();
-
-        if (onDelete) {
-          onDelete();
-        }
+        onDelete();
 
         void message.success(response.data);
       } else {
