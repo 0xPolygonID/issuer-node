@@ -451,7 +451,7 @@ const credentialQRCheckParser = getStrictParser<CredentialQRCheck>()(
   ])
 );
 
-const resultOKCredentialQRCheck = getStrictParser<ResultOK<CredentialQRCheck>>()(
+const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
   z.object({
     data: credentialQRCheckParser,
     status: z.literal(HTTPStatusSuccess.OK),
@@ -477,7 +477,7 @@ export async function credentialsQRCheck({
       url: `${API_VERSION}/offers-qrcode/${credentialID}`,
     });
 
-    const { data } = resultOKCredentialQRCheck.parse(response);
+    const { data } = resultOKCredentialQRCheckParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
