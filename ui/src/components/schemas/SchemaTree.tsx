@@ -4,7 +4,7 @@ import type { DataNode } from "antd/es/tree";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { SchemaTreeNode } from "src/components/schemas/SchemaTreeNode";
-import { Attribute, Schema } from "src/domain";
+import { Attribute, JsonSchema } from "src/domain";
 
 const attributeToTreeDataNode = ({
   attribute,
@@ -35,18 +35,18 @@ const attributeToTreeDataNode = ({
 
 export function SchemaTree({
   className,
-  schema,
+  jsonSchema,
   style,
 }: {
   className?: string;
-  schema: Schema;
+  jsonSchema: JsonSchema;
   style?: React.CSSProperties;
 }) {
   const [treeWidth, setTreeWidth] = useState(0);
 
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const treeData = [attributeToTreeDataNode({ attribute: schema, parents: [], treeWidth })];
+  const treeData = [attributeToTreeDataNode({ attribute: jsonSchema, parents: [], treeWidth })];
 
   useLayoutEffect(() => {
     const updateWidth = () => {

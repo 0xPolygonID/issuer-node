@@ -8,35 +8,14 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { Env, JsonLdType } from "src/domain";
+import { getStrictParser } from "src/adapters/parsers";
+import { Env, JsonLdType, Schema, SchemaAttribute } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { StrictSchema } from "src/utils/types";
 
-export interface Schema {
-  bigInt: string;
-  createdAt: Date;
-  hash: string;
-  id: string;
-  type: string;
-  url: string;
+interface Schemas {
+  errors: z.ZodError<Schema>[];
+  schemas: Schema[];
 }
-
-export type SchemaAttribute = {
-  description?: string;
-  name: string;
-  technicalName: string;
-} & (
-  | {
-      type: "number" | "boolean" | "date";
-    }
-  | {
-      type: "singlechoice";
-      values: {
-        name: string;
-        value: number;
-      }[];
-    }
-);
 
 export async function importSchema({
   env,
@@ -87,7 +66,7 @@ export async function getSchema({
       signal,
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
-    const { data } = resultOKSchema.parse(response);
+    const { data } = resultOKSchemaParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -124,7 +103,7 @@ export async function getSchemas({
       signal,
       url: `${API_VERSION}/schemas`,
     });
-    const { data } = resultOKSchemas.parse(response);
+    const { data } = resultOKSchemasParser.parse(response);
 
     return {
       data: {
@@ -138,7 +117,7 @@ export async function getSchemas({
   }
 }
 
-export const schemaAttribute = StrictSchema<SchemaAttribute>()(
+export const schemaAttributeParser = getStrictParser<SchemaAttribute>()(
   z
     .object({
       description: z.string().optional(),
@@ -181,7 +160,7 @@ export const schemaAttribute = StrictSchema<SchemaAttribute>()(
     )
 );
 
-export const schema = StrictSchema<Schema>()(
+export const schemaParser = getStrictParser<Schema>()(
   z.object({
     bigInt: z.string(),
     createdAt: z.coerce.date(),
@@ -192,24 +171,20 @@ export const schema = StrictSchema<Schema>()(
   })
 );
 
-const resultOKSchema = StrictSchema<ResultOK<Schema>>()(
+const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
   z.object({
-    data: schema,
+    data: schemaParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
-interface Schemas {
-  errors: z.ZodError<Schema>[];
-  schemas: Schema[];
-}
-
-const resultOKSchemas = StrictSchema<ResultOK<unknown[]>, ResultOK<Schemas>>()(
+const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Schemas>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
         (acc: Schemas, curr: unknown, index) => {
-          const parsedSchema = schema.safeParse(curr);
+          const parsedSchema = schemaParser.safeParse(curr);
+
           return parsedSchema.success
             ? {
                 ...acc,

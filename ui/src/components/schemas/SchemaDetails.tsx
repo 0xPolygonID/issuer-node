@@ -4,9 +4,9 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
-import { Schema as ApiSchema, getSchema } from "src/adapters/api/schemas";
+import { getSchema } from "src/adapters/api/schemas";
 import { downloadJsonFromUrl } from "src/adapters/json";
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
+import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
@@ -14,12 +14,12 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
-import { Json, JsonLdType, Schema } from "src/domain";
+import { Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
 export function SchemaDetails() {
   const navigate = useNavigate();
@@ -27,10 +27,12 @@ export function SchemaDetails() {
 
   const env = useEnvContext();
 
-  const [schemaTuple, setSchemaTuple] = useState<AsyncTask<[Schema, Json], string | z.ZodError>>({
+  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<
+    AsyncTask<[JsonSchema, Json], string | z.ZodError>
+  >({
     status: "pending",
   });
-  const [apiSchema, setApiSchema] = useState<AsyncTask<ApiSchema, APIError>>({
+  const [schema, setSchema] = useState<AsyncTask<Schema, APIError>>({
     status: "pending",
   });
   const [contextTuple, setContextTuple] = useState<
@@ -42,19 +44,21 @@ export function SchemaDetails() {
   const extractError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const fetchSchemaFromUrl = useCallback((apiSchema: ApiSchema): void => {
-    setSchemaTuple({ status: "loading" });
+  const fetchSchemaFromUrl = useCallback((schema: Schema): void => {
+    setJsonSchemaTuple({ status: "loading" });
+
     getSchemaFromUrl({
-      url: apiSchema.url,
+      url: schema.url,
     })
-      .then(([schema, rawJsonSchema]) => {
-        setSchemaTuple({ data: [schema, rawJsonSchema], status: "successful" });
+      .then(([jsonSchema, rawJsonSchema]) => {
+        setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
         setContextTuple({ status: "loading" });
         getSchemaJsonLdTypes({
-          schema,
+          jsonSchema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {
-            const jsonLdType = jsonLdTypes.find((type) => type.name === apiSchema.type);
+            const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
+
             if (jsonLdType) {
               setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
             } else {
@@ -73,7 +77,7 @@ export function SchemaDetails() {
           });
       })
       .catch((error) => {
-        setSchemaTuple({
+        setJsonSchemaTuple({
           error: extractError(error),
           status: "failed",
         });
@@ -83,7 +87,7 @@ export function SchemaDetails() {
   const fetchApiSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
-        setApiSchema({ status: "loading" });
+        setSchema({ status: "loading" });
 
         const response = await getSchema({
           env,
@@ -92,11 +96,11 @@ export function SchemaDetails() {
         });
 
         if (response.isSuccessful) {
-          setApiSchema({ data: response.data, status: "successful" });
+          setSchema({ data: response.data, status: "successful" });
           fetchSchemaFromUrl(response.data);
         } else {
           if (!isAbortedError(response.error)) {
-            setApiSchema({ error: response.error, status: "failed" });
+            setSchema({ error: response.error, status: "failed" });
           }
         }
       }
@@ -131,33 +135,33 @@ export function SchemaDetails() {
       : `An error occurred while downloading the schema from the URL:\n"${error}"\nPlease try again.`;
 
   const loading =
-    isAsyncTaskStarting(apiSchema) ||
-    isAsyncTaskStarting(schemaTuple) ||
+    isAsyncTaskStarting(schema) ||
+    isAsyncTaskStarting(jsonSchemaTuple) ||
     isAsyncTaskStarting(contextTuple);
 
   return (
     <SiderLayoutContent
-      description="Schema details include a hash, schema URL and attributes. Schema can be viewed in a formatted way as well as, LD Context and schema."
+      description="Schema details include a hash, schema URL and attributes. The schema can be viewed formatted by its attributes, as the JSON LD Context or as a JSON."
       showBackButton
       showDivider
       title="Schema details"
     >
       {(() => {
-        if (hasAsyncTaskFailed(apiSchema)) {
+        if (hasAsyncTaskFailed(schema)) {
           return (
             <Card className="centered">
               <ErrorResult
                 error={[
                   "An error occurred while downloading or parsing the schema from the API:",
-                  apiSchema.error.message,
+                  schema.error.message,
                 ].join("\n")}
               />
             </Card>
           );
-        } else if (hasAsyncTaskFailed(schemaTuple)) {
+        } else if (hasAsyncTaskFailed(jsonSchemaTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={schemaTupleErrorToString(schemaTuple.error)} />
+              <ErrorResult error={schemaTupleErrorToString(jsonSchemaTuple.error)} />
             </Card>
           );
         } else if (hasAsyncTaskFailed(contextTuple)) {
@@ -173,8 +177,8 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const { bigInt, createdAt, hash, url } = apiSchema.data;
-          const [schema, rawJsonSchema] = schemaTuple.data;
+          const { bigInt, createdAt, hash, url } = schema.data;
+          const [jsonSchema, rawJsonSchema] = jsonSchemaTuple.data;
           const [jsonLdType, rawJsonLdContext] = contextTuple.data;
 
           return (
@@ -210,7 +214,7 @@ export function SchemaDetails() {
                     <Button
                       onClick={() => {
                         downloadJsonFromUrl({
-                          fileName: schema.name,
+                          fileName: jsonSchema.name,
                           url: url,
                         })
                           .then(() => {
@@ -231,9 +235,9 @@ export function SchemaDetails() {
                 </Space>
               }
               jsonLdType={jsonLdType}
+              jsonSchema={jsonSchema}
               rawJsonLdContext={rawJsonLdContext}
               rawJsonSchema={rawJsonSchema}
-              schema={schema}
             />
           );
         }

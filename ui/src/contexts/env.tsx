@@ -1,14 +1,6 @@
-import {
-  FC,
-  PropsWithChildren,
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
+import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
+
 import { EnvInput, envParser } from "src/adapters/env";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { Env } from "src/domain";
@@ -26,9 +18,9 @@ const envDefaultValue: Env = {
   },
 };
 
-const envContext = createContext<Env>(envDefaultValue);
+const EnvContext = createContext(envDefaultValue);
 
-const EnvProvider: FC<PropsWithChildren> = (props) => {
+export function EnvProvider(props: PropsWithChildren) {
   const [env, setEnv] = useState<z.SafeParseReturnType<EnvInput, Env>>();
 
   useEffect(() => {
@@ -40,7 +32,7 @@ const EnvProvider: FC<PropsWithChildren> = (props) => {
   }, [env]);
 
   return value?.success ? (
-    <envContext.Provider value={value.data} {...props} />
+    <EnvContext.Provider value={value.data} {...props} />
   ) : !value ? null : (
     <ErrorResult
       error={[
@@ -50,10 +42,8 @@ const EnvProvider: FC<PropsWithChildren> = (props) => {
       ].join("\n")}
     />
   );
-};
+}
 
-const useEnvContext = (): Env => {
-  return useContext(envContext);
-};
-
-export { EnvProvider, useEnvContext };
+export function useEnvContext() {
+  return useContext(EnvContext);
+}

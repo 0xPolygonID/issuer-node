@@ -18,13 +18,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { Connection, getConnection } from "src/adapters/api/connections";
-import {
-  Credential,
-  CredentialType,
-  credentialTypeParser,
-  getCredentials,
-} from "src/adapters/api/credentials";
+import { getConnection } from "src/adapters/api/connections";
+import { CredentialType, credentialTypeParser, getCredentials } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ConnectionDetailsRowDropdown } from "src/components/connections/ConnectionDetailsRowDropdown";
@@ -36,6 +31,8 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { Connection, Credential } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS,
@@ -46,7 +43,6 @@ import {
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 const obfuscateDID = (did: string) => {
   const didSplit = did.split(":").slice(0, -1).join(":");

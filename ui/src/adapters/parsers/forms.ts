@@ -2,21 +2,17 @@ import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
 import { CredentialAttribute } from "src/adapters/api/credentials";
-import { SchemaAttribute } from "src/adapters/api/schemas";
-import { CredentialForm, CredentialFormAttribute } from "src/domain";
+import { getStrictParser } from "src/adapters/parsers";
+import { CredentialForm, CredentialFormAttribute, SchemaAttribute } from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import { StrictSchema } from "src/utils/types";
 
-const dayjsInstance = StrictSchema<dayjs.Dayjs>()(
-  z.custom<dayjs.Dayjs>(isDayjs, {
-    message: "The provided input is not a valid Dayjs instance",
-  })
-);
+// Types
 
-const numericBoolean = StrictSchema<0 | 1, boolean>()(
-  z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1)
-);
+interface LinkExpiration {
+  linkExpirationDate?: dayjs.Dayjs | null;
+  linkExpirationTime?: dayjs.Dayjs | null;
+}
 
 type IssueCredentialFormDataAttributesParsingResult =
   | {
@@ -28,10 +24,54 @@ type IssueCredentialFormDataAttributesParsingResult =
       success: false;
     };
 
-const parseIssueCredentialFormDataAttributes = (
+interface IssueCredentialFormDataInput {
+  attributes: {
+    attributes: Record<string, unknown>;
+    expirationDate?: dayjs.Dayjs | null;
+  };
+  issuanceMethod: LinkExpiration & {
+    linkMaximumIssuance?: number;
+  };
+}
+
+// Parsers
+
+const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
+  z.custom<dayjs.Dayjs>(isDayjs, {
+    message: "The provided input is not a valid Dayjs instance",
+  })
+);
+
+const numericBooleanParser = getStrictParser<0 | 1, boolean>()(
+  z.union([z.literal(0), z.literal(1)]).transform((value) => value === 1)
+);
+
+// Helpers
+
+function buildLinkAccessibleUntil({ linkExpirationDate, linkExpirationTime }: LinkExpiration) {
+  if (linkExpirationDate) {
+    if (linkExpirationTime) {
+      return dayjs(linkExpirationDate)
+        .set("hour", linkExpirationTime.get("hour"))
+        .set("minute", linkExpirationTime.get("minute"))
+        .set("second", linkExpirationTime.get("second"))
+        .toDate();
+    } else {
+      return dayjs(linkExpirationDate).endOf("day").toDate();
+    }
+  } else {
+    if (linkExpirationTime) {
+      return linkExpirationTime.toDate();
+    } else {
+      return undefined;
+    }
+  }
+}
+
+function parseIssueCredentialFormDataAttributes(
   attributes: Record<string, unknown>,
   schemaAttributes: SchemaAttribute[]
-): IssueCredentialFormDataAttributesParsingResult => {
+): IssueCredentialFormDataAttributesParsingResult {
   return Object.entries(attributes).reduce(
     (
       acc: IssueCredentialFormDataAttributesParsingResult,
@@ -59,7 +99,7 @@ const parseIssueCredentialFormDataAttributes = (
       } else {
         switch (foundSchemaAttribute.type) {
           case "date": {
-            const parsedValue = dayjsInstance.safeParse(attributeValue);
+            const parsedValue = dayjsInstanceParser.safeParse(attributeValue);
 
             return parsedValue.success
               ? {
@@ -99,7 +139,7 @@ const parseIssueCredentialFormDataAttributes = (
                 };
           }
           case "boolean": {
-            const parsedValue = numericBoolean.safeParse(attributeValue);
+            const parsedValue = numericBooleanParser.safeParse(attributeValue);
 
             return parsedValue.success
               ? {
@@ -143,97 +183,70 @@ const parseIssueCredentialFormDataAttributes = (
     },
     { data: [], success: true }
   );
-};
+}
 
-export const parseLinkExpirationDate = StrictSchema<{
-  linkExpirationDate: dayjs.Dayjs | null;
-}>()(
-  z.object({
-    linkExpirationDate: dayjsInstance.nullable(),
-  })
-);
+// Exports
 
-const issueCredentialFormDataInput = z.object({
-  attributes: z.object({
-    attributes: z.record(z.unknown()),
-    expirationDate: dayjsInstance.nullish(),
-  }),
-  issuanceMethod: z.object({
-    linkExpirationDate: dayjsInstance.nullish(),
-    linkExpirationTime: dayjsInstance.nullish(),
-    linkMaximumIssuance: z.number().optional(),
-  }),
-});
-
-type IssueCredentialFormDataInput = z.infer<typeof issueCredentialFormDataInput>;
-
-export const issueCredentialFormData = (schemaAttributes: SchemaAttribute[]) => {
-  return StrictSchema<IssueCredentialFormDataInput, CredentialForm>()(
-    issueCredentialFormDataInput.transform(
-      (
-        {
-          attributes: { attributes, expirationDate },
-          issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
-        },
-        zodRefinementCtx
-      ) => {
-        const attributesParsingResult = parseIssueCredentialFormDataAttributes(
-          attributes,
-          schemaAttributes
-        );
-
-        if (attributesParsingResult.success) {
-          const linkAccessibleUntil = buildLinkAccessibleUntil(
-            linkExpirationDate || undefined,
-            linkExpirationTime || undefined
+export function getIssueCredentialFormDataParser(schemaAttributes: SchemaAttribute[]) {
+  return getStrictParser<IssueCredentialFormDataInput, CredentialForm>()(
+    z
+      .object({
+        attributes: z.object({
+          attributes: z.record(z.unknown()),
+          expirationDate: dayjsInstanceParser.nullable().optional(),
+        }),
+        issuanceMethod: z.object({
+          linkExpirationDate: dayjsInstanceParser.nullable().optional(),
+          linkExpirationTime: dayjsInstanceParser.nullable().optional(),
+          linkMaximumIssuance: z.number().optional(),
+        }),
+      })
+      .transform(
+        (
+          {
+            attributes: { attributes, expirationDate },
+            issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
+          },
+          zodRefinementCtx
+        ) => {
+          const attributesParsingResult = parseIssueCredentialFormDataAttributes(
+            attributes,
+            schemaAttributes
           );
 
-          const now = new Date().getTime();
-          if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
-            zodRefinementCtx.addIssue({
-              code: z.ZodIssueCode.custom,
-              fatal: true,
-              message: `${ACCESSIBLE_UNTIL} must be a date/time in the future.`,
+          if (attributesParsingResult.success) {
+            const linkAccessibleUntil = buildLinkAccessibleUntil({
+              linkExpirationDate,
+              linkExpirationTime,
             });
+
+            const now = new Date().getTime();
+
+            if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
+              zodRefinementCtx.addIssue({
+                code: z.ZodIssueCode.custom,
+                fatal: true,
+                message: `${ACCESSIBLE_UNTIL} must be a date/time in the future.`,
+              });
+
+              return z.NEVER;
+            }
+
+            return {
+              attributes: attributesParsingResult.data,
+              expiration: expirationDate ? expirationDate.toDate() : undefined,
+              linkAccessibleUntil,
+              linkMaximumIssuance,
+            };
+          } else {
+            attributesParsingResult.error.issues.forEach(zodRefinementCtx.addIssue);
 
             return z.NEVER;
           }
-
-          return {
-            attributes: attributesParsingResult.data,
-            expiration: expirationDate ? expirationDate.toDate() : undefined,
-            linkAccessibleUntil,
-            linkMaximumIssuance,
-          };
-        } else {
-          attributesParsingResult.error.issues.forEach(zodRefinementCtx.addIssue);
-
-          return z.NEVER;
         }
-      }
-    )
+      )
   );
-};
-
-const buildLinkAccessibleUntil = (date?: dayjs.Dayjs, time?: dayjs.Dayjs): Date | undefined => {
-  if (date) {
-    if (time) {
-      return dayjs(date)
-        .set("hour", time.get("hour"))
-        .set("minute", time.get("minute"))
-        .set("second", time.get("second"))
-        .toDate();
-    } else {
-      return dayjs(date).endOf("day").toDate();
-    }
-  } else {
-    if (time) {
-      return time.toDate();
-    } else {
-      return undefined;
-    }
-  }
-};
+}
 
 export function formatAttributeValue(
   attribute: CredentialAttribute,
@@ -256,6 +269,22 @@ export function formatAttributeValue(
     };
   } else {
     switch (schemaAttribute.type) {
+      case "boolean": {
+        const parsedBoolean = numericBooleanParser.safeParse(attribute.attributeValue);
+
+        if (parsedBoolean.success) {
+          return {
+            data: parsedBoolean.data.toString(),
+            success: true,
+          };
+        } else {
+          return {
+            error: `${attribute.attributeValue} cannot be parsed as boolean`,
+            success: false,
+          };
+        }
+      }
+
       case "date": {
         const momentInstance = dayjs(attribute.attributeValue.toString(), "YYYYMMDD");
 
@@ -279,25 +308,11 @@ export function formatAttributeValue(
         };
       }
 
-      case "boolean": {
-        const parsedBoolean = numericBoolean.safeParse(attribute.attributeValue);
-
-        if (parsedBoolean.success) {
-          return {
-            data: parsedBoolean.data.toString(),
-            success: true,
-          };
-        } else {
-          return {
-            error: `${attribute.attributeValue} cannot be parsed as boolean`,
-            success: false,
-          };
-        }
-      }
       case "singlechoice": {
         const name = schemaAttribute.values.find(
           (choice) => choice.value === attribute.attributeValue
         );
+
         if (name) {
           return {
             data: `${name.name} (${attribute.attributeValue})`,
@@ -313,3 +328,11 @@ export function formatAttributeValue(
     }
   }
 }
+
+export const linkExpirationDateParser = getStrictParser<{
+  linkExpirationDate: dayjs.Dayjs | null;
+}>()(
+  z.object({
+    linkExpirationDate: dayjsInstanceParser.nullable(),
+  })
+);

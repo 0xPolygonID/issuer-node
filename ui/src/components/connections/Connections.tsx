@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { Connection, getConnections } from "src/adapters/api/connections";
-import { Credential } from "src/adapters/api/credentials";
+import { getConnections } from "src/adapters/api/connections";
 import { ReactComponent as IconUsers } from "src/assets/icons/users-01.svg";
 import { ConnectionsRowDropdown } from "src/components/connections/ConnectionsRowDropdown";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -13,9 +12,10 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { Connection, Credential } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function Connections() {
   const env = useEnvContext();
