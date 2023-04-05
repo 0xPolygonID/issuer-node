@@ -264,29 +264,9 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	filter := &ports.ClaimsFilter{}
-	if request.Params.Did != nil {
-		did, err := core.ParseDID(*request.Params.Did)
-		if err != nil {
-			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *request.Params.Did)
-			return GetCredentials400JSONResponse{N400JSONResponse{"cannot parse did parameter: wrong format"}}, nil
-		}
-		filter.Subject, filter.FTSAndCond = did.String(), true
-	}
-	if request.Params.Status != nil {
-		switch GetCredentialsParamsStatus(strings.ToLower(string(*request.Params.Status))) {
-		case Revoked:
-			filter.Revoked = common.ToPointer(true)
-		case Expired:
-			filter.ExpiredOn = common.ToPointer(time.Now())
-		case All:
-			// Nothing to be done
-		default:
-			return GetCredentials400JSONResponse{N400JSONResponse{Message: "Wrong type value. Allowed values: [all, revoked, expired]"}}, nil
-		}
-	}
-	if request.Params.Query != nil {
-		filter.FTSQuery = *request.Params.Query
+	filter, err := getCredentialsFilter(ctx, request.Params.Did, request.Params.Status, request.Params.Query)
+	if err != nil {
+		return GetCredentials400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
@@ -618,6 +598,34 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 	return GetLinkQRCode400JSONResponse{N400JSONResponse{
 		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
 	}}, nil
+}
+
+func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {
+	filter := &ports.ClaimsFilter{}
+	if userDID != nil {
+		did, err := core.ParseDID(*userDID)
+		if err != nil {
+			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *userDID)
+			return nil, errors.New("cannot parse did parameter: wrong format")
+		}
+		filter.Subject, filter.FTSAndCond = did.String(), true
+	}
+	if status != nil {
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*status))) {
+		case Revoked:
+			filter.Revoked = common.ToPointer(true)
+		case Expired:
+			filter.ExpiredOn = common.ToPointer(time.Now())
+		case All:
+			// Nothing to be done
+		default:
+			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
+		}
+	}
+	if query != nil {
+		filter.FTSQuery = *query
+	}
+	return filter, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {

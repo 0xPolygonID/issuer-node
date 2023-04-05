@@ -1434,7 +1434,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("wrong"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				errorMsg: "Wrong type value. Allowed values: [all, revoked, expired]",
+				errorMsg: "wrong type value. Allowed values: [all, revoked, expired]",
 			},
 		},
 		{
