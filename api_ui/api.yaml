@@ -1083,7 +1083,7 @@ components:
         expiration:
           type: string
           format: date-time
-          example: "2025-03-20T11:54:01.110295+01:00"
+          example: 2022-08-17T12:43:32.720Z
         signatureProof:
           type: boolean
         mtProof:
