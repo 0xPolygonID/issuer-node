@@ -464,6 +464,24 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/state/transactions:
+    get:
+      summary: Endpoint to get the identity state transactions
+      operationId: GetStateTransactions
+      security:
+        - basicAuth: [ ]
+      tags:
+        - State
+      responses:
+        '200':
+          description: State transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateTransactionsResponse'
+        '500':
+          $ref: '#/components/responses/500'
+
   # Links
   /v1/credentials/links:
     get:
@@ -1010,6 +1028,39 @@ components:
         status:
           type: string
           enum: [ active, inactive, exceeded ]
+
+    StateTransactionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/StateTransaction'
+
+    StateTransaction:
+      type: object
+      required:
+        - id
+        - txID
+        - state
+        - publishDate
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        txID:
+          type: string
+          example: 0x8f271174b45ba7892d83d7210c9b54b70ee1e02a63a0f7abf6308663bc462eac
+        state:
+          type: string
+          example: 13f9aadd4801d775e85a7ef45c2f6d02cdf83f0d724250417b165ff9cd88ee21
+        publishDate:
+          type: string
+          format: date-time
+          example: 2023-03-17T10:18:01.400722+01:00
+        status:
+          type: string
+          enum: [created, pending, published, failed]
+          example: published
 
     StateStatusResponse:
       type: object
