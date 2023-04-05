@@ -12,7 +12,7 @@ import {
 import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Schema } from "src/domain";
-import { API_VERSION, QUERY_SEARCH_PARAM, TYPE_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 // TODO - refactor & order as Credentials are implemented
 
@@ -56,7 +56,7 @@ export async function getCredentials({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(status !== undefined && status !== "all" ? { [TYPE_SEARCH_PARAM]: status } : {}),
+        ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials`,
