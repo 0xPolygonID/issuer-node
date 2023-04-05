@@ -760,6 +760,10 @@ func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier core
 	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, &identifier)
 }
 
+func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+	return i.identityRepository.HasUnprocessedAndFailedStatesByID(ctx, i.storage.Pgx, &identifier)
+}
+
 func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
 	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
 	if err != nil {

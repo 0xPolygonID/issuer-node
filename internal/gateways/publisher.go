@@ -478,7 +478,7 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 	}
 
 	if !confirmed {
-		log.Debug(ctx, fmt.Sprintf("transaction receipt is found, but it is not confirmed yet - %s", *state.TxID))
+		log.Debug(ctx, "transaction receipt is found, but it is not confirmed yet", "TxID", *state.TxID)
 		return ErrStateIsBeingProcessed
 	}
 

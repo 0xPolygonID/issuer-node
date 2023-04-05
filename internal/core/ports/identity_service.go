@@ -24,6 +24,7 @@ type IdentityService interface {
 	GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.Claim) (kms.KeyID, error)
 	GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error)
 	HasUnprocessedStatesByID(ctx context.Context, identifier core.DID) (bool, error)
+	HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier core.DID) (bool, error)
 	GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)

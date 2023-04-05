@@ -399,7 +399,7 @@ func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStat
 
 // GetStateStatus - get the state status
 func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObject) (GetStateStatusResponseObject, error) {
-	pendingActions, err := s.identityService.HasUnprocessedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
+	pendingActions, err := s.identityService.HasUnprocessedAndFailedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "get state status", "err", err)
 		return GetStateStatus500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
