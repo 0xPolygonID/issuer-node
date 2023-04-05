@@ -29,7 +29,7 @@ const MENU_ITEMS = [
     danger: true,
     icon: <IconTrash />,
     key: "delete",
-    label: "Delete connection",
+    label: "Delete",
   },
 ];
 
