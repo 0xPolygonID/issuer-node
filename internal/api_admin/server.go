@@ -380,7 +380,7 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 
 // RetryPublishState - retry to publish the current state if it failed previously.
 func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
-	_, err := s.publisherGateway.RetryPublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	publishedState, err := s.publisherGateway.RetryPublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "error retrying the publishing the state", "err", err)
 		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoFailedStatesToProcess) {
@@ -388,7 +388,13 @@ func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStat
 		}
 		return RetryPublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-	return RetryPublishState202JSONResponse{}, nil
+	return RetryPublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
 }
 
 // GetStateStatus - get the state status
