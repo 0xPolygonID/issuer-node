@@ -169,7 +169,7 @@ const arrayPropsInputParser = getStrictParser<ArrayPropsInput>()(
   })
 );
 
-const arraySchemaParser = getStrictParser<ArraySchemaInput>()(
+const arraySchemaInputParser = getStrictParser<ArraySchemaInput>()(
   commonPropsParser.and(arrayPropsInputParser).and(
     z.object({
       type: z.literal("array"),
@@ -179,7 +179,7 @@ const arraySchemaParser = getStrictParser<ArraySchemaInput>()(
 
 function getArrayAttributeParser(name: string, required: boolean) {
   return getStrictParser<ArraySchemaInput, ArrayAttribute>()(
-    arraySchemaParser.transform(
+    arraySchemaInputParser.transform(
       (schema): ArrayAttribute => ({
         name,
         required,
@@ -199,15 +199,15 @@ type ObjectPropsInput = Omit<ObjectProps, "properties"> & {
 
 type ObjectSchemaInput = CommonProps & ObjectPropsInput & { type: "object" };
 
-const objectPropsParser = getStrictParser<ObjectPropsInput>()(
+const objectPropsInputParser = getStrictParser<ObjectPropsInput>()(
   z.object({
     properties: z.record(z.unknown()).optional(),
     required: z.string().array().optional(),
   })
 );
 
-const objectSchemaParser = getStrictParser<ObjectSchemaInput>()(
-  commonPropsParser.and(objectPropsParser).and(
+const objectSchemaInputParser = getStrictParser<ObjectSchemaInput>()(
+  commonPropsParser.and(objectPropsInputParser).and(
     z.object({
       type: z.literal("object"),
     })
@@ -216,7 +216,7 @@ const objectSchemaParser = getStrictParser<ObjectSchemaInput>()(
 
 function getObjectAttributeParser(name: string, required: boolean) {
   return getStrictParser<ObjectSchemaInput, ObjectAttribute>()(
-    objectSchemaParser.transform(
+    objectSchemaInputParser.transform(
       (schema): ObjectAttribute => ({
         name,
         required,
@@ -256,7 +256,7 @@ type MultiProps = StringProps & BooleanProps & ObjectPropsInput & ArrayPropsInpu
 type MultiSchemaInput = CommonProps & MultiProps & MultiSchemaType;
 
 const multiPropsParser = getStrictParser<MultiProps>()(
-  stringPropsParser.and(booleanPropsParser).and(objectPropsParser).and(arrayPropsInputParser)
+  stringPropsParser.and(booleanPropsParser).and(objectPropsInputParser).and(arrayPropsInputParser)
 );
 
 const multiSchemaTypeParser = getStrictParser<MultiSchemaType>()(
@@ -276,7 +276,7 @@ const multiSchemaTypeParser = getStrictParser<MultiSchemaType>()(
   })
 );
 
-function getMultiSchemaParser(name: string, required: boolean) {
+function getMultiAttributeParser(name: string, required: boolean) {
   return getStrictParser<MultiSchemaInput, MultiAttribute>()(
     commonPropsParser
       .and(multiPropsParser)
@@ -357,7 +357,7 @@ function getAttributeParser(name: string, required: boolean) {
       getStringAttributeParser(name, required),
       getArrayAttributeParser(name, required),
       getObjectAttributeParser(name, required),
-      getMultiSchemaParser(name, required),
+      getMultiAttributeParser(name, required),
     ])
   );
 }
