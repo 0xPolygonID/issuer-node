@@ -4,8 +4,7 @@ import { downloadJsonFromUrl } from "src/adapters/json";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { Detail } from "src/components/schemas/Detail";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
-import { Json, JsonLdType } from "src/domain";
-import { JsonSchema } from "src/domain/jsonSchema";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({

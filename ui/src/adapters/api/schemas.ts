@@ -9,8 +9,7 @@ import {
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
-import { Env, JsonLdType } from "src/domain";
-import { Schema, SchemaAttribute } from "src/domain/schema";
+import { Env, JsonLdType, Schema, SchemaAttribute } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
 interface Schemas {

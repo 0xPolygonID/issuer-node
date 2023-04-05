@@ -1,4 +1,4 @@
-import { CredentialsTabIDs } from "src/domain/credential";
+import { CredentialsTabIDs } from "src/domain";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";

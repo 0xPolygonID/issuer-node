@@ -13,7 +13,7 @@ import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { useEnvContext } from "src/contexts/env";
-import { Schema } from "src/domain/schema";
+import { Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { downloadFile } from "src/utils/browser";
 import {

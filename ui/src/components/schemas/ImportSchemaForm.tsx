@@ -5,8 +5,7 @@ import { z } from "zod";
 import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { Json, JsonLdType } from "src/domain";
-import { JsonSchema } from "src/domain/jsonSchema";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { processZodError } from "src/utils/error";
 

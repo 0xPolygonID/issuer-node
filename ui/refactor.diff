@@ -1,0 +1,249 @@
+diff --git a/ui/src/components/connections/Connections.tsx b/ui/src/components/connections/Connections.tsx
+index 32d0c7f..236d8b2 100644
+--- a/ui/src/components/connections/Connections.tsx
++++ b/ui/src/components/connections/Connections.tsx
+@@ -1,8 +1,9 @@
+ import { Avatar, Card, Divider, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
+ import { ColumnsType } from "antd/es/table";
+ import { useCallback, useEffect, useState } from "react";
+-import { useSearchParams } from "react-router-dom";
++import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
+ 
++import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
+ import { APIError } from "src/adapters/api";
+ import { Connection, getConnections } from "src/adapters/api/connections";
+ import { Credential } from "src/adapters/api/credentials";
+@@ -13,6 +14,7 @@ import { NoResults } from "src/components/shared/NoResults";
+ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
+ import { TableCard } from "src/components/shared/TableCard";
+ import { useEnvContext } from "src/contexts/env";
++import { ROUTES } from "src/routes";
+ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+ import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
+ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
+@@ -20,14 +22,26 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
+ export function Connections() {
+   const env = useEnvContext();
+ 
++  const navigate = useNavigate();
++
+   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
+     status: "pending",
+   });
+ 
++  const [showDeleteModalForId, setShowDeleteModalForId] = useState<string>();
++
+   const [searchParams, setSearchParams] = useSearchParams();
+ 
+   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+ 
++  const onMenuSelect = (menuKey: string, id: string) => {
++    if (menuKey === "details") {
++      navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
++    } else if (menuKey === "delete") {
++      setShowDeleteModalForId(id);
++    }
++  };
++
+   const tableColumns: ColumnsType<Connection> = [
+     {
+       dataIndex: "userID",
+@@ -58,7 +72,9 @@ export function Connections() {
+     {
+       dataIndex: "id",
+       key: "id",
+-      render: (id: Connection["id"]) => <ConnectionsRowDropdown id={id} />,
++      render: (id: Connection["id"]) => (
++        <ConnectionsRowDropdown onMenuSelect={(menuKey: string) => onMenuSelect(menuKey, id)} />
++      ),
+       width: 55,
+     },
+   ];
+@@ -115,66 +131,77 @@ export function Connections() {
+   const connectionsList = isAsyncTaskDataAvailable(connections) ? connections.data : [];
+ 
+   return (
+-    <SiderLayoutContent
+-      description="Connections are established via a secure channel upon issuing credentials to users."
+-      title={CONNECTIONS}
+-    >
+-      <Divider />
+-
+-      <TableCard
+-        defaultContents={
+-          <>
+-            <Avatar className="avatar-color-cyan" icon={<IconUsers />} size={48} />
+-
+-            <Typography.Text strong>No connections</Typography.Text>
+-
+-            <Typography.Text type="secondary">
+-              Your connections will be listed here.
+-            </Typography.Text>
+-          </>
+-        }
+-        isLoading={isAsyncTaskStarting(connections)}
+-        onSearch={onSearch}
+-        query={queryParam}
+-        searchPlaceholder="Search connections, credentials..."
+-        showDefaultContents={
+-          connections.status === "successful" && connectionsList.length === 0 && queryParam === null
+-        }
+-        table={
+-          <Table
+-            columns={tableColumns.map(({ title, ...column }) => ({
+-              title: (
+-                <Typography.Text type="secondary">
+-                  <>{title}</>
+-                </Typography.Text>
+-              ),
+-              ...column,
+-            }))}
+-            dataSource={connectionsList}
+-            locale={{
+-              emptyText:
+-                connections.status === "failed" ? (
+-                  <ErrorResult error={connections.error.message} />
+-                ) : (
+-                  <NoResults searchQuery={queryParam} />
++    <>
++      {showDeleteModalForId !== undefined && (
++        <ConnectionDeleteModal
++          id={showDeleteModalForId}
++          onClose={() => setShowDeleteModalForId(undefined)}
++          open={true}
++        />
++      )}
++      <SiderLayoutContent
++        description="Connections are established via a secure channel upon issuing credentials to users."
++        title={CONNECTIONS}
++      >
++        <Divider />
++
++        <TableCard
++          defaultContents={
++            <>
++              <Avatar className="avatar-color-cyan" icon={<IconUsers />} size={48} />
++
++              <Typography.Text strong>No connections</Typography.Text>
++
++              <Typography.Text type="secondary">
++                Your connections will be listed here.
++              </Typography.Text>
++            </>
++          }
++          isLoading={isAsyncTaskStarting(connections)}
++          onSearch={onSearch}
++          query={queryParam}
++          searchPlaceholder="Search connections, credentials..."
++          showDefaultContents={
++            connections.status === "successful" &&
++            connectionsList.length === 0 &&
++            queryParam === null
++          }
++          table={
++            <Table
++              columns={tableColumns.map(({ title, ...column }) => ({
++                title: (
++                  <Typography.Text type="secondary">
++                    <>{title}</>
++                  </Typography.Text>
+                 ),
+-            }}
+-            pagination={false}
+-            rowKey="id"
+-            showSorterTooltip
+-            sortDirections={["ascend", "descend"]}
+-          />
+-        }
+-        title={
+-          <Row justify="space-between">
+-            <Space align="end" size="middle">
+-              <Card.Meta title={CONNECTIONS} />
+-
+-              <Tag color="blue">{connectionsList.length}</Tag>
+-            </Space>
+-          </Row>
+-        }
+-      />
+-    </SiderLayoutContent>
++                ...column,
++              }))}
++              dataSource={connectionsList}
++              locale={{
++                emptyText:
++                  connections.status === "failed" ? (
++                    <ErrorResult error={connections.error.message} />
++                  ) : (
++                    <NoResults searchQuery={queryParam} />
++                  ),
++              }}
++              pagination={false}
++              rowKey="id"
++              showSorterTooltip
++              sortDirections={["ascend", "descend"]}
++            />
++          }
++          title={
++            <Row justify="space-between">
++              <Space align="end" size="middle">
++                <Card.Meta title={CONNECTIONS} />
++
++                <Tag color="blue">{connectionsList.length}</Tag>
++              </Space>
++            </Row>
++          }
++        />
++      </SiderLayoutContent>
++    </>
+   );
+ }
+diff --git a/ui/src/components/connections/ConnectionsRowDropdown.tsx b/ui/src/components/connections/ConnectionsRowDropdown.tsx
+index 74e8cea..2c1409c 100644
+--- a/ui/src/components/connections/ConnectionsRowDropdown.tsx
++++ b/ui/src/components/connections/ConnectionsRowDropdown.tsx
+@@ -1,12 +1,8 @@
+ import { Dropdown, Row } from "antd";
+-import { useState } from "react";
+-import { generatePath, useNavigate } from "react-router-dom";
+ 
+-import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
+ import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
+ import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
+ import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+-import { ROUTES } from "src/routes";
+ 
+ const MENU_ITEMS = [
+   {
+@@ -26,19 +22,11 @@ const MENU_ITEMS = [
+   },
+ ];
+ 
+-export function ConnectionsRowDropdown({ id }: { id: string }) {
+-  const navigate = useNavigate();
+-
+-  const [showModal, setShowModal] = useState<boolean>(false);
+-
+-  const onMenuSelect = (key: string) => {
+-    if (key === "details") {
+-      navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
+-    } else if (key === "delete") {
+-      setShowModal(true);
+-    }
+-  };
+-
++export function ConnectionsRowDropdown({
++  onMenuSelect,
++}: {
++  onMenuSelect: (menuKey: string) => void;
++}) {
+   return (
+     <Dropdown
+       menu={{
+@@ -51,7 +39,6 @@ export function ConnectionsRowDropdown({ id }: { id: string }) {
+     >
+       <Row>
+         <IconDots className="icon-secondary" />
+-        <ConnectionDeleteModal id={id} onClose={() => setShowModal(false)} open={showModal} />
+       </Row>
+     </Dropdown>
+   );

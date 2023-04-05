@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 import { getSchemas } from "src/adapters/api/schemas";
 import { useEnvContext } from "src/contexts/env";
-import { Schema } from "src/domain/schema";
+import { Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";

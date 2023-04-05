@@ -4,7 +4,7 @@ import type { DataNode } from "antd/es/tree";
 import { useLayoutEffect, useRef, useState } from "react";
 
 import { SchemaTreeNode } from "src/components/schemas/SchemaTreeNode";
-import { Attribute, JsonSchema } from "src/domain/jsonSchema";
+import { Attribute, JsonSchema } from "src/domain";
 
 const attributeToTreeDataNode = ({
   attribute,

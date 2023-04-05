@@ -1,18 +1,46 @@
-export interface Env {
-  api: {
-    password: string;
-    url: string;
-    username: string;
-  };
-  issuer: {
-    did: string;
-    logo?: string;
-    name: string;
-  };
-}
+export type { Connection } from "src/domain/connection";
 
-export type JsonLdType = { id: string; name: string };
+export type {
+  BooleanCredentialFormAttribute,
+  Credential,
+  CredentialFormAttribute,
+  CredentialForm,
+  CredentialsTabIDs,
+  DateCredentialFormAttribute,
+  NumberCredentialFormAttribute,
+  SingleChoiceCredentialFormAttribute,
+} from "src/domain/credential";
 
-export type JsonLiteral = string | number | boolean | null;
+export type { Env } from "src/domain/env";
 
-export type Json = JsonLiteral | { [key: string]: Json } | Json[];
+export type { Json, JsonLiteral } from "src/domain/json";
+
+export type {
+  Attribute,
+  ArrayAttribute,
+  ArrayProps,
+  ArraySchema,
+  BooleanAttribute,
+  BooleanProps,
+  BooleanSchema,
+  CommonProps,
+  IntegerSchema,
+  IntegerAttribute,
+  MultiAttribute,
+  MultiSchema,
+  NumberAttribute,
+  NullAttribute,
+  NullSchema,
+  NumberSchema,
+  ObjectAttribute,
+  ObjectProps,
+  ObjectSchema,
+  JsonSchema,
+  SchemaProps,
+  StringAttribute,
+  StringProps,
+  StringSchema,
+  JsonLdType,
+} from "src/domain/jsonSchema";
+
+export type { Schema, SchemaAttribute } from "src/domain/schema";
