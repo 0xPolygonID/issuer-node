@@ -18,9 +18,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { APIError } from "src/adapters/api";
 import {
-  Credential,
   CredentialStatus,
-  credentialTypeParser,
+  credentialStatusParser,
   getCredentials,
 } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
@@ -33,6 +32,8 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { Credential } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS,
@@ -42,7 +43,6 @@ import {
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 extendDayJsWith(relativeTime);
 
@@ -182,7 +182,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
   );
 
   const handleTypeChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedCredentialType = credentialTypeParser.safeParse(value);
+    const parsedCredentialType = credentialStatusParser.safeParse(value);
     if (parsedCredentialType.success) {
       setCredentialStatus(parsedCredentialType.data);
     } else {

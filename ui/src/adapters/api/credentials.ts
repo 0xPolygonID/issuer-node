@@ -9,23 +9,14 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { Schema, schema } from "src/adapters/api/schemas";
-import { Env } from "src/domain";
+import { schemaParser } from "src/adapters/api/schemas";
+import { getStrictParser } from "src/adapters/parsers";
+import { Credential, Env, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, TYPE_SEARCH_PARAM } from "src/utils/constants";
-import { StrictSchema } from "src/utils/types";
 
-export interface Credential {
-  attributes: {
-    type: string;
-  };
-  createdAt: Date;
-  expired?: boolean;
-  expiresAt?: Date;
-  id: string;
-  revoked?: boolean;
-}
+// TODO - refactor & order as Credentials are implemented
 
-export const credential = StrictSchema<Credential>()(
+export const credentialParser = getStrictParser<Credential>()(
   z.object({
     attributes: z.object({
       type: z.string(),
@@ -40,7 +31,7 @@ export const credential = StrictSchema<Credential>()(
 
 export type CredentialStatus = "all" | "revoked" | "expired";
 
-export const credentialTypeParser = StrictSchema<CredentialStatus>()(
+export const credentialStatusParser = getStrictParser<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
 
@@ -78,12 +69,25 @@ export async function getCredentials({
   }
 }
 
-const resultOKCredentials = StrictSchema<ResultOK<Credential[]>>()(
+const resultOKCredentials = getStrictParser<ResultOK<Credential[]>>()(
   z.object({
-    data: z.array(credential),
+    data: z.array(credentialParser),
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
+
+interface CredentialQRCode {
+  body: {
+    callbackUrl: string;
+    reason: string;
+    scope: unknown[];
+  };
+  from: string;
+  id: string;
+  thid: string;
+  typ: string;
+  type: string;
+}
 
 export interface CredentialAttribute {
   attributeKey: string;
@@ -103,7 +107,7 @@ export interface OldCredential {
   valid: boolean;
 }
 
-interface CredentialPayload {
+interface CredentialInput {
   active: boolean;
   attributeValues: CredentialAttribute[];
   claimLinkExpiration: Date | null;
@@ -116,7 +120,7 @@ interface CredentialPayload {
   valid: boolean;
 }
 
-export interface CredentialIssuePayload {
+export interface CredentialIssue {
   attributes: CredentialAttribute[];
   claimLinkExpiration: string | null;
   expirationDate: string | null;
@@ -129,7 +133,7 @@ export async function credentialIssue({
   schemaID,
 }: {
   env: Env;
-  payload: CredentialIssuePayload;
+  payload: CredentialIssue;
   schemaID: string;
 }): Promise<APIResponse<OldCredential>> {
   try {
@@ -142,16 +146,12 @@ export async function credentialIssue({
       method: "POST",
       url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
     });
-    const { data } = resultCreatedCredential.parse(response);
+    const { data } = resultCreatedCredentialParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
-}
-
-interface CredentialUpdatePayload {
-  active: boolean;
 }
 
 export async function credentialUpdate({
@@ -162,7 +162,9 @@ export async function credentialUpdate({
 }: {
   credentialID: string;
   env: Env;
-  payload: CredentialUpdatePayload;
+  payload: {
+    active: boolean;
+  };
   schemaID: string;
 }): Promise<APIResponse<OldCredential>> {
   try {
@@ -175,7 +177,7 @@ export async function credentialUpdate({
       method: "PATCH",
       url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
     });
-    const { data } = resultOKCredential.parse(response);
+    const { data } = resultOKCredentialParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -214,7 +216,7 @@ export async function credentialsGetAll({
       signal,
       url: `${API_VERSION}/issuers/${env.issuer.did}/offers`,
     });
-    const { data } = resultOKCredentialsGetAll.parse(response);
+    const { data } = resultOKCredentialsGetAllParser.parse(response);
 
     return {
       data: {
@@ -228,20 +230,7 @@ export async function credentialsGetAll({
   }
 }
 
-interface CredentialQRCode {
-  body: {
-    callbackUrl: string;
-    reason: string;
-    scope: unknown[];
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-const credentialQRCode = StrictSchema<CredentialQRCode>()(
+const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
   z.object({
     body: z.object({
       callbackUrl: z.string(),
@@ -263,32 +252,32 @@ export interface ShareCredentialQRCode {
   sessionID: string;
 }
 
-interface ShareCredentialQRCodePayload {
+interface ShareCredentialQRCodeInput {
   issuer: { displayName: string; logo: string };
-  offerDetails: CredentialPayload;
+  offerDetails: CredentialInput;
   qrcode: CredentialQRCode;
   sessionID: string;
 }
 
-const apiCredentialAttribute = StrictSchema<CredentialAttribute>()(
+const apiCredentialAttributeParser = getStrictParser<CredentialAttribute>()(
   z.object({
     attributeKey: z.string(),
     attributeValue: z.number(),
   })
 );
 
-const oldCredential = StrictSchema<CredentialPayload, OldCredential>()(
+const oldCredentialParser = getStrictParser<CredentialInput, OldCredential>()(
   z
     .object({
       active: z.boolean(),
-      attributeValues: z.array(apiCredentialAttribute),
+      attributeValues: z.array(apiCredentialAttributeParser),
       claimLinkExpiration: z.coerce.date().nullable(),
       createdAt: z.coerce.date(),
       expiresAt: z.coerce.date().nullable(),
       id: z.string(),
       issuedClaims: z.number().nullable(),
       limitedClaims: z.number().nullable(),
-      schemaTemplate: schema,
+      schemaTemplate: schemaParser,
       valid: z.boolean(),
     })
     .transform(
@@ -318,24 +307,27 @@ const oldCredential = StrictSchema<CredentialPayload, OldCredential>()(
     )
 );
 
-const shareCredentialQRCode = StrictSchema<ShareCredentialQRCodePayload, ShareCredentialQRCode>()(
+const shareCredentialQRCodeParser = getStrictParser<
+  ShareCredentialQRCodeInput,
+  ShareCredentialQRCode
+>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
       logo: z.string(),
     }),
-    offerDetails: oldCredential,
-    qrcode: credentialQRCode,
+    offerDetails: oldCredentialParser,
+    qrcode: credentialQRCodeParser,
     sessionID: z.string(),
   })
 );
 
-const resultOKShareCredentialQRCode = StrictSchema<
-  ResultOK<ShareCredentialQRCodePayload>,
+const resultOKShareCredentialQRCodeParser = getStrictParser<
+  ResultOK<ShareCredentialQRCodeInput>,
   ResultOK<ShareCredentialQRCode>
 >()(
   z.object({
-    data: shareCredentialQRCode,
+    data: shareCredentialQRCodeParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
@@ -357,7 +349,7 @@ export async function credentialsQRCreate({
       url: `${API_VERSION}/offers-qrcode/${id}`,
     });
 
-    const { data } = resultOKShareCredentialQRCode.parse(response);
+    const { data } = resultOKShareCredentialQRCodeParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -365,19 +357,22 @@ export async function credentialsQRCreate({
   }
 }
 
-const resultCreatedCredential = StrictSchema<
-  ResultCreated<CredentialPayload>,
+const resultCreatedCredentialParser = getStrictParser<
+  ResultCreated<CredentialInput>,
   ResultCreated<OldCredential>
 >()(
   z.object({
-    data: oldCredential,
+    data: oldCredentialParser,
     status: z.literal(HTTPStatusSuccess.Created),
   })
 );
 
-const resultOKCredential = StrictSchema<ResultOK<CredentialPayload>, ResultOK<OldCredential>>()(
+const resultOKCredentialParser = getStrictParser<
+  ResultOK<CredentialInput>,
+  ResultOK<OldCredential>
+>()(
   z.object({
-    data: oldCredential,
+    data: oldCredentialParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
@@ -387,12 +382,16 @@ interface CredentialsGetAll {
   errors: z.ZodError<OldCredential>[];
 }
 
-const resultOKCredentialsGetAll = StrictSchema<ResultOK<unknown[]>, ResultOK<CredentialsGetAll>>()(
+const resultOKCredentialsGetAllParser = getStrictParser<
+  ResultOK<unknown[]>,
+  ResultOK<CredentialsGetAll>
+>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
         (acc: CredentialsGetAll, curr: unknown, index) => {
-          const parsedCredential = oldCredential.safeParse(curr);
+          const parsedCredential = oldCredentialParser.safeParse(curr);
+
           return parsedCredential.success
             ? {
                 ...acc,
@@ -433,7 +432,7 @@ interface AddingQRCode {
   type: string;
 }
 
-const addingQRCode = StrictSchema<AddingQRCode>()(
+const addingQRCodeParser = getStrictParser<AddingQRCode>()(
   z.object({
     body: z.object({
       credentials: z.array(
@@ -476,32 +475,36 @@ export type CredentialQRCheck =
   | CredentialQRCheckError
   | CredentialQRCheckPending;
 
-const credentialQRCheckDone = StrictSchema<CredentialQRCheckDone>()(
+const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheckDone>()(
   z.object({
-    qrcode: addingQRCode,
+    qrcode: addingQRCodeParser,
     status: z.literal(CredentialQRStatus.Done),
   })
 );
 
-const credentialQRCheckError = StrictSchema<CredentialQRCheckError>()(
+const credentialQRCheckErrorParser = getStrictParser<CredentialQRCheckError>()(
   z.object({
     status: z.literal(CredentialQRStatus.Error),
   })
 );
 
-const credentialQRCheckPending = StrictSchema<CredentialQRCheckPending>()(
+const credentialQRCheckPendingParser = getStrictParser<CredentialQRCheckPending>()(
   z.object({
     status: z.literal(CredentialQRStatus.Pending),
   })
 );
 
-const credentialQRCheck = StrictSchema<CredentialQRCheck>()(
-  z.union([credentialQRCheckDone, credentialQRCheckError, credentialQRCheckPending])
+const credentialQRCheckParser = getStrictParser<CredentialQRCheck>()(
+  z.union([
+    credentialQRCheckDoneParser,
+    credentialQRCheckErrorParser,
+    credentialQRCheckPendingParser,
+  ])
 );
 
-const resultOKCredentialQRCheck = StrictSchema<ResultOK<CredentialQRCheck>>()(
+const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
   z.object({
-    data: credentialQRCheck,
+    data: credentialQRCheckParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
@@ -525,7 +528,7 @@ export async function credentialsQRCheck({
       url: `${API_VERSION}/offers-qrcode/${credentialID}`,
     });
 
-    const { data } = resultOKCredentialQRCheck.parse(response);
+    const { data } = resultOKCredentialQRCheckParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {

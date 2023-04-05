@@ -4,32 +4,30 @@ import { downloadJsonFromUrl } from "src/adapters/json";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
-import { Json, JsonLdType, Schema } from "src/domain";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({
   jsonLdType,
+  jsonSchema,
   onBack,
   onImport,
   rawJsonLdContext,
   rawJsonSchema,
-  schema,
   url,
 }: {
   jsonLdType: JsonLdType;
+  jsonSchema: JsonSchema;
   onBack: () => void;
   onImport: () => void;
   rawJsonLdContext: Json;
   rawJsonSchema: Json;
-  schema: Schema;
   url: string;
 }) {
-  const schemaHashResult = getSchemaHash(jsonLdType);
-  const schemaHash =
-    schemaHashResult && schemaHashResult.success ? schemaHashResult.data : undefined;
-
   const bigintResult = getBigint(jsonLdType);
-  const bigint = bigintResult && bigintResult.success ? bigintResult.data : undefined;
+  const bigint = bigintResult && bigintResult.success ? bigintResult.data : null;
+  const schemaHashResult = getSchemaHash(jsonLdType);
+  const schemaHash = schemaHashResult && schemaHashResult.success ? schemaHashResult.data : null;
 
   return (
     <SchemaViewer
@@ -49,13 +47,13 @@ export function ImportSchemaPreview({
           <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
           <Detail
-            copyable={bigint !== undefined}
+            copyable={bigint !== null}
             label="BigInt"
             text={bigint || "An error occurred while calculating BigInt"}
           />
 
           <Detail
-            copyable={schemaHash !== undefined}
+            copyable={schemaHash !== null}
             label="Hash"
             text={schemaHash || "An error occurred while calculating Hash"}
           />
@@ -67,7 +65,7 @@ export function ImportSchemaPreview({
 
             <Button
               onClick={() => {
-                downloadJsonFromUrl({ fileName: schema.name, url })
+                downloadJsonFromUrl({ fileName: jsonSchema.name, url })
                   .then(() => {
                     void message.success("Schema successfully downloaded");
                   })
@@ -86,9 +84,9 @@ export function ImportSchemaPreview({
         </Space>
       }
       jsonLdType={jsonLdType}
+      jsonSchema={jsonSchema}
       rawJsonLdContext={rawJsonLdContext}
       rawJsonSchema={rawJsonSchema}
-      schema={schema}
     />
   );
 }

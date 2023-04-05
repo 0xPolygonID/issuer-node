@@ -5,8 +5,7 @@ import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
 import { APIError } from "src/adapters/api";
-import { Connection, getConnections } from "src/adapters/api/connections";
-import { Credential } from "src/adapters/api/credentials";
+import { getConnections } from "src/adapters/api/connections";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
@@ -16,10 +15,11 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { Connection, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function ConnectionsTable() {
   const env = useEnvContext();

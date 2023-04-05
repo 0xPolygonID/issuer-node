@@ -4,8 +4,8 @@ import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { OldCredential, credentialIssue } from "src/adapters/api/credentials";
-import { Schema, getSchema } from "src/adapters/api/schemas";
-import { issueCredentialFormData } from "src/adapters/parsers/forms";
+import { getSchema } from "src/adapters/api/schemas";
+import { getIssueCredentialFormDataParser } from "src/adapters/parsers/forms";
 import { serializeCredentialForm } from "src/adapters/parsers/serializers";
 import {
   AttributeValues,
@@ -18,10 +18,11 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
+import { Schema } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
-import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 type IssuanceStep = "attributes" | "issuanceMethod" | "summary";
 
@@ -76,10 +77,11 @@ export function IssueCredential() {
 
   const issueCredential = (formData: FormData) => {
     if (schemaID) {
-      const parsedForm = issueCredentialFormData([]).safeParse(formData);
+      const parsedForm = getIssueCredentialFormDataParser([]).safeParse(formData);
 
       if (parsedForm.success) {
         setCredential({ status: "loading" });
+
         void credentialIssue({
           env,
           payload: serializeCredentialForm(parsedForm.data),
@@ -87,10 +89,12 @@ export function IssueCredential() {
         }).then((response) => {
           if (response.isSuccessful) {
             setCredential({ data: response.data, status: "successful" });
-            void message.success("Credential link created");
             setStep("summary");
+
+            void message.success("Credential link created");
           } else {
             setCredential({ error: undefined, status: "failed" });
+
             void message.error(response.error.message);
           }
         });
@@ -106,6 +110,7 @@ export function IssueCredential() {
 
     if (schemaID) {
       const { aborter } = makeRequestAbortable(fetchSchema);
+
       return aborter;
     } else {
       setSchema({ status: "pending" });
@@ -137,6 +142,7 @@ export function IssueCredential() {
                   <Card className="issue-credential-card" title="Credential details">
                     <Space direction="vertical">
                       <SelectSchema schemaID={schemaID} />
+
                       <IssueCredentialForm
                         initialValues={formData.attributes}
                         onSubmit={(values) => {
