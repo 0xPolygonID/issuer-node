@@ -265,6 +265,14 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
 	filter := &ports.ClaimsFilter{}
+	if request.Params.Did != nil {
+		did, err := core.ParseDID(*request.Params.Did)
+		if err != nil {
+			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *request.Params.Did)
+			return GetCredentials400JSONResponse{N400JSONResponse{"cannot parse did parameter: wrong format"}}, nil
+		}
+		filter.Subject, filter.FTSAndCond = did.String(), true
+	}
 	if request.Params.Status != nil {
 		switch GetCredentialsParamsStatus(strings.ToLower(string(*request.Params.Status))) {
 		case Revoked:
