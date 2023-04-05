@@ -30,6 +30,15 @@ export function ImportSchemaForm({
     initialFormData?.schemaUrlInput || ""
   );
   const [schemaUrl, setSchemaUrl] = useState<string | undefined>(initialFormData?.schemaUrl);
+  const [jsonLdTypeInput, setJsonLdTypeInput] = useState<JsonLdType | undefined>(
+    initialFormData?.jsonLdType
+  );
+  const [rawJsonLdContext, setRawJsonLdContext] = useState<Json | undefined>(
+    initialFormData?.rawJsonLdContext
+  );
+  const [rawJsonSchema, setRawJsonSchema] = useState<Json | undefined>(
+    initialFormData?.rawJsonSchema
+  );
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>(
     initialFormData
       ? { data: initialFormData.jsonSchema, status: "successful" }
@@ -37,21 +46,12 @@ export function ImportSchemaForm({
           status: "pending",
         }
   );
-  const [rawJsonSchema, setRawJsonSchema] = useState<Json | undefined>(
-    initialFormData?.rawJsonSchema
-  );
   const [jsonLdTypes, setJsonLdTypes] = useState<AsyncTask<JsonLdType[], string | z.ZodError>>(
     initialFormData
       ? initialFormData.jsonLdTypes
       : {
           status: "pending",
         }
-  );
-  const [jsonLdTypeInput, setJsonLdTypeInput] = useState<JsonLdType | undefined>(
-    initialFormData?.jsonLdType
-  );
-  const [rawJsonLdContext, setRawJsonLdContext] = useState<Json | undefined>(
-    initialFormData?.rawJsonLdContext
   );
 
   const processError = (error: unknown) =>
@@ -63,10 +63,10 @@ export function ImportSchemaForm({
     getSchemaFromUrl({
       url,
     })
-      .then(([jsonSchema, rawSchema]) => {
+      .then(([jsonSchema, rawJsonSchema]) => {
         setSchemaUrl(url);
         setJsonSchema({ data: jsonSchema, status: "successful" });
-        setRawJsonSchema(rawSchema);
+        setRawJsonSchema(rawJsonSchema);
         setJsonLdTypes({ status: "loading" });
 
         getSchemaJsonLdTypes({

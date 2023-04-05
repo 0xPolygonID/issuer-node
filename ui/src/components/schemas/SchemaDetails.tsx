@@ -32,7 +32,7 @@ export function SchemaDetails() {
   >({
     status: "pending",
   });
-  const [apiSchema, setApiSchema] = useState<AsyncTask<Schema, APIError>>({
+  const [schema, setSchema] = useState<AsyncTask<Schema, APIError>>({
     status: "pending",
   });
   const [contextTuple, setContextTuple] = useState<
@@ -44,11 +44,11 @@ export function SchemaDetails() {
   const extractError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const fetchSchemaFromUrl = useCallback((apiSchema: Schema): void => {
+  const fetchSchemaFromUrl = useCallback((schema: Schema): void => {
     setJsonSchemaTuple({ status: "loading" });
 
     getSchemaFromUrl({
-      url: apiSchema.url,
+      url: schema.url,
     })
       .then(([jsonSchema, rawJsonSchema]) => {
         setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
@@ -57,7 +57,7 @@ export function SchemaDetails() {
           jsonSchema,
         })
           .then(([jsonLdTypes, rawJsonLdContext]) => {
-            const jsonLdType = jsonLdTypes.find((type) => type.name === apiSchema.type);
+            const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
             if (jsonLdType) {
               setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
@@ -87,7 +87,7 @@ export function SchemaDetails() {
   const fetchApiSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
-        setApiSchema({ status: "loading" });
+        setSchema({ status: "loading" });
 
         const response = await getSchema({
           env,
@@ -96,11 +96,11 @@ export function SchemaDetails() {
         });
 
         if (response.isSuccessful) {
-          setApiSchema({ data: response.data, status: "successful" });
+          setSchema({ data: response.data, status: "successful" });
           fetchSchemaFromUrl(response.data);
         } else {
           if (!isAbortedError(response.error)) {
-            setApiSchema({ error: response.error, status: "failed" });
+            setSchema({ error: response.error, status: "failed" });
           }
         }
       }
@@ -135,7 +135,7 @@ export function SchemaDetails() {
       : `An error occurred while downloading the schema from the URL:\n"${error}"\nPlease try again.`;
 
   const loading =
-    isAsyncTaskStarting(apiSchema) ||
+    isAsyncTaskStarting(schema) ||
     isAsyncTaskStarting(jsonSchemaTuple) ||
     isAsyncTaskStarting(contextTuple);
 
@@ -147,13 +147,13 @@ export function SchemaDetails() {
       title="Schema details"
     >
       {(() => {
-        if (hasAsyncTaskFailed(apiSchema)) {
+        if (hasAsyncTaskFailed(schema)) {
           return (
             <Card className="centered">
               <ErrorResult
                 error={[
                   "An error occurred while downloading or parsing the schema from the API:",
-                  apiSchema.error.message,
+                  schema.error.message,
                 ].join("\n")}
               />
             </Card>
@@ -177,7 +177,7 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const { bigInt, createdAt, hash, url } = apiSchema.data;
+          const { bigInt, createdAt, hash, url } = schema.data;
           const [jsonSchema, rawJsonSchema] = jsonSchemaTuple.data;
           const [jsonLdType, rawJsonLdContext] = contextTuple.data;
 
