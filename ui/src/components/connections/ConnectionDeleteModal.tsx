@@ -23,9 +23,11 @@ export function ConnectionDeleteModal({
     void deleteConnection({ deleteCredentials, env, id, revokeCredentials }).then((response) => {
       if (response.isSuccessful) {
         onClose();
+
         if (onDelete) {
           onDelete();
         }
+
         void message.success(response.data);
       } else {
         void message.error(response.error.message);
