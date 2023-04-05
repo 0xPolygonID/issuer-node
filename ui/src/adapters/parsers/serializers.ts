@@ -8,7 +8,7 @@ import {
   DateCredentialFormAttribute,
   NumberCredentialFormAttribute,
   SingleChoiceCredentialFormAttribute,
-} from "src/domain/credential";
+} from "src/domain";
 
 function serializeBooleanCredentialFormAttribute(
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute

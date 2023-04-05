@@ -10,7 +10,7 @@ import {
 } from "antd";
 
 import { Attribute } from "src/components/schemas/Attribute";
-import { SchemaAttribute } from "src/domain/schema";
+import { SchemaAttribute } from "src/domain";
 import { DATE_VALIDITY_MESSAGE } from "src/utils/constants";
 
 export function CredentialAttribute({

@@ -4,8 +4,7 @@ import { ReactNode, useState } from "react";
 import { ReactComponent as ChevronDownIcon } from "src/assets/icons/chevron-down.svg";
 import { JSONHighlighter } from "src/components/schemas/JSONHighlighter";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
-import { Json, JsonLdType } from "src/domain";
-import { JsonSchema } from "src/domain/jsonSchema";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
 

@@ -112,3 +112,5 @@ export interface StringProps {
 }
 
 export type StringSchema = CommonProps & StringProps & { type: "string" };
+
+export type JsonLdType = { id: string; name: string };

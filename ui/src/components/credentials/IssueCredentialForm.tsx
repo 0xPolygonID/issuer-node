@@ -5,7 +5,7 @@ import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { CredentialAttribute } from "src/components/credentials/CredentialAttribute";
-import { Schema } from "src/domain/schema";
+import { Schema } from "src/domain";
 import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
 
 export type AttributeValues = {
