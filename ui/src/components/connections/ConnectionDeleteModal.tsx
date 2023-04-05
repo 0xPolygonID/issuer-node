@@ -10,12 +10,12 @@ export function ConnectionDeleteModal({
   callback,
   id,
   onClose,
-  open = true,
+  open,
 }: {
   callback?: () => void;
   id: string;
   onClose: () => void;
-  open?: boolean;
+  open: boolean;
 }) {
   const env = useEnvContext();
   const [revokeCredentials, setRevokeCredential] = useState<boolean>(false);

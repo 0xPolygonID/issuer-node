@@ -220,6 +220,7 @@ export function ConnectionsTable() {
         <ConnectionDeleteModal
           id={connectionSelected}
           onClose={() => setConnectionSelected(undefined)}
+          open={connectionSelected !== undefined}
         />
       )}
     </SiderLayoutContent>
