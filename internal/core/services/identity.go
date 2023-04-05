@@ -748,6 +748,10 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
+func (i *identity) GetStates(ctx context.Context, issuerDID core.DID) ([]domain.IdentityState, error) {
+	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID)
+}
+
 func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
 	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
 }

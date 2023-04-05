@@ -245,7 +245,7 @@ paths:
         - basicAuth: [ ]
       parameters:
         - in: query
-          name: type
+          name: status
           schema:
             type: string
             enum: [all, revoked, expired]
@@ -486,8 +486,66 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/state/transactions:
+    get:
+      summary: Endpoint to get the identity state transactions
+      operationId: GetStateTransactions
+      security:
+        - basicAuth: [ ]
+      tags:
+        - State
+      responses:
+        '200':
+          description: State transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StateTransactionsResponse'
+        '500':
+          $ref: '#/components/responses/500'
+
   # Links
   /v1/credentials/links:
+    get:
+      summary: Returns the list of links to credentials
+      operationId: GetLinks
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in schema types and attributes.
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ all, active, inactive, exceeded ]
+          description: >
+            Schema type:
+              * `all` - All links. (default value)
+              * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
+              * `inactive` - Only deactivated links
+              * `exceeded` - Expired or maximum issuance exceeded
+      responses:
+        '200':
+          description: Link collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Link'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+            $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
     post:
       summary: Create Link
       operationId: CreateLink
@@ -991,7 +1049,40 @@ components:
           type: boolean
         status:
           type: string
-          enum: [ active, inactive, exceed ]
+          enum: [ active, inactive, exceeded ]
+
+    StateTransactionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/StateTransaction'
+
+    StateTransaction:
+      type: object
+      required:
+        - id
+        - txID
+        - state
+        - publishDate
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        txID:
+          type: string
+          example: 0x8f271174b45ba7892d83d7210c9b54b70ee1e02a63a0f7abf6308663bc462eac
+        state:
+          type: string
+          example: 13f9aadd4801d775e85a7ef45c2f6d02cdf83f0d724250417b165ff9cd88ee21
+        publishDate:
+          type: string
+          format: date-time
+          example: 2023-03-17T10:18:01.400722+01:00
+        status:
+          type: string
+          enum: [created, pending, published, failed]
+          example: published
 
     StateStatusResponse:
       type: object
@@ -1056,29 +1147,28 @@ components:
         credentialSchema:
           type: string
           x-omitempty: false
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type:
           type: string
           x-omitempty: false
+          example: "KYCAgeCredential"
         credentialSubject:
           type: object
           x-omitempty: false
+          example:
+            id: "{fill with did}"
+            birthday: 19960424
+            documentType: 2
         expiration:
-          type: integer
-          format: int64
+          type: string
+          format: date-time
+          example: 2022-08-17T12:43:32.720Z
         signatureProof:
           type: boolean
+          example: true
         mtProof:
           type: boolean
-      example:
-        credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-        type: "KYCAgeCredential"
-        credentialSubject:
-          id: "{fill with did}"
-          birthday: 19960424
-          documentType: 2
-        expiration: 20250424
-        signatureProof: true
-        mtProof: true
+          example: true
 
     Schema:
       type: object

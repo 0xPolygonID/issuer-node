@@ -3,6 +3,7 @@ package services_tests
 import (
 	"context"
 	"testing"
+	"time"
 
 	core "github.com/iden3/go-iden3-core"
 	"github.com/stretchr/testify/assert"
@@ -68,10 +69,9 @@ func Test_identity_UpdateState(t *testing.T) {
 		"documentType": 2,
 	}
 	typeC := "KYCAgeCredential"
-	expiration := int64(12345)
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, &expiration, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	assert.NoError(t, err)
 
 	type testConfig struct {

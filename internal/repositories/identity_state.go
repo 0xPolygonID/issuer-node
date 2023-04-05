@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	core "github.com/iden3/go-iden3-core"
+	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -87,6 +88,34 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 	}
 	defer rows.Close()
 
+	return toIdentityStatesDomain(rows)
+}
+
+// GetPublishedStates returns all the states
+func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID core.DID) ([]domain.IdentityState, error) {
+	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
+       tx_id, previous_state, status, modified_at, created_at 
+	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC`, issuerDID.String())
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return toIdentityStatesDomain(rows)
+}
+
+func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, state *domain.IdentityState) (int64, error) {
+	tag, err := conn.Exec(ctx, `UPDATE identity_states 
+		SET block_timestamp=$1, block_number=$2, tx_id=$3, status=$4 WHERE state = $5 `,
+		state.BlockTimestamp, state.BlockNumber, state.TxID, state.Status, state.State)
+	if err != nil {
+		return 0, err
+	}
+
+	return tag.RowsAffected(), nil
+}
+
+func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
 	states := []domain.IdentityState{}
 	for rows.Next() {
 		var state domain.IdentityState
@@ -109,21 +138,10 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 	}
 
 	if rows.Err() != nil {
-		return nil, err
+		return nil, rows.Err()
 	}
 
 	return states, nil
-}
-
-func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, state *domain.IdentityState) (int64, error) {
-	tag, err := conn.Exec(ctx, `UPDATE identity_states 
-		SET block_timestamp=$1, block_number=$2, tx_id=$3, status=$4 WHERE state = $5 `,
-		state.BlockTimestamp, state.BlockNumber, state.TxID, state.Status, state.State)
-	if err != nil {
-		return 0, err
-	}
-
-	return tag.RowsAffected(), nil
 }
 
 // GetStatesByStatus returns states which are not transated
