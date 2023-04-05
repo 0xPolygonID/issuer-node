@@ -10,11 +10,16 @@ export const ERROR_MESSAGE = "Something went wrong";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
+export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
 export const LINKS = "Links";
 export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
+
+// URL params
+export const QUERY_SEARCH_PARAM = "query";
+export const TYPE_SEARCH_PARAM = "type";
 
 export const API_VERSION = "v1";
 
@@ -35,13 +40,13 @@ export const CREDENTIALS_TABS: { id: CredentialsTabIDs; tabID: string; title: st
 
 export const DEBOUNCE_INPUT_TIMEOUT = 500;
 
+export const DOTS_DROPDOWN_WIDTH = 60;
+
 export const FEEDBACK_URL = "https://forms.gle/ckDgvw1e9yZJBNfH6";
 
 export const IMAGE_PLACEHOLDER_PATH = "/images/image-preview.png";
 
 export const QR_CODE_POLLING_INTERVAL = 10000;
-
-export const QUERY_SEARCH_PARAM = "query";
 
 export const ROOT_PATH = "/";
 

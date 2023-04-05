@@ -12,18 +12,69 @@ import {
 import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Schema } from "src/domain";
-import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM, TYPE_SEARCH_PARAM } from "src/utils/constants";
+
+// TODO - refactor & order as Credentials are implemented
 
 export const credentialParser = getStrictParser<Credential>()(
   z.object({
     attributes: z.object({
       type: z.string(),
     }),
+    createdAt: z.coerce.date(),
+    expired: z.boolean().optional(),
+    expiresAt: z.coerce.date().optional(),
     id: z.string(),
+    revoked: z.boolean().optional(),
   })
 );
 
-// TODO - refactor when credentials is implemented
+export type CredentialType = "all" | "revoked" | "expired";
+
+export const credentialTypeParser = getStrictParser<CredentialType>()(
+  z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
+);
+
+export async function getCredentials({
+  env,
+  params: { query, type },
+  signal,
+}: {
+  env: Env;
+  params: {
+    query?: string;
+    type?: CredentialType;
+  };
+  signal: AbortSignal;
+}): Promise<APIResponse<Credential[]>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      params: new URLSearchParams({
+        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(type !== undefined && type !== "all" ? { [TYPE_SEARCH_PARAM]: type } : {}),
+      }),
+      signal,
+      url: `${API_VERSION}/credentials`,
+    });
+    const { data } = resultOKCredentials.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+const resultOKCredentials = getStrictParser<ResultOK<Credential[]>>()(
+  z.object({
+    data: z.array(credentialParser),
+    status: z.literal(HTTPStatusSuccess.OK),
+  })
+);
 
 interface CredentialQRCode {
   body: {

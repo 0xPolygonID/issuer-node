@@ -30,16 +30,32 @@ const (
 
 // Defines values for LinkStatus.
 const (
-	Active   LinkStatus = "active"
-	Exceed   LinkStatus = "exceed"
-	Inactive LinkStatus = "inactive"
+	LinkStatusActive   LinkStatus = "active"
+	LinkStatusExceeded LinkStatus = "exceeded"
+	LinkStatusInactive LinkStatus = "inactive"
 )
 
-// Defines values for GetCredentialsParamsType.
+// Defines values for StateTransactionStatus.
 const (
-	All     GetCredentialsParamsType = "all"
-	Expired GetCredentialsParamsType = "expired"
-	Revoked GetCredentialsParamsType = "revoked"
+	Created   StateTransactionStatus = "created"
+	Failed    StateTransactionStatus = "failed"
+	Pending   StateTransactionStatus = "pending"
+	Published StateTransactionStatus = "published"
+)
+
+// Defines values for GetCredentialsParamsStatus.
+const (
+	All     GetCredentialsParamsStatus = "all"
+	Expired GetCredentialsParamsStatus = "expired"
+	Revoked GetCredentialsParamsStatus = "revoked"
+)
+
+// Defines values for GetLinksParamsStatus.
+const (
+	GetLinksParamsStatusActive   GetLinksParamsStatus = "active"
+	GetLinksParamsStatusAll      GetLinksParamsStatus = "all"
+	GetLinksParamsStatusExceeded GetLinksParamsStatus = "exceeded"
+	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
 // AuthenticationQrCodeResponse defines model for AuthenticationQrCodeResponse.
@@ -60,7 +76,7 @@ type AuthenticationQrCodeResponse struct {
 type CreateCredentialRequest struct {
 	CredentialSchema  string                 `json:"credentialSchema"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	Expiration        *int64                 `json:"expiration,omitempty"`
+	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
 	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
 	Type              string                 `json:"type"`
@@ -212,6 +228,26 @@ type Schema struct {
 	Url       string    `json:"url"`
 }
 
+// StateStatusResponse defines model for StateStatusResponse.
+type StateStatusResponse struct {
+	PendingActions bool `json:"pendingActions"`
+}
+
+// StateTransaction defines model for StateTransaction.
+type StateTransaction struct {
+	Id          int64                  `json:"id"`
+	PublishDate time.Time              `json:"publishDate"`
+	State       string                 `json:"state"`
+	Status      StateTransactionStatus `json:"status"`
+	TxID        string                 `json:"txID"`
+}
+
+// StateTransactionStatus defines model for StateTransaction.Status.
+type StateTransactionStatus string
+
+// StateTransactionsResponse defines model for StateTransactionsResponse.
+type StateTransactionsResponse = []StateTransaction
+
 // UUIDResponse defines model for UUIDResponse.
 type UUIDResponse struct {
 	Id string `json:"id"`
@@ -273,18 +309,34 @@ type DeleteConnectionParams struct {
 
 // GetCredentialsParams defines parameters for GetCredentials.
 type GetCredentialsParams struct {
-	// Type Schema type:
+	// Status Schema type:
 	//   * `all` - All Schemas. (default value)
 	//   * `revoked` - Only revoked schemas
 	//   * `expired` - Only expired schemas
-	Type *GetCredentialsParamsType `form:"type,omitempty" json:"type,omitempty"`
+	Status *GetCredentialsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 
 	// Query Query string to do full text search
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
-// GetCredentialsParamsType defines parameters for GetCredentials.
-type GetCredentialsParamsType string
+// GetCredentialsParamsStatus defines parameters for GetCredentials.
+type GetCredentialsParamsStatus string
+
+// GetLinksParams defines parameters for GetLinks.
+type GetLinksParams struct {
+	// Query Query string to do full text search in schema types and attributes.
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+
+	// Status Schema type:
+	//   * `all` - All links. (default value)
+	//   * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
+	//   * `inactive` - Only deactivated links
+	//   * `exceeded` - Expired or maximum issuance exceeded
+	Status *GetLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// GetLinksParamsStatus defines parameters for GetLinks.
+type GetLinksParamsStatus string
 
 // CreateLinkQrCodeCallbackTextBody defines parameters for CreateLinkQrCodeCallback.
 type CreateLinkQrCodeCallbackTextBody = string
@@ -347,7 +399,7 @@ type ServerInterface interface {
 	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
-	// Get Authentication QRCode
+	// Get Connection QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request)
 	// Get Connections
@@ -365,31 +417,34 @@ type ServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, id Id)
-	// Get all credentials. Optional filter by status and text query search.
+	// Get Credentials
 	// (GET /v1/credentials)
 	GetCredentials(w http.ResponseWriter, r *http.Request, params GetCredentialsParams)
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
-	// Endpoint to create a link
+	// Returns the list of links to credentials
+	// (GET /v1/credentials/links)
+	GetLinks(w http.ResponseWriter, r *http.Request, params GetLinksParams)
+	// Create Link
 	// (POST /v1/credentials/links)
 	CreateLink(w http.ResponseWriter, r *http.Request)
 	// Create Link QR Code Callback
 	// (POST /v1/credentials/links/callback)
 	CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, params CreateLinkQrCodeCallbackParams)
-	// Endpoint to delete a link
+	// Delete Link
 	// (DELETE /v1/credentials/links/{id})
 	DeleteLink(w http.ResponseWriter, r *http.Request, id Id)
-	// Returns a link to a credential offer
+	// Get Link
 	// (GET /v1/credentials/links/{id})
 	GetLink(w http.ResponseWriter, r *http.Request, id Id)
-	// Endpoint to activate|deactivate a link
+	// Activate | Deactivate Link
 	// (PATCH /v1/credentials/links/{id})
 	AcivateLink(w http.ResponseWriter, r *http.Request, id Id)
-	// Endpoint to get a link
+	// Get Credential Link QRCode
 	// (GET /v1/credentials/links/{id}/qrcode)
 	GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams)
-	// Endpoint to create a link qr code
+	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id)
 	// Revoke Credential
@@ -410,9 +465,15 @@ type ServerInterface interface {
 	// Get Schema
 	// (GET /v1/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, id Id)
-	// Endpoint to publish identity state
+	// Publish Identity State
 	// (POST /v1/state/publish)
 	PublishState(w http.ResponseWriter, r *http.Request)
+	// Endpoint to get the identity state status
+	// (GET /v1/state/status)
+	GetStateStatus(w http.ResponseWriter, r *http.Request)
+	// Endpoint to get the identity state transactions
+	// (GET /v1/state/transactions)
+	GetStateTransactions(w http.ResponseWriter, r *http.Request)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -699,11 +760,11 @@ func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetCredentialsParams
 
-	// ------------- Optional query parameter "type" -------------
+	// ------------- Optional query parameter "status" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
 		return
 	}
 
@@ -734,6 +795,44 @@ func (siw *ServerInterfaceWrapper) CreateCredential(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateCredential(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetLinks operation middleware
+func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLinksParams
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLinks(w, r, params)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1131,8 +1230,44 @@ func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Requ
 func (siw *ServerInterfaceWrapper) PublishState(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PublishState(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetStateStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetStateStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStateStatus(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetStateTransactions operation middleware
+func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStateTransactions(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1292,6 +1427,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/credentials", wrapper.CreateCredential)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/credentials/links", wrapper.GetLinks)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/credentials/links", wrapper.CreateLink)
 	})
 	r.Group(func(r chi.Router) {
@@ -1332,6 +1470,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/state/publish", wrapper.PublishState)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/state/status", wrapper.GetStateStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/state/transactions", wrapper.GetStateTransactions)
 	})
 
 	return r
@@ -1720,6 +1864,50 @@ func (response CreateCredential422JSONResponse) VisitCreateCredentialResponse(w 
 type CreateCredential500JSONResponse struct{ N500JSONResponse }
 
 func (response CreateCredential500JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinksRequestObject struct {
+	Params GetLinksParams
+}
+
+type GetLinksResponseObject interface {
+	VisitGetLinksResponse(w http.ResponseWriter) error
+}
+
+type GetLinks200JSONResponse []Link
+
+func (response GetLinks200JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinks400JSONResponse struct{ N400JSONResponse }
+
+func (response GetLinks400JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinks404JSONResponse struct{ N404JSONResponse }
+
+func (response GetLinks404JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinks500JSONResponse struct{ N500JSONResponse }
+
+func (response GetLinks500JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2253,6 +2441,56 @@ func (response PublishState500JSONResponse) VisitPublishStateResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetStateStatusRequestObject struct {
+}
+
+type GetStateStatusResponseObject interface {
+	VisitGetStateStatusResponse(w http.ResponseWriter) error
+}
+
+type GetStateStatus200JSONResponse StateStatusResponse
+
+func (response GetStateStatus200JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateStatus500JSONResponse struct{ N500JSONResponse }
+
+func (response GetStateStatus500JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactionsRequestObject struct {
+}
+
+type GetStateTransactionsResponseObject interface {
+	VisitGetStateTransactionsResponse(w http.ResponseWriter) error
+}
+
+type GetStateTransactions200JSONResponse StateTransactionsResponse
+
+func (response GetStateTransactions200JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactions500JSONResponse struct{ N500JSONResponse }
+
+func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -2267,7 +2505,7 @@ type StrictServerInterface interface {
 	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
-	// Get Authentication QRCode
+	// Get Connection QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
 	// Get Connections
@@ -2285,31 +2523,34 @@ type StrictServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
-	// Get all credentials. Optional filter by status and text query search.
+	// Get Credentials
 	// (GET /v1/credentials)
 	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
-	// Endpoint to create a link
+	// Returns the list of links to credentials
+	// (GET /v1/credentials/links)
+	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
+	// Create Link
 	// (POST /v1/credentials/links)
 	CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error)
 	// Create Link QR Code Callback
 	// (POST /v1/credentials/links/callback)
 	CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error)
-	// Endpoint to delete a link
+	// Delete Link
 	// (DELETE /v1/credentials/links/{id})
 	DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error)
-	// Returns a link to a credential offer
+	// Get Link
 	// (GET /v1/credentials/links/{id})
 	GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error)
-	// Endpoint to activate|deactivate a link
+	// Activate | Deactivate Link
 	// (PATCH /v1/credentials/links/{id})
 	AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error)
-	// Endpoint to get a link
+	// Get Credential Link QRCode
 	// (GET /v1/credentials/links/{id}/qrcode)
 	GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error)
-	// Endpoint to create a link qr code
+	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
 	// Revoke Credential
@@ -2330,9 +2571,15 @@ type StrictServerInterface interface {
 	// Get Schema
 	// (GET /v1/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
-	// Endpoint to publish identity state
+	// Publish Identity State
 	// (POST /v1/state/publish)
 	PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error)
+	// Endpoint to get the identity state status
+	// (GET /v1/state/status)
+	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
+	// Endpoint to get the identity state transactions
+	// (GET /v1/state/transactions)
+	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -2676,6 +2923,32 @@ func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateCredentialResponseObject); ok {
 		if err := validResponse.VisitCreateCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetLinks operation middleware
+func (sh *strictHandler) GetLinks(w http.ResponseWriter, r *http.Request, params GetLinksParams) {
+	var request GetLinksRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLinks(ctx, request.(GetLinksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLinks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLinksResponseObject); ok {
+		if err := validResponse.VisitGetLinksResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -3071,79 +3344,134 @@ func (sh *strictHandler) PublishState(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetStateStatus operation middleware
+func (sh *strictHandler) GetStateStatus(w http.ResponseWriter, r *http.Request) {
+	var request GetStateStatusRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStateStatus(ctx, request.(GetStateStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStateStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStateStatusResponseObject); ok {
+		if err := validResponse.VisitGetStateStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetStateTransactions operation middleware
+func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Request) {
+	var request GetStateTransactionsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStateTransactions(ctx, request.(GetStateTransactionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStateTransactions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
+		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"/8HwPMOpaQAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

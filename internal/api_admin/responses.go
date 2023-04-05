@@ -105,6 +105,44 @@ func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredentia
 	}
 }
 
+func stateTransactionsResponse(states []domain.IdentityState) StateTransactionsResponse {
+	stateTransactions := make([]StateTransaction, len(states))
+	for i := range states {
+		stateTransactions[i] = toStateTransaction(states[i])
+	}
+	return stateTransactions
+}
+
+func toStateTransaction(state domain.IdentityState) StateTransaction {
+	var stateTran, txID string
+	if state.State != nil {
+		stateTran = *state.State
+	}
+	if state.TxID != nil {
+		txID = *state.TxID
+	}
+	return StateTransaction{
+		Id:          state.StateID,
+		PublishDate: state.ModifiedAt,
+		State:       stateTran,
+		Status:      getTransactionStatus(state.Status),
+		TxID:        txID,
+	}
+}
+
+func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
+	switch status {
+	case domain.StatusCreated:
+		return "pending"
+	case domain.StatusTransacted:
+		return "transacted"
+	case domain.StatusConfirmed:
+		return "published"
+	default:
+		return "failed"
+	}
+}
+
 func getSigProof(w3c *verifiable.W3CCredential) *string {
 	for i := range w3c.Proof {
 		if string(w3c.Proof[i].ProofType()) == "BJJSignature2021" {
@@ -138,7 +176,7 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	return msg
 }
 
-func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
+func getLinkResponse(link *domain.Link) (*Link, error) {
 	attrs := make([]LinkRequestAttributesType, len(link.CredentialAttributes))
 	for i, attr := range link.CredentialAttributes {
 		attrs[i].Name = attr.Name
@@ -168,7 +206,7 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 			return nil, fmt.Errorf("unknown type <%s>. Error converting <%v>", attr.AttrType, attr.Value)
 		}
 	}
-	return &GetLink200JSONResponse{
+	return &Link{
 		Active:       link.Active,
 		Attributes:   attrs,
 		Expiration:   link.ValidUntil,
@@ -181,7 +219,19 @@ func getLinkResponse(link *domain.Link) (*GetLink200JSONResponse, error) {
 	}, nil
 }
 
-func getLinQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
+func getLinkResponses(links []domain.Link) ([]Link, error) {
+	ret := make([]Link, len(links))
+	for i, link := range links {
+		linkRes, err := getLinkResponse(&link)
+		if err != nil {
+			return nil, err
+		}
+		ret[i] = *linkRes
+	}
+	return ret, nil
+}
+
+func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
 	if linkQrCode == nil {
 		return nil
 	}

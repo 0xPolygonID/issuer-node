@@ -48,7 +48,9 @@ export function SiderLayoutContent({
 
       {showDivider && <Divider />}
 
-      <Layout.Content style={{ padding: 32, paddingTop: 0 }}>{children}</Layout.Content>
+      <Layout.Content style={{ padding: 32, paddingBottom: 64, paddingTop: 0 }}>
+        {children}
+      </Layout.Content>
     </>
   );
 }

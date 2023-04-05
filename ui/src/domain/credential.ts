@@ -8,7 +8,11 @@ export interface Credential {
   attributes: {
     type: string;
   };
+  createdAt: Date;
+  expired?: boolean;
+  expiresAt?: Date;
   id: string;
+  revoked?: boolean;
 }
 
 export type CredentialFormAttribute =

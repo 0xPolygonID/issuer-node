@@ -952,7 +952,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration:     common.ToPointer(int64(12345)),
+				Expiration:     common.ToPointer(time.Now()),
 				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
@@ -971,7 +971,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(int64(12345)),
+				Expiration: common.ToPointer(time.Now()),
 			},
 			expected: expected{
 				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}},
@@ -989,7 +989,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration:     common.ToPointer(int64(12345)),
+				Expiration:     common.ToPointer(time.Now()),
 				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
@@ -1008,7 +1008,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration:     common.ToPointer(int64(12345)),
+				Expiration:     common.ToPointer(time.Now()),
 				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
@@ -1378,14 +1378,21 @@ func TestServer_GetCredentials(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	day0 := time.Time{}.Unix()
-	future := time.Now().Add(1000 * time.Hour).Unix()
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &day0, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	future := time.Now().Add(1000 * time.Hour)
+	past := time.Now().Add(-1000 * time.Hour)
+	// Never expires
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
+	// Expires in future
 	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
+	// Expired
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	require.NoError(t, err)
+
+	// non expired, but revoked
 	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 
@@ -1405,7 +1412,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		name     string
 		auth     func() (string, string)
 		query    *string
-		rType    *string
+		status   *string
 		expected expected
 	}
 	for _, tc := range []testConfig{
@@ -1417,9 +1424,9 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:  "Wrong type",
-			auth:  authOk,
-			rType: common.ToPointer("wrong"),
+			name:   "Wrong type",
+			auth:   authOk,
+			status: common.ToPointer("wrong"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				errorMsg: "Wrong type value. Allowed values: [all, revoked, expired]",
@@ -1430,40 +1437,40 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth: authOk,
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    3,
+				count:    4,
 			},
 		},
 		{
-			name:  "Get all explicit",
-			auth:  authOk,
-			rType: common.ToPointer("all"),
+			name:   "Get all explicit",
+			auth:   authOk,
+			status: common.ToPointer("all"),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    3,
+				count:    4,
 			},
 		},
 		{
-			name:  "Revoked",
-			auth:  authOk,
-			rType: common.ToPointer("revoked"),
-			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
-			},
-		},
-		{
-			name:  "REVOKED",
-			auth:  authOk,
-			rType: common.ToPointer("REVOKED"),
+			name:   "Revoked",
+			auth:   authOk,
+			status: common.ToPointer("revoked"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
 			},
 		},
 		{
-			name:  "Expired",
-			auth:  authOk,
-			rType: common.ToPointer("expired"),
+			name:   "REVOKED",
+			auth:   authOk,
+			status: common.ToPointer("REVOKED"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    1,
+			},
+		},
+		{
+			name:   "Expired",
+			auth:   authOk,
+			status: common.ToPointer("expired"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    1,
@@ -1475,7 +1482,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
 				httpCode: http.StatusOK,
-				count:    3,
+				count:    4,
 			},
 		},
 	} {
@@ -1485,8 +1492,8 @@ func TestServer_GetCredentials(t *testing.T) {
 			if tc.query != nil {
 				endpoint.RawQuery = endpoint.RawQuery + "query=" + *tc.query
 			}
-			if tc.rType != nil {
-				endpoint.RawQuery = endpoint.RawQuery + "type=" + *tc.rType
+			if tc.status != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "status=" + *tc.status
 			}
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
 			req.SetBasicAuth(tc.auth())
@@ -2781,7 +2788,7 @@ func TestServer_GetLink(t *testing.T) {
 					MaxIssuance:  link.MaxIssuance,
 					SchemaType:   link.Schema.Type,
 					SchemaUrl:    link.Schema.URL,
-					Status:       Active,
+					Status:       LinkStatusActive,
 				},
 			},
 		},
@@ -2800,7 +2807,7 @@ func TestServer_GetLink(t *testing.T) {
 					MaxIssuance:  linkExpired.MaxIssuance,
 					SchemaType:   linkExpired.Schema.Type,
 					SchemaUrl:    linkExpired.Schema.URL,
-					Status:       Exceed,
+					Status:       LinkStatusExceeded,
 				},
 			},
 		},
@@ -2839,6 +2846,206 @@ func TestServer_GetLink(t *testing.T) {
 				expected, ok := tc.expected.response.(GetLink404JSONResponse)
 				require.True(t, ok)
 				assert.EqualValues(t, expected.Message, response.Message)
+			}
+		})
+	}
+}
+
+func TestServer_GetAllLinks(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+		sUrl       = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+		schemaType = "KYCCountryOfResidenceCredential"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	linkRepository := repositories.NewLink(*storage)
+	schemaRepository := repositories.NewSchema(*storage)
+	sessionRepository := repositories.NewSessionCached(cachex)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, sUrl, schemaType)
+	assert.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	tomorrow := time.Now().Add(24 * time.Hour)
+	yesterday := time.Now().Add(-24 * time.Hour)
+
+	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+	linkActive, err := getLinkResponse(link1)
+	require.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	require.NoError(t, err)
+	linkExpired, err := getLinkResponse(link2)
+	require.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link3.Active = false
+	require.NoError(t, err)
+	require.NoError(t, linkService.Activate(ctx, *did, link3.ID, false))
+	linkInactive, err := getLinkResponse(link3)
+	require.NoError(t, err)
+	time.Sleep(10 * time.Millisecond)
+
+	handler := getHandler(ctx, server)
+	type expected struct {
+		response []Link
+		httpCode int
+	}
+	type testConfig struct {
+		name     string
+		query    *string
+		status   *GetLinksParamsStatus
+		auth     func() (string, string)
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:   "Wrong type",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("unknown-filter-type")),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "Happy path. All schemas",
+			auth: authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
+			},
+		},
+		{
+			name:   "Happy path. All schemas, explicit",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("all")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
+			},
+		},
+		{
+			name:   "Happy path. All schemas, active",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("active")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkActive},
+			},
+		},
+		{
+			name:   "Happy path. All schemas, exceeded",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+		{
+			name:   "Happy path. All schemas, exceeded",
+			auth:   authOk,
+			status: common.ToPointer(GetLinksParamsStatus("inactive")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive},
+			},
+		},
+		{
+			name:   "Exceeded with filter found",
+			auth:   authOk,
+			query:  common.ToPointer("documentType"),
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+		{
+			name:   "Empty result",
+			auth:   authOk,
+			query:  common.ToPointer("documentType"),
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			endpoint := url.URL{Path: "/v1/credentials/links"}
+			if tc.status != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "status=" + string(*tc.status)
+			}
+			if tc.query != nil {
+				endpoint.RawQuery = endpoint.RawQuery + "&query=" + *tc.query
+			}
+
+			req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetLinks200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				if assert.Equal(t, len(tc.expected.response), len(response)) {
+					for i, resp := range response {
+						assert.Equal(t, tc.expected.response[i].Id, resp.Id)
+						assert.Equal(t, tc.expected.response[i].Status, resp.Status)
+						assert.Equal(t, tc.expected.response[i].IssuedClaims, resp.IssuedClaims)
+						assert.Equal(t, tc.expected.response[i].Active, resp.Active)
+						assert.Equal(t, tc.expected.response[i].MaxIssuance, resp.MaxIssuance)
+						assert.Equal(t, tc.expected.response[i].SchemaUrl, resp.SchemaUrl)
+						assert.Equal(t, tc.expected.response[i].SchemaType, resp.SchemaType)
+						assert.Equal(t, tc.expected.response[i].Attributes, resp.Attributes)
+						assert.InDelta(t, tc.expected.response[i].Expiration.UnixMilli(), resp.Expiration.UnixMilli(), 10)
+					}
+				}
+			case http.StatusBadRequest:
+				var response GetLinks400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 			}
 		})
 	}
@@ -3162,7 +3369,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			auth: authOk,
 			id:   link.ID,
 			expected: expected{
-				linkDetail: (*Link)(linkDetail),
+				linkDetail: linkDetail,
 				httpCode:   http.StatusOK,
 			},
 		},
@@ -3357,7 +3564,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 			sessionID: sessionID,
 			state:     linkState.NewStateDone(qrcode),
 			expected: expected{
-				linkDetail: (*Link)(linkDetail),
+				linkDetail: linkDetail,
 				qrCode:     qrcode,
 				status:     "done",
 				httpCode:   http.StatusOK,
@@ -3403,6 +3610,202 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 					assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
 					assert.Equal(t, tc.expected.status, *response.Status)
 				}
+			}
+		})
+	}
+}
+
+func TestServer_GetStateStatus(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
+	merklizedRootPosition := "index"
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, identityService, claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response GetStateStatus200JSONResponse
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		cleanUp  func()
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "No states to process",
+			auth: authOk,
+			expected: expected{
+				response: GetStateStatus200JSONResponse{PendingActions: false},
+				httpCode: http.StatusOK,
+			},
+			cleanUp: func() {
+				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+				require.NoError(t, err)
+				require.NoError(t, claimsService.Revoke(ctx, cfg.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
+			},
+		},
+		{
+			name: "New state to process",
+			auth: authOk,
+			expected: expected{
+				response: GetStateStatus200JSONResponse{PendingActions: true},
+				httpCode: http.StatusOK,
+			},
+			cleanUp: func() {},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := "/v1/state/status"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetStateStatus200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.response.PendingActions, response.PendingActions)
+				tc.cleanUp()
+			}
+		})
+	}
+}
+
+func TestServer_GetStateTransactions(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, identityService, claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		response GetStateTransactions200JSONResponse
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "No states to process",
+			auth: authOk,
+			expected: expected{
+				response: GetStateTransactions200JSONResponse{},
+				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "No state transactions after revoking/creating credentials",
+			auth: authOk,
+			expected: expected{
+				response: GetStateTransactions200JSONResponse{},
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := "/v1/state/transactions"
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetStateTransactions200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, len(tc.expected.response), len(response))
 			}
 		})
 	}
