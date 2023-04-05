@@ -14,9 +14,9 @@ import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { Connection } from "src/domain/connection";
 import { Credential } from "src/domain/credential";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function Connections() {
   const env = useEnvContext();

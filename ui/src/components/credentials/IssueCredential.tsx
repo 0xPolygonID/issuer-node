@@ -19,10 +19,10 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
 import { Schema } from "src/domain/schema";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
-import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 type IssuanceStep = "attributes" | "issuanceMethod" | "summary";
 

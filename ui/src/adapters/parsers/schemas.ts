@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getStrictParser } from "src/adapters/parsers";
 import { JsonLdType } from "src/domain";
 import {
   ArrayAttribute,
@@ -25,7 +26,6 @@ import {
   StringProps,
   StringSchema,
 } from "src/domain/jsonSchema";
-import { getStrictParser } from "src/utils/types";
 
 // Types
 

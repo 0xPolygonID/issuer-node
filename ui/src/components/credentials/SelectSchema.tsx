@@ -6,9 +6,9 @@ import { getSchemas } from "src/adapters/api/schemas";
 import { useEnvContext } from "src/contexts/env";
 import { Schema } from "src/domain/schema";
 import { ROUTES } from "src/routes";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_TYPE } from "src/utils/constants";
-import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
   const env = useEnvContext();

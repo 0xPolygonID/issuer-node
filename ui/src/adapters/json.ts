@@ -1,8 +1,8 @@
 import axios from "axios";
 import z from "zod";
 
+import { getStrictParser } from "src/adapters/parsers";
 import { Json, JsonLiteral } from "src/domain";
-import { getStrictParser } from "src/utils/types";
 
 const jsonLiteralParser = getStrictParser<JsonLiteral>()(
   z.union([z.string(), z.number(), z.boolean(), z.null()])

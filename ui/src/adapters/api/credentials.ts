@@ -10,11 +10,11 @@ import {
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { schemaParser } from "src/adapters/api/schemas";
+import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
 import { Credential } from "src/domain/credential";
 import { Schema } from "src/domain/schema";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { getStrictParser } from "src/utils/types";
 
 export const credentialParser = getStrictParser<Credential>()(
   z.object({

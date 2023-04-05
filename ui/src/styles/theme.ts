@@ -1,8 +1,8 @@
 import { ThemeConfig } from "antd/es/config-provider/context";
 import z from "zod";
 
+import { getStrictParser } from "src/adapters/parsers";
 import variables from "src/styles/variables.module.scss";
-import { getStrictParser } from "src/utils/types";
 
 interface StyleVariables {
   avatarBg: string;

@@ -9,10 +9,10 @@ import {
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
+import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
 import { Connection } from "src/domain/connection";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { getStrictParser } from "src/utils/types";
 
 const connectionParser = getStrictParser<Connection>()(
   z.object({

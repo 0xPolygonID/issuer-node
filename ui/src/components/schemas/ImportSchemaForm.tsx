@@ -7,8 +7,8 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType } from "src/domain";
 import { JsonSchema } from "src/domain/jsonSchema";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { processZodError } from "src/utils/error";
-import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/types";
 
 export type FormData = {
   jsonLdType: JsonLdType;

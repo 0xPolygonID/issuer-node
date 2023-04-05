@@ -13,11 +13,11 @@ import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { Schema } from "src/domain/schema";
 import { ROUTES } from "src/routes";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IMPORT_SCHEMA, QUERY_SEARCH_PARAM, SCHEMAS, SCHEMA_TYPE } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function MySchemas() {
   const env = useEnvContext();

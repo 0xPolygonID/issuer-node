@@ -18,10 +18,10 @@ import { Json, JsonLdType } from "src/domain";
 import { JsonSchema } from "src/domain/jsonSchema";
 import { Schema } from "src/domain/schema";
 import { ROUTES } from "src/routes";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/types";
 
 export function SchemaDetails() {
   const navigate = useNavigate();

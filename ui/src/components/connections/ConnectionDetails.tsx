@@ -14,10 +14,10 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
 import { Connection } from "src/domain/connection";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { IDENTIFIER, ISSUE_CREDENTIAL } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function ConnectionDetails() {
   const env = useEnvContext();

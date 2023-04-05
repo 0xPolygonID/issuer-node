@@ -1,8 +1,8 @@
 import axios from "axios";
 import z from "zod";
 
+import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
-import { getStrictParser } from "src/utils/types";
 
 export interface APIError {
   message: string;

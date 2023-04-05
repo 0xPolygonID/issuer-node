@@ -17,6 +17,7 @@ import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.s
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/env";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   IMAGE_PLACEHOLDER_PATH,
@@ -24,7 +25,6 @@ import {
   WALLET_APP_STORE_URL,
   WALLET_PLAY_STORE_URL,
 } from "src/utils/constants";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
 export function ScanCredentialLink() {
   const env = useEnvContext();
