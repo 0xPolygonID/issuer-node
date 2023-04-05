@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -92,7 +93,8 @@ WHERE links.id = $1 AND links.issuer_id = $2`
 		&link.SchemaID,
 		&link.CredentialExpiration,
 		&link.CredentialSignatureProof,
-		&link.CredentialMTPProof, &credentialAttributtes,
+		&link.CredentialMTPProof,
+		&credentialAttributtes,
 		&link.Active,
 		&link.IssuedClaims,
 		&s.ID,
@@ -123,6 +125,96 @@ WHERE links.id = $1 AND links.issuer_id = $2`
 		return nil, fmt.Errorf("parsing link schema: %w", err)
 	}
 	return &link, err
+}
+
+func (l link) GetAll(ctx context.Context, issuerDID core.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
+	sql := `
+SELECT links.id, 
+       links.issuer_id, 
+       links.created_at, 
+       links.max_issuance, 
+       links.valid_until, 
+       links.schema_id, 
+       links.credential_expiration, 
+       links.credential_signature_proof,
+       links.credential_mtp_proof, 
+       links.credential_attributes, 
+       links.active,
+       links.issued_claims,
+       schemas.id as schema_id,
+       schemas.issuer_id as schema_issuer_id,
+       schemas.url,
+       schemas.type,
+       schemas.hash,
+       schemas.attributes, 
+       schemas.created_at
+FROM links
+LEFT JOIN schemas ON schemas.id = links.schema_id 
+WHERE links.issuer_id = $1 `
+	switch status {
+	case ports.LinkActive:
+		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>links.issued_claims, true)"
+	case ports.LinkInactive:
+		sql += " AND NOT links.active"
+	case ports.LinkExceeded:
+		sql += " AND (coalesce(links.valid_until <= $2, true) OR coalesce(links.max_issuance<=links.issued_claims, true))"
+	}
+	if query != nil {
+		sql += " AND schemas.ts_words @@ to_tsquery($3)"
+	}
+	// Dummy condition to include all placeholders in query
+	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl OR $3::text IS NULL)"
+	sql += " ORDER BY links.created_at DESC"
+
+	rows, err := l.conn.Pgx.Query(ctx, sql, issuerDID.String(), time.Now(), query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var credentialAttributtes pgtype.JSONB
+	link := domain.Link{}
+	schema := dbSchema{}
+	links := make([]domain.Link, 0)
+	for rows.Next() {
+		if err := rows.Scan(
+			&link.ID,
+			&link.IssuerDID,
+			&link.CreatedAt,
+			&link.MaxIssuance,
+			&link.ValidUntil,
+			&link.SchemaID,
+			&link.CredentialExpiration,
+			&link.CredentialSignatureProof,
+			&link.CredentialMTPProof, &credentialAttributtes,
+			&link.Active,
+			&link.IssuedClaims,
+			&schema.ID,
+			&schema.IssuerID,
+			&schema.URL,
+			&schema.Type,
+			&schema.Hash,
+			&schema.Attributes,
+			&schema.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		raw, err := credentialAttributtes.MarshalJSON()
+		if err != nil {
+			return nil, fmt.Errorf("parsing credential attributes: %w", err)
+		}
+		d := json.NewDecoder(bytes.NewReader(raw))
+		d.UseNumber()
+		if err := d.Decode(&link.CredentialAttributes); err != nil {
+			return nil, fmt.Errorf("parsing credential attributes: %w", err)
+		}
+		link.Schema, err = toSchemaDomain(&schema)
+		if err != nil {
+			return nil, fmt.Errorf("parsing link schema: %w", err)
+		}
+		links = append(links, link)
+	}
+	return links, nil
 }
 
 func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error {
