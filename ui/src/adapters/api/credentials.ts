@@ -38,21 +38,21 @@ export const credential = StrictSchema<Credential>()(
   })
 );
 
-export type CredentialType = "all" | "revoked" | "expired";
+export type CredentialStatus = "all" | "revoked" | "expired";
 
-export const credentialTypeParser = StrictSchema<CredentialType>()(
+export const credentialTypeParser = StrictSchema<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
 
 export async function getCredentials({
   env,
-  params: { query, type },
+  params: { query, status },
   signal,
 }: {
   env: Env;
   params: {
     query?: string;
-    type?: CredentialType;
+    status?: CredentialStatus;
   };
   signal: AbortSignal;
 }): Promise<APIResponse<Credential[]>> {
@@ -65,7 +65,7 @@ export async function getCredentials({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(type !== undefined && type !== "all" ? { [TYPE_SEARCH_PARAM]: type } : {}),
+        ...(status !== undefined && status !== "all" ? { [TYPE_SEARCH_PARAM]: status } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials`,

@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from "react";
 import { APIError } from "src/adapters/api";
 import {
   Credential,
-  CredentialType,
+  CredentialStatus,
   credentialTypeParser,
   getCredentials,
 } from "src/adapters/api/credentials";
@@ -52,7 +52,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
   });
-  const [credentialType, setCredentialType] = useState<CredentialType>("all");
+  const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>("all");
   const [query, setQuery] = useState<string | null>(null);
 
   const tableColumns: ColumnsType<Credential> = [
@@ -162,7 +162,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           params: {
             // TODO should change when PID-498 is done
             query: query ? `${userID} ${query}` : `${userID}`,
-            type: credentialType,
+            status: credentialStatus,
           },
           signal,
         });
@@ -178,13 +178,13 @@ export function CredentialsTable({ userID }: { userID: string }) {
         }
       }
     },
-    [userID, env, query, credentialType]
+    [userID, env, query, credentialStatus]
   );
 
   const handleTypeChange = ({ target: { value } }: RadioChangeEvent) => {
     const parsedCredentialType = credentialTypeParser.safeParse(value);
     if (parsedCredentialType.success) {
-      setCredentialType(parsedCredentialType.data);
+      setCredentialStatus(parsedCredentialType.data);
     } else {
       processZodError(parsedCredentialType.error).forEach((error) => void message.error(error));
     }
@@ -208,7 +208,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
 
           <Typography.Text strong>
-            No {credentialType !== "all" && credentialType} credentials issued
+            No {credentialStatus !== "all" && credentialStatus} credentials issued
           </Typography.Text>
 
           <Typography.Text type="secondary">
@@ -254,10 +254,10 @@ export function CredentialsTable({ userID }: { userID: string }) {
 
             <Tag color="blue">{credentialsList.length}</Tag>
           </Space>
-          {showDefaultContent && credentialType === "all" ? (
+          {showDefaultContent && credentialStatus === "all" ? (
             <IssueDirectlyButton />
           ) : (
-            <Radio.Group onChange={handleTypeChange} value={credentialType}>
+            <Radio.Group onChange={handleTypeChange} value={credentialStatus}>
               <Radio.Button value="all">All</Radio.Button>
 
               <Radio.Button value="revoked">Revoked</Radio.Button>
