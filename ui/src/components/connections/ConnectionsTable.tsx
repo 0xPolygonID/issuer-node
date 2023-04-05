@@ -105,7 +105,7 @@ export function ConnectionsTable() {
   ];
 
   const fetchConnections = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       setConnections({ status: "loading" });
       const response = await getConnections({
         credentials: true,
@@ -220,6 +220,7 @@ export function ConnectionsTable() {
         <ConnectionDeleteModal
           id={connectionSelected}
           onClose={() => setConnectionSelected(undefined)}
+          onDelete={() => void fetchConnections()}
         />
       )}
     </SiderLayoutContent>

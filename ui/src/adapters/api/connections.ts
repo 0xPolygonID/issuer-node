@@ -59,7 +59,7 @@ export async function getConnections({
   params: {
     query?: string;
   };
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<APIResponse<Connection[]>> {
   try {
     const response = await axios({
