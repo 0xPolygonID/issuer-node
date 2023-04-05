@@ -392,6 +392,17 @@ func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObje
 	return GetStateStatus200JSONResponse{PendingActions: pendingActions}, nil
 }
 
+// GetStateTransactions - get the state transactions
+func (s *Server) GetStateTransactions(ctx context.Context, _ GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error) {
+	states, err := s.identityService.GetStates(ctx, s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "get state transactions", "err", err)
+		return GetStateTransactions500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+
+	return GetStateTransactions200JSONResponse(stateTransactionsResponse(states)), nil
+}
+
 // RevokeConnectionCredentials revoke all the non revoked credentials of the given connection
 func (s *Server) RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error) {
 	err := s.claimService.RevokeAllFromConnection(ctx, request.Id, s.cfg.APIUI.IssuerDID)
@@ -599,7 +610,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone {
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
-			QrCode:     getLinQrCodeResponse(getQRCodeResponse.State.QRCode),
+			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),
 			LinkDetail: linkDetail,
 		}, nil
 	}
