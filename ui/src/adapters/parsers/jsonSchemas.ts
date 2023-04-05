@@ -163,14 +163,14 @@ type ArrayPropsInput = {
 
 type ArraySchemaInput = CommonProps & ArrayPropsInput & { type: "array" };
 
-const arrayPropsParser = getStrictParser<ArrayPropsInput>()(
+const arrayPropsInputParser = getStrictParser<ArrayPropsInput>()(
   z.object({
     item: z.unknown().optional(),
   })
 );
 
 const arraySchemaParser = getStrictParser<ArraySchemaInput>()(
-  commonPropsParser.and(arrayPropsParser).and(
+  commonPropsParser.and(arrayPropsInputParser).and(
     z.object({
       type: z.literal("array"),
     })
@@ -256,7 +256,7 @@ type MultiProps = StringProps & BooleanProps & ObjectPropsInput & ArrayPropsInpu
 type MultiSchemaInput = CommonProps & MultiProps & MultiSchemaType;
 
 const multiPropsParser = getStrictParser<MultiProps>()(
-  stringPropsParser.and(booleanPropsParser).and(objectPropsParser).and(arrayPropsParser)
+  stringPropsParser.and(booleanPropsParser).and(objectPropsParser).and(arrayPropsInputParser)
 );
 
 const multiSchemaTypeParser = getStrictParser<MultiSchemaType>()(

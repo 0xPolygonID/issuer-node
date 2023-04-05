@@ -18,14 +18,14 @@ export type BooleanAttribute = {
   type: "boolean";
 };
 
+export type IntegerSchema = CommonProps & { enum?: number[]; type: "integer" };
+
 export type IntegerAttribute = {
   name: string;
   required: boolean;
   schema: IntegerSchema;
   type: "integer";
 };
-
-export type IntegerSchema = CommonProps & { enum?: number[]; type: "integer" };
 
 export type NullSchema = CommonProps & { type: "null" };
 
