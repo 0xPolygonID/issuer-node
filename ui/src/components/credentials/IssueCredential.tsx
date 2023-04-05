@@ -142,6 +142,7 @@ export function IssueCredential() {
                   <Card className="issue-credential-card" title="Credential details">
                     <Space direction="vertical">
                       <SelectSchema schemaID={schemaID} />
+
                       <IssueCredentialForm
                         initialValues={formData.attributes}
                         onSubmit={(values) => {

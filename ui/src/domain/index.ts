@@ -13,7 +13,7 @@ export type {
 
 export type { Env } from "src/domain/env";
 
-export type { Json, JsonLiteral } from "src/domain/json";
+export type { Json, JsonLiteral, JsonLdType } from "src/domain/json";
 
 export type {
   Attribute,
@@ -40,7 +40,6 @@ export type {
   StringAttribute,
   StringProps,
   StringSchema,
-  JsonLdType,
 } from "src/domain/jsonSchema";
 
 export type { Schema, SchemaAttribute } from "src/domain/schema";

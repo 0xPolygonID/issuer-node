@@ -6,7 +6,7 @@ import { z } from "zod";
 import { APIError } from "src/adapters/api";
 import { getSchema } from "src/adapters/api/schemas";
 import { downloadJsonFromUrl } from "src/adapters/json";
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
+import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { Detail } from "src/components/schemas/Detail";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";

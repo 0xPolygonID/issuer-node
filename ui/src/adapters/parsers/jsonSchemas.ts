@@ -3,7 +3,6 @@ import { z } from "zod";
 import { getStrictParser } from "src/adapters/parsers";
 import {
   ArrayAttribute,
-  ArrayProps,
   Attribute,
   BooleanAttribute,
   BooleanProps,
@@ -27,53 +26,6 @@ import {
   StringSchema,
 } from "src/domain";
 
-// Types
-
-type AnySchema =
-  | StringSchema
-  | IntegerSchema
-  | NumberSchema
-  | BooleanSchema
-  | NullSchema
-  | ObjectSchema
-  | ArraySchema
-  | MultiSchemaComposite;
-
-type ArrayPropsWithoutItems = Omit<ArrayProps, "items"> & {
-  items?: unknown;
-};
-
-type ArraySchema = CommonProps & ArrayPropsWithoutItems & { type: "array" };
-
-type MultiSchemaType = {
-  type: (
-    | StringSchema["type"]
-    | IntegerSchema["type"]
-    | NumberSchema["type"]
-    | BooleanSchema["type"]
-    | NullSchema["type"]
-    | ObjectSchema["type"]
-    | ArraySchema["type"]
-  )[];
-};
-
-type MultiProps = StringProps &
-  BooleanProps &
-  ObjectPropsWithoutProperties &
-  ArrayPropsWithoutItems;
-
-type MultiSchemaComposite = CommonProps & MultiProps & MultiSchemaType;
-
-type ObjectPropsWithoutProperties = Omit<ObjectProps, "properties"> & {
-  properties?: Record<string, unknown>;
-};
-
-type ObjectSchema = CommonProps & ObjectPropsWithoutProperties & { type: "object" };
-
-type SchemaComposite = AnySchema & SchemaProps;
-
-// Parsers
-
 const commonPropsParser = getStrictParser<CommonProps>()(
   z.object({
     description: z.string().optional(),
@@ -81,16 +33,230 @@ const commonPropsParser = getStrictParser<CommonProps>()(
   })
 );
 
-const arrayPropsParser = getStrictParser<ArrayPropsWithoutItems>()(
-  z.object({
-    items: z.unknown().optional(),
-  })
-);
+// Primitives
 
 const booleanPropsParser = getStrictParser<BooleanProps>()(
   z.object({
     enum: z.boolean().array().min(1).optional(),
   })
+);
+
+const booleanSchemaParser = getStrictParser<BooleanSchema>()(
+  commonPropsParser.and(booleanPropsParser).and(
+    z.object({
+      type: z.literal("boolean"),
+    })
+  )
+);
+
+function getBooleanAttributeParser(name: string, required: boolean) {
+  return getStrictParser<BooleanSchema, BooleanAttribute>()(
+    booleanSchemaParser.transform(
+      (schema): BooleanAttribute => ({
+        name,
+        required,
+        schema,
+        type: "boolean",
+      })
+    )
+  );
+}
+
+const integerSchemaParser = getStrictParser<IntegerSchema>()(
+  commonPropsParser.and(
+    z.object({
+      enum: z.number().int().array().min(1).optional(),
+      type: z.literal("integer"),
+    })
+  )
+);
+
+function getIntegerAttributeParser(name: string, required: boolean) {
+  return getStrictParser<IntegerSchema, IntegerAttribute>()(
+    integerSchemaParser.transform(
+      (schema): IntegerAttribute => ({
+        name,
+        required,
+        schema,
+        type: "integer",
+      })
+    )
+  );
+}
+
+const nullSchemaParser = getStrictParser<NullSchema>()(
+  commonPropsParser.and(
+    z.object({
+      type: z.literal("null"),
+    })
+  )
+);
+
+function getNullAttributeParser(name: string, required: boolean) {
+  return getStrictParser<NullSchema, NullAttribute>()(
+    nullSchemaParser.transform(
+      (schema): NullAttribute => ({
+        name,
+        required,
+        schema,
+        type: "null",
+      })
+    )
+  );
+}
+
+const numberSchemaParser = getStrictParser<NumberSchema>()(
+  commonPropsParser.and(
+    z.object({
+      enum: z.number().array().min(1).optional(),
+      type: z.literal("number"),
+    })
+  )
+);
+
+function getNumberAttributeParser(name: string, required: boolean) {
+  return getStrictParser<NumberSchema, NumberAttribute>()(
+    numberSchemaParser.transform(
+      (schema): NumberAttribute => ({
+        name,
+        required,
+        schema,
+        type: "number",
+      })
+    )
+  );
+}
+
+const stringPropsParser = getStrictParser<StringProps>()(
+  z.object({
+    enum: z.string().array().min(1).optional(),
+    format: z.string().optional(),
+  })
+);
+
+const stringSchemaParser = getStrictParser<StringSchema>()(
+  commonPropsParser.and(stringPropsParser).and(
+    z.object({
+      type: z.literal("string"),
+    })
+  )
+);
+
+function getStringAttributeParser(name: string, required: boolean) {
+  return getStrictParser<StringSchema, StringAttribute>()(
+    stringSchemaParser.transform(
+      (schema): StringAttribute => ({
+        name,
+        required,
+        schema,
+        type: "string",
+      })
+    )
+  );
+}
+
+// Non-primitive
+
+type ArrayPropsInput = {
+  item?: unknown;
+};
+
+type ArraySchemaInput = CommonProps & ArrayPropsInput & { type: "array" };
+
+const arrayPropsParser = getStrictParser<ArrayPropsInput>()(
+  z.object({
+    item: z.unknown().optional(),
+  })
+);
+
+const arraySchemaParser = getStrictParser<ArraySchemaInput>()(
+  commonPropsParser.and(arrayPropsParser).and(
+    z.object({
+      type: z.literal("array"),
+    })
+  )
+);
+
+function getArrayAttributeParser(name: string, required: boolean) {
+  return getStrictParser<ArraySchemaInput, ArrayAttribute>()(
+    arraySchemaParser.transform(
+      (schema): ArrayAttribute => ({
+        name,
+        required,
+        schema: {
+          ...schema,
+          item: schema.item ? getAttributeParser("items", required).parse(schema.item) : undefined,
+        },
+        type: "array",
+      })
+    )
+  );
+}
+
+type ObjectPropsInput = Omit<ObjectProps, "properties"> & {
+  properties?: Record<string, unknown>;
+};
+
+type ObjectSchemaInput = CommonProps & ObjectPropsInput & { type: "object" };
+
+const objectPropsParser = getStrictParser<ObjectPropsInput>()(
+  z.object({
+    properties: z.record(z.unknown()).optional(),
+    required: z.string().array().optional(),
+  })
+);
+
+const objectSchemaParser = getStrictParser<ObjectSchemaInput>()(
+  commonPropsParser.and(objectPropsParser).and(
+    z.object({
+      type: z.literal("object"),
+    })
+  )
+);
+
+function getObjectAttributeParser(name: string, required: boolean) {
+  return getStrictParser<ObjectSchemaInput, ObjectAttribute>()(
+    objectSchemaParser.transform(
+      (schema): ObjectAttribute => ({
+        name,
+        required,
+        schema: {
+          ...schema,
+          properties: schema.properties
+            ? Object.entries(schema.properties).map(([name, value]) =>
+                getAttributeParser(
+                  name,
+                  schema.required !== undefined && schema.required.includes(name)
+                ).parse(value)
+              )
+            : undefined,
+        },
+        type: "object",
+      })
+    )
+  );
+}
+
+// Multi-type
+
+type MultiSchemaType = {
+  type: (
+    | BooleanSchema["type"]
+    | IntegerSchema["type"]
+    | NullSchema["type"]
+    | NumberSchema["type"]
+    | StringSchema["type"]
+    | ArraySchemaInput["type"]
+    | ObjectSchemaInput["type"]
+  )[];
+};
+
+type MultiProps = StringProps & BooleanProps & ObjectPropsInput & ArrayPropsInput;
+
+type MultiSchemaInput = CommonProps & MultiProps & MultiSchemaType;
+
+const multiPropsParser = getStrictParser<MultiProps>()(
+  stringPropsParser.and(booleanPropsParser).and(objectPropsParser).and(arrayPropsParser)
 );
 
 const multiSchemaTypeParser = getStrictParser<MultiSchemaType>()(
@@ -110,12 +276,70 @@ const multiSchemaTypeParser = getStrictParser<MultiSchemaType>()(
   })
 );
 
-const objectPropsParser = getStrictParser<ObjectPropsWithoutProperties>()(
-  z.object({
-    properties: z.record(z.unknown()).optional(),
-    required: z.string().array().optional(),
-  })
-);
+function getMultiSchemaParser(name: string, required: boolean) {
+  return getStrictParser<MultiSchemaInput, MultiAttribute>()(
+    commonPropsParser
+      .and(multiPropsParser)
+      .and(multiSchemaTypeParser)
+      .transform(
+        (schema): MultiAttribute => ({
+          name,
+          required,
+          schemas: schema.type.map((type): MultiSchema[number] => {
+            switch (type) {
+              case "boolean": {
+                return getBooleanAttributeParser(name, required).parse({
+                  ...schema,
+                  type: "boolean",
+                }).schema;
+              }
+              case "integer": {
+                return getIntegerAttributeParser(name, required).parse({
+                  ...schema,
+                  type: "integer",
+                }).schema;
+              }
+              case "null": {
+                return getNullAttributeParser(name, required).parse({ ...schema, type: "null" })
+                  .schema;
+              }
+              case "number": {
+                return getNumberAttributeParser(name, required).parse({ ...schema, type: "number" })
+                  .schema;
+              }
+              case "string": {
+                return getStringAttributeParser(name, required).parse({ ...schema, type: "string" })
+                  .schema;
+              }
+              case "array": {
+                return getArrayAttributeParser(name, required).parse({ ...schema, type: "array" })
+                  .schema;
+              }
+              case "object": {
+                return getObjectAttributeParser(name, required).parse({ ...schema, type: "object" })
+                  .schema;
+              }
+            }
+          }),
+          type: "multi",
+        })
+      )
+  );
+}
+
+// Schema
+
+type AnySchema =
+  | BooleanSchema
+  | IntegerSchema
+  | NullSchema
+  | NumberSchema
+  | StringSchema
+  | ArraySchemaInput
+  | ObjectSchemaInput
+  | MultiSchemaInput;
+
+type SchemaInput = AnySchema & SchemaProps;
 
 const schemaPropsParser = getStrictParser<SchemaProps>()(
   z.object({
@@ -123,123 +347,26 @@ const schemaPropsParser = getStrictParser<SchemaProps>()(
   })
 );
 
-const stringPropsParser = getStrictParser<StringProps>()(
-  z.object({
-    enum: z.string().array().min(1).optional(),
-    format: z.string().optional(),
-  })
-);
-
-// Composite parsers
-
-const arraySchemaParser = getStrictParser<ArraySchema>()(
-  commonPropsParser.and(arrayPropsParser).and(
-    z.object({
-      type: z.literal("array"),
-    })
-  )
-);
-
-const booleanSchemaParser = getStrictParser<BooleanSchema>()(
-  commonPropsParser.and(booleanPropsParser).and(
-    z.object({
-      type: z.literal("boolean"),
-    })
-  )
-);
-
-const integerSchemaParser = getStrictParser<IntegerSchema>()(
-  commonPropsParser.and(
-    z.object({
-      enum: z.number().int().array().min(1).optional(),
-      type: z.literal("integer"),
-    })
-  )
-);
-
-const multiPropsParser = getStrictParser<MultiProps>()(
-  stringPropsParser.and(booleanPropsParser).and(objectPropsParser).and(arrayPropsParser)
-);
-
-const nullSchemaParser = getStrictParser<NullSchema>()(
-  commonPropsParser.and(
-    z.object({
-      type: z.literal("null"),
-    })
-  )
-);
-
-const numberSchemaParser = getStrictParser<NumberSchema>()(
-  commonPropsParser.and(
-    z.object({
-      enum: z.number().array().min(1).optional(),
-      type: z.literal("number"),
-    })
-  )
-);
-
-const objectSchemaParser = getStrictParser<ObjectSchema>()(
-  commonPropsParser.and(objectPropsParser).and(
-    z.object({
-      type: z.literal("object"),
-    })
-  )
-);
-
-const stringSchemaParser = getStrictParser<StringSchema>()(
-  commonPropsParser.and(stringPropsParser).and(
-    z.object({
-      type: z.literal("string"),
-    })
-  )
-);
-
-// Getters
-
-const getArrayAttributeParser = (name: string, required: boolean) =>
-  getStrictParser<ArraySchema, ArrayAttribute>()(
-    arraySchemaParser.transform(
-      (schema): ArrayAttribute => ({
-        name,
-        required,
-        schema: {
-          ...schema,
-          items: schema.items
-            ? getAttributeParser("items", required).parse(schema.items)
-            : undefined,
-        },
-        type: "array",
-      })
-    )
-  );
-
 function getAttributeParser(name: string, required: boolean) {
   return getStrictParser<AnySchema, Attribute>()(
     z.union([
-      getArrayAttributeParser(name, required),
       getBooleanAttributeParser(name, required),
       getIntegerAttributeParser(name, required),
-      getMultiSchemaParser(name, required),
-      getNumberAttributeParser(name, required),
       getNullAttributeParser(name, required),
-      getObjectAttributeParser(name, required),
+      getNumberAttributeParser(name, required),
       getStringAttributeParser(name, required),
+      getArrayAttributeParser(name, required),
+      getObjectAttributeParser(name, required),
+      getMultiSchemaParser(name, required),
     ])
   );
 }
 
-function getBooleanAttributeParser(name: string, required: boolean) {
-  return getStrictParser<BooleanSchema, BooleanAttribute>()(
-    booleanSchemaParser.transform(
-      (schema): BooleanAttribute => ({
-        name,
-        required,
-        schema,
-        type: "boolean",
-      })
-    )
-  );
-}
+export const jsonSchemaParser = getStrictParser<SchemaInput, JsonSchema>()(
+  schemaPropsParser.and(getAttributeParser("schema", false))
+);
+
+// JSON LD Type
 
 function getIden3JsonLdTypeParser(schema: JsonSchema) {
   return getStrictParser<
@@ -322,84 +449,6 @@ function getIden3JsonLdTypeParser(schema: JsonSchema) {
   );
 }
 
-function getIntegerAttributeParser(name: string, required: boolean) {
-  return getStrictParser<IntegerSchema, IntegerAttribute>()(
-    integerSchemaParser.transform(
-      (schema): IntegerAttribute => ({
-        name,
-        required,
-        schema,
-        type: "integer",
-      })
-    )
-  );
-}
-
-function getMultiSchemaParser(name: string, required: boolean) {
-  return getStrictParser<MultiSchemaComposite, MultiAttribute>()(
-    commonPropsParser
-      .and(multiPropsParser)
-      .and(multiSchemaTypeParser)
-      .transform(
-        (schema): MultiAttribute => ({
-          name,
-          required,
-          schemas: unsafelyParseMultiSchemaToDomain(schema, name, required),
-          type: "multi",
-        })
-      )
-  );
-}
-
-function getNullAttributeParser(name: string, required: boolean) {
-  return getStrictParser<NullSchema, NullAttribute>()(
-    nullSchemaParser.transform(
-      (schema): NullAttribute => ({
-        name,
-        required,
-        schema,
-        type: "null",
-      })
-    )
-  );
-}
-
-function getNumberAttributeParser(name: string, required: boolean) {
-  return getStrictParser<NumberSchema, NumberAttribute>()(
-    numberSchemaParser.transform(
-      (schema): NumberAttribute => ({
-        name,
-        required,
-        schema,
-        type: "number",
-      })
-    )
-  );
-}
-
-function getObjectAttributeParser(name: string, required: boolean) {
-  return getStrictParser<ObjectSchema, ObjectAttribute>()(
-    objectSchemaParser.transform(
-      (schema): ObjectAttribute => ({
-        name,
-        required,
-        schema: {
-          ...schema,
-          properties: schema.properties
-            ? Object.entries(schema.properties).map(([name, value]) =>
-                getAttributeParser(
-                  name,
-                  schema.required !== undefined && schema.required.includes(name)
-                ).parse(value)
-              )
-            : undefined,
-        },
-        type: "object",
-      })
-    )
-  );
-}
-
 function getSertoJsonLdTypeParser(schema: JsonSchema) {
   return getStrictParser<
     {
@@ -426,6 +475,7 @@ function getSertoJsonLdTypeParser(schema: JsonSchema) {
             fatal: true,
             message: "Couldn't find attribute credentialSubject in the schema",
           });
+
           return z.NEVER;
         }
 
@@ -476,67 +526,12 @@ function getSertoJsonLdTypeParser(schema: JsonSchema) {
               ? ldContextTypePropsParseResult.error
               : "Couldn't find any valid type in the JSON LD context of the schema",
           });
+
           return z.NEVER;
         }
       })
   );
 }
-
-function getStringAttributeParser(name: string, required: boolean) {
-  return getStrictParser<StringSchema, StringAttribute>()(
-    stringSchemaParser.transform(
-      (schema): StringAttribute => ({
-        name,
-        required,
-        schema,
-        type: "string",
-      })
-    )
-  );
-}
-
-// Helpers
-
-const unsafelyParseMultiSchemaToDomain = (
-  multiSchema: MultiSchemaComposite,
-  name: string,
-  required: boolean
-): MultiSchema => {
-  return multiSchema.type.map((type): MultiSchema[number] => {
-    switch (type) {
-      case "array": {
-        return getArrayAttributeParser(name, required).parse({ ...multiSchema, type: "array" })
-          .schema;
-      }
-      case "boolean": {
-        return getBooleanAttributeParser(name, required).parse({ ...multiSchema, type: "boolean" })
-          .schema;
-      }
-      case "integer": {
-        return getIntegerAttributeParser(name, required).parse({ ...multiSchema, type: "integer" })
-          .schema;
-      }
-      case "number": {
-        return getNumberAttributeParser(name, required).parse({ ...multiSchema, type: "number" })
-          .schema;
-      }
-      case "null": {
-        return getNullAttributeParser(name, required).parse({ ...multiSchema, type: "null" })
-          .schema;
-      }
-      case "object": {
-        return getObjectAttributeParser(name, required).parse({ ...multiSchema, type: "object" })
-          .schema;
-      }
-      case "string": {
-        return getStringAttributeParser(name, required).parse({ ...multiSchema, type: "string" })
-          .schema;
-      }
-    }
-  });
-};
-
-// Exports
 
 export function getJsonLdTypeParser(schema: JsonSchema) {
   return getStrictParser<
@@ -549,7 +544,3 @@ export function getJsonLdTypeParser(schema: JsonSchema) {
     JsonLdType[]
   >()(z.union([getIden3JsonLdTypeParser(schema), getSertoJsonLdTypeParser(schema)]));
 }
-
-export const jsonSchemaParser = getStrictParser<SchemaComposite, JsonSchema>()(
-  schemaPropsParser.and(getAttributeParser("schema", false))
-);

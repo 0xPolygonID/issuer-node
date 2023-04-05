@@ -21,7 +21,7 @@ export async function downloadJsonFromUrl({ fileName, url }: { fileName: string;
 
   a.setAttribute("href", data);
   a.setAttribute("download", fileName + ".json");
-  document.body.appendChild(a); // required for firefox
+  document.body.appendChild(a); // required for Firefox
   a.click();
   a.remove();
 }

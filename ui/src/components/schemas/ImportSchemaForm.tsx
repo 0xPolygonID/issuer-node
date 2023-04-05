@@ -2,7 +2,7 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/schemas";
+import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
