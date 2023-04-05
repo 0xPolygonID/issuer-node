@@ -181,7 +181,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     [userID, env, query, credentialStatus]
   );
 
-  const handleTypeChange = ({ target: { value } }: RadioChangeEvent) => {
+  const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
     const parsedCredentialStatus = credentialStatusParser.safeParse(value);
     if (parsedCredentialStatus.success) {
       setCredentialStatus(parsedCredentialStatus.data);
@@ -257,7 +257,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           {showDefaultContent && credentialStatus === "all" ? (
             <IssueDirectlyButton />
           ) : (
-            <Radio.Group onChange={handleTypeChange} value={credentialStatus}>
+            <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
               <Radio.Button value="all">All</Radio.Button>
 
               <Radio.Button value="revoked">Revoked</Radio.Button>
