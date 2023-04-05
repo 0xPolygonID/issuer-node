@@ -58,7 +58,7 @@ export function ConnectionDeleteModal({
         <Checkbox
           onChange={({ target: { checked } }: CheckboxChangeEvent) => setRevokeCredential(checked)}
         >
-          <Typography.Text>Revoke all credentials for this connections</Typography.Text>
+          <Typography.Text>Revoke all credentials for this connection.</Typography.Text>
           <Typography.Paragraph type="secondary">
             Revoking must be accompanied by publishing of issuer state in order for the action to be
             recorded.
@@ -67,7 +67,7 @@ export function ConnectionDeleteModal({
         <Checkbox
           onChange={({ target: { checked } }: CheckboxChangeEvent) => setRemoveCredential(checked)}
         >
-          <Typography.Text>Delete all credentials for this connection</Typography.Text>
+          <Typography.Text>Delete all credentials for this connection.</Typography.Text>
           <Typography.Paragraph type="secondary">
             Credential data will be deleted from the database.
           </Typography.Paragraph>
