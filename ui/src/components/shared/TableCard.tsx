@@ -1,4 +1,4 @@
-import { Card, Row, Space } from "antd";
+import { Card, Col, Row, Space } from "antd";
 import { ReactNode } from "react";
 
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -6,6 +6,7 @@ import { SearchBox } from "src/components/shared/SearchBox";
 
 export function TableCard({
   defaultContents,
+  extraButton,
   isLoading,
   onSearch,
   query,
@@ -15,6 +16,7 @@ export function TableCard({
   title,
 }: {
   defaultContents: ReactNode;
+  extraButton?: ReactNode;
   isLoading: boolean;
   onSearch: (value: string) => void;
   query: string | null;
@@ -26,8 +28,11 @@ export function TableCard({
   return (
     <Card bodyStyle={{ padding: 0 }} title={title}>
       {!showDefaultContents && (
-        <Row style={{ padding: "16px 12px", width: "60%" }}>
-          <SearchBox onSearch={onSearch} placeholder={searchPlaceholder} query={query} />
+        <Row gutter={16} style={{ padding: "16px 12px" }}>
+          <Col flex={extraButton ? 1 : 0.6}>
+            <SearchBox onSearch={onSearch} placeholder={searchPlaceholder} query={query} />
+          </Col>
+          <Col>{extraButton}</Col>
         </Row>
       )}
 
