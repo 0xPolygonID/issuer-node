@@ -1,8 +1,8 @@
 import { Checkbox, Divider, Modal, Space, Typography, message } from "antd";
 import { CheckboxChangeEvent } from "antd/es/checkbox";
 import { useState } from "react";
-import { deleteConnection } from "src/adapters/api/connections";
 
+import { deleteConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
 
@@ -18,17 +18,17 @@ export function ConnectionDeleteModal({
   open?: boolean;
 }) {
   const env = useEnvContext();
-  const [revokeCredentials, setRevokeCredential] = useState<boolean>(false);
-  const [deleteCredentials, setRemoveCredential] = useState<boolean>(false);
+  const [revokeCredentials, setRevokeCredentials] = useState<boolean>(false);
+  const [deleteCredentials, setDeleteCredentials] = useState<boolean>(false);
 
   const handleDeleteConnection = () => {
     void deleteConnection({ deleteCredentials, env, id, revokeCredentials }).then((response) => {
       if (response.isSuccessful) {
-        void message.success(response.data);
         onClose();
         if (onDelete) {
           onDelete();
         }
+        void message.success(response.data);
       } else {
         void message.error(response.error.message);
       }
@@ -56,7 +56,7 @@ export function ConnectionDeleteModal({
       <Space direction="vertical">
         <Typography.Text strong>Would you also like to:</Typography.Text>
         <Checkbox
-          onChange={({ target: { checked } }: CheckboxChangeEvent) => setRevokeCredential(checked)}
+          onChange={({ target: { checked } }: CheckboxChangeEvent) => setRevokeCredentials(checked)}
         >
           <Typography.Text>Revoke all credentials for this connection.</Typography.Text>
           <Typography.Paragraph type="secondary">
@@ -65,7 +65,7 @@ export function ConnectionDeleteModal({
           </Typography.Paragraph>
         </Checkbox>
         <Checkbox
-          onChange={({ target: { checked } }: CheckboxChangeEvent) => setRemoveCredential(checked)}
+          onChange={({ target: { checked } }: CheckboxChangeEvent) => setDeleteCredentials(checked)}
         >
           <Typography.Text>Delete all credentials for this connection.</Typography.Text>
           <Typography.Paragraph type="secondary">

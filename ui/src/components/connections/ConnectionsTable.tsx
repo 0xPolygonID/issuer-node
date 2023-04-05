@@ -29,7 +29,7 @@ export function ConnectionsTable() {
   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
     status: "pending",
   });
-  const [connectionSelected, setConnectionSelected] = useState<string>();
+  const [connectionToDelete, setConnectionToDelete] = useState<string>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -89,7 +89,7 @@ export function ConnectionsTable() {
               if (key === "details") {
                 navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
               } else if (key === "delete") {
-                setConnectionSelected(id);
+                setConnectionToDelete(id);
               }
             },
           }}
@@ -216,10 +216,10 @@ export function ConnectionsTable() {
           </Row>
         }
       />
-      {connectionSelected && (
+      {connectionToDelete && (
         <ConnectionDeleteModal
-          id={connectionSelected}
-          onClose={() => setConnectionSelected(undefined)}
+          id={connectionToDelete}
+          onClose={() => setConnectionToDelete(undefined)}
           onDelete={() => void fetchConnections()}
         />
       )}
