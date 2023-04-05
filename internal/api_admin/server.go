@@ -265,8 +265,8 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
 	filter := &ports.ClaimsFilter{}
-	if request.Params.Type != nil {
-		switch GetCredentialsParamsType(strings.ToLower(string(*request.Params.Type))) {
+	if request.Params.Status != nil {
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*request.Params.Status))) {
 		case Revoked:
 			filter.Revoked = common.ToPointer(true)
 		case Expired:
@@ -447,12 +447,34 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
 		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
-	response200, err := getLinkResponse(link)
+	linkResp, err := getLinkResponse(link)
 	if err != nil {
 		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
 		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
-	return response200, nil
+	return GetLink200JSONResponse(*linkResp), nil
+}
+
+// GetLinks - Returns a list of links based on a search criteria.
+func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error) {
+	var err error
+	status := ports.LinkAll
+	if request.Params.Status != nil {
+		if status, err = ports.LinkTypeReqFromString(strings.ToLower(string(*request.Params.Status))); err != nil {
+			log.Warn(ctx, "unknown request type getting links", "err", err, "type", request.Params.Status)
+			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
+		}
+	}
+	links, err := s.linkService.GetAll(ctx, s.cfg.APIUI.IssuerDID, status, request.Params.Query)
+	if err != nil {
+		log.Error(ctx, "getting links", "err", err, "req", request)
+	}
+	linkCollection, err := getLinkResponses(links)
+	if err != nil {
+		log.Error(ctx, "link collection response constructor", "err", err.Error())
+		return GetLinks500JSONResponse{N500JSONResponse{Message: "error getting link collection"}}, nil
+	}
+	return GetLinks200JSONResponse(linkCollection), err
 }
 
 // AcivateLink - Activates or deactivates a link
@@ -507,9 +529,9 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 				Reason      string        `json:"reason"`
 				Scope       []interface{} `json:"scope"`
 			}{
-				createLinkQrCodeResponse.QrCode.Body.CallbackURL,
-				createLinkQrCodeResponse.QrCode.Body.Reason,
-				[]interface{}{},
+				CallbackUrl: createLinkQrCodeResponse.QrCode.Body.CallbackURL,
+				Reason:      createLinkQrCodeResponse.QrCode.Body.Reason,
+				Scope:       []interface{}{},
 			},
 			From: createLinkQrCodeResponse.QrCode.From,
 			Id:   createLinkQrCodeResponse.QrCode.ID,
@@ -518,7 +540,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 			Type: string(createLinkQrCodeResponse.QrCode.Type),
 		},
 		SessionID:  createLinkQrCodeResponse.SessionID,
-		LinkDetail: (*Link)(linkDetail),
+		LinkDetail: linkDetail,
 	}, nil
 }
 
@@ -570,7 +592,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getLinQrCodeResponse(getQRCodeResponse.State.QRCode),
-			LinkDetail: (*Link)(linkDetail),
+			LinkDetail: linkDetail,
 		}, nil
 	}
 
