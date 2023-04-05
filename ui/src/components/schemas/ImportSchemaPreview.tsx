@@ -48,17 +48,17 @@ export function ImportSchemaPreview({
 
           <Detail
             copyable={bigint !== null}
-            data={bigint || "An error occurred while calculating BigInt"}
             label="BigInt"
+            text={bigint || "An error occurred while calculating BigInt"}
           />
 
           <Detail
             copyable={schemaHash !== null}
-            data={schemaHash || "An error occurred while calculating Hash"}
             label="Hash"
+            text={schemaHash || "An error occurred while calculating Hash"}
           />
 
-          <Detail copyable data={url} label="URL" />
+          <Detail copyable label="URL" text={url} />
 
           <Row justify="space-between">
             <Typography.Text type="secondary">Download</Typography.Text>

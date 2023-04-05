@@ -19,7 +19,7 @@ export const SCHEMAS = "Schemas";
 
 // URL params
 export const QUERY_SEARCH_PARAM = "query";
-export const TYPE_SEARCH_PARAM = "type";
+export const STATUS_SEARCH_PARAM = "status";
 
 export const API_VERSION = "v1";
 

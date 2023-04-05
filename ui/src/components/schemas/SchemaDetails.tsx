@@ -200,13 +200,13 @@ export function SchemaDetails() {
                 <Space direction="vertical">
                   <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
-                  <Detail copyable data={bigInt} label="BigInt" />
+                  <Detail copyable label="BigInt" text={bigInt} />
 
-                  <Detail copyable data={hash} label="Hash" />
+                  <Detail copyable label="Hash" text={hash} />
 
-                  <Detail copyable data={url} label="URL" />
+                  <Detail copyable label="URL" text={url} />
 
-                  <Detail data={formatDate(createdAt, true)} label="Import date" />
+                  <Detail label="Import date" text={formatDate(createdAt, true)} />
 
                   <Row justify="space-between">
                     <Typography.Text type="secondary">Download</Typography.Text>

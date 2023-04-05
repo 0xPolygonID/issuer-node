@@ -75,7 +75,7 @@ export async function getConnections({
   params: {
     query?: string;
   };
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<APIResponse<Connection[]>> {
   try {
     const response = await axios({
@@ -94,6 +94,37 @@ export async function getConnections({
     const { data } = resultOKConnectionsParser.parse(response);
 
     return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function deleteConnection({
+  deleteCredentials,
+  env,
+  id,
+  revokeCredentials,
+}: {
+  deleteCredentials: boolean;
+  env: Env;
+  id: string;
+  revokeCredentials: boolean;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios<{ message: string }>({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      params: new URLSearchParams({
+        ...(revokeCredentials ? { revokeCredentials: "true" } : {}),
+        ...(deleteCredentials ? { deleteCredentials: "true" } : {}),
+      }),
+      url: `${API_VERSION}/connections/${id}`,
+    });
+
+    return { data: response.data.message, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }

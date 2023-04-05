@@ -12,7 +12,7 @@ import {
 import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Schema } from "src/domain";
-import { API_VERSION, QUERY_SEARCH_PARAM, TYPE_SEARCH_PARAM } from "src/utils/constants";
+import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 // TODO - refactor & order as Credentials are implemented
 
@@ -29,21 +29,21 @@ export const credentialParser = getStrictParser<Credential>()(
   })
 );
 
-export type CredentialType = "all" | "revoked" | "expired";
+export type CredentialStatus = "all" | "revoked" | "expired";
 
-export const credentialTypeParser = getStrictParser<CredentialType>()(
+export const credentialStatusParser = getStrictParser<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
 
 export async function getCredentials({
   env,
-  params: { query, type },
+  params: { query, status },
   signal,
 }: {
   env: Env;
   params: {
     query?: string;
-    type?: CredentialType;
+    status?: CredentialStatus;
   };
   signal: AbortSignal;
 }): Promise<APIResponse<Credential[]>> {
@@ -56,7 +56,7 @@ export async function getCredentials({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(type !== undefined && type !== "all" ? { [TYPE_SEARCH_PARAM]: type } : {}),
+        ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials`,
