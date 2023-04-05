@@ -1,7 +1,7 @@
 import { ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
-import { Connections } from "src/components/connections/Connections";
+import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
@@ -17,7 +17,7 @@ import { ROOT_PATH } from "src/utils/constants";
 
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
-  connections: Connections,
+  connections: ConnectionsTable,
   credentialLink: ScanCredentialLink,
   credentials: Credentials,
   importSchema: ImportSchema,

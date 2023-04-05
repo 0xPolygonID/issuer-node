@@ -1,28 +1,35 @@
-import { Avatar, Card, Divider, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { Avatar, Card, Divider, Dropdown, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
+import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
 import { APIError } from "src/adapters/api";
 import { Connection, getConnections } from "src/adapters/api/connections";
 import { Credential } from "src/adapters/api/credentials";
+import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
+import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
+import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconUsers } from "src/assets/icons/users-01.svg";
-import { ConnectionsRowDropdown } from "src/components/connections/ConnectionsRowDropdown";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
+import { ROUTES } from "src/routes";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/types";
 
-export function Connections() {
+export function ConnectionsTable() {
   const env = useEnvContext();
+
+  const navigate = useNavigate();
 
   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
     status: "pending",
   });
+  const [connectionSelected, setConnectionSelected] = useState<string>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -58,7 +65,41 @@ export function Connections() {
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Connection["id"]) => <ConnectionsRowDropdown id={id} />,
+      render: (id: Connection["id"]) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                icon: <IconInfoCircle />,
+                key: "details",
+                label: "Details",
+              },
+              {
+                key: "divider",
+                type: "divider",
+              },
+              {
+                danger: true,
+                icon: <IconTrash />,
+                key: "delete",
+                label: "Delete connection",
+              },
+            ],
+            onClick: ({ key }) => {
+              if (key === "details") {
+                navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
+              } else if (key === "delete") {
+                setConnectionSelected(id);
+              }
+            },
+          }}
+          overlayStyle={{ zIndex: 999 }}
+        >
+          <Row>
+            <IconDots className="icon-secondary" />
+          </Row>
+        </Dropdown>
+      ),
       width: 55,
     },
   ];
@@ -175,6 +216,12 @@ export function Connections() {
           </Row>
         }
       />
+      {connectionSelected && (
+        <ConnectionDeleteModal
+          id={connectionSelected}
+          onClose={() => setConnectionSelected(undefined)}
+        />
+      )}
     </SiderLayoutContent>
   );
 }
