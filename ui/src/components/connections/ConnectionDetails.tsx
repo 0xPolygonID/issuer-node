@@ -121,9 +121,9 @@ export function ConnectionDetails() {
       </Space>
       {connectionID && (
         <ConnectionDeleteModal
-          callback={() => navigate(-1)}
           id={connectionID}
           onClose={() => setShowModal(false)}
+          onDelete={() => navigate(-1)}
           open={showModal}
         />
       )}

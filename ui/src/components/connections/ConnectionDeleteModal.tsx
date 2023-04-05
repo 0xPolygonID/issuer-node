@@ -7,14 +7,14 @@ import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
 
 export function ConnectionDeleteModal({
-  callback,
   id,
   onClose,
+  onDelete,
   open = true,
 }: {
-  callback?: () => void;
   id: string;
   onClose: () => void;
+  onDelete?: () => void;
   open?: boolean;
 }) {
   const env = useEnvContext();
@@ -26,8 +26,8 @@ export function ConnectionDeleteModal({
       if (response.isSuccessful) {
         void message.success(response.data);
         onClose();
-        if (callback) {
-          callback();
+        if (onDelete) {
+          onDelete();
         }
       } else {
         void message.error(response.error.message);
