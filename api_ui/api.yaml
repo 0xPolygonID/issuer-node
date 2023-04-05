@@ -1034,30 +1034,28 @@ components:
         credentialSchema:
           type: string
           x-omitempty: false
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type:
           type: string
           x-omitempty: false
+          example: "KYCAgeCredential"
         credentialSubject:
           type: object
           x-omitempty: false
+          example:
+            id: "{fill with did}"
+            birthday: 19960424
+            documentType: 2
         expiration:
           type: string
           format: date-time
           example: 2022-08-17T12:43:32.720Z
         signatureProof:
           type: boolean
+          example: true
         mtProof:
           type: boolean
-      example:
-        credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-        type: "KYCAgeCredential"
-        credentialSubject:
-          id: "{fill with did}"
-          birthday: 19960424
-          documentType: 2
-        expiration: 20250424
-        signatureProof: true
-        mtProof: true
+          example: true
 
     Schema:
       type: object
