@@ -448,6 +448,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/state/retry:
+    post:
+      summary: Retry Publish Identity State
+      operationId: RetryPublishState
+      security:
+        - basicAuth: [ ]
+      tags:
+        - State
+      responses:
+        '202':
+          description: Publish state successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
