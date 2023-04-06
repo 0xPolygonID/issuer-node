@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/rand"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -238,6 +240,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
 		SchemaType:      "AuthBJJCredential",
 		OtherIdentifier: userDID.String(),
+		HIndex:          fmt.Sprintf("%d", rand.Int()),
 	}
 	require.NoError(t, c.Data.Set(vc))
 
@@ -271,7 +274,6 @@ func TestGetAllByIssuerID(t *testing.T) {
 			claims, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
 			require.NoError(t, err)
 			assert.Len(t, claims, tc.expected)
-
 		})
 	}
 }
