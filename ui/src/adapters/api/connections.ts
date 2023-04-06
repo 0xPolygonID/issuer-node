@@ -8,18 +8,34 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { Credential, credential } from "src/adapters/api/credentials";
-import { Env } from "src/domain";
+import { credentialParser } from "src/adapters/api/credentials";
+import { getStrictParser } from "src/adapters/parsers";
+import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { StrictSchema } from "src/utils/types";
 
-export interface Connection {
-  createdAt: Date;
-  credentials: Credential[];
-  id: string;
-  issuerID: string;
-  userID: string;
-}
+const connectionParser = getStrictParser<Connection>()(
+  z.object({
+    createdAt: z.coerce.date(),
+    credentials: z.array(credentialParser),
+    id: z.string(),
+    issuerID: z.string(),
+    userID: z.string(),
+  })
+);
+
+const resultOKConnectionParser = getStrictParser<ResultOK<Connection>>()(
+  z.object({
+    data: connectionParser,
+    status: z.literal(HTTPStatusSuccess.OK),
+  })
+);
+
+const resultOKConnectionsParser = getStrictParser<ResultOK<Connection[]>>()(
+  z.object({
+    data: z.array(connectionParser),
+    status: z.literal(HTTPStatusSuccess.OK),
+  })
+);
 
 export async function getConnection({
   env,
@@ -40,7 +56,7 @@ export async function getConnection({
       signal,
       url: `${API_VERSION}/connections/${id}`,
     });
-    const { data } = resultOKConnection.parse(response);
+    const { data } = resultOKConnectionParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -59,7 +75,7 @@ export async function getConnections({
   params: {
     query?: string;
   };
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<APIResponse<Connection[]>> {
   try {
     const response = await axios({
@@ -75,7 +91,7 @@ export async function getConnections({
       signal,
       url: `${API_VERSION}/connections`,
     });
-    const { data } = resultOKConnections.parse(response);
+    const { data } = resultOKConnectionsParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -83,26 +99,33 @@ export async function getConnections({
   }
 }
 
-export const connection = StrictSchema<Connection>()(
-  z.object({
-    createdAt: z.coerce.date(),
-    credentials: z.array(credential),
-    id: z.string(),
-    issuerID: z.string(),
-    userID: z.string(),
-  })
-);
+export async function deleteConnection({
+  deleteCredentials,
+  env,
+  id,
+  revokeCredentials,
+}: {
+  deleteCredentials: boolean;
+  env: Env;
+  id: string;
+  revokeCredentials: boolean;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios<{ message: string }>({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      params: new URLSearchParams({
+        ...(revokeCredentials ? { revokeCredentials: "true" } : {}),
+        ...(deleteCredentials ? { deleteCredentials: "true" } : {}),
+      }),
+      url: `${API_VERSION}/connections/${id}`,
+    });
 
-export const resultOKConnection = StrictSchema<ResultOK<Connection>>()(
-  z.object({
-    data: connection,
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-export const resultOKConnections = StrictSchema<ResultOK<Connection[]>>()(
-  z.object({
-    data: z.array(connection),
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
+    return { data: response.data.message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}

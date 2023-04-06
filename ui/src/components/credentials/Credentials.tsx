@@ -6,11 +6,11 @@ import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-ca
 import { IssuedTable } from "src/components/credentials/IssuedTable";
 import { LinkTable } from "src/components/credentials/LinkTable";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { TabsCredentialsIDs } from "src/domain";
+import { CredentialsTabIDs } from "src/domain";
 import { ROUTES } from "src/routes";
 import { CREDENTIALS, CREDENTIALS_TABS, ISSUE_CREDENTIAL } from "src/utils/constants";
 
-const tabComponents: Record<TabsCredentialsIDs, ComponentType> = {
+const tabComponents: Record<CredentialsTabIDs, ComponentType> = {
   issued: IssuedTable,
   links: LinkTable,
 };
@@ -59,6 +59,7 @@ export function Credentials() {
         destroyInactiveTabPane
         items={CREDENTIALS_TABS.map(({ id, tabID, title }) => {
           const Component = tabComponents[id];
+
           return {
             children: <Component />,
             key: tabID,
