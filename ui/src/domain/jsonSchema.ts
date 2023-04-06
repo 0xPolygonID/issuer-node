@@ -120,3 +120,5 @@ export type SchemaProps = {
 };
 
 export type JsonSchema = Attribute & SchemaProps;
+
+export type JsonLdType = { id: string; name: string };
