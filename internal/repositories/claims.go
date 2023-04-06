@@ -719,7 +719,8 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		query = fmt.Sprintf("%s and claims.revoked = $%d", query, len(filters))
 	}
 	if filter.QueryField != "" {
-		query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s' ", query, filter.QueryField, filter.QueryField)
+		filters = append(filters, filter.QueryField, filter.QueryFieldValue)
+		query = fmt.Sprintf("%s and data -> 'credentialSubject'  ->>$%d = $%d ", query, len(filters)-1, len(filters))
 	}
 	if filter.ExpiredOn != nil {
 		t := *filter.ExpiredOn

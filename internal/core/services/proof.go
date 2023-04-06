@@ -265,12 +265,11 @@ func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifie
 }
 
 func (p *Proof) findClaimForQuery(ctx context.Context, identifier *core.DID, query ports.Query) ([]*domain.Claim, error) {
-	field := ""
 	var err error
 
 	// TODO "query_value":    value,
 	// TODO "query_operator": operator,
-	filter := &ports.ClaimsFilter{QueryField: field, SchemaType: query.SchemaType()}
+	filter := &ports.ClaimsFilter{SchemaType: query.SchemaType()}
 	if !query.SkipClaimRevocationCheck {
 		filter.Revoked = common.ToPointer(false)
 	}

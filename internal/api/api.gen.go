@@ -210,8 +210,11 @@ type GetClaimsParams struct {
 	// Self Filter per retrieve claims of the provided identifier. Example - true
 	Self *bool `form:"self,omitempty" json:"self,omitempty"`
 
-	// QueryField Filter inside the data of the claim.
+	// QueryField Filter this field inside the data of the claim
 	QueryField *string `form:"query_field,omitempty" json:"query_field,omitempty"`
+
+	// QueryValue Filter this value inside the data of the claim for the specified field in query_field
+	QueryValue *string `form:"query_value,omitempty" json:"query_value,omitempty"`
 }
 
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
@@ -434,6 +437,14 @@ func (siw *ServerInterfaceWrapper) GetClaims(w http.ResponseWriter, r *http.Requ
 	err = runtime.BindQueryParameter("form", true, false, "query_field", r.URL.Query(), &params.QueryField)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_field", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "query_value" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query_value", r.URL.Query(), &params.QueryValue)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_value", Err: err})
 		return
 	}
 
