@@ -242,7 +242,14 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
-	filter, err := ports.NewClaimsFilter(request.Params.SchemaHash, request.Params.SchemaType, request.Params.Subject, request.Params.QueryField, request.Params.Self, request.Params.Revoked)
+	filter, err := ports.NewClaimsFilter(
+		request.Params.SchemaHash,
+		request.Params.SchemaType,
+		request.Params.Subject,
+		request.Params.QueryField,
+		request.Params.QueryValue,
+		request.Params.Self,
+		request.Params.Revoked)
 	if err != nil {
 		return GetClaims400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}

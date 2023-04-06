@@ -7,11 +7,13 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
@@ -210,4 +212,66 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, len(r), 0)
 	})
+}
+
+func TestGetAllByIssuerID(t *testing.T) {
+	ctx := context.Background()
+
+	fixture := tests.NewFixture(storage)
+	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+	userDID, err := core.ParseDID("did:iden3:tJUieNy7sk5PhitERHg1tgM8v1qhsDSEHVJSUF9rJ")
+	require.NoError(t, err)
+
+	vc := &verifiable.W3CCredential{
+		ID: uuid.NewString(),
+		CredentialSubject: map[string]any{
+			"number": 1,
+			"string": "some words",
+		},
+	}
+	c := &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: userDID.String(),
+	}
+	require.NoError(t, c.Data.Set(vc))
+
+	_ = fixture.CreateClaim(t, c)
+
+	claimsRepo := repositories.NewClaims()
+
+	type testConfig struct {
+		name     string
+		filter   ports.ClaimsFilter
+		expected int
+	}
+	for _, tc := range []testConfig{
+		{
+			name:     "filter.QueryField not found",
+			filter:   ports.ClaimsFilter{QueryField: "unknown key", QueryFieldValue: "value"},
+			expected: 0,
+		},
+		{
+			name:     "filter.QueryField exists, value does not exists ",
+			filter:   ports.ClaimsFilter{QueryField: "number", QueryFieldValue: "1"},
+			expected: 1,
+		},
+		{
+			name:     "filter.QueryField exists, value exists",
+			filter:   ports.ClaimsFilter{QueryField: "number", QueryFieldValue: "1"},
+			expected: 1,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			claims, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
+			require.NoError(t, err)
+			assert.Len(t, claims, tc.expected)
+
+		})
+	}
 }

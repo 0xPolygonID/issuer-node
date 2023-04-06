@@ -43,19 +43,20 @@ type AgentRequest struct {
 
 // ClaimsFilter struct
 type ClaimsFilter struct {
-	Self       *bool
-	Revoked    *bool
-	ExpiredOn  *time.Time
-	SchemaHash string
-	SchemaType string
-	Subject    string
-	QueryField string
-	FTSQuery   string
-	FTSAndCond bool
+	Self            *bool
+	Revoked         *bool
+	ExpiredOn       *time.Time
+	SchemaHash      string
+	SchemaType      string
+	Subject         string
+	QueryField      string
+	QueryFieldValue string
+	FTSQuery        string
+	FTSAndCond      bool
 }
 
 // NewClaimsFilter returns a valid claims filter
-func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, revoked *bool) (*ClaimsFilter, error) {
+func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *string, self, revoked *bool) (*ClaimsFilter, error) {
 	var filter ClaimsFilter
 
 	if self != nil && *self {
@@ -64,25 +65,23 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField *string, self, 
 		}
 		filter.Self = self
 	}
-
-	if schemaHash != nil && *schemaHash != "" {
+	if schemaHash != nil {
 		filter.SchemaHash = *schemaHash
 	}
-
-	if schemaType != nil && *schemaType != "" {
+	if schemaType != nil {
 		filter.SchemaType = *schemaType
 	}
-
 	if revoked != nil {
 		filter.Revoked = revoked
 	}
-
-	if subject != nil && *subject != "" {
+	if subject != nil {
 		filter.Subject = *subject
 	}
-
-	if queryField != nil && *queryField != "" {
+	if queryField != nil {
 		filter.QueryField = *queryField
+	}
+	if queryValue != nil {
+		filter.QueryFieldValue = *queryValue
 	}
 
 	return &filter, nil
