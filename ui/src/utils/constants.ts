@@ -1,4 +1,4 @@
-import { TabsCredentialsIDs } from "src/domain";
+import { CredentialsTabIDs } from "src/domain";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
@@ -19,13 +19,13 @@ export const SCHEMAS = "Schemas";
 
 // URL params
 export const QUERY_SEARCH_PARAM = "query";
-export const TYPE_SEARCH_PARAM = "type";
+export const STATUS_SEARCH_PARAM = "status";
 
 export const API_VERSION = "v1";
 
 export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 
-export const CREDENTIALS_TABS: { id: TabsCredentialsIDs; tabID: string; title: string }[] = [
+export const CREDENTIALS_TABS: { id: CredentialsTabIDs; tabID: string; title: string }[] = [
   {
     id: "issued",
     tabID: "issued",

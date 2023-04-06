@@ -727,7 +727,11 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		query = fmt.Sprintf("%s AND claims.expiration>0 AND claims.expiration<$%d", query, len(filters))
 	}
 	if filter.FTSQuery != "" {
-		filters = append(filters, fullTextSearchQuery(filter.FTSQuery, " | "))
+		cond := " | "
+		if filter.FTSAndCond {
+			cond = " & "
+		}
+		filters = append(filters, fullTextSearchQuery(filter.FTSQuery, cond))
 		ftsConds := fmt.Sprintf("schemas.ts_words @@ to_tsquery($%d) ", len(filters))
 		if did := getDIDFromQuery(filter.FTSQuery); did != "" {
 			filters = append(filters, did)

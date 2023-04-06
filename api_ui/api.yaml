@@ -245,6 +245,11 @@ paths:
         - basicAuth: [ ]
       parameters:
         - in: query
+          name: did
+          schema:
+            type: string
+            example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        - in: query
           name: status
           schema:
             type: string

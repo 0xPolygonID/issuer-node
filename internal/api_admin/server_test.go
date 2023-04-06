@@ -1352,6 +1352,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
+	schemaRepository := repositories.NewSchema(*storage)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
@@ -1361,6 +1362,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		Host:       "http://host",
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	schemaService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
@@ -1377,23 +1379,25 @@ func TestServer_GetCredentials(t *testing.T) {
 	}
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
-	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	future := time.Now().Add(1000 * time.Hour)
 	past := time.Now().Add(-1000 * time.Hour)
+	_, err = schemaService.ImportSchema(ctx, *did, schemaURL, typeC)
+	require.NoError(t, err)
 	// Never expires
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	// Expires in future
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
 	// Expired
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
 	require.NoError(t, err)
 
 	// non expired, but revoked
-	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
 	require.NoError(t, err)
 
 	id, err := core.ParseDID(*revoked.Identifier)
@@ -1411,6 +1415,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	type testConfig struct {
 		name     string
 		auth     func() (string, string)
+		did      *string
 		query    *string
 		status   *string
 		expected expected
@@ -1424,12 +1429,21 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:   "Wrong type",
+			name:   "Wrong status",
 			auth:   authOk,
 			status: common.ToPointer("wrong"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				errorMsg: "Wrong type value. Allowed values: [all, revoked, expired]",
+				errorMsg: "wrong type value. Allowed values: [all, revoked, expired]",
+			},
+		},
+		{
+			name: "wrong did",
+			auth: authOk,
+			did:  common.ToPointer("wrongdid:"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "cannot parse did parameter: wrong format",
 			},
 		},
 		{
@@ -1447,6 +1461,26 @@ func TestServer_GetCredentials(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    4,
+			},
+		},
+		{
+			name:   "Get all from existing did",
+			auth:   authOk,
+			status: common.ToPointer("all"),
+			did:    &claim.OtherIdentifier,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:   "Get all from non existing did. Expecting empty list",
+			auth:   authOk,
+			status: common.ToPointer("all"),
+			did:    common.ToPointer("did:iden3:tJU7z1dbKyKYLiaopZ5tN6Zjsspq7QhYayiR31RFa"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    0,
 			},
 		},
 		{
@@ -1477,7 +1511,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:  "Search by did:",
+			name:  "Search by did in query params:",
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
@@ -1485,16 +1519,40 @@ func TestServer_GetCredentials(t *testing.T) {
 				count:    4,
 			},
 		},
+		{
+			name:  "FTS is doing and OR when no did passed:",
+			auth:  authOk,
+			query: common.ToPointer("birthday is an schema attribute but not the rest of words in this sentence"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "FTS is doing and AND when did passed:",
+			auth:  authOk,
+			did:   &claim.OtherIdentifier,
+			query: common.ToPointer("birthday is an schema attribute but not the rest of words in this sentence"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    0,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			endpoint := url.URL{Path: "/v1/credentials"}
+			queryParams := make([]string, 0)
 			if tc.query != nil {
-				endpoint.RawQuery = endpoint.RawQuery + "query=" + *tc.query
+				queryParams = append(queryParams, "query="+*tc.query)
 			}
 			if tc.status != nil {
-				endpoint.RawQuery = endpoint.RawQuery + "status=" + *tc.status
+				queryParams = append(queryParams, "status="+*tc.status)
 			}
+			if tc.did != nil {
+				queryParams = append(queryParams, "did="+*tc.did)
+			}
+			endpoint.RawQuery = strings.Join(queryParams, "&")
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)

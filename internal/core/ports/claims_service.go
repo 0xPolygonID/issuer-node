@@ -51,6 +51,7 @@ type ClaimsFilter struct {
 	Subject    string
 	QueryField string
 	FTSQuery   string
+	FTSAndCond bool
 }
 
 // NewClaimsFilter returns a valid claims filter
