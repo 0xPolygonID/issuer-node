@@ -463,6 +463,9 @@ type ServerInterface interface {
 	// Publish Identity State
 	// (POST /v1/state/publish)
 	PublishState(w http.ResponseWriter, r *http.Request)
+	// Retry Publish Identity State
+	// (POST /v1/state/retry)
+	RetryPublishState(w http.ResponseWriter, r *http.Request)
 	// Endpoint to get the identity state status
 	// (GET /v1/state/status)
 	GetStateStatus(w http.ResponseWriter, r *http.Request)
@@ -1246,6 +1249,23 @@ func (siw *ServerInterfaceWrapper) PublishState(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// RetryPublishState operation middleware
+func (siw *ServerInterfaceWrapper) RetryPublishState(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RetryPublishState(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetStateStatus operation middleware
 func (siw *ServerInterfaceWrapper) GetStateStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1473,6 +1493,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/state/publish", wrapper.PublishState)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/state/retry", wrapper.RetryPublishState)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/state/status", wrapper.GetStateStatus)
@@ -2435,9 +2458,52 @@ func (response PublishState202JSONResponse) VisitPublishStateResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
+type PublishState400JSONResponse struct{ N400JSONResponse }
+
+func (response PublishState400JSONResponse) VisitPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PublishState500JSONResponse struct{ N500JSONResponse }
 
 func (response PublishState500JSONResponse) VisitPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RetryPublishStateRequestObject struct {
+}
+
+type RetryPublishStateResponseObject interface {
+	VisitRetryPublishStateResponse(w http.ResponseWriter) error
+}
+
+type RetryPublishState202JSONResponse PublishIdentityStateResponse
+
+func (response RetryPublishState202JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RetryPublishState400JSONResponse struct{ N400JSONResponse }
+
+func (response RetryPublishState400JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RetryPublishState500JSONResponse struct{ N500JSONResponse }
+
+func (response RetryPublishState500JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2577,6 +2643,9 @@ type StrictServerInterface interface {
 	// Publish Identity State
 	// (POST /v1/state/publish)
 	PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error)
+	// Retry Publish Identity State
+	// (POST /v1/state/retry)
+	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
 	// Endpoint to get the identity state status
 	// (GET /v1/state/status)
 	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
@@ -3340,6 +3409,30 @@ func (sh *strictHandler) PublishState(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PublishStateResponseObject); ok {
 		if err := validResponse.VisitPublishStateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// RetryPublishState operation middleware
+func (sh *strictHandler) RetryPublishState(w http.ResponseWriter, r *http.Request) {
+	var request RetryPublishStateRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RetryPublishState(ctx, request.(RetryPublishStateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RetryPublishState")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RetryPublishStateResponseObject); ok {
+		if err := validResponse.VisitRetryPublishStateResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
