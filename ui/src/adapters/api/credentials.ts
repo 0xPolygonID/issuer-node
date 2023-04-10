@@ -147,9 +147,9 @@ export async function linkUpdate({
   payload: {
     active: boolean;
   };
-}): Promise<APIResponse<Link>> {
+}): Promise<APIResponse<string>> {
   try {
-    const response = await axios<Link>({
+    const response = await axios<{ message: string }>({
       baseURL: env.api.url,
       data: payload,
       headers: {
@@ -158,9 +158,8 @@ export async function linkUpdate({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const { data } = response;
 
-    return { data, isSuccessful: true };
+    return { data: response.data.message, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }

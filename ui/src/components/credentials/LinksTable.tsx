@@ -59,6 +59,8 @@ export function LinksTable() {
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
   const parsedStatusParam = linkStatusParser.safeParse(statusParam);
+  const showDefaultContent =
+    links.status === "successful" && linksList.length === 0 && queryParam === null;
 
   const status = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
@@ -72,8 +74,7 @@ export function LinksTable() {
           checked={active}
           disabled={link.status === "exceeded"}
           loading={isLinkUpdating[link.id]}
-          onClick={(isActive, event) => {
-            event.stopPropagation();
+          onClick={(isActive) => {
             toggleLinkActive(isActive, link.id);
           }}
           size="small"
@@ -226,8 +227,10 @@ export function LinksTable() {
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
     const parsedLinkValue = linkStatusParser.safeParse(value);
+
     if (parsedLinkValue.success) {
       const params = new URLSearchParams(searchParams);
+
       if (parsedLinkValue.data !== "all") {
         params.set(STATUS_SEARCH_PARAM, parsedLinkValue.data);
       } else {
@@ -281,7 +284,7 @@ export function LinksTable() {
       if (response.isSuccessful) {
         updateCredentialInState(active, id);
 
-        void message.success(`Link ${active ? "activated" : "deactivated"}`);
+        void message.success(response.data);
       } else {
         void message.error(response.error.message);
       }
@@ -311,14 +314,11 @@ export function LinksTable() {
           params.set(QUERY_SEARCH_PARAM, query);
           return params;
         }
-        return params;
+        return oldParams;
       });
     },
     [setSearchParams]
   );
-
-  const showDefaultContent =
-    links.status === "successful" && linksList.length === 0 && queryParam === null;
 
   return (
     <>
