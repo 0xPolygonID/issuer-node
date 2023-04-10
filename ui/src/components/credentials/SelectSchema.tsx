@@ -6,11 +6,17 @@ import { getSchemas } from "src/adapters/api/schemas";
 import { useEnvContext } from "src/contexts/env";
 import { Schema } from "src/domain";
 import { ROUTES } from "src/routes";
-import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_TYPE } from "src/utils/constants";
 
-export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
+export function SelectSchema({
+  onSelect,
+  schemaID,
+}: {
+  onSelect: (schema: Schema) => void;
+  schemaID: string | undefined;
+}) {
   const env = useEnvContext();
   const [schemas, setSchemas] = useState<AsyncTask<Schema[], undefined>>({
     status: "pending",
@@ -50,15 +56,30 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
     return aborter;
   }, [fetchSchemas]);
 
+  useEffect(() => {
+    if (schemaID) {
+      const schema =
+        isAsyncTaskDataAvailable(schemas) && schemas.data.find((schema) => schema.id === schemaID);
+      if (schema) {
+        onSelect(schema);
+      }
+    }
+  }, [onSelect, schemaID, schemas]);
+
   return (
     <Form layout="vertical">
       <Form.Item label="Select schema type" required>
         <Select
           className="full-width"
-          loading={!isAsyncTaskDataAvailable(schemas)}
-          onChange={(id: string) =>
-            navigate(generatePath(ROUTES.issueCredential.path, { schemaID: id }))
-          }
+          loading={isAsyncTaskStarting(schemas)}
+          onChange={(id: string) => {
+            const schema =
+              isAsyncTaskDataAvailable(schemas) && schemas.data.find((schema) => schema.id === id);
+            if (schema) {
+              navigate(generatePath(ROUTES.issueCredential.path, { schemaID: id }));
+              onSelect(schema);
+            }
+          }}
           placeholder={SCHEMA_TYPE}
           value={schemaID && isAsyncTaskDataAvailable(schemas) ? schemaID : undefined}
         >

@@ -26,10 +26,11 @@ export async function downloadJsonFromUrl({ fileName, url }: { fileName: string;
   a.remove();
 }
 
-export async function getJsonFromUrl({ url }: { url: string }) {
+export async function getJsonFromUrl({ signal, url }: { signal?: AbortSignal; url: string }) {
   const response = await axios({
     method: "GET",
-    url: url,
+    signal,
+    url,
   });
 
   return jsonParser.parse(response.data);

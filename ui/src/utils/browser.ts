@@ -1,3 +1,4 @@
+import { AxiosError } from "axios";
 import { APIError, HTTPStatusError } from "src/adapters/api";
 
 export function downloadFile(blob: Blob, filename: string) {
@@ -12,11 +13,11 @@ export function downloadFile(blob: Blob, filename: string) {
   window.URL.revokeObjectURL(url);
 }
 
-export function isAbortedError(response: APIError) {
+export function isAbortedError(response: APIError | AxiosError) {
   return HTTPStatusError.Aborted === response.status;
 }
 
-export function makeRequestAbortable<T>(request: (signal: AbortSignal) => Promise<T>) {
+export function makeRequestAbortable<T>(request: (signal: AbortSignal) => T | Promise<T>) {
   const controller = new AbortController();
 
   return {
