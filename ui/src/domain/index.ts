@@ -37,6 +37,7 @@ export type {
   ObjectSchema,
   JsonSchema,
   SchemaProps,
+  StringFormat,
   StringAttribute,
   StringProps,
   StringSchema,

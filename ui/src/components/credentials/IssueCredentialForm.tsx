@@ -5,8 +5,8 @@ import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.s
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
-import { CredentialAttribute } from "src/components/credentials/CredentialAttribute";
-import { JsonSchema, Schema } from "src/domain";
+import { CredentialForm } from "src/components/credentials/CredentialForm";
+import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
 
 export type AttributeValues = {
@@ -27,72 +27,80 @@ export function IssueCredentialForm({
   onSubmit: (values: AttributeValues) => void;
   schema: Schema;
 }) {
+  const credentialSubject =
+    (jsonSchema.type === "object" &&
+      jsonSchema.schema.properties?.find(
+        (child): child is ObjectAttribute => child.type === "object"
+      )) ||
+    null;
+
   return (
-    <Form
-      initialValues={initialValues}
-      layout="vertical"
-      name="issueCredentialAttributes"
-      onFinish={onSubmit}
-      requiredMark={false}
-      validateTrigger="onBlur"
-    >
-      <Form.Item>
-        <Space direction="vertical">
-          <Row justify="space-between">
-            <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
-
-            <Typography.Text copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}>
-              {schema.hash}
-            </Typography.Text>
-          </Row>
-        </Space>
-      </Form.Item>
-
-      <Divider />
-
-      <Typography.Text>{schema.type}</Typography.Text>
-
-      {jsonSchema.type !== "multi" && jsonSchema.schema.description && (
-        <Typography.Paragraph type="secondary">
-          {jsonSchema.schema.description}
-        </Typography.Paragraph>
-      )}
-
-      <Form.Item>
-        <Space direction="vertical" size="small">
-          {/* //TODO Credentials epic */}
-          {[].map((schemaAttribute, index) => (
-            <CredentialAttribute index={index} key={index} schemaAttribute={schemaAttribute} />
-          ))}
-        </Space>
-      </Form.Item>
-
-      <Form.Item
-        label="Credential expiration date"
-        name="expirationDate"
-        rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
-        // TODO Credentials epic
-        // rules={
-        //   schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
-        // }
+    credentialSubject && (
+      <Form
+        initialValues={initialValues}
+        layout="vertical"
+        name="issueCredentialAttributes"
+        onFinish={onSubmit}
+        requiredMark={false}
+        validateTrigger="onBlur"
       >
-        <DatePicker disabledDate={(current) => current < dayjs()} />
-      </Form.Item>
+        <Form.Item>
+          <Space direction="vertical">
+            <Row justify="space-between">
+              <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
 
-      <Divider />
+              <Typography.Text
+                copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
+              >
+                {schema.hash}
+              </Typography.Text>
+            </Row>
+          </Space>
+        </Form.Item>
 
-      <Row justify="end">
-        <Space size="middle">
-          <Button icon={<IconBack />} onClick={onBack} type="default">
-            Previous step
-          </Button>
+        <Divider />
 
-          <Button disabled={!schema} htmlType="submit" type="primary">
-            Next step
-            <IconRight />
-          </Button>
-        </Space>
-      </Row>
-    </Form>
+        <Typography.Text>{schema.type}</Typography.Text>
+
+        {jsonSchema.type !== "multi" && jsonSchema.schema.description && (
+          <Typography.Paragraph type="secondary">
+            {jsonSchema.schema.description}
+          </Typography.Paragraph>
+        )}
+
+        <Form.Item>
+          <Space direction="vertical" size="small">
+            <CredentialForm objectAttribute={credentialSubject} parents={[]} />
+          </Space>
+        </Form.Item>
+
+        <Form.Item
+          label="Credential expiration date"
+          name="expirationDate"
+          rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
+          // TODO Credentials epic
+          // rules={
+          //   schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
+          // }
+        >
+          <DatePicker disabledDate={(current) => current < dayjs()} />
+        </Form.Item>
+
+        <Divider />
+
+        <Row justify="end">
+          <Space size="middle">
+            <Button icon={<IconBack />} onClick={onBack} type="default">
+              Previous step
+            </Button>
+
+            <Button disabled={!schema} htmlType="submit" type="primary">
+              Next step
+              <IconRight />
+            </Button>
+          </Space>
+        </Row>
+      </Form>
+    )
   );
 }
