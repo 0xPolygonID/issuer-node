@@ -160,8 +160,8 @@ export function CredentialsTable({ userID }: { userID: string }) {
         const response = await getCredentials({
           env,
           params: {
-            // TODO should change when PID-498 is done
-            query: query ? `${userID} ${query}` : `${userID}`,
+            did: userID,
+            query: query || undefined,
             status: credentialStatus,
           },
           signal,
