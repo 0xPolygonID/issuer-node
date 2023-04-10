@@ -7,13 +7,13 @@ import {
   credentialsQRCreate,
   credentialsQRDownload,
 } from "src/adapters/api/credentials";
-import { Schema } from "src/adapters/api/schemas";
 import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { useEnvContext } from "src/contexts/env";
+import { Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { downloadFile } from "src/utils/browser";
 import {
@@ -21,6 +21,7 @@ import {
   CARD_ELLIPSIS_MAXIMUM_WIDTH,
   CREDENTIALS_TABS,
   CREDENTIAL_LINK,
+  ISSUE_DATE,
   SCHEMA_HASH,
 } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -174,7 +175,7 @@ export function Summary({
               </Row>
 
               <Row justify="space-between">
-                <Typography.Text type="secondary">Issue date</Typography.Text>
+                <Typography.Text type="secondary">{ISSUE_DATE}</Typography.Text>
 
                 <Typography.Text>{formatDate(credential.createdAt)}</Typography.Text>
               </Row>

@@ -205,7 +205,12 @@ paths:
           name: query_field
           schema:
             type: string
-          description: Filter inside the data of the claim.
+          description: Filter this field inside the data of the claim
+        - in: query
+          name: query_value
+          schema:
+            type: string
+          description: Filter this value inside the data of the claim for the specified field in query_field
       responses:
         '200':
           description: Claims found

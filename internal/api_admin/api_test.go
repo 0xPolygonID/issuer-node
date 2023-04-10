@@ -1,4 +1,4 @@
-package api
+package api_admin
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 // TestValid verifies that the api spec can ve validated by github.com/getkin/kin-openapi
 func TestValid(t *testing.T) {
-	file, err := os.ReadFile("../../api/api.yaml")
+	file, err := os.ReadFile("../../api_ui/api.yaml")
 	require.NoError(t, err)
 	loader := openapi3.NewLoader()
 	spec, err := loader.LoadFromData(file)

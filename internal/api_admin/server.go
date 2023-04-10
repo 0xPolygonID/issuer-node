@@ -19,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -264,21 +265,9 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	filter := &ports.ClaimsFilter{}
-	if request.Params.Status != nil {
-		switch GetCredentialsParamsStatus(strings.ToLower(string(*request.Params.Status))) {
-		case Revoked:
-			filter.Revoked = common.ToPointer(true)
-		case Expired:
-			filter.ExpiredOn = common.ToPointer(time.Now())
-		case All:
-			// Nothing to be done
-		default:
-			return GetCredentials400JSONResponse{N400JSONResponse{Message: "Wrong type value. Allowed values: [all, revoked, expired]"}}, nil
-		}
-	}
-	if request.Params.Query != nil {
-		filter.FTSQuery = *request.Params.Query
+	filter, err := getCredentialsFilter(ctx, request.Params.Did, request.Params.Status, request.Params.Query)
+	if err != nil {
+		return GetCredentials400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
@@ -361,6 +350,10 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
 	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
+		log.Error(ctx, "error publishing the state", "err", err)
+		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoStatesToProcess) {
+			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		return PublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
@@ -373,9 +366,28 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	}, nil
 }
 
+// RetryPublishState - retry to publish the current state if it failed previously.
+func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
+	publishedState, err := s.publisherGateway.RetryPublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "error retrying the publishing the state", "err", err)
+		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoFailedStatesToProcess) {
+			return RetryPublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return RetryPublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RetryPublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
+}
+
 // GetStateStatus - get the state status
 func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObject) (GetStateStatusResponseObject, error) {
-	pendingActions, err := s.identityService.HasUnprocessedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
+	pendingActions, err := s.identityService.HasUnprocessedAndFailedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "get state status", "err", err)
 		return GetStateStatus500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -610,6 +622,34 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 	return GetLinkQRCode400JSONResponse{N400JSONResponse{
 		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
 	}}, nil
+}
+
+func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {
+	filter := &ports.ClaimsFilter{}
+	if userDID != nil {
+		did, err := core.ParseDID(*userDID)
+		if err != nil {
+			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *userDID)
+			return nil, errors.New("cannot parse did parameter: wrong format")
+		}
+		filter.Subject, filter.FTSAndCond = did.String(), true
+	}
+	if status != nil {
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*status))) {
+		case Revoked:
+			filter.Revoked = common.ToPointer(true)
+		case Expired:
+			filter.ExpiredOn = common.ToPointer(time.Now())
+		case All:
+			// Nothing to be done
+		default:
+			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
+		}
+	}
+	if query != nil {
+		filter.FTSQuery = *query
+	}
+	return filter, nil
 }
 
 func isBeforeTomorrow(t time.Time) bool {

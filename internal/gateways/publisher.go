@@ -27,9 +27,11 @@ type jobIDType string
 
 var (
 	// ErrNoStatesToProcess No states to process
-	ErrNoStatesToProcess = errors.New("no states to process")
+	ErrNoStatesToProcess = errors.New("no states to process or previous state transaction failed")
 	// ErrStateIsBeingProcessed State is being processed
 	ErrStateIsBeingProcessed = errors.New("the state is being processed")
+	// ErrNoFailedStatesToProcess - No fialed states to process
+	ErrNoFailedStatesToProcess = errors.New("no failed states to process")
 )
 
 const (
@@ -91,6 +93,22 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*do
 	return newState, err
 }
 
+func (p *publisher) RetryPublishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+	idStr := identifier.String()
+	processingEntity := p.pendingTransactions.Load(idStr)
+	if processingEntity != nil {
+		return nil, ErrStateIsBeingProcessed
+	}
+
+	p.pendingTransactions.Store(idStr, true)
+	newState, err := p.retrypublishFailedState(ctx, identifier)
+	if err != nil {
+		p.pendingTransactions.Delete(idStr)
+	}
+
+	return newState, err
+}
+
 func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
 	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, *identifier)
 	if err != nil {
@@ -122,6 +140,33 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 		State:              updatedState.State,
 		RevocationTreeRoot: updatedState.RevocationTreeRoot,
 		RootOfRoots:        updatedState.RootOfRoots,
+	}, nil
+}
+
+func (p *publisher) retrypublishFailedState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+	failedState, err := p.identityService.GetFailedState(ctx, *identifier)
+	if err != nil {
+		log.Error(ctx, "error fetching failed state", "err", err)
+		return nil, err
+	}
+
+	if failedState == nil {
+		log.Info(ctx, "no failed state for the given issuer id")
+		return nil, ErrNoFailedStatesToProcess
+	}
+
+	txID, err := p.publishProof(ctx, identifier, *failedState)
+	if err != nil {
+		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
+		return nil, err
+	}
+
+	return &domain.PublishedState{
+		TxID:               txID,
+		ClaimsTreeRoot:     failedState.ClaimsTreeRoot,
+		State:              failedState.State,
+		RevocationTreeRoot: failedState.RevocationTreeRoot,
+		RootOfRoots:        failedState.RootOfRoots,
 	}, nil
 }
 
@@ -433,7 +478,8 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 	}
 
 	if !confirmed {
-		return fmt.Errorf("transaction receipt is found, but it is not confirmed yet - %s", *state.TxID)
+		log.Debug(ctx, "transaction receipt is found, but it is not confirmed yet", "TxID", *state.TxID)
+		return ErrStateIsBeingProcessed
 	}
 
 	err = p.updateIdentityStateTxStatus(ctx, state, receipt)

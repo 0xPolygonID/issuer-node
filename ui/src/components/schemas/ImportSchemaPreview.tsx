@@ -2,34 +2,32 @@ import { Button, Row, Space, Typography, message } from "antd";
 
 import { downloadJsonFromUrl } from "src/adapters/json";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
-import { Detail } from "src/components/schemas/Detail";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
-import { Json, JsonLdType, Schema } from "src/domain";
+import { Detail } from "src/components/shared/Detail";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({
   jsonLdType,
+  jsonSchema,
   onBack,
   onImport,
   rawJsonLdContext,
   rawJsonSchema,
-  schema,
   url,
 }: {
   jsonLdType: JsonLdType;
+  jsonSchema: JsonSchema;
   onBack: () => void;
   onImport: () => void;
   rawJsonLdContext: Json;
   rawJsonSchema: Json;
-  schema: Schema;
   url: string;
 }) {
-  const schemaHashResult = getSchemaHash(jsonLdType);
-  const schemaHash =
-    schemaHashResult && schemaHashResult.success ? schemaHashResult.data : undefined;
-
   const bigintResult = getBigint(jsonLdType);
-  const bigint = bigintResult && bigintResult.success ? bigintResult.data : undefined;
+  const bigint = bigintResult && bigintResult.success ? bigintResult.data : null;
+  const schemaHashResult = getSchemaHash(jsonLdType);
+  const schemaHash = schemaHashResult && schemaHashResult.success ? schemaHashResult.data : null;
 
   return (
     <SchemaViewer
@@ -49,25 +47,25 @@ export function ImportSchemaPreview({
           <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
 
           <Detail
-            copyable={bigint !== undefined}
-            data={bigint || "An error occurred while calculating BigInt"}
+            copyable={bigint !== null}
             label="BigInt"
+            text={bigint || "An error occurred while calculating BigInt"}
           />
 
           <Detail
-            copyable={schemaHash !== undefined}
-            data={schemaHash || "An error occurred while calculating Hash"}
+            copyable={schemaHash !== null}
             label="Hash"
+            text={schemaHash || "An error occurred while calculating Hash"}
           />
 
-          <Detail copyable data={url} label="URL" />
+          <Detail copyable label="URL" text={url} />
 
           <Row justify="space-between">
             <Typography.Text type="secondary">Download</Typography.Text>
 
             <Button
               onClick={() => {
-                downloadJsonFromUrl({ fileName: schema.name, url })
+                downloadJsonFromUrl({ fileName: jsonSchema.name, url })
                   .then(() => {
                     void message.success("Schema successfully downloaded");
                   })
@@ -86,9 +84,9 @@ export function ImportSchemaPreview({
         </Space>
       }
       jsonLdType={jsonLdType}
+      jsonSchema={jsonSchema}
       rawJsonLdContext={rawJsonLdContext}
       rawJsonSchema={rawJsonSchema}
-      schema={schema}
     />
   );
 }

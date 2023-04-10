@@ -1,6 +1,6 @@
 import z from "zod";
 
-export function processZodError<T>(error: z.ZodError<T>, init: string[] = []): string[] {
+export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   return error.errors.reduce((mainAcc, issue): string[] => {
     switch (issue.code) {
       case "invalid_union": {
@@ -15,6 +15,7 @@ export function processZodError<T>(error: z.ZodError<T>, init: string[] = []): s
           ),
         ];
       }
+
       default: {
         const errorMsg = issue.path.length
           ? `${issue.message} at ${issue.path.join(".")}`

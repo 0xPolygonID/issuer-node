@@ -23,18 +23,19 @@ type Step =
 export function ImportSchema() {
   const env = useEnvContext();
   const navigate = useNavigate();
+
   const [step, setStep] = useState<Step>({ type: "form" });
 
-  const onSchemaImport = ({ jsonLdType, schemaUrl }: FormData) => {
+  const onSchemaImport = ({ jsonLdType, schemaUrl }: FormData) =>
     void importSchema({ env, jsonLdType, schemaUrl }).then((result) => {
       if (result.isSuccessful) {
-        void message.success("Schema successfully imported");
         navigate(ROUTES.schemas.path);
+
+        void message.success("Schema successfully imported");
       } else {
         void message.error(result.error.message);
       }
     });
-  };
 
   return (
     <SiderLayoutContent
@@ -56,6 +57,7 @@ export function ImportSchema() {
       ) : (
         <ImportSchemaPreview
           jsonLdType={step.formData.jsonLdType}
+          jsonSchema={step.formData.jsonSchema}
           onBack={() => {
             setStep({ formData: step.formData, type: "form" });
           }}
@@ -64,7 +66,6 @@ export function ImportSchema() {
           }}
           rawJsonLdContext={step.formData.rawJsonLdContext}
           rawJsonSchema={step.formData.rawJsonSchema}
-          schema={step.formData.schema}
           url={step.formData.schemaUrl}
         />
       )}
