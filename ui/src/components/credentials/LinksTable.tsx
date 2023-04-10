@@ -15,6 +15,7 @@ import {
   message,
 } from "antd";
 import { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -42,7 +43,7 @@ import {
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
-export function LinkTable() {
+export function LinksTable() {
   const env = useEnvContext();
 
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ export function LinkTable() {
           loading={isLinkUpdating[link.id]}
           onClick={(isActive, event) => {
             event.stopPropagation();
-            toggleCredentialActive(isActive, link);
+            toggleLinkActive(isActive, link.id);
           }}
           size="small"
         />
@@ -101,6 +102,15 @@ export function LinkTable() {
       render: (expiration: Link["expiration"]) => (
         <Typography.Text>{expiration ? formatDate(expiration, true) : "Unlimited"}</Typography.Text>
       ),
+      sorter: ({ expiration: a }, { expiration: b }) => {
+        if (a && b) {
+          return dayjs(a).unix() - dayjs(b).unix();
+        } else if (a) {
+          return 1;
+        } else {
+          return -1;
+        }
+      },
       title: ACCESSIBLE_UNTIL,
     },
     {
@@ -112,6 +122,7 @@ export function LinkTable() {
 
         return <Typography.Text>{value}</Typography.Text>;
       },
+      sorter: ({ issuedClaims: a }, { issuedClaims: b }) => (a === b ? 0 : a ? 1 : -1),
       title: "Credentials issued",
     },
     {
@@ -122,6 +133,15 @@ export function LinkTable() {
         const value = maxIssuance ? maxIssuance : "Unlimited";
 
         return <Typography.Text>{value}</Typography.Text>;
+      },
+      sorter: ({ maxIssuance: a }, { maxIssuance: b }) => {
+        if (a && b) {
+          return a - b;
+        } else if (a) {
+          return 1;
+        } else {
+          return -1;
+        }
       },
       title: "Maximum issuance",
     },
@@ -170,6 +190,7 @@ export function LinkTable() {
           </Dropdown>
         </Row>
       ),
+      sorter: ({ status: a }, { status: b }) => a.localeCompare(b),
       title: "Status",
       width: 140,
     },
@@ -220,20 +241,34 @@ export function LinkTable() {
     }
   };
 
-  const updateCredentialInState = (link: Link) => {
+  const updateCredentialInState = (active: Link["active"], id: Link["id"]) => {
     setLinks((oldLinks) =>
       isAsyncTaskDataAvailable(oldLinks)
         ? {
-            data: oldLinks.data.map((currentLink: Link) =>
-              currentLink.id === link.id ? link : currentLink
-            ),
+            data: oldLinks.data.reduce((links: Link[], currentLink: Link) => {
+              if (currentLink.id === id) {
+                if (status === currentLink.status) {
+                  return links;
+                } else {
+                  const linkStatusInverted: Link = {
+                    ...currentLink,
+                    active,
+                    status: currentLink.status === "active" ? "inactive" : "active",
+                  };
+
+                  return [...links, linkStatusInverted];
+                }
+              } else {
+                return [...links, currentLink];
+              }
+            }, []),
             status: "successful",
           }
         : oldLinks
     );
   };
 
-  const toggleCredentialActive = (active: boolean, { id }: Link) => {
+  const toggleLinkActive = (active: boolean, id: Link["id"]) => {
     setLinkUpdating((currentLinksUpdating) => {
       return { ...currentLinksUpdating, [id]: true };
     });
@@ -244,7 +279,7 @@ export function LinkTable() {
       payload: { active },
     }).then((response) => {
       if (response.isSuccessful) {
-        updateCredentialInState(response.data);
+        updateCredentialInState(active, id);
 
         void message.success(`Link ${active ? "activated" : "deactivated"}`);
       } else {

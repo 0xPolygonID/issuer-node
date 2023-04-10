@@ -94,10 +94,10 @@ export const link = getStrictParser<Link>()(
   z.object({
     active: z.boolean(),
     attributes: z.array(linkAttributes),
-    expiration: z.coerce.date(),
+    expiration: z.coerce.date().optional(),
     id: z.string(),
     issuedClaims: z.number(),
-    maxIssuance: z.number(),
+    maxIssuance: z.number().optional(),
     schemaType: z.string(),
     status: z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")]),
   })

@@ -54,13 +54,14 @@ export interface LinkAttributes {
 }
 
 export type LinkStatus = "all" | "active" | "inactive" | "exceeded";
+
 export interface Link {
   active: boolean;
   attributes: LinkAttributes[];
-  expiration: Date;
+  expiration?: Date;
   id: string;
   issuedClaims: number;
-  maxIssuance: number;
+  maxIssuance?: number;
   schemaType: string;
   status: Exclude<LinkStatus, "all">;
 }
