@@ -1,6 +1,8 @@
 import {
   Avatar,
+  Button,
   Card,
+  Dropdown,
   Radio,
   RadioChangeEvent,
   Row,
@@ -14,62 +16,64 @@ import {
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { z } from "zod";
+import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { OldCredential, credentialUpdate, credentialsGetAll } from "src/adapters/api/credentials";
-import { getStrictParser } from "src/adapters/parsers";
+import { getLinks, linkStatusParser, linkUpdate } from "src/adapters/api/credentials";
+import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
+import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-03.svg";
+import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
-import { Schema } from "src/domain";
+import { Link } from "src/domain/credential";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { ACCESSIBLE_UNTIL, LINKS, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import {
+  ACCESSIBLE_UNTIL,
+  LINKS,
+  QUERY_SEARCH_PARAM,
+  STATUS_SEARCH_PARAM,
+} from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
-const SHOW_SEARCH_PARAM = "show";
-
-type Show = "all" | "active" | "inactive" | "exceeded";
-
-const showParser = getStrictParser<Show>()(
-  z.union([z.literal("all"), z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
-);
-
 export function LinkTable() {
   const env = useEnvContext();
-  const [credentials, setCredentials] = useState<AsyncTask<OldCredential[], APIError>>({
+
+  const navigate = useNavigate();
+
+  const [links, setLinks] = useState<AsyncTask<Link[], APIError>>({
     status: "pending",
   });
-  const [isCredentialUpdating, setCredentialUpdating] = useState<Record<string, boolean>>({});
+  const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
-  const showParam = searchParams.get(SHOW_SEARCH_PARAM);
+  const linksList = isAsyncTaskDataAvailable(links) ? links.data : [];
+  const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
-  const parsedShowParam = showParser.safeParse(showParam);
+  const parsedStatusParam = linkStatusParser.safeParse(statusParam);
 
-  const show = parsedShowParam.success ? parsedShowParam.data : "all";
+  const status = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
-  const tableColumns: ColumnsType<OldCredential> = [
+  const tableColumns: ColumnsType<Link> = [
     {
       dataIndex: "active",
       ellipsis: true,
       key: "active",
-      render: (active: boolean, credential: OldCredential) => (
+      render: (active: Link["active"], link: Link) => (
         <Switch
-          checked={credential.valid && active}
-          disabled={!credential.valid}
-          loading={isCredentialUpdating[credential.id]}
+          checked={active}
+          disabled={link.status === "exceeded"}
+          loading={isLinkUpdating[link.id]}
           onClick={(isActive, event) => {
             event.stopPropagation();
-            toggleCredentialActive(isActive, credential);
+            toggleCredentialActive(isActive, link);
           }}
           size="small"
         />
@@ -79,64 +83,91 @@ export function LinkTable() {
       width: 100,
     },
     {
-      dataIndex: "schemaTemplate",
+      dataIndex: "schemaType",
       ellipsis: true,
-      key: "schemaTemplate",
-      render: ({ type }: Schema) => (
-        <Tooltip placement="topLeft" title={type}>
-          <Typography.Text strong>{type}</Typography.Text>
+      key: "schemaType",
+      render: (schemaType: Link["schemaType"]) => (
+        <Tooltip placement="topLeft" title={schemaType}>
+          <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaTemplate: { type: a } }, { schemaTemplate: { type: b } }) =>
-        a.localeCompare(b),
+      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
       title: "Credential",
     },
     {
-      dataIndex: "linkAccessibleUntil",
+      dataIndex: "expiration",
       ellipsis: true,
-      key: "linkAccessibleUntil",
-      render: (date: Date | null) => (
-        <Typography.Text>{date ? formatDate(date, true) : "Unlimited"}</Typography.Text>
+      key: "expiration",
+      render: (expiration: Link["expiration"]) => (
+        <Typography.Text>{expiration ? formatDate(expiration, true) : "Unlimited"}</Typography.Text>
       ),
       title: ACCESSIBLE_UNTIL,
     },
     {
-      dataIndex: "linkCurrentIssuance",
+      dataIndex: "issuedClaims",
       ellipsis: true,
-      key: "linkCurrentIssuance",
-      render: (issued: number | null) => {
-        const value = issued ? issued : 0;
+      key: "issuedClaims",
+      render: (issuedClaims: Link["issuedClaims"]) => {
+        const value = issuedClaims ? issuedClaims : 0;
 
         return <Typography.Text>{value}</Typography.Text>;
       },
       title: "Credentials issued",
     },
     {
-      dataIndex: "linkMaximumIssuance",
+      dataIndex: "maxIssuance",
       ellipsis: true,
-      key: "linkMaximumIssuance",
-      render: (linkMaximumIssuance: number | null) => {
-        const value = linkMaximumIssuance ? linkMaximumIssuance : "Unlimited";
+      key: "maxIssuance",
+      render: (maxIssuance: Link["maxIssuance"]) => {
+        const value = maxIssuance ? maxIssuance : "Unlimited";
 
         return <Typography.Text>{value}</Typography.Text>;
       },
       title: "Maximum issuance",
     },
     {
-      dataIndex: "active",
-      key: "active",
-      render: (active: boolean, credential: OldCredential) => (
+      dataIndex: "status",
+      key: "status",
+      render: (status: Link["status"]) => (
         <Row justify="space-between">
-          {credential.valid ? (
-            active ? (
-              <Tag color="success">Active</Tag>
-            ) : (
-              <Tag>Inactive</Tag>
-            )
-          ) : (
-            <Tag color="error">Exceeded</Tag>
-          )}
-          <IconDots className="icon-secondary" />
+          {(() => {
+            switch (status) {
+              case "active": {
+                return <Tag color="success">Active</Tag>;
+              }
+              case "inactive": {
+                return <Tag>Inactive</Tag>;
+              }
+              case "exceeded": {
+                return <Tag color="error">Exceeded</Tag>;
+              }
+            }
+          })()}
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: "Details",
+                },
+                {
+                  key: "divider",
+                  type: "divider",
+                },
+                {
+                  danger: true,
+                  icon: <IconTrash />,
+                  key: "delete",
+                  label: "Delete",
+                },
+              ],
+            }}
+          >
+            <Row>
+              <IconDots className="icon-secondary" />
+            </Row>
+          </Dropdown>
         </Row>
       ),
       title: "Status",
@@ -144,81 +175,73 @@ export function LinkTable() {
     },
   ];
 
-  const getCredentials = useCallback(
+  const fetchLinks = useCallback(
     async (signal: AbortSignal) => {
-      setCredentials((previousCredentials) =>
-        isAsyncTaskDataAvailable(previousCredentials)
-          ? { data: previousCredentials.data, status: "reloading" }
+      setLinks((previousLinks) =>
+        isAsyncTaskDataAvailable(previousLinks)
+          ? { data: previousLinks.data, status: "reloading" }
           : { status: "loading" }
       );
 
-      const response = await credentialsGetAll({
+      const response = await getLinks({
         env,
         params: {
           query: queryParam || undefined,
-          valid: show === "exceeded" ? false : undefined,
+          status: status,
         },
         signal,
       });
 
       if (response.isSuccessful) {
-        setCredentials({ data: response.data.credentials, status: "successful" });
-
-        response.data.errors.forEach((zodError) => {
-          processZodError(zodError).forEach((error) => void message.error(error));
-        });
+        setLinks({ data: response.data, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {
-          setCredentials({ error: response.error, status: "failed" });
+          setLinks({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, show]
+    [env, queryParam, status]
   );
 
-  const handleShowChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedShowValue = showParser.safeParse(value);
-    if (parsedShowValue.success) {
+  const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
+    const parsedLinkValue = linkStatusParser.safeParse(value);
+    if (parsedLinkValue.success) {
       const params = new URLSearchParams(searchParams);
-      if (parsedShowValue.data === "exceeded") {
-        params.set(SHOW_SEARCH_PARAM, parsedShowValue.data);
+      if (parsedLinkValue.data !== "all") {
+        params.set(STATUS_SEARCH_PARAM, parsedLinkValue.data);
       } else {
-        params.delete(SHOW_SEARCH_PARAM);
+        params.delete(STATUS_SEARCH_PARAM);
       }
 
-      setCredentials({ status: "pending" });
+      setLinks({ status: "pending" });
       setSearchParams(params);
     } else {
-      processZodError(parsedShowValue.error).forEach((error) => void message.error(error));
+      processZodError(parsedLinkValue.error).forEach((error) => void message.error(error));
     }
   };
 
-  const updateCredentialInState = (credential: OldCredential) => {
-    setCredentials((oldCredentials) =>
-      isAsyncTaskDataAvailable(oldCredentials)
+  const updateCredentialInState = (link: Link) => {
+    setLinks((oldLinks) =>
+      isAsyncTaskDataAvailable(oldLinks)
         ? {
-            data: oldCredentials.data.map((currentCredential: OldCredential) =>
-              currentCredential.id === credential.id ? credential : currentCredential
+            data: oldLinks.data.map((currentLink: Link) =>
+              currentLink.id === link.id ? link : currentLink
             ),
             status: "successful",
           }
-        : oldCredentials
+        : oldLinks
     );
   };
 
-  const toggleCredentialActive = (
-    active: boolean,
-    { id: credentialID, schemaTemplate }: OldCredential
-  ) => {
-    setCredentialUpdating((currentCredentialsUpdating) => {
-      return { ...currentCredentialsUpdating, [credentialID]: true };
+  const toggleCredentialActive = (active: boolean, { id }: Link) => {
+    setLinkUpdating((currentLinksUpdating) => {
+      return { ...currentLinksUpdating, [id]: true };
     });
 
-    void credentialUpdate({
-      credentialID,
+    void linkUpdate({
       env,
+      id,
       payload: { active },
-      schemaID: schemaTemplate.id,
     }).then((response) => {
       if (response.isSuccessful) {
         updateCredentialInState(response.data);
@@ -228,17 +251,17 @@ export function LinkTable() {
         void message.error(response.error.message);
       }
 
-      setCredentialUpdating((currentCredentialsUpdating) => {
-        return { ...currentCredentialsUpdating, [credentialID]: false };
+      setLinkUpdating((currentLinksUpdating) => {
+        return { ...currentLinksUpdating, [id]: false };
       });
     });
   };
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(getCredentials);
+    const { aborter } = makeRequestAbortable(fetchLinks);
 
     return aborter;
-  }, [getCredentials]);
+  }, [fetchLinks]);
 
   const onSearch = useCallback(
     (query: string) => {
@@ -259,6 +282,9 @@ export function LinkTable() {
     [setSearchParams]
   );
 
+  const showDefaultContent =
+    links.status === "successful" && linksList.length === 0 && queryParam === null;
+
   return (
     <>
       <TableCard
@@ -271,15 +297,23 @@ export function LinkTable() {
             <Typography.Text type="secondary">
               Credential links will be listed here.
             </Typography.Text>
+
+            {status === "all" && (
+              <Button
+                icon={<IconCreditCardPlus />}
+                onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
+                type="primary"
+              >
+                Issue credential
+              </Button>
+            )}
           </>
         }
-        isLoading={isAsyncTaskStarting(credentials)}
+        isLoading={isAsyncTaskStarting(links)}
         onSearch={onSearch}
         query={queryParam}
         searchPlaceholder="Search credentials, attributes..."
-        showDefaultContents={
-          credentials.status === "successful" && credentialsList.length === 0 && queryParam === null
-        }
+        showDefaultContents={showDefaultContent}
         table={
           <Table
             columns={tableColumns.map(({ title, ...column }) => ({
@@ -290,11 +324,11 @@ export function LinkTable() {
               ),
               ...column,
             }))}
-            dataSource={credentialsList}
+            dataSource={linksList}
             locale={{
               emptyText:
-                credentials.status === "failed" ? (
-                  <ErrorResult error={credentials.error.message} />
+                links.status === "failed" ? (
+                  <ErrorResult error={links.error.message} />
                 ) : (
                   <NoResults searchQuery={queryParam} />
                 ),
@@ -310,14 +344,20 @@ export function LinkTable() {
             <Space size="middle">
               <Card.Meta title={LINKS} />
 
-              <Tag color="blue">{credentialsList.length}</Tag>
+              <Tag color="blue">{linksList.length}</Tag>
             </Space>
 
-            <Radio.Group onChange={handleShowChange} value={show}>
-              <Radio.Button value="all">All</Radio.Button>
+            {(!showDefaultContent || status !== "all") && (
+              <Radio.Group onChange={handleStatusChange} value={status}>
+                <Radio.Button value="all">All</Radio.Button>
 
-              <Radio.Button value="exceeded">Exceeded</Radio.Button>
-            </Radio.Group>
+                <Radio.Button value="active">Active</Radio.Button>
+
+                <Radio.Button value="inactive">Inactive</Radio.Button>
+
+                <Radio.Button value="exceeded">Exceeded</Radio.Button>
+              </Radio.Group>
+            )}
           </Row>
         }
       />

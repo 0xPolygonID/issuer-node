@@ -47,3 +47,20 @@ export interface SingleChoiceCredentialFormAttribute {
   type: "singlechoice";
   value: number;
 }
+
+export interface LinkAttributes {
+  name: string;
+  value: string;
+}
+
+export type LinkStatus = "all" | "active" | "inactive" | "exceeded";
+export interface Link {
+  active: boolean;
+  attributes: LinkAttributes[];
+  expiration: Date;
+  id: string;
+  issuedClaims: number;
+  maxIssuance: number;
+  schemaType: string;
+  status: Exclude<LinkStatus, "all">;
+}
