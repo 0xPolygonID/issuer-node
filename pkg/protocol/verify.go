@@ -3,16 +3,13 @@ package protocol
 import (
 	"encoding/json"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/iden3/go-circuits"
-	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/pkg/errors"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
@@ -24,55 +21,12 @@ var (
 func stateVerificationHandler(ethStateContract *eth.State) packers.VerificationHandlerFunc {
 	return func(id circuits.CircuitID, pubsignals []string) error {
 		switch id {
-		case circuits.AuthCircuitID:
-			return authCircuitStateVerification(ethStateContract, pubsignals)
 		case circuits.AuthV2CircuitID:
 			return authV2CircuitStateVerification(ethStateContract, pubsignals)
 		default:
 			return errors.Errorf("'%s' unknow circuit ID", id)
 		}
 	}
-}
-
-// authCircuitStateVerification `auth` circuit state verification
-func authCircuitStateVerification(contract *eth.State, pubsignals []string) error {
-	bytePubsig, err := json.Marshal(pubsignals)
-	if err != nil {
-		return err
-	}
-
-	authPubSignals := circuits.AuthPubSignals{}
-	err = authPubSignals.PubSignalsUnmarshal(bytePubsig)
-	if err != nil {
-		return err
-	}
-
-	userID := authPubSignals.UserID
-	userState := authPubSignals.UserState.BigInt()
-
-	userDID, err := core.ParseDIDFromID(*userID)
-	if err != nil {
-		return err
-	}
-
-	stateInfo, err := contract.GetStateInfoById(&bind.CallOpts{}, userID.BigInt())
-	if err != nil {
-		return err
-	}
-
-	if err != nil && strings.Contains(err.Error(), ErrStateNotFound.Error()) {
-		err = common.CheckGenesisStateDID(userDID, userState)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if stateInfo.State.String() != userState.String() {
-		return errors.New("not latest state")
-	}
-
-	return nil
 }
 
 // authV2CircuitStateVerification `authV2` circuit state verification
