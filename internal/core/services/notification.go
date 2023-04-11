@@ -17,43 +17,41 @@ import (
 )
 
 type notification struct {
-	issuerDID           core.DID
 	notificationGateway ports.NotificationGateway
 	connService         ports.ConnectionsService
 	credService         ports.ClaimsService
 }
 
 // NewNotification returns a Notification Service
-func NewNotification(issuerDID core.DID, notificationGateway ports.NotificationGateway, connService ports.ConnectionsService, credService ports.ClaimsService) ports.NotificationService {
+func NewNotification(notificationGateway ports.NotificationGateway, connService ports.ConnectionsService, credService ports.ClaimsService) ports.NotificationService {
 	return &notification{
 		notificationGateway: notificationGateway,
 		connService:         connService,
 		credService:         credService,
-		issuerDID:           issuerDID,
 	}
 }
 
 func (n *notification) SendCreateCredentialNotification(ctx context.Context, e pubsub.Event) error {
 	var cEvent pubsub.CreateCredentialEvent
-	if err := cEvent.FromEvent(e); err != nil {
+	if err := pubsub.UnmarshalEvent(e, &cEvent); err != nil {
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
 
-	return n.sendCreateCredentialNotification(ctx, cEvent.ID)
+	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialID)
 }
 
-func (n *notification) sendCreateCredentialNotification(ctx context.Context, credID string) error {
+func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credID string) error {
+	issuerDID, err := core.ParseDID(issuerID)
+	if err != nil {
+		return err
+	}
+
 	credUUID, err := uuid.Parse(credID)
 	if err != nil {
 		return err
 	}
 
-	credential, err := n.credService.GetByID(ctx, &n.issuerDID, credUUID)
-	if err != nil {
-		return err
-	}
-
-	issuerDID, err := core.ParseDID(credential.Issuer)
+	credential, err := n.credService.GetByID(ctx, issuerDID, credUUID)
 	if err != nil {
 		return err
 	}

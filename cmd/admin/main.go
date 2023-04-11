@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	gohttp "net/http"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -212,7 +212,7 @@ func main() {
 	)
 	api_admin.RegisterStatic(mux)
 
-	server := &gohttp.Server{
+	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.APIUI.ServerPort),
 		Handler: mux,
 	}
@@ -242,13 +242,13 @@ func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictM
 	}
 }
 
-func errorHandlerFunc(w gohttp.ResponseWriter, _ *gohttp.Request, err error) {
+func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
 	switch err.(type) {
 	case *api_admin.InvalidParamFormatError:
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(gohttp.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
 	default:
-		gohttp.Error(w, err.Error(), gohttp.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }

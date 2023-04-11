@@ -342,7 +342,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
-	err = s.pubsub.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{ID: resp.ID.String()})
+	err = s.pubsub.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: resp.ID.String(), IssuerID: s.cfg.APIUI.IssuerDID.String()})
 	if err != nil {
 		log.Error(ctx, "sending credential notification", "err", err.Error(), "credential", resp.ID.String())
 	}

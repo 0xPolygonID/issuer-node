@@ -16,17 +16,18 @@ type Event interface{}
 
 // CreateCredentialEvent defines the createCredential data
 type CreateCredentialEvent struct {
-	ID string `json:"id"`
+	CredentialID string `json:"credentialID"`
+	IssuerID     string `json:"issuerID"`
 }
 
 // MarshalBinary returns the bytes of an event
-func (c *CreateCredentialEvent) MarshalBinary() ([]byte, error) {
+func (c CreateCredentialEvent) MarshalBinary() ([]byte, error) {
 	return json.Marshal(c)
 }
 
-// FromEvent decodes the event into the CreateCredentialEvent
-func (c *CreateCredentialEvent) FromEvent(from Event) error {
-	return mapstructure.Decode(from, &c)
+// UnmarshalEvent decodes the event into the to parameter
+func UnmarshalEvent(from Event, to any) error {
+	return mapstructure.Decode(from, to)
 }
 
 // Publisher sends topics to the pubsub
@@ -40,7 +41,6 @@ type EventHandler func(context.Context, Event) error
 // Subscriber subscribes to the pubsub topics
 type Subscriber interface {
 	Subscribe(ctx context.Context, topic string, callback EventHandler)
-	Unsubscribe(ctx context.Context, topic string) error
 }
 
 // Client is formed by the publisher and subscriber

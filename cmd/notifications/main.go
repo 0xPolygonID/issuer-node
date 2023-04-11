@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-
-	goredis "github.com/go-redis/redis/v8"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -51,30 +50,34 @@ func main() {
 		return
 	}
 
-	redisPubSub := pubsub.NewRedis(rdb)
+	ps := pubsub.NewRedis(rdb)
+	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
 
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	credentialsService := newCredentialsService(ctx, cfg, storage, rdb)
-	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
-	notificationService := services.NewNotification(cfg.APIUI.IssuerDID, notificationGateway, connectionsService, credentialsService)
+	credentialsService, err := newCredentialsService(cfg, storage, cachex)
+	if err != nil {
+		log.Error(ctx, "cannot initialize the credential service", "err", err)
+		return
+	}
 
-	redisPubSub.Subscribe(ctx, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
+	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
+	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
+
+	ps.Subscribe(ctx, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
 	<-gracefulShutdown
 }
 
-func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, rdb *goredis.Client) ports.ClaimsService {
-	cachex := cache.NewRedisCache(rdb)
-
+func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache) (ports.ClaimsService, error) {
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
-		panic(err)
+		return nil, fmt.Errorf("cannot init vault client: err %s", err.Error())
 	}
+
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
@@ -82,9 +85,9 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 	revocationRepository := repositories.NewRevocation()
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
-		log.Error(ctx, "cannot initialize kms", "err", err)
-		panic(err)
+		return nil, fmt.Errorf("cannot initialize kms: err %s", err.Error())
 	}
+
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	var schemaLoader loader.Factory
 	if cfg.SchemaCache == nil || !*cfg.SchemaCache {
@@ -92,6 +95,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 	} else {
 		schemaLoader = loader.CachedFactory(loader.HTTPFactory, cachex)
 	}
+
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil)
 	claimsService := services.NewClaim(
@@ -108,5 +112,5 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 		},
 	)
 
-	return claimsService
+	return claimsService, nil
 }

@@ -56,10 +56,10 @@ func TestNotification_SendNotification(t *testing.T) {
 	require.NoError(t, err)
 
 	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
-	notificationService := services.NewNotification(*did, notificationGateway, connectionsService, credentialsService)
+	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
 
 	fixture := tests.NewFixture(storage)
-	fixture.CreateClaim(t, &domain.Claim{
+	credID := fixture.CreateClaim(t, &domain.Claim{
 		Identifier:      common.ToPointer(did.String()),
 		Issuer:          did.String(),
 		OtherIdentifier: userDID.String(),
@@ -67,10 +67,10 @@ func TestNotification_SendNotification(t *testing.T) {
 	})
 
 	t.Run("should get an error, non existing credential", func(t *testing.T) {
-		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, pubsub.CreateCredentialEvent{ID: uuid.NewString()}))
+		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, pubsub.CreateCredentialEvent{CredentialID: uuid.NewString(), IssuerID: did.String()}))
 	})
 
 	t.Run("should get an error, existing credential but not existing connection", func(t *testing.T) {
-		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, pubsub.CreateCredentialEvent{ID: uuid.NewString()}))
+		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, pubsub.CreateCredentialEvent{CredentialID: credID.String(), IssuerID: did.String()}))
 	})
 }

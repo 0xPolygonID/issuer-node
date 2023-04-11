@@ -19,8 +19,3 @@ func (rdb *MockClient) Publish(ctx context.Context, topic string, payload Event)
 
 // Subscribe mock
 func (rdb *MockClient) Subscribe(ctx context.Context, topic string, callback EventHandler) {}
-
-// Unsubscribe mock
-func (rdb *MockClient) Unsubscribe(ctx context.Context, topic string) error {
-	return nil
-}

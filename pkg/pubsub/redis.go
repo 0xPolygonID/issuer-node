@@ -3,8 +3,6 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
-	"errors"
-
 	"github.com/go-redis/redis/v8"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -57,13 +55,4 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 			}
 		}
 	}()
-}
-
-// Unsubscribe removes the topic of the list of subscribers
-func (rdb *RedisClient) Unsubscribe(ctx context.Context, topic string) error {
-	pubsub, ok := rdb.subscribers[topic]
-	if !ok {
-		return errors.New("non existing subscriber with the given topic")
-	}
-	return pubsub.Unsubscribe(ctx, topic)
 }
