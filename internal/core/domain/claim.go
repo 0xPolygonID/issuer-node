@@ -36,10 +36,10 @@ type Claim struct {
 	CoreClaim        CoreClaim       `json:"core_claim"`
 	MTPProof         pgtype.JSONB    `json:"mtp_proof"`
 	SignatureProof   pgtype.JSONB    `json:"signature_proof"`
-	IdentityState    *string         `json:"identity_state"`
+	IdentityState    *string         `json:"-"`
 	Status           *IdentityStatus `json:"status"`
 	CredentialStatus pgtype.JSONB    `json:"credential_status"`
-	HIndex           string          `json:"h-index"`
+	HIndex           string          `json:"-"`
 
 	MtProof bool `json:"mt_poof"`
 }

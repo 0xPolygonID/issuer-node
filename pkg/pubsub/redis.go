@@ -10,13 +10,12 @@ import (
 
 // RedisClient struct
 type RedisClient struct {
-	conn        *redis.Client
-	subscribers map[string]*redis.PubSub
+	conn *redis.Client
 }
 
 // NewRedis returns a redis pubsub client
 func NewRedis(rdb *redis.Client) Client {
-	return &RedisClient{rdb, make(map[string]*redis.PubSub)}
+	return &RedisClient{rdb}
 }
 
 // Publish publishes a new topic payload
@@ -27,7 +26,6 @@ func (rdb *RedisClient) Publish(ctx context.Context, topic string, payload Event
 // Subscribe adds a topic to the
 func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback EventHandler) {
 	pubsub := rdb.conn.Subscribe(ctx, topic)
-	rdb.subscribers[topic] = pubsub
 
 	go func() {
 		for {
