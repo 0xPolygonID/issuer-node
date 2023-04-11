@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/go-redis/redis/v8"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
