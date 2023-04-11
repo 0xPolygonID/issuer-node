@@ -22,10 +22,11 @@ export const credentialParser = getStrictParser<Credential>()(
       type: z.string(),
     }),
     createdAt: z.coerce.date(),
-    expired: z.boolean().optional(),
+    expired: z.boolean(),
     expiresAt: z.coerce.date().optional(),
     id: z.string(),
-    revoked: z.boolean().optional(),
+    revNonce: z.number(),
+    revoked: z.boolean(),
   })
 );
 
@@ -45,7 +46,7 @@ export async function getCredentials({
     query?: string;
     status?: CredentialStatus;
   };
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<APIResponse<Credential[]>> {
   try {
     const response = await axios({
@@ -75,6 +76,52 @@ const resultOKCredentials = getStrictParser<ResultOK<Credential[]>>()(
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
+
+export async function revokeCredential({
+  env,
+  nonce,
+}: {
+  env: Env;
+  nonce: number;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios<{ message: string }>({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/credentials/revoke/${nonce}`,
+    });
+
+    return { data: response.data.message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function deleteCredential({
+  env,
+  id,
+}: {
+  env: Env;
+  id: string;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios<{ message: string }>({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      url: `${API_VERSION}/credentials/${id}`,
+    });
+
+    return { data: response.data.message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
 
 interface CredentialQRCode {
   body: {

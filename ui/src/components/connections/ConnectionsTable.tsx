@@ -73,6 +73,8 @@ export function ConnectionsTable() {
                 icon: <IconInfoCircle />,
                 key: "details",
                 label: "Details",
+                onClick: () =>
+                  navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
               },
               {
                 key: "divider",
@@ -83,15 +85,9 @@ export function ConnectionsTable() {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete connection",
+                onClick: () => setConnectionToDelete(id),
               },
             ],
-            onClick: ({ key }) => {
-              if (key === "details") {
-                navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
-              } else if (key === "delete") {
-                setConnectionToDelete(id);
-              }
-            },
           }}
           overlayStyle={{ zIndex: 999 }}
         >

@@ -19,7 +19,9 @@ import { APIError } from "src/adapters/api";
 import {
   CredentialStatus,
   credentialStatusParser,
+  deleteCredential,
   getCredentials,
+  revokeCredential,
 } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -111,7 +113,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     {
       dataIndex: "id",
       key: "id",
-      render: () => (
+      render: (id: Credential["id"], credential: Credential) => (
         <Dropdown
           menu={{
             items: [
@@ -126,9 +128,18 @@ export function CredentialsTable({ userID }: { userID: string }) {
               },
               {
                 danger: true,
+                disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
                 label: "Revoke",
+                onClick: () =>
+                  void revokeCredential({ env, nonce: credential.revNonce }).then((response) => {
+                    if (response.isSuccessful) {
+                      void fetchCredentials();
+
+                      void message.success(response.data);
+                    }
+                  }),
               },
               {
                 key: "divider2",
@@ -139,6 +150,14 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete",
+                onClick: () =>
+                  void deleteCredential({ env, id }).then((response) => {
+                    if (response.isSuccessful) {
+                      void fetchCredentials();
+
+                      void message.success(response.data);
+                    }
+                  }),
               },
             ],
           }}
@@ -153,9 +172,13 @@ export function CredentialsTable({ userID }: { userID: string }) {
   ];
 
   const fetchCredentials = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       if (userID) {
-        setCredentials({ status: "loading" });
+        setCredentials((oldCredentials) =>
+          isAsyncTaskDataAvailable(oldCredentials)
+            ? { data: oldCredentials.data, status: "reloading" }
+            : { status: "loading" }
+        );
         const response = await getCredentials({
           env,
           params: {

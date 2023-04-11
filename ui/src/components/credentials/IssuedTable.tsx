@@ -18,7 +18,12 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
+import {
+  credentialStatusParser,
+  deleteCredential,
+  getCredentials,
+  revokeCredential,
+} from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -122,7 +127,7 @@ export function IssuedTable() {
     {
       dataIndex: "id",
       key: "id",
-      render: () => (
+      render: (id: Credential["id"], credential: Credential) => (
         <Dropdown
           menu={{
             items: [
@@ -137,9 +142,18 @@ export function IssuedTable() {
               },
               {
                 danger: true,
+                disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
                 label: "Revoke",
+                onClick: () =>
+                  void revokeCredential({ env, nonce: credential.revNonce }).then((response) => {
+                    if (response.isSuccessful) {
+                      void fetchCredentials();
+
+                      void message.success(response.data);
+                    }
+                  }),
               },
               {
                 key: "divider2",
@@ -150,6 +164,14 @@ export function IssuedTable() {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete",
+                onClick: () =>
+                  void deleteCredential({ env, id }).then((response) => {
+                    if (response.isSuccessful) {
+                      void fetchCredentials();
+
+                      void message.success(response.data);
+                    }
+                  }),
               },
             ],
           }}
@@ -164,8 +186,13 @@ export function IssuedTable() {
   ];
 
   const fetchCredentials = useCallback(
-    async (signal: AbortSignal) => {
-      setCredentials({ status: "loading" });
+    async (signal?: AbortSignal) => {
+      setCredentials((oldCredentials) =>
+        isAsyncTaskDataAvailable(oldCredentials)
+          ? { data: oldCredentials.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
       const response = await getCredentials({
         env,
         params: {
