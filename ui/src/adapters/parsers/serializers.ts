@@ -1,4 +1,5 @@
-import dayjs from "dayjs";
+import dayjs, { extend as extendDayJsWith } from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 
 import { CredentialAttribute, CredentialIssue } from "src/adapters/api/credentials";
 import {
@@ -9,6 +10,8 @@ import {
   NumberCredentialFormAttribute,
   SingleChoiceCredentialFormAttribute,
 } from "src/domain";
+
+extendDayJsWith(relativeTime);
 
 function serializeBooleanCredentialFormAttribute(
   booleanCredentialFormAttribute: BooleanCredentialFormAttribute

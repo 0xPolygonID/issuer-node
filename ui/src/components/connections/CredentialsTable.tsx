@@ -12,8 +12,7 @@ import {
   message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
-import dayjs, { extend as extendDayJsWith } from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
 import { APIError } from "src/adapters/api";
@@ -43,8 +42,6 @@ import {
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-
-extendDayJsWith(relativeTime);
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
@@ -94,9 +91,9 @@ export function CredentialsTable({ userID }: { userID: string }) {
         if (a && b) {
           return a.getTime() - b.getTime();
         } else if (a) {
-          return 1;
-        } else {
           return -1;
+        } else {
+          return 1;
         }
       },
       title: "Expiration",
