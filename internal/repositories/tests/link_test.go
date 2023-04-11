@@ -153,6 +153,13 @@ func TestGetAll(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 	past := time.Now().Add(-100 * 24 * time.Hour)
+	// 10  not expired links and no max issuance
+	for i := 0; i < 10; i++ {
+		linkToSave := domain.NewLink(did, nil, &tomorrow, schemaID, &nextWeek, true, false)
+		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
+		require.NoError(t, err)
+		assert.NotNil(t, linkID)
+	}
 	// 10  not expired links
 	for i := 0; i < 10; i++ {
 		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
@@ -200,7 +207,7 @@ func TestGetAll(t *testing.T) {
 			filter: ports.LinkAll,
 			query:  nil,
 			expected: expected{
-				count: 40,
+				count: 50,
 			},
 		},
 		{
@@ -226,7 +233,7 @@ func TestGetAll(t *testing.T) {
 			filter: ports.LinkActive,
 			query:  nil,
 			expected: expected{
-				count:  10,
+				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
 			},
 		},
@@ -239,11 +246,20 @@ func TestGetAll(t *testing.T) {
 			},
 		},
 		{
-			name:   "active, with query that should  match",
+			name:   "active, with query that should match",
 			filter: ports.LinkActive,
 			query:  common.ToPointer("birthday"),
 			expected: expected{
-				count:  10,
+				count:  20,
+				active: common.ToPointer(string(ports.LinkActive)),
+			},
+		},
+		{
+			name:   "active, with query that should match because of the beginning of a term",
+			filter: ports.LinkActive,
+			query:  common.ToPointer("birth"),
+			expected: expected{
+				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
 			},
 		},

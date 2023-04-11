@@ -3057,6 +3057,16 @@ func TestServer_GetAllLinks(t *testing.T) {
 			},
 		},
 		{
+			name:   "Exceeded with filter found, partial match",
+			auth:   authOk,
+			query:  common.ToPointer("docum"),
+			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+			},
+		},
+		{
 			name:   "Empty result",
 			auth:   authOk,
 			query:  common.ToPointer("documentType"),

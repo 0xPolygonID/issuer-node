@@ -157,7 +157,10 @@ WHERE links.issuer_id = $1 `
 	case ports.LinkInactive:
 		sql += " AND NOT links.active"
 	case ports.LinkExceeded:
-		sql += " AND (coalesce(links.valid_until <= $2, true) OR coalesce(links.max_issuance<=links.issued_claims, true))"
+		sql += " AND " +
+			"(links.valid_until IS NOT NULL AND links.valid_until<= $2) " +
+			"OR " +
+			"(links.max_issuance IS NOT NULL AND links.max_issuance <=links.issued_claims)"
 	}
 	if query != nil {
 		sql += " AND schemas.ts_words @@ to_tsquery($3)"
@@ -165,8 +168,11 @@ WHERE links.issuer_id = $1 `
 	// Dummy condition to include all placeholders in query
 	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl OR $3::text IS NULL)"
 	sql += " ORDER BY links.created_at DESC"
-
-	rows, err := l.conn.Pgx.Query(ctx, sql, issuerDID.String(), time.Now(), query)
+	q := ""
+	if query != nil {
+		q = fullTextSearchQuery(*query, " | ")
+	}
+	rows, err := l.conn.Pgx.Query(ctx, sql, issuerDID.String(), time.Now(), q)
 	if err != nil {
 		return nil, err
 	}
