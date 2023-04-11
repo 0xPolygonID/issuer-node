@@ -6,6 +6,7 @@ export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
 export const DATE_VALIDITY_MESSAGE = "Valid date required";
+export const TIME_VALIDITY_MESSAGE = "Valid time required";
 export const ERROR_MESSAGE = "Something went wrong";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";

@@ -111,16 +111,26 @@ export type ObjectAttribute = {
 
 // Multi-type
 
-export type MultiSchema = (CommonProps & (BooleanProps | StringProps | ArrayProps | ObjectProps))[];
+export type MultiSchema = CommonProps & (BooleanProps | StringProps | ArrayProps | ObjectProps);
 
 export type MultiAttribute = {
   name: string;
   required: boolean;
-  schemas: MultiSchema;
+  schemas: MultiSchema[];
   type: "multi";
 };
 
 // Schema
+
+export type AttributeSchema =
+  | BooleanSchema
+  | IntegerSchema
+  | NullSchema
+  | NumberSchema
+  | StringSchema
+  | ArraySchema
+  | ObjectSchema
+  | MultiSchema;
 
 export type Attribute =
   | BooleanAttribute

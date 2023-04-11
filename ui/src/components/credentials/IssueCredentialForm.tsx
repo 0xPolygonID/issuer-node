@@ -60,7 +60,7 @@ export function IssueCredentialForm({
 
         <Divider />
 
-        <Typography.Text>{schema.type}</Typography.Text>
+        <Typography.Paragraph>{schema.type}</Typography.Paragraph>
 
         {jsonSchema.type !== "multi" && jsonSchema.schema.description && (
           <Typography.Paragraph type="secondary">
@@ -68,23 +68,21 @@ export function IssueCredentialForm({
           </Typography.Paragraph>
         )}
 
-        <Form.Item>
-          <Space direction="vertical" size="small">
-            <CredentialForm objectAttribute={credentialSubject} parents={[]} />
-          </Space>
-        </Form.Item>
+        <Space direction="vertical" size="large">
+          <CredentialForm attributes={credentialSubject.schema.properties || []} />
 
-        <Form.Item
-          label="Credential expiration date"
-          name="expirationDate"
-          rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
-          // TODO Credentials epic
-          // rules={
-          //   schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
-          // }
-        >
-          <DatePicker disabledDate={(current) => current < dayjs()} />
-        </Form.Item>
+          <Form.Item
+            label="Credential expiration date"
+            name="expirationDate"
+            rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
+            // TODO Credentials epic
+            // rules={
+            //   schema.mandatoryExpiration ? [{ message: DATE_VALIDITY_MESSAGE, required: true }] : []
+            // }
+          >
+            <DatePicker disabledDate={(current) => current < dayjs()} />
+          </Form.Item>
+        </Space>
 
         <Divider />
 

@@ -1,186 +1,156 @@
-import {
-  Card,
-  DatePicker,
-  Form,
-  FormItemProps,
-  Input,
-  InputNumber,
-  Radio,
-  Select,
-  Space,
-  TimePicker,
-  Typography,
-} from "antd";
-import { Fragment } from "react";
+import { Card, Row, Space, Tooltip, Typography } from "antd";
+import { Fragment, ReactNode } from "react";
 
-import { Attribute, ObjectAttribute } from "src/domain";
-import { DATE_VALIDITY_MESSAGE } from "src/utils/constants";
+import { ReactComponent as ChevronRightIcon } from "src/assets/icons/chevron-right.svg";
+import { Boolean } from "src/components/credentials/attributes/Boolean";
+import { Datetime } from "src/components/credentials/attributes/Datetime";
+import { Enum } from "src/components/credentials/attributes/Enum";
+import { Number } from "src/components/credentials/attributes/Number";
+import { Text } from "src/components/credentials/attributes/Text";
+import { Time } from "src/components/credentials/attributes/Time";
+import { Attribute, AttributeSchema, ObjectAttribute } from "src/domain";
 
-function getSharedFormItemProps(
-  attribute: Attribute,
-  parents: Attribute[]
-): Partial<FormItemProps> {
-  const schema = attribute.type !== "multi" ? attribute.schema : attribute.schemas[0];
+function getAttributeSchema(attribute: Attribute): AttributeSchema | undefined {
+  return attribute.type === "multi" ? attribute.schemas[0] : attribute.schema;
+}
 
-  return {
-    label: (
-      <Typography.Text ellipsis={{ tooltip: true }}>
-        {(schema && schema.title) || attribute.name}
-      </Typography.Text>
-    ),
+function AnyAttribute({
+  attribute,
+  parents,
+}: {
+  attribute: Attribute;
+  parents: ObjectAttribute[];
+}): JSX.Element {
+  const schema = getAttributeSchema(attribute);
+  const formItemProps = {
+    label: <Typography.Text>{(schema && schema.title) || attribute.name}</Typography.Text>,
     name: ["attributes", ...parents.map((parent) => parent.name), attribute.name],
     required: attribute.required,
   };
+
+  switch (attribute.type) {
+    case "boolean": {
+      return attribute.schema.enum ? (
+        <Enum formItemProps={formItemProps} options={attribute.schema.enum} />
+      ) : (
+        <Boolean formItemProps={formItemProps} />
+      );
+    }
+
+    case "number":
+    case "integer": {
+      return attribute.schema.enum ? (
+        <Enum formItemProps={formItemProps} options={attribute.schema.enum} />
+      ) : (
+        <Number formItemProps={formItemProps} />
+      );
+    }
+
+    case "string": {
+      if (attribute.schema.enum) {
+        return <Enum formItemProps={formItemProps} options={attribute.schema.enum} />;
+      } else {
+        switch (attribute.schema.format) {
+          case "date":
+          case "date-time": {
+            return (
+              <Datetime
+                formItemProps={formItemProps}
+                showTime={attribute.schema.format === "date-time"}
+              />
+            );
+          }
+          case "time": {
+            return <Time formItemProps={formItemProps} />;
+          }
+          default: {
+            return <Text formItemProps={formItemProps} />;
+          }
+        }
+      }
+    }
+
+    case "null": {
+      return <Typography.Text>Null attributes are not yet supported</Typography.Text>;
+    }
+
+    case "array": {
+      return <Typography.Text>Array attributes are not yet supported</Typography.Text>;
+    }
+
+    case "object": {
+      return (
+        <CredentialForm
+          attributes={attribute.schema.properties || []}
+          breadcrumb={
+            <Row align="bottom">
+              <Tooltip
+                placement="topLeft"
+                title={
+                  <Row align="bottom">
+                    {parents.reduce(
+                      (acc: React.ReactNode[], curr: ObjectAttribute, index): React.ReactNode[] => [
+                        ...acc,
+                        acc.length > 0 && <ChevronRightIcon key={index} width={16} />,
+                        getAttributeSchema(curr)?.title || curr.name,
+                      ],
+                      []
+                    )}
+                  </Row>
+                }
+              >
+                <Typography.Text style={{ cursor: "help" }}>...</Typography.Text>
+              </Tooltip>
+              <ChevronRightIcon width={16} />
+              <Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>
+            </Row>
+          }
+          parents={[...parents, attribute]}
+        />
+      );
+    }
+
+    case "multi": {
+      return (
+        // ToDo: Implement multi-type schema attributes (PID-543)
+        <Typography.Text>Multi attributes are not yet supported</Typography.Text>
+      );
+    }
+  }
 }
 
 export function CredentialForm({
-  objectAttribute,
-  parents,
+  attributes,
+  breadcrumb = null,
+  parents = [],
 }: {
-  objectAttribute: ObjectAttribute;
-  parents: Attribute[];
+  attributes: Attribute[];
+  breadcrumb?: ReactNode;
+  parents?: ObjectAttribute[];
 }) {
-  function Enum({
-    attribute,
-    options,
-  }: {
-    attribute: Attribute;
-    options: (string | number | boolean)[];
-  }): JSX.Element {
-    return (
-      <Form.Item {...getSharedFormItemProps(attribute, parents)}>
-        <Select placeholder="Select option">
-          {options.map((option, index) => (
-            <Select.Option key={index} value={option}>
-              {option}
-            </Select.Option>
-          ))}
-        </Select>
-      </Form.Item>
-    );
-  }
-
-  const isRoot = parents.length === 0;
-
   return (
     <Space direction="vertical" size="middle">
-      {objectAttribute.schema.properties ? (
-        objectAttribute.schema.properties.map((attribute) => {
-          const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
-          const children = () => {
-            switch (attribute.type) {
-              case "boolean": {
-                if (attribute.schema.enum) {
-                  return <Enum attribute={attribute} options={attribute.schema.enum}></Enum>;
-                } else {
-                  return (
-                    <Form.Item
-                      {...getSharedFormItemProps(attribute, parents)}
-                      rules={[{ message: "Value required", required: true }]}
-                    >
-                      <Radio.Group>
-                        <Space direction="vertical">
-                          <Radio value={0}>False (0)</Radio>
-                          <Radio value={1}>True (1)</Radio>
-                        </Space>
-                      </Radio.Group>
-                    </Form.Item>
-                  );
-                }
-              }
-
-              case "number":
-              case "integer": {
-                if (attribute.schema.enum) {
-                  return <Enum attribute={attribute} options={attribute.schema.enum}></Enum>;
-                } else {
-                  return (
-                    <Form.Item
-                      {...getSharedFormItemProps(attribute, parents)}
-                      rules={[
-                        {
-                          message: "Positive integer or 0 required",
-                          required: true,
-                        },
-                      ]}
-                    >
-                      <InputNumber className="full-width" min={0} type="number" />
-                    </Form.Item>
-                  );
-                }
-              }
-
-              case "string": {
-                if (attribute.schema.enum) {
-                  return <Enum attribute={attribute} options={attribute.schema.enum}></Enum>;
-                } else {
-                  switch (attribute.schema.format) {
-                    case "date":
-                    case "date-time": {
-                      return (
-                        <Form.Item
-                          {...getSharedFormItemProps(attribute, parents)}
-                          rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
-                        >
-                          <DatePicker showTime={attribute.schema.format === "date-time"} />
-                        </Form.Item>
-                      );
-                    }
-                    case "time": {
-                      return (
-                        <Form.Item
-                          {...getSharedFormItemProps(attribute, parents)}
-                          rules={[{ message: DATE_VALIDITY_MESSAGE, required: true }]}
-                        >
-                          <TimePicker />
-                        </Form.Item>
-                      );
-                    }
-                    default: {
-                      return (
-                        <Form.Item {...getSharedFormItemProps(attribute, parents)}>
-                          <Input />
-                        </Form.Item>
-                      );
-                    }
-                  }
-                }
-              }
-
-              case "null": {
-                return <Typography.Text>Null attributes are not yet supported</Typography.Text>;
-              }
-
-              case "array": {
-                return <Typography.Text>Array attributes are not yet supported</Typography.Text>;
-              }
-
-              case "object": {
-                return (
-                  <Space direction="vertical">
-                    <Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>
-                    <CredentialForm objectAttribute={attribute} parents={[...parents, attribute]} />
-                  </Space>
-                );
-              }
-
-              case "multi": {
-                return (
-                  // ToDo: Implement multi-type schema attributes (PID-543)
-                  <Typography.Text>Multi attributes are not yet supported</Typography.Text>
-                );
-              }
+      {attributes.map((attribute: Attribute) => {
+        const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
+        const form = (
+          <>
+            {attribute.type !== "object" && parents.length > 1 && breadcrumb}
+            <AnyAttribute attribute={attribute} parents={parents} />
+          </>
+        );
+        return parents.length === 0 ? (
+          <Card
+            key={key}
+            title={
+              attribute.type === "object" ? attribute.schema.title || attribute.name : undefined
             }
-          };
-          return isRoot ? (
-            <Card key={key}>{children()}</Card>
-          ) : (
-            <Fragment key={key}>{children()}</Fragment>
-          );
-        })
-      ) : (
-        <Typography.Text>The object has no properties defined</Typography.Text>
-      )}
+          >
+            {form}
+          </Card>
+        ) : (
+          <Fragment key={key}>{form}</Fragment>
+        );
+      })}
     </Space>
   );
 }

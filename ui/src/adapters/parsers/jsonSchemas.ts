@@ -285,7 +285,7 @@ function getMultiAttributeParser(name: string, required: boolean) {
         (schema): MultiAttribute => ({
           name,
           required,
-          schemas: schema.type.map((type): MultiSchema[number] => {
+          schemas: schema.type.map((type): MultiSchema => {
             switch (type) {
               case "boolean": {
                 return getBooleanAttributeParser(name, required).parse({

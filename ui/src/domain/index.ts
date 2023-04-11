@@ -17,6 +17,7 @@ export type { Json, JsonLiteral } from "src/domain/json";
 
 export type {
   Attribute,
+  AttributeSchema,
   ArrayAttribute,
   ArrayProps,
   ArraySchema,
