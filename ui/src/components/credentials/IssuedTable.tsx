@@ -15,7 +15,7 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, generatePath, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
@@ -36,9 +36,11 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
+  EXPIRATION,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
   QUERY_SEARCH_PARAM,
+  REVOCATION,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
@@ -46,8 +48,6 @@ import { formatDate } from "src/utils/forms";
 
 export function IssuedTable() {
   const env = useEnvContext();
-
-  const navigate = useNavigate();
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
@@ -58,7 +58,6 @@ export function IssuedTable() {
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
-
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
@@ -75,7 +74,7 @@ export function IssuedTable() {
           <Typography.Text strong>{attributes.type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ id: a }, { id: b }) => a.localeCompare(b),
+      sorter: ({ attributes: { type: a } }, { attributes: { type: b } }) => a.localeCompare(b),
       title: CREDENTIALS,
     },
     {
@@ -109,7 +108,7 @@ export function IssuedTable() {
           return 1;
         }
       },
-      title: "Expiration",
+      title: EXPIRATION,
     },
     {
       dataIndex: "revoked",
@@ -118,7 +117,7 @@ export function IssuedTable() {
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
       sorter: ({ revoked: a }, { revoked: b }) => (a === b ? 0 : a ? 1 : -1),
-      title: "Revocation",
+      title: REVOCATION,
     },
     {
       dataIndex: "id",
@@ -213,10 +212,10 @@ export function IssuedTable() {
     if (parsedCredentialStatus.success) {
       const params = new URLSearchParams(searchParams);
 
-      if (parsedCredentialStatus.data !== "all") {
-        params.set(STATUS_SEARCH_PARAM, parsedCredentialStatus.data);
-      } else {
+      if (parsedCredentialStatus.data === "all") {
         params.delete(STATUS_SEARCH_PARAM);
+      } else {
+        params.set(STATUS_SEARCH_PARAM, parsedCredentialStatus.data);
       }
 
       setSearchParams(params);
@@ -244,20 +243,18 @@ export function IssuedTable() {
           </Typography.Text>
 
           {credentialStatus === "all" && (
-            <Button
-              icon={<IconCreditCardPlus />}
-              onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
-              type="primary"
-            >
-              Issue credential
-            </Button>
+            <Link to={generatePath(ROUTES.issueCredential.path)}>
+              <Button icon={<IconCreditCardPlus />} type="primary">
+                {ISSUE_CREDENTIAL}
+              </Button>
+            </Link>
           )}
         </>
       }
       isLoading={isAsyncTaskStarting(credentials)}
       onSearch={onSearch}
       query={queryParam}
-      searchPlaceholder="Search credentials, attributes..."
+      searchPlaceholder="Search credentials, attributes, identifiers..."
       showDefaultContents={showDefaultContent}
       table={
         <Table

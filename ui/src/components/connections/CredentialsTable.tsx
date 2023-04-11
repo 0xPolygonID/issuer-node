@@ -37,8 +37,10 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
+  EXPIRATION,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
+  REVOCATION,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
@@ -96,7 +98,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           return 1;
         }
       },
-      title: "Expiration",
+      title: EXPIRATION,
     },
     {
       dataIndex: "revoked",
@@ -104,7 +106,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       render: (revoked: Credential["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
-      title: "Revocation",
+      title: REVOCATION,
     },
     {
       dataIndex: "id",
