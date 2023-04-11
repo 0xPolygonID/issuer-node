@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
+	gohttp "net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -38,6 +38,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -167,6 +168,8 @@ func main() {
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
 
+	pubsub := pubsub.NewRedis(rdb)
+
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
@@ -196,7 +199,7 @@ func main() {
 	)
 	api_admin.HandlerWithOptions(
 		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth),
+			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth, pubsub),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
@@ -209,7 +212,7 @@ func main() {
 	)
 	api_admin.RegisterStatic(mux)
 
-	server := &http.Server{
+	server := &gohttp.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.APIUI.ServerPort),
 		Handler: mux,
 	}
@@ -239,13 +242,13 @@ func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictM
 	}
 }
 
-func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
+func errorHandlerFunc(w gohttp.ResponseWriter, _ *gohttp.Request, err error) {
 	switch err.(type) {
 	case *api_admin.InvalidParamFormatError:
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(gohttp.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
 	default:
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		gohttp.Error(w, err.Error(), gohttp.StatusBadRequest)
 	}
 }

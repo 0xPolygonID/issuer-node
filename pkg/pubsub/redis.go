@@ -1,0 +1,69 @@
+package pubsub
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+
+	"github.com/go-redis/redis/v8"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
+)
+
+// RedisClient struct
+type RedisClient struct {
+	conn        *redis.Client
+	subscribers map[string]*redis.PubSub
+}
+
+// NewRedis returns a redis pubsub client
+func NewRedis(rdb *redis.Client) Client {
+	return &RedisClient{rdb, make(map[string]*redis.PubSub)}
+}
+
+// Publish publishes a new topic payload
+func (rdb *RedisClient) Publish(ctx context.Context, topic string, payload Event) error {
+	return rdb.conn.Publish(ctx, topic, payload).Err()
+}
+
+// Subscribe adds a topic to the
+func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback EventHandler) {
+	pubsub := rdb.conn.Subscribe(ctx, topic)
+	rdb.subscribers[topic] = pubsub
+
+	go func() {
+		for {
+			msg, err := pubsub.ReceiveMessage(ctx)
+			if err != nil {
+				log.Error(ctx, "receiving pubsub message", "err", err)
+				continue
+			}
+
+			if msg.Channel != topic {
+				log.Error(ctx, "msg channel != topic")
+				continue
+			}
+
+			var payload Event
+			err = json.Unmarshal([]byte(msg.Payload), &payload)
+			if err != nil {
+				log.Error(ctx, "unmarshal msg payload", "err", err)
+				continue
+			}
+
+			err = callback(ctx, payload)
+			if err != nil {
+				log.Error(ctx, "executing callback function", "err", err)
+			}
+		}
+	}()
+}
+
+// Unsubscribe removes the topic of the list of subscribers
+func (rdb *RedisClient) Unsubscribe(ctx context.Context, topic string) error {
+	pubsub, ok := rdb.subscribers[topic]
+	if !ok {
+		return errors.New("non existing subscriber with the given topic")
+	}
+	return pubsub.Unsubscribe(ctx, topic)
+}

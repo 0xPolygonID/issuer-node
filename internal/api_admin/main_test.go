@@ -21,6 +21,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 var (
@@ -30,6 +31,7 @@ var (
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
 	cachex         cache.Cache
+	pubsubx        pubsub.Client
 )
 
 func TestMain(m *testing.M) {
@@ -54,6 +56,7 @@ func TestMain(m *testing.M) {
 	storage = s
 
 	cachex = cache.NewMemoryCache()
+	pubsubx = pubsub.NewMock()
 
 	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
 	if err != nil {

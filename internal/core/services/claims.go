@@ -491,9 +491,10 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
 	if err != nil {
-		log.Error(ctx, "loading claim", err, "claimID", claim.ID)
+		log.Error(ctx, "loading claim", err)
 		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
 	}
+
 	if claim.OtherIdentifier != basicMessage.UserDID.String() {
 		err := fmt.Errorf("claim doesn't relate to sender")
 		log.Error(ctx, "claim doesn't relate to sender", err, "claimID", claim.ID)
