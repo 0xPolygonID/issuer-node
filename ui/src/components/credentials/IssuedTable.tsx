@@ -37,6 +37,7 @@ import {
   CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
+  ISSUED,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
   QUERY_SEARCH_PARAM,
@@ -284,7 +285,7 @@ export function IssuedTable() {
       title={
         <Row align="middle" justify="space-between">
           <Space align="end" size="middle">
-            <Card.Meta title={ISSUE_CREDENTIAL} />
+            <Card.Meta title={ISSUED} />
 
             <Tag color="blue">{credentialsList.length}</Tag>
           </Space>
