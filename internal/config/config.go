@@ -339,7 +339,7 @@ func bindEnv() {
 	viper.AutomaticEnv()
 }
 
-// nolint:staticcheck
+// nolint:gocyclo
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.ServerUrl == "" {
 		log.Info(ctx, "ISSUER_SERVER_URL value is missing")
