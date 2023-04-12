@@ -28,12 +28,6 @@ func (rdb *RedisClient) Publish(ctx context.Context, topic string, payload Event
 func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback EventHandler) {
 	pubsub := rdb.conn.Subscribe(ctx, topic)
 	go func() {
-		defer func(pubsub *redis.PubSub) {
-			err := pubsub.Close()
-			if err != nil {
-				log.Error(ctx, "closing pubsub", "err", err)
-			}
-		}(pubsub)
 		for {
 			ch := pubsub.Channel()
 			select {
@@ -55,6 +49,10 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 					log.Error(ctx, "executing callback function", "err", err)
 				}
 			case <-ctx.Done():
+				err := pubsub.Close()
+				if err != nil {
+					log.Error(ctx, "closing pubsub", "err", err)
+				}
 				return
 			}
 		}
