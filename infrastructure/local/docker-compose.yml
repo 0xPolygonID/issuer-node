@@ -47,6 +47,7 @@ services:
       context: ../../
       dockerfile: ${DOCKER_FILE}
     env_file:
+      - ../../.env-api
       - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./issuer_initializer"
 
