@@ -8,6 +8,8 @@ import (
 const (
 	// StatusPending - status pending
 	StatusPending = "pending"
+	// StatusPendingPublish - status StatusPendingPublish
+	StatusPendingPublish = "pendingPublish"
 	// StatusError - status error
 	StatusError = "error"
 	// StatusDone - status done
@@ -75,6 +77,14 @@ func NewStateDone(qrcode *QRCodeMessage) *State {
 	state := &State{
 		Status: StatusDone,
 		QRCode: qrcode,
+	}
+	return state
+}
+
+// NewStatePendingPublish - TODO
+func NewStatePendingPublish() *State {
+	state := &State{
+		Status: StatusPendingPublish,
 	}
 	return state
 }

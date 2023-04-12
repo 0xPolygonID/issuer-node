@@ -196,6 +196,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	}
 
 	claim.MtProof = req.MTProof
+	claim.LinkID = req.LinkID
 	return claim, nil
 }
 

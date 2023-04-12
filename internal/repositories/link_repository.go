@@ -44,12 +44,12 @@ func (l link) Save(ctx context.Context, conn db.Querier, link *domain.Link) (*uu
 	}
 
 	var id uuid.UUID
-	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active, issued_claims)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO
-			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10, issued_claims=$11 
+	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active)
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (id) DO
+			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10 
 			RETURNING id`
 	err := conn.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
-		link.CredentialMTPProof, pgAttrs, link.Active, link.IssuedClaims).Scan(&id)
+		link.CredentialMTPProof, pgAttrs, link.Active).Scan(&id)
 
 	if err != nil && strings.Contains(err.Error(), `table "links" violates foreign key constraint "links_schemas_id_key"`) {
 		return nil, errorShemaNotFound
@@ -70,7 +70,7 @@ SELECT links.id,
        links.credential_mtp_proof, 
        links.credential_attributes, 
        links.active, 
-       links.issued_claims,
+       count(claims.id) as issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
        schemas.url,
@@ -80,7 +80,10 @@ SELECT links.id,
        schemas.created_at
 FROM links
 LEFT JOIN schemas ON schemas.id = links.schema_id AND schemas.issuer_id = links.issuer_id
-WHERE links.id = $1 AND links.issuer_id = $2`
+LEFT JOIN claims ON claims.link_id = links.id AND claims.identifier = links.issuer_id
+WHERE links.id = $1 AND links.issuer_id = $2
+GROUP BY links.id, schemas.id 
+`
 	link := domain.Link{}
 	s := dbSchema{}
 	var credentialAttributtes pgtype.JSONB
@@ -140,7 +143,7 @@ SELECT links.id,
        links.credential_mtp_proof, 
        links.credential_attributes, 
        links.active,
-       links.issued_claims,
+       count(claims.id) as issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
        schemas.url,
@@ -149,24 +152,27 @@ SELECT links.id,
        schemas.attributes, 
        schemas.created_at
 FROM links
-LEFT JOIN schemas ON schemas.id = links.schema_id 
-WHERE links.issuer_id = $1 `
+LEFT JOIN schemas ON schemas.id = links.schema_id
+LEFT JOIN claims ON claims.link_id = links.id AND claims.identifier = links.issuer_id
+WHERE links.issuer_id = $1
+`
 	switch status {
 	case ports.LinkActive:
-		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>links.issued_claims, true)"
+		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>(SELECT count(claims.id) FROM claims where claims.link_id = links.id), true)"
 	case ports.LinkInactive:
 		sql += " AND NOT links.active"
 	case ports.LinkExceeded:
 		sql += " AND " +
 			"(links.valid_until IS NOT NULL AND links.valid_until<= $2) " +
 			"OR " +
-			"(links.max_issuance IS NOT NULL AND links.max_issuance <=links.issued_claims)"
+			"(links.max_issuance IS NOT NULL AND links.max_issuance <= (SELECT count(claims.id) FROM claims where claims.link_id = links.id))"
 	}
 	if query != nil {
 		sql += " AND schemas.ts_words @@ to_tsquery($3)"
 	}
 	// Dummy condition to include all placeholders in query
 	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl OR $3::text IS NULL)"
+	sql += " GROUP BY links.id, schemas.id"
 	sql += " ORDER BY links.created_at DESC"
 	q := ""
 	if query != nil {
