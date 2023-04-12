@@ -152,6 +152,8 @@ export function IssuedTable() {
                       void fetchCredentials();
 
                       void message.success(response.data);
+                    } else {
+                      void message.error(response.error.message);
                     }
                   }),
               },
@@ -170,6 +172,8 @@ export function IssuedTable() {
                       void fetchCredentials();
 
                       void message.success(response.data);
+                    } else {
+                      void message.error(response.error.message);
                     }
                   }),
               },

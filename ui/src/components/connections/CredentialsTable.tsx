@@ -138,6 +138,8 @@ export function CredentialsTable({ userID }: { userID: string }) {
                       void fetchCredentials();
 
                       void message.success(response.data);
+                    } else {
+                      void message.error(response.error.message);
                     }
                   }),
               },
@@ -156,6 +158,8 @@ export function CredentialsTable({ userID }: { userID: string }) {
                       void fetchCredentials();
 
                       void message.success(response.data);
+                    } else {
+                      void message.error(response.error.message);
                     }
                   }),
               },
