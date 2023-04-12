@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/iden3/contracts-abi/state/go/abi"
 	"github.com/iden3/go-circuits"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/pkg/errors"
-
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
 // ErrStateNotFound issuer state is genesis state.
@@ -18,7 +17,7 @@ var (
 	ErrStateNotFound = errors.New("Identity does not exist")
 )
 
-func stateVerificationHandler(ethStateContract *eth.State) packers.VerificationHandlerFunc {
+func stateVerificationHandler(ethStateContract *abi.State) packers.VerificationHandlerFunc {
 	return func(id circuits.CircuitID, pubsignals []string) error {
 		switch id {
 		case circuits.AuthV2CircuitID:
@@ -30,7 +29,7 @@ func stateVerificationHandler(ethStateContract *eth.State) packers.VerificationH
 }
 
 // authV2CircuitStateVerification `authV2` circuit state verification
-func authV2CircuitStateVerification(contract *eth.State, pubsignals []string) error {
+func authV2CircuitStateVerification(contract *abi.State, pubsignals []string) error {
 	bytePubsig, err := json.Marshal(pubsignals)
 	if err != nil {
 		return err

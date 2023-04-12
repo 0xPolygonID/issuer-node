@@ -11,6 +11,7 @@ import (
 	ethCommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
 
@@ -142,7 +143,7 @@ func (pb *PublisherEthGateway) getStatePayload(identifier *core.DID, latestState
 	}
 	proofC := [2]*big.Int{c[0], c[1]}
 
-	ab, err := eth.StateMetaData.GetAbi()
+	ab, err := abi.StateMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
