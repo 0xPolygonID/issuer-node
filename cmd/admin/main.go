@@ -38,6 +38,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -167,6 +168,8 @@ func main() {
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
 
+	pubsub := pubsub.NewRedis(rdb)
+
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
@@ -196,7 +199,7 @@ func main() {
 	)
 	api_admin.HandlerWithOptions(
 		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth),
+			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth, pubsub),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

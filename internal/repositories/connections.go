@@ -99,6 +99,30 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 	return toConnectionDomain(&connection)
 }
 
+func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDID core.DID, userDID core.DID) (*domain.Connection, error) {
+	connection := dbConnection{}
+	err := conn.QueryRow(ctx,
+		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
+				FROM connections 
+				WHERE   connections.issuer_id = $1 AND  connections.user_id = $2`, issuerDID.String(), userDID.String()).Scan(
+		&connection.ID,
+		&connection.IssuerDID,
+		&connection.UserDID,
+		&connection.IssuerDoc,
+		&connection.UserDoc,
+		&connection.CreatedAt,
+		&connection.ModifiedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrConnectionDoesNotExist
+		}
+		return nil, err
+	}
+
+	return toConnectionDomain(&connection)
+}
+
 func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error) {
 	all := `SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
 FROM connections 
