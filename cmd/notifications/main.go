@@ -67,7 +67,6 @@ func main() {
 
 	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
 	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
-
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer func() {
 		cancel()

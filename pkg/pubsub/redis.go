@@ -29,9 +29,8 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 	pubsub := rdb.conn.Subscribe(ctx, topic)
 	go func() {
 		for {
-			ch := pubsub.Channel()
 			select {
-			case event := <-ch:
+			case event := <-pubsub.Channel():
 				if event.Channel != topic {
 					log.Error(ctx, "msg channel != topic")
 					continue
@@ -48,6 +47,7 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 				if err != nil {
 					log.Error(ctx, "executing callback function", "err", err)
 				}
+
 			case <-ctx.Done():
 				err := pubsub.Close()
 				if err != nil {
