@@ -13,6 +13,7 @@ $tag-bg-success: #ecfdf3;
 $tag-color: #344054;
 $text-color: #101828;
 $text-color-secondary: #667085;
+$text-color-warning: #b54708;
 
 :export {
   avatarBg: $avatar-bg;
@@ -30,4 +31,5 @@ $text-color-secondary: #667085;
   tagColor: $tag-color;
   textColor: $text-color;
   textColorSecondary: $text-color-secondary;
+  textColorWarning: $text-color-warning;
 }

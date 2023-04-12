@@ -19,9 +19,7 @@ import { APIError } from "src/adapters/api";
 import {
   CredentialStatus,
   credentialStatusParser,
-  deleteCredential,
   getCredentials,
-  revokeCredential,
 } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -29,6 +27,8 @@ import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.s
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { IssueDirectlyButton } from "src/components/connections/IssueDirectlyButton";
+import { CredentialDeleteModal } from "src/components/shared/CredentialDeleteModal";
+import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
@@ -54,6 +54,8 @@ export function CredentialsTable({ userID }: { userID: string }) {
     status: "pending",
   });
   const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>("all");
+  const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
+  const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
   const [query, setQuery] = useState<string | null>(null);
 
   const tableColumns: ColumnsType<Credential> = [
@@ -132,16 +134,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 icon: <IconClose />,
                 key: "revoke",
                 label: "Revoke",
-                onClick: () =>
-                  void revokeCredential({ env, nonce: credential.revNonce }).then((response) => {
-                    if (response.isSuccessful) {
-                      void fetchCredentials();
-
-                      void message.success(response.data);
-                    } else {
-                      void message.error(response.error.message);
-                    }
-                  }),
+                onClick: () => setCredentialToRevoke(credential),
               },
               {
                 key: "divider2",
@@ -152,16 +145,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete",
-                onClick: () =>
-                  void deleteCredential({ env, id }).then((response) => {
-                    if (response.isSuccessful) {
-                      void fetchCredentials();
-
-                      void message.success(response.data);
-                    } else {
-                      void message.error(response.error.message);
-                    }
-                  }),
+                onClick: () => setCredentialToDelete(credential),
               },
             ],
           }}
@@ -228,71 +212,89 @@ export function CredentialsTable({ userID }: { userID: string }) {
     credentials.status === "successful" && credentialsList.length === 0 && query === null;
 
   return (
-    <TableCard
-      defaultContents={
-        <>
-          <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
+    <>
+      <TableCard
+        defaultContents={
+          <>
+            <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
 
-          <Typography.Text strong>
-            No {credentialStatus !== "all" && credentialStatus} credentials issued
-          </Typography.Text>
+            <Typography.Text strong>
+              No {credentialStatus !== "all" && credentialStatus} credentials issued
+            </Typography.Text>
 
-          <Typography.Text type="secondary">
-            Credentials for this connection will be listed here.
-          </Typography.Text>
-        </>
-      }
-      extraButton={<IssueDirectlyButton />}
-      isLoading={isAsyncTaskStarting(credentials)}
-      onSearch={setQuery}
-      query={query}
-      searchPlaceholder="Search credentials, attributes..."
-      showDefaultContents={showDefaultContent}
-      table={
-        <Table
-          columns={tableColumns.map(({ title, ...column }) => ({
-            title: (
-              <Typography.Text type="secondary">
-                <>{title}</>
-              </Typography.Text>
-            ),
-            ...column,
-          }))}
-          dataSource={credentialsList}
-          locale={{
-            emptyText:
-              credentials.status === "failed" ? (
-                <ErrorResult error={credentials.error.message} />
-              ) : (
-                <NoResults searchQuery={query} />
+            <Typography.Text type="secondary">
+              Credentials for this connection will be listed here.
+            </Typography.Text>
+          </>
+        }
+        extraButton={<IssueDirectlyButton />}
+        isLoading={isAsyncTaskStarting(credentials)}
+        onSearch={setQuery}
+        query={query}
+        searchPlaceholder="Search credentials, attributes..."
+        showDefaultContents={showDefaultContent}
+        table={
+          <Table
+            columns={tableColumns.map(({ title, ...column }) => ({
+              title: (
+                <Typography.Text type="secondary">
+                  <>{title}</>
+                </Typography.Text>
               ),
-          }}
-          pagination={false}
-          rowKey="id"
-          showSorterTooltip
-          sortDirections={["ascend", "descend"]}
+              ...column,
+            }))}
+            dataSource={credentialsList}
+            locale={{
+              emptyText:
+                credentials.status === "failed" ? (
+                  <ErrorResult error={credentials.error.message} />
+                ) : (
+                  <NoResults searchQuery={query} />
+                ),
+            }}
+            pagination={false}
+            rowKey="id"
+            showSorterTooltip
+            sortDirections={["ascend", "descend"]}
+          />
+        }
+        title={
+          <Row align="middle" justify="space-between">
+            <Space align="end" size="middle">
+              <Card.Meta title={ISSUE_CREDENTIAL} />
+
+              <Tag color="blue">{credentialsList.length}</Tag>
+            </Space>
+            {showDefaultContent && credentialStatus === "all" ? (
+              <IssueDirectlyButton />
+            ) : (
+              <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
+                <Radio.Button value="all">All</Radio.Button>
+
+                <Radio.Button value="revoked">Revoked</Radio.Button>
+
+                <Radio.Button value="expired">Expired</Radio.Button>
+              </Radio.Group>
+            )}
+          </Row>
+        }
+      />
+
+      {credentialToDelete && (
+        <CredentialDeleteModal
+          credential={credentialToDelete}
+          onClose={() => setCredentialToDelete(undefined)}
+          onDelete={() => void fetchCredentials()}
         />
-      }
-      title={
-        <Row align="middle" justify="space-between">
-          <Space align="end" size="middle">
-            <Card.Meta title={ISSUE_CREDENTIAL} />
+      )}
 
-            <Tag color="blue">{credentialsList.length}</Tag>
-          </Space>
-          {showDefaultContent && credentialStatus === "all" ? (
-            <IssueDirectlyButton />
-          ) : (
-            <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
-              <Radio.Button value="all">All</Radio.Button>
-
-              <Radio.Button value="revoked">Revoked</Radio.Button>
-
-              <Radio.Button value="expired">Expired</Radio.Button>
-            </Radio.Group>
-          )}
-        </Row>
-      }
-    />
+      {credentialToRevoke && (
+        <CredentialRevokeModal
+          credential={credentialToRevoke}
+          onClose={() => setCredentialToRevoke(undefined)}
+          onRevoke={() => void fetchCredentials()}
+        />
+      )}
+    </>
   );
 }
