@@ -5,7 +5,7 @@ import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.s
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
-import { CredentialForm } from "src/components/credentials/CredentialForm";
+import { CredentialSubjectForm } from "src/components/credentials/CredentialSubjectForm";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
 
@@ -69,7 +69,9 @@ export function IssueCredentialForm({
         )}
 
         <Space direction="vertical" size="large">
-          <CredentialForm attributes={credentialSubject.schema.properties || []} />
+          {credentialSubject.schema.properties && (
+            <CredentialSubjectForm attributes={credentialSubject.schema.properties} />
+          )}
 
           <Form.Item
             label="Credential expiration date"
