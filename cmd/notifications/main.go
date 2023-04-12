@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -23,6 +24,8 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
+
+var shutdownDelay = 3 * time.Second
 
 func main() {
 	cfg, err := config.Load("")
@@ -65,10 +68,16 @@ func main() {
 	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
 	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
 
-	ps.Subscribe(ctx, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
+	ctxCancel, cancel := context.WithCancel(ctx)
+	defer func() {
+		cancel()
+		time.Sleep(shutdownDelay)
+	}()
+	ps.Subscribe(ctxCancel, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
+
 	<-gracefulShutdown
 }
 

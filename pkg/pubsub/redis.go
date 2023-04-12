@@ -27,30 +27,35 @@ func (rdb *RedisClient) Publish(ctx context.Context, topic string, payload Event
 // Subscribe adds a topic to the
 func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback EventHandler) {
 	pubsub := rdb.conn.Subscribe(ctx, topic)
-
 	go func() {
+		defer func(pubsub *redis.PubSub) {
+			err := pubsub.Close()
+			if err != nil {
+				log.Error(ctx, "closing pubsub", "err", err)
+			}
+		}(pubsub)
 		for {
-			msg, err := pubsub.ReceiveMessage(ctx)
-			if err != nil {
-				log.Error(ctx, "receiving pubsub message", "err", err)
-				continue
-			}
+			ch := pubsub.Channel()
+			select {
+			case event := <-ch:
+				if event.Channel != topic {
+					log.Error(ctx, "msg channel != topic")
+					continue
+				}
 
-			if msg.Channel != topic {
-				log.Error(ctx, "msg channel != topic")
-				continue
-			}
+				var payload Event
+				err := json.Unmarshal([]byte(event.Payload), &payload)
+				if err != nil {
+					log.Error(ctx, "unmarshal msg payload", "err", err)
+					continue
+				}
 
-			var payload Event
-			err = json.Unmarshal([]byte(msg.Payload), &payload)
-			if err != nil {
-				log.Error(ctx, "unmarshal msg payload", "err", err)
-				continue
-			}
-
-			err = callback(ctx, payload)
-			if err != nil {
-				log.Error(ctx, "executing callback function", "err", err)
+				err = callback(ctx, payload)
+				if err != nil {
+					log.Error(ctx, "executing callback function", "err", err)
+				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
