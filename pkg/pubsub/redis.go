@@ -49,10 +49,6 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 				}
 
 			case <-ctx.Done():
-				err := pubsub.Close()
-				if err != nil {
-					log.Error(ctx, "closing pubsub", "err", err)
-				}
 				return
 			}
 		}

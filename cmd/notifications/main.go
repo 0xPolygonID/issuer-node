@@ -3,11 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -23,9 +18,10 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"os"
+	"os/signal"
+	"syscall"
 )
-
-var shutdownDelay = 3 * time.Second
 
 func main() {
 	cfg, err := config.Load("")
@@ -69,9 +65,13 @@ func main() {
 	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer func() {
+		log.Info(ctx, "Shutting down ...")
 		cancel()
-		time.Sleep(shutdownDelay)
+		if err := rdb.Close(); err != nil {
+			log.Error(ctx, "closing redis connection", "err", err)
+		}
 	}()
+
 	ps.Subscribe(ctxCancel, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
