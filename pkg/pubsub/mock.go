@@ -4,18 +4,18 @@ import (
 	"context"
 )
 
-// MockClient is a mock pubsub client
-type MockClient struct{}
+// Mock is a mock pubsub client
+type Mock struct{}
 
 // NewMock returns a new mock pubsub client
 func NewMock() Client {
-	return &MockClient{}
+	return &Mock{}
 }
 
 // Publish mock
-func (rdb *MockClient) Publish(ctx context.Context, topic string, payload Event) error {
+func (rdb *Mock) Publish(ctx context.Context, topic string, payload Event) error {
 	return nil
 }
 
 // Subscribe mock
-func (rdb *MockClient) Subscribe(ctx context.Context, topic string, callback EventHandler) {}
+func (rdb *Mock) Subscribe(ctx context.Context, topic string, callback EventHandler) {}

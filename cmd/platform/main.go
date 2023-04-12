@@ -31,6 +31,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -41,7 +42,8 @@ func main() {
 		return
 	}
 
-	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
+	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
 
 	if err := cfg.Sanitize(); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -60,6 +62,7 @@ func main() {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
 		return
 	}
+	ps := pubsub.NewRedis(rdb)
 	cachex := cache.NewRedisCache(rdb)
 	var schemaLoader loader.Factory
 	if cfg.SchemaCache == nil || !*cfg.SchemaCache {
@@ -124,6 +127,7 @@ func main() {
 			RHSUrl:     cfg.ReverseHashService.URL,
 			Host:       cfg.ServerUrl,
 		},
+		ps,
 	)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))

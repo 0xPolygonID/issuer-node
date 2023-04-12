@@ -26,6 +26,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
 	schemaPkg "github.com/polygonid/sh-id-platform/pkg/schema"
 )
@@ -55,10 +56,11 @@ type claim struct {
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
+	pubsub                  pubsub.Client
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Client) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -71,11 +73,12 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
 		loaderFactory:           ld,
+		pubsub:                  ps,
 	}
 	return s
 }
 
-// CreateClaim creates a new claim
+// Save creates a new claim
 // 1.- Creates document
 // 2.- Signature proof
 // 3.- MerkelTree proof
@@ -84,12 +87,15 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	if err != nil {
 		return nil, err
 	}
-	id, err := c.icRepo.Save(ctx, c.storage.Pgx, claim)
+	claim.ID, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
 	if err != nil {
 		return nil, err
 	}
 
-	claim.ID = id
+	err = c.pubsub.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: claim.ID.String(), IssuerID: req.DID.String()})
+	if err != nil {
+		log.Error(ctx, "sending credential notification", "err", err.Error(), "credential", claim.ID.String())
+	}
 
 	return claim, nil
 }

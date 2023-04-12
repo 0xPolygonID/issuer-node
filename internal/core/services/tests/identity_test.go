@@ -14,6 +14,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -48,6 +49,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
+		&pubsub.Mock{},
 	)
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")

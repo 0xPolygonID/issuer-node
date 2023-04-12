@@ -24,7 +24,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -40,11 +39,10 @@ type Server struct {
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
-	pubsub             pubsub.Client
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, pubsubClient pubsub.Client) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -55,7 +53,6 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
-		pubsub:             pubsubClient,
 	}
 }
 
@@ -330,12 +327,6 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-
-	err = s.pubsub.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: resp.ID.String(), IssuerID: s.cfg.APIUI.IssuerDID.String()})
-	if err != nil {
-		log.Error(ctx, "sending credential notification", "err", err.Error(), "credential", resp.ID.String())
-	}
-
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 

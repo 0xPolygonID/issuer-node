@@ -31,7 +31,8 @@ func main() {
 		return
 	}
 
-	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
+	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
 
 	if err := cfg.SanitizeAdmin(); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -56,7 +57,7 @@ func main() {
 	connectionsRepository := repositories.NewConnections()
 
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	credentialsService, err := newCredentialsService(cfg, storage, cachex)
+	credentialsService, err := newCredentialsService(cfg, storage, cachex, ps)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)
 		return
@@ -66,7 +67,7 @@ func main() {
 	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer func() {
-		log.Info(ctx, "Shutting down ...")
+		log.Info(ctx, "Shutting down...")
 		cancel()
 		if err := rdb.Close(); err != nil {
 			log.Error(ctx, "closing redis connection", "err", err)
@@ -81,7 +82,7 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache) (ports.ClaimsService, error) {
+func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client) (ports.ClaimsService, error) {
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
 		return nil, fmt.Errorf("cannot init vault client: err %s", err.Error())
@@ -119,6 +120,7 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 			RHSUrl:     cfg.ReverseHashService.URL,
 			Host:       cfg.ServerUrl,
 		},
+		ps,
 	)
 
 	return claimsService, nil

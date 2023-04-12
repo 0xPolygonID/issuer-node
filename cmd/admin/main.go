@@ -49,7 +49,8 @@ func main() {
 		return
 	}
 
-	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
+	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
 
 	if err := cfg.SanitizeAdmin(); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -68,6 +69,7 @@ func main() {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
 		return
 	}
+	ps := pubsub.NewRedis(rdb)
 	cachex := cache.NewRedisCache(rdb)
 
 	var schemaLoader loader.Factory
@@ -148,6 +150,7 @@ func main() {
 			RHSUrl:     cfg.ReverseHashService.URL,
 			Host:       cfg.ServerUrl,
 		},
+		ps,
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository)
@@ -167,8 +170,6 @@ func main() {
 	}
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
-
-	pubsub := pubsub.NewRedis(rdb)
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {
@@ -199,7 +200,7 @@ func main() {
 	)
 	api_admin.HandlerWithOptions(
 		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth, pubsub),
+			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_admin.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

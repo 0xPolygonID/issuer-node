@@ -44,7 +44,7 @@ func TestNotification_SendNotification(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	credentialsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	credentialsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
