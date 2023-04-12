@@ -187,7 +187,7 @@ func TestGetAll(t *testing.T) {
 
 		for j := 0; j <= 200; j++ {
 			idClaim, _ := uuid.NewUUID()
-			squemaHash := uuid.New().String()
+			HIndex := uuid.New().String()
 			fixture.CreateClaim(t, &domain.Claim{
 				ID:              idClaim,
 				Identifier:      &didStr,
@@ -201,7 +201,7 @@ func TestGetAll(t *testing.T) {
 				RevNonce:        0,
 				CoreClaim:       domain.CoreClaim{},
 				Status:          nil,
-				HIndex:          squemaHash,
+				HIndex:          HIndex,
 				LinkID:          linkID,
 			})
 		}
