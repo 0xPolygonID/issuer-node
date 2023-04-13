@@ -355,5 +355,4 @@ func TestGetClaimsIssuedByUserID(t *testing.T) {
 			assert.Equal(t, tc.expected, len(claims))
 		})
 	}
-
 }
