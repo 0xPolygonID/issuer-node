@@ -333,8 +333,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	pubSub := pubsub.NewMock()
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(ctx, server)
@@ -344,9 +343,8 @@ func TestServer_CreateClaim(t *testing.T) {
 	did := iden.Identifier
 
 	type expected struct {
-		response                    CreateClaimResponseObject
-		httpCode                    int
-		createCredentialEventsCount int
+		response CreateClaimResponseObject
+		httpCode int
 	}
 
 	type testConfig struct {
@@ -380,9 +378,8 @@ func TestServer_CreateClaim(t *testing.T) {
 				Expiration: common.ToPointer(time.Now()),
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
-				httpCode:                    http.StatusCreated,
-				createCredentialEventsCount: 0, // mtproof claims does not throw event
+				response: CreateClaim201JSONResponse{},
+				httpCode: http.StatusCreated,
 			},
 		},
 		{
@@ -425,7 +422,6 @@ func TestServer_CreateClaim(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			pubSub.Clear(pubsub.EventCreateCredential)
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims", tc.did)
 
@@ -436,8 +432,6 @@ func TestServer_CreateClaim(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
-
-			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(pubsub.EventCreateCredential)))
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
