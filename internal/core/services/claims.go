@@ -56,11 +56,11 @@ type claim struct {
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
-	pubsub                  pubsub.Client
+	publisher               pubsub.Publisher
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Client) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -73,7 +73,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
 		loaderFactory:           ld,
-		pubsub:                  ps,
+		publisher:               ps,
 	}
 	return s
 }
@@ -91,10 +91,11 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	if err != nil {
 		return nil, err
 	}
-
-	err = c.pubsub.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: claim.ID.String(), IssuerID: req.DID.String()})
-	if err != nil {
-		log.Error(ctx, "sending credential notification", "err", err.Error(), "credential", claim.ID.String())
+	if !req.MTProof {
+		err = c.publisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: claim.ID.String(), IssuerID: req.DID.String()})
+		if err != nil {
+			log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", claim.ID.String())
+		}
 	}
 
 	return claim, nil
