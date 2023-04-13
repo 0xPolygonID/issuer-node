@@ -448,6 +448,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/state/retry:
+    post:
+      summary: Retry Publish Identity State
+      operationId: RetryPublishState
+      security:
+        - basicAuth: [ ]
+      tags:
+        - State
+      responses:
+        '202':
+          description: Publish state successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
@@ -912,7 +934,7 @@ components:
           $ref: '#/components/schemas/GetLinkQrCodeResponseType'
         status:
           type: string
-          example: done | pending
+          example: done | pending | pendingPublish
         linkDetail:
           $ref: '#/components/schemas/Link'
 
@@ -1174,7 +1196,7 @@ components:
         bigInt:
           type: string
           x-omitempty: false
-          example: 336615423900919464193075592850483704600
+          example: "336615423900919464193075592850483704600"
         url:
           type: string
           x-omitempty: false
@@ -1234,7 +1256,7 @@ components:
         expirationDate:
           type: string
           format: date
-          example: "2022/12/20"
+          example: "2022-12-20"
         claimLinkExpiration:
           type: string
           format: date-time

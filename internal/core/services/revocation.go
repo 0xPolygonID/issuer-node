@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/iden3/go-schema-processor/verifiable"
 	proof "github.com/iden3/merkletree-proof"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	client "github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 )
@@ -29,7 +29,7 @@ const (
 
 // StateStore TBD
 type StateStore interface {
-	GetLatestStateByID(ctx context.Context, addr common.Address, id *big.Int) (eth.StateV2StateInfo, error)
+	GetLatestStateByID(ctx context.Context, addr common.Address, id *big.Int) (abi.IStateStateInfo, error)
 }
 
 // Revocation TBD

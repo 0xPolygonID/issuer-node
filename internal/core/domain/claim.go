@@ -41,7 +41,8 @@ type Claim struct {
 	CredentialStatus pgtype.JSONB    `json:"credential_status"`
 	HIndex           string          `json:"-"`
 
-	MtProof bool `json:"mt_poof"`
+	MtProof bool       `json:"mt_poof"`
+	LinkID  *uuid.UUID `json:"-"`
 }
 
 // Credentials is the type of array of credential

@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/iden3/contracts-abi/state/go/abi"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -77,13 +78,13 @@ func (c *Client) BalanceAt(ctx context.Context, addr common.Address) (*big.Int, 
 }
 
 // GetLatestStateByID TBD
-func (c *Client) GetLatestStateByID(ctx context.Context, addr common.Address, id *big.Int) (StateV2StateInfo, error) {
+func (c *Client) GetLatestStateByID(ctx context.Context, addr common.Address, id *big.Int) (abi.IStateStateInfo, error) {
 	var (
-		latestState StateV2StateInfo
+		latestState abi.IStateStateInfo
 		err         error
 	)
 	if err = c.Call(func(c *ethclient.Client) error {
-		stateContact, err := NewState(addr, c)
+		stateContact, err := abi.NewState(addr, c)
 		if err != nil {
 			return err
 		}

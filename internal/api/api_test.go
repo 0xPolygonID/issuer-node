@@ -2,14 +2,21 @@ package api
 
 import (
 	"context"
+	"os"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestValid verifies that the api spec can ve validated by github.com/getkin/kin-openapi
 func TestValid(t *testing.T) {
-	spec, err := GetSwagger()
-	assert.NoError(t, err)
+	file, err := os.ReadFile("../../api/api.yaml")
+	require.NoError(t, err)
+	loader := openapi3.NewLoader()
+	spec, err := loader.LoadFromData(file)
+	require.NoError(t, err)
+
 	assert.NoError(t, spec.Validate(context.Background()))
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -308,8 +309,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof)
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil)
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -349,6 +349,10 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
 	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
+		log.Error(ctx, "error publishing the state", "err", err)
+		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoStatesToProcess) {
+			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		return PublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
@@ -361,9 +365,28 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	}, nil
 }
 
+// RetryPublishState - retry to publish the current state if it failed previously.
+func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
+	publishedState, err := s.publisherGateway.RetryPublishState(ctx, &s.cfg.APIUI.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "error retrying the publishing the state", "err", err)
+		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoFailedStatesToProcess) {
+			return RetryPublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return RetryPublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RetryPublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
+}
+
 // GetStateStatus - get the state status
 func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObject) (GetStateStatusResponseObject, error) {
-	pendingActions, err := s.identityService.HasUnprocessedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
+	pendingActions, err := s.identityService.HasUnprocessedAndFailedStatesByID(ctx, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "get state status", "err", err)
 		return GetStateStatus500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -587,7 +610,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		return GetLinkQRCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
 
-	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone {
+	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone || getQRCodeResponse.State.Status == link_state.StatusPendingPublish {
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),

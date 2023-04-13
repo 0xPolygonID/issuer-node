@@ -13,6 +13,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -140,6 +141,7 @@ func TestGetLinkById(t *testing.T) {
 
 func TestGetAll(t *testing.T) {
 	ctx := context.Background()
+	fixture := tests.NewFixture(storage)
 	didStr := "did:iden3:tLZ7NJdCek9j79a1Pmxci3seELHctfGibcrnjjftQ"
 	schemaStore := repositories.NewSchema(*storage)
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
@@ -153,6 +155,13 @@ func TestGetAll(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 	past := time.Now().Add(-100 * 24 * time.Hour)
+	// 10  not expired links and no max issuance
+	for i := 0; i < 10; i++ {
+		linkToSave := domain.NewLink(did, nil, &tomorrow, schemaID, &nextWeek, true, false)
+		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
+		require.NoError(t, err)
+		assert.NotNil(t, linkID)
+	}
 	// 10  not expired links
 	for i := 0; i < 10; i++ {
 		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
@@ -171,10 +180,31 @@ func TestGetAll(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
 		linkToSave.MaxIssuance = common.ToPointer(100)
-		linkToSave.IssuedClaims = 200
+
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
+
+		for j := 0; j <= 200; j++ {
+			idClaim, _ := uuid.NewUUID()
+			HIndex := uuid.New().String()
+			fixture.CreateClaim(t, &domain.Claim{
+				ID:              idClaim,
+				Identifier:      &didStr,
+				Issuer:          didStr,
+				SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+				SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+				SchemaType:      "AuthBJJCredential",
+				OtherIdentifier: "did:polygonid:polygon:mumbai:2qP8KN3KRwBi37jB2ENXrWxhTo3pefaU5u5BFPbjYo",
+				Expiration:      0,
+				Version:         0,
+				RevNonce:        0,
+				CoreClaim:       domain.CoreClaim{},
+				Status:          nil,
+				HIndex:          HIndex,
+				LinkID:          linkID,
+			})
+		}
 	}
 	// 10 inactive
 	for i := 0; i < 10; i++ {
@@ -200,7 +230,7 @@ func TestGetAll(t *testing.T) {
 			filter: ports.LinkAll,
 			query:  nil,
 			expected: expected{
-				count: 40,
+				count: 50,
 			},
 		},
 		{
@@ -226,7 +256,7 @@ func TestGetAll(t *testing.T) {
 			filter: ports.LinkActive,
 			query:  nil,
 			expected: expected{
-				count:  10,
+				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
 			},
 		},
@@ -239,11 +269,20 @@ func TestGetAll(t *testing.T) {
 			},
 		},
 		{
-			name:   "active, with query that should  match",
+			name:   "active, with query that should match",
 			filter: ports.LinkActive,
 			query:  common.ToPointer("birthday"),
 			expected: expected{
-				count:  10,
+				count:  20,
+				active: common.ToPointer(string(ports.LinkActive)),
+			},
+		},
+		{
+			name:   "active, with query that should match because of the beginning of a term",
+			filter: ports.LinkActive,
+			query:  common.ToPointer("birth"),
+			expected: expected{
+				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),
 			},
 		},

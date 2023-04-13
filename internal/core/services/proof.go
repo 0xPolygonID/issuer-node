@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/google/uuid"
+	"github.com/iden3/contracts-abi/state/go/abi"
 	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
@@ -28,7 +29,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 )
@@ -51,12 +51,12 @@ type Proof struct {
 	claimsRepository ports.ClaimsRepository
 	keyProvider      *kms.KMS
 	storage          *db.Storage
-	stateContract    *eth.State
+	stateContract    *abi.State
 	schemaLoader     loader.Factory
 }
 
 // NewProofService init proof service
-func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *eth.State, ld loader.Factory) ports.ProofService {
+func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *abi.State, ld loader.Factory) ports.ProofService {
 	return &Proof{
 		claimSrv:         claimSrv,
 		revocationSrv:    revocationSrv,
@@ -265,12 +265,11 @@ func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifie
 }
 
 func (p *Proof) findClaimForQuery(ctx context.Context, identifier *core.DID, query ports.Query) ([]*domain.Claim, error) {
-	field := ""
 	var err error
 
 	// TODO "query_value":    value,
 	// TODO "query_operator": operator,
-	filter := &ports.ClaimsFilter{QueryField: field, SchemaType: query.SchemaType()}
+	filter := &ports.ClaimsFilter{SchemaType: query.SchemaType()}
 	if !query.SkipClaimRevocationCheck {
 		filter.Revoked = common.ToPointer(false)
 	}
@@ -628,7 +627,7 @@ func prepareAuthV2CircuitInputs(did *core.DID, authClaim circuits.ClaimWithMTPPr
 	}
 }
 
-func populateGlobalTree(ctx context.Context, did *core.DID, contract *eth.State) (circuits.GISTProof, error) {
+func populateGlobalTree(ctx context.Context, did *core.DID, contract *abi.State) (circuits.GISTProof, error) {
 	// get global root
 	globalProof, err := contract.GetGISTProof(&bind.CallOpts{Context: ctx}, did.ID.BigInt())
 	if err != nil {
@@ -638,7 +637,7 @@ func populateGlobalTree(ctx context.Context, did *core.DID, contract *eth.State)
 	return toMerkleTreeProof(globalProof)
 }
 
-func toMerkleTreeProof(smtProof eth.SmtProof) (circuits.GISTProof, error) {
+func toMerkleTreeProof(smtProof abi.IStateGistProof) (circuits.GISTProof, error) {
 	var existence bool
 	var nodeAux *merkletree.NodeAux
 	var err error

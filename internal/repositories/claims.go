@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
+	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/gommon/log"
@@ -97,8 +98,9 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 					revoked,
                     core_claim,
                     index_hash,
-					mtp)
-		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+					mtp, 
+					link_id)
+		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 		RETURNING id`
 
 		err = conn.QueryRow(ctx, s,
@@ -120,7 +122,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.Revoked,
 			claim.CoreClaim,
 			claim.HIndex,
-			claim.MtProof).Scan(&id)
+			claim.MtProof,
+			claim.LinkID).Scan(&id)
 	} else {
 		s := `INSERT INTO claims (
 					id,
@@ -142,18 +145,19 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     revoked,
                     core_claim,
                     index_hash,
-					mtp
+					mtp,
+					link_id
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
 		)
 		ON CONFLICT ON CONSTRAINT claims_pkey 
 		DO UPDATE SET 
 			( expiration, updatable, version, rev_nonce, signature_proof, mtp_proof, data, identity_state, 
-			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp)
+			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp, link_id)
 			= (EXCLUDED.expiration, EXCLUDED.updatable, EXCLUDED.version, EXCLUDED.rev_nonce, EXCLUDED.signature_proof,
 		EXCLUDED.mtp_proof, EXCLUDED.data, EXCLUDED.identity_state, EXCLUDED.other_identifier, EXCLUDED.schema_hash, 
-		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp)
+		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp, EXCLUDED.link_id)
 			RETURNING id`
 		err = conn.QueryRow(ctx, s,
 			claim.ID,
@@ -175,7 +179,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.Revoked,
 			claim.CoreClaim,
 			claim.HIndex,
-			claim.MtProof).Scan(&id)
+			claim.MtProof,
+			claim.LinkID).Scan(&id)
 	}
 
 	if err == nil {
@@ -363,7 +368,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
        				credential_status,
        				core_claim,
 					mtp,
-					revoked
+					revoked,
+					link_id
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -384,7 +390,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 		&claim.CredentialStatus,
 		&claim.CoreClaim,
 		&claim.MtProof,
-		&claim.Revoked)
+		&claim.Revoked,
+		&claim.LinkID)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -719,12 +726,25 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		query = fmt.Sprintf("%s and claims.revoked = $%d", query, len(filters))
 	}
 	if filter.QueryField != "" {
-		query = fmt.Sprintf("%s and data -> 'credentialSubject' ->>'%s' = '%s' ", query, filter.QueryField, filter.QueryField)
+		filters = append(filters, filter.QueryField, filter.QueryFieldValue)
+		query = fmt.Sprintf("%s and data -> 'credentialSubject'  ->>$%d = $%d ", query, len(filters)-1, len(filters))
 	}
 	if filter.ExpiredOn != nil {
 		t := *filter.ExpiredOn
 		filters = append(filters, t.Unix())
 		query = fmt.Sprintf("%s AND claims.expiration>0 AND claims.expiration<$%d", query, len(filters))
+	}
+	if len(filter.Proofs) > 0 {
+		for _, proof := range filter.Proofs {
+			switch proof {
+			case verifiable.BJJSignatureProofType:
+				query = fmt.Sprintf("%s AND claims.signature_proof IS NOT NULL", query)
+			case verifiable.Iden3SparseMerkleTreeProofType:
+				query = fmt.Sprintf("%s AND claims.mtp_proof IS NOT NULL", query)
+			case domain.AnyProofType:
+				query = fmt.Sprintf("%s AND ((claims.mtp = true AND claims.mtp_proof IS NOT NULL) OR claims.signature_proof IS NOT NULL)", query)
+			}
+		}
 	}
 	if filter.FTSQuery != "" {
 		cond := " | "
@@ -792,6 +812,67 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 		return nil, err
 	}
 
+	return claims, nil
+}
+
+func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+		   issuer,
+		   schema_hash,
+		   schema_type,
+		   schema_url,
+		   other_identifier,
+		   expiration,
+		   updatable,
+		   claims.version,
+		   rev_nonce,
+		   mtp_proof,
+		   signature_proof,
+		   data,
+		   claims.identifier,
+		   identity_state,
+		   credential_status,
+		   revoked,
+		   core_claim
+		FROM claims
+		WHERE claims.identifier = $1 
+		AND claims.other_identifier = $2
+		AND claims.link_id = $3
+	`
+	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
+	if err != nil {
+		return nil, err
+	}
+
+	claims := make([]*domain.Claim, 0)
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaType,
+			&claim.SchemaHash,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.MTPProof,
+			&claim.SignatureProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.CredentialStatus,
+			&claim.Revoked,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, &claim)
+	}
+
+	defer rows.Close()
 	return claims, nil
 }
 

@@ -159,3 +159,48 @@ func TestDeleteConnectionCredentials(t *testing.T) {
 		assert.NoError(t, connectionsRepo.DeleteCredentials(context.Background(), storage.Pgx, uuid.New(), *issuerDID))
 	})
 }
+
+func TestGetByUserID(t *testing.T) {
+	connectionsRepo := repositories.NewConnections()
+	fixture := tests.NewFixture(storage)
+
+	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+	userDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr")
+	require.NoError(t, err)
+
+	_ = fixture.CreateConnection(t, &domain.Connection{
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		OtherIdentifier: userDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246564",
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		OtherIdentifier: userDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246563",
+	})
+
+	t.Run("should get an error, no connection for the given userID", func(t *testing.T) {
+		_, err := connectionsRepo.GetByUserID(context.Background(), storage.Pgx, *issuerDID, *userDID2)
+		assert.Error(t, err)
+	})
+	t.Run("should get a connection for the given userID", func(t *testing.T) {
+		conn, err := connectionsRepo.GetByUserID(context.Background(), storage.Pgx, *issuerDID, *userDID)
+		assert.NoError(t, err)
+		assert.NotNil(t, conn)
+	})
+}

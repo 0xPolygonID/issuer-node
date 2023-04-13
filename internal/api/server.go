@@ -111,7 +111,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true))
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil)
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -242,7 +242,14 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
-	filter, err := ports.NewClaimsFilter(request.Params.SchemaHash, request.Params.SchemaType, request.Params.Subject, request.Params.QueryField, request.Params.Self, request.Params.Revoked)
+	filter, err := ports.NewClaimsFilter(
+		request.Params.SchemaHash,
+		request.Params.SchemaType,
+		request.Params.Subject,
+		request.Params.QueryField,
+		request.Params.QueryValue,
+		request.Params.Self,
+		request.Params.Revoked)
 	if err != nil {
 		return GetClaims400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}

@@ -12,12 +12,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-)
-
-const (
-	method     = "polygonid"
-	blockchain = "polygon"
-	network    = "mumbai"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 func main() {
@@ -55,9 +50,9 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, nil, nil, storage, nil, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, nil, nil, storage, nil, nil, nil, pubsub.NewMock())
 
-	identity, err := identityService.Create(ctx, method, blockchain, network, cfg.ServerUrl)
+	identity, err := identityService.Create(ctx, cfg.APIUI.IdentityMethod, cfg.APIUI.IdentityBlockchain, cfg.APIUI.IdentityNetwork, cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "error creating identifier", err)
 		return

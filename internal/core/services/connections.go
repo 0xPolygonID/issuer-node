@@ -59,6 +59,18 @@ func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issue
 	return conn, nil
 }
 
+func (c *connection) GetByUserID(ctx context.Context, issuerDID core.DID, userID core.DID) (*domain.Connection, error) {
+	conn, err := c.connRepo.GetByUserID(ctx, c.storage.Pgx, issuerDID, userID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
+			return nil, ErrConnectionDoesNotExist
+		}
+		return nil, err
+	}
+
+	return conn, nil
+}
+
 func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query string, withCredentials bool) ([]*domain.Connection, error) {
 	if withCredentials {
 		return c.connRepo.GetAllWithCredentialsByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
