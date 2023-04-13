@@ -64,7 +64,7 @@ type identity struct {
 
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
-	pubsub          pubsub.Client
+	pubsub          pubsub.Publisher
 }
 
 // NewIdentity creates a new identity
