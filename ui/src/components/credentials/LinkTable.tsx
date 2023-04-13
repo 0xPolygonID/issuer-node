@@ -306,8 +306,8 @@ export function LinkTable() {
           />
         }
         title={
-          <Row align="middle" justify="space-between">
-            <Space align="end" size="middle">
+          <Row justify="space-between">
+            <Space size="middle">
               <Card.Meta title={LINKS} />
 
               <Tag color="blue">{credentialsList.length}</Tag>

@@ -76,7 +76,6 @@ export const theme: ThemeConfig = {
     Tag: {
       colorBgBase: tagBg,
       colorTextBase: tagColor,
-      fontSize: 14,
     },
   },
   token: {
