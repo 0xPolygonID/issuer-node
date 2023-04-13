@@ -181,7 +181,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		return err
 	}
 
-	issuedByUser, err := ls.claimRepository.GetClaimsIssuedByUserID(ctx, ls.storage.Pgx, &issuerDID, &userDID, linkID)
+	issuedByUser, err := ls.claimRepository.GetClaimsIssuedForUser(ctx, ls.storage.Pgx, &issuerDID, &userDID, linkID)
 	if err != nil {
 		log.Error(ctx, "can not fetch the claims issued for the user", err)
 		return err

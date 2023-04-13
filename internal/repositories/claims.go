@@ -367,7 +367,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
        				credential_status,
        				core_claim,
 					mtp,
-					revoked
+					revoked,
+					link_id
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -388,7 +389,8 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 		&claim.CredentialStatus,
 		&claim.CoreClaim,
 		&claim.MtProof,
-		&claim.Revoked)
+		&claim.Revoked,
+		&claim.LinkID)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -800,7 +802,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedByUserID(ctx context.Context, conn db.Querier, identifier *core.DID, userDID *core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier *core.DID, userDID *core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -822,10 +824,7 @@ func (c *claims) GetClaimsIssuedByUserID(ctx context.Context, conn db.Querier, i
 		FROM claims
 		WHERE claims.identifier = $1 
 		AND claims.other_identifier = $2
-		AND claims.link_id = (
-			SELECT id 
-			FROM links
-			WHERE links.id = $3 and issuer_id = $1)
+		AND claims.link_id = $3
 	`
 	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
 	if err != nil {

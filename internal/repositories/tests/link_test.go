@@ -191,11 +191,11 @@ func TestGetAll(t *testing.T) {
 			fixture.CreateClaim(t, &domain.Claim{
 				ID:              idClaim,
 				Identifier:      &didStr,
-				Issuer:          "did:polygonid:polygon:mumbai:2qP8KN3KRwBi37jB2ENXrWxhTo3pefaU5u5BFPbjYo",
+				Issuer:          didStr,
 				SchemaHash:      "ca938857241db9451ea329256b9c06e5",
 				SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
 				SchemaType:      "AuthBJJCredential",
-				OtherIdentifier: "",
+				OtherIdentifier: "did:polygonid:polygon:mumbai:2qP8KN3KRwBi37jB2ENXrWxhTo3pefaU5u5BFPbjYo",
 				Expiration:      0,
 				Version:         0,
 				RevNonce:        0,
