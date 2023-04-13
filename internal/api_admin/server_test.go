@@ -910,7 +910,8 @@ func TestServer_CreateCredential(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
@@ -924,8 +925,9 @@ func TestServer_CreateCredential(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		response CreateCredentialResponseObject
-		httpCode int
+		response                    CreateCredentialResponseObject
+		httpCode                    int
+		createCredentialEventsCount int
 	}
 
 	type testConfig struct {
@@ -957,8 +959,9 @@ func TestServer_CreateCredential(t *testing.T) {
 				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
-				httpCode: http.StatusCreated,
+				response:                    CreateCredential201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
 			},
 		},
 		{
@@ -1019,6 +1022,8 @@ func TestServer_CreateCredential(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			pubSub.Clear(pubsub.EventCreateCredential)
+
 			rr := httptest.NewRecorder()
 			url := "/v1/credentials"
 
@@ -1029,6 +1034,8 @@ func TestServer_CreateCredential(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(pubsub.EventCreateCredential)))
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
@@ -2383,7 +2390,8 @@ func TestServer_CreateLink(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -2402,7 +2410,7 @@ func TestServer_CreateLink(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		response CreateCredentialResponseObject
+		response CreateLinkResponseObject
 		httpCode int
 	}
 
@@ -2435,7 +2443,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
+				response: CreateLink201JSONResponse{},
 				httpCode: http.StatusCreated,
 			},
 		},
@@ -2454,7 +2462,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      false,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2473,7 +2481,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2492,7 +2500,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
+				response: CreateLink201JSONResponse{},
 				httpCode: http.StatusCreated,
 			},
 		},
@@ -2509,7 +2517,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
+				response: CreateLink201JSONResponse{},
 				httpCode: http.StatusCreated,
 			},
 		},
@@ -2528,7 +2536,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2547,7 +2555,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "converting attribute <documentType> :strconv.Atoi: parsing \"true\": invalid syntax"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "converting attribute <documentType> :strconv.Atoi: parsing \"true\": invalid syntax"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2566,7 +2574,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2590,7 +2598,7 @@ func TestServer_CreateLink(t *testing.T) {
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
 			case http.StatusBadRequest:
-				var response CreateCredential400JSONResponse
+				var response CreateLink400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			}

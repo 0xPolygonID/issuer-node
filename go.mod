@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/deepmap/oapi-codegen v1.12.4
-	github.com/ethereum/go-ethereum v1.11.4
+	github.com/ethereum/go-ethereum v1.11.5
 	github.com/getkin/kin-openapi v0.112.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-chi/cors v1.2.1
@@ -83,7 +83,7 @@ require (
 	github.com/daixiang0/gci v0.8.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/blake512 v1.0.0 // indirect
-	github.com/deckarep/golang-set/v2 v2.2.0 // indirect
+	github.com/deckarep/golang-set/v2 v2.3.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -142,6 +142,8 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
+	github.com/holiman/uint256 v1.2.2 // indirect
+	github.com/iden3/contracts-abi/state/go/abi v0.0.0-20230405152923-4a25f6f1f0f4 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
 	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect
@@ -276,13 +278,13 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.7.0 // indirect
+	golang.org/x/crypto v0.8.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220827204233-334a2380cb91 // indirect
 	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	google.golang.org/protobuf v1.29.0 // indirect

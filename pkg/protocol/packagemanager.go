@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/iden3/contracts-abi/state/go/abi"
 	"github.com/iden3/go-circuits"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-jwz"
@@ -12,12 +13,11 @@ import (
 	"github.com/iden3/iden3comm/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 )
 
 // InitPackageManager initializes the iden3comm package manager
-func InitPackageManager(ctx context.Context, stateContract *eth.State, zkProofService ports.ProofService, circuitsPath string) (*iden3comm.PackageManager, error) {
+func InitPackageManager(ctx context.Context, stateContract *abi.State, zkProofService ports.ProofService, circuitsPath string) (*iden3comm.PackageManager, error) {
 	circuitsLoaderService := loaders.NewCircuits(circuitsPath)
 
 	authV2Set, err := circuitsLoaderService.Load(circuits.AuthV2CircuitID)
