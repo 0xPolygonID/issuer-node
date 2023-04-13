@@ -80,7 +80,7 @@ const resultOKCredentials = getStrictParser<ResultOK<Credential[]>>()(
 );
 
 export const linkStatusParser = getStrictParser<LinkStatus>()(
-  z.union([z.literal("all"), z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
+  z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
 const linkAttributes = getStrictParser<LinkAttributes>()(
@@ -111,7 +111,7 @@ export async function getLinks({
   env: Env;
   params: {
     query?: string;
-    status?: string;
+    status?: LinkStatus;
   };
   signal: AbortSignal;
 }): Promise<APIResponse<Link[]>> {
@@ -124,7 +124,7 @@ export async function getLinks({
       method: "GET",
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(status !== "all" || status !== undefined ? { [STATUS_SEARCH_PARAM]: status } : {}),
+        ...(status !== undefined ? { [STATUS_SEARCH_PARAM]: status } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials/links`,

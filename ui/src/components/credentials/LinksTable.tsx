@@ -40,7 +40,6 @@ import {
   QUERY_SEARCH_PARAM,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
@@ -62,7 +61,7 @@ export function LinksTable() {
   const showDefaultContent =
     links.status === "successful" && linksList.length === 0 && queryParam === null;
 
-  const status = parsedStatusParam.success ? parsedStatusParam.data : "all";
+  const status = parsedStatusParam.success ? parsedStatusParam.data : undefined;
 
   const tableColumns: ColumnsType<Link> = [
     {
@@ -227,21 +226,15 @@ export function LinksTable() {
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
     const parsedLinkValue = linkStatusParser.safeParse(value);
+    const params = new URLSearchParams(searchParams);
 
     if (parsedLinkValue.success) {
-      const params = new URLSearchParams(searchParams);
-
-      if (parsedLinkValue.data !== "all") {
-        params.set(STATUS_SEARCH_PARAM, parsedLinkValue.data);
-      } else {
-        params.delete(STATUS_SEARCH_PARAM);
-      }
-
-      setLinks({ status: "pending" });
-      setSearchParams(params);
+      params.set(STATUS_SEARCH_PARAM, parsedLinkValue.data);
     } else {
-      processZodError(parsedLinkValue.error).forEach((error) => void message.error(error));
+      params.delete(STATUS_SEARCH_PARAM);
     }
+    setSearchParams(params);
+    setLinks({ status: "pending" });
   };
 
   const updateCredentialInState = (active: Link["active"], id: Link["id"]) => {
@@ -333,7 +326,7 @@ export function LinksTable() {
               Credential links will be listed here.
             </Typography.Text>
 
-            {status === "all" && (
+            {status === undefined && (
               <Button
                 icon={<IconCreditCardPlus />}
                 onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
@@ -382,9 +375,9 @@ export function LinksTable() {
               <Tag color="blue">{linksList.length}</Tag>
             </Space>
 
-            {(!showDefaultContent || status !== "all") && (
+            {(!showDefaultContent || status !== undefined) && (
               <Radio.Group onChange={handleStatusChange} value={status}>
-                <Radio.Button value="all">All</Radio.Button>
+                <Radio.Button value={undefined}>All</Radio.Button>
 
                 <Radio.Button value="active">Active</Radio.Button>
 

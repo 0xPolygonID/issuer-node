@@ -53,7 +53,7 @@ export interface LinkAttributes {
   value: string;
 }
 
-export type LinkStatus = "all" | "active" | "inactive" | "exceeded";
+export type LinkStatus = "active" | "inactive" | "exceeded";
 
 export interface Link {
   active: boolean;
@@ -63,5 +63,5 @@ export interface Link {
   issuedClaims: number;
   maxIssuance?: number;
   schemaType: string;
-  status: Exclude<LinkStatus, "all">;
+  status: LinkStatus;
 }
