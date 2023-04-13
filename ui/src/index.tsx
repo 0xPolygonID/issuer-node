@@ -1,4 +1,6 @@
 import { ConfigProvider, message } from "antd";
+import { extend as extendDayJsWith } from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -9,6 +11,8 @@ import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";
 
 import "src/styles/index.scss";
+
+extendDayJsWith(relativeTime);
 
 const rootElement = document.getElementById("root");
 

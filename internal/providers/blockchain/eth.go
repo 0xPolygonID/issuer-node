@@ -6,18 +6,19 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/iden3/contracts-abi/state/go/abi"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
 // InitEthClient returns a State Contract Instance
-func InitEthClient(ethURL, contractAddress string) (*eth.State, error) {
+func InitEthClient(ethURL, contractAddress string) (*abi.State, error) {
 	ec, err := ethclient.Dial(ethURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed connect to eth node %s: %s", ethURL, err.Error())
 	}
-	stateContractInstance, err := eth.NewState(common.HexToAddress(contractAddress), ec)
+	stateContractInstance, err := abi.NewState(common.HexToAddress(contractAddress), ec)
 	if err != nil {
 		return nil, fmt.Errorf("error failed create state contract client: %s", err.Error())
 	}

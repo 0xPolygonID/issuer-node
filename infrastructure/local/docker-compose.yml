@@ -33,6 +33,15 @@ services:
       - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./admin"
 
+  notificacions:
+    build:
+      context: ../../
+      dockerfile: ${DOCKER_FILE}
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
+    command: sh -c "sleep 4s && ./notifications"
+
   pending_publisher:
     build:
       context: ../../
@@ -47,6 +56,7 @@ services:
       context: ../../
       dockerfile: ${DOCKER_FILE}
     env_file:
+      - ../../.env-api
       - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./issuer_initializer"
 

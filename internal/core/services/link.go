@@ -31,6 +31,8 @@ var (
 	ErrLinkAlreadyExpired = errors.New("can not issue a credential for an expired link")
 	// ErrLinkMaxExceeded - link max exceeded
 	ErrLinkMaxExceeded = errors.New("can not issue a credential for an expired link")
+	// ErrClaimAlreadyIssued - claim already issued
+	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
 )
 
 // Link - represents a link in the issuer node
@@ -175,8 +177,19 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
-		log.Error(ctx, "can not fetch the link", err)
+		log.Error(ctx, "cannot fetch the link", "error", err)
 		return err
+	}
+
+	issuedByUser, err := ls.claimRepository.GetClaimsIssuedForUser(ctx, ls.storage.Pgx, issuerDID, userDID, linkID)
+	if err != nil {
+		log.Error(ctx, "cannot fetch the claims issued for the user", "err", err, "issuerDID", issuerDID, "userDID", userDID)
+		return err
+	}
+
+	if len(issuedByUser) > 0 {
+		log.Info(ctx, "the claim was already issued for the user", "user DID", userDID.String())
+		return ErrClaimAlreadyIssued
 	}
 
 	if err := ls.validate(ctx, sessionID, link, linkID); err != nil {
@@ -203,7 +216,9 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		schema.Type,
 		nil, nil, nil,
 		common.ToPointer(link.CredentialSignatureProof),
-		common.ToPointer(link.CredentialMTPProof))
+		common.ToPointer(link.CredentialMTPProof),
+		&linkID,
+	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
 	if err != nil {
@@ -247,7 +262,12 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		To:   userDID.String(),
 	}
 
-	err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateDone(r))
+	if link.CredentialSignatureProof {
+		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateDone(r))
+	} else {
+		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePendingPublish())
+	}
+
 	if err != nil {
 		log.Error(ctx, "can not set the sate", err)
 		return err

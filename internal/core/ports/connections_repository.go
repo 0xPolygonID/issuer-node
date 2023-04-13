@@ -16,6 +16,7 @@ type ConnectionsRepository interface {
 	Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) error
 	DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) error
 	GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
+	GetByUserID(ctx context.Context, conn db.Querier, issuerDID core.DID, userDID core.DID) (*domain.Connection, error)
 	GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error)
 	GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error)
 }

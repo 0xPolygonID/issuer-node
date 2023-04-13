@@ -28,6 +28,7 @@ type CreateClaimRequest struct {
 	MerklizedRootPosition string
 	SignatureProof        bool
 	MTProof               bool
+	LinkID                *uuid.UUID
 }
 
 // AgentRequest struct
@@ -53,6 +54,7 @@ type ClaimsFilter struct {
 	QueryFieldValue string
 	FTSQuery        string
 	FTSAndCond      bool
+	Proofs          []verifiable.ProofType
 }
 
 // NewClaimsFilter returns a valid claims filter
@@ -88,7 +90,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool) *CreateClaimRequest {
+func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -117,6 +119,8 @@ func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSub
 	if merklizedRootPosition != nil {
 		req.MerklizedRootPosition = *merklizedRootPosition
 	}
+
+	req.LinkID = linkID
 	return req
 }
 

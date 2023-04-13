@@ -77,7 +77,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       render: (createdAt: Credential["createdAt"]) => (
         <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
+      sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
     },
     {
@@ -95,7 +95,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         ),
       sorter: ({ expiresAt: a }, { expiresAt: b }) => {
         if (a && b) {
-          return a.getTime() - b.getTime();
+          return dayjs(a).unix() - dayjs(b).unix();
         } else if (a) {
           return -1;
         } else {
@@ -170,8 +170,8 @@ export function CredentialsTable({ userID }: { userID: string }) {
         const response = await getCredentials({
           env,
           params: {
-            // TODO should change when PID-498 is done
-            query: query ? `${userID} ${query}` : `${userID}`,
+            did: userID,
+            query: query || undefined,
             status: credentialStatus,
           },
           signal,

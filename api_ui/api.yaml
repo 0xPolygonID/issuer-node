@@ -934,7 +934,7 @@ components:
           $ref: '#/components/schemas/GetLinkQrCodeResponseType'
         status:
           type: string
-          example: done | pending
+          example: done | pending | pendingPublish
         linkDetail:
           $ref: '#/components/schemas/Link'
 

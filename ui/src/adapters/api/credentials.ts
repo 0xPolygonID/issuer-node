@@ -11,7 +11,7 @@ import {
 } from "src/adapters/api";
 import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Schema } from "src/domain";
+import { Credential, Env, Link, LinkAttributes, LinkStatus, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 // TODO - refactor & order as Credentials are implemented
@@ -38,11 +38,12 @@ export const credentialStatusParser = getStrictParser<CredentialStatus>()(
 
 export async function getCredentials({
   env,
-  params: { query, status },
+  params: { did, query, status },
   signal,
 }: {
   env: Env;
   params: {
+    did?: string;
     query?: string;
     status?: CredentialStatus;
   };
@@ -56,6 +57,7 @@ export async function getCredentials({
       },
       method: "GET",
       params: new URLSearchParams({
+        ...(did !== undefined ? { did } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
       }),
@@ -115,6 +117,92 @@ export async function deleteCredential({
       },
       method: "DELETE",
       url: `${API_VERSION}/credentials/${id}`,
+    });
+
+    return { data: response.data.message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export const linkStatusParser = getStrictParser<LinkStatus>()(
+  z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
+);
+
+const linkAttributes = getStrictParser<LinkAttributes>()(
+  z.object({
+    name: z.string(),
+    value: z.string(),
+  })
+);
+
+export const link = getStrictParser<Link>()(
+  z.object({
+    active: z.boolean(),
+    attributes: z.array(linkAttributes),
+    expiration: z.coerce.date().optional(),
+    id: z.string(),
+    issuedClaims: z.number(),
+    maxIssuance: z.number().optional(),
+    schemaType: z.string(),
+    status: linkStatusParser,
+  })
+);
+
+export async function getLinks({
+  env,
+  params: { query, status },
+  signal,
+}: {
+  env: Env;
+  params: {
+    query?: string;
+    status?: LinkStatus;
+  };
+  signal: AbortSignal;
+}): Promise<APIResponse<Link[]>> {
+  try {
+    const response = await axios<Link[]>({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      params: new URLSearchParams({
+        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(status !== undefined ? { [STATUS_SEARCH_PARAM]: status } : {}),
+      }),
+      signal,
+      url: `${API_VERSION}/credentials/links`,
+    });
+    const { data } = response;
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function linkUpdate({
+  env,
+  id,
+  payload,
+}: {
+  env: Env;
+  id: string;
+  payload: {
+    active: boolean;
+  };
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios<{ message: string }>({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "PATCH",
+      url: `${API_VERSION}/credentials/links/${id}`,
     });
 
     return { data: response.data.message, isSuccessful: true };
@@ -194,37 +282,6 @@ export async function credentialIssue({
       url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
     });
     const { data } = resultCreatedCredentialParser.parse(response);
-
-    return { data, isSuccessful: true };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
-export async function credentialUpdate({
-  credentialID,
-  env,
-  payload,
-  schemaID,
-}: {
-  credentialID: string;
-  env: Env;
-  payload: {
-    active: boolean;
-  };
-  schemaID: string;
-}): Promise<APIResponse<OldCredential>> {
-  try {
-    const response = await axios({
-      baseURL: env.api.url,
-      data: payload,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
-      method: "PATCH",
-      url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers/${credentialID}`,
-    });
-    const { data } = resultOKCredentialParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -411,16 +468,6 @@ const resultCreatedCredentialParser = getStrictParser<
   z.object({
     data: oldCredentialParser,
     status: z.literal(HTTPStatusSuccess.Created),
-  })
-);
-
-const resultOKCredentialParser = getStrictParser<
-  ResultOK<CredentialInput>,
-  ResultOK<OldCredential>
->()(
-  z.object({
-    data: oldCredentialParser,
-    status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
