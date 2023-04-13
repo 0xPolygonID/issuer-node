@@ -50,6 +50,7 @@ export function CredentialRevokeModal({
 
   return (
     <Modal
+      cancelText="Close"
       centered
       closable
       closeIcon={<IconClose />}

@@ -73,30 +73,29 @@ export function CredentialDeleteModal({
       closable
       closeIcon={<IconClose />}
       footer={[
-        revoked ? (
-          <Button key="close" onClick={onClose}>
-            Close
-          </Button>
-        ) : (
-          <Button
-            danger
-            key="delete"
-            loading={isLoading}
-            onClick={handleDeleteCredential}
-            type="primary"
-          >
-            Delete
-          </Button>
-        ),
+        <Button key="close" onClick={onClose}>
+          Close
+        </Button>,
         <Button
           danger
-          key="deleteRevoke"
+          key="delete"
           loading={isLoading}
-          onClick={revoked ? handleDeleteCredential : handleRevokeCredential}
+          onClick={handleDeleteCredential}
           type="primary"
         >
-          {revoked ? "Delete" : "Delete & Revoke"}
+          Delete
         </Button>,
+        !revoked && (
+          <Button
+            danger
+            key="deleteRevoke"
+            loading={isLoading}
+            onClick={handleRevokeCredential}
+            type="primary"
+          >
+            Delete & Revoke
+          </Button>
+        ),
       ]}
       maskClosable
       onCancel={onClose}
