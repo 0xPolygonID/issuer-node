@@ -99,7 +99,7 @@ export const link = getStrictParser<Link>()(
     issuedClaims: z.number(),
     maxIssuance: z.number().optional(),
     schemaType: z.string(),
-    status: z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")]),
+    status: linkStatusParser,
   })
 );
 
