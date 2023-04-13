@@ -177,13 +177,13 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
-		log.Error(ctx, "can not fetch the link", "error", err)
+		log.Error(ctx, "cannot fetch the link", "error", err)
 		return err
 	}
 
-	issuedByUser, err := ls.claimRepository.GetClaimsIssuedForUser(ctx, ls.storage.Pgx, &issuerDID, &userDID, linkID)
+	issuedByUser, err := ls.claimRepository.GetClaimsIssuedForUser(ctx, ls.storage.Pgx, issuerDID, userDID, linkID)
 	if err != nil {
-		log.Error(ctx, "can not fetch the claims issued for the user", err)
+		log.Error(ctx, "cannot fetch the claims issued for the user", "err", err, "issuerDID", issuerDID, "userDID", userDID)
 		return err
 	}
 

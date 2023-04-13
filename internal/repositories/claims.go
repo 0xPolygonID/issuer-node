@@ -802,7 +802,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier *core.DID, userDID *core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,

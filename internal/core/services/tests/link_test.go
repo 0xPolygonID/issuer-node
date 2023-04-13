@@ -118,8 +118,8 @@ func Test_link_issueClaim(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		did      *core.DID
-		userDID  *core.DID
+		did      core.DID
+		userDID  core.DID
 		LinkID   uuid.UUID
 		expected expected
 	}
@@ -127,8 +127,8 @@ func Test_link_issueClaim(t *testing.T) {
 	for _, tc := range []testConfig{
 		{
 			name:    "should return status done",
-			did:     did,
-			userDID: &userDID1,
+			did:     *did,
+			userDID: userDID1,
 			LinkID:  link.ID,
 			expected: expected{
 				err:          nil,
@@ -138,8 +138,8 @@ func Test_link_issueClaim(t *testing.T) {
 		},
 		{
 			name:    "should return status pending to publish",
-			did:     did,
-			userDID: &userDID1,
+			did:     *did,
+			userDID: userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          nil,
@@ -149,8 +149,8 @@ func Test_link_issueClaim(t *testing.T) {
 		},
 		{
 			name:    "should return error",
-			did:     did,
-			userDID: &userDID1,
+			did:     *did,
+			userDID: userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          services.ErrClaimAlreadyIssued,
@@ -160,8 +160,8 @@ func Test_link_issueClaim(t *testing.T) {
 		},
 		{
 			name:    "should return error wrong did",
-			did:     did2,
-			userDID: &userDID1,
+			did:     *did2,
+			userDID: userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
 				err: errors.New("link does not exist"),
@@ -169,8 +169,8 @@ func Test_link_issueClaim(t *testing.T) {
 		},
 		{
 			name:    "should return error wrong link id",
-			did:     did,
-			userDID: &userDID1,
+			did:     *did,
+			userDID: userDID1,
 			LinkID:  uuid.New(),
 			expected: expected{
 				err: errors.New("link does not exist"),
@@ -179,7 +179,7 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			err := linkService.IssueClaim(ctx, sessionID, *tc.did, *tc.userDID, tc.LinkID, "host_url")
+			err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url")
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)

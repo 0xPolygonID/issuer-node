@@ -350,7 +350,7 @@ func TestGetClaimsIssuedByUserID(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			claims, err := claimsRepo.GetClaimsIssuedForUser(ctx, storage.Pgx, &did, &tc.userDID, link.ID)
+			claims, err := claimsRepo.GetClaimsIssuedForUser(ctx, storage.Pgx, did, tc.userDID, link.ID)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, len(claims))
 		})

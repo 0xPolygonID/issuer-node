@@ -13,5 +13,5 @@ CONSTRAINT claims_links_id_key foreign key (link_id) references links (id),
 ALTER TABLE links
     ADD COLUMN issued_claims int not null;
 ALTER TABLE claims
-    DROP COLUMN lind_id;
+    DROP COLUMN link_id;
 -- +goose StatementEnd
