@@ -46,6 +46,7 @@ function AnyAttribute({
         <CredentialSubjectForm
           attributes={attribute.schema.properties || []}
           parents={[...parents, attribute]}
+          space={false}
         />
       );
     }
@@ -55,41 +56,52 @@ function AnyAttribute({
 export function CredentialSubjectForm({
   attributes,
   parents = [],
+  space = true,
 }: {
   attributes: Attribute[];
   parents?: ObjectAttribute[];
+  space?: boolean;
 }) {
   const shouldShowBreadcrumb = useRef<boolean>(true);
-  return (
-    <Space direction="vertical" size="middle">
-      {[...attributes]
-        .sort((a, b) =>
-          a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
-        )
-        .map((attribute: Attribute) => {
-          const showBreadcrumb = attribute.type !== "object" && shouldShowBreadcrumb.current;
-          shouldShowBreadcrumb.current = !showBreadcrumb;
-          const attributeNode = (
-            <>
-              {showBreadcrumb && <AttributeBreadcrumb parents={parents} />}
-              <AnyAttribute attribute={attribute} parents={parents} />
-            </>
-          );
-          const isRootAttribute = parents.length === 0;
-          const shouldShowTitle = isRootAttribute && attribute.type === "object";
-          const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
+  const form = [...attributes]
+    .sort((a, b) => (a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1))
+    .map((attribute: Attribute) => {
+      const showBreadcrumb =
+        attribute.type !== "object" && parents.length > 1 && shouldShowBreadcrumb.current;
 
-          return isRootAttribute ? (
-            <Card
-              key={key}
-              title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
-            >
-              {attributeNode}
-            </Card>
-          ) : (
-            <Fragment key={key}>{attributeNode}</Fragment>
-          );
-        })}
+      shouldShowBreadcrumb.current = !showBreadcrumb;
+
+      const attributeNode = showBreadcrumb ? (
+        <Space direction="vertical" size="middle">
+          <AttributeBreadcrumb parents={parents} />
+          <AnyAttribute attribute={attribute} parents={parents} />
+        </Space>
+      ) : (
+        <AnyAttribute attribute={attribute} parents={parents} />
+      );
+
+      const isRootAttribute = parents.length === 0;
+      const shouldShowTitle = isRootAttribute && attribute.type === "object";
+      const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
+
+      return isRootAttribute ? (
+        <Card
+          className="ant-card-type-inner"
+          key={key}
+          title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
+        >
+          {attributeNode}
+        </Card>
+      ) : (
+        <Fragment key={key}>{attributeNode}</Fragment>
+      );
+    });
+
+  return space ? (
+    <Space direction="vertical" size="large">
+      {form}
     </Space>
+  ) : (
+    <>{form}</>
   );
 }
