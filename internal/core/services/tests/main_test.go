@@ -2,10 +2,9 @@ package services_tests
 
 import (
 	"context"
+	"github.com/hashicorp/vault/api"
 	"os"
 	"testing"
-
-	"github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"

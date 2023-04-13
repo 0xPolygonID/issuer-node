@@ -293,7 +293,6 @@ func TestGetClaimsIssuedByUserID(t *testing.T) {
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
-	//past := time.Now().Add(-100 * 24 * time.Hour)
 
 	link := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
 	link.MaxIssuance = common.ToPointer(100)
