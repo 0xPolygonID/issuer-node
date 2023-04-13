@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/google/uuid"
@@ -16,7 +17,12 @@ const (
 )
 
 // NewOfferMsg returns an offer message
-func NewOfferMsg(fetchURL string, claim *domain.Claim) ([]byte, error) {
+func NewOfferMsg(fetchURL string, credentials ...*domain.Claim) ([]byte, error) {
+	if len(credentials) == 0 {
+		return nil, errors.New("no claims provided")
+	}
+
+	credentialOffers := toProtocolCredentialOffer(credentials)
 	msgID := uuid.NewString()
 	credOffer := &protocol.CredentialsOfferMessage{
 		ID:       msgID,
@@ -24,18 +30,26 @@ func NewOfferMsg(fetchURL string, claim *domain.Claim) ([]byte, error) {
 		Type:     protocol.CredentialOfferMessageType,
 		ThreadID: msgID,
 		Body: protocol.CredentialsOfferMessageBody{
-			URL: fetchURL,
-			Credentials: []protocol.CredentialOffer{
-				{
-					ID:          claim.ID.String(),
-					Description: credentialType(claim.SchemaType),
-				},
-			},
+			URL:         fetchURL,
+			Credentials: credentialOffers,
 		},
-		From: claim.Issuer,
-		To:   claim.OtherIdentifier,
+		From: credentials[0].Issuer,
+		To:   credentials[0].OtherIdentifier,
 	}
+
 	return json.Marshal(credOffer)
+}
+
+func toProtocolCredentialOffer(credentials []*domain.Claim) []protocol.CredentialOffer {
+	offers := make([]protocol.CredentialOffer, len(credentials))
+	for i := range credentials {
+		offers[i] = protocol.CredentialOffer{
+			ID:          credentials[i].ID.String(),
+			Description: credentialType(credentials[i].SchemaType),
+		}
+	}
+
+	return offers
 }
 
 func credentialType(fullSchema string) string {

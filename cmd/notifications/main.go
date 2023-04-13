@@ -75,6 +75,7 @@ func main() {
 	}()
 
 	ps.Subscribe(ctxCancel, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
+	ps.Subscribe(ctxCancel, pubsub.EventCreateConnection, notificationService.SendCreateConnectionNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
@@ -107,7 +108,7 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 	}
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
 	claimsService := services.NewClaim(
 		claimsRepository,
 		identityService,

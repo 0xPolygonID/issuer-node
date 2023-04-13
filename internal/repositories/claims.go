@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
+	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/gommon/log"
@@ -726,6 +727,18 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		t := *filter.ExpiredOn
 		filters = append(filters, t.Unix())
 		query = fmt.Sprintf("%s AND claims.expiration>0 AND claims.expiration<$%d", query, len(filters))
+	}
+	if len(filter.Proofs) > 0 {
+		for _, proof := range filter.Proofs {
+			switch proof {
+			case verifiable.BJJSignatureProofType:
+				query = fmt.Sprintf("%s AND claims.signature_proof IS NOT NULL", query)
+			case verifiable.Iden3SparseMerkleTreeProofType:
+				query = fmt.Sprintf("%s AND claims.mtp_proof IS NOT NULL", query)
+			case domain.AnyProofType:
+				query = fmt.Sprintf("%s AND ((claims.mtp = true AND claims.mtp_proof IS NOT NULL) OR claims.signature_proof IS NOT NULL)", query)
+			}
+		}
 	}
 	if filter.FTSQuery != "" {
 		cond := " | "

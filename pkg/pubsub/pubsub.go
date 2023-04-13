@@ -9,6 +9,7 @@ import (
 
 const (
 	EventCreateCredential = "createCredential" // EventCreateCredential create credential event
+	EventCreateConnection = "createConnection" // EventCreateConnection create connection event
 )
 
 // Event defines the payload
@@ -20,8 +21,19 @@ type CreateCredentialEvent struct {
 	IssuerID     string `json:"issuerID"`
 }
 
+// CreateConnectionEvent defines the createCredential data
+type CreateConnectionEvent struct {
+	ConnectionID string `json:"connectionID"`
+	IssuerID     string `json:"issuerID"`
+}
+
 // MarshalBinary returns the bytes of an event
 func (c CreateCredentialEvent) MarshalBinary() ([]byte, error) {
+	return json.Marshal(c)
+}
+
+// MarshalBinary returns the bytes of an event
+func (c CreateConnectionEvent) MarshalBinary() ([]byte, error) {
 	return json.Marshal(c)
 }
 

@@ -53,6 +53,7 @@ type ClaimsFilter struct {
 	QueryFieldValue string
 	FTSQuery        string
 	FTSAndCond      bool
+	Proofs          []verifiable.ProofType
 }
 
 // NewClaimsFilter returns a valid claims filter
