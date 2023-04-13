@@ -87,7 +87,7 @@ func (n *notification) sendCreateCredentialNotification(ctx context.Context, iss
 		return err
 	}
 
-	return n.notify(ctx, credOfferBytes, subjectDIDDoc)
+	return n.send(ctx, credOfferBytes, subjectDIDDoc)
 }
 
 func (n *notification) sendCreateConnectionNotification(ctx context.Context, issuerID string, connID string) error {
@@ -121,10 +121,10 @@ func (n *notification) sendCreateConnectionNotification(ctx context.Context, iss
 		return err
 	}
 
-	return n.notify(ctx, credOfferBytes, subjectDIDDoc)
+	return n.send(ctx, credOfferBytes, subjectDIDDoc)
 }
 
-func (n *notification) notify(ctx context.Context, credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument) error {
+func (n *notification) send(ctx context.Context, credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument) error {
 	res, err := n.notificationGateway.Notify(ctx, credOfferBytes, subjectDIDDoc)
 	if err != nil {
 		return err
