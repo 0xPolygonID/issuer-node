@@ -2,9 +2,11 @@ package jsonschema
 
 import (
 	"context"
-	"github.com/polygonid/sh-id-platform/internal/loader"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
 func Test_Attributes(t *testing.T) {
