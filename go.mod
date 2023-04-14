@@ -3,6 +3,7 @@ module github.com/polygonid/sh-id-platform
 go 1.19
 
 require (
+	github.com/alicebob/miniredis/v2 v2.30.1
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/ethereum/go-ethereum v1.11.5
 	github.com/getkin/kin-openapi v0.112.0
@@ -14,6 +15,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/hashicorp/vault/api v1.9.0
+	github.com/iden3/contracts-abi/state/go/abi v0.0.0-20230405152923-4a25f6f1f0f4
 	github.com/iden3/go-circuits v1.0.2
 	github.com/iden3/go-iden3-auth v1.0.1
 	github.com/iden3/go-iden3-core v1.0.1
@@ -57,6 +59,7 @@ require (
 	github.com/OpenPeeDeeP/depguard v1.1.1 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
+	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/alingse/asasalint v0.0.11 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/ashanbrown/forbidigo v1.3.0 // indirect
@@ -143,7 +146,6 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
-	github.com/iden3/contracts-abi/state/go/abi v0.0.0-20230405152923-4a25f6f1f0f4 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
 	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect
@@ -273,6 +275,7 @@ require (
 	github.com/whyrusleeping/tar-utils v0.0.0-20201201191210-20a61371de5b // indirect
 	github.com/yagipy/maintidx v1.0.0 // indirect
 	github.com/yeya24/promlinter v0.2.0 // indirect
+	github.com/yuin/gopher-lua v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	gitlab.com/bosi/decorder v0.2.3 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

@@ -32,18 +32,18 @@ func NewNotification(notificationGateway ports.NotificationGateway, connService 
 	}
 }
 
-func (n *notification) SendCreateCredentialNotification(ctx context.Context, e pubsub.Event) error {
+func (n *notification) SendCreateCredentialNotification(ctx context.Context, e pubsub.Message) error {
 	var cEvent pubsub.CreateCredentialEvent
-	if err := pubsub.UnmarshalEvent(e, &cEvent); err != nil {
+	if err := cEvent.Unmarshal(e); err != nil {
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
 
 	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialID)
 }
 
-func (n *notification) SendCreateConnectionNotification(ctx context.Context, e pubsub.Event) error {
+func (n *notification) SendCreateConnectionNotification(ctx context.Context, e pubsub.Message) error {
 	var cEvent pubsub.CreateConnectionEvent
-	if err := pubsub.UnmarshalEvent(e, &cEvent); err != nil {
+	if err := cEvent.Unmarshal(e); err != nil {
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
 
