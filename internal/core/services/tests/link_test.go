@@ -3,7 +3,6 @@ package services_tests
 import (
 	"context"
 	"errors"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
