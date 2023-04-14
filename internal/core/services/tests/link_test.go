@@ -3,6 +3,7 @@ package services_tests
 import (
 	"context"
 	"errors"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func Test_link_issueClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.HTTPFactory
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
@@ -47,7 +48,7 @@ func Test_link_issueClaim(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
-	)
+		pubsub.NewMock())
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)

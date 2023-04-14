@@ -1247,7 +1247,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 			expected: expected{
 				response: Credential{
-					Attributes: map[string]interface{}{
+					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
@@ -1274,7 +1274,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 			expected: expected{
 				response: Credential{
-					Attributes: map[string]interface{}{
+					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
@@ -1301,7 +1301,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 			expected: expected{
 				response: Credential{
-					Attributes: map[string]interface{}{
+					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
@@ -1694,7 +1694,7 @@ func TestServer_GetConnection(t *testing.T) {
 					UserID:    usrDID.String(),
 					Credentials: []Credential{
 						{
-							Attributes: map[string]interface{}{
+							CredentialSubject: map[string]interface{}{
 								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 								"birthday":     19960424,
 								"documentType": 2,
@@ -2219,8 +2219,8 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 	}
 	assert.Equal(t, tc.Expired, response.Expired)
 	var respAttributes, tcCredentialSubject credentialKYCSubject
-	assert.NoError(t, mapstructure.Decode(tc.Attributes, &tcCredentialSubject))
-	assert.NoError(t, mapstructure.Decode(response.Attributes, &respAttributes))
+	assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+	assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &respAttributes))
 	assert.EqualValues(t, respAttributes, tcCredentialSubject)
 	assert.EqualValues(t, tc.ProofTypes, response.ProofTypes)
 }

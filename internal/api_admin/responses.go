@@ -44,16 +44,16 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 	proofs := getProofs(w3c, credential)
 
 	return Credential{
-		Attributes: w3c.CredentialSubject,
-		CreatedAt:  *w3c.IssuanceDate,
-		Expired:    expired,
-		ExpiresAt:  w3c.Expiration,
-		Id:         credential.ID,
-		ProofTypes: proofs,
-		RevNonce:   uint64(credential.RevNonce),
-		Revoked:    credential.Revoked,
-		SchemaHash: credential.SchemaHash,
-		SchemaType: credential.SchemaType,
+		CredentialSubject: w3c.CredentialSubject,
+		CreatedAt:         *w3c.IssuanceDate,
+		Expired:           expired,
+		ExpiresAt:         w3c.Expiration,
+		Id:                credential.ID,
+		ProofTypes:        proofs,
+		RevNonce:          uint64(credential.RevNonce),
+		Revoked:           credential.Revoked,
+		SchemaHash:        credential.SchemaHash,
+		SchemaType:        credential.SchemaType,
 	}
 }
 
