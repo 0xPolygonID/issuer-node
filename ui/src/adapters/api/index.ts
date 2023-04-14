@@ -34,6 +34,11 @@ export enum HTTPStatusSuccess {
   OK = 200,
 }
 
+export interface ResultAccepted<D> {
+  data: D;
+  status: HTTPStatusSuccess.Accepted;
+}
+
 export interface ResultOK<D> {
   data: D;
   status: HTTPStatusSuccess.OK;
