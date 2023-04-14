@@ -178,7 +178,7 @@ export async function createLink({
 }: {
   env: Env;
   payload: CreateLink;
-}): Promise<APIResponse<Link>> {
+}): Promise<APIResponse<{ id: string }>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -296,21 +296,24 @@ const resultOKShareCredentialQRCodeParser = getStrictParser<ResultOK<ShareCreden
   })
 );
 
-export async function credentialsQRCreate({
+export async function getCredentialLinkQRCode({
   env,
-  id,
+  linkID,
   signal,
 }: {
   env: Env;
-  id: string;
+  linkID: string;
   signal?: AbortSignal;
 }): Promise<APIResponse<ShareCredentialQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
       method: "POST",
       signal,
-      url: `${API_VERSION}/offers-qrcode/${id}`,
+      url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
 
     const { data } = resultOKShareCredentialQRCodeParser.parse(response);
@@ -461,12 +464,12 @@ const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRChe
 );
 
 export async function credentialsQRCheck({
-  credentialID,
   env,
+  linkID,
   sessionID,
 }: {
-  credentialID: string;
   env: Env;
+  linkID: string;
   sessionID: string;
 }): Promise<APIResponse<CredentialQRCheck>> {
   try {
@@ -476,45 +479,12 @@ export async function credentialsQRCheck({
       params: {
         sessionID,
       },
-      url: `${API_VERSION}/offers-qrcode/${credentialID}`,
+      url: `${API_VERSION}/offers-qrcode/${linkID}`,
     });
 
     const { data } = resultOKCredentialQRCheckParser.parse(response);
 
     return { data, isSuccessful: true };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
-export async function credentialsQRDownload({
-  credentialID,
-  env,
-  sessionID,
-}: {
-  credentialID: string;
-  env: Env;
-  sessionID: string;
-}): Promise<APIResponse<Blob>> {
-  try {
-    const response = await axios({
-      baseURL: env.api.url,
-      method: "GET",
-      params: {
-        sessionID,
-      },
-      responseType: "blob",
-      url: `${API_VERSION}/offers-qrcode/${credentialID}/download`,
-    });
-
-    if (response.data instanceof Blob) {
-      return { data: response.data, isSuccessful: true };
-    } else {
-      return {
-        error: { message: "Data returned by the API is not a valid file" },
-        isSuccessful: false,
-      };
-    }
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }

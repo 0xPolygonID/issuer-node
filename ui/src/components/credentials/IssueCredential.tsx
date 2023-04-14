@@ -18,7 +18,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
-import { JsonSchema, Link, Schema } from "src/domain";
+import { JsonSchema, Schema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
@@ -55,7 +55,7 @@ export function IssueCredential() {
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
     status: "pending",
   });
-  const [link, setLink] = useState<AsyncTask<Link, undefined>>({
+  const [linkID, setLinkID] = useState<AsyncTask<string, undefined>>({
     status: "pending",
   });
 
@@ -69,7 +69,7 @@ export function IssueCredential() {
       const parsedForm = credentialFormParser.safeParse(stepsData);
 
       if (parsedForm.success) {
-        setLink({ status: "loading" });
+        setLinkID({ status: "loading" });
         const serializedCredentialForm = serializeCredentialForm({
           credentialForm: parsedForm.data,
           schemaID,
@@ -81,12 +81,12 @@ export function IssueCredential() {
             payload: serializedCredentialForm.data,
           }).then((response) => {
             if (response.isSuccessful) {
-              setLink({ data: response.data, status: "successful" });
+              setLinkID({ data: response.data.id, status: "successful" });
               setStep("summary");
 
               void message.success("Credential link created");
             } else {
-              setLink({ error: undefined, status: "failed" });
+              setLinkID({ error: undefined, status: "failed" });
 
               void message.error(response.error.message);
             }
@@ -226,10 +226,7 @@ export function IssueCredential() {
           }
 
           case "summary": {
-            return (
-              schema &&
-              isAsyncTaskDataAvailable(link) && <Summary link={link.data} schema={schema} />
-            );
+            return isAsyncTaskDataAvailable(linkID) && <Summary linkID={linkID.data} />;
           }
         }
       })()}

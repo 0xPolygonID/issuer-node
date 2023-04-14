@@ -9,7 +9,7 @@ import {
   CredentialQRStatus,
   ShareCredentialQRCode,
   credentialsQRCheck,
-  credentialsQRCreate,
+  getCredentialLinkQRCode,
 } from "src/adapters/api/credentials";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
@@ -37,14 +37,14 @@ export function ScanCredentialLink() {
   });
 
   const { lg } = Grid.useBreakpoint();
-  const { credentialID } = useParams();
+  const { linkID } = useParams();
 
   const createCredentialQR = useCallback(
     async (signal: AbortSignal) => {
-      if (credentialID) {
+      if (linkID) {
         setShareCredentialQRCode({ status: "loading" });
 
-        const response = await credentialsQRCreate({ env, id: credentialID, signal });
+        const response = await getCredentialLinkQRCode({ env, linkID, signal });
 
         if (response.isSuccessful) {
           setShareCredentialQRCode({ data: response.data, status: "successful" });
@@ -55,7 +55,7 @@ export function ScanCredentialLink() {
         }
       }
     },
-    [credentialID, env]
+    [linkID, env]
   );
 
   useEffect(() => {
@@ -66,10 +66,10 @@ export function ScanCredentialLink() {
 
   useEffect(() => {
     const checkCredentialQRCode = async () => {
-      if (isAsyncTaskDataAvailable(shareCredentialQRCode) && credentialID) {
+      if (isAsyncTaskDataAvailable(shareCredentialQRCode) && linkID) {
         const response = await credentialsQRCheck({
-          credentialID,
           env,
+          linkID,
           sessionID: shareCredentialQRCode.data.sessionID,
         });
 
@@ -93,7 +93,7 @@ export function ScanCredentialLink() {
     }, QR_CODE_POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [shareCredentialQRCode, credentialID, credentialQRCheck, env]);
+  }, [shareCredentialQRCode, linkID, credentialQRCheck, env]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
