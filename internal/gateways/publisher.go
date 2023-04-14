@@ -134,7 +134,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 		updatedState.Status = domain.StatusFailed
 		errUpdating := p.identityService.UpdateIdentityState(ctx, updatedState)
 		if errUpdating != nil {
-			log.Error(ctx, "Error saving the state us failed:", "err", err, "did", identifier.String())
+			log.Error(ctx, "Error saving the state as failed:", "err", err, "did", identifier.String())
 			return nil, errUpdating
 		}
 		return nil, err
