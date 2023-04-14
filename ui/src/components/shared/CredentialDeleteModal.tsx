@@ -6,6 +6,7 @@ import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
 import { Credential } from "src/domain";
+import { CLOSE } from "src/utils/constants";
 
 export function CredentialDeleteModal({
   credential,
@@ -74,7 +75,7 @@ export function CredentialDeleteModal({
       closeIcon={<IconClose />}
       footer={[
         <Button key="close" onClick={onClose}>
-          Close
+          {CLOSE}
         </Button>,
         <Button
           danger

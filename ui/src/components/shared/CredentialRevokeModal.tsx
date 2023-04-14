@@ -5,6 +5,7 @@ import { revokeCredential } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
 import { Credential } from "src/domain";
+import { CLOSE } from "src/utils/constants";
 
 export function CredentialRevokeModal({
   credential,
@@ -50,7 +51,7 @@ export function CredentialRevokeModal({
 
   return (
     <Modal
-      cancelText="Close"
+      cancelText={CLOSE}
       centered
       closable
       closeIcon={<IconClose />}
