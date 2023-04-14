@@ -418,7 +418,7 @@ type ServerInterface interface {
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
-	// Returns the list of links to credentials
+	// Get Links
 	// (GET /v1/credentials/links)
 	GetLinks(w http.ResponseWriter, r *http.Request, params GetLinksParams)
 	// Create Link
@@ -2598,7 +2598,7 @@ type StrictServerInterface interface {
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
-	// Returns the list of links to credentials
+	// Get Links
 	// (GET /v1/credentials/links)
 	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
 	// Create Link

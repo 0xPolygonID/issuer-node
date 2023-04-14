@@ -512,7 +512,7 @@ paths:
   # Links
   /v1/credentials/links:
     get:
-      summary: Returns the list of links to credentials
+      summary: Get Links
       operationId: GetLinks
       security:
         - basicAuth: [ ]
