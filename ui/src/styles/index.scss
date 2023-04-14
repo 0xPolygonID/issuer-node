@@ -141,6 +141,12 @@
         content: "*";
       }
     }
+    .ant-form-item-control {
+      .ant-form-item-extra {
+        margin-top: 8px;
+        margin-left: 4px;
+      }
+    }
   }
 }
 

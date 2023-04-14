@@ -4,36 +4,35 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { z } from "zod";
-import { OldCredential, credentialIssue } from "src/adapters/api/credentials";
+import { createLink } from "src/adapters/api/credentials";
 import { getSchemaFromUrl } from "src/adapters/jsonSchemas";
-import { getIssueCredentialFormDataParser } from "src/adapters/parsers/forms";
-import { serializeCredentialForm } from "src/adapters/parsers/serializers";
+import { credentialFormParser, serializeCredentialForm } from "src/adapters/parsers/forms";
+import { IssuanceMethod, IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
 import {
-  AttributeValues,
+  CredentialFormData,
   IssueCredentialForm,
 } from "src/components/credentials/IssueCredentialForm";
 import { SelectSchema } from "src/components/credentials/SelectSchema";
-import { IssuanceMethod, SetIssuanceMethod } from "src/components/credentials/SetIssuanceMethod";
 import { Summary } from "src/components/credentials/Summary";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/env";
-import { JsonSchema, Schema } from "src/domain";
+import { JsonSchema, Link, Schema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 
-type FormStep = "issuanceMethod" | "attributes" | "summary";
+type Step = "issuanceMethod" | "credentialForm" | "summary";
 
-interface FormData {
-  attributes: AttributeValues;
+interface StepsData {
+  credentialForm: CredentialFormData;
   issuanceMethod: IssuanceMethod;
 }
 
-const defaultFormData: FormData = {
-  attributes: {},
+const defaultStepsData: StepsData = {
+  credentialForm: {},
   issuanceMethod: {
     type: "credentialLink",
   },
@@ -50,13 +49,13 @@ const jsonSchemaErrorToString = (error: string | z.ZodError) =>
 export function IssueCredential() {
   const env = useEnvContext();
 
-  const [step, setStep] = useState<FormStep>("issuanceMethod");
-  const [formData, setFormData] = useState<FormData>(defaultFormData);
+  const [step, setStep] = useState<Step>("issuanceMethod");
+  const [stepsData, setStepsData] = useState<StepsData>(defaultStepsData);
   const [schema, setSchema] = useState<Schema>();
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
     status: "pending",
   });
-  const [credential, setCredential] = useState<AsyncTask<OldCredential, undefined>>({
+  const [link, setLink] = useState<AsyncTask<Link, undefined>>({
     status: "pending",
   });
 
@@ -65,29 +64,36 @@ export function IssueCredential() {
   const processError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const issueCredential = (formData: FormData) => {
+  const onCreateLink = (stepsData: StepsData) => {
     if (schemaID) {
-      const parsedForm = getIssueCredentialFormDataParser([]).safeParse(formData);
+      const parsedForm = credentialFormParser.safeParse(stepsData);
 
       if (parsedForm.success) {
-        setCredential({ status: "loading" });
-
-        void credentialIssue({
-          env,
-          payload: serializeCredentialForm(parsedForm.data),
+        setLink({ status: "loading" });
+        const serializedCredentialForm = serializeCredentialForm({
+          credentialForm: parsedForm.data,
           schemaID,
-        }).then((response) => {
-          if (response.isSuccessful) {
-            setCredential({ data: response.data, status: "successful" });
-            setStep("summary");
-
-            void message.success("Credential link created");
-          } else {
-            setCredential({ error: undefined, status: "failed" });
-
-            void message.error(response.error.message);
-          }
         });
+
+        if (serializedCredentialForm.success) {
+          void createLink({
+            env,
+            payload: serializedCredentialForm.data,
+          }).then((response) => {
+            if (response.isSuccessful) {
+              setLink({ data: response.data, status: "successful" });
+              setStep("summary");
+
+              void message.success("Credential link created");
+            } else {
+              setLink({ error: undefined, status: "failed" });
+
+              void message.error(response.error.message);
+            }
+          });
+        } else {
+          processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
+        }
       } else {
         processZodError(parsedForm.error).forEach((msg) => void message.error(msg));
       }
@@ -124,6 +130,15 @@ export function IssueCredential() {
     return aborter;
   }, [fetchJsonSchema]);
 
+  useEffect(() => {
+    if (schemaID) {
+      setStepsData((currentStepsData) => ({
+        ...currentStepsData,
+        credentialForm: defaultStepsData.credentialForm,
+      }));
+    }
+  }, [schemaID]);
+
   return (
     <SiderLayoutContent
       description="A credential is issued with assigned attribute values and can be issued directly to identifier or as a credential link containing a QR code."
@@ -135,17 +150,17 @@ export function IssueCredential() {
         switch (step) {
           case "issuanceMethod": {
             return (
-              <SetIssuanceMethod
-                initialValues={formData.issuanceMethod}
+              <IssuanceMethodForm
+                initialValues={stepsData.issuanceMethod}
                 onSubmit={(values) => {
-                  setFormData({ ...formData, issuanceMethod: values });
-                  setStep("attributes");
+                  setStepsData({ ...stepsData, issuanceMethod: values });
+                  setStep("credentialForm");
                 }}
               />
             );
           }
 
-          case "attributes": {
+          case "credentialForm": {
             return (
               <Card className="issue-credential-card" title="Credential details">
                 <Space direction="vertical">
@@ -167,7 +182,7 @@ export function IssueCredential() {
                         case "successful": {
                           return (
                             <IssueCredentialForm
-                              initialValues={formData.attributes}
+                              initialValues={stepsData.credentialForm}
                               jsonSchema={jsonSchema.data}
                               onBack={() => {
                                 setJsonSchema({ status: "pending" });
@@ -180,24 +195,24 @@ export function IssueCredential() {
                                       expirationDate: values.expirationDate.endOf("day"),
                                     }
                                   : values;
-                                const newFormData: FormData =
-                                  formData.issuanceMethod.type === "credentialLink" &&
+                                const newFormData: StepsData =
+                                  stepsData.issuanceMethod.type === "credentialLink" &&
                                   updatedValues.expirationDate?.isBefore(
-                                    formData.issuanceMethod.linkExpirationDate
+                                    stepsData.issuanceMethod.linkExpirationDate
                                   )
                                     ? {
-                                        ...formData,
-                                        attributes: updatedValues,
+                                        ...stepsData,
+                                        credentialForm: updatedValues,
                                         issuanceMethod: {
-                                          ...formData.issuanceMethod,
+                                          ...stepsData.issuanceMethod,
                                           linkExpirationDate: undefined,
                                           linkExpirationTime: undefined,
                                         },
                                       }
-                                    : { ...formData, attributes: updatedValues };
+                                    : { ...stepsData, credentialForm: updatedValues };
 
-                                setFormData(newFormData);
-                                setStep("summary");
+                                setStepsData(newFormData);
+                                onCreateLink(newFormData);
                               }}
                               schema={schema}
                             />
@@ -213,9 +228,7 @@ export function IssueCredential() {
           case "summary": {
             return (
               schema &&
-              isAsyncTaskDataAvailable(credential) && (
-                <Summary credential={credential.data} schema={schema} />
-              )
+              isAsyncTaskDataAvailable(link) && <Summary link={link.data} schema={schema} />
             );
           }
         }

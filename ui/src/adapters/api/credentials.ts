@@ -9,13 +9,9 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Schema } from "src/domain";
-import { Link, LinkAttributes, LinkStatus } from "src/domain/credential";
+import { Credential, Env, Json, Link, LinkAttribute, LinkStatus } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
-
-// TODO - refactor & order as Credentials are implemented
 
 export const credentialParser = getStrictParser<Credential>()(
   z.object({
@@ -64,7 +60,7 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultOKCredentials.parse(response);
+    const { data } = resultOKCredentialsParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -72,7 +68,7 @@ export async function getCredentials({
   }
 }
 
-const resultOKCredentials = getStrictParser<ResultOK<Credential[]>>()(
+const resultOKCredentialsParser = getStrictParser<ResultOK<Credential[]>>()(
   z.object({
     data: z.array(credentialParser),
     status: z.literal(HTTPStatusSuccess.OK),
@@ -83,22 +79,23 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-const linkAttributes = getStrictParser<LinkAttributes>()(
+const linkAttributeParser = getStrictParser<LinkAttribute>()(
   z.object({
     name: z.string(),
     value: z.string(),
   })
 );
 
-export const link = getStrictParser<Link>()(
+export const linkParser = getStrictParser<Link>()(
   z.object({
     active: z.boolean(),
-    attributes: z.array(linkAttributes),
+    attributes: z.array(linkAttributeParser),
     expiration: z.coerce.date().optional(),
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().optional(),
     schemaType: z.string(),
+    schemaUrl: z.string(),
     status: linkStatusParser,
   })
 );
@@ -165,66 +162,23 @@ export async function linkUpdate({
   }
 }
 
-interface CredentialQRCode {
-  body: {
-    callbackUrl: string;
-    reason: string;
-    scope: unknown[];
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-export interface CredentialAttribute {
-  attributeKey: string;
-  attributeValue: number;
-}
-
-export interface OldCredential {
-  active: boolean;
-  attributeValues: CredentialAttribute[];
-  createdAt: Date;
-  expiresAt: Date | null;
-  id: string;
-  linkAccessibleUntil: Date | null;
-  linkCurrentIssuance: number | null;
-  linkMaximumIssuance: number | null;
-  schemaTemplate: Schema;
-  valid: boolean;
-}
-
-interface CredentialInput {
-  active: boolean;
-  attributeValues: CredentialAttribute[];
-  claimLinkExpiration: Date | null;
-  createdAt: Date;
-  expiresAt: Date | null;
-  id: string;
-  issuedClaims: number | null;
-  limitedClaims: number | null;
-  schemaTemplate: Schema;
-  valid: boolean;
-}
-
-export interface CredentialIssue {
-  attributes: CredentialAttribute[];
+export interface CreateLink {
   claimLinkExpiration: string | null;
+  credentialSubject: Json;
   expirationDate: string | null;
   limitedClaims: number | null;
+  mtProof: boolean;
+  schemaID: string;
+  signatureProof: boolean;
 }
 
-export async function credentialIssue({
+export async function createLink({
   env,
   payload,
-  schemaID,
 }: {
   env: Env;
-  payload: CredentialIssue;
-  schemaID: string;
-}): Promise<APIResponse<OldCredential>> {
+  payload: CreateLink;
+}): Promise<APIResponse<Link>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -233,9 +187,9 @@ export async function credentialIssue({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/issuers/${env.issuer.did}/schemas/${schemaID}/offers`,
+      url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultCreatedCredentialParser.parse(response);
+    const { data } = resultCreateLinkParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -256,8 +210,8 @@ export async function credentialsGetAll({
   signal?: AbortSignal;
 }): Promise<
   APIResponse<{
-    credentials: OldCredential[];
-    errors: z.ZodError<OldCredential>[];
+    credentials: null[];
+    errors: z.ZodError<null>[];
   }>
 > {
   try {
@@ -278,7 +232,7 @@ export async function credentialsGetAll({
 
     return {
       data: {
-        credentials: data.credentials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        credentials: data.credentials,
         errors: data.errors,
       },
       isSuccessful: true,
@@ -286,6 +240,19 @@ export async function credentialsGetAll({
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
+}
+
+interface CredentialQRCode {
+  body: {
+    callbackUrl: string;
+    reason: string;
+    scope: unknown[];
+  };
+  from: string;
+  id: string;
+  thid: string;
+  typ: string;
+  type: string;
 }
 
 const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
@@ -305,85 +272,24 @@ const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
 
 export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
-  offerDetails: OldCredential;
-  qrcode: CredentialQRCode;
+  linkDetail: Link;
+  qrCode: CredentialQRCode;
   sessionID: string;
 }
 
-interface ShareCredentialQRCodeInput {
-  issuer: { displayName: string; logo: string };
-  offerDetails: CredentialInput;
-  qrcode: CredentialQRCode;
-  sessionID: string;
-}
-
-const apiCredentialAttributeParser = getStrictParser<CredentialAttribute>()(
-  z.object({
-    attributeKey: z.string(),
-    attributeValue: z.number(),
-  })
-);
-
-const oldCredentialParser = getStrictParser<CredentialInput, OldCredential>()(
-  z
-    .object({
-      active: z.boolean(),
-      attributeValues: z.array(apiCredentialAttributeParser),
-      claimLinkExpiration: z.coerce.date().nullable(),
-      createdAt: z.coerce.date(),
-      expiresAt: z.coerce.date().nullable(),
-      id: z.string(),
-      issuedClaims: z.number().nullable(),
-      limitedClaims: z.number().nullable(),
-      schemaTemplate: schemaParser,
-      valid: z.boolean(),
-    })
-    .transform(
-      ({
-        active,
-        attributeValues,
-        claimLinkExpiration: linkAccessibleUntil,
-        createdAt,
-        expiresAt,
-        id,
-        issuedClaims: linkCurrentIssuance,
-        limitedClaims: linkMaximumIssuance,
-        schemaTemplate,
-        valid,
-      }): OldCredential => ({
-        active,
-        attributeValues,
-        createdAt,
-        expiresAt,
-        id,
-        linkAccessibleUntil,
-        linkCurrentIssuance,
-        linkMaximumIssuance,
-        schemaTemplate,
-        valid,
-      })
-    )
-);
-
-const shareCredentialQRCodeParser = getStrictParser<
-  ShareCredentialQRCodeInput,
-  ShareCredentialQRCode
->()(
+const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
       logo: z.string(),
     }),
-    offerDetails: oldCredentialParser,
-    qrcode: credentialQRCodeParser,
+    linkDetail: linkParser,
+    qrCode: credentialQRCodeParser,
     sessionID: z.string(),
   })
 );
 
-const resultOKShareCredentialQRCodeParser = getStrictParser<
-  ResultOK<ShareCredentialQRCodeInput>,
-  ResultOK<ShareCredentialQRCode>
->()(
+const resultOKShareCredentialQRCodeParser = getStrictParser<ResultOK<ShareCredentialQRCode>>()(
   z.object({
     data: shareCredentialQRCodeParser,
     status: z.literal(HTTPStatusSuccess.OK),
@@ -415,19 +321,16 @@ export async function credentialsQRCreate({
   }
 }
 
-const resultCreatedCredentialParser = getStrictParser<
-  ResultCreated<CredentialInput>,
-  ResultCreated<OldCredential>
->()(
+const resultCreateLinkParser = getStrictParser<ResultCreated<Link>>()(
   z.object({
-    data: oldCredentialParser,
+    data: linkParser,
     status: z.literal(HTTPStatusSuccess.Created),
   })
 );
 
 interface CredentialsGetAll {
-  credentials: OldCredential[];
-  errors: z.ZodError<OldCredential>[];
+  credentials: null[];
+  errors: z.ZodError<null>[];
 }
 
 const resultOKCredentialsGetAllParser = getStrictParser<
@@ -437,8 +340,8 @@ const resultOKCredentialsGetAllParser = getStrictParser<
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: CredentialsGetAll, curr: unknown, index) => {
-          const parsedCredential = oldCredentialParser.safeParse(curr);
+        (acc: CredentialsGetAll, curr: unknown, index): CredentialsGetAll => {
+          const parsedCredential = z.null().safeParse(curr);
 
           return parsedCredential.success
             ? {
@@ -449,7 +352,7 @@ const resultOKCredentialsGetAllParser = getStrictParser<
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<OldCredential>(
+                  new z.ZodError<null>(
                     parsedCredential.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],

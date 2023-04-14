@@ -11,8 +11,9 @@ export function String({
   parents: ObjectAttribute[];
 }) {
   const commonFormItemProps: FormItemProps = {
+    extra: attribute.schema.description,
     label: <Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>,
-    name: ["attributes", ...parents.map((parent) => parent.name), attribute.name],
+    name: ["credentialSubject", ...parents.map((parent) => parent.name), attribute.name],
     required: attribute.required,
   };
 
@@ -54,7 +55,7 @@ export function String({
       default: {
         return (
           <Form.Item {...commonFormItemProps}>
-            <Input />
+            <Input placeholder={`Type ${attribute.schema.format || attribute.type}`} />
           </Form.Item>
         );
       }

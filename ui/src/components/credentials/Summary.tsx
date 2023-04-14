@@ -2,18 +2,13 @@ import { Button, Card, Col, Divider, Form, Input, Row, Space, Typography, messag
 import copy from "copy-to-clipboard";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import {
-  OldCredential,
-  credentialsQRCreate,
-  credentialsQRDownload,
-} from "src/adapters/api/credentials";
-import { formatAttributeValue } from "src/adapters/parsers/forms";
+import { credentialsQRCreate, credentialsQRDownload } from "src/adapters/api/credentials";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { useEnvContext } from "src/contexts/env";
-import { Schema } from "src/domain";
+import { Link, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { downloadFile } from "src/utils/browser";
 import {
@@ -26,18 +21,12 @@ import {
 } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
-export function Summary({
-  credential: credential,
-  schema,
-}: {
-  credential: OldCredential;
-  schema: Schema;
-}) {
+export function Summary({ link, schema }: { link: Link; schema: Schema }) {
   const env = useEnvContext();
   const navigate = useNavigate();
 
   const credentialLinkURL = `${window.location.origin}${generatePath(ROUTES.credentialLink.path, {
-    credentialID: credential.id,
+    credentialID: link.id,
   })}`;
 
   const navigateToSharedLinks = () => {
@@ -61,15 +50,15 @@ export function Summary({
   };
 
   const onDownloadQRCode = () => {
-    void credentialsQRCreate({ env, id: credential.id }).then((qrData) => {
+    void credentialsQRCreate({ env, id: link.id }).then((qrData) => {
       if (qrData.isSuccessful) {
         void credentialsQRDownload({
-          credentialID: credential.id,
+          credentialID: link.id,
           env,
           sessionID: qrData.data.sessionID,
         }).then((qrBlobData) => {
           if (qrBlobData.isSuccessful) {
-            downloadFile(qrBlobData.data, credential.id);
+            downloadFile(qrBlobData.data, link.id);
           } else {
             void message.error(qrBlobData.error.message);
           }
@@ -90,7 +79,7 @@ export function Summary({
           </Button>
 
           <Button
-            href={generatePath(ROUTES.credentialLink.path, { credentialID: credential.id })}
+            href={generatePath(ROUTES.credentialLink.path, { credentialID: link.id })}
             icon={<ExternalLinkIcon />}
             target="_blank"
             type="link"
@@ -124,9 +113,9 @@ export function Summary({
                 </Typography.Text>
               </Row>
 
-              {credential.attributeValues.map((attribute, index) => {
+              {/* {credential.attributes.map((attribute, index) => {
                 //TODO Credentials epic
-                // const formattedValue = formatAttributeValue(attribute, schema.attributes);
+                const formattedValue = formatAttributeValue(attribute, schema.attributes);
                 const formattedValue = formatAttributeValue(attribute, []);
 
                 return (
@@ -148,36 +137,34 @@ export function Summary({
                     </Col>
                   </Row>
                 );
-              })}
+              })} */}
 
               <Row justify="space-between">
                 <Typography.Text type="secondary">{ACCESSIBLE_UNTIL}</Typography.Text>
 
                 <Typography.Text>
-                  {credential.linkAccessibleUntil
-                    ? formatDate(credential.linkAccessibleUntil, true)
-                    : "-"}
+                  {link.expiration ? formatDate(link.expiration, true) : "-"}
                 </Typography.Text>
               </Row>
 
               <Row justify="space-between">
                 <Typography.Text type="secondary">Maximum issuance</Typography.Text>
 
-                <Typography.Text>{credential.linkMaximumIssuance || "-"}</Typography.Text>
+                <Typography.Text>{link.maxIssuance || "-"}</Typography.Text>
               </Row>
 
               <Row justify="space-between">
                 <Typography.Text type="secondary">Credential expiration date</Typography.Text>
 
-                <Typography.Text>
+                {/* <Typography.Text>
                   {credential.expiresAt ? formatDate(credential.expiresAt) : "-"}
-                </Typography.Text>
+                </Typography.Text> */}
               </Row>
 
               <Row justify="space-between">
                 <Typography.Text type="secondary">{ISSUE_DATE}</Typography.Text>
 
-                <Typography.Text>{formatDate(credential.createdAt)}</Typography.Text>
+                {/* <Typography.Text>{formatDate(credential.createdAt)}</Typography.Text> */}
               </Row>
 
               <Row justify="space-between">

@@ -11,8 +11,9 @@ export function Boolean({
 }) {
   return (
     <Form.Item
+      extra={attribute.schema.description}
       label={<Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>}
-      name={["attributes", ...parents.map((parent) => parent.name), attribute.name]}
+      name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
       required={attribute.required}
     >
       {attribute.schema.enum ? (

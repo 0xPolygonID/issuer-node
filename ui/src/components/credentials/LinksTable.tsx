@@ -30,7 +30,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
-import { Link } from "src/domain/credential";
+import { Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";

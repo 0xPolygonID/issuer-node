@@ -29,7 +29,7 @@ export type IssuanceMethod =
       type: "credentialLink";
     };
 
-export function SetIssuanceMethod({
+export function IssuanceMethodForm({
   initialValues,
   onSubmit,
 }: {

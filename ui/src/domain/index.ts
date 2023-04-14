@@ -1,14 +1,11 @@
 export type { Connection } from "src/domain/connection";
 
 export type {
-  BooleanCredentialFormAttribute,
   Credential,
-  CredentialFormAttribute,
-  CredentialForm,
   CredentialsTabIDs,
-  DateCredentialFormAttribute,
-  NumberCredentialFormAttribute,
-  SingleChoiceCredentialFormAttribute,
+  Link,
+  LinkAttribute,
+  LinkStatus,
 } from "src/domain/credential";
 
 export type { Env } from "src/domain/env";

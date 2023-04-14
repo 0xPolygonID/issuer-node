@@ -11,7 +11,6 @@ import {
   credentialsQRCheck,
   credentialsQRCreate,
 } from "src/adapters/api/credentials";
-import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -179,7 +178,7 @@ export function ScanCredentialLink() {
               value={
                 credentialQRCheck.status === CredentialQRStatus.Done
                   ? JSON.stringify(credentialQRCheck.qrcode)
-                  : JSON.stringify(shareCredentialQRCode.data.qrcode)
+                  : JSON.stringify(shareCredentialQRCode.data.qrCode)
               }
             />
           </Col>
@@ -192,29 +191,27 @@ export function ScanCredentialLink() {
           >
             <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {shareCredentialQRCode.data.offerDetails.schemaTemplate.type}
+                {shareCredentialQRCode.data.linkDetail.schemaType}
               </Typography.Title>
 
               <Typography.Title level={5} type="secondary">
                 Attributes
               </Typography.Title>
 
-              {shareCredentialQRCode.data.offerDetails.attributeValues.map((attribute) => {
-                const formattedValue = formatAttributeValue(
-                  attribute,
-                  //TODO Credentials epic
-                  // shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
-                  []
-                );
+              {shareCredentialQRCode.data.linkDetail.attributes.map((attribute) => {
+                // const formattedValue = formatAttributeValue(
+                //   attribute,
+                //   []
+                // );
 
                 return (
-                  <Space direction="vertical" key={attribute.attributeKey}>
+                  <Space direction="vertical" key={attribute.name}>
                     <Typography.Text ellipsis={{ tooltip: true }} type="secondary">
-                      {attribute.attributeKey}
+                      {attribute.name}
                     </Typography.Text>
 
                     <Typography.Text strong>
-                      {formattedValue.success ? formattedValue.data : formattedValue.error}
+                      {/* {formattedValue.success ? formattedValue.data : formattedValue.error} */}
                     </Typography.Text>
                   </Space>
                 );
