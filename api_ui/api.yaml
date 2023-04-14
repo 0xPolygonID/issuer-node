@@ -512,7 +512,7 @@ paths:
   # Links
   /v1/credentials/links:
     get:
-      summary: Returns the list of links to credentials
+      summary: Get Links
       operationId: GetLinks
       security:
         - basicAuth: [ ]
@@ -967,7 +967,7 @@ components:
         - schemaHash
         - schemaType
         - revNonce
-        - attributes
+        - credentialSubject
         - revoked
       properties:
         id:
@@ -1006,7 +1006,7 @@ components:
           type: integer
           format: uint64
           example: 2136005230
-        attributes:
+        credentialSubject:
           type: object
           x-omitempty: false
           example:
