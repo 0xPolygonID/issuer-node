@@ -131,7 +131,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
 		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
-		updatedState.Status = "failed"
+		updatedState.Status = domain.StatusFailed
 		errUpdating := p.identityService.UpdateIdentityState(ctx, updatedState)
 		if errUpdating != nil {
 			log.Error(ctx, "Error saving the state us failed:", "err", err, "did", identifier.String())
