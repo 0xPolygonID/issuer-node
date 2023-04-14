@@ -103,7 +103,10 @@ func processProperties(props map[string]any) ([]Attribute, error) {
 				ID:   id,
 				Type: "object",
 			})
-			attrs1, _ := processProperties(attr.Properties)
+			attrs1, err := processProperties(attr.Properties)
+			if err != nil {
+				return nil, err
+			}
 			attrs = append(attrs, attrs1...)
 		} else {
 			attrs = append(attrs, attr)
