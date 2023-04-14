@@ -2,7 +2,6 @@ package pubsub
 
 import (
 	"context"
-	"encoding/json"
 )
 
 const (
@@ -18,40 +17,6 @@ type Event interface {
 
 // Message is the payload received in a pubsub subscriber. The input for callback functions
 type Message []byte
-
-// TODO: Move events to another internal package. They are not related to the library
-
-// CreateCredentialEvent defines the createCredential data
-type CreateCredentialEvent struct {
-	CredentialID string `json:"credentialID"`
-	IssuerID     string `json:"issuerID"`
-}
-
-// Marshal marshals the event into a pubsub.Message
-func (ev *CreateCredentialEvent) Marshal() (msg Message, err error) {
-	return json.Marshal(ev)
-}
-
-// Unmarshal creates an event from that message
-func (ev *CreateCredentialEvent) Unmarshal(msg Message) error {
-	return json.Unmarshal(msg, &ev)
-}
-
-// CreateConnectionEvent defines the createCredential data
-type CreateConnectionEvent struct {
-	ConnectionID string `json:"connectionID"`
-	IssuerID     string `json:"issuerID"`
-}
-
-// Marshal marshals the event into a pubsub.Message
-func (ev *CreateConnectionEvent) Marshal() (msg Message, err error) {
-	return json.Marshal(ev)
-}
-
-// Unmarshal creates an event from that message
-func (ev *CreateConnectionEvent) Unmarshal(msg Message) error {
-	return json.Unmarshal(msg, &ev)
-}
 
 // Publisher sends topics to the pubsub
 type Publisher interface {

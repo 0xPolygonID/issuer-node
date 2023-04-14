@@ -12,6 +12,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
@@ -67,14 +68,14 @@ func TestNotification_SendNotification(t *testing.T) {
 	})
 
 	t.Run("should get an error, non existing credential", func(t *testing.T) {
-		ev := pubsub.CreateCredentialEvent{CredentialID: uuid.NewString(), IssuerID: did.String()}
+		ev := event.CreateCredential{CredentialID: uuid.NewString(), IssuerID: did.String()}
 		message, err := ev.Marshal()
 		require.NoError(t, err)
 		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, message))
 	})
 
 	t.Run("should get an error, existing credential but not existing connection", func(t *testing.T) {
-		ev := pubsub.CreateCredentialEvent{CredentialID: credID.String(), IssuerID: did.String()}
+		ev := event.CreateCredential{CredentialID: credID.String(), IssuerID: did.String()}
 		message, err := ev.Marshal()
 		require.NoError(t, err)
 		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, message))

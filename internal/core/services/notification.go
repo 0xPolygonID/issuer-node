@@ -11,6 +11,7 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/notifications"
@@ -33,7 +34,7 @@ func NewNotification(notificationGateway ports.NotificationGateway, connService 
 }
 
 func (n *notification) SendCreateCredentialNotification(ctx context.Context, e pubsub.Message) error {
-	var cEvent pubsub.CreateCredentialEvent
+	var cEvent event.CreateCredential
 	if err := cEvent.Unmarshal(e); err != nil {
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
@@ -42,7 +43,7 @@ func (n *notification) SendCreateCredentialNotification(ctx context.Context, e p
 }
 
 func (n *notification) SendCreateConnectionNotification(ctx context.Context, e pubsub.Message) error {
-	var cEvent pubsub.CreateConnectionEvent
+	var cEvent event.CreateConnection
 	if err := cEvent.Unmarshal(e); err != nil {
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
