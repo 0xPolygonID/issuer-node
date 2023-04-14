@@ -20,15 +20,15 @@ export function Boolean({
         <Select placeholder="Select option">
           {attribute.schema.enum.map((option, index) => (
             <Select.Option key={index} value={option}>
-              {option}
+              {option.toString()}
             </Select.Option>
           ))}
         </Select>
       ) : (
         <Radio.Group>
           <Space direction="vertical">
-            <Radio value={false}>False</Radio>
             <Radio value={true}>True</Radio>
+            <Radio value={false}>False</Radio>
           </Space>
         </Radio.Group>
       )}

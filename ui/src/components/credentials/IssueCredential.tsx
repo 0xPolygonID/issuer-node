@@ -195,7 +195,7 @@ export function IssueCredential() {
                                       expirationDate: values.expirationDate.endOf("day"),
                                     }
                                   : values;
-                                const newFormData: StepsData =
+                                const newStepsData: StepsData =
                                   stepsData.issuanceMethod.type === "credentialLink" &&
                                   updatedValues.expirationDate?.isBefore(
                                     stepsData.issuanceMethod.linkExpirationDate
@@ -211,8 +211,8 @@ export function IssueCredential() {
                                       }
                                     : { ...stepsData, credentialForm: updatedValues };
 
-                                setStepsData(newFormData);
-                                onCreateLink(newFormData);
+                                setStepsData(newStepsData);
+                                onCreateLink(newStepsData);
                               }}
                               schema={schema}
                             />
