@@ -3,8 +3,12 @@ package domain
 import (
 	"math/big"
 
+	"github.com/iden3/go-schema-processor/verifiable"
+
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
+
+const AnyProofType verifiable.ProofType = "AnyProof" // AnyProofType defines any proof type
 
 // ZKProof is structure that represents SnarkJS library result of proof generation
 type ZKProof struct {

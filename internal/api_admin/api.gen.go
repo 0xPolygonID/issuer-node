@@ -88,16 +88,16 @@ type CreateLinkRequest struct {
 
 // Credential defines model for Credential.
 type Credential struct {
-	Attributes map[string]interface{} `json:"attributes"`
-	CreatedAt  time.Time              `json:"createdAt"`
-	Expired    bool                   `json:"expired"`
-	ExpiresAt  *time.Time             `json:"expiresAt,omitempty"`
-	Id         uuid.UUID              `json:"id"`
-	ProofTypes []string               `json:"proofTypes"`
-	RevNonce   uint64                 `json:"revNonce"`
-	Revoked    bool                   `json:"revoked"`
-	SchemaHash string                 `json:"schemaHash"`
-	SchemaType string                 `json:"schemaType"`
+	CreatedAt         time.Time              `json:"createdAt"`
+	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	Expired           bool                   `json:"expired"`
+	ExpiresAt         *time.Time             `json:"expiresAt,omitempty"`
+	Id                uuid.UUID              `json:"id"`
+	ProofTypes        []string               `json:"proofTypes"`
+	RevNonce          uint64                 `json:"revNonce"`
+	Revoked           bool                   `json:"revoked"`
+	SchemaHash        string                 `json:"schemaHash"`
+	SchemaType        string                 `json:"schemaType"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
@@ -418,7 +418,7 @@ type ServerInterface interface {
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
-	// Returns the list of links to credentials
+	// Get Links
 	// (GET /v1/credentials/links)
 	GetLinks(w http.ResponseWriter, r *http.Request, params GetLinksParams)
 	// Create Link
@@ -2598,7 +2598,7 @@ type StrictServerInterface interface {
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
-	// Returns the list of links to credentials
+	// Get Links
 	// (GET /v1/credentials/links)
 	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
 	// Create Link

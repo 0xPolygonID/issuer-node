@@ -114,7 +114,7 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
 	claimsService := services.NewClaim(
 		claimsRepository,
 		identityService,

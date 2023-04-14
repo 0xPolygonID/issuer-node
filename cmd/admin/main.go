@@ -136,7 +136,7 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps)
 	schemaAdminService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
 	claimsService := services.NewClaim(
 		claimsRepository,
