@@ -29,10 +29,11 @@ func (a Attributes) SchemaAttrs() []string {
 
 // Attribute represents a json schema attribute
 type Attribute struct {
-	ID     string
-	Title  string
-	Type   string
-	Format string
+	ID         string
+	Title      string
+	Type       string
+	Format     string
+	Properties map[string]any `json:"-"`
 }
 
 func (a Attribute) String() string {
@@ -82,6 +83,14 @@ func (s *JSONSchema) Attributes() (Attributes, error) {
 	if !ok {
 		return nil, errors.New("missing properties.credentialSubject.properties field")
 	}
+	attrs, err := processProperties(props)
+	if err != nil {
+		return nil, err
+	}
+	return attrs, nil
+}
+
+func processProperties(props map[string]any) ([]Attribute, error) {
 	attrs := make([]Attribute, 0, len(props))
 	for id, prop := range props {
 		attr := Attribute{}
@@ -89,7 +98,19 @@ func (s *JSONSchema) Attributes() (Attributes, error) {
 			return nil, fmt.Errorf("parsing attribute <%s>: %w", prop, err)
 		}
 		attr.ID = id
-		attrs = append(attrs, attr)
+		if len(attr.Properties) > 0 {
+			attrs = append(attrs, Attribute{
+				ID:   id,
+				Type: "object",
+			})
+			attrs1, err := processProperties(attr.Properties)
+			if err != nil {
+				return nil, err
+			}
+			attrs = append(attrs, attrs1...)
+		} else {
+			attrs = append(attrs, attr)
+		}
 	}
 	return attrs, nil
 }

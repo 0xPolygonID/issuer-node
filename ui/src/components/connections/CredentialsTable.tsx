@@ -12,8 +12,7 @@ import {
   message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
-import dayjs, { extend as extendDayJsWith } from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
 import { APIError } from "src/adapters/api";
@@ -38,13 +37,13 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
+  EXPIRATION,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
+  REVOCATION,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-
-extendDayJsWith(relativeTime);
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
@@ -94,12 +93,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
         if (a && b) {
           return dayjs(a).unix() - dayjs(b).unix();
         } else if (a) {
-          return 1;
-        } else {
           return -1;
+        } else {
+          return 1;
         }
       },
-      title: "Expiration",
+      title: EXPIRATION,
     },
     {
       dataIndex: "revoked",
@@ -107,7 +106,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       render: (revoked: Credential["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
-      title: "Revocation",
+      title: REVOCATION,
     },
     {
       dataIndex: "id",
