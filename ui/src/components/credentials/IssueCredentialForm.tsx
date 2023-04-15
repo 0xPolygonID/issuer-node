@@ -85,7 +85,7 @@ export function IssueCredentialForm({
           </Button>
 
           <Button disabled={!schema} htmlType="submit" type="primary">
-            Next step
+            Create credential link
             <IconRight />
           </Button>
         </Space>
