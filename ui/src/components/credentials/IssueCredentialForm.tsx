@@ -10,9 +10,9 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
 
-export type CredentialFormData = {
+export type IssueCredentialFormData = {
   credentialSubject?: Record<string, unknown>;
-  expirationDate?: dayjs.Dayjs;
+  expirationDate?: dayjs.Dayjs | null;
 };
 
 export function IssueCredentialForm({
@@ -22,10 +22,10 @@ export function IssueCredentialForm({
   onSubmit,
   schema,
 }: {
-  initialValues: CredentialFormData;
+  initialValues: IssueCredentialFormData;
   jsonSchema: JsonSchema;
   onBack: () => void;
-  onSubmit: (values: CredentialFormData) => void;
+  onSubmit: (values: IssueCredentialFormData) => void;
   schema: Schema;
 }) {
   const credentialSubjectAttributes =

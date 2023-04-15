@@ -15,12 +15,12 @@ interface LinkExpiration {
 }
 
 interface CredentialFormInput {
-  credentialForm: {
-    credentialSubject: Record<string, unknown>;
-    expirationDate?: dayjs.Dayjs | null;
-  };
   issuanceMethod: LinkExpiration & {
     linkMaximumIssuance?: number;
+  };
+  issueCredential: {
+    credentialSubject: Record<string, unknown>;
+    expirationDate?: dayjs.Dayjs | null;
   };
 }
 
@@ -71,21 +71,21 @@ const formParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<For
 export const credentialFormParser = getStrictParser<CredentialFormInput, CredentialForm>()(
   z
     .object({
-      credentialForm: z.object({
-        credentialSubject: z.record(z.unknown()),
-        expirationDate: dayjsInstanceParser.nullable().optional(),
-      }),
       issuanceMethod: z.object({
         linkExpirationDate: dayjsInstanceParser.nullable().optional(),
         linkExpirationTime: dayjsInstanceParser.nullable().optional(),
         linkMaximumIssuance: z.number().optional(),
       }),
+      issueCredential: z.object({
+        credentialSubject: z.record(z.unknown()),
+        expirationDate: dayjsInstanceParser.nullable().optional(),
+      }),
     })
     .transform(
       (
         {
-          credentialForm: { credentialSubject, expirationDate },
           issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
+          issueCredential: { credentialSubject, expirationDate },
         },
         zodRefinementCtx
       ) => {
@@ -127,10 +127,10 @@ export const linkExpirationDateParser = getStrictParser<{
 // Serializers
 
 export function serializeCredentialForm({
-  credentialForm: { credentialSubject, expiration, linkAccessibleUntil, linkMaximumIssuance },
+  issueCredential: { credentialSubject, expiration, linkAccessibleUntil, linkMaximumIssuance },
   schemaID,
 }: {
-  credentialForm: CredentialForm;
+  issueCredential: CredentialForm;
   schemaID: string;
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
   const parsedCredentialSubject = formParser.safeParse(credentialSubject);
