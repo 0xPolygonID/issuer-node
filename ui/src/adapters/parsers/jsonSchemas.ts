@@ -158,14 +158,14 @@ function getStringAttributeParser(name: string, required: boolean) {
 // Non-primitive
 
 type ArrayPropsInput = {
-  item?: unknown;
+  items?: unknown;
 };
 
 type ArraySchemaInput = CommonProps & ArrayPropsInput & { type: "array" };
 
 const arrayPropsInputParser = getStrictParser<ArrayPropsInput>()(
   z.object({
-    item: z.unknown().optional(),
+    items: z.unknown().optional(),
   })
 );
 
@@ -185,7 +185,9 @@ function getArrayAttributeParser(name: string, required: boolean) {
         required,
         schema: {
           ...schema,
-          item: schema.item ? getAttributeParser("items", required).parse(schema.item) : undefined,
+          items: schema.items
+            ? getAttributeParser("items", required).parse(schema.items)
+            : undefined,
         },
         type: "array",
       })

@@ -83,7 +83,7 @@ export type StringAttribute = {
 // Non-primitives
 
 export type ArrayProps = {
-  item?: Attribute;
+  items?: Attribute;
 };
 
 export type ArraySchema = CommonProps & ArrayProps & { type: "array" };
