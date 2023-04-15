@@ -2,8 +2,8 @@ import { Card, Space, message } from "antd";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-
 import { z } from "zod";
+
 import { createLink } from "src/adapters/api/credentials";
 import { getSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { credentialFormParser, serializeCredentialForm } from "src/adapters/parsers/forms";
