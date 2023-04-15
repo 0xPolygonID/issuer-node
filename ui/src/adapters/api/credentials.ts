@@ -210,8 +210,8 @@ export async function credentialsGetAll({
   signal?: AbortSignal;
 }): Promise<
   APIResponse<{
-    credentials: null[];
-    errors: z.ZodError<null>[];
+    credentials: Credential[];
+    errors: z.ZodError<Credential>[];
   }>
 > {
   try {
@@ -232,7 +232,7 @@ export async function credentialsGetAll({
 
     return {
       data: {
-        credentials: data.credentials,
+        credentials: data.credentials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
         errors: data.errors,
       },
       isSuccessful: true,
@@ -332,8 +332,8 @@ const resultCreateLinkParser = getStrictParser<ResultCreated<Link>>()(
 );
 
 interface CredentialsGetAll {
-  credentials: null[];
-  errors: z.ZodError<null>[];
+  credentials: Credential[];
+  errors: z.ZodError<Credential>[];
 }
 
 const resultOKCredentialsGetAllParser = getStrictParser<
@@ -344,7 +344,7 @@ const resultOKCredentialsGetAllParser = getStrictParser<
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
         (acc: CredentialsGetAll, curr: unknown, index): CredentialsGetAll => {
-          const parsedCredential = z.null().safeParse(curr);
+          const parsedCredential = credentialParser.safeParse(curr);
 
           return parsedCredential.success
             ? {
@@ -355,7 +355,7 @@ const resultOKCredentialsGetAllParser = getStrictParser<
                 ...acc,
                 errors: [
                   ...acc.errors,
-                  new z.ZodError<null>(
+                  new z.ZodError<Credential>(
                     parsedCredential.error.issues.map((issue) => ({
                       ...issue,
                       path: [index, ...issue.path],
