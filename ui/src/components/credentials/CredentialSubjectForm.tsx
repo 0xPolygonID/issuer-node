@@ -27,17 +27,19 @@ function AnyAttribute({
     }
     case "null": {
       return (
+        // ToDo: PID-587
         <Typography.Text>Null attributes are not yet supported ({attribute.name})</Typography.Text>
       );
     }
     case "multi": {
       return (
-        // ToDo: Implement multi-type schema attributes (PID-543)
+        // ToDo: PID-543
         <Typography.Text>Multi attributes are not yet supported ({attribute.name})</Typography.Text>
       );
     }
     case "array": {
       return (
+        // ToDo: PID-589
         <Typography.Text>Array attributes are not yet supported ({attribute.name})</Typography.Text>
       );
     }
