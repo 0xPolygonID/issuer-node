@@ -1,7 +1,7 @@
 import { Card, Space, Typography } from "antd";
 import { Fragment, useRef } from "react";
 
-import { AttributeBreadcrumb } from "./AttributeBreadcrumb";
+import { AttributeBreadcrumb } from "src/components/credentials/AttributeBreadcrumb";
 import { Boolean } from "src/components/credentials/attributes/Boolean";
 import { Number } from "src/components/credentials/attributes/Number";
 import { String } from "src/components/credentials/attributes/String";
