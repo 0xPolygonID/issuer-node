@@ -14,10 +14,7 @@ export type { Json, JsonLiteral } from "src/domain/json";
 
 export type {
   Attribute,
-  AttributeSchema,
   ArrayAttribute,
-  ArrayProps,
-  ArraySchema,
   BooleanAttribute,
   BooleanProps,
   BooleanSchema,
@@ -32,14 +29,12 @@ export type {
   NumberSchema,
   ObjectAttribute,
   ObjectProps,
-  ObjectSchema,
   JsonSchema,
   SchemaProps,
-  StringFormat,
   StringAttribute,
   StringProps,
   StringSchema,
   JsonLdType,
 } from "src/domain/jsonSchema";
 
-export type { Schema, SchemaAttribute } from "src/domain/schema";
+export type { Schema } from "src/domain/schema";

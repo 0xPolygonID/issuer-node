@@ -86,7 +86,7 @@ const linkAttributeParser = getStrictParser<LinkAttribute>()(
   })
 );
 
-export const linkParser = getStrictParser<Link>()(
+const linkParser = getStrictParser<Link>()(
   z.object({
     active: z.boolean(),
     attributes: z.array(linkAttributeParser),

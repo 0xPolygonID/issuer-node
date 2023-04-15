@@ -9,7 +9,7 @@ import {
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
-import { Env, JsonLdType, Schema, SchemaAttribute } from "src/domain";
+import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
 interface Schemas {
@@ -117,50 +117,7 @@ export async function getSchemas({
   }
 }
 
-export const schemaAttributeParser = getStrictParser<SchemaAttribute>()(
-  z
-    .object({
-      description: z.string().optional(),
-      name: z.string(),
-      technicalName: z.string(),
-    })
-    .and(
-      z.union([
-        z.object({
-          type: z.union([z.literal("boolean"), z.literal("number"), z.literal("date")]),
-        }),
-        z.object({
-          type: z.literal("singlechoice"),
-          values: z.array(
-            z.object({
-              name: z.string(),
-              value: z.number(),
-            })
-          ),
-        }),
-      ])
-    )
-    .refine(
-      (attribute) =>
-        attribute.type !== "singlechoice" ||
-        attribute.values.length ===
-          new Set(attribute.values.map((singleChoice) => singleChoice.value)).size,
-      (attribute) => ({
-        message: `An error occurred validating the attribute "${attribute.name}". Single choice attributes can not have repeated numeric values`,
-      })
-    )
-    .refine(
-      (attribute) =>
-        attribute.type !== "singlechoice" ||
-        attribute.values.length ===
-          new Set(attribute.values.map((singleChoice) => singleChoice.name)).size,
-      (attribute) => ({
-        message: `An error occurred validating the attribute "${attribute.name}". Single choice attributes can not have repeated values`,
-      })
-    )
-);
-
-export const schemaParser = getStrictParser<Schema>()(
+const schemaParser = getStrictParser<Schema>()(
   z.object({
     bigInt: z.string(),
     createdAt: z.coerce.date(),

@@ -45,7 +45,7 @@ export type NumberAttribute = {
   type: "number";
 };
 
-export type StringFormat =
+type StringFormat =
   | "date-time"
   | "time"
   | "date"
@@ -82,11 +82,11 @@ export type StringAttribute = {
 
 // Non-primitives
 
-export type ArrayProps = {
+type ArrayProps = {
   items?: Attribute;
 };
 
-export type ArraySchema = CommonProps & ArrayProps & { type: "array" };
+type ArraySchema = CommonProps & ArrayProps & { type: "array" };
 
 export type ArrayAttribute = {
   name: string;
@@ -100,7 +100,7 @@ export type ObjectProps = {
   required?: string[];
 };
 
-export type ObjectSchema = CommonProps & ObjectProps & { type: "object" };
+type ObjectSchema = CommonProps & ObjectProps & { type: "object" };
 
 export type ObjectAttribute = {
   name: string;
@@ -121,16 +121,6 @@ export type MultiAttribute = {
 };
 
 // Schema
-
-export type AttributeSchema =
-  | BooleanSchema
-  | IntegerSchema
-  | NullSchema
-  | NumberSchema
-  | StringSchema
-  | ArraySchema
-  | ObjectSchema
-  | MultiSchema;
 
 export type Attribute =
   | BooleanAttribute
