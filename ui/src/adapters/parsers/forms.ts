@@ -9,31 +9,26 @@ import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
 
-interface LinkExpiration {
-  linkExpirationDate?: dayjs.Dayjs | null;
-  linkExpirationTime?: dayjs.Dayjs | null;
-}
+type FormLiteral = string | number | boolean | null | undefined;
+type FormLiteralInput = FormLiteral | dayjs.Dayjs;
+type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
-interface CredentialFormInput {
-  issuanceMethod: LinkExpiration & {
-    linkMaximumIssuance?: number;
-  };
-  issueCredential: {
-    credentialSubject: Record<string, unknown>;
-    expirationDate?: dayjs.Dayjs | null;
-  };
-}
-
-interface CredentialForm {
-  credentialSubject: Record<string, unknown>;
+export interface CredentialLinkForm {
+  credentialSubject: Record<string, unknown> | undefined;
   expiration: Date | undefined;
   linkAccessibleUntil: Date | undefined;
   linkMaximumIssuance: number | undefined;
+  type: "credentialLink";
 }
 
-type FormLiteralInput = FormLiteral | dayjs.Dayjs;
-type FormLiteral = string | number | boolean | null | undefined;
-type FormInput = { [key: string]: FormLiteralInput | FormInput };
+export interface DirectIssueForm {
+  credentialSubject: Record<string, unknown> | undefined;
+  did: string;
+  expiration: Date | undefined;
+  type: "directIssue";
+}
+
+type IssueCredentialForm = CredentialLinkForm | DirectIssueForm;
 
 // Parsers
 
@@ -68,27 +63,64 @@ const formParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<For
     })
 );
 
-export const credentialFormParser = getStrictParser<CredentialFormInput, CredentialForm>()(
+interface LinkExpiration {
+  linkExpirationDate?: dayjs.Dayjs | null;
+  linkExpirationTime?: dayjs.Dayjs | null;
+}
+
+export type IssuanceMethodFormData =
+  | ({
+      linkMaximumIssuance?: number;
+      type: "credentialLink";
+    } & LinkExpiration)
+  | {
+      did: string;
+      type: "directIssue";
+    };
+
+const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
+  z.union([
+    z.object({
+      linkExpirationDate: dayjsInstanceParser.nullable().optional(),
+      linkExpirationTime: dayjsInstanceParser.nullable().optional(),
+      linkMaximumIssuance: z.number().optional(),
+      type: z.literal("credentialLink"),
+    }),
+    z.object({
+      did: z.string(),
+      type: z.literal("directIssue"),
+    }),
+  ])
+);
+
+export type IssueCredentialFormData = {
+  credentialSubject?: Record<string, unknown>;
+  expirationDate?: dayjs.Dayjs | null;
+};
+
+const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()(
+  z.object({
+    credentialSubject: z.record(z.unknown()).optional(),
+    expirationDate: dayjsInstanceParser.nullable().optional(),
+  })
+);
+
+export interface CredentialFormInput {
+  issuanceMethod: IssuanceMethodFormData;
+  issueCredential: IssueCredentialFormData;
+}
+
+export const credentialFormParser = getStrictParser<CredentialFormInput, IssueCredentialForm>()(
   z
     .object({
-      issuanceMethod: z.object({
-        linkExpirationDate: dayjsInstanceParser.nullable().optional(),
-        linkExpirationTime: dayjsInstanceParser.nullable().optional(),
-        linkMaximumIssuance: z.number().optional(),
-      }),
-      issueCredential: z.object({
-        credentialSubject: z.record(z.unknown()),
-        expirationDate: dayjsInstanceParser.nullable().optional(),
-      }),
+      issuanceMethod: issuanceMethodFormDataParser,
+      issueCredential: issueCredentialFormDataParser,
     })
-    .transform(
-      (
-        {
-          issuanceMethod: { linkExpirationDate, linkExpirationTime, linkMaximumIssuance },
-          issueCredential: { credentialSubject, expirationDate },
-        },
-        zodRefinementCtx
-      ) => {
+    .transform(({ issuanceMethod, issueCredential }, context) => {
+      if (issuanceMethod.type === "credentialLink") {
+        const { linkExpirationDate, linkExpirationTime, linkMaximumIssuance, type } =
+          issuanceMethod;
+        const { credentialSubject, expirationDate } = issueCredential;
         const linkAccessibleUntil = buildLinkAccessibleUntil({
           linkExpirationDate,
           linkExpirationTime,
@@ -97,7 +129,7 @@ export const credentialFormParser = getStrictParser<CredentialFormInput, Credent
         const now = new Date().getTime();
 
         if (linkAccessibleUntil && linkAccessibleUntil.getTime() < now) {
-          zodRefinementCtx.addIssue({
+          context.addIssue({
             code: z.ZodIssueCode.custom,
             fatal: true,
             message: `${ACCESSIBLE_UNTIL} must be a date/time in the future.`,
@@ -106,14 +138,27 @@ export const credentialFormParser = getStrictParser<CredentialFormInput, Credent
           return z.NEVER;
         }
 
-        return {
+        const credentialForm: IssueCredentialForm = {
           credentialSubject,
           expiration: expirationDate ? expirationDate.toDate() : undefined,
           linkAccessibleUntil,
           linkMaximumIssuance,
+          type,
+        };
+
+        return credentialForm;
+      } else {
+        const { did, type } = issuanceMethod;
+        const { credentialSubject, expirationDate } = issueCredential;
+
+        return {
+          credentialSubject,
+          did,
+          expiration: expirationDate ? expirationDate.toDate() : undefined,
+          type,
         };
       }
-    )
+    })
 );
 
 export const linkExpirationDateParser = getStrictParser<{
@@ -126,11 +171,11 @@ export const linkExpirationDateParser = getStrictParser<{
 
 // Serializers
 
-export function serializeCredentialForm({
+export function serializeCredentialLinkForm({
   issueCredential: { credentialSubject, expiration, linkAccessibleUntil, linkMaximumIssuance },
   schemaID,
 }: {
-  issueCredential: CredentialForm;
+  issueCredential: CredentialLinkForm;
   schemaID: string;
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
   const parsedCredentialSubject = formParser.safeParse(credentialSubject);

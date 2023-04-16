@@ -14,20 +14,9 @@ import {
 import dayjs from "dayjs";
 import { useState } from "react";
 
-import { linkExpirationDateParser } from "src/adapters/parsers/forms";
+import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
-
-export type IssuanceMethodFormData =
-  | {
-      type: "directIssue";
-    }
-  | {
-      linkExpirationDate?: dayjs.Dayjs | null;
-      linkExpirationTime?: dayjs.Dayjs | null;
-      linkMaximumIssuance?: string;
-      type: "credentialLink";
-    };
 
 export function IssuanceMethodForm({
   initialValues,

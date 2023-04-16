@@ -1,5 +1,6 @@
 import { Button, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
 import dayjs from "dayjs";
+import { IssueCredentialFormData } from "src/adapters/parsers/forms";
 
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
@@ -9,11 +10,6 @@ import { CredentialSubjectForm } from "src/components/credentials/CredentialSubj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
-
-export type IssueCredentialFormData = {
-  credentialSubject?: Record<string, unknown>;
-  expirationDate?: dayjs.Dayjs | null;
-};
 
 export function IssueCredentialForm({
   initialValues,

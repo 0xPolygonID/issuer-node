@@ -6,15 +6,15 @@ import { z } from "zod";
 
 import { createLink } from "src/adapters/api/credentials";
 import { getSchemaFromUrl } from "src/adapters/jsonSchemas";
-import { credentialFormParser, serializeCredentialForm } from "src/adapters/parsers/forms";
 import {
-  IssuanceMethodForm,
-  IssuanceMethodFormData,
-} from "src/components/credentials/IssuanceMethodForm";
-import {
-  IssueCredentialForm,
-  IssueCredentialFormData,
-} from "src/components/credentials/IssueCredentialForm";
+  CredentialFormInput,
+  CredentialLinkForm,
+  DirectIssueForm,
+  credentialFormParser,
+  serializeCredentialLinkForm,
+} from "src/adapters/parsers/forms";
+import { IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
+import { IssueCredentialForm } from "src/components/credentials/IssueCredentialForm";
 import { SelectSchema } from "src/components/credentials/SelectSchema";
 import { Summary } from "src/components/credentials/Summary";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -29,12 +29,7 @@ import { processZodError } from "src/utils/error";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
 
-interface Steps {
-  issuanceMethod: IssuanceMethodFormData;
-  issueCredential: IssueCredentialFormData;
-}
-
-const defaultSteps: Steps = {
+const defaultCredentialFormInput: CredentialFormInput = {
   issuanceMethod: {
     type: "credentialLink",
   },
@@ -53,7 +48,9 @@ export function IssueCredential() {
   const env = useEnvContext();
 
   const [step, setStep] = useState<Step>("issuanceMethod");
-  const [steps, setSteps] = useState<Steps>(defaultSteps);
+  const [credentialFormInput, setCredentialFormInput] = useState<CredentialFormInput>(
+    defaultCredentialFormInput
+  );
   const [schema, setSchema] = useState<Schema>();
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
     status: "pending",
@@ -67,40 +64,39 @@ export function IssueCredential() {
   const processError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const onCreateLink = (steps: Steps) => {
+  const createLinkFromCredentialLinkForm = (credentialLinkForm: CredentialLinkForm) => {
     if (schemaID) {
-      const parsedForm = credentialFormParser.safeParse(steps);
+      setLinkID({ status: "loading" });
+      const serializedCredentialForm = serializeCredentialLinkForm({
+        issueCredential: credentialLinkForm,
+        schemaID,
+      });
 
-      if (parsedForm.success) {
-        setLinkID({ status: "loading" });
-        const serializedCredentialForm = serializeCredentialForm({
-          issueCredential: parsedForm.data,
-          schemaID,
+      if (serializedCredentialForm.success) {
+        void createLink({
+          env,
+          payload: serializedCredentialForm.data,
+        }).then((response) => {
+          if (response.isSuccessful) {
+            setLinkID({ data: response.data.id, status: "successful" });
+            setStep("summary");
+
+            void message.success("Credential link created");
+          } else {
+            setLinkID({ error: undefined, status: "failed" });
+
+            void message.error(response.error.message);
+          }
         });
-
-        if (serializedCredentialForm.success) {
-          void createLink({
-            env,
-            payload: serializedCredentialForm.data,
-          }).then((response) => {
-            if (response.isSuccessful) {
-              setLinkID({ data: response.data.id, status: "successful" });
-              setStep("summary");
-
-              void message.success("Credential link created");
-            } else {
-              setLinkID({ error: undefined, status: "failed" });
-
-              void message.error(response.error.message);
-            }
-          });
-        } else {
-          processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
-        }
       } else {
-        processZodError(parsedForm.error).forEach((msg) => void message.error(msg));
+        processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
       }
     }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const issueCredentialFromDirectIssueForm = (directIssueForm: DirectIssueForm) => {
+    // ToDo: PID-508
   };
 
   const fetchJsonSchema = useCallback(
@@ -135,9 +131,9 @@ export function IssueCredential() {
 
   useEffect(() => {
     if (schemaID) {
-      setSteps((currentSteps) => ({
-        ...currentSteps,
-        issueCredential: defaultSteps.issueCredential,
+      setCredentialFormInput((currentCredentialFormInput) => ({
+        ...currentCredentialFormInput,
+        issueCredential: defaultCredentialFormInput.issueCredential,
       }));
     }
   }, [schemaID]);
@@ -154,9 +150,9 @@ export function IssueCredential() {
           case "issuanceMethod": {
             return (
               <IssuanceMethodForm
-                initialValues={steps.issuanceMethod}
+                initialValues={credentialFormInput.issuanceMethod}
                 onSubmit={(values) => {
-                  setSteps({ ...steps, issuanceMethod: values });
+                  setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
                   setStep("issueCredential");
                 }}
               />
@@ -185,7 +181,7 @@ export function IssueCredential() {
                         case "successful": {
                           return (
                             <IssueCredentialForm
-                              initialValues={steps.issueCredential}
+                              initialValues={credentialFormInput.issueCredential}
                               jsonSchema={jsonSchema.data}
                               onBack={() => {
                                 setJsonSchema({ status: "pending" });
@@ -198,24 +194,38 @@ export function IssueCredential() {
                                       expirationDate: values.expirationDate.endOf("day"),
                                     }
                                   : values;
-                                const newSteps: Steps =
-                                  steps.issuanceMethod.type === "credentialLink" &&
+                                const newCredentialFormInput: CredentialFormInput =
+                                  credentialFormInput.issuanceMethod.type === "credentialLink" &&
                                   updatedValues.expirationDate?.isBefore(
-                                    steps.issuanceMethod.linkExpirationDate
+                                    credentialFormInput.issuanceMethod.linkExpirationDate
                                   )
                                     ? {
-                                        ...steps,
+                                        ...credentialFormInput,
                                         issuanceMethod: {
-                                          ...steps.issuanceMethod,
+                                          ...credentialFormInput.issuanceMethod,
                                           linkExpirationDate: undefined,
                                           linkExpirationTime: undefined,
                                         },
                                         issueCredential: updatedValues,
                                       }
-                                    : { ...steps, issueCredential: updatedValues };
+                                    : { ...credentialFormInput, issueCredential: updatedValues };
 
-                                setSteps(newSteps);
-                                onCreateLink(newSteps);
+                                setCredentialFormInput(newCredentialFormInput);
+
+                                const parsedForm =
+                                  credentialFormParser.safeParse(credentialFormInput);
+
+                                if (parsedForm.success) {
+                                  if (parsedForm.data.type === "credentialLink") {
+                                    createLinkFromCredentialLinkForm(parsedForm.data);
+                                  } else {
+                                    issueCredentialFromDirectIssueForm(parsedForm.data);
+                                  }
+                                } else {
+                                  processZodError(parsedForm.error).forEach(
+                                    (msg) => void message.error(msg)
+                                  );
+                                }
                               }}
                               schema={schema}
                             />
