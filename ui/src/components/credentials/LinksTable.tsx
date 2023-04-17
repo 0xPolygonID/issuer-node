@@ -238,10 +238,10 @@ export function LinksTable() {
   };
 
   const updateCredentialInState = (active: Link["active"], id: Link["id"]) => {
-    setLinks((oldLinks) =>
-      isAsyncTaskDataAvailable(oldLinks)
+    setLinks((previousLinks) =>
+      isAsyncTaskDataAvailable(previousLinks)
         ? {
-            data: oldLinks.data.reduce((links: Link[], currentLink: Link) => {
+            data: previousLinks.data.reduce((links: Link[], currentLink: Link) => {
               if (currentLink.id === id) {
                 if (status === currentLink.status) {
                   return links;
@@ -260,7 +260,7 @@ export function LinksTable() {
             }, []),
             status: "successful",
           }
-        : oldLinks
+        : previousLinks
     );
   };
 
@@ -296,18 +296,18 @@ export function LinksTable() {
 
   const onSearch = useCallback(
     (query: string) => {
-      setSearchParams((oldParams) => {
-        const oldQuery = oldParams.get(QUERY_SEARCH_PARAM);
-        const params = new URLSearchParams(oldParams);
+      setSearchParams((previousParams) => {
+        const previousQuery = previousParams.get(QUERY_SEARCH_PARAM);
+        const params = new URLSearchParams(previousParams);
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
           return params;
-        } else if (oldQuery !== query) {
+        } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
           return params;
         }
-        return oldParams;
+        return previousParams;
       });
     },
     [setSearchParams]
