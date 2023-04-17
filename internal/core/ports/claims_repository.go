@@ -28,4 +28,5 @@ type ClaimsRepository interface {
 	UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error)
 	Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error
 	GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error)
+	GetClaimsIssuedForUserWithoutSigProof(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error)
 }
