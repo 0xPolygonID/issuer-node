@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
+	"github.com/iden3/iden3comm/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -427,16 +428,13 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	if !request.Body.MtProof && !request.Body.SignatureProof {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}}, nil
 	}
-	if len(request.Body.Attributes) == 0 {
+	if len(request.Body.CredentialSubject) == 0 {
 		return CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}}, nil
 	}
 
-	attrs := make([]domain.CredentialAttrsRequest, len(request.Body.Attributes))
-	for i, at := range request.Body.Attributes {
-		attrs[i] = domain.CredentialAttrsRequest{
-			Name:  at.Name,
-			Value: at.Value,
-		}
+	credSubject := make(domain.CredentialSubject, len(request.Body.CredentialSubject))
+	for key, val := range request.Body.CredentialSubject {
+		credSubject[key] = val
 	}
 
 	if request.Body.LimitedClaims != nil {
@@ -451,7 +449,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	}
 
 	// Todo improve validations errors
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, attrs)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
 	if err != nil {
 		log.Error(ctx, "error saving the link", err.Error())
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
@@ -469,12 +467,8 @@ func (s *Server) GetLink(ctx context.Context, request GetLinkRequestObject) (Get
 		log.Error(ctx, "obtaining a link", "err", err.Error(), "id", request.Id)
 		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
 	}
-	linkResp, err := getLinkResponse(link)
-	if err != nil {
-		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
-		return GetLink500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
-	}
-	return GetLink200JSONResponse(*linkResp), nil
+
+	return GetLink200JSONResponse(getLinkResponse(*link)), nil
 }
 
 // GetLinks - Returns a list of links based on a search criteria.
@@ -491,12 +485,8 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 	if err != nil {
 		log.Error(ctx, "getting links", "err", err, "req", request)
 	}
-	linkCollection, err := getLinkResponses(links)
-	if err != nil {
-		log.Error(ctx, "link collection response constructor", "err", err.Error())
-		return GetLinks500JSONResponse{N500JSONResponse{Message: "error getting link collection"}}, nil
-	}
-	return GetLinks200JSONResponse(linkCollection), err
+
+	return GetLinks200JSONResponse(getLinkResponses(links)), err
 }
 
 // AcivateLink - Activates or deactivates a link
@@ -533,13 +523,6 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
-
-	linkDetail, err := getLinkResponse(createLinkQrCodeResponse.Link)
-	if err != nil {
-		log.Error(ctx, "link response constructor", "err", err, "id", request.Id)
-		return CreateLinkQrCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
-	}
-
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.APIUI.IssuerName,
@@ -562,7 +545,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 			Type: string(createLinkQrCodeResponse.QrCode.Type),
 		},
 		SessionID:  createLinkQrCodeResponse.SessionID,
-		LinkDetail: linkDetail,
+		LinkDetail: getLinkResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
 
@@ -604,23 +587,52 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	linkDetail, err := getLinkResponse(getQRCodeResponse.Link)
-	if err != nil {
-		log.Error(ctx, "link response constructor", "err", err.Error(), "id", request.Id)
-		return GetLinkQRCode500JSONResponse{N500JSONResponse{Message: "error getting link"}}, nil
-	}
-
 	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone || getQRCodeResponse.State.Status == link_state.StatusPendingPublish {
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),
-			LinkDetail: linkDetail,
+			LinkDetail: getLinkResponse(*getQRCodeResponse.Link),
 		}, nil
 	}
 
 	return GetLinkQRCode400JSONResponse{N400JSONResponse{
 		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
 	}}, nil
+}
+
+// Agent is the controller to fetch credentials from mobile
+func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error) {
+	if request.Body == nil || *request.Body == "" {
+		log.Debug(ctx, "agent empty request")
+		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
+	}
+	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
+	if err != nil {
+		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
+		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
+	}
+
+	req, err := ports.NewAgentRequest(basicMessage)
+	if err != nil {
+		log.Error(ctx, "agent parsing request", err)
+		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
+	}
+
+	agent, err := s.claimService.Agent(ctx, req)
+	if err != nil {
+		log.Error(ctx, "agent error", err)
+		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
+	}
+
+	return Agent200JSONResponse{
+		Body:     agent.Body,
+		From:     agent.From,
+		Id:       agent.ID,
+		ThreadID: agent.ThreadID,
+		To:       agent.To,
+		Typ:      string(agent.Typ),
+		Type:     string(agent.Type),
+	}, nil
 }
 
 func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {

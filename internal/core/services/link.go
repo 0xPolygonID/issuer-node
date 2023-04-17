@@ -69,16 +69,14 @@ func (ls *Link) Save(
 	credentialExpiration *time.Time,
 	credentialSignatureProof bool,
 	credentialMTPProof bool,
-	credentialAttributes []domain.CredentialAttrsRequest,
+	credentialSubject domain.CredentialSubject,
 ) (*domain.Link, error) {
 	schema, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
 		return nil, err
 	}
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof)
-	if err := link.ProcessAttributes(ctx, ls.loaderFactory(schema.URL), credentialAttributes); err != nil {
-		return nil, err
-	}
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
+
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -110,15 +108,13 @@ func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUI
 // GetByID returns a link by id and issuerDID
 func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
-	if errors.Is(err, repositories.ErrLinkDoesNotExist) {
-		return nil, ErrLinkNotFound
-	}
 	if err != nil {
+		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+			return nil, ErrLinkNotFound
+		}
 		return nil, err
 	}
-	if err := link.LoadAttributeTypes(ctx, ls.loaderFactory(link.Schema.URL)); err != nil {
-		return nil, err
-	}
+
 	return link, nil
 }
 
@@ -201,16 +197,11 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		return err
 	}
 
-	credentialSubject := make(map[string]any)
-
-	credentialSubject["id"] = userDID.String()
-	for _, credAtt := range link.CredentialAttributes {
-		credentialSubject[credAtt.Name] = credAtt.Value
-	}
+	link.CredentialSubject["id"] = userDID.String()
 
 	claimReq := ports.NewCreateClaimRequest(&issuerDID,
 		schema.URL,
-		credentialSubject,
+		link.CredentialSubject,
 		link.CredentialExpiration,
 		schema.Type,
 		nil, nil, nil,
