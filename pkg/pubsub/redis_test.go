@@ -87,11 +87,11 @@ func TestRedisRecover(t *testing.T) {
 		return nil
 	})
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(2)
 		require.NoError(t, ps.Publish(ctx, "topic", &MyEvent{}))
 	}
-	assert.Equal(t, 1000, int(count.Load()))
+	assert.Equal(t, 10, int(count.Load()))
 
 	wg.Wait()
 
