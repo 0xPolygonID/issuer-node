@@ -9,6 +9,7 @@ import {
   ResultOK,
   buildAPIError,
   buildAuthorizationHeader,
+  resultOKMessage,
 } from "src/adapters/api";
 import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
@@ -96,7 +97,7 @@ export async function revokeCredential({
       method: "POST",
       url: `${API_VERSION}/credentials/revoke/${nonce}`,
     });
-    const { data } = resultRevokeCredential.parse(response);
+    const { data } = resultAcceptedMessage.parse(response);
 
     return { data: data.message, isSuccessful: true };
   } catch (error) {
@@ -104,7 +105,7 @@ export async function revokeCredential({
   }
 }
 
-const resultRevokeCredential = getStrictParser<ResultAccepted<{ message: string }>>()(
+const resultAcceptedMessage = getStrictParser<ResultAccepted<{ message: string }>>()(
   z.object({
     data: z.object({
       message: z.string(),
@@ -137,15 +138,6 @@ export async function deleteCredential({
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
-
-const resultOKMessage = getStrictParser<ResultOK<{ message: string }>>()(
-  z.object({
-    data: z.object({
-      message: z.string(),
-    }),
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
 
 export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
