@@ -51,6 +51,17 @@ const (
 	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
+// AgentResponse defines model for AgentResponse.
+type AgentResponse struct {
+	Body     interface{} `json:"body"`
+	From     string      `json:"from"`
+	Id       string      `json:"id"`
+	ThreadID string      `json:"threadID"`
+	To       string      `json:"to"`
+	Typ      string      `json:"typ"`
+	Type     string      `json:"type"`
+}
+
 // AuthenticationQrCodeResponse defines model for AuthenticationQrCodeResponse.
 type AuthenticationQrCodeResponse struct {
 	Body struct {
@@ -273,6 +284,9 @@ type N422 = GenericErrorMessage
 // N500 defines model for 500.
 type N500 = GenericErrorMessage
 
+// AgentTextBody defines parameters for Agent.
+type AgentTextBody = string
+
 // AuthCallbackTextBody defines parameters for AuthCallback.
 type AuthCallbackTextBody = string
 
@@ -362,6 +376,9 @@ type GetSchemasParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
+// AgentTextRequestBody defines body for Agent for text/plain ContentType.
+type AgentTextRequestBody = AgentTextBody
+
 // AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
 type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
@@ -391,6 +408,9 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
+	// Agent
+	// (POST /v1/agent)
+	Agent(w http.ResponseWriter, r *http.Request)
 	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
@@ -519,6 +539,21 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Agent operation middleware
+func (siw *ServerInterfaceWrapper) Agent(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Agent(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1423,6 +1458,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/agent", wrapper.Agent)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/authentication/callback", wrapper.AuthCallback)
 	})
 	r.Group(func(r chi.Router) {
@@ -1566,6 +1604,41 @@ func (response Health200JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 type Health500JSONResponse struct{ N500JSONResponse }
 
 func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentRequestObject struct {
+	Body *AgentTextRequestBody
+}
+
+type AgentResponseObject interface {
+	VisitAgentResponse(w http.ResponseWriter) error
+}
+
+type Agent200JSONResponse AgentResponse
+
+func (response Agent200JSONResponse) VisitAgentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Agent400JSONResponse struct{ N400JSONResponse }
+
+func (response Agent400JSONResponse) VisitAgentResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type Agent500JSONResponse struct{ N500JSONResponse }
+
+func (response Agent500JSONResponse) VisitAgentResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2571,6 +2644,9 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
+	// Agent
+	// (POST /v1/agent)
+	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
 	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
@@ -2749,6 +2825,38 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(HealthResponseObject); ok {
 		if err := validResponse.VisitHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// Agent operation middleware
+func (sh *strictHandler) Agent(w http.ResponseWriter, r *http.Request) {
+	var request AgentRequestObject
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AgentTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Agent(ctx, request.(AgentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Agent")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AgentResponseObject); ok {
+		if err := validResponse.VisitAgentResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
