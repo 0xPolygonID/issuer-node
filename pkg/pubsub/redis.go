@@ -61,6 +61,11 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 	pubsub := rdb.conn.Subscribe(ctx, topic)
 	go func() {
 		var payload payload
+		defer func() {
+			if err := pubsub.Close(); err != nil {
+				rdb.log(ctx, "closing redis pubsub on subscriber", "err", err)
+			}
+		}()
 		messages := pubsub.Channel()
 		for {
 			select {
