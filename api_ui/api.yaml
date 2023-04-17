@@ -1286,7 +1286,7 @@ components:
         claimLinkExpiration:
           type: string
           format: date-time
-          example: 2022-08-17T12:43:32.720Z
+          example: 2023-04-17T11:40:43.681857-03:00
         limitedClaims:
           type: integer
           x-omitempty: false
