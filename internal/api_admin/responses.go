@@ -1,8 +1,6 @@
 package api_admin
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/iden3/go-schema-processor/verifiable"
@@ -176,59 +174,26 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	return msg
 }
 
-func getLinkResponse(link *domain.Link) (*Link, error) {
-	attrs := make([]LinkRequestAttributesType, len(link.CredentialAttributes))
-	for i, attr := range link.CredentialAttributes {
-		attrs[i].Name = attr.Name
-		switch attr.AttrType {
-		case domain.TypeString:
-			s, ok := attr.Value.(string)
-			if !ok {
-				return nil, fmt.Errorf("error converting <%v> to string", attr.Value)
-			}
-			attrs[i].Value = s
-		case domain.TypeInteger:
-			switch n := attr.Value.(type) {
-			case int, int8, int16, int32, int64, float32, float64:
-				attrs[i].Value = fmt.Sprintf("%d", n)
-			case json.Number:
-				attrs[i].Value = n.String()
-			default:
-				return nil, fmt.Errorf("error converting <%v> to string", attr.Value)
-			}
-		case domain.TypeBoolean:
-			b, ok := attr.Value.(bool)
-			if !ok {
-				return nil, fmt.Errorf("error converting <%v> to boolean", attr.Value)
-			}
-			attrs[i].Value = fmt.Sprintf("%t", b)
-		default:
-			return nil, fmt.Errorf("unknown type <%s>. Error converting <%v>", attr.AttrType, attr.Value)
-		}
+func getLinkResponse(link domain.Link) Link {
+	return Link{
+		Active:            link.Active,
+		CredentialSubject: link.CredentialSubject,
+		Expiration:        link.ValidUntil,
+		Id:                link.ID,
+		IssuedClaims:      link.IssuedClaims,
+		MaxIssuance:       link.MaxIssuance,
+		SchemaType:        link.Schema.Type,
+		SchemaUrl:         link.Schema.URL,
+		Status:            LinkStatus(link.Status()),
 	}
-	return &Link{
-		Active:       link.Active,
-		Attributes:   attrs,
-		Expiration:   link.ValidUntil,
-		Id:           link.ID,
-		IssuedClaims: link.IssuedClaims, // TODO: Give a value when link redemption is implemented
-		MaxIssuance:  link.MaxIssuance,
-		SchemaType:   link.Schema.Type,
-		SchemaUrl:    link.Schema.URL,
-		Status:       LinkStatus(link.Status()),
-	}, nil
 }
 
-func getLinkResponses(links []domain.Link) ([]Link, error) {
-	ret := make([]Link, len(links))
+func getLinkResponses(links []domain.Link) []Link {
+	res := make([]Link, len(links))
 	for i, link := range links {
-		linkRes, err := getLinkResponse(&link)
-		if err != nil {
-			return nil, err
-		}
-		ret[i] = *linkRes
+		res[i] = getLinkResponse(link)
 	}
-	return ret, nil
+	return res
 }
 
 func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {

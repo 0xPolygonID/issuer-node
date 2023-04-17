@@ -1,10 +1,8 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,8 +11,6 @@ import (
 	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
 const (
@@ -23,11 +19,8 @@ const (
 	TypeBoolean = "boolean" // TypeBoolean is a boolean schema attribute type
 )
 
-// CredentialAttrsRequest holds a credential attribute item in string, string format as it is coming in the request.
-type CredentialAttrsRequest struct {
-	Name  string
-	Value string
-}
+// CredentialSubject holds a credential attribute item in string, string format as it is coming in the request.
+type CredentialSubject map[string]interface{}
 
 // LinkRequestMessageMessageBody - TODO
 type LinkRequestMessageMessageBody struct {
@@ -77,7 +70,7 @@ type Link struct {
 	CredentialExpiration     *time.Time
 	CredentialSignatureProof bool
 	CredentialMTPProof       bool
-	CredentialAttributes     []CredentialAttributes
+	CredentialSubject        CredentialSubject
 	Active                   bool
 	Schema                   *Schema
 	IssuedClaims             int // TODO: Give a value when link redemption is implemented
@@ -90,8 +83,9 @@ func NewLink(
 	validUntil *time.Time,
 	schemaID uuid.UUID,
 	credentialExpiration *time.Time,
-	CredentialSignatureProof bool,
-	CredentialMTPProof bool,
+	credentialSignatureProof bool,
+	credentialMTPProof bool,
+	credentialSubject CredentialSubject,
 ) *Link {
 	return &Link{
 		ID:                       uuid.New(),
@@ -100,9 +94,9 @@ func NewLink(
 		ValidUntil:               validUntil,
 		SchemaID:                 schemaID,
 		CredentialExpiration:     credentialExpiration,
-		CredentialSignatureProof: CredentialSignatureProof,
-		CredentialMTPProof:       CredentialMTPProof,
-		CredentialAttributes:     make([]CredentialAttributes, 0),
+		CredentialSignatureProof: credentialSignatureProof,
+		CredentialMTPProof:       credentialMTPProof,
+		CredentialSubject:        credentialSubject,
 		Active:                   true,
 		IssuedClaims:             0,
 	}
@@ -145,72 +139,4 @@ func (l *Link) Status() string {
 		}
 	}
 	return linkActive
-}
-
-// LoadAttributeTypes uses the remote schema to add attribute types to the list of CredentialAttributes.
-// This is needed to load data from the DB because we are not storing the attribute types on it.
-func (l *Link) LoadAttributeTypes(ctx context.Context, ld loader.Loader) error {
-	schema, err := jsonschema.Load(ctx, ld)
-	if err != nil {
-		return err
-	}
-	for i, credentialAttr := range l.CredentialAttributes {
-		attrData, err := schema.AttributeByID(credentialAttr.Name)
-		if err != nil {
-			return err
-		}
-		l.CredentialAttributes[i].AttrType = attrData.Type
-	}
-	return nil
-}
-
-// ProcessAttributes - validates an array of attributes against the schema and populates field CredentialAttributes
-func (l *Link) ProcessAttributes(ctx context.Context, ld loader.Loader, attrs []CredentialAttrsRequest) error {
-	schema, err := jsonschema.Load(ctx, ld)
-	if err != nil {
-		return err
-	}
-	schemaAttributes, err := schema.Attributes()
-	if err != nil {
-		return fmt.Errorf("processing schema: %w", err)
-	}
-	if len(schemaAttributes) != (len(attrs) + 1) { // +1 because of extra attr @context in json credential files
-		return fmt.Errorf("the number of attributes is not valid")
-	}
-	for _, attr := range attrs {
-		attrData, err := schema.AttributeByID(attr.Name)
-		if err != nil {
-			return err
-		}
-		value, aType, err := validateCredentialLinkAttribute(*attrData, attr.Name, attr.Value)
-		if err != nil {
-			return err
-		}
-		l.CredentialAttributes = append(l.CredentialAttributes, CredentialAttributes{
-			Name:     attr.Name,
-			Value:    value,
-			AttrType: aType,
-		})
-	}
-	return nil
-}
-
-func validateCredentialLinkAttribute(attr jsonschema.Attribute, name string, val string) (interface{}, string, error) {
-	switch attr.Type {
-	case TypeString:
-		return val, TypeString, nil
-	case TypeInteger:
-		i, err := strconv.Atoi(val)
-		if err != nil {
-			return nil, TypeInteger, fmt.Errorf("converting attribute <%s> :%w", name, err)
-		}
-		return i, TypeInteger, nil
-	case TypeBoolean:
-		b, err := strconv.ParseBool(val)
-		if err != nil {
-			return nil, TypeBoolean, fmt.Errorf("converting attribute <%s> :%w", name, err)
-		}
-		return b, TypeBoolean, nil
-	}
-	return nil, attr.Type, fmt.Errorf("converting attribute <%s>", name)
 }

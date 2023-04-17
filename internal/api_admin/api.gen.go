@@ -77,13 +77,13 @@ type CreateCredentialRequest struct {
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	Attributes          []LinkRequestAttributesType `json:"attributes"`
-	ClaimLinkExpiration *time.Time                  `json:"claimLinkExpiration,omitempty"`
-	ExpirationDate      *openapi_types.Date         `json:"expirationDate,omitempty"`
-	LimitedClaims       *int                        `json:"limitedClaims"`
-	MtProof             bool                        `json:"mtProof"`
-	SchemaID            uuid.UUID                   `json:"schemaID"`
-	SignatureProof      bool                        `json:"signatureProof"`
+	ClaimLinkExpiration *time.Time          `json:"claimLinkExpiration,omitempty"`
+	CredentialSubject   CredentialSubject   `json:"credentialSubject"`
+	ExpirationDate      *openapi_types.Date `json:"expirationDate,omitempty"`
+	LimitedClaims       *int                `json:"limitedClaims"`
+	MtProof             bool                `json:"mtProof"`
+	SchemaID            uuid.UUID           `json:"schemaID"`
+	SignatureProof      bool                `json:"signatureProof"`
 }
 
 // Credential defines model for Credential.
@@ -103,10 +103,13 @@ type Credential struct {
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
 type CredentialLinkQrCodeResponse struct {
 	Issuer     IssuerDescription            `json:"issuer"`
-	LinkDetail *Link                        `json:"linkDetail,omitempty"`
+	LinkDetail Link                         `json:"linkDetail"`
 	QrCode     AuthenticationQrCodeResponse `json:"qrCode"`
 	SessionID  string                       `json:"sessionID"`
 }
+
+// CredentialSubject defines model for CredentialSubject.
+type CredentialSubject = map[string]interface{}
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -138,7 +141,7 @@ type GetLinkQrCodeCredentialsResponseType struct {
 
 // GetLinkQrCodeResponse defines model for GetLinkQrCodeResponse.
 type GetLinkQrCodeResponse struct {
-	LinkDetail *Link                      `json:"linkDetail,omitempty"`
+	LinkDetail Link                       `json:"linkDetail"`
 	QrCode     *GetLinkQrCodeResponseType `json:"qrCode,omitempty"`
 	Status     *string                    `json:"status,omitempty"`
 }
@@ -177,25 +180,19 @@ type IssuerDescription struct {
 
 // Link defines model for Link.
 type Link struct {
-	Active       bool                        `json:"active"`
-	Attributes   []LinkRequestAttributesType `json:"attributes"`
-	Expiration   *time.Time                  `json:"expiration,omitempty"`
-	Id           uuid.UUID                   `json:"id"`
-	IssuedClaims int                         `json:"issuedClaims"`
-	MaxIssuance  *int                        `json:"maxIssuance"`
-	SchemaType   string                      `json:"schemaType"`
-	SchemaUrl    string                      `json:"schemaUrl"`
-	Status       LinkStatus                  `json:"status"`
+	Active            bool              `json:"active"`
+	CredentialSubject CredentialSubject `json:"credentialSubject"`
+	Expiration        *time.Time        `json:"expiration,omitempty"`
+	Id                uuid.UUID         `json:"id"`
+	IssuedClaims      int               `json:"issuedClaims"`
+	MaxIssuance       *int              `json:"maxIssuance"`
+	SchemaType        string            `json:"schemaType"`
+	SchemaUrl         string            `json:"schemaUrl"`
+	Status            LinkStatus        `json:"status"`
 }
 
 // LinkStatus defines model for Link.Status.
 type LinkStatus string
-
-// LinkRequestAttributesType defines model for LinkRequestAttributesType.
-type LinkRequestAttributesType struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {

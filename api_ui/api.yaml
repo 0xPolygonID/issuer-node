@@ -903,6 +903,7 @@ components:
         - qrCode
         - sessionID
         - linkID
+        - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
@@ -929,6 +930,8 @@ components:
 
     GetLinkQrCodeResponse:
       type: object
+      required:
+        - linkDetail
       properties:
         qrCode:
           $ref: '#/components/schemas/GetLinkQrCodeResponseType'
@@ -1021,7 +1024,7 @@ components:
         - id
         - schemaUrl
         - schemaType
-        - attributes
+        - credentialSubject
         - issuedClaims
         - active
         - status
@@ -1037,10 +1040,8 @@ components:
           type: string
         schemaType:
           type: string
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/LinkRequestAttributesType'
+        credentialSubject:
+          $ref: '#/components/schemas/CredentialSubject'
         maxIssuance:
           type: integer
           x-omitempty: false
@@ -1247,7 +1248,7 @@ components:
         - schemaID
         - signatureProof
         - mtProof
-        - attributes
+        - credentialSubject
       properties:
         schemaID:
           type: string
@@ -1268,22 +1269,16 @@ components:
           type: boolean
         mtProof:
           type: boolean
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/LinkRequestAttributesType'
+        credentialSubject:
+          $ref: '#/components/schemas/CredentialSubject'
 
-    LinkRequestAttributesType:
-      allOf:
-        - type: object
-          required: [ "name", "value" ]
-          properties:
-            name:
-              type: string
-              example: birthday
-            value:
-              type: string
-              x-omitempty: false
+    CredentialSubject:
+      type: object
+      x-omitempty: false
+      example:
+        birthday: 19960424
+        documentType: 2
+        type: "KYCAgeCredential"
 
   parameters:
     sessionID:
