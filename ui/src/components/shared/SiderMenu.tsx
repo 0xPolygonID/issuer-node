@@ -1,28 +1,34 @@
-import { Col, Divider, Menu, Row, Space, Typography } from "antd";
+import { Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
+import { ReactComponent as IconIssuerState } from "src/assets/icons/switch-horizontal.svg";
 import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
+import { useStateContext } from "src/contexts/issuer-state";
 import { ROUTES } from "src/routes";
+import { isAsyncTaskDataAvailable } from "src/utils/async";
 import {
   CONNECTIONS,
   CREDENTIALS,
   CREDENTIALS_TABS,
+  ISSUER_STATE,
   SCHEMAS,
   TUTORIALS_URL,
 } from "src/utils/constants";
 
 export function SiderMenu() {
+  const { status } = useStateContext();
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   const connectionsPath = ROUTES.connections.path;
   const credentialsPath = ROUTES.credentials.path;
+  const issuerStatePath = ROUTES.issuerState.path;
   const schemasPath = ROUTES.schemas.path;
 
   const getSelectedKey = (): string[] => {
@@ -45,6 +51,8 @@ export function SiderMenu() {
       matchRoutes([{ path: connectionsPath }, { path: ROUTES.connectionDetails.path }], pathname)
     ) {
       return [connectionsPath];
+    } else if (matchRoutes([{ path: issuerStatePath }], pathname)) {
+      return [issuerStatePath];
     }
 
     return [];
@@ -81,6 +89,22 @@ export function SiderMenu() {
               key: connectionsPath,
               label: CONNECTIONS,
               onClick: () => navigate(connectionsPath),
+            },
+            {
+              icon: <IconIssuerState />,
+              key: issuerStatePath,
+              label:
+                isAsyncTaskDataAvailable(status) && status.data ? (
+                  <Space>
+                    {ISSUER_STATE}
+                    <Tag color="purple" style={{ fontSize: 12 }}>
+                      Pending actions
+                    </Tag>
+                  </Space>
+                ) : (
+                  ISSUER_STATE
+                ),
+              onClick: () => navigate(issuerStatePath),
             },
           ]}
           selectedKeys={getSelectedKey()}

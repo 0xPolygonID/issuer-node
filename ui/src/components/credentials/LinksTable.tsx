@@ -38,6 +38,7 @@ import {
   ACCESSIBLE_UNTIL,
   LINKS,
   QUERY_SEARCH_PARAM,
+  STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -191,7 +192,7 @@ export function LinksTable() {
         </Row>
       ),
       sorter: ({ status: a }, { status: b }) => a.localeCompare(b),
-      title: "Status",
+      title: STATUS,
       width: 140,
     },
   ];

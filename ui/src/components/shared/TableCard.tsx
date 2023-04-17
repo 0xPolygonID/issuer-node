@@ -18,16 +18,16 @@ export function TableCard({
   defaultContents: ReactNode;
   extraButton?: ReactNode;
   isLoading: boolean;
-  onSearch: (value: string) => void;
-  query: string | null;
-  searchPlaceholder: string;
+  onSearch?: (value: string) => void;
+  query?: string | null;
+  searchPlaceholder?: string;
   showDefaultContents: boolean;
   table: ReactNode;
   title: ReactNode;
 }) {
   return (
     <Card bodyStyle={{ padding: 0 }} title={title}>
-      {!showDefaultContents && (
+      {!showDefaultContents && onSearch && searchPlaceholder && query !== undefined && (
         <Row gutter={16} style={{ padding: "16px 12px" }}>
           <Col flex={extraButton ? 1 : 0.6}>
             <SearchBox onSearch={onSearch} placeholder={searchPlaceholder} query={query} />

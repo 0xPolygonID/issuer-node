@@ -67,15 +67,16 @@ export function IssuedTable() {
 
   const tableColumns: ColumnsType<Credential> = [
     {
-      dataIndex: "attributes",
+      dataIndex: "credentialSubject",
       ellipsis: { showTitle: false },
-      key: "attributes",
-      render: (attributes: Credential["attributes"]) => (
-        <Tooltip placement="topLeft" title={attributes.type}>
-          <Typography.Text strong>{attributes.type}</Typography.Text>
+      key: "credentialSubject",
+      render: (credentialSubject: Credential["credentialSubject"]) => (
+        <Tooltip placement="topLeft" title={credentialSubject.type}>
+          <Typography.Text strong>{credentialSubject.type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ attributes: { type: a } }, { attributes: { type: b } }) => a.localeCompare(b),
+      sorter: ({ credentialSubject: { type: a } }, { credentialSubject: { type: b } }) =>
+        a.localeCompare(b),
       title: CREDENTIALS,
     },
     {

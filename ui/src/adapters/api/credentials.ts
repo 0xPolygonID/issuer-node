@@ -19,10 +19,10 @@ import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/
 
 export const credentialParser = getStrictParser<Credential>()(
   z.object({
-    attributes: z.object({
+    createdAt: z.coerce.date(),
+    credentialSubject: z.object({
       type: z.string(),
     }),
-    createdAt: z.coerce.date(),
     expired: z.boolean().optional(),
     expiresAt: z.coerce.date().optional(),
     id: z.string(),

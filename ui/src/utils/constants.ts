@@ -13,11 +13,13 @@ export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
 export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
+export const ISSUER_STATE = "Issuer state";
 export const LINKS = "Links";
 export const REVOCATION = "Revocation";
 export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
+export const STATUS = "Status";
 
 // URL params
 export const QUERY_SEARCH_PARAM = "query";

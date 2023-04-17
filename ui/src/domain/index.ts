@@ -13,6 +13,8 @@ export type {
 
 export type { Env } from "src/domain/env";
 
+export type { Transaction, TransactionStatus } from "src/domain/issuer-state";
+
 export type { Json, JsonLiteral, JsonLdType } from "src/domain/json";
 
 export type {
