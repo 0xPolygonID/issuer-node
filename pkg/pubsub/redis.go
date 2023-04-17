@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-
-	"github.com/polygonid/sh-id-platform/internal/log"
 )
+
+type logger func(ctx context.Context, msg string, args ...any)
 
 // payload is the wrapper we will use to send pubsub messages to redis.
 // ID is a unique identifier that could be used to ensure idempotency
@@ -29,11 +29,17 @@ func (p payload) MarshalBinary() (data []byte, err error) {
 // RedisClient struct
 type RedisClient struct {
 	conn *redis.Client
+	log  logger
 }
 
 // NewRedis returns a redis pubsub client
-func NewRedis(rdb *redis.Client) Client {
-	return &RedisClient{rdb}
+func NewRedis(rdb *redis.Client) *RedisClient {
+	return &RedisClient{conn: rdb, log: func(ctx context.Context, msg string, args ...any) {}}
+}
+
+// WithLogger inject a function log that will be used from now on to log errors.
+func (rdb *RedisClient) WithLogger(logFn logger) {
+	rdb.log = logFn
 }
 
 // Publish publishes a new topic payload
@@ -59,15 +65,15 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 			select {
 			case event := <-pubsub.Channel():
 				if event.Channel != topic {
-					log.Error(ctx, "redis pubsub: msg channel != topic")
+					rdb.log(ctx, "redis pubsub: msg channel != topic")
 					continue
 				}
 				if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {
-					log.Error(ctx, "redis pubsub: unmarshalling payload event")
+					rdb.log(ctx, "redis pubsub: unmarshalling payload event")
 					continue
 				}
 				if err := callback(ctx, payload.Msg); err != nil {
-					log.Error(ctx, "executing callback function", "err", err)
+					rdb.log(ctx, "executing callback function", "err", err)
 				}
 
 			case <-ctx.Done():

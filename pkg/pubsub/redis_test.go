@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 )
 
@@ -37,6 +38,7 @@ func TestRedisHappyPath(t *testing.T) {
 	wg := sync.WaitGroup{}
 
 	ps := NewRedis(client)
+	ps.WithLogger(log.Debug)
 	ps.Subscribe(ctx, "topic", func(ctx context.Context, payload Message) error {
 		defer wg.Done()
 		var ev MyEvent

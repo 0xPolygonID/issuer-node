@@ -63,6 +63,7 @@ func main() {
 		return
 	}
 	ps := pubsub.NewRedis(rdb)
+	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
 	var schemaLoader loader.Factory
 	if cfg.SchemaCache == nil || !*cfg.SchemaCache {

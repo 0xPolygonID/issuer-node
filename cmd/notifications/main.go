@@ -52,6 +52,7 @@ func main() {
 	}
 
 	ps := pubsub.NewRedis(rdb)
+	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
