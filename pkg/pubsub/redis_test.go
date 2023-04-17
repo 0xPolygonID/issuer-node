@@ -65,6 +65,7 @@ func TestRedisHappyPath(t *testing.T) {
 }
 
 func TestRedisRecover(t *testing.T) {
+	const nEvents = 100
 	ctx, cancel := context.WithCancel(context.Background())
 	s := miniredis.RunT(t)
 	client, err := redis.Open("redis://" + s.Addr())
@@ -79,7 +80,6 @@ func TestRedisRecover(t *testing.T) {
 		panic("la hemos liado parda")
 	})
 	var count atomic.Int64
-	count.Store(1)
 	// ... but this other methods still run without problems
 	ps.Subscribe(ctx, "topic", func(ctx context.Context, payload Message) error {
 		defer wg.Done()
@@ -87,13 +87,14 @@ func TestRedisRecover(t *testing.T) {
 		return nil
 	})
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < nEvents; i++ {
 		wg.Add(2)
 		require.NoError(t, ps.Publish(ctx, "topic", &MyEvent{}))
 	}
-	assert.Equal(t, 10, int(count.Load()))
 
 	wg.Wait()
+
+	assert.Equal(t, nEvents, int(count.Load()))
 
 	cancel()
 }
