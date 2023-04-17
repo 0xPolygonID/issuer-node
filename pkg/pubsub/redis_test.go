@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
@@ -57,6 +58,40 @@ func TestRedisHappyPath(t *testing.T) {
 		Field3: -15,
 		Field4: true,
 	}))
+
+	wg.Wait()
+
+	cancel()
+}
+
+func TestRedisRecover(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	s := miniredis.RunT(t)
+	client, err := redis.Open("redis://" + s.Addr())
+	require.NoError(t, err)
+
+	wg := sync.WaitGroup{}
+
+	ps := NewRedis(client)
+	// This method panics ...
+	ps.Subscribe(ctx, "topic", func(ctx context.Context, payload Message) error {
+		defer wg.Done()
+		panic("la hemos liado parda")
+	})
+	var count atomic.Int64
+	count.Store(1)
+	// ... but this other methods still run without problems
+	ps.Subscribe(ctx, "topic", func(ctx context.Context, payload Message) error {
+		defer wg.Done()
+		count.Add(1)
+		return nil
+	})
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(2)
+		require.NoError(t, ps.Publish(ctx, "topic", &MyEvent{}))
+	}
+	assert.Equal(t, 1000, int(count.Load()))
 
 	wg.Wait()
 

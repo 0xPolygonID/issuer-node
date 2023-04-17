@@ -72,9 +72,16 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 					rdb.log(ctx, "redis pubsub: unmarshalling payload event")
 					continue
 				}
-				if err := callback(ctx, payload.Msg); err != nil {
-					rdb.log(ctx, "executing callback function", "err", err)
-				}
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							rdb.log(ctx, "panic in event handler", "r", r, "topic", topic)
+						}
+					}()
+					if err := callback(ctx, payload.Msg); err != nil {
+						rdb.log(ctx, "executing callback function", "err", err, "topic", topic)
+					}
+				}()
 
 			case <-ctx.Done():
 				return
