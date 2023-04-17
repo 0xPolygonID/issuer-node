@@ -421,7 +421,7 @@ func (s *Server) RevokeConnectionCredentials(ctx context.Context, request Revoke
 // CreateLink - creates a link for issuing a credential
 func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
 	if request.Body.ClaimLinkExpiration != nil {
-		if isBeforeTomorrow(*request.Body.ClaimLinkExpiration) {
+		if isBeforeNow(*request.Body.ClaimLinkExpiration) {
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
@@ -663,10 +663,9 @@ func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCrede
 	return filter, nil
 }
 
-func isBeforeTomorrow(t time.Time) bool {
+func isBeforeNow(t time.Time) bool {
 	today := time.Now().UTC()
-	tomorrow := time.Date(today.Year(), today.Month(), today.Day()+1, 0, 0, 0, 0, time.UTC)
-	return t.Before(tomorrow)
+	return t.Before(today)
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.
