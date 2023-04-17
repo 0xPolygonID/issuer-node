@@ -180,7 +180,7 @@ export function serializeCredentialLinkForm({
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
   const parsedCredentialSubject = formParser.safeParse(credentialSubject);
   if (parsedCredentialSubject.success) {
-    const expirationDate = expiration ? dayjs(expiration).toISOString() : null;
+    const expirationDate = expiration ? dayjs(expiration).format("YYYY-MM-DD") : null;
     const claimLinkExpiration = linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null;
     const limitedClaims = linkMaximumIssuance !== undefined ? linkMaximumIssuance : null;
 

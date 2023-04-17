@@ -213,7 +213,7 @@ export function IssueCredential() {
                                 setCredentialFormInput(newCredentialFormInput);
 
                                 const parsedForm =
-                                  credentialFormParser.safeParse(credentialFormInput);
+                                  credentialFormParser.safeParse(newCredentialFormInput);
 
                                 if (parsedForm.success) {
                                   if (parsedForm.data.type === "credentialLink") {
