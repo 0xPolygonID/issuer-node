@@ -14,9 +14,10 @@ import {
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { getTransactions, publishState } from "src/adapters/api/issuer-state";
+import { getTransactions, publishState, retryState } from "src/adapters/api/issuer-state";
 import { ReactComponent as IconSwitch } from "src/assets/icons/switch-horizontal.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
@@ -33,13 +34,23 @@ import { formatDate } from "src/utils/forms";
 export function IssuerState() {
   const env = useEnvContext();
   const { refreshStatus, status } = useStateContext();
+
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [transactions, setTransactions] = useState<AsyncTask<Transaction[], APIError>>({
     status: "pending",
   });
 
   const transactionsList = isAsyncTaskDataAvailable(transactions) ? transactions.data : [];
 
+  const failedTransaction = isAsyncTaskDataAvailable(transactions)
+    ? transactions.data.filter((transaction) => transaction.status === "failed")
+    : [];
+  const disablePublishState =
+    failedTransaction.length > 0 || !isAsyncTaskDataAvailable(status) || !status.data;
+
   const publish = () => {
+    setIsPublishing(true);
     void publishState({ env }).then((response) => {
       if (response.isSuccessful) {
         void message.success("Issuer state is being published");
@@ -48,6 +59,25 @@ export function IssuerState() {
       }
 
       void refreshStatus();
+      void fetchTransactions();
+
+      setIsPublishing(false);
+    });
+  };
+
+  const retry = () => {
+    setIsRetrying(true);
+    void retryState({ env }).then((response) => {
+      if (response.isSuccessful) {
+        void message.success("Issuer state is being published");
+      } else {
+        void message.error(response.error.message);
+      }
+
+      void refreshStatus();
+      void fetchTransactions();
+
+      setIsRetrying(false);
     });
   };
 
@@ -70,9 +100,11 @@ export function IssuerState() {
       ellipsis: { showTitle: false },
       key: "txID",
       render: (txID: Transaction["txID"]) => (
-        <Tooltip placement="topLeft" title={txID}>
-          <Typography.Text strong>{txID}</Typography.Text>
-        </Tooltip>
+        <Typography.Text strong>
+          <Link target="_blank" to={`${env.blockExplorer}/tx/${txID}`}>
+            {txID}
+          </Link>
+        </Typography.Text>
       ),
       title: "Transaction ID",
     },
@@ -107,6 +139,7 @@ export function IssuerState() {
           case "pending": {
             return <Tag color="warning">{status}</Tag>;
           }
+          case "transacted":
           case "published": {
             return <Tag color="success">{status}</Tag>;
           }
@@ -114,7 +147,9 @@ export function IssuerState() {
             return (
               <>
                 <Tag color="error">{status}</Tag>
-                <Button>Retry</Button>
+                <Button loading={isRetrying} onClick={retry} type="link">
+                  Retry
+                </Button>
               </>
             );
           }
@@ -131,6 +166,12 @@ export function IssuerState() {
     return aborter;
   }, [fetchTransactions]);
 
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(refreshStatus);
+
+    return aborter;
+  }, [refreshStatus]);
+
   return (
     <SiderLayoutContent
       description="Issuing merkle tree type credentials and revoking credentials require an additional step, know as publishing issuer state."
@@ -140,10 +181,12 @@ export function IssuerState() {
       <Space direction="vertical" size="large">
         <Card>
           <Row align="middle" justify="space-between">
-            <Card.Meta title={status ? "Pending actions to be published" : "No pending actions"} />
+            <Card.Meta
+              title={disablePublishState ? "No pending actions" : "Pending actions to be published"}
+            />
             <Button
-              disabled={!isAsyncTaskDataAvailable(status) || !status.data}
-              loading={isAsyncTaskStarting(status)}
+              disabled={disablePublishState}
+              loading={isPublishing || isAsyncTaskStarting(status)}
               onClick={publish}
               type="primary"
             >

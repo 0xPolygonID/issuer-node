@@ -1,4 +1,4 @@
-export type TransactionStatus = "created" | "pending" | "published" | "failed";
+export type TransactionStatus = "created" | "pending" | "transacted" | "published" | "failed";
 
 export interface Transaction {
   id: number;

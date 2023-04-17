@@ -13,7 +13,13 @@ import { Env, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
 
 const transactionStatusParser = getStrictParser<TransactionStatus>()(
-  z.union([z.literal("created"), z.literal("failed"), z.literal("pending"), z.literal("published")])
+  z.union([
+    z.literal("created"),
+    z.literal("failed"),
+    z.literal("pending"),
+    z.literal("published"),
+    z.literal("transacted"),
+  ])
 );
 
 const transactionParser = getStrictParser<Transaction>()(
@@ -35,6 +41,23 @@ export async function publishState({ env }: { env: Env }): Promise<APIResponse<b
       },
       method: "POST",
       url: `${API_VERSION}/state/publish`,
+    });
+
+    return { data: true, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function retryState({ env }: { env: Env }): Promise<APIResponse<boolean>> {
+  try {
+    await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/state/retry`,
     });
 
     return { data: true, isSuccessful: true };

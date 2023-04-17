@@ -4,6 +4,7 @@ export interface Env {
     url: string;
     username: string;
   };
+  blockExplorer: string;
   issuer: {
     did: string;
     logo?: string;
