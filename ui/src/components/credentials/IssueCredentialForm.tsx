@@ -17,19 +17,29 @@ export function IssueCredentialForm({
   onBack,
   onSubmit,
   schema,
+  type,
 }: {
   initialValues: IssueCredentialFormData;
   jsonSchema: JsonSchema;
   onBack: () => void;
   onSubmit: (values: IssueCredentialFormData) => void;
   schema: Schema;
+  type: "directIssue" | "credentialLink";
 }) {
-  const credentialSubjectAttributes =
+  const rawCredentialSubjectAttributes =
     (jsonSchema.type === "object" &&
       jsonSchema.schema.properties
         ?.filter((child): child is ObjectAttribute => child.type === "object")
         .find((child) => child.name === "credentialSubject")?.schema.properties) ||
     null;
+
+  // When creating a link, we are unable to provide the identity holder's did on the credential issuance form
+  // because the connection may not yet exist. Therefore, we have to filter this field and skip its validation.
+  const credentialSubjectAttributes =
+    type === "directIssue"
+      ? rawCredentialSubjectAttributes
+      : rawCredentialSubjectAttributes &&
+        rawCredentialSubjectAttributes.filter((attribute) => attribute.name !== "id");
 
   return credentialSubjectAttributes ? (
     <Form

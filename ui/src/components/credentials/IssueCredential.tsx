@@ -228,6 +228,7 @@ export function IssueCredential() {
                                 }
                               }}
                               schema={schema}
+                              type={credentialFormInput.issuanceMethod.type}
                             />
                           );
                         }
