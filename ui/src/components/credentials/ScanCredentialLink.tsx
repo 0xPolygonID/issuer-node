@@ -199,9 +199,10 @@ export function ScanCredentialLink() {
               </Typography.Title>
 
               {shareCredentialQRCode.data.linkDetail.attributes.map((attribute) => {
+                //TODO Credentials epic
                 // const formattedValue = formatAttributeValue(
                 //   attribute,
-                //   []
+                //   shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
                 // );
 
                 return (
@@ -210,9 +211,9 @@ export function ScanCredentialLink() {
                       {attribute.name}
                     </Typography.Text>
 
-                    <Typography.Text strong>
-                      {/* {formattedValue.success ? formattedValue.data : formattedValue.error} */}
-                    </Typography.Text>
+                    {/* <Typography.Text strong>
+                      {formattedValue.success ? formattedValue.data : formattedValue.error}
+                    </Typography.Text> */}
                   </Space>
                 );
               })}
