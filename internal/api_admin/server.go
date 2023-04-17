@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/iden3/iden3comm/packers"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
+	"github.com/iden3/iden3comm/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
