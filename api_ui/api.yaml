@@ -428,7 +428,32 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
+  #agent
+  /v1/agent:
+    post:
+      summary: Agent
+      operationId: Agent
+      description: Mobile agent endpoint
+      tags:
+        - Agent
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: TBD
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
 
 
@@ -1279,6 +1304,33 @@ components:
         birthday: 19960424
         documentType: 2
         type: "KYCAgeCredential"
+
+    #Agent
+    AgentResponse:
+      type: object
+      required:
+        - body
+        - id
+        - typ
+        - type
+        - threadID
+        - from
+        - to
+      properties:
+        id:
+          type: string
+        typ:
+          type: string
+        type:
+          type: string
+        threadID:
+          type: string
+        body:
+          type: null
+        from:
+          type: string
+        to:
+          type: string
 
   parameters:
     sessionID:
