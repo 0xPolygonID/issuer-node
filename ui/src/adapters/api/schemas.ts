@@ -4,6 +4,8 @@ import { z } from "zod";
 import {
   APIResponse,
   HTTPStatusSuccess,
+  ID,
+  IDParser,
   ResultOK,
   buildAPIError,
   buildAuthorizationHeader,
@@ -25,7 +27,7 @@ export async function importSchema({
   env: Env;
   jsonLdType: JsonLdType;
   schemaUrl: string;
-}): Promise<APIResponse<{ id: string }>> {
+}): Promise<APIResponse<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -39,7 +41,7 @@ export async function importSchema({
       method: "POST",
       url: `${API_VERSION}/schemas`,
     });
-    const { id } = z.object({ id: z.string() }).parse(response.data);
+    const { id } = IDParser.parse(response.data);
 
     return { data: { id }, isSuccessful: true };
   } catch (error) {

@@ -4,6 +4,8 @@ import { z } from "zod";
 import {
   APIResponse,
   HTTPStatusSuccess,
+  ID,
+  IDParser,
   ResultCreated,
   ResultOK,
   buildAPIError,
@@ -324,9 +326,9 @@ export async function getCredentialLinkQRCode({
   }
 }
 
-const resultCreateLinkParser = getStrictParser<ResultCreated<Link>>()(
+const resultCreateLinkParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
-    data: linkParser,
+    data: IDParser,
     status: z.literal(HTTPStatusSuccess.Created),
   })
 );
