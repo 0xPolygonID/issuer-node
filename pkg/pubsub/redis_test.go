@@ -77,7 +77,8 @@ func TestRedisRecover(t *testing.T) {
 	// This method panics ...
 	ps.Subscribe(ctx, "topic", func(ctx context.Context, payload Message) error {
 		defer wg.Done()
-		panic("la hemos liado parda")
+		panic("Simulating a panic")
+		return nil
 	})
 	var count atomic.Int64
 	// ... but this other methods still run without problems

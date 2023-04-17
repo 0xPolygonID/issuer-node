@@ -61,9 +61,10 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 	pubsub := rdb.conn.Subscribe(ctx, topic)
 	go func() {
 		var payload payload
+		messages := pubsub.Channel()
 		for {
 			select {
-			case event := <-pubsub.Channel():
+			case event := <-messages:
 				if event.Channel != topic {
 					rdb.log(ctx, "redis pubsub: msg channel != topic")
 					continue
