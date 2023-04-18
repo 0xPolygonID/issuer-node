@@ -39,7 +39,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
           url: VITE_API_URL,
           username: VITE_API_USERNAME,
         },
-        blockExplorer: VITE_BLOCK_EXPLORER_URL,
+        blockExplorerUrl: VITE_BLOCK_EXPLORER_URL,
         issuer: {
           did: VITE_ISSUER_DID,
           logo: VITE_ISSUER_LOGO,

@@ -12,7 +12,7 @@ const envDefaultValue: Env = {
     url: "",
     username: "",
   },
-  blockExplorer: "",
+  blockExplorerUrl: "",
   issuer: {
     did: "",
     name: "",
