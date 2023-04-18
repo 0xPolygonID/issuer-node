@@ -904,6 +904,7 @@ func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, 
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	claims := make([]*domain.Claim, 0)
 
@@ -933,7 +934,6 @@ func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, 
 		claims = append(claims, &claim)
 	}
 
-	defer rows.Close()
 	return claims, nil
 }
 
