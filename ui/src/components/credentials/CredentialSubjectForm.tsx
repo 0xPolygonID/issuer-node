@@ -48,7 +48,6 @@ function AnyAttribute({
         <CredentialSubjectForm
           attributes={attribute.schema.properties || []}
           parents={[...parents, attribute]}
-          space={false}
         />
       );
     }
@@ -58,13 +57,12 @@ function AnyAttribute({
 export function CredentialSubjectForm({
   attributes,
   parents = [],
-  space = true,
 }: {
   attributes: Attribute[];
   parents?: ObjectAttribute[];
-  space?: boolean;
 }) {
   const shouldShowBreadcrumb = useRef<boolean>(true);
+  const isRootAttribute = parents.length === 0;
   const form = [...attributes]
     .sort((a, b) => (a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1))
     .map((attribute: Attribute) => {
@@ -82,7 +80,6 @@ export function CredentialSubjectForm({
         <AnyAttribute attribute={attribute} parents={parents} />
       );
 
-      const isRootAttribute = parents.length === 0;
       const shouldShowTitle = isRootAttribute && attribute.type === "object";
       const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
 
@@ -99,7 +96,7 @@ export function CredentialSubjectForm({
       );
     });
 
-  return space ? (
+  return isRootAttribute ? (
     <Space direction="vertical" size="large">
       {form}
     </Space>
