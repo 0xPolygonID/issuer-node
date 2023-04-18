@@ -20,6 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 var (
@@ -44,10 +45,11 @@ type Link struct {
 	schemaRepository ports.SchemaRepository
 	loaderFactory    loader.Factory
 	sessionManager   ports.SessionRepository
+	publisher        pubsub.Publisher
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -56,6 +58,7 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, clai
 		schemaRepository: schemaRepository,
 		loaderFactory:    loaderFactory,
 		sessionManager:   sessionManager,
+		publisher:        publisher,
 	}
 }
 
@@ -229,6 +232,14 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 			if err != nil {
 				return err
 			}
+
+			if link.CredentialSignatureProof {
+				err = ls.publisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
+				if err != nil {
+					log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", credentialIssued.ID.String())
+				}
+			}
+
 			return nil
 		})
 	if err != nil {

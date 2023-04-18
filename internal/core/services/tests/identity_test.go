@@ -49,7 +49,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
-		&pubsub.Mock{},
+		pubsub.NewMock(),
 	)
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
