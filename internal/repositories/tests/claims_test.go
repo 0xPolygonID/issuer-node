@@ -302,7 +302,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 	}
 }
 
-func TestGetClaimsIssuedByUserID(t *testing.T) {
+func TestGetClaimsIssuedForUserID(t *testing.T) {
 	ctx := context.Background()
 	fixture := tests.NewFixture(storage)
 	didStr := "did:polygonid:polygon:mumbai:2qKLWeRi6Tk23SmFpRKHvKFf2MmrocJYxwAD1MwhYw"
