@@ -8,7 +8,7 @@ const jsonLiteralParser = getStrictParser<JsonLiteral>()(
   z.union([z.string(), z.number(), z.boolean(), z.null()])
 );
 
-const jsonParser: z.ZodType<Json> = getStrictParser<Json>()(
+export const jsonParser: z.ZodType<Json> = getStrictParser<Json>()(
   z.lazy(() => z.union([jsonLiteralParser, z.array(jsonParser), z.record(jsonParser)]))
 );
 
@@ -26,10 +26,11 @@ export async function downloadJsonFromUrl({ fileName, url }: { fileName: string;
   a.remove();
 }
 
-export async function getJsonFromUrl({ url }: { url: string }) {
+export async function getJsonFromUrl({ signal, url }: { signal?: AbortSignal; url: string }) {
   const response = await axios({
     method: "GET",
-    url: url,
+    signal,
+    url,
   });
 
   return jsonParser.parse(response.data);
