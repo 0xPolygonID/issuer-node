@@ -152,9 +152,9 @@ func (c *Configuration) Sanitize() error {
 	return nil
 }
 
-// SanitizeAdmin perform some basic checks and sanitizations in the configuration.
+// SanitizeAPIUI perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
-func (c *Configuration) SanitizeAdmin() error {
+func (c *Configuration) SanitizeAPIUI() error {
 	if c.APIUI.ServerPort == 0 {
 		return fmt.Errorf("a port for the UI API server must be provided")
 	}
