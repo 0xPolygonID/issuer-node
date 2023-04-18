@@ -876,7 +876,7 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedForUserWithoutSigProof(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claims) GetByStateID(ctx context.Context, conn db.Querier, did *core.DID, state string) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -896,12 +896,10 @@ func (c *claims) GetClaimsIssuedForUserWithoutSigProof(ctx context.Context, conn
 		   revoked,
 		   core_claim
 		FROM claims
-		WHERE claims.identifier = $1 
-		AND claims.other_identifier = $2
-		AND claims.link_id = $3
-		AND claims.signature_proof is NULL
+		WHERE claims.identifier = $1
+		AND identity_state = $2
 	`
-	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
+	rows, err := conn.Query(ctx, query, did.String(), state)
 	if err != nil {
 		return nil, err
 	}
