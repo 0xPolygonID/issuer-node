@@ -72,7 +72,7 @@ export function LinksTable() {
       key: "active",
       render: (active: Link["active"], link: Link) => (
         <Switch
-          checked={active}
+          checked={active && link.status !== "exceeded"}
           disabled={link.status === "exceeded"}
           loading={isLinkUpdating[link.id]}
           onClick={(isActive) => {

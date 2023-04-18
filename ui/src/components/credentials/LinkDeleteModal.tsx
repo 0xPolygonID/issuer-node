@@ -43,7 +43,7 @@ export function LinkDeleteModal({
       title="Are you sure you want to delete this credential link?"
     >
       <Typography.Text type="secondary">
-        Users will not be able to receive this credential anymore. This action cannot be undone.
+        Users will not be able to receive this credential any longer. This action cannot be undone.
       </Typography.Text>
     </Modal>
   );
