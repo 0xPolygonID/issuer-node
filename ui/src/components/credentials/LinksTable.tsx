@@ -20,17 +20,18 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { getLinks, linkStatusParser, linkUpdate } from "src/adapters/api/credentials";
+import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconLink } from "src/assets/icons/link-03.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { LinkDeleteModal } from "src/components/credentials/LinkDeleteModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/env";
-import { Link } from "src/domain/credential";
+import { Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -52,6 +53,7 @@ export function LinksTable() {
     status: "pending",
   });
   const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
+  const [linkToDelete, setLinkToDelete] = useState<string>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -71,7 +73,7 @@ export function LinksTable() {
       key: "active",
       render: (active: Link["active"], link: Link) => (
         <Switch
-          checked={active}
+          checked={active && link.status !== "exceeded"}
           disabled={link.status === "exceeded"}
           loading={isLinkUpdating[link.id]}
           onClick={(isActive) => {
@@ -149,7 +151,7 @@ export function LinksTable() {
     {
       dataIndex: "status",
       key: "status",
-      render: (status: Link["status"]) => (
+      render: (status: Link["status"], { id }: Link) => (
         <Row justify="space-between">
           {(() => {
             switch (status) {
@@ -181,6 +183,7 @@ export function LinksTable() {
                   icon: <IconTrash />,
                   key: "delete",
                   label: "Delete",
+                  onClick: () => setLinkToDelete(id),
                 },
               ],
             }}
@@ -198,7 +201,7 @@ export function LinksTable() {
   ];
 
   const fetchLinks = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       setLinks((previousLinks) =>
         isAsyncTaskDataAvailable(previousLinks)
           ? { data: previousLinks.data, status: "reloading" }
@@ -239,10 +242,10 @@ export function LinksTable() {
   };
 
   const updateCredentialInState = (active: Link["active"], id: Link["id"]) => {
-    setLinks((oldLinks) =>
-      isAsyncTaskDataAvailable(oldLinks)
+    setLinks((previousLinks) =>
+      isAsyncTaskDataAvailable(previousLinks)
         ? {
-            data: oldLinks.data.reduce((links: Link[], currentLink: Link) => {
+            data: previousLinks.data.reduce((links: Link[], currentLink: Link) => {
               if (currentLink.id === id) {
                 if (status === currentLink.status) {
                   return links;
@@ -261,7 +264,7 @@ export function LinksTable() {
             }, []),
             status: "successful",
           }
-        : oldLinks
+        : previousLinks
     );
   };
 
@@ -270,7 +273,7 @@ export function LinksTable() {
       return { ...currentLinksUpdating, [id]: true };
     });
 
-    void linkUpdate({
+    void updateLink({
       env,
       id,
       payload: { active },
@@ -297,18 +300,18 @@ export function LinksTable() {
 
   const onSearch = useCallback(
     (query: string) => {
-      setSearchParams((oldParams) => {
-        const oldQuery = oldParams.get(QUERY_SEARCH_PARAM);
-        const params = new URLSearchParams(oldParams);
+      setSearchParams((previousParams) => {
+        const previousQuery = previousParams.get(QUERY_SEARCH_PARAM);
+        const params = new URLSearchParams(previousParams);
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
           return params;
-        } else if (oldQuery !== query) {
+        } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
           return params;
         }
-        return oldParams;
+        return previousParams;
       });
     },
     [setSearchParams]
@@ -390,6 +393,13 @@ export function LinksTable() {
           </Row>
         }
       />
+      {linkToDelete && (
+        <LinkDeleteModal
+          id={linkToDelete}
+          onClose={() => setLinkToDelete(undefined)}
+          onDelete={() => void fetchLinks()}
+        />
+      )}
     </>
   );
 }

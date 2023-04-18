@@ -20,9 +20,9 @@ export function SelectSchema({ schemaID }: { schemaID: string | undefined }) {
 
   const fetchSchemas = useCallback(
     async (signal: AbortSignal) => {
-      setSchemas((oldState) =>
-        isAsyncTaskDataAvailable(oldState)
-          ? { data: oldState.data, status: "reloading" }
+      setSchemas((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
           : { status: "loading" }
       );
 
