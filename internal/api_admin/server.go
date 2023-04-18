@@ -448,10 +448,12 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
 	}
 
-	// Todo improve validations errors
 	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
 	if err != nil {
-		log.Error(ctx, "error saving the link", err.Error())
+		log.Error(ctx, "error saving the link", "err", err.Error())
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+		}
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil

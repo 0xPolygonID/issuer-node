@@ -153,7 +153,7 @@ func main() {
 		ps,
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
@@ -169,7 +169,7 @@ func main() {
 		return
 	}
 
-	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout, ps)
 
 	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
 	if err != nil {

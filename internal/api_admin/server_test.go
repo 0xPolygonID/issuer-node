@@ -2393,7 +2393,7 @@ func TestServer_CreateLink(t *testing.T) {
 	pubSub := pubsub.NewMock()
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository, pubSub)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2540,25 +2540,25 @@ func TestServer_CreateLink(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
-		//{
-		//	name: "Claim link wrong attribute type",
-		//	auth: authOk,
-		//	body: CreateLinkRequest{
-		//		SchemaID: importedSchema.ID,
-		//		ExpirationDate: &types.Date{
-		//			Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-		//		},
-		//		ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-		//		LimitedClaims:       common.ToPointer(10),
-		//		CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": true},
-		//		MtProof:             true,
-		//		SignatureProof:      true,
-		//	},
-		//	expected: expected{
-		//		response: CreateLink400JSONResponse{N400JSONResponse{Message: "converting attribute <documentType> :strconv.Atoi: parsing \"true\": invalid syntax"}},
-		//		httpCode: http.StatusBadRequest,
-		//	},
-		//}, //TODO undo this comment when validation is introduced
+		{
+			name: "Claim link wrong attribute type",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				LimitedClaims:       common.ToPointer(10),
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": true},
+				MtProof:             true,
+				SignatureProof:      true,
+			},
+			expected: expected{
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credentialSubject.documentType: Invalid type. Expected: integer, given: boolean \n"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
 		{
 			name: "Claim link wrong schema id",
 			auth: authOk,
@@ -2634,7 +2634,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2785,7 +2785,7 @@ func TestServer_GetLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2950,7 +2950,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3164,7 +3164,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3281,7 +3281,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3395,7 +3395,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3533,7 +3533,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 

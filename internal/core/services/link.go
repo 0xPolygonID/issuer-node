@@ -16,10 +16,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 var (
@@ -44,10 +46,11 @@ type Link struct {
 	schemaRepository ports.SchemaRepository
 	loaderFactory    loader.Factory
 	sessionManager   ports.SessionRepository
+	publisher        pubsub.Publisher
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -56,6 +59,7 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, clai
 		schemaRepository: schemaRepository,
 		loaderFactory:    loaderFactory,
 		sessionManager:   sessionManager,
+		publisher:        publisher,
 	}
 }
 
@@ -75,6 +79,12 @@ func (ls *Link) Save(
 	if err != nil {
 		return nil, err
 	}
+
+	err = ls.validateCredentialSubjectAgainstSchema(ctx, credentialSubject, schema.URL)
+	if err != nil {
+		return nil, err
+	}
+
 	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
 
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
@@ -229,6 +239,14 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 			if err != nil {
 				return err
 			}
+
+			if link.CredentialSignatureProof {
+				err = ls.publisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
+				if err != nil {
+					log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", credentialIssued.ID.String())
+				}
+			}
+
 			return nil
 		})
 	if err != nil {
@@ -309,4 +327,13 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 	}
 
 	return nil
+}
+
+func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaURL string) error {
+	schema, err := jsonschema.Load(ctx, ls.loaderFactory(schemaURL))
+	if err != nil {
+		return ErrLoadingSchema
+	}
+
+	return schema.ValidateCredentialSubject(cSubject)
 }
