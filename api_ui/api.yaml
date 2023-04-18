@@ -428,7 +428,32 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
+  #agent
+  /v1/agent:
+    post:
+      summary: Agent
+      operationId: Agent
+      description: Mobile agent endpoint
+      tags:
+        - Agent
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: TBD
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
 
 
@@ -512,7 +537,7 @@ paths:
   # Links
   /v1/credentials/links:
     get:
-      summary: Returns the list of links to credentials
+      summary: Get Links
       operationId: GetLinks
       security:
         - basicAuth: [ ]
@@ -903,6 +928,7 @@ components:
         - qrCode
         - sessionID
         - linkID
+        - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
@@ -929,6 +955,8 @@ components:
 
     GetLinkQrCodeResponse:
       type: object
+      required:
+        - linkDetail
       properties:
         qrCode:
           $ref: '#/components/schemas/GetLinkQrCodeResponseType'
@@ -967,7 +995,7 @@ components:
         - schemaHash
         - schemaType
         - revNonce
-        - attributes
+        - credentialSubject
         - revoked
       properties:
         id:
@@ -1006,7 +1034,7 @@ components:
           type: integer
           format: uint64
           example: 2136005230
-        attributes:
+        credentialSubject:
           type: object
           x-omitempty: false
           example:
@@ -1021,7 +1049,7 @@ components:
         - id
         - schemaUrl
         - schemaType
-        - attributes
+        - credentialSubject
         - issuedClaims
         - active
         - status
@@ -1037,10 +1065,8 @@ components:
           type: string
         schemaType:
           type: string
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/LinkRequestAttributesType'
+        credentialSubject:
+          $ref: '#/components/schemas/CredentialSubject'
         maxIssuance:
           type: integer
           x-omitempty: false
@@ -1247,7 +1273,7 @@ components:
         - schemaID
         - signatureProof
         - mtProof
-        - attributes
+        - credentialSubject
       properties:
         schemaID:
           type: string
@@ -1260,7 +1286,7 @@ components:
         claimLinkExpiration:
           type: string
           format: date-time
-          example: 2022-08-17T12:43:32.720Z
+          example: 2023-04-17T11:40:43.681857-03:00
         limitedClaims:
           type: integer
           x-omitempty: false
@@ -1268,22 +1294,43 @@ components:
           type: boolean
         mtProof:
           type: boolean
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/LinkRequestAttributesType'
+        credentialSubject:
+          $ref: '#/components/schemas/CredentialSubject'
 
-    LinkRequestAttributesType:
-      allOf:
-        - type: object
-          required: [ "name", "value" ]
-          properties:
-            name:
-              type: string
-              example: birthday
-            value:
-              type: string
-              x-omitempty: false
+    CredentialSubject:
+      type: object
+      x-omitempty: false
+      example:
+        birthday: 19960424
+        documentType: 2
+        type: "KYCAgeCredential"
+
+    #Agent
+    AgentResponse:
+      type: object
+      required:
+        - body
+        - id
+        - typ
+        - type
+        - threadID
+        - from
+        - to
+      properties:
+        id:
+          type: string
+        typ:
+          type: string
+        type:
+          type: string
+        threadID:
+          type: string
+        body:
+          type: null
+        from:
+          type: string
+        to:
+          type: string
 
   parameters:
     sessionID:

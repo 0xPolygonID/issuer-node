@@ -39,8 +39,8 @@ func NewLink(conn db.Storage) ports.LinkRepository {
 
 func (l link) Save(ctx context.Context, conn db.Querier, link *domain.Link) (*uuid.UUID, error) {
 	pgAttrs := pgtype.JSONB{}
-	if err := pgAttrs.Set(link.CredentialAttributes); err != nil {
-		return nil, fmt.Errorf("cannot set schema attributes values: %w", err)
+	if err := pgAttrs.Set(link.CredentialSubject); err != nil {
+		return nil, fmt.Errorf("cannot set credential subject values: %w", err)
 	}
 
 	var id uuid.UUID
@@ -86,7 +86,7 @@ GROUP BY links.id, schemas.id
 `
 	link := domain.Link{}
 	s := dbSchema{}
-	var credentialAttributtes pgtype.JSONB
+	var credentialSubject pgtype.JSONB
 	err := l.conn.Pgx.QueryRow(ctx, sql, id, issuerDID.String()).Scan(
 		&link.ID,
 		&link.IssuerDID,
@@ -97,7 +97,7 @@ GROUP BY links.id, schemas.id
 		&link.CredentialExpiration,
 		&link.CredentialSignatureProof,
 		&link.CredentialMTPProof,
-		&credentialAttributtes,
+		&credentialSubject,
 		&link.Active,
 		&link.IssuedClaims,
 		&s.ID,
@@ -114,13 +114,10 @@ GROUP BY links.id, schemas.id
 	if err != nil {
 		return nil, err
 	}
-	raw, err := credentialAttributtes.MarshalJSON()
-	if err != nil {
-		return nil, fmt.Errorf("parsing credential attributes: %w", err)
-	}
-	d := json.NewDecoder(bytes.NewReader(raw))
+
+	d := json.NewDecoder(bytes.NewReader(credentialSubject.Bytes))
 	d.UseNumber()
-	if err := d.Decode(&link.CredentialAttributes); err != nil {
+	if err := d.Decode(&link.CredentialSubject); err != nil {
 		return nil, fmt.Errorf("parsing credential attributes: %w", err)
 	}
 	link.Schema, err = toSchemaDomain(&s)
@@ -216,8 +213,7 @@ WHERE links.issuer_id = $1
 			return nil, fmt.Errorf("parsing credential attributes: %w", err)
 		}
 		d := json.NewDecoder(bytes.NewReader(raw))
-		d.UseNumber()
-		if err := d.Decode(&link.CredentialAttributes); err != nil {
+		if err := d.Decode(&link.CredentialSubject); err != nil {
 			return nil, fmt.Errorf("parsing credential attributes: %w", err)
 		}
 		link.Schema, err = toSchemaDomain(&schema)

@@ -14,6 +14,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/hashicorp/vault/api v1.9.0
+	github.com/iden3/contracts-abi/state/go/abi v0.0.0-20230405152923-4a25f6f1f0f4
 	github.com/iden3/go-circuits v1.0.2
 	github.com/iden3/go-iden3-auth v1.0.1
 	github.com/iden3/go-iden3-core v1.0.1
@@ -143,7 +144,6 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
-	github.com/iden3/contracts-abi/state/go/abi v0.0.0-20230405152923-4a25f6f1f0f4 // indirect
 	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
 	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect

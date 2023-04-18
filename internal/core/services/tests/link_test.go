@@ -17,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -31,7 +32,7 @@ func Test_link_issueClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.HTTPFactory
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
@@ -47,7 +48,7 @@ func Test_link_issueClaim(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
-	)
+		pubsub.NewMock())
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
@@ -86,28 +87,10 @@ func Test_link_issueClaim(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, true, false, []domain.CredentialAttrsRequest{
-		{
-			Name:  "birthday",
-			Value: "19791109",
-		},
-		{
-			Name:  "documentType",
-			Value: "12",
-		},
-	})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, true, false, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, false, true, []domain.CredentialAttrsRequest{
-		{
-			Name:  "birthday",
-			Value: "19791109",
-		},
-		{
-			Name:  "documentType",
-			Value: "12",
-		},
-	})
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, false, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 
 	type expected struct {
