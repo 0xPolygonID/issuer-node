@@ -7,6 +7,7 @@ import {
   ResultOK,
   buildAPIError,
   buildAuthorizationHeader,
+  resultOKMessage,
 } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
 import { getStrictParser } from "src/adapters/parsers";
@@ -111,7 +112,7 @@ export async function deleteConnection({
   revokeCredentials: boolean;
 }): Promise<APIResponse<string>> {
   try {
-    const response = await axios<{ message: string }>({
+    const response = await axios({
       baseURL: env.api.url,
       headers: {
         Authorization: buildAuthorizationHeader(env),
@@ -124,7 +125,9 @@ export async function deleteConnection({
       url: `${API_VERSION}/connections/${id}`,
     });
 
-    return { data: response.data.message, isSuccessful: true };
+    const { data } = resultOKMessage.parse(response);
+
+    return { data: data.message, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
