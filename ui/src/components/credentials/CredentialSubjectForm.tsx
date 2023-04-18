@@ -88,9 +88,9 @@ export function CredentialSubjectForm({
 
       return isRootAttribute ? (
         <Card
-          className="ant-card-type-inner"
           key={key}
           title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
+          type="inner"
         >
           {attributeNode}
         </Card>
