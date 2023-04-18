@@ -425,7 +425,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 			log.Error(ctx, "error getting did from state: ", "err", err, "state", state.StateID)
 			return err
 		}
-		claimsToNotify, err := p.claimService.GetByStateIDWithoutSigProof(ctx, did, *state.State)
+		claimsToNotify, err := p.claimService.GetByStateIDWithMTPProof(ctx, did, *state.State)
 		if err != nil {
 			log.Error(ctx, "couldn't fetch the credentials to send notifications: ", "err", err, "state", state.StateID)
 			return err

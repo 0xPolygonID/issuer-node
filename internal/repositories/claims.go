@@ -876,7 +876,7 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 	return claims, nil
 }
 
-func (c *claims) GetByStateIDWithoutSigProof(ctx context.Context, conn db.Querier, did *core.DID, state string) ([]*domain.Claim, error) {
+func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *core.DID, state string) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -898,7 +898,7 @@ func (c *claims) GetByStateIDWithoutSigProof(ctx context.Context, conn db.Querie
 		FROM claims
 		WHERE claims.identifier = $1
 		AND identity_state = $2
-		AND signature_proof is NULL
+		AND mtp_proof IS NOT NULL
 	`
 	rows, err := conn.Query(ctx, query, did.String(), state)
 	if err != nil {

@@ -444,8 +444,8 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 	return nil
 }
 
-func (c *claim) GetByStateIDWithoutSigProof(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error) {
-	return c.icRepo.GetByStateIDWithoutSigProof(ctx, c.storage.Pgx, did, state)
+func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error) {
+	return c.icRepo.GetByStateIDWithMTPProof(ctx, c.storage.Pgx, did, state)
 }
 
 func (c *claim) revoke(ctx context.Context, did *core.DID, nonce uint64, description string, pgx db.Querier) error {
