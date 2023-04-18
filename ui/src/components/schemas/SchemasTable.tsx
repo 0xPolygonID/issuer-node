@@ -79,9 +79,9 @@ export function MySchemas() {
 
   const onGetSchemas = useCallback(
     async (signal: AbortSignal) => {
-      setSchemas((oldState) =>
-        isAsyncTaskDataAvailable(oldState)
-          ? { data: oldState.data, status: "reloading" }
+      setSchemas((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
           : { status: "loading" }
       );
       const response = await getSchemas({
@@ -108,15 +108,15 @@ export function MySchemas() {
 
   const onSearch = useCallback(
     (query: string) => {
-      setSearchParams((oldParams) => {
-        const oldQuery = oldParams.get(QUERY_SEARCH_PARAM);
-        const params = new URLSearchParams(oldParams);
+      setSearchParams((previousParams) => {
+        const previousQuery = previousParams.get(QUERY_SEARCH_PARAM);
+        const params = new URLSearchParams(previousParams);
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
 
           return params;
-        } else if (oldQuery !== query) {
+        } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
 
           return params;
