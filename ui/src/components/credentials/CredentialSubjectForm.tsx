@@ -1,5 +1,5 @@
 import { Card, Space, Typography } from "antd";
-import { Fragment, useRef } from "react";
+import { Fragment } from "react";
 
 import { AttributeBreadcrumb } from "src/components/credentials/AttributeBreadcrumb";
 import { Boolean } from "src/components/credentials/attributes/Boolean";
@@ -61,15 +61,11 @@ export function CredentialSubjectForm({
   attributes: Attribute[];
   parents?: ObjectAttribute[];
 }) {
-  const shouldShowBreadcrumb = useRef<boolean>(true);
   const isRootAttribute = parents.length === 0;
   const form = [...attributes]
     .sort((a, b) => (a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1))
-    .map((attribute: Attribute) => {
-      const showBreadcrumb =
-        attribute.type !== "object" && parents.length > 1 && shouldShowBreadcrumb.current;
-
-      shouldShowBreadcrumb.current = !showBreadcrumb;
+    .map((attribute: Attribute, index) => {
+      const showBreadcrumb = attribute.type !== "object" && parents.length > 1 && index === 0;
 
       const attributeNode = showBreadcrumb ? (
         <Space direction="vertical" size="middle">
