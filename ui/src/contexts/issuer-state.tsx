@@ -9,9 +9,9 @@ import {
   useState,
 } from "react";
 
-import { useEnvContext } from "./env";
 import { APIError } from "src/adapters/api";
 import { getStatus } from "src/adapters/api/issuer-state";
+import { useEnvContext } from "src/contexts/env";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
