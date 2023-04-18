@@ -16,6 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -78,6 +79,12 @@ func (ls *Link) Save(
 	if err != nil {
 		return nil, err
 	}
+
+	err = ls.validateCredentialSubjectAgainstSchema(ctx, credentialSubject, schema.URL)
+	if err != nil {
+		return nil, err
+	}
+
 	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
 
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
@@ -320,4 +327,13 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 	}
 
 	return nil
+}
+
+func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaURL string) error {
+	schema, err := jsonschema.Load(ctx, ls.loaderFactory(schemaURL))
+	if err != nil {
+		return ErrLoadingSchema
+	}
+
+	return schema.ValidateCredentialSubject(cSubject)
 }
