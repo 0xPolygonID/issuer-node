@@ -186,5 +186,5 @@ type ClaimsService interface {
 	GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error)
 	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	GetByStateID(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error)
+	GetByStateIDWithoutSigProof(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error)
 }
