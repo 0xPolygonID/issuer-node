@@ -13,7 +13,7 @@ import {
 } from "src/adapters/api";
 import { schemaParser } from "src/adapters/api/schemas";
 import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Link, LinkAttributes, LinkStatus, Schema } from "src/domain";
+import { Credential, Env, Link, LinkStatus, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 // TODO - refactor & order as Credentials are implemented
@@ -143,21 +143,13 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-const linkAttributes = getStrictParser<LinkAttributes>()(
-  z.object({
-    name: z.string(),
-    value: z.string(),
-  })
-);
-
 export const link = getStrictParser<Link>()(
   z.object({
     active: z.boolean(),
-    attributes: z.array(linkAttributes),
     expiration: z.coerce.date().optional(),
     id: z.string(),
     issuedClaims: z.number(),
-    maxIssuance: z.number().optional(),
+    maxIssuance: z.number().nullish(),
     schemaType: z.string(),
     status: linkStatusParser,
   })
@@ -173,7 +165,7 @@ export async function getLinks({
     query?: string;
     status?: LinkStatus;
   };
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<APIResponse<Link[]>> {
   try {
     const response = await axios({
@@ -204,7 +196,7 @@ const resultOKLinks = getStrictParser<ResultOK<Link[]>>()(
   })
 );
 
-export async function linkUpdate({
+export async function updateLink({
   env,
   id,
   payload,
@@ -225,7 +217,30 @@ export async function linkUpdate({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
+    const { data } = resultOKMessage.parse(response);
 
+    return { data: data.message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+export async function deleteLink({
+  env,
+  id,
+}: {
+  env: Env;
+  id: string;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      url: `${API_VERSION}/credentials/links/${id}`,
+    });
     const { data } = resultOKMessage.parse(response);
 
     return { data: data.message, isSuccessful: true };
