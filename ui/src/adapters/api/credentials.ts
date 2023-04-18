@@ -113,7 +113,7 @@ export async function getLinks({
     query?: string;
     status?: LinkStatus;
   };
-  signal: AbortSignal;
+  signal?: AbortSignal;
 }): Promise<APIResponse<Link[]>> {
   try {
     const response = await axios<Link[]>({
@@ -137,7 +137,7 @@ export async function getLinks({
   }
 }
 
-export async function linkUpdate({
+export async function updateLink({
   env,
   id,
   payload,
@@ -149,7 +149,7 @@ export async function linkUpdate({
   };
 }): Promise<APIResponse<string>> {
   try {
-    const response = await axios<{ message: string }>({
+    const response = await axios({
       baseURL: env.api.url,
       data: payload,
       headers: {
@@ -158,8 +158,40 @@ export async function linkUpdate({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
+    const { message } = resultOKMessage.parse(response.data);
 
-    return { data: response.data.message, isSuccessful: true };
+    return { data: message, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+const resultOKMessage = getStrictParser<{ message: string }>()(
+  z.object({
+    message: z.string(),
+  })
+);
+
+export async function deleteLink({
+  env,
+  id,
+}: {
+  env: Env;
+  id: string;
+}): Promise<APIResponse<string>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "DELETE",
+      url: `${API_VERSION}/credentials/links/${id}`,
+    });
+
+    const { message } = resultOKMessage.parse(response.data);
+
+    return { data: message, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
