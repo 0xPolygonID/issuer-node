@@ -76,7 +76,9 @@ export function SelectSchema({
             const schema =
               isAsyncTaskDataAvailable(schemas) && schemas.data.find((schema) => schema.id === id);
             if (schema) {
-              navigate(generatePath(ROUTES.issueCredential.path, { schemaID: id }));
+              navigate(generatePath(ROUTES.issueCredential.path, { schemaID: id }), {
+                replace: true,
+              });
               onSelect(schema);
             }
           }}
