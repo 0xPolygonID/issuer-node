@@ -18,9 +18,9 @@ import (
 
 func TestSave(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qCp9Tx4x5hzchym1dZXtBpwRQsH7HXe7GcbvskoRn")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm")
 	require.NoError(t, err)
 
 	conn := &domain.Connection{
@@ -37,7 +37,7 @@ func TestSave(t *testing.T) {
 	t.Run("should save or update the connection", func(t *testing.T) {
 		connID, err := connectionsRepo.Save(context.Background(), storage.Pgx, conn)
 		assert.NoError(t, err)
-		assert.Equal(t, conn.ID, connID)
+		assert.Equal(t, conn.ID.String(), connID.String())
 		connID2, err := connectionsRepo.Save(context.Background(), storage.Pgx, conn2) // updating connection
 		assert.NoError(t, err)
 		assert.NotEqual(t, conn2.ID, connID2) // checking that the connections is being updated and no ID is modified on conflict
