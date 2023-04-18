@@ -23,13 +23,24 @@ func TestSave(t *testing.T) {
 	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
 
-	// when and then
-	t.Run("should save the connection", func(t *testing.T) {
-		_, err := connectionsRepo.Save(context.Background(), storage.Pgx, &domain.Connection{
-			UserDID:   *userDID,
-			IssuerDID: *issuerDID,
-		})
+	conn := &domain.Connection{
+		ID:        uuid.New(),
+		UserDID:   *userDID,
+		IssuerDID: *issuerDID,
+	}
+
+	conn2 := &domain.Connection{
+		ID:        uuid.New(),
+		UserDID:   *userDID,
+		IssuerDID: *issuerDID,
+	}
+	t.Run("should save or update the connection", func(t *testing.T) {
+		connID, err := connectionsRepo.Save(context.Background(), storage.Pgx, conn)
 		assert.NoError(t, err)
+		assert.Equal(t, conn.ID, connID)
+		connID2, err := connectionsRepo.Save(context.Background(), storage.Pgx, conn2) // updating connection
+		assert.NoError(t, err)
+		assert.NotEqual(t, conn2.ID, connID2) // checking that the connections is being updated and no ID is modified on conflict
 	})
 }
 
