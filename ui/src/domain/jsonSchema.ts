@@ -45,30 +45,9 @@ export type NumberAttribute = {
   type: "number";
 };
 
-type StringFormat =
-  | "date-time"
-  | "time"
-  | "date"
-  | "duration"
-  | "email"
-  | "idn-email"
-  | "hostname"
-  | "idn-hostname"
-  | "ipv4"
-  | "ipv6"
-  | "uuid"
-  | "uri"
-  | "uri-reference"
-  | "iri"
-  | "iri-reference"
-  | "uri-template"
-  | "json-pointer"
-  | "relative-json-pointer"
-  | "regex";
-
 export interface StringProps {
   enum?: string[];
-  format?: StringFormat | string;
+  format?: string;
 }
 
 export type StringSchema = CommonProps & StringProps & { type: "string" };
