@@ -5,10 +5,10 @@ export interface BooleanCredentialFormAttribute {
 }
 
 export interface Credential {
-  attributes: {
+  createdAt: Date;
+  credentialSubject: {
     type: string;
   };
-  createdAt: Date;
   expired: boolean;
   expiresAt?: Date;
   id: string;
