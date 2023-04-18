@@ -34,6 +34,11 @@ export enum HTTPStatusSuccess {
   OK = 200,
 }
 
+export interface ResultAccepted<D> {
+  data: D;
+  status: HTTPStatusSuccess.Accepted;
+}
+
 export interface ResultOK<D> {
   data: D;
   status: HTTPStatusSuccess.OK;
@@ -87,3 +92,12 @@ export function buildAPIError(error: unknown): APIError {
 export function buildAuthorizationHeader(env: Env) {
   return `Basic ${window.btoa(`${env.api.username}:${env.api.password}`)}`;
 }
+
+export const resultOKMessage = getStrictParser<ResultOK<{ message: string }>>()(
+  z.object({
+    data: z.object({
+      message: z.string(),
+    }),
+    status: z.literal(HTTPStatusSuccess.OK),
+  })
+);

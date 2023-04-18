@@ -25,6 +25,8 @@ import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import { CredentialDeleteModal } from "src/components/shared/CredentialDeleteModal";
+import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
@@ -53,6 +55,8 @@ export function IssuedTable() {
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
   });
+  const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
+  const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -67,15 +71,16 @@ export function IssuedTable() {
 
   const tableColumns: ColumnsType<Credential> = [
     {
-      dataIndex: "attributes",
+      dataIndex: "credentialSubject",
       ellipsis: { showTitle: false },
-      key: "attributes",
-      render: (attributes: Credential["attributes"]) => (
-        <Tooltip placement="topLeft" title={attributes.type}>
-          <Typography.Text strong>{attributes.type}</Typography.Text>
+      key: "credentialSubject",
+      render: (credentialSubject: Credential["credentialSubject"]) => (
+        <Tooltip placement="topLeft" title={credentialSubject.type}>
+          <Typography.Text strong>{credentialSubject.type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ attributes: { type: a } }, { attributes: { type: b } }) => a.localeCompare(b),
+      sorter: ({ credentialSubject: { type: a } }, { credentialSubject: { type: b } }) =>
+        a.localeCompare(b),
       title: CREDENTIALS,
     },
     {
@@ -123,7 +128,7 @@ export function IssuedTable() {
     {
       dataIndex: "id",
       key: "id",
-      render: () => (
+      render: (id: Credential["id"], credential: Credential) => (
         <Dropdown
           menu={{
             items: [
@@ -138,9 +143,11 @@ export function IssuedTable() {
               },
               {
                 danger: true,
+                disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
                 label: "Revoke",
+                onClick: () => setCredentialToRevoke(credential),
               },
               {
                 key: "divider2",
@@ -151,6 +158,7 @@ export function IssuedTable() {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete",
+                onClick: () => setCredentialToDelete(credential),
               },
             ],
           }}
@@ -165,8 +173,13 @@ export function IssuedTable() {
   ];
 
   const fetchCredentials = useCallback(
-    async (signal: AbortSignal) => {
-      setCredentials({ status: "loading" });
+    async (signal?: AbortSignal) => {
+      setCredentials((previousCredentials) =>
+        isAsyncTaskDataAvailable(previousCredentials)
+          ? { data: previousCredentials.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
       const response = await getCredentials({
         env,
         params: {
@@ -191,14 +204,14 @@ export function IssuedTable() {
 
   const onSearch = useCallback(
     (query: string) => {
-      setSearchParams((oldParams) => {
-        const oldQuery = oldParams.get(QUERY_SEARCH_PARAM);
-        const params = new URLSearchParams(oldParams);
+      setSearchParams((previousParams) => {
+        const previousQuery = previousParams.get(QUERY_SEARCH_PARAM);
+        const params = new URLSearchParams(previousParams);
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
           return params;
-        } else if (oldQuery !== query) {
+        } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
           return params;
         }
@@ -232,74 +245,92 @@ export function IssuedTable() {
   }, [fetchCredentials]);
 
   return (
-    <TableCard
-      defaultContents={
-        <>
-          <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
+    <>
+      <TableCard
+        defaultContents={
+          <>
+            <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
 
-          <Typography.Text strong>No credentials</Typography.Text>
+            <Typography.Text strong>No credentials</Typography.Text>
 
-          <Typography.Text type="secondary">
-            Issued credentials will be listed here.
-          </Typography.Text>
+            <Typography.Text type="secondary">
+              Issued credentials will be listed here.
+            </Typography.Text>
 
-          {credentialStatus === "all" && (
-            <Link to={generatePath(ROUTES.issueCredential.path)}>
-              <Button icon={<IconCreditCardPlus />} type="primary">
-                {ISSUE_CREDENTIAL}
-              </Button>
-            </Link>
-          )}
-        </>
-      }
-      isLoading={isAsyncTaskStarting(credentials)}
-      onSearch={onSearch}
-      query={queryParam}
-      searchPlaceholder="Search credentials, attributes, identifiers..."
-      showDefaultContents={showDefaultContent}
-      table={
-        <Table
-          columns={tableColumns.map(({ title, ...column }) => ({
-            title: (
-              <Typography.Text type="secondary">
-                <>{title}</>
-              </Typography.Text>
-            ),
-            ...column,
-          }))}
-          dataSource={credentialsList}
-          locale={{
-            emptyText:
-              credentials.status === "failed" ? (
-                <ErrorResult error={credentials.error.message} />
-              ) : (
-                <NoResults searchQuery={queryParam} />
+            {credentialStatus === "all" && (
+              <Link to={generatePath(ROUTES.issueCredential.path)}>
+                <Button icon={<IconCreditCardPlus />} type="primary">
+                  {ISSUE_CREDENTIAL}
+                </Button>
+              </Link>
+            )}
+          </>
+        }
+        isLoading={isAsyncTaskStarting(credentials)}
+        onSearch={onSearch}
+        query={queryParam}
+        searchPlaceholder="Search credentials, attributes, identifiers..."
+        showDefaultContents={showDefaultContent}
+        table={
+          <Table
+            columns={tableColumns.map(({ title, ...column }) => ({
+              title: (
+                <Typography.Text type="secondary">
+                  <>{title}</>
+                </Typography.Text>
               ),
-          }}
-          pagination={false}
-          rowKey="id"
-          showSorterTooltip
-          sortDirections={["ascend", "descend"]}
+              ...column,
+            }))}
+            dataSource={credentialsList}
+            locale={{
+              emptyText:
+                credentials.status === "failed" ? (
+                  <ErrorResult error={credentials.error.message} />
+                ) : (
+                  <NoResults searchQuery={queryParam} />
+                ),
+            }}
+            pagination={false}
+            rowKey="id"
+            showSorterTooltip
+            sortDirections={["ascend", "descend"]}
+          />
+        }
+        title={
+          <Row justify="space-between">
+            <Space size="middle">
+              <Card.Meta title={ISSUED} />
+
+              <Tag color="blue">{credentialsList.length}</Tag>
+            </Space>
+
+            {(!showDefaultContent || credentialStatus !== "all") && (
+              <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
+                <Radio.Button value="all">All</Radio.Button>
+
+                <Radio.Button value="revoked">Revoked</Radio.Button>
+
+                <Radio.Button value="expired">Expired</Radio.Button>
+              </Radio.Group>
+            )}
+          </Row>
+        }
+      />
+      {credentialToDelete && (
+        <CredentialDeleteModal
+          credential={credentialToDelete}
+          onClose={() => setCredentialToDelete(undefined)}
+          onDelete={() => void fetchCredentials()}
         />
-      }
-      title={
-        <Row justify="space-between">
-          <Space size="middle">
-            <Card.Meta title={ISSUED} />
+      )}
 
-            <Tag color="blue">{credentialsList.length}</Tag>
-          </Space>
-          {(!showDefaultContent || credentialStatus !== "all") && (
-            <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
-              <Radio.Button value="all">All</Radio.Button>
-
-              <Radio.Button value="revoked">Revoked</Radio.Button>
-
-              <Radio.Button value="expired">Expired</Radio.Button>
-            </Radio.Group>
-          )}
-        </Row>
-      }
-    />
+      {credentialToRevoke && (
+        <CredentialRevokeModal
+          credential={credentialToRevoke}
+          onClose={() => setCredentialToRevoke(undefined)}
+          onRevoke={() => void fetchCredentials()}
+        />
+      )}
+    </>
   );
 }
