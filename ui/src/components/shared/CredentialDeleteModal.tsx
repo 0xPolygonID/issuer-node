@@ -5,6 +5,7 @@ import { deleteCredential, revokeCredential } from "src/adapters/api/credentials
 import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
+import { useStateContext } from "src/contexts/issuer-state";
 import { Credential } from "src/domain";
 import { CLOSE } from "src/utils/constants";
 
@@ -18,6 +19,8 @@ export function CredentialDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
+  const { notifyChange } = useStateContext();
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { id, revNonce: nonce, revoked } = credential;
@@ -48,18 +51,7 @@ export function CredentialDeleteModal({
       if (response.isSuccessful) {
         handleDeleteCredential();
 
-        void message.success({
-          content: (
-            <Space align="start" direction="vertical" style={{ width: "auto" }}>
-              <Typography.Text strong>
-                Revocation requires issuer state to be published
-              </Typography.Text>
-              <Typography.Text type="secondary">
-                Publish issuer state now or bulk publish with other actions.
-              </Typography.Text>
-            </Space>
-          ),
-        });
+        void notifyChange();
       } else {
         setIsLoading(false);
 

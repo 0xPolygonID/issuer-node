@@ -5,6 +5,7 @@ import { useState } from "react";
 import { deleteConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
+import { useStateContext } from "src/contexts/issuer-state";
 import { CLOSE } from "src/utils/constants";
 
 export function ConnectionDeleteModal({
@@ -17,6 +18,8 @@ export function ConnectionDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
+  const { notifyChange } = useStateContext();
+
   const [revokeCredentials, setRevokeCredentials] = useState<boolean>(false);
   const [deleteCredentials, setDeleteCredentials] = useState<boolean>(false);
 
@@ -25,6 +28,10 @@ export function ConnectionDeleteModal({
       if (response.isSuccessful) {
         onClose();
         onDelete();
+
+        if (revokeCredentials) {
+          void notifyChange();
+        }
 
         void message.success(response.data);
       } else {
