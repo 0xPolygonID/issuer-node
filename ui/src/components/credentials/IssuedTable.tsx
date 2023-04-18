@@ -174,9 +174,9 @@ export function IssuedTable() {
 
   const fetchCredentials = useCallback(
     async (signal?: AbortSignal) => {
-      setCredentials((oldCredentials) =>
-        isAsyncTaskDataAvailable(oldCredentials)
-          ? { data: oldCredentials.data, status: "reloading" }
+      setCredentials((previousCredentials) =>
+        isAsyncTaskDataAvailable(previousCredentials)
+          ? { data: previousCredentials.data, status: "reloading" }
           : { status: "loading" }
       );
 
@@ -204,14 +204,14 @@ export function IssuedTable() {
 
   const onSearch = useCallback(
     (query: string) => {
-      setSearchParams((oldParams) => {
-        const oldQuery = oldParams.get(QUERY_SEARCH_PARAM);
-        const params = new URLSearchParams(oldParams);
+      setSearchParams((previousParams) => {
+        const previousQuery = previousParams.get(QUERY_SEARCH_PARAM);
+        const params = new URLSearchParams(previousParams);
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
           return params;
-        } else if (oldQuery !== query) {
+        } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
           return params;
         }

@@ -163,9 +163,9 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const fetchCredentials = useCallback(
     async (signal?: AbortSignal) => {
       if (userID) {
-        setCredentials((oldCredentials) =>
-          isAsyncTaskDataAvailable(oldCredentials)
-            ? { data: oldCredentials.data, status: "reloading" }
+        setCredentials((previousCredentials) =>
+          isAsyncTaskDataAvailable(previousCredentials)
+            ? { data: previousCredentials.data, status: "reloading" }
             : { status: "loading" }
         );
         const response = await getCredentials({
