@@ -158,17 +158,18 @@ export async function updateLink({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const { message } = resultOKMessage.parse(response.data);
+    const { data } = resultOKMessage.parse(response);
 
-    return { data: message, isSuccessful: true };
+    return { data: data.message, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
 
-const resultOKMessage = getStrictParser<{ message: string }>()(
+const resultOKMessage = getStrictParser<ResultOK<{ message: string }>>()(
   z.object({
-    message: z.string(),
+    data: z.object({ message: z.string() }),
+    status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
@@ -188,10 +189,9 @@ export async function deleteLink({
       method: "DELETE",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
+    const { data } = resultOKMessage.parse(response);
 
-    const { message } = resultOKMessage.parse(response.data);
-
-    return { data: message, isSuccessful: true };
+    return { data: data.message, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
