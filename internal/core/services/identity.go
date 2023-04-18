@@ -411,9 +411,11 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	err = i.pubsub.Publish(ctx, pubsub.EventCreateConnection, pubsub.CreateConnectionEvent{ConnectionID: connID.String(), IssuerID: issuerDID.String()})
-	if err != nil {
-		log.Error(ctx, "sending connection notification", "err", err.Error(), "connection", connID)
+	if connID == conn.ID { // a connection has been created so previously created credentials have to be sent
+		err = i.pubsub.Publish(ctx, pubsub.EventCreateConnection, pubsub.CreateConnectionEvent{ConnectionID: connID.String(), IssuerID: issuerDID.String()})
+		if err != nil {
+			log.Error(ctx, "sending connection notification", "err", err.Error(), "connection", connID)
+		}
 	}
 
 	return arm, nil
