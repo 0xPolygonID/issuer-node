@@ -7,6 +7,7 @@ func ToPointer[T any](p T) *T {
 	return &p
 }
 
+// CopyMap returns a deep copy of the input map
 func CopyMap(m map[string]interface{}) map[string]interface{} {
 	cp := make(map[string]interface{})
 	for k, v := range m {

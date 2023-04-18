@@ -2,12 +2,12 @@ package jsonschema
 
 import (
 	"context"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
