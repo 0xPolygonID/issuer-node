@@ -2540,25 +2540,25 @@ func TestServer_CreateLink(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
-		//{
-		//	name: "Claim link wrong attribute type",
-		//	auth: authOk,
-		//	body: CreateLinkRequest{
-		//		SchemaID: importedSchema.ID,
-		//		ExpirationDate: &types.Date{
-		//			Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-		//		},
-		//		ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-		//		LimitedClaims:       common.ToPointer(10),
-		//		CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": true},
-		//		MtProof:             true,
-		//		SignatureProof:      true,
-		//	},
-		//	expected: expected{
-		//		response: CreateLink400JSONResponse{N400JSONResponse{Message: "converting attribute <documentType> :strconv.Atoi: parsing \"true\": invalid syntax"}},
-		//		httpCode: http.StatusBadRequest,
-		//	},
-		//}, //TODO undo this comment when validation is introduced
+		{
+			name: "Claim link wrong attribute type",
+			auth: authOk,
+			body: CreateLinkRequest{
+				SchemaID: importedSchema.ID,
+				ExpirationDate: &types.Date{
+					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
+				},
+				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				LimitedClaims:       common.ToPointer(10),
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": true},
+				MtProof:             true,
+				SignatureProof:      true,
+			},
+			expected: expected{
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credentialSubject.documentType: Invalid type. Expected: integer, given: boolean \n"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
 		{
 			name: "Claim link wrong schema id",
 			auth: authOk,

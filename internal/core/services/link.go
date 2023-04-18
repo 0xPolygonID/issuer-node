@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,7 +12,6 @@ import (
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/jackc/pgx/v4"
-
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -75,6 +75,12 @@ func (ls *Link) Save(
 	if err != nil {
 		return nil, err
 	}
+
+	err = ls.validateCredentialSubjectAgainstSchema(ctx, credentialSubject, schema.URL)
+	if err != nil {
+		return nil, err
+	}
+
 	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
 
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
@@ -309,4 +315,13 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 	}
 
 	return nil
+}
+
+func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaURL string) error {
+	schema, err := jsonschema.Load(ctx, ls.loaderFactory(schemaURL))
+	if err != nil {
+		return ErrLoadingSchema
+	}
+
+	return schema.ValidateCredentialSubject(cSubject)
 }

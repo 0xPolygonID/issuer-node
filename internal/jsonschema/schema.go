@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	core "github.com/iden3/go-iden3-core"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/mitchellh/mapstructure"
-
+	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 // Attributes is a list of Attribute entities
@@ -88,6 +89,113 @@ func (s *JSONSchema) Attributes() (Attributes, error) {
 		return nil, err
 	}
 	return attrs, nil
+}
+
+func (s *JSONSchema) properties() (map[string]any, error) {
+	props, ok := s.content["properties"].(map[string]any)
+	if !ok {
+		return nil, errors.New("missing properties field")
+	}
+
+	return props, nil
+}
+
+func (s *JSONSchema) required() ([]string, error) {
+	required, ok := s.content["required"].([]string)
+	if !ok {
+		return nil, errors.New("missing properties field")
+	}
+
+	return required, nil
+}
+
+func (s *JSONSchema) setRequired(required []string) {
+	s.content["required"] = required
+}
+
+func (s *JSONSchema) removeIDFromRequired() error {
+	props, err := s.properties()
+	if err != nil {
+		return err
+	}
+
+	credentialSubject, ok := props["credentialSubject"].(map[string]any)
+	if !ok {
+		return errors.New("malformed credentialSubject")
+	}
+
+	credRequired, ok := credentialSubject["required"].([]any)
+	if !ok {
+		return errors.New("malformed required")
+	}
+
+	required := make([]string, 0)
+	for _, credRequired := range credRequired {
+		credRequiredStr, ok := credRequired.(string)
+		if !ok {
+			return fmt.Errorf("malformed required property inside credentialSubject %v", credRequired)
+		}
+
+		if credRequiredStr != "id" {
+			required = append(required, credRequiredStr)
+		}
+	}
+
+	credentialSubject["required"] = required
+	props["credentialSubject"] = credentialSubject
+
+	return nil
+}
+
+func (s *JSONSchema) formatForValidation() error {
+	s.setRequired([]string{"credentialSubject"})
+
+	return s.removeIDFromRequired()
+}
+
+func (s *JSONSchema) getValidationJSONSchema() JSONSchema {
+	return JSONSchema{content: common.CopyMap(s.content)}
+}
+
+func (s *JSONSchema) ValidateCredentialSubject(cSubject domain.CredentialSubject) error {
+	valJSONSchema := s.getValidationJSONSchema()
+	err := valJSONSchema.formatForValidation()
+	if err != nil {
+		return err
+	}
+
+	return valJSONSchema.validateCredentialSubject(cSubject)
+}
+
+func (s *JSONSchema) validateCredentialSubject(cSubject domain.CredentialSubject) error {
+	schemaBytes, err := json.Marshal(s.content)
+	if err != nil {
+		return errors.New("marshalling schema credential subject")
+	}
+
+	cSubjectBytes, err := json.Marshal(map[string]interface{}{"credentialSubject": cSubject})
+	if err != nil {
+		return errors.New("marshalling link credential subject")
+	}
+
+	schemaLoader := gojsonschema.NewStringLoader(string(schemaBytes))
+	linkLoader := gojsonschema.NewStringLoader(string(cSubjectBytes))
+
+	result, err := gojsonschema.Validate(schemaLoader, linkLoader)
+	if err != nil {
+		return err
+	}
+
+	if result.Valid() {
+		return nil
+	}
+
+	var errStr string
+	for _, e := range result.Errors() {
+		errStr += fmt.Sprintf("%s \n", e.String())
+	}
+
+	return errors.New(errStr)
 }
 
 func processProperties(props map[string]any) ([]Attribute, error) {
