@@ -31,7 +31,7 @@ services:
     env_file:
       - ../../.env-api
       - ../../.env-issuer
-    command: sh -c "sleep 4s && ./migrate && ./admin"
+    command: sh -c "sleep 4s && ./migrate && ./api_ui"
 
   notificacions:
     build:
