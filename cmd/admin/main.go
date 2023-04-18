@@ -20,7 +20,7 @@ import (
 	"github.com/iden3/go-iden3-auth/state"
 	core "github.com/iden3/go-iden3-core"
 
-	"github.com/polygonid/sh-id-platform/internal/api_admin"
+	"github.com/polygonid/sh-id-platform/internal/api_ui"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -198,20 +198,20 @@ func main() {
 		cors.AllowAll().Handler,
 		chiMiddleware.NoCache,
 	)
-	api_admin.HandlerWithOptions(
-		api_admin.NewStrictHandlerWithOptions(
-			api_admin.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth),
+	api_ui.HandlerWithOptions(
+		api_ui.NewStrictHandlerWithOptions(
+			api_ui.NewServer(cfg, identityService, claimsService, schemaAdminService, connectionsService, linkService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
-			api_admin.StrictHTTPServerOptions{
+			api_ui.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
-		api_admin.ChiServerOptions{
+		api_ui.ChiServerOptions{
 			BaseRouter:       mux,
 			ErrorHandlerFunc: errorHandlerFunc,
 		},
 	)
-	api_admin.RegisterStatic(mux)
+	api_ui.RegisterStatic(mux)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.APIUI.ServerPort),
@@ -236,16 +236,16 @@ func identifierExists(ctx context.Context, did *core.DID, service ports.Identity
 	return err == nil
 }
 
-func middlewares(ctx context.Context, auth config.APIUIAuth) []api_admin.StrictMiddlewareFunc {
-	return []api_admin.StrictMiddlewareFunc{
-		api_admin.LogMiddleware(ctx),
-		api_admin.BasicAuthMiddleware(ctx, auth.User, auth.Password),
+func middlewares(ctx context.Context, auth config.APIUIAuth) []api_ui.StrictMiddlewareFunc {
+	return []api_ui.StrictMiddlewareFunc{
+		api_ui.LogMiddleware(ctx),
+		api_ui.BasicAuthMiddleware(ctx, auth.User, auth.Password),
 	}
 }
 
 func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
 	switch err.(type) {
-	case *api_admin.InvalidParamFormatError:
+	case *api_ui.InvalidParamFormatError:
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
