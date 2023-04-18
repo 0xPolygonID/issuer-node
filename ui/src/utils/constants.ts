@@ -2,6 +2,7 @@ import { CredentialsTabIDs } from "src/domain";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
+export const CLOSE = "Close";
 export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";

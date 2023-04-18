@@ -5,6 +5,7 @@ import { useState } from "react";
 import { deleteConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/env";
+import { CLOSE } from "src/utils/constants";
 
 export function ConnectionDeleteModal({
   id,
@@ -34,7 +35,7 @@ export function ConnectionDeleteModal({
 
   return (
     <Modal
-      cancelText="Close"
+      cancelText={CLOSE}
       centered
       closable
       closeIcon={<IconClose />}

@@ -193,17 +193,16 @@ export function ScanCredentialLink() {
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
                 {shareCredentialQRCode.data.linkDetail.schemaType}
               </Typography.Title>
-
               <Typography.Title level={5} type="secondary">
                 Attributes
               </Typography.Title>
 
-              {shareCredentialQRCode.data.linkDetail.attributes.map((attribute) => {
-                //TODO Credentials epic
-                // const formattedValue = formatAttributeValue(
-                //   attribute,
-                //   shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
-                // );
+              {/* TODO Credentials epic: PID-431 and PID-437 */}
+              {/* {shareCredentialQRCode.data.linkDetail.attributes.map((attribute) => {
+                const formattedValue = formatAttributeValue(
+                  attribute,
+                  shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
+                );
 
                 return (
                   <Space direction="vertical" key={attribute.name}>
@@ -211,12 +210,12 @@ export function ScanCredentialLink() {
                       {attribute.name}
                     </Typography.Text>
 
-                    {/* <Typography.Text strong>
+                    <Typography.Text strong>
                       {formattedValue.success ? formattedValue.data : formattedValue.error}
-                    </Typography.Text> */}
+                    </Typography.Text>
                   </Space>
                 );
-              })}
+              })} */}
             </Space>
           </Col>
         </Row>
