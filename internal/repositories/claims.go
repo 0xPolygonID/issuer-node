@@ -876,6 +876,67 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 	return claims, nil
 }
 
+func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *core.DID, state string) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+		   issuer,
+		   schema_hash,
+		   schema_type,
+		   schema_url,
+		   other_identifier,
+		   expiration,
+		   updatable,
+		   claims.version,
+		   rev_nonce,
+		   mtp_proof,
+		   signature_proof,
+		   data,
+		   claims.identifier,
+		   identity_state,
+		   credential_status,
+		   revoked,
+		   core_claim
+		FROM claims
+		WHERE claims.identifier = $1
+		AND identity_state = $2
+		AND mtp_proof IS NOT NULL
+	`
+	rows, err := conn.Query(ctx, query, did.String(), state)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	claims := make([]*domain.Claim, 0)
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaType,
+			&claim.SchemaHash,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.MTPProof,
+			&claim.SignatureProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.CredentialStatus,
+			&claim.Revoked,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, &claim)
+	}
+
+	return claims, nil
+}
+
 func toCredentialDomain(c *dbClaim) *domain.Claim {
 	if c.ID == nil {
 		return nil
