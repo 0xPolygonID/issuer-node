@@ -224,11 +224,11 @@ func Load(fileName string) (*Configuration, error) {
 	}
 	ctx := context.Background()
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error(ctx, "error loading config file...", err)
+		log.Info(ctx, "missing toml config file. Fallback to env vars", "err", err)
 	}
 
 	if err := viper.Unmarshal(config); err != nil {
-		log.Error(ctx, "error unmarshalling config file", err)
+		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
 	checkEnvVars(ctx, config)
 	return config, nil

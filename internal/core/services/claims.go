@@ -487,19 +487,19 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
-		log.Error(ctx, "unmarshalling agent body", err)
+		log.Error(ctx, "unmarshalling agent body", "err", err)
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
 	claimID, err := uuid.Parse(fetchRequestBody.ID)
 	if err != nil {
-		log.Error(ctx, "wrong claimID in agent request body", err)
+		log.Error(ctx, "wrong claimID in agent request body", "err", err)
 		return nil, fmt.Errorf("invalid claim ID")
 	}
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
 	if err != nil {
-		log.Error(ctx, "loading claim", err)
+		log.Error(ctx, "loading claim", "err", err)
 		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
 	}
 
@@ -511,7 +511,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 
 	vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
-		log.Error(ctx, "creating W3 credential", err)
+		log.Error(ctx, "creating W3 credential", "err", err)
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 
