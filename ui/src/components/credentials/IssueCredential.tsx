@@ -55,7 +55,7 @@ export function IssueCredential() {
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
     status: "pending",
   });
-  const [linkID, setLinkID] = useState<AsyncTask<string, undefined>>({
+  const [linkID, setLinkID] = useState<AsyncTask<string, null>>({
     status: "pending",
   });
 
@@ -83,7 +83,7 @@ export function IssueCredential() {
 
             void message.success("Credential link created");
           } else {
-            setLinkID({ error: undefined, status: "failed" });
+            setLinkID({ error: null, status: "failed" });
 
             void message.error(response.error.message);
           }
