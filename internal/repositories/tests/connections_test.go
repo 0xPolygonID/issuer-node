@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -35,12 +36,48 @@ func TestSave(t *testing.T) {
 		IssuerDID: *issuerDID,
 	}
 	t.Run("should save or update the connection", func(t *testing.T) {
-		connID, err := connectionsRepo.Save(context.Background(), storage.Pgx, conn)
+		ctx := context.Background()
+		connID, err := connectionsRepo.Save(ctx, storage.Pgx, conn)
 		assert.NoError(t, err)
 		assert.Equal(t, conn.ID.String(), connID.String())
-		connID2, err := connectionsRepo.Save(context.Background(), storage.Pgx, conn2) // updating connection
+		connID2, err := connectionsRepo.Save(ctx, storage.Pgx, conn2) // updating connection
 		assert.NoError(t, err)
 		assert.NotEqual(t, conn2.ID, connID2) // checking that the connections is being updated and no ID is modified on conflict
+	})
+}
+
+func TestUpdatePushToken(t *testing.T) {
+	connectionsRepo := repositories.NewConnections()
+	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qDLHs1n3c9oHxEPkgCMGfDjY4V37Xv8KztkZcpG1i")
+	require.NoError(t, err)
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm")
+	require.NoError(t, err)
+
+	conn := &domain.Connection{
+		ID:        uuid.New(),
+		UserDID:   *userDID,
+		IssuerDID: *issuerDID,
+		UserDoc:   json.RawMessage(`{"id": "did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm", "service": [{"id": "did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm#push", "type": "push-notification", "metadata": {"devices": [{"alg": "RSA-OAEP-512", "ciphertext": "someToken"}]}, "serviceEndpoint": "https://someURL.com/api/v1"}], "@context": ["https://www.w3.org/ns/did/v1"]}`),
+	}
+
+	conn2 := &domain.Connection{
+		ID:        conn.ID,
+		UserDID:   *userDID,
+		IssuerDID: *issuerDID,
+		UserDoc:   json.RawMessage(`{"id": "did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm", "service": [{"id": "did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm#push", "type": "push-notification", "metadata": {"devices": [{"alg": "RSA-OAEP-512", "ciphertext": "someToken2"}]}, "serviceEndpoint": "https://someURL.com/api/v1"}], "@context": ["https://www.w3.org/ns/did/v1"]}`),
+	}
+	t.Run("should save or update the connection", func(t *testing.T) {
+		ctx := context.Background()
+		connID, err := connectionsRepo.Save(ctx, storage.Pgx, conn)
+		require.NoError(t, err)
+		assert.Equal(t, conn.ID.String(), connID.String())
+		connID2, err := connectionsRepo.Save(ctx, storage.Pgx, conn2) // updating connection
+		require.NoError(t, err)
+		assert.Equal(t, conn2.ID, connID2)
+		connDB, err := connectionsRepo.GetByUserID(ctx, storage.Pgx, *issuerDID, *userDID)
+		require.NoError(t, err)
+		assert.Equal(t, conn2.ID, connDB.ID)
+		assert.Equal(t, conn2.UserDoc, connDB.UserDoc)
 	})
 }
 
