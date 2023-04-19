@@ -308,7 +308,7 @@ Once you've completed the [Installation](#installation) section, this will walk 
 This is to demonstrate how to createa an identity but is not needed as the identity is created in [Create Issuer DID](#create-issuer-did) step.
 
 ```bash
-# NOTE: dXNlcjpwYXNzd29yZA== is a Basic HTTP Authorizatio as base64(user-issuer:password-issuer) from our config.toml file
+# NOTE: dXNlci1pc3N1ZXI6cGFzc3dvcmQtaXNzdWVy is a Basic HTTP Authorizatio as base64(user-issuer:password-issuer) from our .env-issuer file
 # [HTTPBasicAuth]
 # User="user"
 # Password="password"
@@ -426,7 +426,7 @@ A quick way to validate this KYCAge Claim is to use [https://verifier-demo.polyg
 
 ### Running the admin server backend (api) for evaluation purposes with docker-composer
 
-1) Configure the project creating config.toml file.
+1) Configure the project by creating a copy of all the `.env-*.sample` files.
 2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
    evaluation purposes.
 3) Run `make run-ui-backend` to start a docker container running the issuer, (`make run-arm-ui-backend` for **Mac computers** with **Apple Silicon chip**)
