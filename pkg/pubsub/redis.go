@@ -71,7 +71,7 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 			select {
 			case event := <-messages:
 				if event.Channel != topic {
-					rdb.log(ctx, "redis pubsub: msg channel != topic")
+					rdb.log(ctx, "msg channel != topic", "msg channel", event.Channel, "topic", topic)
 					continue
 				}
 				if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {

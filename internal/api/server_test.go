@@ -928,7 +928,7 @@ func TestServer_GetClaims(t *testing.T) {
 			},
 		},
 		{
-			name: "should get an error self and subject filter can not be used together",
+			name: "should get an error self and subject filter cannot be used together",
 			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
@@ -937,7 +937,7 @@ func TestServer_GetClaims(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				response: GetClaims400JSONResponse{N400JSONResponse{"self and subject filter can not be used together"}},
+				response: GetClaims400JSONResponse{N400JSONResponse{"self and subject filter cannot be used together"}},
 			},
 		},
 		{

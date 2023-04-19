@@ -11,7 +11,10 @@ import (
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/mitchellh/mapstructure"
+	"github.com/xeipuuv/gojsonschema"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
@@ -67,6 +70,17 @@ func Load(ctx context.Context, loader loader.Loader) (*JSONSchema, error) {
 	return schema, nil
 }
 
+// ValidateCredentialSubject checks if the given credential subject matches the schema definition
+func (s *JSONSchema) ValidateCredentialSubject(cSubject domain.CredentialSubject) error {
+	valJSONSchema := s.getValidationJSONSchema()
+	err := valJSONSchema.formatForValidation()
+	if err != nil {
+		return err
+	}
+
+	return valJSONSchema.validateCredentialSubject(cSubject)
+}
+
 // Attributes returns a list with the attributes in properties.credentialSubject.properties
 func (s *JSONSchema) Attributes() (Attributes, error) {
 	var props map[string]any
@@ -90,29 +104,92 @@ func (s *JSONSchema) Attributes() (Attributes, error) {
 	return attrs, nil
 }
 
-func processProperties(props map[string]any) ([]Attribute, error) {
-	attrs := make([]Attribute, 0, len(props))
-	for id, prop := range props {
-		attr := Attribute{}
-		if err := mapstructure.Decode(prop, &attr); err != nil {
-			return nil, fmt.Errorf("parsing attribute <%s>: %w", prop, err)
+func (s *JSONSchema) properties() (map[string]any, error) {
+	props, ok := s.content["properties"].(map[string]any)
+	if !ok {
+		return nil, errors.New("missing properties field")
+	}
+
+	return props, nil
+}
+
+func (s *JSONSchema) setRequired(required []string) {
+	s.content["required"] = required
+}
+
+func (s *JSONSchema) removeIDFromRequired() error {
+	props, err := s.properties()
+	if err != nil {
+		return err
+	}
+
+	credentialSubject, ok := props["credentialSubject"].(map[string]any)
+	if !ok {
+		return errors.New("malformed credentialSubject")
+	}
+
+	credRequired, ok := credentialSubject["required"].([]any)
+	if !ok {
+		return errors.New("malformed required")
+	}
+
+	required := make([]string, 0)
+	for _, credRequired := range credRequired {
+		credRequiredStr, ok := credRequired.(string)
+		if !ok {
+			return fmt.Errorf("malformed required property inside credentialSubject %v", credRequired)
 		}
-		attr.ID = id
-		if len(attr.Properties) > 0 {
-			attrs = append(attrs, Attribute{
-				ID:   id,
-				Type: "object",
-			})
-			attrs1, err := processProperties(attr.Properties)
-			if err != nil {
-				return nil, err
-			}
-			attrs = append(attrs, attrs1...)
-		} else {
-			attrs = append(attrs, attr)
+
+		if credRequiredStr != "id" {
+			required = append(required, credRequiredStr)
 		}
 	}
-	return attrs, nil
+
+	credentialSubject["required"] = required
+	props["credentialSubject"] = credentialSubject
+
+	return nil
+}
+
+func (s *JSONSchema) formatForValidation() error {
+	s.setRequired([]string{"credentialSubject"})
+
+	return s.removeIDFromRequired()
+}
+
+func (s *JSONSchema) getValidationJSONSchema() JSONSchema {
+	return JSONSchema{content: common.CopyMap(s.content)}
+}
+
+func (s *JSONSchema) validateCredentialSubject(cSubject domain.CredentialSubject) error {
+	schemaBytes, err := json.Marshal(s.content)
+	if err != nil {
+		return errors.New("marshalling schema credential subject")
+	}
+
+	cSubjectBytes, err := json.Marshal(map[string]interface{}{"credentialSubject": cSubject})
+	if err != nil {
+		return errors.New("marshalling link credential subject")
+	}
+
+	schemaLoader := gojsonschema.NewStringLoader(string(schemaBytes))
+	linkLoader := gojsonschema.NewStringLoader(string(cSubjectBytes))
+
+	result, err := gojsonschema.Validate(schemaLoader, linkLoader)
+	if err != nil {
+		return err
+	}
+
+	if result.Valid() {
+		return nil
+	}
+
+	var errStr string
+	for _, e := range result.Errors() {
+		errStr += fmt.Sprintf("%s \n", e.String())
+	}
+
+	return errors.New(errStr)
 }
 
 // AttributeByID returns the attribute with this id or an error if not found
@@ -164,4 +241,29 @@ func findIndexForSchemaAttribute(attributes Attributes, name string) int {
 		}
 	}
 	return -1
+}
+
+func processProperties(props map[string]any) ([]Attribute, error) {
+	attrs := make([]Attribute, 0, len(props))
+	for id, prop := range props {
+		attr := Attribute{}
+		if err := mapstructure.Decode(prop, &attr); err != nil {
+			return nil, fmt.Errorf("parsing attribute <%s>: %w", prop, err)
+		}
+		attr.ID = id
+		if len(attr.Properties) > 0 {
+			attrs = append(attrs, Attribute{
+				ID:   id,
+				Type: "object",
+			})
+			attrs1, err := processProperties(attr.Properties)
+			if err != nil {
+				return nil, err
+			}
+			attrs = append(attrs, attrs1...)
+		} else {
+			attrs = append(attrs, attr)
+		}
+	}
+	return attrs, nil
 }

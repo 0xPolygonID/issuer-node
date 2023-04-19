@@ -1,28 +1,14 @@
 export type { Connection } from "src/domain/connection";
 
-export type {
-  BooleanCredentialFormAttribute,
-  Credential,
-  CredentialFormAttribute,
-  CredentialForm,
-  CredentialsTabIDs,
-  Link,
-  LinkAttributes,
-  LinkStatus,
-  DateCredentialFormAttribute,
-  NumberCredentialFormAttribute,
-  SingleChoiceCredentialFormAttribute,
-} from "src/domain/credential";
+export type { Credential, CredentialsTabIDs, Link, LinkStatus } from "src/domain/credential";
 
 export type { Env } from "src/domain/env";
 
-export type { Json, JsonLiteral, JsonLdType } from "src/domain/json";
+export type { Json, JsonLiteral } from "src/domain/json";
 
 export type {
   Attribute,
   ArrayAttribute,
-  ArrayProps,
-  ArraySchema,
   BooleanAttribute,
   BooleanProps,
   BooleanSchema,
@@ -37,12 +23,12 @@ export type {
   NumberSchema,
   ObjectAttribute,
   ObjectProps,
-  ObjectSchema,
   JsonSchema,
   SchemaProps,
   StringAttribute,
   StringProps,
   StringSchema,
+  JsonLdType,
 } from "src/domain/jsonSchema";
 
-export type { Schema, SchemaAttribute } from "src/domain/schema";
+export type { Schema } from "src/domain/schema";

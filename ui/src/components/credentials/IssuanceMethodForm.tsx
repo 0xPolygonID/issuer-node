@@ -1,7 +1,6 @@
 import {
   Button,
   Card,
-  Col,
   DatePicker,
   Form,
   InputNumber,
@@ -15,36 +14,18 @@ import {
 import dayjs from "dayjs";
 import { useState } from "react";
 
-import { linkExpirationDateParser } from "src/adapters/parsers/forms";
-import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
+import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
 
-export type IssuanceMethod =
-  | {
-      type: "directIssue";
-    }
-  | {
-      linkExpirationDate?: dayjs.Dayjs;
-      linkExpirationTime?: dayjs.Dayjs;
-      linkMaximumIssuance?: string;
-      type: "credentialLink";
-    };
-
-export function SetIssuanceMethod({
-  credentialExpirationDate,
+export function IssuanceMethodForm({
   initialValues,
-  isCredentialLoading,
-  onStepBack,
   onSubmit,
 }: {
-  credentialExpirationDate?: dayjs.Dayjs;
-  initialValues: IssuanceMethod;
-  isCredentialLoading: boolean;
-  onStepBack: (values: IssuanceMethod) => void;
-  onSubmit: (values: IssuanceMethod) => void;
+  initialValues: IssuanceMethodFormData;
+  onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
-  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethod>(initialValues);
+  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
 
   const isDirectIssue = issuanceMethod.type === "directIssue";
 
@@ -109,11 +90,7 @@ export function SetIssuanceMethod({
                       <Form.Item help="Optional" label={ACCESSIBLE_UNTIL} name="linkExpirationDate">
                         <DatePicker
                           disabled={isDirectIssue}
-                          disabledDate={(current) =>
-                            current < dayjs().startOf("day") ||
-                            (credentialExpirationDate !== undefined &&
-                              current.isAfter(credentialExpirationDate))
-                          }
+                          disabledDate={(current) => current < dayjs().startOf("day")}
                         />
                       </Form.Item>
 
@@ -185,23 +162,9 @@ export function SetIssuanceMethod({
         </Form.Item>
 
         <Row gutter={8} justify="end">
-          <Col>
-            <Button
-              icon={<IconBack />}
-              loading={isCredentialLoading}
-              onClick={() => {
-                onStepBack(issuanceMethod);
-              }}
-            >
-              Previous step
-            </Button>
-          </Col>
-
-          <Col>
-            <Button htmlType="submit" loading={isCredentialLoading} type="primary">
-              Create credential link <IconRight />
-            </Button>
-          </Col>
+          <Button htmlType="submit" type="primary">
+            Next step <IconRight />
+          </Button>
         </Row>
       </Form>
     </Card>

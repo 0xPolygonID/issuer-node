@@ -55,7 +55,7 @@ api: $(BIN)/oapi-codegen
 
 .PHONY: api-ui
 api-ui: $(BIN)/oapi-codegen
-	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_admin/api.gen.go
+	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_ui/api.gen.go
 
 .PHONY: up
 up:

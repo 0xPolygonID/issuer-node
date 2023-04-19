@@ -766,7 +766,7 @@ paths:
         200:
           description: success and returns the documentation in HTML format
 
-  /static/docs/api_admin/api.yaml:
+  /static/docs/api_ui/api.yaml:
     get:
       summary: Get the documentation yaml file
       operationId: GetYaml

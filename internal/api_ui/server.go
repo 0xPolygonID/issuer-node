@@ -1,4 +1,4 @@
-package api_admin
+package api_ui
 
 import (
 	"context"
@@ -448,10 +448,12 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
 	}
 
-	// Todo improve validations errors
 	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
 	if err != nil {
-		log.Error(ctx, "error saving the link", err.Error())
+		log.Error(ctx, "error saving the link", "err", err.Error())
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+		}
 		return CreateLink400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateLink201JSONResponse{Id: createdLink.ID.String()}, nil
@@ -614,13 +616,13 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 	req, err := ports.NewAgentRequest(basicMessage)
 	if err != nil {
-		log.Error(ctx, "agent parsing request", err)
+		log.Error(ctx, "agent parsing request", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
 	agent, err := s.claimService.Agent(ctx, req)
 	if err != nil {
-		log.Error(ctx, "agent error", err)
+		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 

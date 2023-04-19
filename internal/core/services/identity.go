@@ -381,20 +381,20 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 
 	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
 	if err != nil {
-		log.Error(ctx, "authentication failed", err)
+		log.Error(ctx, "authentication failed", "err", err)
 		return nil, err
 	}
 
 	issuerDoc := newDIDDocument(serverURL, issuerDID)
 	bytesIssuerDoc, err := json.Marshal(issuerDoc)
 	if err != nil {
-		log.Error(ctx, "failed to marshal issuerDoc", err)
+		log.Error(ctx, "failed to marshal issuerDoc", "err", err)
 		return nil, err
 	}
 
 	userDID, err := core.ParseDID(arm.From)
 	if err != nil {
-		log.Error(ctx, "failed to parse userDID", err)
+		log.Error(ctx, "failed to parse userDID", "err", err)
 		return nil, err
 	}
 
