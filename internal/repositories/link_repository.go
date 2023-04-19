@@ -181,10 +181,10 @@ WHERE links.issuer_id = $1
 	}
 	defer rows.Close()
 
-	var credentialAttributtes pgtype.JSONB
-	link := domain.Link{}
 	schema := dbSchema{}
+	link := domain.Link{}
 	links := make([]domain.Link, 0)
+	var credentialAttributes pgtype.JSONB
 	for rows.Next() {
 		if err := rows.Scan(
 			&link.ID,
@@ -195,7 +195,7 @@ WHERE links.issuer_id = $1
 			&link.SchemaID,
 			&link.CredentialExpiration,
 			&link.CredentialSignatureProof,
-			&link.CredentialMTPProof, &credentialAttributtes,
+			&link.CredentialMTPProof, &credentialAttributes,
 			&link.Active,
 			&link.IssuedClaims,
 			&schema.ID,
@@ -208,20 +208,18 @@ WHERE links.issuer_id = $1
 		); err != nil {
 			return nil, err
 		}
-		raw, err := credentialAttributtes.MarshalJSON()
-		if err != nil {
+		if err := json.Unmarshal(credentialAttributes.Bytes, &link.CredentialSubject); err != nil {
 			return nil, fmt.Errorf("parsing credential attributes: %w", err)
 		}
-		d := json.NewDecoder(bytes.NewReader(raw))
-		if err := d.Decode(&link.CredentialSubject); err != nil {
-			return nil, fmt.Errorf("parsing credential attributes: %w", err)
-		}
+
 		link.Schema, err = toSchemaDomain(&schema)
 		if err != nil {
 			return nil, fmt.Errorf("parsing link schema: %w", err)
 		}
+
 		links = append(links, link)
 	}
+
 	return links, nil
 }
 
