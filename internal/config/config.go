@@ -120,14 +120,17 @@ type HTTPBasicAuth struct {
 
 // APIUI - APIUI backend service configuration.
 type APIUI struct {
-	ServerPort  int       `mapstructure:"ServerPort" tip:"Server UI API backend port"`
-	ServerURL   string    `mapstructure:"ServerUrl" tip:"Server UI API backend url"`
-	APIUIAuth   APIUIAuth `mapstructure:"APIUIAuth" tip:"Server UI API backend basic auth credentials"`
-	IssuerName  string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
-	IssuerLogo  string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
-	Issuer      string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID   core.DID  `mapstructure:"-"`
-	SchemaCache *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
+	ServerPort         int       `mapstructure:"ServerPort" tip:"Server UI API backend port"`
+	ServerURL          string    `mapstructure:"ServerUrl" tip:"Server UI API backend url"`
+	APIUIAuth          APIUIAuth `mapstructure:"APIUIAuth" tip:"Server UI API backend basic auth credentials"`
+	IssuerName         string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
+	IssuerLogo         string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
+	Issuer             string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
+	IssuerDID          core.DID  `mapstructure:"-"`
+	SchemaCache        *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
+	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
+	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
+	IdentityNetwork    string    `mapstructure:"IdentityNetwork" tip:"Server UI API backend Identity Network"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -149,9 +152,9 @@ func (c *Configuration) Sanitize() error {
 	return nil
 }
 
-// SanitizeAdmin perform some basic checks and sanitizations in the configuration.
+// SanitizeAPIUI perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
-func (c *Configuration) SanitizeAdmin() error {
+func (c *Configuration) SanitizeAPIUI() error {
 	if c.APIUI.ServerPort == 0 {
 		return fmt.Errorf("a port for the UI API server must be provided")
 	}
@@ -221,11 +224,11 @@ func Load(fileName string) (*Configuration, error) {
 	}
 	ctx := context.Background()
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error(ctx, "error loading config file...", err)
+		log.Info(ctx, "missing toml config file. Fallback to env vars", "err", err)
 	}
 
 	if err := viper.Unmarshal(config); err != nil {
-		log.Error(ctx, "error unmarshalling config file", err)
+		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
 	checkEnvVars(ctx, config)
 	return config, nil
@@ -329,10 +332,14 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IssuerLogo", "ISSUER_API_UI_ISSUER_LOGO")
 	_ = viper.BindEnv("APIUI.IssuerDID", "ISSUER_API_UI_ISSUER_DID")
 	_ = viper.BindEnv("APIUI.SchemaCache", "ISSUER_API_UI_SCHEMA_CACHE")
+	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
+	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
+	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
 
 	viper.AutomaticEnv()
 }
 
+// nolint:gocyclo
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.ServerUrl == "" {
 		log.Info(ctx, "ISSUER_SERVER_URL value is missing")
@@ -470,6 +477,21 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.APIUI.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_API_UI_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.APIUI.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.APIUI.IdentityMethod == "" {
+		log.Info(ctx, "ISSUER_API_IDENTITY_METHOD value is missing and the server set up it as polygonid")
+		cfg.APIUI.IdentityMethod = "polygonid"
+	}
+
+	if cfg.APIUI.IdentityBlockchain == "" {
+		log.Info(ctx, "ISSUER_API_IDENTITY_BLOCKCHAIN value is missing and the server set up it as polygon")
+		cfg.APIUI.IdentityBlockchain = "polygon"
+	}
+
+	if cfg.APIUI.IdentityNetwork == "" {
+		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as mumbai")
+		cfg.APIUI.IdentityNetwork = "mumbai"
 	}
 }
 

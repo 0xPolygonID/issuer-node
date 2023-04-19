@@ -61,11 +61,11 @@ export type StringAttribute = {
 
 // Non-primitives
 
-export type ArrayProps = {
-  item?: Attribute;
+type ArrayProps = {
+  items?: Attribute;
 };
 
-export type ArraySchema = CommonProps & ArrayProps & { type: "array" };
+type ArraySchema = CommonProps & ArrayProps & { type: "array" };
 
 export type ArrayAttribute = {
   name: string;
@@ -79,7 +79,7 @@ export type ObjectProps = {
   required?: string[];
 };
 
-export type ObjectSchema = CommonProps & ObjectProps & { type: "object" };
+type ObjectSchema = CommonProps & ObjectProps & { type: "object" };
 
 export type ObjectAttribute = {
   name: string;
@@ -90,12 +90,12 @@ export type ObjectAttribute = {
 
 // Multi-type
 
-export type MultiSchema = (CommonProps & (BooleanProps | StringProps | ArrayProps | ObjectProps))[];
+export type MultiSchema = CommonProps & (BooleanProps | StringProps | ArrayProps | ObjectProps);
 
 export type MultiAttribute = {
   name: string;
   required: boolean;
-  schemas: MultiSchema;
+  schemas: MultiSchema[];
   type: "multi";
 };
 
@@ -120,3 +120,5 @@ export type SchemaProps = {
 };
 
 export type JsonSchema = Attribute & SchemaProps;
+
+export type JsonLdType = { id: string; name: string };

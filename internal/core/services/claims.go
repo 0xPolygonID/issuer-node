@@ -21,11 +21,13 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
 	schemaPkg "github.com/polygonid/sh-id-platform/pkg/schema"
 )
@@ -55,10 +57,11 @@ type claim struct {
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
+	publisher               pubsub.Publisher
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -71,11 +74,12 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
 		loaderFactory:           ld,
+		publisher:               ps,
 	}
 	return s
 }
 
-// CreateClaim creates a new claim
+// Save creates a new claim
 // 1.- Creates document
 // 2.- Signature proof
 // 3.- MerkelTree proof
@@ -84,12 +88,16 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	if err != nil {
 		return nil, err
 	}
-	id, err := c.icRepo.Save(ctx, c.storage.Pgx, claim)
+	claim.ID, err = c.icRepo.Save(ctx, c.storage.Pgx, claim)
 	if err != nil {
 		return nil, err
 	}
-
-	claim.ID = id
+	if req.SignatureProof {
+		err = c.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: claim.ID.String(), IssuerID: req.DID.String()})
+		if err != nil {
+			log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", claim.ID.String())
+		}
+	}
 
 	return claim, nil
 }
@@ -141,13 +149,13 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "Can not process the schema", "err", err)
+		log.Error(ctx, "cannot process the schema", "err", err)
 		return nil, ErrProcessSchema
 	}
 
 	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
 	if err != nil {
-		log.Error(ctx, "Can not obtain the claim from claimer", "err", err)
+		log.Error(ctx, "cannot obtain the claim from claimer", "err", err)
 		return nil, err
 	}
 
@@ -159,13 +167,13 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	if req.SignatureProof {
 		authClaim, err := c.GetAuthClaim(ctx, req.DID)
 		if err != nil {
-			log.Error(ctx, "Can not retrieve the auth claim", "err", err)
+			log.Error(ctx, "cannot retrieve the auth claim", "err", err)
 			return nil, err
 		}
 
 		proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
 		if err != nil {
-			log.Error(ctx, "Can not sign claim entry", "err", err)
+			log.Error(ctx, "cannot sign claim entry", "err", err)
 			return nil, err
 		}
 
@@ -173,29 +181,30 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 
 		jsonSignatureProof, err := json.Marshal(proof)
 		if err != nil {
-			log.Error(ctx, "Can not encode the json signature proof", "err", err)
+			log.Error(ctx, "cannot encode the json signature proof", "err", err)
 			return nil, err
 		}
 		err = claim.SignatureProof.Set(jsonSignatureProof)
 		if err != nil {
-			log.Error(ctx, "Can not set the json signature proof", "err", err)
+			log.Error(ctx, "cannot set the json signature proof", "err", err)
 			return nil, err
 		}
 	}
 
 	err = claim.Data.Set(vc)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential", "err", err)
+		log.Error(ctx, "cannot set the credential", "err", err)
 		return nil, err
 	}
 
 	err = claim.CredentialStatus.Set(vc.CredentialStatus)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential status", "err", err)
+		log.Error(ctx, "cannot set the credential status", "err", err)
 		return nil, err
 	}
 
 	claim.MtProof = req.MTProof
+	claim.LinkID = req.LinkID
 	return claim, nil
 }
 
@@ -436,6 +445,10 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 	return nil
 }
 
+func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error) {
+	return c.icRepo.GetByStateIDWithMTPProof(ctx, c.storage.Pgx, did, state)
+}
+
 func (c *claim) revoke(ctx context.Context, did *core.DID, nonce uint64, description string, pgx db.Querier) error {
 	rID := new(big.Int).SetUint64(nonce)
 	revocation := domain.Revocation{
@@ -479,21 +492,22 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
-		log.Error(ctx, "unmarshalling agent body", err)
+		log.Error(ctx, "unmarshalling agent body", "err", err)
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
 	claimID, err := uuid.Parse(fetchRequestBody.ID)
 	if err != nil {
-		log.Error(ctx, "wrong claimID in agent request body", err)
+		log.Error(ctx, "wrong claimID in agent request body", "err", err)
 		return nil, fmt.Errorf("invalid claim ID")
 	}
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
 	if err != nil {
-		log.Error(ctx, "loading claim", err, "claimID", claim.ID)
+		log.Error(ctx, "loading claim", "err", err)
 		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
 	}
+
 	if claim.OtherIdentifier != basicMessage.UserDID.String() {
 		err := fmt.Errorf("claim doesn't relate to sender")
 		log.Error(ctx, "claim doesn't relate to sender", err, "claimID", claim.ID)
@@ -502,7 +516,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 
 	vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
-		log.Error(ctx, "creating W3 credential", err)
+		log.Error(ctx, "creating W3 credential", "err", err)
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 

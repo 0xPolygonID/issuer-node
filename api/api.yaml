@@ -169,7 +169,7 @@ paths:
       operationId: GetClaims
       description: |
         Endpoint to retrieve claims 
-        > ⚠️ **self** and **subject** filter can not be used together
+        > ⚠️ **self** and **subject** filter cannot be used together
       tags:
         - Claim
       security:

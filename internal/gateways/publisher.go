@@ -16,10 +16,12 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
 )
 
@@ -46,34 +48,36 @@ type PublisherGateway interface {
 }
 
 type publisher struct {
-	storage             *db.Storage
-	identityService     ports.IdentityService
-	claimService        ports.ClaimsService
-	mtService           ports.MtService
-	kms                 kms.KMSType
-	transactionService  ports.TransactionService
-	confirmationTimeout time.Duration
-	zkService           ports.ZKGenerator
-	publisherGateway    PublisherGateway
-	pendingTransactions *sync_ttl_map.TTLMap
+	storage               *db.Storage
+	identityService       ports.IdentityService
+	claimService          ports.ClaimsService
+	mtService             ports.MtService
+	kms                   kms.KMSType
+	transactionService    ports.TransactionService
+	confirmationTimeout   time.Duration
+	zkService             ports.ZKGenerator
+	publisherGateway      PublisherGateway
+	pendingTransactions   *sync_ttl_map.TTLMap
+	notificationPublisher pubsub.Publisher
 }
 
 // NewPublisher - Constructor
-func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration) *publisher {
+func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration, notificationPublisher pubsub.Publisher) *publisher {
 	pendingTransactions := sync_ttl_map.New(ttl)
 	pendingTransactions.CleaningBackground(transactionCleanup)
 
 	return &publisher{
-		identityService:     identityService,
-		claimService:        claimService,
-		storage:             storage,
-		mtService:           mtService,
-		kms:                 kms,
-		transactionService:  transactionService,
-		zkService:           zkService,
-		publisherGateway:    publisherGateway,
-		confirmationTimeout: confirmationTimeout,
-		pendingTransactions: pendingTransactions,
+		identityService:       identityService,
+		claimService:          claimService,
+		storage:               storage,
+		mtService:             mtService,
+		kms:                   kms,
+		transactionService:    transactionService,
+		zkService:             zkService,
+		publisherGateway:      publisherGateway,
+		confirmationTimeout:   confirmationTimeout,
+		pendingTransactions:   pendingTransactions,
+		notificationPublisher: notificationPublisher,
 	}
 }
 
@@ -131,6 +135,12 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
 		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
+		updatedState.Status = domain.StatusFailed
+		errUpdating := p.identityService.UpdateIdentityState(ctx, updatedState)
+		if errUpdating != nil {
+			log.Error(ctx, "Error saving the state as failed:", "err", err, "did", identifier.String())
+			return nil, errUpdating
+		}
 		return nil, err
 	}
 
@@ -411,6 +421,24 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	if receipt.Status == types.ReceiptStatusSuccessful {
 		state.Status = domain.StatusConfirmed
 		err = p.claimService.UpdateClaimsMTPAndState(ctx, state)
+		did, err := core.ParseDID(state.Identifier)
+		if err != nil {
+			log.Error(ctx, "error getting did from state: ", "err", err, "state", state.StateID)
+			return err
+		}
+		claimsToNotify, err := p.claimService.GetByStateIDWithMTPProof(ctx, did, *state.State)
+		if err != nil {
+			log.Error(ctx, "couldn't fetch the credentials to send notifications: ", "err", err, "state", state.StateID)
+			return err
+		}
+		log.Info(ctx, "sending notifications:", "numberOfClaims", len(claimsToNotify))
+		for _, c := range claimsToNotify {
+			err = p.notificationPublisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: c.ID.String(), IssuerID: state.Identifier})
+			if err != nil {
+				log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", c.ID.String())
+				continue
+			}
+		}
 	} else {
 		state.Status = domain.StatusFailed
 		err = p.identityService.UpdateIdentityState(ctx, state)

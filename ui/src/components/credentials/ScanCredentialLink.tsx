@@ -9,9 +9,8 @@ import {
   CredentialQRStatus,
   ShareCredentialQRCode,
   credentialsQRCheck,
-  credentialsQRCreate,
+  getCredentialLinkQRCode,
 } from "src/adapters/api/credentials";
-import { formatAttributeValue } from "src/adapters/parsers/forms";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -38,14 +37,14 @@ export function ScanCredentialLink() {
   });
 
   const { lg } = Grid.useBreakpoint();
-  const { credentialID } = useParams();
+  const { linkID } = useParams();
 
   const createCredentialQR = useCallback(
     async (signal: AbortSignal) => {
-      if (credentialID) {
+      if (linkID) {
         setShareCredentialQRCode({ status: "loading" });
 
-        const response = await credentialsQRCreate({ env, id: credentialID, signal });
+        const response = await getCredentialLinkQRCode({ env, linkID, signal });
 
         if (response.isSuccessful) {
           setShareCredentialQRCode({ data: response.data, status: "successful" });
@@ -56,7 +55,7 @@ export function ScanCredentialLink() {
         }
       }
     },
-    [credentialID, env]
+    [linkID, env]
   );
 
   useEffect(() => {
@@ -67,10 +66,10 @@ export function ScanCredentialLink() {
 
   useEffect(() => {
     const checkCredentialQRCode = async () => {
-      if (isAsyncTaskDataAvailable(shareCredentialQRCode) && credentialID) {
+      if (isAsyncTaskDataAvailable(shareCredentialQRCode) && linkID) {
         const response = await credentialsQRCheck({
-          credentialID,
           env,
+          linkID,
           sessionID: shareCredentialQRCode.data.sessionID,
         });
 
@@ -94,7 +93,7 @@ export function ScanCredentialLink() {
     }, QR_CODE_POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [shareCredentialQRCode, credentialID, credentialQRCheck, env]);
+  }, [shareCredentialQRCode, linkID, credentialQRCheck, env]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
@@ -179,7 +178,7 @@ export function ScanCredentialLink() {
               value={
                 credentialQRCheck.status === CredentialQRStatus.Done
                   ? JSON.stringify(credentialQRCheck.qrcode)
-                  : JSON.stringify(shareCredentialQRCode.data.qrcode)
+                  : JSON.stringify(shareCredentialQRCode.data.qrCode)
               }
             />
           </Col>
@@ -192,25 +191,23 @@ export function ScanCredentialLink() {
           >
             <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {shareCredentialQRCode.data.offerDetails.schemaTemplate.type}
+                {shareCredentialQRCode.data.linkDetail.schemaType}
               </Typography.Title>
-
               <Typography.Title level={5} type="secondary">
                 Attributes
               </Typography.Title>
 
-              {shareCredentialQRCode.data.offerDetails.attributeValues.map((attribute) => {
+              {/* TODO Credentials epic: PID-431 and PID-437 */}
+              {/* {shareCredentialQRCode.data.linkDetail.attributes.map((attribute) => {
                 const formattedValue = formatAttributeValue(
                   attribute,
-                  //TODO Credentials epic
-                  // shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
-                  []
+                  shareCredentialQRCode.data.offerDetails.schemaTemplate.attributes
                 );
 
                 return (
-                  <Space direction="vertical" key={attribute.attributeKey}>
+                  <Space direction="vertical" key={attribute.name}>
                     <Typography.Text ellipsis={{ tooltip: true }} type="secondary">
-                      {attribute.attributeKey}
+                      {attribute.name}
                     </Typography.Text>
 
                     <Typography.Text strong>
@@ -218,7 +215,7 @@ export function ScanCredentialLink() {
                     </Typography.Text>
                   </Space>
                 );
-              })}
+              })} */}
             </Space>
           </Col>
         </Row>

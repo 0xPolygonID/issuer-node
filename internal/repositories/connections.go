@@ -45,10 +45,9 @@ func NewConnections() ports.ConnectionsRepository {
 func (c *connections) Save(ctx context.Context, conn db.Querier, connection *domain.Connection) (uuid.UUID, error) {
 	var id uuid.UUID
 	sql := `INSERT INTO connections (id,issuer_id, user_id, issuer_doc, user_doc,created_at,modified_at)
-			VALUES($1, $2, $3, $4,$5,$6,$7) ON CONFLICT (issuer_id, user_id) DO
-			UPDATE SET issuer_id=$2, user_id=$3, issuer_doc=$4, user_doc=$5,
-			           modified_at = $7
-	RETURNING id`
+			VALUES($1, $2, $3, $4,$5,$6,$7) ON CONFLICT ON CONSTRAINT connections_issuer_user_key DO
+			UPDATE SET issuer_id=$2, user_id=$3, issuer_doc=$4, user_doc=$5, modified_at = $7
+			RETURNING id`
 	err := conn.QueryRow(ctx, sql, connection.ID, connection.IssuerDID.String(), connection.UserDID.String(), connection.IssuerDoc, connection.UserDoc, connection.CreatedAt, connection.ModifiedAt).Scan(&id)
 
 	return id, err
@@ -81,6 +80,30 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
 				FROM connections 
 				WHERE connections.id = $1 AND connections.issuer_id = $2`, id.String(), issuerID.String()).Scan(
+		&connection.ID,
+		&connection.IssuerDID,
+		&connection.UserDID,
+		&connection.IssuerDoc,
+		&connection.UserDoc,
+		&connection.CreatedAt,
+		&connection.ModifiedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrConnectionDoesNotExist
+		}
+		return nil, err
+	}
+
+	return toConnectionDomain(&connection)
+}
+
+func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDID core.DID, userDID core.DID) (*domain.Connection, error) {
+	connection := dbConnection{}
+	err := conn.QueryRow(ctx,
+		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
+				FROM connections 
+				WHERE   connections.issuer_id = $1 AND  connections.user_id = $2`, issuerDID.String(), userDID.String()).Scan(
 		&connection.ID,
 		&connection.IssuerDID,
 		&connection.UserDID,
