@@ -12,8 +12,8 @@ import (
 
 // NotificationService represents the notification service interface
 type NotificationService interface {
-	SendCreateCredentialNotification(ctx context.Context, event pubsub.Event) error
-	SendCreateConnectionNotification(ctx context.Context, event pubsub.Event) error
+	SendCreateCredentialNotification(ctx context.Context, payload pubsub.Message) error
+	SendCreateConnectionNotification(ctx context.Context, payload pubsub.Message) error
 }
 
 // NotificationGateway represents the notification interface

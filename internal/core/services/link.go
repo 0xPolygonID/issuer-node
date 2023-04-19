@@ -14,6 +14,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
@@ -241,9 +242,9 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 			}
 
 			if link.CredentialSignatureProof {
-				err = ls.publisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
+				err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
 				if err != nil {
-					log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", credentialIssued.ID.String())
+					log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", credentialIssued.ID.String())
 				}
 			}
 
