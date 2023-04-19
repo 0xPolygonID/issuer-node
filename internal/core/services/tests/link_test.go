@@ -82,33 +82,15 @@ func Test_link_issueClaim(t *testing.T) {
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock())
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, true, false, []domain.CredentialAttrsRequest{
-		{
-			Name:  "birthday",
-			Value: "19791109",
-		},
-		{
-			Name:  "documentType",
-			Value: "12",
-		},
-	})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, true, false, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, false, true, []domain.CredentialAttrsRequest{
-		{
-			Name:  "birthday",
-			Value: "19791109",
-		},
-		{
-			Name:  "documentType",
-			Value: "12",
-		},
-	})
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, false, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 
 	type expected struct {

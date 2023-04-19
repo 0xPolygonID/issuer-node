@@ -20,6 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
 var (
@@ -44,10 +45,11 @@ type Link struct {
 	schemaRepository ports.SchemaRepository
 	loaderFactory    loader.Factory
 	sessionManager   ports.SessionRepository
+	publisher        pubsub.Publisher
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -56,6 +58,7 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, clai
 		schemaRepository: schemaRepository,
 		loaderFactory:    loaderFactory,
 		sessionManager:   sessionManager,
+		publisher:        publisher,
 	}
 }
 
@@ -69,17 +72,14 @@ func (ls *Link) Save(
 	credentialExpiration *time.Time,
 	credentialSignatureProof bool,
 	credentialMTPProof bool,
-	credentialAttributes []domain.CredentialAttrsRequest,
+	credentialSubject domain.CredentialSubject,
 ) (*domain.Link, error) {
 	schema, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
 		return nil, err
 	}
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof)
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
 
-	if err := link.ProcessAttributes(ctx, ls.loaderFactory(schema.URL), credentialAttributes); err != nil {
-		return nil, err
-	}
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -111,15 +111,13 @@ func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUI
 // GetByID returns a link by id and issuerDID
 func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
-	if errors.Is(err, repositories.ErrLinkDoesNotExist) {
-		return nil, ErrLinkNotFound
-	}
 	if err != nil {
+		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
+			return nil, ErrLinkNotFound
+		}
 		return nil, err
 	}
-	if err := link.LoadAttributeTypes(ctx, ls.loaderFactory(link.Schema.URL)); err != nil {
-		return nil, err
-	}
+
 	return link, nil
 }
 
@@ -202,16 +200,11 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		return err
 	}
 
-	credentialSubject := make(map[string]any)
-
-	credentialSubject["id"] = userDID.String()
-	for _, credAtt := range link.CredentialAttributes {
-		credentialSubject[credAtt.Name] = credAtt.Value
-	}
+	link.CredentialSubject["id"] = userDID.String()
 
 	claimReq := ports.NewCreateClaimRequest(&issuerDID,
 		schema.URL,
-		credentialSubject,
+		link.CredentialSubject,
 		link.CredentialExpiration,
 		schema.Type,
 		nil, nil, nil,
@@ -239,6 +232,14 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 			if err != nil {
 				return err
 			}
+
+			if link.CredentialSignatureProof {
+				err = ls.publisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
+				if err != nil {
+					log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", credentialIssued.ID.String())
+				}
+			}
+
 			return nil
 		})
 	if err != nil {
