@@ -39,7 +39,7 @@ Running the app with Docker allows for minimal installation and a quick setup. T
 > _**NOTE:** There is no compatibility with Windows environments at this time._
 
 To help expedite a lot of the docker commands, many have been abstracted using `make` commands.
-Included in step are the equivalent docker commands to show what is being run.
+Included in each step are the equivalent docker commands to show what is being run.
 
 #### Create Docker Configuration Files
 
