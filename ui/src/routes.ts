@@ -1,11 +1,11 @@
 export type RouteID =
   | "connectionDetails"
   | "connections"
-  | "credentialLink"
   | "credentials"
   | "importSchema"
   | "issueCredential"
   | "notFound"
+  | "scanLink"
   | "schemaDetails"
   | "schemas";
 
@@ -28,10 +28,6 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
-  credentialLink: {
-    layout: "fullWidthGrey",
-    path: "/credential-link/:linkID",
-  },
   credentials: {
     layout: "sider",
     path: "/credentials/:tabID",
@@ -47,6 +43,10 @@ export const ROUTES: Routes = {
   notFound: {
     layout: "fullWidth",
     path: "/*",
+  },
+  scanLink: {
+    layout: "fullWidthGrey",
+    path: "/credentials/scan-link/:linkID",
   },
   schemaDetails: {
     layout: "sider",

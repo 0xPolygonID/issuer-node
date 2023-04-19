@@ -5,7 +5,7 @@ import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
-import { ScanCredentialLink } from "src/components/credentials/ScanCredentialLink";
+import { ScanLink } from "src/components/credentials/ScanLink";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
@@ -18,11 +18,11 @@ import { ROOT_PATH } from "src/utils/constants";
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
-  credentialLink: ScanCredentialLink,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
   notFound: NotFound,
+  scanLink: ScanLink,
   schemaDetails: SchemaDetails,
   schemas: Schemas,
 };

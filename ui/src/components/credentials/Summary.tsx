@@ -10,7 +10,7 @@ import { CREDENTIALS_TABS, CREDENTIAL_LINK } from "src/utils/constants";
 export function Summary({ linkID }: { linkID: string }) {
   const navigate = useNavigate();
 
-  const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLink.path, {
+  const linkURL = `${window.location.origin}${generatePath(ROUTES.scanLink.path, {
     linkID,
   })}`;
 
@@ -39,7 +39,7 @@ export function Summary({ linkID }: { linkID: string }) {
       className="issue-credential-card"
       extra={
         <Button
-          href={generatePath(ROUTES.credentialLink.path, { linkID })}
+          href={generatePath(ROUTES.scanLink.path, { linkID })}
           icon={<ExternalLinkIcon />}
           target="_blank"
           type="link"

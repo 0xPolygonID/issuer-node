@@ -25,7 +25,7 @@ import {
   WALLET_PLAY_STORE_URL,
 } from "src/utils/constants";
 
-export function ScanCredentialLink() {
+export function ScanLink() {
   const env = useEnvContext();
   const [shareCredentialQRCode, setShareCredentialQRCode] = useState<
     AsyncTask<ShareCredentialQRCode, APIError>
@@ -142,13 +142,13 @@ export function ScanCredentialLink() {
         <Typography.Title level={2}>
           {credentialQRCheck.status === CredentialQRStatus.Done
             ? "Scan again to add the credential to your wallet"
-            : `You received a credential request from ${shareCredentialQRCode.data.issuer.displayName}`}
+            : `You received a credential from ${shareCredentialQRCode.data.issuer.displayName}`}
         </Typography.Title>
 
         <Typography.Text>
           {credentialQRCheck.status === CredentialQRStatus.Done
             ? "If you already received a push notification and added the credential to your mobile device, please disregard this message."
-            : "Scan the QR code with your Polygon ID wallet to add the credential to your wallet."}
+            : "Scan the QR code with your Polygon ID wallet to accept it."}
         </Typography.Text>
       </Space>
 
