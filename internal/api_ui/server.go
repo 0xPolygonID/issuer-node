@@ -1,4 +1,4 @@
-package api_admin
+package api_ui
 
 import (
 	"context"
@@ -616,13 +616,13 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 	req, err := ports.NewAgentRequest(basicMessage)
 	if err != nil {
-		log.Error(ctx, "agent parsing request", err)
+		log.Error(ctx, "agent parsing request", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
 	agent, err := s.claimService.Agent(ctx, req)
 	if err != nil {
-		log.Error(ctx, "agent error", err)
+		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 

@@ -149,7 +149,7 @@ func stringToBigInt(s string) (*big.Int, error) {
 	}
 	n, ok := new(big.Int).SetString(s, base)
 	if !ok {
-		return nil, fmt.Errorf("can not parse string to *big.Int: %s", s)
+		return nil, fmt.Errorf("cannot parse string to *big.Int: %s", s)
 	}
 	return n, nil
 }

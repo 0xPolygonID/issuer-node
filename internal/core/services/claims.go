@@ -148,13 +148,13 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "Can not process the schema", "err", err)
+		log.Error(ctx, "cannot process the schema", "err", err)
 		return nil, ErrProcessSchema
 	}
 
 	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
 	if err != nil {
-		log.Error(ctx, "Can not obtain the claim from claimer", "err", err)
+		log.Error(ctx, "cannot obtain the claim from claimer", "err", err)
 		return nil, err
 	}
 
@@ -166,13 +166,13 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	if req.SignatureProof {
 		authClaim, err := c.GetAuthClaim(ctx, req.DID)
 		if err != nil {
-			log.Error(ctx, "Can not retrieve the auth claim", "err", err)
+			log.Error(ctx, "cannot retrieve the auth claim", "err", err)
 			return nil, err
 		}
 
 		proof, err := c.identitySrv.SignClaimEntry(ctx, authClaim, coreClaim)
 		if err != nil {
-			log.Error(ctx, "Can not sign claim entry", "err", err)
+			log.Error(ctx, "cannot sign claim entry", "err", err)
 			return nil, err
 		}
 
@@ -180,25 +180,25 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 
 		jsonSignatureProof, err := json.Marshal(proof)
 		if err != nil {
-			log.Error(ctx, "Can not encode the json signature proof", "err", err)
+			log.Error(ctx, "cannot encode the json signature proof", "err", err)
 			return nil, err
 		}
 		err = claim.SignatureProof.Set(jsonSignatureProof)
 		if err != nil {
-			log.Error(ctx, "Can not set the json signature proof", "err", err)
+			log.Error(ctx, "cannot set the json signature proof", "err", err)
 			return nil, err
 		}
 	}
 
 	err = claim.Data.Set(vc)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential", "err", err)
+		log.Error(ctx, "cannot set the credential", "err", err)
 		return nil, err
 	}
 
 	err = claim.CredentialStatus.Set(vc.CredentialStatus)
 	if err != nil {
-		log.Error(ctx, "Can not set the credential status", "err", err)
+		log.Error(ctx, "cannot set the credential status", "err", err)
 		return nil, err
 	}
 
@@ -491,19 +491,19 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
 	if err != nil {
-		log.Error(ctx, "unmarshalling agent body", err)
+		log.Error(ctx, "unmarshalling agent body", "err", err)
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
 	claimID, err := uuid.Parse(fetchRequestBody.ID)
 	if err != nil {
-		log.Error(ctx, "wrong claimID in agent request body", err)
+		log.Error(ctx, "wrong claimID in agent request body", "err", err)
 		return nil, fmt.Errorf("invalid claim ID")
 	}
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
 	if err != nil {
-		log.Error(ctx, "loading claim", err)
+		log.Error(ctx, "loading claim", "err", err)
 		return nil, fmt.Errorf("failed get claim by claimID: %w", err)
 	}
 
@@ -515,7 +515,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 
 	vc, err := schemaPkg.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
-		log.Error(ctx, "creating W3 credential", err)
+		log.Error(ctx, "creating W3 credential", "err", err)
 		return nil, fmt.Errorf("failed to convert claim to  w3cCredential: %w", err)
 	}
 
