@@ -55,7 +55,7 @@ api: $(BIN)/oapi-codegen
 
 .PHONY: api-ui
 api-ui: $(BIN)/oapi-codegen
-	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_admin/api.gen.go
+	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_ui/api.gen.go
 
 .PHONY: up
 up:
@@ -63,19 +63,19 @@ up:
 
 .PHONY: run
 run:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
 
 .PHONY: run-arm
 run-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
 
 .PHONY: run-ui
 run-ui:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
 
 .PHONY: run-ui-arm
 run-ui-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
 
 .PHONY: down
 down:
@@ -175,7 +175,7 @@ generate-issuer-did-arm: run-initializer-arm
 
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop
-	docker rmi -f issuer-api issuer-ui issuer-api-ui || true
+	docker rmi -f issuer-api issuer-ui issuer-api-ui issuer-pending_publisher|| true
 
 .PHONY: restart-ui
 restart-ui: rm-issuer-imgs up run run-ui

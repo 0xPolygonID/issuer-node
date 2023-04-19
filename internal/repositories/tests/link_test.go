@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -33,8 +35,7 @@ func TestSaveLink(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer(10), &validUntil, schemaID, &credentialExpiration, true, false)
-	linkToSave.CredentialAttributes = []domain.CredentialAttributes{{Name: "birthday", Value: "19790911"}, {Name: "documentTpe", Value: "1"}}
+	linkToSave := domain.NewLink(did, common.ToPointer(10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{"birthday": 19790911, "documentType": 1})
 
 	linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 	assert.NoError(t, err)
@@ -47,9 +48,11 @@ func TestSaveLink(t *testing.T) {
 	assert.Equal(t, linkToSave.SchemaID, linkFetched.SchemaID)
 	assert.Equal(t, linkToSave.CredentialSignatureProof, linkFetched.CredentialSignatureProof)
 	assert.Equal(t, linkToSave.CredentialMTPProof, linkFetched.CredentialMTPProof)
-
-	assert.Equal(t, linkToSave.CredentialAttributes[0], linkFetched.CredentialAttributes[0])
-	assert.Equal(t, linkToSave.CredentialAttributes[1], linkFetched.CredentialAttributes[1])
+	tcCred, err := json.Marshal(linkToSave.CredentialSubject)
+	require.NoError(t, err)
+	respCred, err := json.Marshal(linkFetched.CredentialSubject)
+	require.NoError(t, err)
+	assert.Equal(t, tcCred, respCred)
 
 	didStr2 := "did:polygonid:polygon:mumbai:2qFrLQA6R1bfUTxjRnZEN9st77g6ZN2c7Vw1Dq6Vpp"
 	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr2)
@@ -66,8 +69,7 @@ func TestSaveLink(t *testing.T) {
 	linkToSave.ValidUntil = &validUntil
 	linkToSave.SchemaID = schemaID2
 	linkToSave.IssuerDID = domain.LinkCoreDID(did2)
-	linkToSave.CredentialAttributes = []domain.CredentialAttributes{{Name: "birthday", Value: "19791011"}, {Name: "documentTpe", Value: "2"}}
-
+	linkToSave.CredentialSubject = domain.CredentialSubject{"birthday": 19791011, "documentTpe": 2}
 	linkID, err = linkStore.Save(ctx, storage.Pgx, linkToSave)
 	assert.NoError(t, err)
 	linkFetched, err = linkStore.GetByID(ctx, did2, *linkID)
@@ -80,8 +82,11 @@ func TestSaveLink(t *testing.T) {
 	assert.InDelta(t, linkToSave.ValidUntil.Unix(), linkFetched.ValidUntil.Unix(), 100)
 	assert.Equal(t, linkToSave.CredentialMTPProof, linkFetched.CredentialMTPProof)
 	assert.Equal(t, linkToSave.CredentialSignatureProof, linkFetched.CredentialSignatureProof)
-	assert.Equal(t, linkToSave.CredentialAttributes[0], linkFetched.CredentialAttributes[0])
-	assert.Equal(t, linkToSave.CredentialAttributes[1], linkFetched.CredentialAttributes[1])
+	tcCred, err = json.Marshal(linkToSave.CredentialSubject)
+	require.NoError(t, err)
+	respCred, err = json.Marshal(linkFetched.CredentialSubject)
+	require.NoError(t, err)
+	assert.Equal(t, tcCred, respCred)
 }
 
 func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaRepository, t *testing.T) uuid.UUID {
@@ -124,7 +129,7 @@ func TestGetLinkById(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false)
+	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{})
 	linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
@@ -140,6 +145,7 @@ func TestGetLinkById(t *testing.T) {
 
 func TestGetAll(t *testing.T) {
 	ctx := context.Background()
+	fixture := tests.NewFixture(storage)
 	didStr := "did:iden3:tLZ7NJdCek9j79a1Pmxci3seELHctfGibcrnjjftQ"
 	schemaStore := repositories.NewSchema(*storage)
 	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
@@ -155,37 +161,58 @@ func TestGetAll(t *testing.T) {
 	past := time.Now().Add(-100 * 24 * time.Hour)
 	// 10  not expired links and no max issuance
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(did, nil, &tomorrow, schemaID, &nextWeek, true, false)
+		linkToSave := domain.NewLink(did, nil, &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{})
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
 	}
 	// 10  not expired links
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
+		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{})
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
 	}
 	// 10 expired ones
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &past, schemaID, &nextWeek, true, false)
+		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &past, schemaID, &nextWeek, true, false, domain.CredentialSubject{})
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
 	}
 	// 10 valid but over used
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
+		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{})
 		linkToSave.MaxIssuance = common.ToPointer(100)
-		linkToSave.IssuedClaims = 200
+
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
+
+		for j := 0; j <= 200; j++ {
+			idClaim, _ := uuid.NewUUID()
+			HIndex := uuid.New().String()
+			fixture.CreateClaim(t, &domain.Claim{
+				ID:              idClaim,
+				Identifier:      &didStr,
+				Issuer:          didStr,
+				SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+				SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+				SchemaType:      "AuthBJJCredential",
+				OtherIdentifier: "did:polygonid:polygon:mumbai:2qP8KN3KRwBi37jB2ENXrWxhTo3pefaU5u5BFPbjYo",
+				Expiration:      0,
+				Version:         0,
+				RevNonce:        0,
+				CoreClaim:       domain.CoreClaim{},
+				Status:          nil,
+				HIndex:          HIndex,
+				LinkID:          linkID,
+			})
+		}
 	}
 	// 10 inactive
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false)
+		linkToSave := domain.NewLink(did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{})
 		linkToSave.Active = false
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
@@ -316,7 +343,7 @@ func TestDeleteLink(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false)
+	linkToSave := domain.NewLink(did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{})
 
 	linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 	assert.NoError(t, err)

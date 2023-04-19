@@ -3,13 +3,13 @@ import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { ConnectionDeleteModal } from "./ConnectionDeleteModal";
 import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconUsers } from "src/assets/icons/users-01.svg";
+import { ConnectionDeleteModal } from "src/components/connections/ConnectionDeleteModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
@@ -55,8 +55,8 @@ export function ConnectionsTable() {
       render: (credentials: Credential[]) => (
         <Typography.Text>
           {[...credentials]
-            .sort((a, b) => a.attributes.type.localeCompare(b.attributes.type))
-            .map((credential) => credential.attributes.type)
+            .sort((a, b) => a.credentialSubject.type.localeCompare(b.credentialSubject.type))
+            .map((credential) => credential.credentialSubject.type)
             .join(", ")}
         </Typography.Text>
       ),
@@ -73,6 +73,8 @@ export function ConnectionsTable() {
                 icon: <IconInfoCircle />,
                 key: "details",
                 label: "Details",
+                onClick: () =>
+                  navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
               },
               {
                 key: "divider",
@@ -83,15 +85,9 @@ export function ConnectionsTable() {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete connection",
+                onClick: () => setConnectionToDelete(id),
               },
             ],
-            onClick: ({ key }) => {
-              if (key === "details") {
-                navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id }));
-              } else if (key === "delete") {
-                setConnectionToDelete(id);
-              }
-            },
           }}
           overlayStyle={{ zIndex: 999 }}
         >
@@ -128,15 +124,15 @@ export function ConnectionsTable() {
 
   const onSearch = useCallback(
     (query: string) => {
-      setSearchParams((oldParams) => {
-        const oldQuery = oldParams.get(QUERY_SEARCH_PARAM);
-        const params = new URLSearchParams(oldParams);
+      setSearchParams((previousParams) => {
+        const previousQuery = previousParams.get(QUERY_SEARCH_PARAM);
+        const params = new URLSearchParams(previousParams);
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
 
           return params;
-        } else if (oldQuery !== query) {
+        } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
 
           return params;

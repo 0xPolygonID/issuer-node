@@ -49,5 +49,6 @@ type ConnectionsService interface {
 	Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID core.DID) error
 	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID) error
 	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
+	GetByUserID(ctx context.Context, issuerDID core.DID, userID core.DID) (*domain.Connection, error)
 	GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query string, withCredentials bool) ([]*domain.Connection, error)
 }

@@ -23,12 +23,14 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -46,13 +48,13 @@ func TestServer_CreateIdentity(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
@@ -174,14 +176,14 @@ func TestServer_RevokeClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
@@ -326,13 +328,14 @@ func TestServer_CreateClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
 
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(ctx, server)
@@ -342,8 +345,9 @@ func TestServer_CreateClaim(t *testing.T) {
 	did := iden.Identifier
 
 	type expected struct {
-		response CreateClaimResponseObject
-		httpCode int
+		response                    CreateClaimResponseObject
+		httpCode                    int
+		createCredentialEventsCount int
 	}
 
 	type testConfig struct {
@@ -377,8 +381,9 @@ func TestServer_CreateClaim(t *testing.T) {
 				Expiration: common.ToPointer(time.Now()),
 			},
 			expected: expected{
-				response: CreateClaim201JSONResponse{},
-				httpCode: http.StatusCreated,
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
 			},
 		},
 		{
@@ -421,6 +426,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			pubSub.Clear(event.CreateCredentialEvent)
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims", tc.did)
 
@@ -431,6 +437,8 @@ func TestServer_CreateClaim(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(event.CreateCredentialEvent)))
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
@@ -460,13 +468,13 @@ func TestServer_GetIdentities(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
@@ -534,7 +542,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -543,7 +551,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
 	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
 
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -681,14 +689,14 @@ func TestServer_GetClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
@@ -854,13 +862,13 @@ func TestServer_GetClaims(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	fixture := tests.NewFixture(storage)
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
@@ -920,7 +928,7 @@ func TestServer_GetClaims(t *testing.T) {
 			},
 		},
 		{
-			name: "should get an error self and subject filter can not be used together",
+			name: "should get an error self and subject filter cannot be used together",
 			auth: authOk,
 			did:  identityMultipleClaims.Identifier,
 			filter: filter{
@@ -929,7 +937,7 @@ func TestServer_GetClaims(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				response: GetClaims400JSONResponse{N400JSONResponse{"self and subject filter can not be used together"}},
+				response: GetClaims400JSONResponse{N400JSONResponse{"self and subject filter cannot be used together"}},
 			},
 		},
 		{
@@ -1181,7 +1189,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 
 	claimsConf := services.ClaimCfg{
@@ -1191,7 +1199,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
@@ -1205,7 +1213,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
 	assert.NoError(t, err)
 
 	type expected struct {

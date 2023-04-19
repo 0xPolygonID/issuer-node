@@ -20,9 +20,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -34,8 +36,15 @@ func main() {
 	}
 
 	// Context with log
-	ctx1 := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
-	ctx, cancel := context.WithCancel(ctx1)
+	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+
+	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	if err != nil {
+		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		return
+	}
+	ps := pubsub.NewRedis(rdb)
+	ps.WithLogger(log.Error)
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -90,7 +99,7 @@ func main() {
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	claimsService := services.NewClaim(
 		claimsRepo,
 		identityService,
@@ -103,6 +112,7 @@ func main() {
 			RHSUrl:     cfg.ReverseHashService.URL,
 			Host:       cfg.ServerUrl,
 		},
+		ps,
 	)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
@@ -135,7 +145,7 @@ func main() {
 		log.Error(ctx, "error creating publish gateway", "err", err)
 		panic("error creating publish gateway")
 	}
-	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout)
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout, ps)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)

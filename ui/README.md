@@ -23,7 +23,8 @@ All basic types are supported along with `title` and `description` keywords. The
 
 - `string`
   - `enum` (partially)
-  - `format` (any string)
+  - `format`
+    - You can use any of the standard formats (`date-time`, `time`, `date`, `duration`, `email`, `idn-email`, `hostname`, `idn-hostname`, `ipv4`, `ipv6`, `uuid`, `uri`, `uri-reference`, `iri`, `iri-reference`, `uri-template`, `json-pointer`, `relative-json-pointer`, `regex`) or any other custom `string`, but only `date-time`, `time` and `date` will show specialized inputs.
 - `number`
   - `enum` (partially)
 - `integer`

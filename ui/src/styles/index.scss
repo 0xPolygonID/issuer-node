@@ -141,6 +141,12 @@
         content: "*";
       }
     }
+    .ant-form-item-control {
+      .ant-form-item-extra {
+        margin-top: 8px;
+        margin-left: 4px;
+      }
+    }
   }
 }
 
@@ -188,6 +194,7 @@
 
 .ant-tag {
   font-weight: bold;
+  padding-top: 2px;
 
   &.ant-tag-success {
     background-color: $tag-bg-success;

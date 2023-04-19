@@ -26,6 +26,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -34,6 +35,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
 	"github.com/polygonid/sh-id-platform/pkg/primitive"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -63,10 +65,11 @@ type identity struct {
 
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
+	pubsub          pubsub.Publisher
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -81,6 +84,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
 		verifier:                verifier,
+		pubsub:                  ps,
 	}
 }
 
@@ -377,20 +381,20 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 
 	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
 	if err != nil {
-		log.Error(ctx, "authentication failed", err)
+		log.Error(ctx, "authentication failed", "err", err)
 		return nil, err
 	}
 
 	issuerDoc := newDIDDocument(serverURL, issuerDID)
 	bytesIssuerDoc, err := json.Marshal(issuerDoc)
 	if err != nil {
-		log.Error(ctx, "failed to marshal issuerDoc", err)
+		log.Error(ctx, "failed to marshal issuerDoc", "err", err)
 		return nil, err
 	}
 
 	userDID, err := core.ParseDID(arm.From)
 	if err != nil {
-		log.Error(ctx, "failed to parse userDID", err)
+		log.Error(ctx, "failed to parse userDID", "err", err)
 		return nil, err
 	}
 
@@ -403,10 +407,18 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
 	}
-	_, err = i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+	connID, err := i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
 	if err != nil {
 		return nil, err
 	}
+
+	if connID == conn.ID { // a connection has been created so previously created credentials have to be sent
+		err = i.pubsub.Publish(ctx, event.CreateConnectionEvent, &event.CreateConnection{ConnectionID: connID.String(), IssuerID: issuerDID.String()})
+		if err != nil {
+			log.Error(ctx, "sending connection notification", "err", err.Error(), "connection", connID)
+		}
+	}
+
 	return arm, nil
 }
 

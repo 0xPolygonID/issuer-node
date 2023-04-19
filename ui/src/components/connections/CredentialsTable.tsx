@@ -12,8 +12,7 @@ import {
   message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
-import dayjs, { extend as extendDayJsWith } from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
 import { APIError } from "src/adapters/api";
@@ -28,6 +27,8 @@ import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.s
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { IssueDirectlyButton } from "src/components/connections/IssueDirectlyButton";
+import { CredentialDeleteModal } from "src/components/shared/CredentialDeleteModal";
+import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
@@ -38,13 +39,13 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
+  EXPIRATION,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
+  REVOCATION,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
-
-extendDayJsWith(relativeTime);
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
@@ -53,19 +54,22 @@ export function CredentialsTable({ userID }: { userID: string }) {
     status: "pending",
   });
   const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>("all");
+  const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
+  const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
   const [query, setQuery] = useState<string | null>(null);
 
   const tableColumns: ColumnsType<Credential> = [
     {
-      dataIndex: "attributes",
+      dataIndex: "credentialSubject",
       ellipsis: { showTitle: false },
-      key: "attributes",
-      render: (attributes: Credential["attributes"]) => (
-        <Tooltip placement="topLeft" title={attributes.type}>
-          <Typography.Text strong>{attributes.type}</Typography.Text>
+      key: "credentialSubject",
+      render: (credentialSubject: Credential["credentialSubject"]) => (
+        <Tooltip placement="topLeft" title={credentialSubject.type}>
+          <Typography.Text strong>{credentialSubject.type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ id: a }, { id: b }) => a.localeCompare(b),
+      sorter: ({ credentialSubject: { type: a } }, { credentialSubject: { type: b } }) =>
+        a.localeCompare(b),
       title: CREDENTIALS,
     },
     {
@@ -74,7 +78,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       render: (createdAt: Credential["createdAt"]) => (
         <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
+      sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
     },
     {
@@ -92,14 +96,14 @@ export function CredentialsTable({ userID }: { userID: string }) {
         ),
       sorter: ({ expiresAt: a }, { expiresAt: b }) => {
         if (a && b) {
-          return a.getTime() - b.getTime();
+          return dayjs(a).unix() - dayjs(b).unix();
         } else if (a) {
-          return 1;
-        } else {
           return -1;
+        } else {
+          return 1;
         }
       },
-      title: "Expiration",
+      title: EXPIRATION,
     },
     {
       dataIndex: "revoked",
@@ -107,12 +111,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
       render: (revoked: Credential["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
-      title: "Revocation",
+      title: REVOCATION,
     },
     {
       dataIndex: "id",
       key: "id",
-      render: () => (
+      render: (id: Credential["id"], credential: Credential) => (
         <Dropdown
           menu={{
             items: [
@@ -127,9 +131,11 @@ export function CredentialsTable({ userID }: { userID: string }) {
               },
               {
                 danger: true,
+                disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
                 label: "Revoke",
+                onClick: () => setCredentialToRevoke(credential),
               },
               {
                 key: "divider2",
@@ -140,6 +146,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 icon: <IconTrash />,
                 key: "delete",
                 label: "Delete",
+                onClick: () => setCredentialToDelete(credential),
               },
             ],
           }}
@@ -154,14 +161,18 @@ export function CredentialsTable({ userID }: { userID: string }) {
   ];
 
   const fetchCredentials = useCallback(
-    async (signal: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       if (userID) {
-        setCredentials({ status: "loading" });
+        setCredentials((previousCredentials) =>
+          isAsyncTaskDataAvailable(previousCredentials)
+            ? { data: previousCredentials.data, status: "reloading" }
+            : { status: "loading" }
+        );
         const response = await getCredentials({
           env,
           params: {
-            // TODO should change when PID-498 is done
-            query: query ? `${userID} ${query}` : `${userID}`,
+            did: userID,
+            query: query || undefined,
             status: credentialStatus,
           },
           signal,
@@ -202,71 +213,89 @@ export function CredentialsTable({ userID }: { userID: string }) {
     credentials.status === "successful" && credentialsList.length === 0 && query === null;
 
   return (
-    <TableCard
-      defaultContents={
-        <>
-          <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
+    <>
+      <TableCard
+        defaultContents={
+          <>
+            <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
 
-          <Typography.Text strong>
-            No {credentialStatus !== "all" && credentialStatus} credentials issued
-          </Typography.Text>
+            <Typography.Text strong>
+              No {credentialStatus !== "all" && credentialStatus} credentials issued
+            </Typography.Text>
 
-          <Typography.Text type="secondary">
-            Credentials for this connection will be listed here.
-          </Typography.Text>
-        </>
-      }
-      extraButton={<IssueDirectlyButton />}
-      isLoading={isAsyncTaskStarting(credentials)}
-      onSearch={setQuery}
-      query={query}
-      searchPlaceholder="Search credentials, attributes..."
-      showDefaultContents={showDefaultContent}
-      table={
-        <Table
-          columns={tableColumns.map(({ title, ...column }) => ({
-            title: (
-              <Typography.Text type="secondary">
-                <>{title}</>
-              </Typography.Text>
-            ),
-            ...column,
-          }))}
-          dataSource={credentialsList}
-          locale={{
-            emptyText:
-              credentials.status === "failed" ? (
-                <ErrorResult error={credentials.error.message} />
-              ) : (
-                <NoResults searchQuery={query} />
+            <Typography.Text type="secondary">
+              Credentials for this connection will be listed here.
+            </Typography.Text>
+          </>
+        }
+        extraButton={<IssueDirectlyButton />}
+        isLoading={isAsyncTaskStarting(credentials)}
+        onSearch={setQuery}
+        query={query}
+        searchPlaceholder="Search credentials, attributes..."
+        showDefaultContents={showDefaultContent}
+        table={
+          <Table
+            columns={tableColumns.map(({ title, ...column }) => ({
+              title: (
+                <Typography.Text type="secondary">
+                  <>{title}</>
+                </Typography.Text>
               ),
-          }}
-          pagination={false}
-          rowKey="id"
-          showSorterTooltip
-          sortDirections={["ascend", "descend"]}
+              ...column,
+            }))}
+            dataSource={credentialsList}
+            locale={{
+              emptyText:
+                credentials.status === "failed" ? (
+                  <ErrorResult error={credentials.error.message} />
+                ) : (
+                  <NoResults searchQuery={query} />
+                ),
+            }}
+            pagination={false}
+            rowKey="id"
+            showSorterTooltip
+            sortDirections={["ascend", "descend"]}
+          />
+        }
+        title={
+          <Row align="middle" justify="space-between">
+            <Space align="end" size="middle">
+              <Card.Meta title={ISSUE_CREDENTIAL} />
+
+              <Tag color="blue">{credentialsList.length}</Tag>
+            </Space>
+            {showDefaultContent && credentialStatus === "all" ? (
+              <IssueDirectlyButton />
+            ) : (
+              <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
+                <Radio.Button value="all">All</Radio.Button>
+
+                <Radio.Button value="revoked">Revoked</Radio.Button>
+
+                <Radio.Button value="expired">Expired</Radio.Button>
+              </Radio.Group>
+            )}
+          </Row>
+        }
+      />
+
+      {credentialToDelete && (
+        <CredentialDeleteModal
+          credential={credentialToDelete}
+          onClose={() => setCredentialToDelete(undefined)}
+          onDelete={() => void fetchCredentials()}
         />
-      }
-      title={
-        <Row align="middle" justify="space-between">
-          <Space align="end" size="middle">
-            <Card.Meta title={ISSUE_CREDENTIAL} />
+      )}
 
-            <Tag color="blue">{credentialsList.length}</Tag>
-          </Space>
-          {showDefaultContent && credentialStatus === "all" ? (
-            <IssueDirectlyButton />
-          ) : (
-            <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
-              <Radio.Button value="all">All</Radio.Button>
-
-              <Radio.Button value="revoked">Revoked</Radio.Button>
-
-              <Radio.Button value="expired">Expired</Radio.Button>
-            </Radio.Group>
-          )}
-        </Row>
-      }
-    />
+      {credentialToRevoke && (
+        <CredentialRevokeModal
+          credential={credentialToRevoke}
+          onClose={() => setCredentialToRevoke(undefined)}
+          onRevoke={() => void fetchCredentials()}
+        />
+      )}
+    </>
   );
 }

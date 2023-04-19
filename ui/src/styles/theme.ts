@@ -20,6 +20,7 @@ interface StyleVariables {
   tagColor: string;
   textColor: string;
   textColorSecondary: string;
+  textColorWarning: string;
 }
 
 const parsedStyleVariables = getStrictParser<StyleVariables>()(
@@ -39,6 +40,7 @@ const parsedStyleVariables = getStrictParser<StyleVariables>()(
     tagColor: z.string(),
     textColor: z.string(),
     textColorSecondary: z.string(),
+    textColorWarning: z.string(),
   })
 ).parse(variables);
 
@@ -51,6 +53,7 @@ const {
   tagColor,
   textColor,
   textColorSecondary,
+  textColorWarning,
 } = parsedStyleVariables;
 
 export const theme: ThemeConfig = {
@@ -76,7 +79,9 @@ export const theme: ThemeConfig = {
     Tag: {
       colorBgBase: tagBg,
       colorTextBase: tagColor,
-      fontSize: 14,
+    },
+    Typography: {
+      colorWarning: textColorWarning,
     },
   },
   token: {

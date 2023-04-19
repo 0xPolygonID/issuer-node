@@ -36,11 +36,11 @@ export function SearchBox({
   }, [onSearch, query, searchValue]);
 
   useEffect(() => {
-    setSearchValue((oldSearchValue) => {
-      if (oldSearchValue !== query) {
+    setSearchValue((previousSearchValue) => {
+      if (previousSearchValue !== query) {
         return query;
       } else {
-        return oldSearchValue;
+        return previousSearchValue;
       }
     });
   }, [query]);

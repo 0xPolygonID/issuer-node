@@ -1,4 +1,4 @@
-package api_admin
+package api_ui
 
 import (
 	"context"
@@ -24,6 +24,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
@@ -32,6 +33,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -44,7 +46,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
 
@@ -52,7 +54,7 @@ func TestServer_CheckStatus(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	server := NewServer(&cfg, identityService, claimsService, schemaAdminService, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
 	handler := getHandler(context.Background(), server)
@@ -129,7 +131,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	sessionRepository := repositories.NewSessionCached(cachex)
 
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository, pubsub.NewMock())
 	server := NewServer(&cfg, identityService, NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
@@ -537,13 +539,13 @@ func TestServer_DeleteConnection(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -789,13 +791,13 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -903,13 +905,14 @@ func TestServer_CreateCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
@@ -923,8 +926,9 @@ func TestServer_CreateCredential(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		response CreateCredentialResponseObject
-		httpCode int
+		response                    CreateCredentialResponseObject
+		httpCode                    int
+		createCredentialEventsCount int
 	}
 
 	type testConfig struct {
@@ -956,8 +960,9 @@ func TestServer_CreateCredential(t *testing.T) {
 				SignatureProof: common.ToPointer(true),
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
-				httpCode: http.StatusCreated,
+				response:                    CreateCredential201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
 			},
 		},
 		{
@@ -1018,6 +1023,8 @@ func TestServer_CreateCredential(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			pubSub.Clear(event.CreateCredentialEvent)
+
 			rr := httptest.NewRecorder()
 			url := "/v1/credentials"
 
@@ -1028,6 +1035,8 @@ func TestServer_CreateCredential(t *testing.T) {
 			handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(event.CreateCredentialEvent)))
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
@@ -1057,13 +1066,13 @@ func TestServer_DeleteCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
@@ -1115,7 +1124,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 			},
 		},
 		{
-			name:         "should get an error, a credential can not be deleted twice",
+			name:         "should get an error, a credential cannot be deleted twice",
 			credentialID: fCred,
 			auth:         authOk,
 			expected: expected{
@@ -1163,13 +1172,13 @@ func TestServer_GetCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
@@ -1187,13 +1196,13 @@ func TestServer_GetCredential(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
 	require.NoError(t, err)
 
-	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil))
 	require.NoError(t, err)
 
-	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil))
 	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -1239,7 +1248,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 			expected: expected{
 				response: Credential{
-					Attributes: map[string]interface{}{
+					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
@@ -1266,7 +1275,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 			expected: expected{
 				response: Credential{
-					Attributes: map[string]interface{}{
+					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
@@ -1293,7 +1302,7 @@ func TestServer_GetCredential(t *testing.T) {
 			},
 			expected: expected{
 				response: Credential{
-					Attributes: map[string]interface{}{
+					CredentialSubject: map[string]interface{}{
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
@@ -1355,13 +1364,13 @@ func TestServer_GetCredentials(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	schemaService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -1385,19 +1394,19 @@ func TestServer_GetCredentials(t *testing.T) {
 	_, err = schemaService.ImportSchema(ctx, *did, schemaURL, typeC)
 	require.NoError(t, err)
 	// Never expires
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
 	require.NoError(t, err)
 
 	// Expires in future
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil))
 	require.NoError(t, err)
 
 	// Expired
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false)))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil))
 	require.NoError(t, err)
 
 	// non expired, but revoked
-	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true)))
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil))
 	require.NoError(t, err)
 
 	id, err := core.ParseDID(*revoked.Identifier)
@@ -1589,13 +1598,13 @@ func TestServer_GetConnection(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -1686,7 +1695,7 @@ func TestServer_GetConnection(t *testing.T) {
 					UserID:    usrDID.String(),
 					Credentials: []Credential{
 						{
-							Attributes: map[string]interface{}{
+							CredentialSubject: map[string]interface{}{
 								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 								"birthday":     19960424,
 								"documentType": 2,
@@ -1776,13 +1785,13 @@ func TestServer_GetConnections(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -1821,9 +1830,9 @@ func TestServer_GetConnections(t *testing.T) {
 	}
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
 	require.NoError(t, err)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
 	require.NoError(t, err)
 
 	usrDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -2211,8 +2220,8 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 	}
 	assert.Equal(t, tc.Expired, response.Expired)
 	var respAttributes, tcCredentialSubject credentialKYCSubject
-	assert.NoError(t, mapstructure.Decode(tc.Attributes, &tcCredentialSubject))
-	assert.NoError(t, mapstructure.Decode(response.Attributes, &respAttributes))
+	assert.NoError(t, mapstructure.Decode(tc.CredentialSubject, &tcCredentialSubject))
+	assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &respAttributes))
 	assert.EqualValues(t, respAttributes, tcCredentialSubject)
 	assert.EqualValues(t, tc.ProofTypes, response.ProofTypes)
 }
@@ -2232,14 +2241,14 @@ func TestServer_RevokeCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
 	fixture := tests.NewFixture(storage)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
@@ -2376,15 +2385,16 @@ func TestServer_CreateLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRespository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRespository, loader.HTTPFactory, sessionRepository, pubSub)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2401,7 +2411,7 @@ func TestServer_CreateLink(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		response CreateCredentialResponseObject
+		response CreateLinkResponseObject
 		httpCode int
 	}
 
@@ -2429,12 +2439,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
+				response: CreateLink201JSONResponse{},
 				httpCode: http.StatusCreated,
 			},
 		},
@@ -2448,12 +2458,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:             false,
 				SignatureProof:      false,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2467,12 +2477,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2486,12 +2496,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: nil,
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
+				response: CreateLink201JSONResponse{},
 				httpCode: http.StatusCreated,
 			},
 		},
@@ -2503,12 +2513,12 @@ func TestServer_CreateLink(t *testing.T) {
 				ExpirationDate:      nil,
 				ClaimLinkExpiration: nil,
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential201JSONResponse{},
+				response: CreateLink201JSONResponse{},
 				httpCode: http.StatusCreated,
 			},
 		},
@@ -2522,12 +2532,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{},
+				CredentialSubject:   CredentialSubject{},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2541,12 +2551,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "true"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": true},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "converting attribute <documentType> :strconv.Atoi: parsing \"true\": invalid syntax"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credentialSubject.documentType: Invalid type. Expected: integer, given: boolean \n"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2560,12 +2570,12 @@ func TestServer_CreateLink(t *testing.T) {
 				},
 				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:       common.ToPointer(10),
-				Attributes:          []LinkRequestAttributesType{{"birthday", "19790911"}, {"documentType", "12"}},
+				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:             true,
 				SignatureProof:      true,
 			},
 			expected: expected{
-				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2589,7 +2599,7 @@ func TestServer_CreateLink(t *testing.T) {
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
 			case http.StatusBadRequest:
-				var response CreateCredential400JSONResponse
+				var response CreateLink400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			}
@@ -2617,15 +2627,15 @@ func TestServer_ActivateLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2640,7 +2650,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, CredentialSubject{"birthday": 19790911, "documentType": 12})
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -2768,15 +2778,15 @@ func TestServer_GetLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2793,10 +2803,10 @@ func TestServer_GetLink(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 
-	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -2838,15 +2848,15 @@ func TestServer_GetLink(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
-					Active:       link.Active,
-					Attributes:   []LinkRequestAttributesType{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}},
-					Expiration:   link.ValidUntil,
-					Id:           link.ID,
-					IssuedClaims: link.IssuedClaims,
-					MaxIssuance:  link.MaxIssuance,
-					SchemaType:   link.Schema.Type,
-					SchemaUrl:    link.Schema.URL,
-					Status:       LinkStatusActive,
+					Active:            link.Active,
+					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12},
+					Expiration:        link.ValidUntil,
+					Id:                link.ID,
+					IssuedClaims:      link.IssuedClaims,
+					MaxIssuance:       link.MaxIssuance,
+					SchemaType:        link.Schema.Type,
+					SchemaUrl:         link.Schema.URL,
+					Status:            LinkStatusActive,
 				},
 			},
 		},
@@ -2857,15 +2867,15 @@ func TestServer_GetLink(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
-					Active:       linkExpired.Active,
-					Attributes:   []LinkRequestAttributesType{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}},
-					Expiration:   linkExpired.ValidUntil,
-					Id:           linkExpired.ID,
-					IssuedClaims: linkExpired.IssuedClaims,
-					MaxIssuance:  linkExpired.MaxIssuance,
-					SchemaType:   linkExpired.Schema.Type,
-					SchemaUrl:    linkExpired.Schema.URL,
-					Status:       LinkStatusExceeded,
+					Active:            linkExpired.Active,
+					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12},
+					Expiration:        linkExpired.ValidUntil,
+					Id:                linkExpired.ID,
+					IssuedClaims:      linkExpired.IssuedClaims,
+					MaxIssuance:       linkExpired.MaxIssuance,
+					SchemaType:        linkExpired.Schema.Type,
+					SchemaUrl:         linkExpired.Schema.URL,
+					Status:            LinkStatusExceeded,
 				},
 			},
 		},
@@ -2893,7 +2903,11 @@ func TestServer_GetLink(t *testing.T) {
 				assert.Equal(t, expected.Status, response.Status)
 				assert.Equal(t, expected.IssuedClaims, response.IssuedClaims)
 				assert.Equal(t, expected.Id, response.Id)
-				assert.Equal(t, expected.Attributes, response.Attributes)
+				tcCred, err := json.Marshal(expected.CredentialSubject)
+				require.NoError(t, err)
+				respCred, err := json.Marshal(response.CredentialSubject)
+				require.NoError(t, err)
+				assert.Equal(t, tcCred, respCred)
 				assert.Equal(t, expected.SchemaType, response.SchemaType)
 				assert.Equal(t, expected.SchemaUrl, response.SchemaUrl)
 				assert.Equal(t, expected.Active, response.Active)
@@ -2929,15 +2943,15 @@ func TestServer_GetAllLinks(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -2954,23 +2968,23 @@ func TestServer_GetAllLinks(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
-	linkActive, err := getLinkResponse(link1)
+	linkActive := getLinkResponse(*link1)
+
+	time.Sleep(10 * time.Millisecond)
+
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	require.NoError(t, err)
+	linkExpired := getLinkResponse(*link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
-	require.NoError(t, err)
-	linkExpired, err := getLinkResponse(link2)
-	require.NoError(t, err)
-	time.Sleep(10 * time.Millisecond)
-
-	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, linkService.Activate(ctx, *did, link3.ID, false))
-	linkInactive, err := getLinkResponse(link3)
+	linkInactive := getLinkResponse(*link3)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
@@ -3007,7 +3021,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			auth: authOk,
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
+				response: GetLinks200JSONResponse{linkInactive, linkExpired, linkActive},
 			},
 		},
 		{
@@ -3016,7 +3030,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("all")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive, *linkExpired, *linkActive},
+				response: GetLinks200JSONResponse{linkInactive, linkExpired, linkActive},
 			},
 		},
 		{
@@ -3025,7 +3039,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("active")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkActive},
+				response: GetLinks200JSONResponse{linkActive},
 			},
 		},
 		{
@@ -3034,7 +3048,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+				response: GetLinks200JSONResponse{linkInactive, linkExpired},
 			},
 		},
 		{
@@ -3043,7 +3057,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("inactive")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive},
+				response: GetLinks200JSONResponse{linkInactive},
 			},
 		},
 		{
@@ -3053,7 +3067,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+				response: GetLinks200JSONResponse{linkInactive, linkExpired},
 			},
 		},
 		{
@@ -3063,7 +3077,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+				response: GetLinks200JSONResponse{linkInactive, linkExpired},
 			},
 		},
 		{
@@ -3073,7 +3087,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			status: common.ToPointer(GetLinksParamsStatus("exceeded")),
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetLinks200JSONResponse{*linkInactive, *linkExpired},
+				response: GetLinks200JSONResponse{linkInactive, linkExpired},
 			},
 		},
 	} {
@@ -3107,7 +3121,11 @@ func TestServer_GetAllLinks(t *testing.T) {
 						assert.Equal(t, tc.expected.response[i].MaxIssuance, resp.MaxIssuance)
 						assert.Equal(t, tc.expected.response[i].SchemaUrl, resp.SchemaUrl)
 						assert.Equal(t, tc.expected.response[i].SchemaType, resp.SchemaType)
-						assert.Equal(t, tc.expected.response[i].Attributes, resp.Attributes)
+						tcCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
+						require.NoError(t, err)
+						respCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
+						require.NoError(t, err)
+						assert.Equal(t, tcCred, respCred)
 						assert.InDelta(t, tc.expected.response[i].Expiration.UnixMilli(), resp.Expiration.UnixMilli(), 10)
 					}
 				}
@@ -3139,15 +3157,15 @@ func TestServer_DeleteLink(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	linkRepository := repositories.NewLink(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3163,7 +3181,7 @@ func TestServer_DeleteLink(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -3256,15 +3274,15 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3286,7 +3304,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -3370,15 +3388,15 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3396,15 +3414,14 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
-	linkDetail, err := getLinkResponse(link)
-	assert.NoError(t, err)
+	linkDetail := getLinkResponse(*link)
 
 	type expected struct {
-		linkDetail *Link
+		linkDetail Link
 		httpCode   int
 	}
 
@@ -3479,7 +3496,11 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 				assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
 				assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
-				assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
+				tcCred, err := json.Marshal(tc.expected.linkDetail.CredentialSubject)
+				require.NoError(t, err)
+				respCred, err := json.Marshal(response.LinkDetail.CredentialSubject)
+				require.NoError(t, err)
+				assert.Equal(t, tcCred, respCred)
 			}
 		})
 	}
@@ -3505,15 +3526,15 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock())
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 
@@ -3531,7 +3552,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, []domain.CredentialAttrsRequest{{Name: "birthday", Value: "19790911"}, {Name: "documentType", Value: "12"}})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -3556,12 +3577,11 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		To:   userDID.String(),
 	}
 
-	linkDetail, err := getLinkResponse(link)
-	assert.NoError(t, err)
+	linkDetail := getLinkResponse(*link)
 
 	type expected struct {
 		qrCode     *linkState.QRCodeMessage
-		linkDetail *Link
+		linkDetail Link
 		status     string
 		httpCode   int
 	}
@@ -3675,8 +3695,12 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 					assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 					assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
 					assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
-					assert.Equal(t, tc.expected.linkDetail.Attributes, response.LinkDetail.Attributes)
 					assert.Equal(t, tc.expected.status, *response.Status)
+					tcCred, err := json.Marshal(tc.expected.linkDetail.CredentialSubject)
+					require.NoError(t, err)
+					respCred, err := json.Marshal(response.LinkDetail.CredentialSubject)
+					require.NoError(t, err)
+					assert.Equal(t, tcCred, respCred)
 				}
 			}
 		})
@@ -3698,13 +3722,13 @@ func TestServer_GetStateStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	credentialSubject := map[string]any{
@@ -3752,7 +3776,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 				httpCode: http.StatusOK,
 			},
 			cleanUp: func() {
-				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true)))
+				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
 				require.NoError(t, err)
 				require.NoError(t, claimsService.Revoke(ctx, cfg.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
 			},
@@ -3805,13 +3829,13 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf)
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
