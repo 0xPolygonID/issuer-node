@@ -16,18 +16,18 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
-type schemaAdmin struct {
+type schema struct {
 	repo          ports.SchemaRepository
 	loaderFactory loader.Factory
 }
 
-// NewSchemaAdmin is the schemaAdmin service constructor
-func NewSchemaAdmin(repo ports.SchemaRepository, lf loader.Factory) *schemaAdmin {
-	return &schemaAdmin{repo: repo, loaderFactory: lf}
+// NewSchema is the schema service constructor
+func NewSchema(repo ports.SchemaRepository, lf loader.Factory) *schema {
+	return &schema{repo: repo, loaderFactory: lf}
 }
 
 // GetByID returns a domain.Schema by ID
-func (s *schemaAdmin) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
+func (s *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
 	schema, err := s.repo.GetByID(ctx, issuerDID, id)
 	if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
 		return nil, ErrSchemaNotFound
@@ -39,12 +39,12 @@ func (s *schemaAdmin) GetByID(ctx context.Context, issuerDID core.DID, id uuid.U
 }
 
 // GetAll return all schemas in the database that matches the query string
-func (s *schemaAdmin) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
+func (s *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
 	return s.repo.GetAll(ctx, issuerDID, query)
 }
 
 // ImportSchema process an schema url and imports into the system
-func (s *schemaAdmin) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
+func (s *schema) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
 	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(url))
 	if err != nil {
 		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", url)

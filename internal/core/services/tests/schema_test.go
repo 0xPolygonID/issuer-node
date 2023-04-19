@@ -16,7 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
-func TestSchemaAdmin_ImportSchema(t *testing.T) {
+func TestSchema_ImportSchema(t *testing.T) {
 	const url = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	const urlLD = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"
 	const schemaType = "KYCCountryOfResidenceCredential"
@@ -29,7 +29,7 @@ func TestSchemaAdmin_ImportSchema(t *testing.T) {
 
 	expectHash := utils.CreateSchemaHash([]byte(urlLD + "#" + schemaType))
 
-	s := services.NewSchemaAdmin(repo, loader.HTTPFactory)
+	s := services.NewSchema(repo, loader.HTTPFactory)
 	got, err := s.ImportSchema(ctx, issuerDID, url, schemaType)
 	require.NoError(t, err)
 	_, err = uuid.Parse(got.ID.String())

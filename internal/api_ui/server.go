@@ -34,7 +34,7 @@ type Server struct {
 	cfg                *config.Configuration
 	identityService    ports.IdentityService
 	claimService       ports.ClaimsService
-	schemaService      ports.SchemaAdminService
+	schemaService      ports.SchemaService
 	connectionsService ports.ConnectionsService
 	linkService        ports.LinkService
 	publisherGateway   ports.Publisher
@@ -43,7 +43,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
