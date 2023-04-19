@@ -20,13 +20,14 @@ There are two options for installing and running the server alongside the UI:
 
 Running the app with Docker allows for minimal installation and a quick setup. This is recommended **for evaluation use-cases only**, such as local development builds.
 
-**Full overview:**
+**TL;DR Steps:**
+
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
 3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose frontend can be accessed via the browser (default <http://localhost:3001>).
-4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
-5. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
-6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
+4. Follow the [steps](#import-wallet-private-key-to-vault) for adding an Ethereum private key to the Vault.
+5. Follow the [steps](#create-issuer-did) for creating an identity as your issuer DID.
+6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#development-ui) section for more details.
 7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
 
 #### Docker Guide Requirements
@@ -35,10 +36,10 @@ Running the app with Docker allows for minimal installation and a quick setup. T
 - [Docker Engine](https://docs.docker.com/engine/) `1.27+`
 - Makefile toolchain `GNU Make 3.81`
 
-ℹ️ _**NOTE:** There is no compatibility with Windows environments at this time._
+> _**NOTE:** There is no compatibility with Windows environments at this time._
 
-To help expedite a lot of the docker commands, a lot has been abstracted using make commands with the `Makefile`.
-Included in each command are the docker commands to show what is being run.
+To help expedite a lot of the docker commands, many have been abstracted using `make` commands.
+Included in step are the equivalent docker commands to show what is being run.
 
 #### Create Docker Configuration Files
 
@@ -55,7 +56,7 @@ cp .env-ui.sample .env-ui;
 
 #### Node Issuer Configuration
 
-The `.env-issuer` will be loaded into the [docker compose initiliaser](/infrastructure/local/docker-compose.yml)
+The `.env-issuer` will be loaded into the [docker compose initializer](/infrastructure/local/docker-compose.yml)
 
 You can use one of the following RPC providers:
 
@@ -81,7 +82,7 @@ ISSUER_API_AUTH_PASSWORD=password-issuer
 ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
 ```
 
-ℹ️ **NOTE:** In case you have loaded the vault multiple times and want a fresh start, run the following to remove remnant data:
+> **NOTE:** In case you have loaded the vault multiple times and want a fresh start, run the following to remove remnant data:
 
 ```bash
 # FROM: ./
@@ -113,7 +114,7 @@ make up;
 #   ⠿ Container issuer-vault-1     Started                                                                                   0.5s
 #   ⠿ Container issuer-redis-1     Started                                                                                   0.4s
 #   ⠿ Container issuer-postgres-1  Started  
-````
+```
 
 If you want to remove all the services (ignore the warnings):
 
@@ -142,23 +143,23 @@ make down;
 
 In order to secure our wallet private key so that the issuer can use it to issue claims/credentials, we'll store it in the hashicorp vault.
 
-ℹ️ **NOTE:** Make sure the wallet you're providing has Testnet Matic to send transactions.
+> **NOTE:** Make sure the wallet you're providing has Testnet Matic to send transactions.
 
 ```bash
 # FROM: ./
 
 # Make sure to verify that the issuer-vault-1 is full initialised to avoid: "Error writing data to iden3/import/pbkey: Error making API request."
-make private_key=YOUR_WALLET_PRIVATE_KEY add-private-key;
+make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key;
 # (Equivalent)
-#   docker exec issuer-vault-1 vault write iden3/import/pbkey key_type=ethereum private_key=YOUR_WALLET_PRIVATE_KEY;
+#   docker exec issuer-vault-1 vault write iden3/import/pbkey key_type=ethereum private_key=<YOUR_WALLET_PRIVATE_KEY>;
 
 # Expected Output:
 #   docker exec issuer-vault-1 \
-#           vault write iden3/import/pbkey key_type=ethereum private_key=YOUR_WALLET_PRIVATE_KEY
+#           vault write iden3/import/pbkey key_type=ethereum private_key=<YOUR_WALLET_PRIVATE_KEY>
 #   Success! Data written to: iden3/import/pbkey
 ```
 
-#### **Add Vault To Configuration File**
+#### Add Vault To Configuration File
 
 This will get the vault token from the hashicorp vault docker instance and add it to our `./env-issuer` file.
 
@@ -177,13 +178,13 @@ make add-vault-token;
 #   mv .env-issuer.tmp .env-issuer
 ```
 
-#### **Create Issuer DID**
+#### Create Issuer DID
 
 This will create a new issuer DID by creating a new docker instance of the issuer, generating the DID for the issuer, storing it in the database, and deleting the instance.
 
 It generates a new DID for the issuer node and saves it to `.env-api`
 
-ℹ️ For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
 
 ```bash
 # FROM: ./
@@ -201,7 +202,7 @@ make generate-issuer-did;
 # 	docker rm issuer-initializer-1
 ```
 
-ℹ️ For _Apple-M1/M2/Arm_:
+> For _Apple-M1/M2/Arm_:
 
 ```bash
 # FROM: ./
@@ -231,11 +232,11 @@ make generate-issuer-did-arm;
 #   issuer-initializer-1
 ```
 
-#### **Start Issuer Node API**
+#### Start Issuer Node API
 
 Now that you have all your files configured we can now start the issuer node api itself.
 
-ℹ️ For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
 
 ```bash
 # FROM: ./
@@ -249,7 +250,7 @@ make run-arm;
 #   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
 ```
 
-ℹ️ For _Apple-M1/M2/Arm_:
+> For _Apple-M1/M2/Arm_:
 
 ```bash
 # FROM: ./
@@ -275,7 +276,7 @@ Running the app in standalone mode means you will need to install the binaries f
 
 Make sure you have Postgres, Redis and Vault properly installed & configured. Do _not_ use `make up` since those will start the containers for non-production builds, see [Docker Quick Start Guide](#docker-quick-start-guide).
 
-#### **Standalone Mode Guide Requirements**
+#### Standalone Mode Guide Requirements
 
 - [Docker Engine](https://docs.docker.com/engine/) 1.27
 - Makefile toolchain
@@ -285,7 +286,7 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 - [Redis](https://redis.io/)
 - [Hashicorp Vault](https://github.com/hashicorp/vault)
 
-#### **Standalone Mode Setup**
+#### Standalone Mode Setup
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make build`. This will generate a binary for each of the following commands:
@@ -308,7 +309,7 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 
 ## Issuing Credentials/Claims
 
-ℹ️ **NOTE:** A lot of these steps can be done through the API UI at [http://localhost:3001](http://localhost:3001).
+> **NOTE:** A lot of these steps can be done through the API UI at [http://localhost:3001](http://localhost:3001).
 
 Once you've completed the [Installation](#installation) section, this will walk you through issuing credentials/claims.
 
@@ -364,7 +365,7 @@ Before creating the claim, the identifier of the service/person is needed. To re
 
 !["ID Within Polygon ID App"](/docs/polygonid-app-id.png)
 
-ℹ️ **NOTE:** The issuer node DID can be retrieved by looking at `.env-api` for `ISSUER_API_UI_ISSUER_DID`
+> **NOTE:** The issuer node DID can be retrieved by looking at `.env-api` for `ISSUER_API_UI_ISSUER_DID`
 
 ```bash
 curl --location 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE/claims' \
@@ -418,7 +419,7 @@ With the Polygon ID app, open it up and scan the QR code.
 
 ### Verifying Claim
 
-ℹ️ **NOTE:** The goal is to build your own type of claims and ways to verify claims, but this is an example of how things could work.
+> **NOTE:** The goal is to build your own type of claims and ways to verify claims, but this is an example of how things could work.
 
 A quick way to validate this KYCAge Claim is to use [https://verifier-demo.polygonid.me/](https://verifier-demo.polygonid.me/).
 
