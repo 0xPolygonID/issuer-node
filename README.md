@@ -432,18 +432,6 @@ A quick way to validate this KYCAge Claim is to use [https://verifier-demo.polyg
 !["Verifier Proof Verified"](/docs/verifier-success-verified.png)
 
 ---
-## How To Run The Server
-
-### Running the admin server backend (api) for evaluation purposes with docker-composer
-
-1) Configure the project by creating a copy of all the `.env-*.sample` files.
-2) Run `make up` to launch 3 containers with a postgres, redis and vault. This 3 containers are provided only for
-   evaluation purposes.
-3) Run `make run-ui-backend` to start a docker container running the issuer, (`make run-arm-ui-backend` for **Mac computers** with **Apple Silicon chip**)
-4) Follow the [steps](#steps-to-write-the-private-key-in-the-vault) to write the private key in the vault
-5) Browse to http://localhost:3002 (or the port configured in ServerAdminPort config entry)
-
----
 
 ## Configuration
 
