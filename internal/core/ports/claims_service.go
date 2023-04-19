@@ -63,7 +63,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 
 	if self != nil && *self {
 		if subject != nil && *subject != "" {
-			return nil, fmt.Errorf("self and subject filter can not be used together")
+			return nil, fmt.Errorf("self and subject filter cannot be used together")
 		}
 		filter.Self = self
 	}
@@ -127,7 +127,7 @@ func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSub
 // NewAgentRequest validates the inputs and returns a new AgentRequest
 func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	if basicMessage.To == "" {
-		return nil, fmt.Errorf("'to' field can not be empty")
+		return nil, fmt.Errorf("'to' field cannot be empty")
 	}
 
 	toDID, err := core.ParseDID(basicMessage.To)
@@ -136,7 +136,7 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}
 
 	if basicMessage.From == "" {
-		return nil, fmt.Errorf("'from' field can not be empty")
+		return nil, fmt.Errorf("'from' field cannot be empty")
 	}
 
 	fromDID, err := core.ParseDID(basicMessage.From)
@@ -145,7 +145,7 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}
 
 	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field can not be empty")
+		return nil, fmt.Errorf("'id' field cannot be empty")
 	}
 
 	claimID, err := uuid.Parse(basicMessage.ID)
@@ -158,7 +158,7 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}
 
 	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field can not be empty")
+		return nil, fmt.Errorf("'id' field cannot be empty")
 	}
 
 	return &AgentRequest{

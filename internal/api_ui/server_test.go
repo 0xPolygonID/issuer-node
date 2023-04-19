@@ -1123,7 +1123,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 			},
 		},
 		{
-			name:         "should get an error, a credential can not be deleted twice",
+			name:         "should get an error, a credential cannot be deleted twice",
 			credentialID: fCred,
 			auth:         authOk,
 			expected: expected{

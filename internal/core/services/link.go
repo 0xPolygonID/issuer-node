@@ -30,9 +30,9 @@ var (
 	// ErrLinkAlreadyInactive link is already inactive
 	ErrLinkAlreadyInactive = errors.New("link is already inactive")
 	// ErrLinkAlreadyExpired - link already expired
-	ErrLinkAlreadyExpired = errors.New("can not issue a credential for an expired link")
+	ErrLinkAlreadyExpired = errors.New("cannot issue a credential for an expired link")
 	// ErrLinkMaxExceeded - link max exceeded
-	ErrLinkMaxExceeded = errors.New("can not issue a credential for an expired link")
+	ErrLinkMaxExceeded = errors.New("cannot issue a credential for an expired link")
 	// ErrClaimAlreadyIssued - claim already issued
 	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
 )
@@ -203,7 +203,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 
 	schema, err := ls.schemaRepository.GetByID(ctx, issuerDID, link.SchemaID)
 	if err != nil {
-		log.Error(ctx, "can not fetch the schema", "err", err)
+		log.Error(ctx, "cannot fetch the schema", "err", err)
 		return err
 	}
 
@@ -222,7 +222,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
 	if err != nil {
-		log.Error(ctx, "Can not create the claim", "err", err.Error())
+		log.Error(ctx, "cannot create the claim", "err", err.Error())
 		return err
 	}
 
@@ -305,10 +305,10 @@ func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID cor
 
 func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Link, linkID uuid.UUID) error {
 	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
-		log.Debug(ctx, "can not issue a credential for an expired link")
+		log.Debug(ctx, "cannot issue a credential for an expired link")
 		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkAlreadyExpired))
 		if err != nil {
-			log.Error(ctx, "can not set the sate", "err", err)
+			log.Error(ctx, "cannot set the sate", "err", err)
 			return err
 		}
 
@@ -316,10 +316,10 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 	}
 
 	if link.MaxIssuance != nil && *link.MaxIssuance <= link.IssuedClaims {
-		log.Debug(ctx, "can not dispatch more claims for this link")
+		log.Debug(ctx, "cannot dispatch more claims for this link")
 		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkMaxExceeded))
 		if err != nil {
-			log.Error(ctx, "can not set the sate", "err", err)
+			log.Error(ctx, "cannot set the sate", "err", err)
 			return err
 		}
 
