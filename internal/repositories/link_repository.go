@@ -208,7 +208,8 @@ WHERE links.issuer_id = $1
 		); err != nil {
 			return nil, err
 		}
-		if err := json.Unmarshal(credentialAttributes.Bytes, &link.CredentialSubject); err != nil {
+
+		if err := credentialAttributes.AssignTo(&link.CredentialSubject); err != nil {
 			return nil, fmt.Errorf("parsing credential attributes: %w", err)
 		}
 
