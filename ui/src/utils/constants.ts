@@ -7,6 +7,7 @@ export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
 export const DATE_VALIDITY_MESSAGE = "Valid date required";
+export const TIME_VALIDITY_MESSAGE = "Valid time required";
 export const ERROR_MESSAGE = "Something went wrong";
 export const EXPIRATION = "Expiration";
 export const IDENTIFIER = "Identifier";
@@ -27,8 +28,6 @@ export const QUERY_SEARCH_PARAM = "query";
 export const STATUS_SEARCH_PARAM = "status";
 
 export const API_VERSION = "v1";
-
-export const CARD_ELLIPSIS_MAXIMUM_WIDTH = "66%";
 
 export const CREDENTIALS_TABS: { id: CredentialsTabIDs; tabID: string; title: string }[] = [
   {

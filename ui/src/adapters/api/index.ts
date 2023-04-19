@@ -61,6 +61,12 @@ const responseErrorParser = getStrictParser<ResponseError>()(
   })
 );
 
+export interface ID {
+  id: string;
+}
+
+export const IDParser = getStrictParser<ID>()(z.object({ id: z.string() }));
+
 export function buildAPIError(error: unknown): APIError {
   if (axios.isCancel(error)) {
     return { message: error.toString(), status: HTTPStatusError.Aborted };

@@ -66,7 +66,7 @@ export function ConnectionDeleteModal({
           <Typography.Text>Revoke all credentials for this connection.</Typography.Text>
           <Typography.Paragraph type="secondary">
             Revoking must be accompanied by publishing of issuer state in order for the action to be
-            recorded.
+            effective.
           </Typography.Paragraph>
         </Checkbox>
         <Checkbox

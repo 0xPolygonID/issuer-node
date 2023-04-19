@@ -45,10 +45,9 @@ func NewConnections() ports.ConnectionsRepository {
 func (c *connections) Save(ctx context.Context, conn db.Querier, connection *domain.Connection) (uuid.UUID, error) {
 	var id uuid.UUID
 	sql := `INSERT INTO connections (id,issuer_id, user_id, issuer_doc, user_doc,created_at,modified_at)
-			VALUES($1, $2, $3, $4,$5,$6,$7) ON CONFLICT (issuer_id, user_id) DO
-			UPDATE SET issuer_id=$2, user_id=$3, issuer_doc=$4, user_doc=$5,
-			           modified_at = $7
-	RETURNING id`
+			VALUES($1, $2, $3, $4,$5,$6,$7) ON CONFLICT ON CONSTRAINT connections_issuer_user_key DO
+			UPDATE SET issuer_id=$2, user_id=$3, issuer_doc=$4, user_doc=$5, modified_at = $7
+			RETURNING id`
 	err := conn.QueryRow(ctx, sql, connection.ID, connection.IssuerDID.String(), connection.UserDID.String(), connection.IssuerDoc, connection.UserDoc, connection.CreatedAt, connection.ModifiedAt).Scan(&id)
 
 	return id, err

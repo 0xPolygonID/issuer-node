@@ -31,7 +31,7 @@ export const ROUTES: Routes = {
   },
   credentialLink: {
     layout: "fullWidthGrey",
-    path: "/credential-link/:credentialID",
+    path: "/credential-link/:linkID",
   },
   credentials: {
     layout: "sider",

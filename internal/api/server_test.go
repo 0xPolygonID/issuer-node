@@ -382,7 +382,7 @@ func TestServer_CreateClaim(t *testing.T) {
 			expected: expected{
 				response:                    CreateClaim201JSONResponse{},
 				httpCode:                    http.StatusCreated,
-				createCredentialEventsCount: 0, // mtproof claims does not throw event
+				createCredentialEventsCount: 1,
 			},
 		},
 		{
