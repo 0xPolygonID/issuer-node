@@ -10,6 +10,7 @@ import {
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
 import { Env, Transaction, TransactionStatus } from "src/domain";
+import { IssuerStatus } from "src/domain/issuer-state";
 import { API_VERSION } from "src/utils/constants";
 
 const transactionStatusParser = getStrictParser<TransactionStatus>()(
@@ -72,7 +73,7 @@ export async function getStatus({
 }: {
   env: Env;
   signal?: AbortSignal;
-}): Promise<APIResponse<boolean>> {
+}): Promise<APIResponse<IssuerStatus>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -85,13 +86,13 @@ export async function getStatus({
     });
     const { data } = resultOKStatusParser.parse(response);
 
-    return { data: data.pendingActions, isSuccessful: true };
+    return { data, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
 
-const resultOKStatusParser = getStrictParser<ResultOK<{ pendingActions: boolean }>>()(
+const resultOKStatusParser = getStrictParser<ResultOK<IssuerStatus>>()(
   z.object({
     data: z.object({ pendingActions: z.boolean() }),
     status: z.literal(HTTPStatusSuccess.OK),

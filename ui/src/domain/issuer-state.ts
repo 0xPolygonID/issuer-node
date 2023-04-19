@@ -1,5 +1,5 @@
 export interface IssuerStatus {
-  arePendingActions: boolean;
+  pendingActions: boolean;
 }
 
 export type TransactionStatus = "created" | "pending" | "transacted" | "published" | "failed";
