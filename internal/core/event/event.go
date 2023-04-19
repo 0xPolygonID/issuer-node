@@ -6,6 +6,11 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
+const (
+	CreateCredentialEvent = "createCredentialEvent" // CreateCredentialEvent create credential event
+	CreateConnectionEvent = "createConnectionEvent" // CreateConnectionEvent create connection MyEvent
+)
+
 // CreateCredential defines the createCredential data
 type CreateCredential struct {
 	CredentialID string `json:"credentialID"`

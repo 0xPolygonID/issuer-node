@@ -93,9 +93,9 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 		return nil, err
 	}
 	if req.SignatureProof {
-		err = c.publisher.Publish(ctx, pubsub.EventCreateCredential, &event.CreateCredential{CredentialID: claim.ID.String(), IssuerID: req.DID.String()})
+		err = c.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: claim.ID.String(), IssuerID: req.DID.String()})
 		if err != nil {
-			log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", claim.ID.String())
+			log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", claim.ID.String())
 		}
 	}
 

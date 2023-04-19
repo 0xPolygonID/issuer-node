@@ -23,6 +23,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
@@ -425,7 +426,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			pubSub.Clear(pubsub.EventCreateCredential)
+			pubSub.Clear(event.CreateCredentialEvent)
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/%s/claims", tc.did)
 
@@ -437,7 +438,7 @@ func TestServer_CreateClaim(t *testing.T) {
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
-			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(pubsub.EventCreateCredential)))
+			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(event.CreateCredentialEvent)))
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:

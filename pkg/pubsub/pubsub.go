@@ -4,11 +4,6 @@ import (
 	"context"
 )
 
-const (
-	EventCreateCredential = "createCredential" // EventCreateCredential create credential event
-	EventCreateConnection = "createConnection" // EventCreateConnection create connection MyEvent
-)
-
 // Event defines the payload
 type Event interface {
 	Marshal() (msg Message, err error)
