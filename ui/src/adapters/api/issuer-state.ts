@@ -49,7 +49,7 @@ export async function publishState({ env }: { env: Env }): Promise<APIResponse<b
   }
 }
 
-export async function retryState({ env }: { env: Env }): Promise<APIResponse<boolean>> {
+export async function retryPublishState({ env }: { env: Env }): Promise<APIResponse<boolean>> {
   try {
     await axios({
       baseURL: env.api.url,

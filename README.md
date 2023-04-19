@@ -55,10 +55,10 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make build`. This will generate a binary for each of the following commands:
-    - `platform`
-    - `migrate`
-    - `pending_publisher`
-    - `configurator`
+   - `platform`
+   - `migrate`
+   - `pending_publisher`
+   - `configurator`
 3. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Run `./bin/platform` command to start the issuer.
@@ -94,6 +94,7 @@ In `.env-issuer`:
 
 If you are running the UI, in `.env-ui`:
 
+- `BLOCKEXPLORER_URL`
 - `ISSUER_UI_AUTH_USERNAME`
 - `ISSUER_UI_AUTH_PASSWORD`
 
@@ -125,12 +126,12 @@ Completing either option of the [installation](#installation) process yields the
 2. Go to the `ui/` folder.
 3. Copy the `.env.sample` file as `.env`
 4. All variables are required to be set, with the exception of `VITE_ISSUER_LOGO`. The following are the corresponding variables present in the parent folder's `.env-api`, which need to be the same. Only `VITE_ISSUER_NAME` can differ for the UI to function in development mode.
-    - `VITE_API_URL -> ISSUER_API_UI_SERVER_URL`
-    - `VITE_API_USERNAME -> ISSUER_API_UI_AUTH_USER`
-    - `VITE_API_PASSWORD -> ISSUER_API_UI_AUTH_PASSWORD`
-    - `VITE_ISSUER_DID -> ISSUER_API_UI_ISSUER_DID`
-    - `VITE_ISSUER_NAME -> ISSUER_API_UI_ISSUER_NAME`
-    - `VITE_ISSUER_LOGO -> ISSUER_API_UI_ISSUER_LOGO`
+   - `VITE_API_URL -> ISSUER_API_UI_SERVER_URL`
+   - `VITE_API_USERNAME -> ISSUER_API_UI_AUTH_USER`
+   - `VITE_API_PASSWORD -> ISSUER_API_UI_AUTH_PASSWORD`
+   - `VITE_ISSUER_DID -> ISSUER_API_UI_ISSUER_DID`
+   - `VITE_ISSUER_NAME -> ISSUER_API_UI_ISSUER_NAME`
+   - `VITE_ISSUER_LOGO -> ISSUER_API_UI_ISSUER_LOGO`
 5. Run `npm install`
 6. Run `npm start`
 7. The app will be running on <http://localhost:5173>.

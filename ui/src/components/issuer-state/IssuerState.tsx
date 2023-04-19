@@ -17,13 +17,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
-import { getTransactions, publishState, retryState } from "src/adapters/api/issuer-state";
+import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
 import { ReactComponent as IconSwitch } from "src/assets/icons/switch-horizontal.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
-import { useEnvContext } from "src/contexts/env";
-import { useStateContext } from "src/contexts/issuer-state";
+import { useEnvContext } from "src/contexts/Env";
+import { useStateContext } from "src/contexts/IssuerState";
 import { Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
@@ -67,7 +67,7 @@ export function IssuerState() {
 
   const retry = () => {
     setIsRetrying(true);
-    void retryState({ env }).then((response) => {
+    void retryPublishState({ env }).then((response) => {
       if (response.isSuccessful) {
         void message.success("Issuer state is being published");
       } else {

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { deleteCredential, revokeCredential } from "src/adapters/api/credentials";
 import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
-import { useEnvContext } from "src/contexts/env";
-import { useStateContext } from "src/contexts/issuer-state";
+import { useEnvContext } from "src/contexts/Env";
+import { useStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE } from "src/utils/constants";
 
@@ -33,14 +33,12 @@ export function CredentialDeleteModal({
         onClose();
         onDelete();
 
-        setIsLoading(false);
-
         void message.success(response.data);
       } else {
-        setIsLoading(false);
-
         void message.error(response.error.message);
       }
+
+      setIsLoading(false);
     });
   };
 

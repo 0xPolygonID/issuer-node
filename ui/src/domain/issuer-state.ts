@@ -1,3 +1,7 @@
+export interface IssuerStatus {
+  arePendingActions: boolean;
+}
+
 export type TransactionStatus = "created" | "pending" | "transacted" | "published" | "failed";
 
 export interface Transaction {

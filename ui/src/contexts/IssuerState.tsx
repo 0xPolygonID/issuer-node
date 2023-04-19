@@ -11,23 +11,23 @@ import {
 
 import { APIError } from "src/adapters/api";
 import { getStatus } from "src/adapters/api/issuer-state";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
-interface State {
+interface IssuerState {
   notifyChange: () => Promise<void>;
   refreshStatus: () => Promise<void>;
   status: AsyncTask<boolean, APIError>;
 }
 
-const StateContext = createContext<State>({
+const IssuerStateContext = createContext<IssuerState>({
   notifyChange: () => Promise.reject("The state context is not yet ready"),
   refreshStatus: () => Promise.reject("The state context is not yet ready"),
   status: { status: "pending" },
 });
 
-export function StateProvider(props: PropsWithChildren) {
+export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
   const [status, setStatus] = useState<AsyncTask<boolean, APIError>>({ status: "pending" });
 
@@ -71,9 +71,9 @@ export function StateProvider(props: PropsWithChildren) {
     return { notifyChange, refreshStatus, status };
   }, [notifyChange, refreshStatus, status]);
 
-  return <StateContext.Provider value={value} {...props} />;
+  return <IssuerStateContext.Provider value={value} {...props} />;
 }
 
 export function useStateContext() {
-  return useContext(StateContext);
+  return useContext(IssuerStateContext);
 }

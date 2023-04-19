@@ -2,7 +2,7 @@ import { Modal, Typography, message } from "antd";
 
 import { deleteLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 
 export function LinkDeleteModal({
   id,

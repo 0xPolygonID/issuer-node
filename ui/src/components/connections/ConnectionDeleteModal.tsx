@@ -4,8 +4,8 @@ import { useState } from "react";
 
 import { deleteConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
-import { useEnvContext } from "src/contexts/env";
-import { useStateContext } from "src/contexts/issuer-state";
+import { useEnvContext } from "src/contexts/Env";
+import { useStateContext } from "src/contexts/IssuerState";
 import { CLOSE } from "src/utils/constants";
 
 export function ConnectionDeleteModal({

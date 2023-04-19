@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { generatePath, useNavigate } from "react-router-dom";
 import { getSchemas } from "src/adapters/api/schemas";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";

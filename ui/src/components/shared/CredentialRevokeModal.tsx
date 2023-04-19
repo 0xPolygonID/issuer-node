@@ -3,8 +3,8 @@ import { useState } from "react";
 
 import { revokeCredential } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
-import { useEnvContext } from "src/contexts/env";
-import { useStateContext } from "src/contexts/issuer-state";
+import { useEnvContext } from "src/contexts/Env";
+import { useStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE } from "src/utils/constants";
 
