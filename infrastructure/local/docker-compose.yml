@@ -50,7 +50,6 @@ services:
       - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./issuer_initializer"
 
-
 networks:
   default:
       name: issuer-network
