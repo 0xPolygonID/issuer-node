@@ -102,7 +102,7 @@ type Credential struct {
 	CreatedAt         time.Time              `json:"createdAt"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
-	ExpiresAt         *time.Time             `json:"expiresAt,omitempty"`
+	ExpiresAt         *time.Time             `json:"expiresAt"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
@@ -193,7 +193,7 @@ type IssuerDescription struct {
 type Link struct {
 	Active            bool              `json:"active"`
 	CredentialSubject CredentialSubject `json:"credentialSubject"`
-	Expiration        *time.Time        `json:"expiration,omitempty"`
+	Expiration        *time.Time        `json:"expiration"`
 	Id                uuid.UUID         `json:"id"`
 	IssuedClaims      int               `json:"issuedClaims"`
 	MaxIssuance       *int              `json:"maxIssuance"`
@@ -483,10 +483,10 @@ type ServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/state/retry)
 	RetryPublishState(w http.ResponseWriter, r *http.Request)
-	// Endpoint to get the identity state status
+	// Get Identity State Status
 	// (GET /v1/state/status)
 	GetStateStatus(w http.ResponseWriter, r *http.Request)
-	// Endpoint to get the identity state transactions
+	// Get Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request)
 }
@@ -2719,10 +2719,10 @@ type StrictServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/state/retry)
 	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
-	// Endpoint to get the identity state status
+	// Get Identity State Status
 	// (GET /v1/state/status)
 	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
-	// Endpoint to get the identity state transactions
+	// Get Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 }

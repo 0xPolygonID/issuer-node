@@ -500,7 +500,7 @@ paths:
 
   /v1/state/status:
     get:
-      summary: Endpoint to get the identity state status
+      summary: Get Identity State Status
       operationId: GetStateStatus
       security:
         - basicAuth: [ ]
@@ -518,7 +518,7 @@ paths:
 
   /v1/state/transactions:
     get:
-      summary: Endpoint to get the identity state transactions
+      summary: Get Identity State Transactions
       operationId: GetStateTransactions
       security:
         - basicAuth: [ ]
@@ -1017,6 +1017,8 @@ components:
         expiresAt:
           type: string
           format: date-time
+          x-omitempty: false
+          nullable: true
           example: "2025-03-20T11:54:01.110295+01:00"
         expired:
           type: boolean
@@ -1070,12 +1072,15 @@ components:
         maxIssuance:
           type: integer
           x-omitempty: false
+          nullable: true
         issuedClaims:
           type: integer
         expiration:
           type: string
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
+          x-omitempty: false
+          nullable: true
         active:
           type: boolean
         status:
@@ -1286,14 +1291,17 @@ components:
         claimLinkExpiration:
           type: string
           format: date-time
-          example: 2023-04-17T11:40:43.681857-03:00
+          example: 2025-04-17T11:40:43.681857-03:00
         limitedClaims:
           type: integer
+          example: 5
           x-omitempty: false
         signatureProof:
           type: boolean
+          example: true
         mtProof:
           type: boolean
+          example: false
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
 
