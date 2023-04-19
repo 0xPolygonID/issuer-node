@@ -1,4 +1,4 @@
-package api_admin
+package api_ui
 
 import (
 	"time"

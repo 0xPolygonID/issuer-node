@@ -198,7 +198,7 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 // GetClaim is the controller to get a client.
 func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
 	if request.Identifier == "" {
-		return GetClaim400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+		return GetClaim400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
 	did, err := core.ParseDID(request.Identifier)
@@ -207,7 +207,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 	}
 
 	if request.Id == "" {
-		return GetClaim400JSONResponse{N400JSONResponse{"can not proceed with an empty claim id"}}, nil
+		return GetClaim400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
 	}
 
 	clID, err := uuid.Parse(request.Id)
@@ -234,7 +234,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 // GetClaims is the controller to get multiple claims of a determined identity
 func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error) {
 	if request.Identifier == "" {
-		return GetClaims400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+		return GetClaims400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
 	did, err := core.ParseDID(request.Identifier)
@@ -271,7 +271,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 // scan it with polygon wallet to accept the claim
 func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error) {
 	if request.Identifier == "" {
-		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, can not be empty"}}, nil
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
 	did, err := core.ParseDID(request.Identifier)
@@ -280,7 +280,7 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 	}
 
 	if request.Id == "" {
-		return GetClaimQrCode400JSONResponse{N400JSONResponse{"can not proceed with an empty claim id"}}, nil
+		return GetClaimQrCode400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
 	}
 
 	claimID, err := uuid.Parse(request.Id)
@@ -326,13 +326,13 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 	req, err := ports.NewAgentRequest(basicMessage)
 	if err != nil {
-		log.Error(ctx, "agent parsing request", err)
+		log.Error(ctx, "agent parsing request", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
 	agent, err := s.claimService.Agent(ctx, req)
 	if err != nil {
-		log.Error(ctx, "agent error", err)
+		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 	return Agent200JSONResponse{

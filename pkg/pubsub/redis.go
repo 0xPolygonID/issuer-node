@@ -32,7 +32,7 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 			select {
 			case event := <-pubsub.Channel():
 				if event.Channel != topic {
-					log.Error(ctx, "msg channel != topic")
+					log.Error(ctx, "msg channel != topic", "msg channel", event.Channel, "topic", topic)
 					continue
 				}
 

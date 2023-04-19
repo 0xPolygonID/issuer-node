@@ -152,9 +152,9 @@ func (c *Configuration) Sanitize() error {
 	return nil
 }
 
-// SanitizeAdmin perform some basic checks and sanitizations in the configuration.
+// SanitizeAPIUI perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
-func (c *Configuration) SanitizeAdmin() error {
+func (c *Configuration) SanitizeAPIUI() error {
 	if c.APIUI.ServerPort == 0 {
 		return fmt.Errorf("a port for the UI API server must be provided")
 	}
@@ -224,11 +224,11 @@ func Load(fileName string) (*Configuration, error) {
 	}
 	ctx := context.Background()
 	if err := viper.ReadInConfig(); err != nil {
-		log.Error(ctx, "error loading config file...", err)
+		log.Info(ctx, "missing toml config file. Fallback to env vars", "err", err)
 	}
 
 	if err := viper.Unmarshal(config); err != nil {
-		log.Error(ctx, "error unmarshalling config file", err)
+		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
 	checkEnvVars(ctx, config)
 	return config, nil
