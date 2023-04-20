@@ -329,38 +329,10 @@ export async function credentialsGetAll({
   }
 }
 
-interface CredentialQRCode {
-  body: {
-    callbackUrl: string;
-    reason: string;
-    scope: unknown[];
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
-  z.object({
-    body: z.object({
-      callbackUrl: z.string(),
-      reason: z.string(),
-      scope: z.array(z.unknown()),
-    }),
-    from: z.string(),
-    id: z.string(),
-    thid: z.string(),
-    typ: z.string(),
-    type: z.string(),
-  })
-);
-
 export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
   linkDetail: Link;
-  qrCode: CredentialQRCode;
+  qrCode: unknown;
   sessionID: string;
 }
 
@@ -371,7 +343,7 @@ const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
       logo: z.string(),
     }),
     linkDetail: linkParser,
-    qrCode: credentialQRCodeParser,
+    qrCode: z.unknown(),
     sessionID: z.string(),
   })
 );
@@ -383,7 +355,7 @@ const resultOKShareCredentialQRCodeParser = getStrictParser<ResultOK<ShareCreden
   })
 );
 
-export async function getCredentialLinkQRCode({
+export async function createCredentialLinkQRCode({
   env,
   linkID,
   signal,
@@ -499,7 +471,7 @@ export enum CredentialQRStatus {
 }
 
 interface CredentialQRCheckDone {
-  qrcode: AddingQRCode;
+  qrCode: AddingQRCode;
   status: CredentialQRStatus.Done;
 }
 
@@ -518,7 +490,7 @@ export type CredentialQRCheck =
 
 const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheckDone>()(
   z.object({
-    qrcode: addingQRCodeParser,
+    qrCode: addingQRCodeParser,
     status: z.literal(CredentialQRStatus.Done),
   })
 );
@@ -550,7 +522,7 @@ const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRChe
   })
 );
 
-export async function credentialsQRCheck({
+export async function getCredentialLinkQRCode({
   env,
   linkID,
   sessionID,
@@ -562,13 +534,15 @@ export async function credentialsQRCheck({
   try {
     const response = await axios({
       baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
       method: "GET",
       params: {
         sessionID,
       },
-      url: `${API_VERSION}/offers-qrcode/${linkID}`,
+      url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-
     const { data } = resultOKCredentialQRCheckParser.parse(response);
 
     return { data, isSuccessful: true };

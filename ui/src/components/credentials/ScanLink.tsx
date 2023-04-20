@@ -8,7 +8,7 @@ import {
   CredentialQRCheck,
   CredentialQRStatus,
   ShareCredentialQRCode,
-  credentialsQRCheck,
+  createCredentialLinkQRCode,
   getCredentialLinkQRCode,
 } from "src/adapters/api/credentials";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
@@ -44,7 +44,7 @@ export function ScanLink() {
       if (linkID) {
         setShareCredentialQRCode({ status: "loading" });
 
-        const response = await getCredentialLinkQRCode({ env, linkID, signal });
+        const response = await createCredentialLinkQRCode({ env, linkID, signal });
 
         if (response.isSuccessful) {
           setShareCredentialQRCode({ data: response.data, status: "successful" });
@@ -67,7 +67,7 @@ export function ScanLink() {
   useEffect(() => {
     const checkCredentialQRCode = async () => {
       if (isAsyncTaskDataAvailable(shareCredentialQRCode) && linkID) {
-        const response = await credentialsQRCheck({
+        const response = await getCredentialLinkQRCode({
           env,
           linkID,
           sessionID: shareCredentialQRCode.data.sessionID,
@@ -80,6 +80,7 @@ export function ScanLink() {
           }
         } else {
           setCredentialQRCheck({ status: CredentialQRStatus.Error });
+          void message.error(response.error.message);
         }
       }
     };
@@ -138,34 +139,49 @@ export function ScanLink() {
         src={shareCredentialQRCode.data.issuer.logo || IMAGE_PLACEHOLDER_PATH}
       />
 
-      <Space direction="vertical" style={{ textAlign: "center" }}>
+      <Space
+        direction="vertical"
+        style={{ padding: "0 24px", textAlign: "center", width: lg ? 800 : "100%" }}
+      >
         <Typography.Title level={2}>
           {credentialQRCheck.status === CredentialQRStatus.Done
-            ? "Scan again to add the credential to your wallet"
+            ? "Please scan to add credential to your wallet"
             : `You received a credential from ${shareCredentialQRCode.data.issuer.displayName}`}
         </Typography.Title>
 
-        <Typography.Text>
+        <Typography.Text style={{ fontSize: 18 }} type="secondary">
           {credentialQRCheck.status === CredentialQRStatus.Done
-            ? "If you already received a push notification and added the credential to your mobile device, please disregard this message."
+            ? "If you already received a push notification and added the claim to your mobile device, please disregard this message."
             : "Scan the QR code with your Polygon ID wallet to accept it."}
         </Typography.Text>
       </Space>
 
-      {credentialQRCheck.status === CredentialQRStatus.Done && (
+      {credentialQRCheck.status === CredentialQRStatus.Done ? (
         <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
           Start again
         </Button>
+      ) : (
+        <Space>
+          <Typography.Link href={WALLET_APP_STORE_URL} target="_blank">
+            <Image preview={false} src="/images/apple-store.svg" />
+          </Typography.Link>
+
+          <Typography.Link href={WALLET_PLAY_STORE_URL} target="_blank">
+            <Image preview={false} src="/images/google-play.svg" />
+          </Typography.Link>
+        </Space>
       )}
 
       <Card bodyStyle={{ padding: 0 }} style={{ margin: "auto", width: lg ? 800 : "100%" }}>
         <Row>
           <Col
             className="full-width"
-            md={13}
             style={{
-              background:
-                'url("/images/noise-bg.png"), linear-gradient(50deg, rgb(130 101 208) 15%, rgba(221, 178, 248, 1) 44%)',
+              background: `url("/images/noise-bg.png"), linear-gradient(50deg, ${
+                credentialQRCheck.status === CredentialQRStatus.Done
+                  ? "rgb(255 152 57) 0%, rgba(255, 214, 174, 1) 50%"
+                  : "rgb(130 101 208) 0%, rgba(221, 178, 248, 1) 50%"
+              })`,
               borderRadius: 8,
               padding: 24,
             }}
@@ -174,22 +190,22 @@ export function ScanLink() {
               className="full-width"
               includeMargin
               level="H"
-              style={{ height: "100%" }}
+              style={{ height: 300 }}
               value={
                 credentialQRCheck.status === CredentialQRStatus.Done
-                  ? JSON.stringify(credentialQRCheck.qrcode)
+                  ? JSON.stringify(credentialQRCheck.qrCode)
                   : JSON.stringify(shareCredentialQRCode.data.qrCode)
               }
             />
           </Col>
-
+        </Row>
+        <Row>
           <Col
-            md={11}
             style={{
               padding: 24,
             }}
           >
-            <Space direction="vertical" size="large" style={{ maxWidth: "50vw" }}>
+            <Space direction="vertical" size="large">
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
                 {shareCredentialQRCode.data.linkDetail.schemaType}
               </Typography.Title>
@@ -197,7 +213,7 @@ export function ScanLink() {
                 Attributes
               </Typography.Title>
 
-              {/* TODO Credentials epic: PID-431 and PID-437 */}
+              {/* TODO Credentials epic: PID-601 */}
               {/* {shareCredentialQRCode.data.linkDetail.attributes.map((attribute) => {
                 const formattedValue = formatAttributeValue(
                   attribute,
@@ -220,20 +236,6 @@ export function ScanLink() {
           </Col>
         </Row>
       </Card>
-
-      <Space align="center" direction="vertical">
-        <Typography.Text type="secondary">Download Polygon ID wallet app</Typography.Text>
-
-        <Space>
-          <Typography.Link href={WALLET_APP_STORE_URL} target="_blank">
-            <Image preview={false} src="/images/apple-store.svg" />
-          </Typography.Link>
-
-          <Typography.Link href={WALLET_PLAY_STORE_URL} target="_blank">
-            <Image preview={false} src="/images/google-play.svg" />
-          </Typography.Link>
-        </Space>
-      </Space>
     </Space>
   );
 }
