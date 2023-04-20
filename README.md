@@ -94,7 +94,7 @@ In `.env-issuer`:
 
 If you are running the UI, in `.env-ui`:
 
-- `BLOCKEXPLORER_URL`
+- `ISSUER_UI_BLOCK_EXPLORER_URL`
 - `ISSUER_UI_AUTH_USERNAME`
 - `ISSUER_UI_AUTH_PASSWORD`
 
