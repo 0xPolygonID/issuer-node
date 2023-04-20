@@ -23,6 +23,7 @@ export type APIResponse<D> = APISuccessfulResponse<D> | APIErrorResponse;
 
 export enum HTTPStatusError {
   Aborted = 0,
+  BadRequest = 400,
   Unauthorized = 401,
   NotFound = 404,
 }

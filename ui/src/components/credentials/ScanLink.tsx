@@ -6,17 +6,17 @@ import { useParams } from "react-router-dom";
 import { APIError, HTTPStatusError } from "src/adapters/api";
 import {
   CredentialQRCheck,
-  CredentialQRStatus,
   ShareCredentialQRCode,
   createCredentialLinkQRCode,
   getCredentialLinkQRCode,
 } from "src/adapters/api/credentials";
+import { ReactComponent as AlertIcon } from "src/assets/icons/alert-circle.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/env";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
+import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   IMAGE_PLACEHOLDER_PATH,
@@ -32,8 +32,10 @@ export function ScanLink() {
   >({
     status: "pending",
   });
-  const [credentialQRCheck, setCredentialQRCheck] = useState<CredentialQRCheck>({
-    status: CredentialQRStatus.Pending,
+  const [credentialQRCheck, setCredentialQRCheck] = useState<
+    AsyncTask<CredentialQRCheck, APIError>
+  >({
+    status: "pending",
   });
 
   const { lg } = Grid.useBreakpoint();
@@ -74,19 +76,24 @@ export function ScanLink() {
         });
 
         if (response.isSuccessful) {
-          setCredentialQRCheck(response.data);
-          if (response.data.status === CredentialQRStatus.Done) {
+          setCredentialQRCheck({ data: response.data, status: "successful" });
+
+          if (response.data.status === "done") {
             void message.success("Credential successfully shared");
           }
         } else {
-          setCredentialQRCheck({ status: CredentialQRStatus.Error });
+          setCredentialQRCheck({ error: response.error, status: "failed" });
+
           void message.error(response.error.message);
         }
       }
     };
 
     const checkQRCredentialStatusTimer = setInterval(() => {
-      if (credentialQRCheck.status === CredentialQRStatus.Pending) {
+      if (
+        isAsyncTaskDataAvailable(credentialQRCheck) &&
+        credentialQRCheck.data.status === "pending"
+      ) {
         void checkCredentialQRCode();
       } else {
         clearInterval(checkQRCredentialStatusTimer);
@@ -98,38 +105,47 @@ export function ScanLink() {
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
-    setCredentialQRCheck({ status: CredentialQRStatus.Pending });
+    setCredentialQRCheck({ status: "pending" });
   };
 
-  if (shareCredentialQRCode.status === "failed") {
-    if (shareCredentialQRCode.error.status === HTTPStatusError.NotFound) {
-      return (
-        <Space
-          align="center"
-          direction="vertical"
-          size="large"
-          style={{ textAlign: "center", width: 400 }}
-        >
-          <Avatar className="avatar-color-primary" icon={<QRIcon />} size={56} />
+  const hasFailed = hasAsyncTaskFailed(shareCredentialQRCode)
+    ? shareCredentialQRCode.error
+    : hasAsyncTaskFailed(credentialQRCheck)
+    ? credentialQRCheck.error
+    : undefined;
 
-          <Typography.Title level={2}>Credential link is invalid</Typography.Title>
+  if (hasFailed) {
+    if (hasFailed.status === HTTPStatusError.NotFound) {
+      return (
+        <Space align="center" direction="vertical" size="large">
+          <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
+
+          <Typography.Title level={2}>Claim link is invalid</Typography.Title>
 
           <Typography.Text type="secondary">
-            In case you think this is an error, please contact the issuer of this credential.
+            In case you think this is an error, please contact the issuer of this claim.
           </Typography.Text>
+        </Space>
+      );
+    } else if (hasFailed.status === HTTPStatusError.BadRequest) {
+      return (
+        <Space align="center" direction="vertical" size="large">
+          <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />
+
+          <Typography.Title level={2}>QR code expired, start again</Typography.Title>
+
+          <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
+            Start again
+          </Button>
         </Space>
       );
     }
     return (
-      <ErrorResult
-        error={shareCredentialQRCode.error.message}
-        labelRetry="Start again"
-        onRetry={onStartAgain}
-      />
+      <ErrorResult error={hasFailed.message} labelRetry="Start again" onRetry={onStartAgain} />
     );
   }
 
-  return isAsyncTaskStarting(shareCredentialQRCode) ? (
+  return !isAsyncTaskDataAvailable(shareCredentialQRCode) ? (
     <LoadingResult />
   ) : (
     <Space align="center" direction="vertical" size="large">
@@ -144,19 +160,19 @@ export function ScanLink() {
         style={{ padding: "0 24px", textAlign: "center", width: lg ? 800 : "100%" }}
       >
         <Typography.Title level={2}>
-          {credentialQRCheck.status === CredentialQRStatus.Done
+          {isAsyncTaskDataAvailable(credentialQRCheck) && credentialQRCheck.data.status === "done"
             ? "Please scan to add credential to your wallet"
             : `You received a credential from ${shareCredentialQRCode.data.issuer.displayName}`}
         </Typography.Title>
 
         <Typography.Text style={{ fontSize: 18 }} type="secondary">
-          {credentialQRCheck.status === CredentialQRStatus.Done
+          {isAsyncTaskDataAvailable(credentialQRCheck) && credentialQRCheck.data.status === "done"
             ? "If you already received a push notification and added the claim to your mobile device, please disregard this message."
             : "Scan the QR code with your Polygon ID wallet to accept it."}
         </Typography.Text>
       </Space>
 
-      {credentialQRCheck.status === CredentialQRStatus.Done ? (
+      {isAsyncTaskDataAvailable(credentialQRCheck) && credentialQRCheck.data.status === "done" ? (
         <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
           Start again
         </Button>
@@ -178,7 +194,8 @@ export function ScanLink() {
             className="full-width"
             style={{
               background: `url("/images/noise-bg.png"), linear-gradient(50deg, ${
-                credentialQRCheck.status === CredentialQRStatus.Done
+                isAsyncTaskDataAvailable(credentialQRCheck) &&
+                credentialQRCheck.data.status === "done"
                   ? "rgb(255 152 57) 0%, rgba(255, 214, 174, 1) 50%"
                   : "rgb(130 101 208) 0%, rgba(221, 178, 248, 1) 50%"
               })`,
@@ -192,8 +209,9 @@ export function ScanLink() {
               level="H"
               style={{ height: 300 }}
               value={
-                credentialQRCheck.status === CredentialQRStatus.Done
-                  ? JSON.stringify(credentialQRCheck.qrCode)
+                isAsyncTaskDataAvailable(credentialQRCheck) &&
+                credentialQRCheck.data.status === "done"
+                  ? JSON.stringify(credentialQRCheck.data.qrCode)
                   : JSON.stringify(shareCredentialQRCode.data.qrCode)
               }
             />

@@ -14,7 +14,7 @@
     "react-router-dom": "^6.8.1",
     "react-syntax-highlighter": "^15.5.0",
     "validator": "^13.9.0",
-    "zod": "^3.20.2"
+    "zod": "^3.21.4"
   },
   "devDependencies": {
     "@iden3/eslint-config-react-ts": "^1.4.0",

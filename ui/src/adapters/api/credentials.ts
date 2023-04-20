@@ -284,55 +284,10 @@ export async function createLink({
   }
 }
 
-export async function credentialsGetAll({
-  env,
-  params: { query, valid },
-  signal,
-}: {
-  env: Env;
-  params: {
-    query?: string;
-    valid?: boolean;
-  };
-  signal?: AbortSignal;
-}): Promise<
-  APIResponse<{
-    credentials: Credential[];
-    errors: z.ZodError<Credential>[];
-  }>
-> {
-  try {
-    const response = await axios({
-      baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
-      method: "GET",
-      params: new URLSearchParams({
-        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(valid !== undefined ? { valid: valid.toString() } : {}),
-      }),
-      signal,
-      url: `${API_VERSION}/issuers/${env.issuer.did}/offers`,
-    });
-    const { data } = resultOKCredentialsGetAllParser.parse(response);
-
-    return {
-      data: {
-        credentials: data.credentials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-        errors: data.errors,
-      },
-      isSuccessful: true,
-    };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
 export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
   linkDetail: Link;
-  qrCode: unknown;
+  qrCode?: unknown;
   sessionID: string;
 }
 
@@ -390,134 +345,23 @@ const resultCreateLinkParser = getStrictParser<ResultCreated<ID>>()(
   })
 );
 
-interface CredentialsGetAll {
-  credentials: Credential[];
-  errors: z.ZodError<Credential>[];
+export type CredentialQRStatus = "done" | "pending" | "pendingPublish";
+
+export interface CredentialQRCheck {
+  qrCode?: unknown;
+  status: CredentialQRStatus;
 }
 
-const resultOKCredentialsGetAllParser = getStrictParser<
-  ResultOK<unknown[]>,
-  ResultOK<CredentialsGetAll>
->()(
+const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheck>()(
   z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: CredentialsGetAll, curr: unknown, index): CredentialsGetAll => {
-          const parsedCredential = credentialParser.safeParse(curr);
-
-          return parsedCredential.success
-            ? {
-                ...acc,
-                credentials: [...acc.credentials, parsedCredential.data],
-              }
-            : {
-                ...acc,
-                errors: [
-                  ...acc.errors,
-                  new z.ZodError<Credential>(
-                    parsedCredential.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { credentials: [], errors: [] }
-      )
-    ),
-    status: z.literal(HTTPStatusSuccess.OK),
+    qrCode: z.unknown(),
+    status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
   })
-);
-
-interface AddingQRCode {
-  body: {
-    credentials: {
-      description: string;
-      id: string;
-    }[];
-    url: string;
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-const addingQRCodeParser = getStrictParser<AddingQRCode>()(
-  z.object({
-    body: z.object({
-      credentials: z.array(
-        z.object({
-          description: z.string(),
-          id: z.string(),
-        })
-      ),
-      url: z.string(),
-    }),
-    from: z.string(),
-    id: z.string(),
-    thid: z.string(),
-    typ: z.string(),
-    type: z.string(),
-  })
-);
-
-export enum CredentialQRStatus {
-  Done = "done",
-  Error = "error",
-  Pending = "pending",
-}
-
-interface CredentialQRCheckDone {
-  qrCode: AddingQRCode;
-  status: CredentialQRStatus.Done;
-}
-
-interface CredentialQRCheckError {
-  status: CredentialQRStatus.Error;
-}
-
-interface CredentialQRCheckPending {
-  status: CredentialQRStatus.Pending;
-}
-
-export type CredentialQRCheck =
-  | CredentialQRCheckDone
-  | CredentialQRCheckError
-  | CredentialQRCheckPending;
-
-const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheckDone>()(
-  z.object({
-    qrCode: addingQRCodeParser,
-    status: z.literal(CredentialQRStatus.Done),
-  })
-);
-
-const credentialQRCheckErrorParser = getStrictParser<CredentialQRCheckError>()(
-  z.object({
-    status: z.literal(CredentialQRStatus.Error),
-  })
-);
-
-const credentialQRCheckPendingParser = getStrictParser<CredentialQRCheckPending>()(
-  z.object({
-    status: z.literal(CredentialQRStatus.Pending),
-  })
-);
-
-const credentialQRCheckParser = getStrictParser<CredentialQRCheck>()(
-  z.union([
-    credentialQRCheckDoneParser,
-    credentialQRCheckErrorParser,
-    credentialQRCheckPendingParser,
-  ])
 );
 
 const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
   z.object({
-    data: credentialQRCheckParser,
+    data: credentialQRCheckDoneParser,
     status: z.literal(HTTPStatusSuccess.OK),
   })
 );
