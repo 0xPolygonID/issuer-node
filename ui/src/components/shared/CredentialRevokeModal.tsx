@@ -4,7 +4,7 @@ import { useState } from "react";
 import { revokeCredential } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
-import { useStateContext } from "src/contexts/IssuerState";
+import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE } from "src/utils/constants";
 
@@ -18,7 +18,7 @@ export function CredentialRevokeModal({
   onRevoke: () => void;
 }) {
   const env = useEnvContext();
-  const { notifyChange } = useStateContext();
+  const { notifyChange } = useIssuerStateContext();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { revNonce: nonce } = credential;
@@ -58,7 +58,7 @@ export function CredentialRevokeModal({
       <Space direction="vertical">
         <Typography.Text type="secondary">
           Revoking of a credential must be accompanied by publishing of issuer state in order for
-          the action to be recorded. This action cannot be undone.
+          the action to be effective. This action cannot be undone.
         </Typography.Text>
       </Space>
     </Modal>

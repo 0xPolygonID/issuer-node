@@ -74,6 +74,6 @@ export function IssuerStateProvider(props: PropsWithChildren) {
   return <IssuerStateContext.Provider value={value} {...props} />;
 }
 
-export function useStateContext() {
+export function useIssuerStateContext() {
   return useContext(IssuerStateContext);
 }

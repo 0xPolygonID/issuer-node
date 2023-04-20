@@ -9,7 +9,7 @@ import { ReactComponent as IconIssuerState } from "src/assets/icons/switch-horiz
 import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
-import { useStateContext } from "src/contexts/IssuerState";
+import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
 import {
@@ -22,7 +22,7 @@ import {
 } from "src/utils/constants";
 
 export function SiderMenu() {
-  const { status } = useStateContext();
+  const { status } = useIssuerStateContext();
   const { pathname } = useLocation();
   const navigate = useNavigate();
 

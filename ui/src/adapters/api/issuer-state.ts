@@ -9,8 +9,7 @@ import {
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
-import { Env, Transaction, TransactionStatus } from "src/domain";
-import { IssuerStatus } from "src/domain/issuer-state";
+import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
 
 const transactionStatusParser = getStrictParser<TransactionStatus>()(

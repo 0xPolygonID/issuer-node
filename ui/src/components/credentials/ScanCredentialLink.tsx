@@ -20,7 +20,7 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   IMAGE_PLACEHOLDER_PATH,
-  QR_CODE_POLLING_INTERVAL,
+  POLLING_INTERVAL,
   WALLET_APP_STORE_URL,
   WALLET_PLAY_STORE_URL,
 } from "src/utils/constants";
@@ -90,7 +90,7 @@ export function ScanCredentialLink() {
       } else {
         clearInterval(checkQRCredentialStatusTimer);
       }
-    }, QR_CODE_POLLING_INTERVAL);
+    }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
   }, [shareCredentialQRCode, linkID, credentialQRCheck, env]);

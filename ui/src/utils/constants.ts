@@ -50,7 +50,7 @@ export const FEEDBACK_URL = "https://forms.gle/ckDgvw1e9yZJBNfH6";
 
 export const IMAGE_PLACEHOLDER_PATH = "/images/image-preview.png";
 
-export const QR_CODE_POLLING_INTERVAL = 10000;
+export const POLLING_INTERVAL = 10000;
 
 export const ROOT_PATH = "/";
 

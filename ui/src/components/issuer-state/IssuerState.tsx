@@ -13,7 +13,7 @@ import {
 } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
@@ -23,17 +23,17 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { useStateContext } from "src/contexts/IssuerState";
+import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
 
-import { ISSUER_STATE, STATUS } from "src/utils/constants";
+import { ISSUER_STATE, POLLING_INTERVAL, STATUS } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
 export function IssuerState() {
   const env = useEnvContext();
-  const { refreshStatus, status } = useStateContext();
+  const { refreshStatus, status } = useIssuerStateContext();
 
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
@@ -41,13 +41,14 @@ export function IssuerState() {
     status: "pending",
   });
 
-  const transactionsList = isAsyncTaskDataAvailable(transactions) ? transactions.data : [];
+  const transactionsList = useMemo(
+    () => (isAsyncTaskDataAvailable(transactions) ? transactions.data : []),
+    [transactions]
+  );
 
-  const failedTransaction = isAsyncTaskDataAvailable(transactions)
-    ? transactions.data.filter((transaction) => transaction.status === "failed")
-    : [];
+  const failedTransaction = transactionsList.find((transaction) => transaction.status === "failed");
   const disablePublishState =
-    failedTransaction.length > 0 || !isAsyncTaskDataAvailable(status) || !status.data;
+    failedTransaction !== undefined || !isAsyncTaskDataAvailable(status) || !status.data;
 
   const publish = () => {
     setIsPublishing(true);
@@ -124,7 +125,7 @@ export function IssuerState() {
       ellipsis: { showTitle: false },
       key: "publishDate",
       render: (publishDate: Transaction["publishDate"]) => (
-        <Typography.Text>{formatDate(publishDate)}</Typography.Text>
+        <Typography.Text>{formatDate(publishDate, true)}</Typography.Text>
       ),
       sorter: ({ publishDate: a }, { publishDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: "Publish date",
@@ -171,6 +172,22 @@ export function IssuerState() {
 
     return aborter;
   }, [refreshStatus]);
+
+  useEffect(() => {
+    const checkUnpublished = setInterval(() => {
+      const isUnpublished = transactionsList.find(
+        (transaction) => transaction.status !== "published"
+      );
+
+      if (isUnpublished) {
+        void fetchTransactions();
+      } else {
+        clearInterval(checkUnpublished);
+      }
+    }, POLLING_INTERVAL);
+
+    return () => clearInterval(checkUnpublished);
+  }, [fetchTransactions, transactionsList]);
 
   return (
     <SiderLayoutContent
