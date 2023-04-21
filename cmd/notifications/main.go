@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -34,7 +35,7 @@ func main() {
 	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
 	defer cancel()
 
-	if err := cfg.SanitizeAdmin(); err != nil {
+	if err := cfg.SanitizeAPIUI(); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
 		return
 	}
@@ -52,6 +53,7 @@ func main() {
 	}
 
 	ps := pubsub.NewRedis(rdb)
+	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
@@ -74,8 +76,8 @@ func main() {
 		}
 	}()
 
-	ps.Subscribe(ctxCancel, pubsub.EventCreateCredential, notificationService.SendCreateCredentialNotification)
-	ps.Subscribe(ctxCancel, pubsub.EventCreateConnection, notificationService.SendCreateConnectionNotification)
+	ps.Subscribe(ctxCancel, event.CreateCredentialEvent, notificationService.SendCreateCredentialNotification)
+	ps.Subscribe(ctxCancel, event.CreateConnectionEvent, notificationService.SendCreateConnectionNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)

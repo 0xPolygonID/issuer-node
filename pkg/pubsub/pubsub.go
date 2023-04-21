@@ -2,53 +2,24 @@ package pubsub
 
 import (
 	"context"
-	"encoding/json"
-
-	"github.com/mitchellh/mapstructure"
-)
-
-const (
-	EventCreateCredential = "createCredential" // EventCreateCredential create credential event
-	EventCreateConnection = "createConnection" // EventCreateConnection create connection event
 )
 
 // Event defines the payload
-type Event interface{}
-
-// CreateCredentialEvent defines the createCredential data
-type CreateCredentialEvent struct {
-	CredentialID string `json:"credentialID"`
-	IssuerID     string `json:"issuerID"`
+type Event interface {
+	Marshal() (msg Message, err error)
+	Unmarshal(msg Message) error
 }
 
-// CreateConnectionEvent defines the createCredential data
-type CreateConnectionEvent struct {
-	ConnectionID string `json:"connectionID"`
-	IssuerID     string `json:"issuerID"`
-}
-
-// MarshalBinary returns the bytes of an event
-func (c CreateCredentialEvent) MarshalBinary() ([]byte, error) {
-	return json.Marshal(c)
-}
-
-// MarshalBinary returns the bytes of an event
-func (c CreateConnectionEvent) MarshalBinary() ([]byte, error) {
-	return json.Marshal(c)
-}
-
-// UnmarshalEvent decodes the event into the to parameter
-func UnmarshalEvent(from Event, to any) error {
-	return mapstructure.Decode(from, to)
-}
+// Message is the payload received in a pubsub subscriber. The input for callback functions
+type Message []byte
 
 // Publisher sends topics to the pubsub
 type Publisher interface {
 	Publish(ctx context.Context, topic string, payload Event) error
 }
 
-// EventHandler is the type that functions that handle an event must comply.
-type EventHandler func(context.Context, Event) error
+// EventHandler is the type that functions that handle an MyEvent must comply.
+type EventHandler func(context.Context, Message) error
 
 // Subscriber subscribes to the pubsub topics
 type Subscriber interface {

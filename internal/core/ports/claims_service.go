@@ -29,6 +29,7 @@ type CreateClaimRequest struct {
 	SignatureProof        bool
 	MTProof               bool
 	LinkID                *uuid.UUID
+	SingleIssuer          bool
 }
 
 // AgentRequest struct
@@ -63,7 +64,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 
 	if self != nil && *self {
 		if subject != nil && *subject != "" {
-			return nil, fmt.Errorf("self and subject filter can not be used together")
+			return nil, fmt.Errorf("self and subject filter cannot be used together")
 		}
 		filter.Self = self
 	}
@@ -90,7 +91,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID) *CreateClaimRequest {
+func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -121,13 +122,15 @@ func NewCreateClaimRequest(did *core.DID, credentialSchema string, credentialSub
 	}
 
 	req.LinkID = linkID
+	req.SingleIssuer = singleIssuer
+
 	return req
 }
 
 // NewAgentRequest validates the inputs and returns a new AgentRequest
 func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	if basicMessage.To == "" {
-		return nil, fmt.Errorf("'to' field can not be empty")
+		return nil, fmt.Errorf("'to' field cannot be empty")
 	}
 
 	toDID, err := core.ParseDID(basicMessage.To)
@@ -136,7 +139,7 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}
 
 	if basicMessage.From == "" {
-		return nil, fmt.Errorf("'from' field can not be empty")
+		return nil, fmt.Errorf("'from' field cannot be empty")
 	}
 
 	fromDID, err := core.ParseDID(basicMessage.From)
@@ -145,7 +148,7 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}
 
 	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field can not be empty")
+		return nil, fmt.Errorf("'id' field cannot be empty")
 	}
 
 	claimID, err := uuid.Parse(basicMessage.ID)
@@ -158,7 +161,7 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}
 
 	if basicMessage.ID == "" {
-		return nil, fmt.Errorf("'id' field can not be empty")
+		return nil, fmt.Errorf("'id' field cannot be empty")
 	}
 
 	return &AgentRequest{
@@ -179,7 +182,7 @@ type ClaimsService interface {
 	Revoke(ctx context.Context, id core.DID, nonce uint64, description string) error
 	GetAll(ctx context.Context, did core.DID, filter *ClaimsFilter) ([]*domain.Claim, error)
 	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID core.DID) error
-	GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error)
+	GetRevocationStatus(ctx context.Context, issuerDID core.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
 	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error)

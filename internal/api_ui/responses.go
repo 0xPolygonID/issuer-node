@@ -1,6 +1,7 @@
-package api_admin
+package api_ui
 
 import (
+	"strings"
 	"time"
 
 	"github.com/iden3/go-schema-processor/verifiable"
@@ -51,8 +52,18 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		RevNonce:          uint64(credential.RevNonce),
 		Revoked:           credential.Revoked,
 		SchemaHash:        credential.SchemaHash,
-		SchemaType:        credential.SchemaType,
+		SchemaType:        shortType(credential.SchemaType),
+		SchemaUrl:         credential.SchemaURL,
 	}
+}
+
+func shortType(id string) string {
+	parts := strings.Split(id, "#")
+	l := len(parts)
+	if l == 0 {
+		return ""
+	}
+	return parts[l-1]
 }
 
 func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string {
@@ -62,7 +73,7 @@ func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string
 	}
 
 	if credential.MtProof {
-		proofs = append(proofs, "MTP")
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
 	}
 	return proofs
 }
@@ -143,8 +154,8 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 
 func getSigProof(w3c *verifiable.W3CCredential) *string {
 	for i := range w3c.Proof {
-		if string(w3c.Proof[i].ProofType()) == "BJJSignature2021" {
-			return common.ToPointer("BJJSignature2021")
+		if string(w3c.Proof[i].ProofType()) == string(verifiable.BJJSignatureProofType) {
+			return common.ToPointer(string(verifiable.BJJSignatureProofType))
 		}
 	}
 	return nil
@@ -185,7 +196,21 @@ func getLinkResponse(link domain.Link) Link {
 		SchemaType:        link.Schema.Type,
 		SchemaUrl:         link.Schema.URL,
 		Status:            LinkStatus(link.Status()),
+		ProofTypes:        getLinkProofs(link),
 	}
+}
+
+func getLinkProofs(link domain.Link) []string {
+	proofs := make([]string, 0)
+	if link.CredentialMTPProof {
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
+	}
+
+	if link.CredentialSignatureProof {
+		proofs = append(proofs, string(verifiable.BJJSignatureProofType))
+	}
+
+	return proofs
 }
 
 func getLinkResponses(links []domain.Link) []Link {
@@ -220,4 +245,37 @@ func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeR
 			Credentials: credentials,
 		},
 	}
+}
+
+func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {
+	response := RevocationStatusResponse{}
+	response.Issuer.State = rs.Issuer.State
+	response.Issuer.RevocationTreeRoot = rs.Issuer.RevocationTreeRoot
+	response.Issuer.RootOfRoots = rs.Issuer.RootOfRoots
+	response.Issuer.ClaimsTreeRoot = rs.Issuer.ClaimsTreeRoot
+	response.Mtp.Existence = rs.MTP.Existence
+
+	if rs.MTP.NodeAux != nil {
+		key := rs.MTP.NodeAux.Key
+		decodedKey := key.BigInt().String()
+		value := rs.MTP.NodeAux.Value
+		decodedValue := value.BigInt().String()
+		response.Mtp.NodeAux = &struct {
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
+		}{
+			Key:   &decodedKey,
+			Value: &decodedValue,
+		}
+	}
+
+	response.Mtp.Existence = rs.MTP.Existence
+	siblings := make([]string, 0)
+	for _, s := range rs.MTP.AllSiblings() {
+		siblings = append(siblings, s.BigInt().String())
+	}
+
+	response.Mtp.Siblings = &siblings
+
+	return response
 }

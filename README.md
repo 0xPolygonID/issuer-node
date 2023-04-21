@@ -25,7 +25,7 @@ _NB: There is no compatibility with Windows environments at this time._
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
-3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose admin frontend can be accessed via the browser (default <http://localhost:3001>).
+3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose frontend can be accessed via the browser (default <http://localhost:3001>).
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
 6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
@@ -56,9 +56,10 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make build`. This will generate a binary for each of the following commands:
    - `platform`
+   - `platform_ui`
    - `migrate`
    - `pending_publisher`
-   - `configurator`
+   - `notifications`
 3. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Run `./bin/platform` command to start the issuer.

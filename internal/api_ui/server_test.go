@@ -1,4 +1,4 @@
-package api_admin
+package api_ui
 
 import (
 	"context"
@@ -24,6 +24,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
@@ -47,7 +48,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
-	schemaAdminService := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
+	schemaService := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -55,7 +56,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
-	server := NewServer(&cfg, identityService, claimsService, schemaAdminService, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
+	server := NewServer(&cfg, identityService, claimsService, schemaService, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), &health.Status{})
 	handler := getHandler(context.Background(), server)
 
 	t.Run("should return 200", func(t *testing.T) {
@@ -71,7 +72,7 @@ func TestServer_CheckStatus(t *testing.T) {
 }
 
 func TestServer_AuthCallback(t *testing.T) {
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -131,7 +132,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	sessionRepository := repositories.NewSessionCached(cachex)
 
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository, pubsub.NewMock())
-	server := NewServer(&cfg, identityService, NewClaimsMock(), NewAdminSchemaMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -194,8 +195,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 
 func TestServer_GetSchema(t *testing.T) {
 	ctx := context.Background()
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -314,8 +315,8 @@ func TestServer_GetSchemas(t *testing.T) {
 	require.NoError(t, err)
 	defer teardown()
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -437,8 +438,8 @@ func TestServer_ImportSchema(t *testing.T) {
 	const url = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	const schemaType = "KYCCountryOfResidenceCredential"
 	ctx := context.Background()
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaAdminSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -553,7 +554,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	issuerDID, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	server.cfg.APIUI.IssuerDID = *issuerDID
 	handler := getHandler(context.Background(), server)
 
@@ -690,7 +691,7 @@ func TestServer_DeleteConnectionCredentials(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	fixture := tests.NewFixture(storage)
@@ -805,7 +806,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	issuerDID, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	server.cfg.APIUI.IssuerDID = *issuerDID
 	handler := getHandler(context.Background(), server)
 
@@ -920,7 +921,7 @@ func TestServer_CreateCredential(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	handler := getHandler(ctx, server)
 
@@ -1022,7 +1023,7 @@ func TestServer_CreateCredential(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			pubSub.Clear(pubsub.EventCreateCredential)
+			pubSub.Clear(event.CreateCredentialEvent)
 
 			rr := httptest.NewRecorder()
 			url := "/v1/credentials"
@@ -1035,7 +1036,7 @@ func TestServer_CreateCredential(t *testing.T) {
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
-			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(pubsub.EventCreateCredential)))
+			assert.Equal(t, tc.expected.createCredentialEventsCount, len(pubSub.AllPublishedEvents(event.CreateCredentialEvent)))
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
@@ -1073,7 +1074,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	fixture := tests.NewFixture(storage)
@@ -1123,7 +1124,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 			},
 		},
 		{
-			name:         "should get an error, a credential can not be deleted twice",
+			name:         "should get an error, a credential cannot be deleted twice",
 			credentialID: fCred,
 			auth:         authOk,
 			expected: expected{
@@ -1185,7 +1186,7 @@ func TestServer_GetCredential(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	credentialSubject := map[string]any{
 		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
@@ -1195,13 +1196,13 @@ func TestServer_GetCredential(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
+	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
 	require.NoError(t, err)
 
-	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil))
+	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false))
 	require.NoError(t, err)
 
-	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil))
+	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false))
 	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -1257,11 +1258,12 @@ func TestServer_GetCredential(t *testing.T) {
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim1.ID,
-					ProofTypes: []string{"BJJSignature2021", "MTP"},
+					ProofTypes: []string{"BJJSignature2021", "SparseMerkleTreeProof"},
 					RevNonce:   uint64(createdClaim1.RevNonce),
 					Revoked:    createdClaim1.Revoked,
 					SchemaHash: createdClaim1.SchemaHash,
-					SchemaType: createdClaim1.SchemaType,
+					SchemaType: typeC,
+					SchemaUrl:  schema,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1288,7 +1290,8 @@ func TestServer_GetCredential(t *testing.T) {
 					RevNonce:   uint64(createdClaim2.RevNonce),
 					Revoked:    createdClaim2.Revoked,
 					SchemaHash: createdClaim2.SchemaHash,
-					SchemaType: createdClaim2.SchemaType,
+					SchemaType: typeC,
+					SchemaUrl:  schema,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1311,11 +1314,12 @@ func TestServer_GetCredential(t *testing.T) {
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim3.ID,
-					ProofTypes: []string{"MTP"},
+					ProofTypes: []string{"SparseMerkleTreeProof"},
 					RevNonce:   uint64(createdClaim3.RevNonce),
 					Revoked:    createdClaim3.Revoked,
 					SchemaHash: createdClaim3.SchemaHash,
-					SchemaType: createdClaim3.SchemaType,
+					SchemaType: typeC,
+					SchemaUrl:  schema,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1370,7 +1374,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		Host:       "http://host",
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
-	schemaService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
+	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
@@ -1378,7 +1382,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	credentialSubject := map[string]any{
 		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
@@ -1393,19 +1397,19 @@ func TestServer_GetCredentials(t *testing.T) {
 	_, err = schemaService.ImportSchema(ctx, *did, schemaURL, typeC)
 	require.NoError(t, err)
 	// Never expires
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
 	require.NoError(t, err)
 
 	// Expires in future
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false))
 	require.NoError(t, err)
 
 	// Expired
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false))
 	require.NoError(t, err)
 
 	// non expired, but revoked
-	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil))
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false))
 	require.NoError(t, err)
 
 	id, err := core.ParseDID(*revoked.Identifier)
@@ -1612,7 +1616,7 @@ func TestServer_GetConnection(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	fixture := tests.NewFixture(storage)
 	claim := fixture.NewClaim(t, did.String())
@@ -1709,6 +1713,7 @@ func TestServer_GetConnection(t *testing.T) {
 							Revoked:    claim.Revoked,
 							SchemaHash: claim.SchemaHash,
 							SchemaType: claim.SchemaType,
+							SchemaUrl:  claim.SchemaURL,
 						},
 					},
 				},
@@ -1799,7 +1804,7 @@ func TestServer_GetConnections(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaAdminMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	fixture := tests.NewFixture(storage)
 
@@ -1829,9 +1834,9 @@ func TestServer_GetConnections(t *testing.T) {
 	}
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
 	require.NoError(t, err)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
 	require.NoError(t, err)
 
 	usrDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -2259,7 +2264,7 @@ func TestServer_RevokeCredential(t *testing.T) {
 
 	cfg.APIUI.IssuerDID = *did
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	idClaim, err := uuid.NewUUID()
 	require.NoError(t, err)
@@ -2400,12 +2405,12 @@ func TestServer_CreateLink(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	handler := getHandler(ctx, server)
 
@@ -2641,12 +2646,12 @@ func TestServer_ActivateLink(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, CredentialSubject{"birthday": 19790911, "documentType": 12})
@@ -2792,12 +2797,12 @@ func TestServer_GetLink(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
@@ -2856,6 +2861,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaType:        link.Schema.Type,
 					SchemaUrl:         link.Schema.URL,
 					Status:            LinkStatusActive,
+					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
 				},
 			},
 		},
@@ -2875,6 +2881,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaType:        linkExpired.Schema.Type,
 					SchemaUrl:         linkExpired.Schema.URL,
 					Status:            LinkStatusExceeded,
+					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
 				},
 			},
 		},
@@ -2911,6 +2918,7 @@ func TestServer_GetLink(t *testing.T) {
 				assert.Equal(t, expected.SchemaUrl, response.SchemaUrl)
 				assert.Equal(t, expected.Active, response.Active)
 				assert.InDelta(t, expected.Expiration.UnixMilli(), response.Expiration.UnixMilli(), 10)
+				assert.Equal(t, len(expected.ProofTypes), len(response.ProofTypes))
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -2957,12 +2965,12 @@ func TestServer_GetAllLinks(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, sUrl, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, sUrl, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
@@ -3171,12 +3179,12 @@ func TestServer_DeleteLink(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
@@ -3291,15 +3299,15 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	did2, err := core.ParseDID(iden2.Identifier)
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did2
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
@@ -3402,14 +3410,14 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
 	cfg.APIUI.ServerURL = "http://localhost/issuer-admin"
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
@@ -3540,14 +3548,14 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	did, err := core.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	schemaAdminSrv := services.NewSchemaAdmin(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaAdminSrv.ImportSchema(ctx, *did, url, schemaType)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
 	cfg.APIUI.ServerURL = "http://localhost/issuer-admin"
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
@@ -3744,7 +3752,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, identityService, claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	handler := getHandler(ctx, server)
 
@@ -3775,7 +3783,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 				httpCode: http.StatusOK,
 			},
 			cleanUp: func() {
-				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
+				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true))
 				require.NoError(t, err)
 				require.NoError(t, claimsService.Revoke(ctx, cfg.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
 			},
@@ -3843,7 +3851,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, identityService, claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	handler := getHandler(ctx, server)
 
@@ -3897,6 +3905,100 @@ func TestServer_GetStateTransactions(t *testing.T) {
 				var response GetStateTransactions200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, len(tc.expected.response), len(response))
+			}
+		})
+	}
+}
+
+func TestServer_GetRevocationStatus(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub)
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
+	merklizedRootPosition := "index"
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	createdCredential, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
+	require.NoError(t, err)
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		httpCode int
+	}
+	type testConfig struct {
+		name     string
+		nonce    int64
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:  "should get revocation status",
+			nonce: int64(createdCredential.RevNonce),
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+
+		{
+			name:  "should get revocation status wrong nonce",
+			nonce: 123456789,
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/revocation/status/%d", tc.nonce)
+			req, err := http.NewRequest("GET", url, nil)
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			if tc.expected.httpCode == http.StatusOK {
+				var response GetRevocationStatus200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.NotNil(t, response.Issuer.ClaimsTreeRoot)
+				assert.NotNil(t, response.Issuer.State)
+				assert.NotNil(t, response.Mtp.Existence)
+				assert.NotNil(t, response.Mtp.Siblings)
 			}
 		})
 	}

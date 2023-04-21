@@ -351,6 +351,27 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status
+      operationId: GetRevocationStatus
+      description: Endpoint to get the revocation status of a credential
+      tags:
+        - Credential
+      parameters:
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationStatusResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   #schemas:
   /v1/schemas:
     post:
@@ -500,7 +521,7 @@ paths:
 
   /v1/state/status:
     get:
-      summary: Endpoint to get the identity state status
+      summary: Get Identity State Status
       operationId: GetStateStatus
       security:
         - basicAuth: [ ]
@@ -518,7 +539,7 @@ paths:
 
   /v1/state/transactions:
     get:
-      summary: Endpoint to get the identity state transactions
+      summary: Get Identity State Transactions
       operationId: GetStateTransactions
       security:
         - basicAuth: [ ]
@@ -766,7 +787,7 @@ paths:
         200:
           description: success and returns the documentation in HTML format
 
-  /static/docs/api_admin/api.yaml:
+  /static/docs/api_ui/api.yaml:
     get:
       summary: Get the documentation yaml file
       operationId: GetYaml
@@ -994,6 +1015,7 @@ components:
         - expired
         - schemaHash
         - schemaType
+        - schemaUrl
         - revNonce
         - credentialSubject
         - revoked
@@ -1017,6 +1039,8 @@ components:
         expiresAt:
           type: string
           format: date-time
+          x-omitempty: false
+          nullable: true
           example: "2025-03-20T11:54:01.110295+01:00"
         expired:
           type: boolean
@@ -1026,7 +1050,10 @@ components:
           example: "c9b2370371b7fa8b3dab2a5ba81b6838"
         schemaType:
           type: string
-          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential"
+          example: "KYCAgeCredential"
+        schemaUrl:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         revoked:
           type: boolean
           example: false
@@ -1053,6 +1080,7 @@ components:
         - issuedClaims
         - active
         - status
+        - proofTypes
       properties:
         id:
           type: string
@@ -1070,17 +1098,25 @@ components:
         maxIssuance:
           type: integer
           x-omitempty: false
+          nullable: true
         issuedClaims:
           type: integer
         expiration:
           type: string
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
+          x-omitempty: false
+          nullable: true
         active:
           type: boolean
         status:
           type: string
           enum: [ active, inactive, exceeded ]
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
 
     StateTransactionsResponse:
       type: array
@@ -1286,14 +1322,17 @@ components:
         claimLinkExpiration:
           type: string
           format: date-time
-          example: 2023-04-17T11:40:43.681857-03:00
+          example: 2025-04-17T11:40:43.681857-03:00
         limitedClaims:
           type: integer
+          example: 5
           x-omitempty: false
         signatureProof:
           type: boolean
+          example: true
         mtProof:
           type: boolean
+          example: false
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
 
@@ -1304,6 +1343,45 @@ components:
         birthday: 19960424
         documentType: 2
         type: "KYCAgeCredential"
+
+    RevocationStatusResponse:
+      type: object
+      required:
+        - issuer
+        - mtp
+      properties:
+        issuer:
+          type: object
+          properties:
+            state:
+              type: string
+            rootOfRoots:
+              type: string
+            claimsTreeRoot:
+              type: string
+            revocationTreeRoot:
+              type: string
+        mtp:
+          type: object
+          required:
+            - existence
+          properties:
+            existence:
+              type: boolean
+            siblings:
+              type: array
+              x-omitempty: false
+              items:
+                type: string
+
+            node_aux:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+
 
     #Agent
     AgentResponse:
