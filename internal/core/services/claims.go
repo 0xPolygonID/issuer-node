@@ -177,7 +177,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 			return nil, err
 		}
 
-		proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce))
+		proof.IssuerData.CredentialStatus = c.getRevocationSource(issuerDIDString, uint64(authClaim.RevNonce), req.SingleIssuer)
 
 		jsonSignatureProof, err := json.Marshal(proof)
 		if err != nil {
@@ -289,16 +289,11 @@ func (c *claim) GetAll(ctx context.Context, did core.DID, filter *ports.ClaimsFi
 	return claims, nil
 }
 
-func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64) (*verifiable.RevocationStatus, error) {
-	did, err := core.ParseDID(id)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing did: %w", err)
-	}
-
+func (c *claim) GetRevocationStatus(ctx context.Context, issuerDID core.DID, nonce uint64) (*verifiable.RevocationStatus, error) {
 	rID := new(big.Int).SetUint64(nonce)
 	revocationStatus := &verifiable.RevocationStatus{}
 
-	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, did)
+	state, err := c.identityStateRepository.GetLatestStateByIdentifier(ctx, c.storage.Pgx, &issuerDID)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +317,7 @@ func (c *claim) GetRevocationStatus(ctx context.Context, id string, nonce uint64
 	if err != nil {
 		return nil, err
 	}
-	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, did)
+	identityTrees, err := c.mtService.GetIdentityMerkleTrees(ctx, c.storage.Pgx, &issuerDID)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +558,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 
 	credentialSubject["type"] = claimReq.Type
 
-	cs := c.getRevocationSource(claimReq.DID.String(), nonce)
+	cs := c.getRevocationSource(claimReq.DID.String(), nonce, claimReq.SingleIssuer)
 
 	issuanceDate := time.Now()
 	return verifiable.W3CCredential{
@@ -582,27 +577,32 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 	}, nil
 }
 
-func (c *claim) getRevocationSource(issuerDID string, nonce uint64) interface{} {
+func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer bool) interface{} {
 	if c.cfg.RHSEnabled {
 		return &verifiable.RHSCredentialStatus{
 			ID:              fmt.Sprintf("%s/node", strings.TrimSuffix(c.cfg.RHSUrl, "/")),
 			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
 			RevocationNonce: nonce,
 			StatusIssuer: &verifiable.CredentialStatus{
-				ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce),
+				ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce, singleIssuer),
 				Type:            verifiable.SparseMerkleTreeProof,
 				RevocationNonce: nonce,
 			},
 		}
 	}
 	return &verifiable.CredentialStatus{
-		ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce),
+		ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce, singleIssuer),
 		Type:            verifiable.SparseMerkleTreeProof,
 		RevocationNonce: nonce,
 	}
 }
 
-func buildRevocationURL(host, issuerDID string, nonce uint64) string {
+func buildRevocationURL(host, issuerDID string, nonce uint64, singleIssuer bool) string {
+	if singleIssuer {
+		return fmt.Sprintf("%s/v1/credentials/revocation/status/%d",
+			host, nonce)
+	}
+
 	return fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
 }
