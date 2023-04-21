@@ -31,6 +31,8 @@ import { makeRequestAbortable } from "src/utils/browser";
 import { ISSUER_STATE, POLLING_INTERVAL, STATUS } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
+const PUBLISHED_MESSAGE = "Issuer state is being published";
+
 export function IssuerState() {
   const env = useEnvContext();
   const { refreshStatus, status } = useIssuerStateContext();
@@ -54,7 +56,7 @@ export function IssuerState() {
     setIsPublishing(true);
     void publishState({ env }).then((response) => {
       if (response.isSuccessful) {
-        void message.success("Issuer state is being published");
+        void message.success(PUBLISHED_MESSAGE);
       } else {
         void message.error(response.error.message);
       }
@@ -70,7 +72,7 @@ export function IssuerState() {
     setIsRetrying(true);
     void retryPublishState({ env }).then((response) => {
       if (response.isSuccessful) {
-        void message.success("Issuer state is being published");
+        void message.success(PUBLISHED_MESSAGE);
       } else {
         void message.error(response.error.message);
       }

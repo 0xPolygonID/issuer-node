@@ -1,4 +1,5 @@
 import axios from "axios";
+import dayjs from "dayjs";
 import { z } from "zod";
 
 import {
@@ -117,7 +118,12 @@ export async function getTransactions({
     });
     const { data } = resultOKTransactionsParser.parse(response);
 
-    return { data, isSuccessful: true };
+    return {
+      data: data.sort(
+        ({ publishDate: a }, { publishDate: b }) => dayjs(b).unix() - dayjs(a).unix()
+      ),
+      isSuccessful: true,
+    };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
