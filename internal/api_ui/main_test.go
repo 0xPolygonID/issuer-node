@@ -180,15 +180,11 @@ func NewClaimsMock() ports.ClaimsService {
 	return nil
 }
 
-func NewAdminSchemaMock() ports.SchemaAdminService {
+func NewSchemaMock() ports.SchemaService {
 	return nil
 }
 
 func NewConnectionsMock() ports.ConnectionsService {
-	return nil
-}
-
-func NewSchemaAdminMock() ports.SchemaAdminService {
 	return nil
 }
 
