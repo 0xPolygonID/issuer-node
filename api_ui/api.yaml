@@ -994,6 +994,7 @@ components:
         - expired
         - schemaHash
         - schemaType
+        - schemaUrl
         - revNonce
         - credentialSubject
         - revoked
@@ -1028,7 +1029,10 @@ components:
           example: "c9b2370371b7fa8b3dab2a5ba81b6838"
         schemaType:
           type: string
-          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential"
+          example: "KYCAgeCredential"
+        schemaUrl:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         revoked:
           type: boolean
           example: false

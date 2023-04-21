@@ -109,6 +109,7 @@ type Credential struct {
 	Revoked           bool                   `json:"revoked"`
 	SchemaHash        string                 `json:"schemaHash"`
 	SchemaType        string                 `json:"schemaType"`
+	SchemaUrl         string                 `json:"schemaUrl"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
