@@ -1,6 +1,7 @@
 package api_ui
 
 import (
+	"strings"
 	"time"
 
 	"github.com/iden3/go-schema-processor/verifiable"
@@ -51,8 +52,18 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		RevNonce:          uint64(credential.RevNonce),
 		Revoked:           credential.Revoked,
 		SchemaHash:        credential.SchemaHash,
-		SchemaType:        credential.SchemaType,
+		SchemaType:        shortType(credential.SchemaType),
+		SchemaUrl:         credential.SchemaURL,
 	}
+}
+
+func shortType(id string) string {
+	parts := strings.Split(id, "#")
+	l := len(parts)
+	if l == 0 {
+		return ""
+	}
+	return parts[l-1]
 }
 
 func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string {
