@@ -51,7 +51,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
   );
 
   const notifyChange = useCallback(
-    (event: "revoke") => {
+    (event: EventType) => {
       const eventTitle: Record<EventType, string> = { revoke: "Revocation" };
 
       void message.info({
