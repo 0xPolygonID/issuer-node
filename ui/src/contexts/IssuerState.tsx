@@ -47,7 +47,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
   );
 
   const notifyChange = useCallback(() => {
-    void message.success({
+    void message.info({
       content: (
         <Space align="start" direction="vertical" style={{ width: "auto" }}>
           <Typography.Text strong>Revocation requires issuer state to be published</Typography.Text>
