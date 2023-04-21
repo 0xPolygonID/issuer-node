@@ -56,9 +56,10 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make build`. This will generate a binary for each of the following commands:
     - `platform`
+    - `platform_ui`
     - `migrate`
     - `pending_publisher`
-    - `configurator`
+    - `notifications`
 3. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Run `./bin/platform` command to start the issuer.
