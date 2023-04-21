@@ -1258,7 +1258,7 @@ func TestServer_GetCredential(t *testing.T) {
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim1.ID,
-					ProofTypes: []string{"BJJSignature2021", "MTP"},
+					ProofTypes: []string{"BJJSignature2021", "SparseMerkleTreeProof"},
 					RevNonce:   uint64(createdClaim1.RevNonce),
 					Revoked:    createdClaim1.Revoked,
 					SchemaHash: createdClaim1.SchemaHash,
@@ -1314,7 +1314,7 @@ func TestServer_GetCredential(t *testing.T) {
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim3.ID,
-					ProofTypes: []string{"MTP"},
+					ProofTypes: []string{"SparseMerkleTreeProof"},
 					RevNonce:   uint64(createdClaim3.RevNonce),
 					Revoked:    createdClaim3.Revoked,
 					SchemaHash: createdClaim3.SchemaHash,
@@ -2861,6 +2861,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaType:        link.Schema.Type,
 					SchemaUrl:         link.Schema.URL,
 					Status:            LinkStatusActive,
+					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
 				},
 			},
 		},
@@ -2880,6 +2881,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaType:        linkExpired.Schema.Type,
 					SchemaUrl:         linkExpired.Schema.URL,
 					Status:            LinkStatusExceeded,
+					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
 				},
 			},
 		},
@@ -2916,6 +2918,7 @@ func TestServer_GetLink(t *testing.T) {
 				assert.Equal(t, expected.SchemaUrl, response.SchemaUrl)
 				assert.Equal(t, expected.Active, response.Active)
 				assert.InDelta(t, expected.Expiration.UnixMilli(), response.Expiration.UnixMilli(), 10)
+				assert.Equal(t, len(expected.ProofTypes), len(response.ProofTypes))
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
