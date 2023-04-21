@@ -30,7 +30,7 @@ import { LinkDeleteModal } from "src/components/credentials/LinkDeleteModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -39,6 +39,7 @@ import {
   ACCESSIBLE_UNTIL,
   LINKS,
   QUERY_SEARCH_PARAM,
+  STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -194,7 +195,7 @@ export function LinksTable() {
         </Row>
       ),
       sorter: ({ status: a }, { status: b }) => a.localeCompare(b),
-      title: "Status",
+      title: STATUS,
       width: 140,
     },
   ];
