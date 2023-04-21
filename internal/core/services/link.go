@@ -14,6 +14,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
@@ -30,9 +31,9 @@ var (
 	// ErrLinkAlreadyInactive link is already inactive
 	ErrLinkAlreadyInactive = errors.New("link is already inactive")
 	// ErrLinkAlreadyExpired - link already expired
-	ErrLinkAlreadyExpired = errors.New("can not issue a credential for an expired link")
+	ErrLinkAlreadyExpired = errors.New("cannot issue a credential for an expired link")
 	// ErrLinkMaxExceeded - link max exceeded
-	ErrLinkMaxExceeded = errors.New("can not issue a credential for an expired link")
+	ErrLinkMaxExceeded = errors.New("cannot issue a credential for an expired link")
 	// ErrClaimAlreadyIssued - claim already issued
 	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
 )
@@ -182,7 +183,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
-		log.Error(ctx, "cannot fetch the link", "error", err)
+		log.Error(ctx, "cannot fetch the link", "err", err)
 		return err
 	}
 
@@ -203,7 +204,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 
 	schema, err := ls.schemaRepository.GetByID(ctx, issuerDID, link.SchemaID)
 	if err != nil {
-		log.Error(ctx, "can not fetch the schema", err)
+		log.Error(ctx, "cannot fetch the schema", "err", err)
 		return err
 	}
 
@@ -218,11 +219,12 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		common.ToPointer(link.CredentialSignatureProof),
 		common.ToPointer(link.CredentialMTPProof),
 		&linkID,
+		true,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
 	if err != nil {
-		log.Error(ctx, "Can not create the claim", err.Error())
+		log.Error(ctx, "cannot create the claim", "err", err.Error())
 		return err
 	}
 
@@ -241,9 +243,9 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 			}
 
 			if link.CredentialSignatureProof {
-				err = ls.publisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
+				err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
 				if err != nil {
-					log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", credentialIssued.ID.String())
+					log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", credentialIssued.ID.String())
 				}
 			}
 
@@ -277,7 +279,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 	}
 
 	if err != nil {
-		log.Error(ctx, "can not set the sate", err)
+		log.Error(ctx, "cannot set the sate", "err", err)
 		return err
 	}
 
@@ -288,13 +290,13 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID core.DID, linkID uuid.UUID) (*ports.GetQRCodeResponse, error) {
 	link, err := ls.GetByID(ctx, issuerID, linkID)
 	if err != nil {
-		log.Error(ctx, "error fetching the link from the database", "error", err)
+		log.Error(ctx, "error fetching the link from the database", "err", err)
 		return nil, err
 	}
 
 	linkStateInCache, err := ls.sessionManager.GetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID.String()))
 	if err != nil {
-		log.Error(ctx, "error fetching the link state from the cache", "error", err)
+		log.Error(ctx, "error fetching the link state from the cache", "err", err)
 		return nil, err
 	}
 	return &ports.GetQRCodeResponse{
@@ -305,10 +307,10 @@ func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID cor
 
 func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Link, linkID uuid.UUID) error {
 	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
-		log.Debug(ctx, "can not issue a credential for an expired link")
+		log.Debug(ctx, "cannot issue a credential for an expired link")
 		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkAlreadyExpired))
 		if err != nil {
-			log.Error(ctx, "can not set the sate", err)
+			log.Error(ctx, "cannot set the sate", "err", err)
 			return err
 		}
 
@@ -316,10 +318,10 @@ func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Lin
 	}
 
 	if link.MaxIssuance != nil && *link.MaxIssuance <= link.IssuedClaims {
-		log.Debug(ctx, "can not dispatch more claims for this link")
+		log.Debug(ctx, "cannot dispatch more claims for this link")
 		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkMaxExceeded))
 		if err != nil {
-			log.Error(ctx, "can not set the sate", err)
+			log.Error(ctx, "cannot set the sate", "err", err)
 			return err
 		}
 

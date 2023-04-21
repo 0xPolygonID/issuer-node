@@ -3,7 +3,7 @@
 # A good source to understand each config param is this file
 # https://github.com/deepmap/oapi-codegen/blob/050c4bfe15b589e8d47d73dcb2391a6c0ebd40c8/pkg/codegen/configuration.go#L75
 #
-package: api_admin
+package: api_ui
 generate:
   models: true
   echo-server: false

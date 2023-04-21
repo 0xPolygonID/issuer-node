@@ -1,4 +1,4 @@
-package api_admin
+package api_ui
 
 import (
 	"context"
@@ -34,7 +34,7 @@ type Server struct {
 	cfg                *config.Configuration
 	identityService    ports.IdentityService
 	claimService       ports.ClaimsService
-	schemaService      ports.SchemaAdminService
+	schemaService      ports.SchemaService
 	connectionsService ports.ConnectionsService
 	linkService        ports.LinkService
 	publisherGateway   ports.Publisher
@@ -43,7 +43,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -310,7 +310,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil)
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true)
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -344,6 +344,18 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 	return RevokeCredential202JSONResponse{
 		Message: "claim revocation request sent",
 	}, nil
+}
+
+// GetRevocationStatus - returns weather a credential is revoked or not, this endpoint must be public available
+func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
+	rs, err := s.claimService.GetRevocationStatus(ctx, s.cfg.APIUI.IssuerDID, uint64(request.Nonce))
+	if err != nil {
+		return GetRevocationStatus500JSONResponse{N500JSONResponse{
+			Message: err.Error(),
+		}}, nil
+	}
+
+	return GetRevocationStatus200JSONResponse(getRevocationStatusResponse(rs)), err
 }
 
 // PublishState - pubish the state onchange
@@ -616,13 +628,13 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 	req, err := ports.NewAgentRequest(basicMessage)
 	if err != nil {
-		log.Error(ctx, "agent parsing request", err)
+		log.Error(ctx, "agent parsing request", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
 	agent, err := s.claimService.Agent(ctx, req)
 	if err != nil {
-		log.Error(ctx, "agent error", err)
+		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 

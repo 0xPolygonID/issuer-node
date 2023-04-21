@@ -44,6 +44,7 @@ func main() {
 		return
 	}
 	ps := pubsub.NewRedis(rdb)
+	ps.WithLogger(log.Error)
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {

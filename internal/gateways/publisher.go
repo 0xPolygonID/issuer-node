@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -432,7 +433,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 		}
 		log.Info(ctx, "sending notifications:", "numberOfClaims", len(claimsToNotify))
 		for _, c := range claimsToNotify {
-			err = p.notificationPublisher.Publish(ctx, pubsub.EventCreateCredential, pubsub.CreateCredentialEvent{CredentialID: c.ID.String(), IssuerID: state.Identifier})
+			err = p.notificationPublisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: c.ID.String(), IssuerID: state.Identifier})
 			if err != nil {
 				log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", c.ID.String())
 				continue
