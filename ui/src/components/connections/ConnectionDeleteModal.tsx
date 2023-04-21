@@ -30,7 +30,7 @@ export function ConnectionDeleteModal({
         onDelete();
 
         if (revokeCredentials) {
-          void notifyChange();
+          void notifyChange("revoke");
         }
 
         void message.success(response.data);

@@ -15,15 +15,19 @@ import { useEnvContext } from "src/contexts/Env";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
+type EventType = "revoke";
+
 interface IssuerState {
-  notifyChange: () => Promise<void>;
+  notifyChange: (event: EventType) => Promise<void>;
   refreshStatus: () => Promise<void>;
   status: AsyncTask<boolean, APIError>;
 }
 
+const CONTEXT_NOT_READY_MESSAGE = "The issuer state context is not yet ready";
+
 const IssuerStateContext = createContext<IssuerState>({
-  notifyChange: () => Promise.reject("The state context is not yet ready"),
-  refreshStatus: () => Promise.reject("The state context is not yet ready"),
+  notifyChange: () => Promise.reject(CONTEXT_NOT_READY_MESSAGE),
+  refreshStatus: () => Promise.reject(CONTEXT_NOT_READY_MESSAGE),
   status: { status: "pending" },
 });
 
@@ -46,20 +50,27 @@ export function IssuerStateProvider(props: PropsWithChildren) {
     [env]
   );
 
-  const notifyChange = useCallback(() => {
-    void message.info({
-      content: (
-        <Space align="start" direction="vertical" style={{ width: "auto" }}>
-          <Typography.Text strong>Revocation requires issuer state to be published</Typography.Text>
-          <Typography.Text type="secondary">
-            Publish issuer state now or bulk publish with other actions.
-          </Typography.Text>
-        </Space>
-      ),
-    });
+  const notifyChange = useCallback(
+    (event: "revoke") => {
+      const eventTitle: Record<EventType, string> = { revoke: "Revocation" };
 
-    return refreshStatus();
-  }, [refreshStatus]);
+      void message.info({
+        content: (
+          <Space align="start" direction="vertical" style={{ width: "auto" }}>
+            <Typography.Text strong>
+              {`${eventTitle[event]}`} requires issuer state to be published
+            </Typography.Text>
+            <Typography.Text type="secondary">
+              Publish issuer state now or bulk publish with other actions.
+            </Typography.Text>
+          </Space>
+        ),
+      });
+
+      return refreshStatus();
+    },
+    [refreshStatus]
+  );
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(refreshStatus);

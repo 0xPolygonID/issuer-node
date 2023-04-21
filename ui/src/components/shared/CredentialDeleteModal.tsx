@@ -49,7 +49,7 @@ export function CredentialDeleteModal({
       if (response.isSuccessful) {
         handleDeleteCredential();
 
-        void notifyChange();
+        void notifyChange("revoke");
       } else {
         setIsLoading(false);
 
