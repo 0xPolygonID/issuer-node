@@ -73,7 +73,7 @@ func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string
 	}
 
 	if credential.MtProof {
-		proofs = append(proofs, "MTP")
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
 	}
 	return proofs
 }
@@ -154,8 +154,8 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 
 func getSigProof(w3c *verifiable.W3CCredential) *string {
 	for i := range w3c.Proof {
-		if string(w3c.Proof[i].ProofType()) == "BJJSignature2021" {
-			return common.ToPointer("BJJSignature2021")
+		if string(w3c.Proof[i].ProofType()) == string(verifiable.BJJSignatureProofType) {
+			return common.ToPointer(string(verifiable.BJJSignatureProofType))
 		}
 	}
 	return nil
@@ -196,7 +196,21 @@ func getLinkResponse(link domain.Link) Link {
 		SchemaType:        link.Schema.Type,
 		SchemaUrl:         link.Schema.URL,
 		Status:            LinkStatus(link.Status()),
+		ProofTypes:        getLinkProofs(link),
 	}
+}
+
+func getLinkProofs(link domain.Link) []string {
+	proofs := make([]string, 0)
+	if link.CredentialMTPProof {
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
+	}
+
+	if link.CredentialSignatureProof {
+		proofs = append(proofs, string(verifiable.BJJSignatureProofType))
+	}
+
+	return proofs
 }
 
 func getLinkResponses(links []domain.Link) []Link {

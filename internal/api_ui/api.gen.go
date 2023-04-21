@@ -198,6 +198,7 @@ type Link struct {
 	Id                uuid.UUID         `json:"id"`
 	IssuedClaims      int               `json:"issuedClaims"`
 	MaxIssuance       *int              `json:"maxIssuance"`
+	ProofTypes        []string          `json:"proofTypes"`
 	SchemaType        string            `json:"schemaType"`
 	SchemaUrl         string            `json:"schemaUrl"`
 	Status            LinkStatus        `json:"status"`

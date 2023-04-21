@@ -1059,6 +1059,7 @@ components:
         - issuedClaims
         - active
         - status
+        - proofTypes
       properties:
         id:
           type: string
@@ -1090,6 +1091,11 @@ components:
         status:
           type: string
           enum: [ active, inactive, exceeded ]
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
 
     StateTransactionsResponse:
       type: array
