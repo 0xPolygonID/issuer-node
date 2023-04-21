@@ -351,6 +351,27 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status
+      operationId: GetRevocationStatus
+      description: Endpoint to get the revocation status of a credential
+      tags:
+        - Credential
+      parameters:
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationStatusResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   #schemas:
   /v1/schemas:
     post:
@@ -1312,6 +1333,45 @@ components:
         birthday: 19960424
         documentType: 2
         type: "KYCAgeCredential"
+
+    RevocationStatusResponse:
+      type: object
+      required:
+        - issuer
+        - mtp
+      properties:
+        issuer:
+          type: object
+          properties:
+            state:
+              type: string
+            rootOfRoots:
+              type: string
+            claimsTreeRoot:
+              type: string
+            revocationTreeRoot:
+              type: string
+        mtp:
+          type: object
+          required:
+            - existence
+          properties:
+            existence:
+              type: boolean
+            siblings:
+              type: array
+              x-omitempty: false
+              items:
+                type: string
+
+            node_aux:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+
 
     #Agent
     AgentResponse:

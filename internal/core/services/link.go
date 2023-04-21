@@ -219,6 +219,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		common.ToPointer(link.CredentialSignatureProof),
 		common.ToPointer(link.CredentialMTPProof),
 		&linkID,
+		true,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)

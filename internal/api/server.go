@@ -111,7 +111,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil)
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false)
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -156,16 +156,21 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 
 // GetRevocationStatus is the controller to get revocation status
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
-	response := GetRevocationStatus200JSONResponse{}
-	var err error
-
-	rs, err := s.claimService.GetRevocationStatus(ctx, request.Identifier, uint64(request.Nonce))
+	issuerDID, err := core.ParseDID(request.Identifier)
 	if err != nil {
 		return GetRevocationStatus500JSONResponse{N500JSONResponse{
 			Message: err.Error(),
 		}}, nil
 	}
 
+	rs, err := s.claimService.GetRevocationStatus(ctx, *issuerDID, uint64(request.Nonce))
+	if err != nil {
+		return GetRevocationStatus500JSONResponse{N500JSONResponse{
+			Message: err.Error(),
+		}}, nil
+	}
+
+	response := GetRevocationStatus200JSONResponse{}
 	response.Issuer.State = rs.Issuer.State
 	response.Issuer.RevocationTreeRoot = rs.Issuer.RevocationTreeRoot
 	response.Issuer.RootOfRoots = rs.Issuer.RootOfRoots
@@ -192,6 +197,7 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 		siblings = append(siblings, s.BigInt().String())
 	}
 	response.Mtp.Siblings = &siblings
+
 	return response, err
 }
 

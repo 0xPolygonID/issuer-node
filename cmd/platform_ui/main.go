@@ -149,7 +149,7 @@ func main() {
 		services.ClaimCfg{
 			RHSEnabled: cfg.ReverseHashService.Enabled,
 			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.ServerUrl,
+			Host:       cfg.APIUI.ServerURL,
 		},
 		ps,
 	)

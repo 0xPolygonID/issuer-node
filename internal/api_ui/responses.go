@@ -221,3 +221,36 @@ func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeR
 		},
 	}
 }
+
+func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {
+	response := RevocationStatusResponse{}
+	response.Issuer.State = rs.Issuer.State
+	response.Issuer.RevocationTreeRoot = rs.Issuer.RevocationTreeRoot
+	response.Issuer.RootOfRoots = rs.Issuer.RootOfRoots
+	response.Issuer.ClaimsTreeRoot = rs.Issuer.ClaimsTreeRoot
+	response.Mtp.Existence = rs.MTP.Existence
+
+	if rs.MTP.NodeAux != nil {
+		key := rs.MTP.NodeAux.Key
+		decodedKey := key.BigInt().String()
+		value := rs.MTP.NodeAux.Value
+		decodedValue := value.BigInt().String()
+		response.Mtp.NodeAux = &struct {
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
+		}{
+			Key:   &decodedKey,
+			Value: &decodedValue,
+		}
+	}
+
+	response.Mtp.Existence = rs.MTP.Existence
+	siblings := make([]string, 0)
+	for _, s := range rs.MTP.AllSiblings() {
+		siblings = append(siblings, s.BigInt().String())
+	}
+
+	response.Mtp.Siblings = &siblings
+
+	return response
+}
