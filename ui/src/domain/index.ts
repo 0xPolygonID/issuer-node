@@ -1,6 +1,12 @@
 export type { Connection } from "src/domain/connection";
 
-export type { Credential, CredentialsTabIDs, Link, LinkStatus } from "src/domain/credential";
+export type {
+  Credential,
+  CredentialsTabIDs,
+  Link,
+  LinkStatus,
+  ProofType,
+} from "src/domain/credential";
 
 export type { Env } from "src/domain/env";
 

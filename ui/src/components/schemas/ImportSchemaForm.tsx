@@ -57,7 +57,7 @@ export function ImportSchemaForm({
   const processError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const fetchSchemaFromUrl = (url: string): void => {
+  const fetchJsonSchemaFromUrl = (url: string): void => {
     setJsonSchema({ status: "loading" });
 
     getSchemaFromUrl({
@@ -102,7 +102,7 @@ export function ImportSchemaForm({
       setJsonSchema({ status: "pending" });
       setJsonLdTypes({ status: "pending" });
       setJsonLdTypeInput(undefined);
-      fetchSchemaFromUrl(parsedUrl.data);
+      fetchJsonSchemaFromUrl(parsedUrl.data);
     } else {
       setJsonSchema({ error: `"${schemaUrlInput}" is not a valid URL`, status: "failed" });
     }

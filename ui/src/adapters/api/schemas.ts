@@ -122,7 +122,7 @@ export async function getSchemas({
 const schemaParser = getStrictParser<Schema>()(
   z.object({
     bigInt: z.string(),
-    createdAt: z.coerce.date(),
+    createdAt: z.coerce.date(z.string().datetime()),
     hash: z.string(),
     id: z.string(),
     type: z.string(),

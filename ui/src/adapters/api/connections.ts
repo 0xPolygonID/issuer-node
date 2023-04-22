@@ -16,7 +16,7 @@ import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
 const connectionParser = getStrictParser<Connection>()(
   z.object({
-    createdAt: z.coerce.date(),
+    createdAt: z.coerce.date(z.string().datetime()),
     credentials: z.array(credentialParser),
     id: z.string(),
     issuerID: z.string(),

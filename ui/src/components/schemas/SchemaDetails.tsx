@@ -41,10 +41,10 @@ export function SchemaDetails() {
     status: "pending",
   });
 
-  const extractError = (error: unknown) =>
+  const processError = (error: unknown) =>
     error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
-  const fetchSchemaFromUrl = useCallback((schema: Schema): void => {
+  const fetchJsonSchemaFromUrl = useCallback((schema: Schema): void => {
     setJsonSchemaTuple({ status: "loading" });
 
     getSchemaFromUrl({
@@ -71,14 +71,14 @@ export function SchemaDetails() {
           })
           .catch((error) => {
             setContextTuple({
-              error: extractError(error),
+              error: processError(error),
               status: "failed",
             });
           });
       })
       .catch((error) => {
         setJsonSchemaTuple({
-          error: extractError(error),
+          error: processError(error),
           status: "failed",
         });
       });
@@ -97,7 +97,7 @@ export function SchemaDetails() {
 
         if (response.isSuccessful) {
           setSchema({ data: response.data, status: "successful" });
-          fetchSchemaFromUrl(response.data);
+          fetchJsonSchemaFromUrl(response.data);
         } else {
           if (!isAbortedError(response.error)) {
             setSchema({ error: response.error, status: "failed" });
@@ -105,7 +105,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [env, fetchSchemaFromUrl, schemaID]
+    [env, fetchJsonSchemaFromUrl, schemaID]
   );
 
   useEffect(() => {
@@ -125,7 +125,7 @@ export function SchemaDetails() {
         ].join("\n")
       : `An error occurred while downloading the context referenced in the schema:\n"${error}"\nPlease try again.`;
 
-  const schemaTupleErrorToString = (error: string | z.ZodError) =>
+  const jsonSchemaTupleErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
           "An error occurred while parsing the schema from the URL:",
@@ -161,7 +161,7 @@ export function SchemaDetails() {
         } else if (hasAsyncTaskFailed(jsonSchemaTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={schemaTupleErrorToString(jsonSchemaTuple.error)} />
+              <ErrorResult error={jsonSchemaTupleErrorToString(jsonSchemaTuple.error)} />
             </Card>
           );
         } else if (hasAsyncTaskFailed(contextTuple)) {

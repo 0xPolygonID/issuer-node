@@ -173,6 +173,7 @@ export function LinksTable() {
                   icon: <IconInfoCircle />,
                   key: "details",
                   label: "Details",
+                  onClick: () => navigate(generatePath(ROUTES.linkDetails.path, { linkID: id })),
                 },
                 {
                   key: "divider",

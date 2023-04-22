@@ -14,7 +14,7 @@ export function Summary({ linkID }: { linkID: string }) {
     linkID,
   })}`;
 
-  const navigateToSharedLinks = () => {
+  const navigateToLinks = () => {
     navigate(
       generatePath(ROUTES.credentials.path, {
         tabID: CREDENTIALS_TABS[1].tabID,
@@ -62,7 +62,7 @@ export function Summary({ linkID }: { linkID: string }) {
       <Divider />
 
       <Row justify="end">
-        <Button onClick={navigateToSharedLinks} type="primary">
+        <Button onClick={navigateToLinks} type="primary">
           Done
         </Button>
       </Row>
