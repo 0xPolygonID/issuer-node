@@ -40,7 +40,13 @@ export function Detail({
         ellipsis={ellipsisPosition ? { suffix: text.slice(-ellipsisPosition) } : true}
         style={{ textAlign: "right", width: 350 }}
       >
-        {flavor.type === "plain" ? value : <Tag color={flavor.color}>{value}</Tag>}
+        {flavor.type === "plain" ? (
+          value
+        ) : (
+          <Tag color={flavor.color} style={{ marginInlineEnd: "initial" }}>
+            {value}
+          </Tag>
+        )}
       </Typography.Text>
     </Row>
   );

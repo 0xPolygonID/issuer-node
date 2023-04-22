@@ -6,7 +6,7 @@ import { z } from "zod";
 import { APIError } from "src/adapters/api";
 import { getSchema } from "src/adapters/api/schemas";
 import { downloadJsonFromUrl } from "src/adapters/json";
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
+import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
@@ -18,7 +18,7 @@ import { Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
@@ -41,13 +41,10 @@ export function SchemaDetails() {
     status: "pending",
   });
 
-  const processError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
-
   const fetchJsonSchemaFromUrl = useCallback((schema: Schema): void => {
     setJsonSchemaTuple({ status: "loading" });
 
-    getSchemaFromUrl({
+    getJsonSchemaFromUrl({
       url: schema.url,
     })
       .then(([jsonSchema, rawJsonSchema]) => {
@@ -206,7 +203,7 @@ export function SchemaDetails() {
 
                   <Detail copyable label="URL" text={url} />
 
-                  <Detail label="Import date" text={formatDate(createdAt, true)} />
+                  <Detail label="Import date" text={formatDate(createdAt, "date-time")} />
 
                   <Row justify="space-between">
                     <Typography.Text type="secondary">Download</Typography.Text>

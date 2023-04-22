@@ -4,6 +4,11 @@ import z from "zod";
 import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
 
+export type GetAll<T> = {
+  failed: z.ZodError<T>[];
+  successful: T[];
+};
+
 export interface APIError {
   message: string;
   status?: number;

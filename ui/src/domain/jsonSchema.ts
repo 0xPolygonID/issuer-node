@@ -18,7 +18,11 @@ export type BooleanAttribute = {
   type: "boolean";
 };
 
-export type IntegerSchema = CommonProps & { enum?: number[]; type: "integer" };
+export interface IntegerProps {
+  enum?: number[];
+}
+
+export type IntegerSchema = CommonProps & IntegerProps & { type: "integer" };
 
 export type IntegerAttribute = {
   name: string;
@@ -36,7 +40,11 @@ export type NullAttribute = {
   type: "null";
 };
 
-export type NumberSchema = CommonProps & { enum?: number[]; type: "number" };
+export interface NumberProps {
+  enum?: number[];
+}
+
+export type NumberSchema = CommonProps & NumberProps & { type: "number" };
 
 export type NumberAttribute = {
   name: string;
@@ -90,7 +98,14 @@ export type ObjectAttribute = {
 
 // Multi-type
 
-export type MultiSchema = CommonProps & (BooleanProps | StringProps | ArrayProps | ObjectProps);
+export type MultiSchema =
+  | BooleanSchema
+  | IntegerSchema
+  | NullSchema
+  | NumberSchema
+  | StringSchema
+  | ArraySchema
+  | ObjectSchema;
 
 export type MultiAttribute = {
   name: string;
@@ -122,3 +137,80 @@ export type SchemaProps = {
 export type JsonSchema = Attribute & SchemaProps;
 
 export type JsonLdType = { id: string; name: string };
+
+// Values
+
+type RequiredValue<T> = { required: true; value: T } | { required: false; value: T | undefined };
+
+export type BooleanAttributeValue = {
+  name: string;
+  schema: BooleanSchema;
+  type: "boolean";
+} & RequiredValue<boolean>;
+
+export type IntegerAttributeValue = {
+  name: string;
+  schema: IntegerSchema;
+  type: "integer";
+} & RequiredValue<number>;
+
+export type NullAttributeValue = {
+  name: string;
+  schema: NullSchema;
+  type: "null";
+} & RequiredValue<null>;
+
+export type NumberAttributeValue = {
+  name: string;
+  schema: NumberSchema;
+  type: "number";
+} & RequiredValue<number>;
+
+export type StringAttributeValue = {
+  name: string;
+  schema: StringSchema;
+  type: "string";
+} & RequiredValue<string>;
+
+export type ArrayAttributeValue = {
+  name: string;
+  schema: ArraySchema;
+  type: "array";
+} & (
+  | { required: true; value: AttributeValue[] }
+  | { required: false; value: AttributeValue[] | undefined }
+);
+
+export type ObjectAttributeValue = {
+  name: string;
+  schema: ObjectSchema;
+  type: "object";
+} & (
+  | { required: true; value: AttributeValue[] }
+  | { required: false; value: AttributeValue[] | undefined }
+);
+
+export type MultiValue =
+  | BooleanAttributeValue
+  | IntegerAttributeValue
+  | NullAttributeValue
+  | NumberAttributeValue
+  | StringAttributeValue
+  | ArrayAttributeValue
+  | ObjectAttributeValue;
+
+export type MultiAttributeValue = {
+  name: string;
+  schemas: MultiSchema[];
+  type: "multi";
+} & ({ required: true; value: MultiValue } | { required: false; value: MultiValue | undefined });
+
+export type AttributeValue =
+  | BooleanAttributeValue
+  | IntegerAttributeValue
+  | NullAttributeValue
+  | NumberAttributeValue
+  | StringAttributeValue
+  | ArrayAttributeValue
+  | ObjectAttributeValue
+  | MultiAttributeValue;

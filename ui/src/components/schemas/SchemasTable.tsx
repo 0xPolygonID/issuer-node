@@ -46,7 +46,9 @@ export function MySchemas() {
       dataIndex: "createdAt",
       ellipsis: { showTitle: false },
       key: "createdAt",
-      render: (createdAt: Date) => <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>,
+      render: (createdAt: Date) => (
+        <Typography.Text>{formatDate(createdAt, "date-time")}</Typography.Text>
+      ),
       sorter: ({ createdAt: a }, { createdAt: b }) => b.getTime() - a.getTime(),
       title: "Import date",
     },

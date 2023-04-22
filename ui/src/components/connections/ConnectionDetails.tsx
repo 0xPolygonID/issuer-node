@@ -104,7 +104,7 @@ export function ConnectionDetails() {
                       />
                       <Detail
                         label="Creation date"
-                        text={formatDate(connection.data.createdAt, true)}
+                        text={formatDate(connection.data.createdAt, "date-time")}
                       />
                     </Card>
                   </Space>

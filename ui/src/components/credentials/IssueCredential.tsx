@@ -5,7 +5,7 @@ import { useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { createLink } from "src/adapters/api/credentials";
-import { getSchemaFromUrl } from "src/adapters/jsonSchemas";
+import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import {
   CredentialFormInput,
   CredentialLinkForm,
@@ -25,7 +25,7 @@ import { JsonSchema, Schema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { ISSUE_CREDENTIAL } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
 
@@ -60,9 +60,6 @@ export function IssueCredential() {
   });
 
   const { schemaID } = useParams();
-
-  const processError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
 
   const createLinkFromCredentialLinkForm = (credentialLinkForm: CredentialLinkForm) => {
     if (schemaID) {
@@ -103,7 +100,7 @@ export function IssueCredential() {
     (signal: AbortSignal) => {
       if (schema) {
         setJsonSchema({ status: "loading" });
-        getSchemaFromUrl({
+        getJsonSchemaFromUrl({
           signal,
           url: schema.url,
         })

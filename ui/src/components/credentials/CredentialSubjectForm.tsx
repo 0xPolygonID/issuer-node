@@ -62,35 +62,33 @@ export function CredentialSubjectForm({
   parents?: ObjectAttribute[];
 }) {
   const isRootAttribute = parents.length === 0;
-  const form = [...attributes]
-    .sort((a, b) => (a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1))
-    .map((attribute: Attribute, index) => {
-      const showBreadcrumb = attribute.type !== "object" && parents.length > 1 && index === 0;
+  const form = attributes.map((attribute: Attribute, index) => {
+    const showBreadcrumb = attribute.type !== "object" && parents.length > 1 && index === 0;
 
-      const attributeNode = showBreadcrumb ? (
-        <Space direction="vertical" size="middle">
-          <AttributeBreadcrumb parents={parents} />
-          <AnyAttribute attribute={attribute} parents={parents} />
-        </Space>
-      ) : (
+    const attributeNode = showBreadcrumb ? (
+      <Space direction="vertical" size="middle">
+        <AttributeBreadcrumb parents={parents} />
         <AnyAttribute attribute={attribute} parents={parents} />
-      );
+      </Space>
+    ) : (
+      <AnyAttribute attribute={attribute} parents={parents} />
+    );
 
-      const shouldShowTitle = isRootAttribute && attribute.type === "object";
-      const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
+    const shouldShowTitle = isRootAttribute && attribute.type === "object";
+    const key = [...parents, attribute].map((parent) => parent.name).join(" > ");
 
-      return isRootAttribute ? (
-        <Card
-          key={key}
-          title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
-          type="inner"
-        >
-          {attributeNode}
-        </Card>
-      ) : (
-        <Fragment key={key}>{attributeNode}</Fragment>
-      );
-    });
+    return isRootAttribute ? (
+      <Card
+        key={key}
+        title={shouldShowTitle ? attribute.schema.title || attribute.name : undefined}
+        type="inner"
+      >
+        {attributeNode}
+      </Card>
+    ) : (
+      <Fragment key={key}>{attributeNode}</Fragment>
+    );
+  });
 
   return isRootAttribute ? (
     <Space direction="vertical" size="large">

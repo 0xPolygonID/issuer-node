@@ -36,7 +36,6 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
-  CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
   ISSUED,
@@ -49,7 +48,7 @@ import {
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
-export function IssuedTable() {
+export function CredentialsTable() {
   const env = useEnvContext();
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
@@ -71,23 +70,22 @@ export function IssuedTable() {
 
   const tableColumns: ColumnsType<Credential> = [
     {
-      dataIndex: "credentialSubject",
+      dataIndex: "schemaType",
       ellipsis: { showTitle: false },
-      key: "credentialSubject",
-      render: (credentialSubject: Credential["credentialSubject"]) => (
-        <Tooltip placement="topLeft" title={credentialSubject.type}>
-          <Typography.Text strong>{credentialSubject.type}</Typography.Text>
+      key: "schemaType",
+      render: (schemaType: Credential["schemaType"]) => (
+        <Tooltip placement="topLeft" title={schemaType}>
+          <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ credentialSubject: { type: a } }, { credentialSubject: { type: b } }) =>
-        a.localeCompare(b),
-      title: CREDENTIALS,
+      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      title: "Credential",
     },
     {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>
+        <Typography.Text>{formatDate(createdAt, "date-time")}</Typography.Text>
       ),
       sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
       title: ISSUE_DATE,
@@ -97,7 +95,7 @@ export function IssuedTable() {
       key: "expiresAt",
       render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
         expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt, true)}>
+          <Tooltip placement="topLeft" title={formatDate(expiresAt, "date-time")}>
             <Typography.Text>
               {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
             </Typography.Text>
@@ -190,9 +188,12 @@ export function IssuedTable() {
       });
       if (response.isSuccessful) {
         setCredentials({
-          data: response.data,
+          data: response.data.successful,
           status: "successful",
         });
+        response.data.failed.map((error) =>
+          processZodError(error).forEach((error) => void message.error(error))
+        );
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });

@@ -29,7 +29,9 @@ export const STATUS_SEARCH_PARAM = "status";
 
 export const API_VERSION = "v1";
 
-export const CREDENTIALS_TABS: { id: CredentialsTabIDs; tabID: string; title: string }[] = [
+type CredentialsTab = { id: CredentialsTabIDs; tabID: string; title: string };
+
+export const CREDENTIALS_TABS: [CredentialsTab, CredentialsTab] = [
   {
     id: "issued",
     tabID: "issued",

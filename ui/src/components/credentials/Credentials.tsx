@@ -3,7 +3,7 @@ import { ComponentType } from "react";
 import { Navigate, generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
-import { IssuedTable } from "src/components/credentials/IssuedTable";
+import { CredentialsTable } from "src/components/credentials/CredentialsTable";
 import { LinksTable } from "src/components/credentials/LinksTable";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { CredentialsTabIDs } from "src/domain";
@@ -11,7 +11,7 @@ import { ROUTES } from "src/routes";
 import { CREDENTIALS, CREDENTIALS_TABS, ISSUE_CREDENTIAL } from "src/utils/constants";
 
 const tabComponents: Record<CredentialsTabIDs, ComponentType> = {
-  issued: IssuedTable,
+  issued: CredentialsTable,
   links: LinksTable,
 };
 

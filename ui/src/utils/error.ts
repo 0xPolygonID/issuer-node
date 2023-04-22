@@ -1,5 +1,14 @@
 import z from "zod";
 
+export const processError = (error: unknown) =>
+  error instanceof z.ZodError
+    ? error
+    : error instanceof Error
+    ? error.message
+    : typeof error === "string"
+    ? error
+    : "Unknown error";
+
 export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   return error.errors.reduce((mainAcc, issue): string[] => {
     switch (issue.code) {

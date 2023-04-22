@@ -14,8 +14,8 @@ export function SchemaTreeNode({
   treeWidth: number;
 }) {
   const commonProps = attribute.type !== "multi" ? attribute.schema : attribute.schemas[0];
-  const name = commonProps.title || attribute.name;
-  const description = commonProps.description;
+  const name = commonProps?.title || attribute.name;
+  const description = commonProps?.description;
 
   return (
     <Col>

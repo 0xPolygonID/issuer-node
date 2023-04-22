@@ -6,14 +6,16 @@ import { z } from "zod";
 import { LinkDeleteModal } from "./LinkDeleteModal";
 import { APIError } from "src/adapters/api";
 import { getLink } from "src/adapters/api/credentials";
-import { getSchemaFromUrl } from "src/adapters/jsonSchemas";
+import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
+import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { ObjectAttributeValuesTree } from "src/components/credentials/ObjectAttributeValuesTree";
 import { Detail } from "src/components/shared/Detail";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { JsonSchema, Link } from "src/domain";
+import { Link, ObjectAttribute, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -32,7 +34,9 @@ export function LinkDetails() {
 
   const env = useEnvContext();
 
-  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
+  const [credentialSubjectValue, setCredentialSubjectValue] = useState<
+    AsyncTask<ObjectAttributeValue, string | z.ZodError>
+  >({
     status: "pending",
   });
   const [link, setLink] = useState<AsyncTask<Link, APIError>>({
@@ -41,24 +45,47 @@ export function LinkDetails() {
 
   const [showModal, setShowModal] = useState<boolean>(false);
 
-  const processError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
+  const fetchJsonSchemaFromUrl = useCallback(({ link }: { link: Link }): void => {
+    setCredentialSubjectValue({ status: "loading" });
 
-  const fetchJsonSchemaFromUrl = useCallback((url: string): void => {
-    setJsonSchema({ status: "loading" });
+    void getJsonSchemaFromUrl({ url: link.schemaUrl }).then(([jsonSchema]) => {
+      const credentialSubject =
+        (jsonSchema.type === "object" &&
+          jsonSchema.schema.properties
+            ?.filter((child): child is ObjectAttribute => child.type === "object")
+            .find((child) => child.name === "credentialSubject")) ||
+        null;
 
-    getSchemaFromUrl({
-      url,
-    })
-      .then(([jsonSchema]) => {
-        setJsonSchema({ data: jsonSchema, status: "successful" });
-      })
-      .catch((error) => {
-        setJsonSchema({
-          error: processError(error),
+      if (credentialSubject) {
+        const parsedCredentialSubject = getAttributeValueParser(credentialSubject).safeParse(
+          link.credentialSubject
+        );
+
+        if (parsedCredentialSubject.success) {
+          if (parsedCredentialSubject.data.type === "object") {
+            setCredentialSubjectValue({
+              data: parsedCredentialSubject.data,
+              status: "successful",
+            });
+          } else {
+            setCredentialSubjectValue({
+              error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+              status: "failed",
+            });
+          }
+        } else {
+          setCredentialSubjectValue({
+            error: parsedCredentialSubject.error,
+            status: "failed",
+          });
+        }
+      } else {
+        setCredentialSubjectValue({
+          error: `Could not find the attribute "credentialSubject" in the object's schema.`,
           status: "failed",
         });
-      });
+      }
+    });
   }, []);
 
   const fetchLink = useCallback(
@@ -74,7 +101,7 @@ export function LinkDetails() {
 
         if (response.isSuccessful) {
           setLink({ data: response.data, status: "successful" });
-          fetchJsonSchemaFromUrl(response.data.schemaUrl);
+          fetchJsonSchemaFromUrl({ link: response.data });
         } else {
           if (!isAbortedError(response.error)) {
             setLink({ error: response.error, status: "failed" });
@@ -93,7 +120,7 @@ export function LinkDetails() {
     return;
   }, [fetchLink, linkID]);
 
-  const loading = isAsyncTaskStarting(link) || isAsyncTaskStarting(jsonSchema);
+  const loading = isAsyncTaskStarting(link) || isAsyncTaskStarting(credentialSubjectValue);
 
   const jsonSchemaErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
@@ -123,10 +150,10 @@ export function LinkDetails() {
               />
             </Card>
           );
-        } else if (hasAsyncTaskFailed(jsonSchema)) {
+        } else if (hasAsyncTaskFailed(credentialSubjectValue)) {
           return (
             <Card className="centered">
-              <ErrorResult error={jsonSchemaErrorToString(jsonSchema.error)} />
+              <ErrorResult error={jsonSchemaErrorToString(credentialSubjectValue.error)} />
             </Card>
           );
         } else if (loading) {
@@ -166,7 +193,7 @@ export function LinkDetails() {
               }
               title={schemaType}
             >
-              <Space direction="vertical">
+              <Space direction="vertical" size="large">
                 <Card className="background-grey">
                   <Space direction="vertical">
                     <Typography.Text type="secondary">CREDENTIAL LINK DETAILS</Typography.Text>
@@ -179,12 +206,22 @@ export function LinkDetails() {
 
                     <Detail
                       label="Credential expiration date"
-                      text={expiration ? formatDate(expiration, true) : "-"}
+                      text={expiration ? formatDate(expiration, "date-time") : "-"}
                     />
 
                     <Detail copyable label="Schema hash" text="-" />
 
                     <Detail copyable label="Link" text={linkURL} />
+                  </Space>
+                </Card>
+                <Card className="background-grey">
+                  <Space direction="vertical" size="middle">
+                    <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>
+
+                    <ObjectAttributeValuesTree
+                      attributeValue={credentialSubjectValue.data}
+                      className="background-grey"
+                    />
                   </Space>
                 </Card>
               </Space>

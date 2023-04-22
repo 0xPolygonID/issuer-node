@@ -2,12 +2,12 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
+import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 
 export type FormData = {
   jsonLdType: JsonLdType;
@@ -54,13 +54,10 @@ export function ImportSchemaForm({
         }
   );
 
-  const processError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
-
   const fetchJsonSchemaFromUrl = (url: string): void => {
     setJsonSchema({ status: "loading" });
 
-    getSchemaFromUrl({
+    getJsonSchemaFromUrl({
       url,
     })
       .then(([jsonSchema, rawJsonSchema]) => {
