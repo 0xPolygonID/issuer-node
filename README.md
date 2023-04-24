@@ -42,7 +42,7 @@ Running the app in standalone mode means you will need to install the binaries f
 - [Docker Engine](https://docs.docker.com/engine/) 1.27
 - Makefile toolchain
 - Unix-based operating system (e.g. Debian, Arch, Mac OS X)
-- [Go](https://go.dev/) 1.19
+- [Go](https://go.dev/) 1.20
 - [Postgres](https://www.postgresql.org/)
 - [Redis](https://redis.io/)
 - [Hashicorp Vault](https://github.com/hashicorp/vault)
