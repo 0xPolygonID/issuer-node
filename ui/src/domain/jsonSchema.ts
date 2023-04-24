@@ -152,17 +152,11 @@ export type NumberAttributeValue = NumberAttribute & RequiredValue<number>;
 
 export type StringAttributeValue = StringAttribute & RequiredValue<string>;
 
-export type ArrayAttributeValue = ArrayAttribute &
-  (
-    | { required: true; value: AttributeValue[] }
-    | { required: false; value: AttributeValue[] | undefined }
-  );
+export type ArrayAttributeValue = ArrayAttribute & RequiredValue<AttributeValue[]>;
 
-export type ObjectAttributeValue = ObjectAttribute &
-  (
-    | { required: true; value: AttributeValue[] }
-    | { required: false; value: AttributeValue[] | undefined }
-  );
+export type ObjectAttributeValue = ObjectAttribute & RequiredValue<AttributeValue[]>;
+
+export type MultiAttributeValue = MultiAttribute & RequiredValue<MultiValue>;
 
 export type MultiValue =
   | BooleanAttributeValue
@@ -172,9 +166,6 @@ export type MultiValue =
   | StringAttributeValue
   | ArrayAttributeValue
   | ObjectAttributeValue;
-
-export type MultiAttributeValue = MultiAttribute &
-  ({ required: true; value: MultiValue } | { required: false; value: MultiValue | undefined });
 
 export type AttributeValue =
   | BooleanAttributeValue
