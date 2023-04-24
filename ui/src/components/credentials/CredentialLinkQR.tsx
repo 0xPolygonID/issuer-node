@@ -27,7 +27,7 @@ import {
   WALLET_PLAY_STORE_URL,
 } from "src/utils/constants";
 
-export function ScanLink() {
+export function CredentialLinkQR() {
   const env = useEnvContext();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
