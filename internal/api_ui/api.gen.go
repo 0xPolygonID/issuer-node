@@ -193,12 +193,14 @@ type IssuerDescription struct {
 // Link defines model for Link.
 type Link struct {
 	Active            bool              `json:"active"`
+	CreatedAt         time.Time         `json:"createdAt"`
 	CredentialSubject CredentialSubject `json:"credentialSubject"`
 	Expiration        *time.Time        `json:"expiration"`
 	Id                uuid.UUID         `json:"id"`
 	IssuedClaims      int               `json:"issuedClaims"`
 	MaxIssuance       *int              `json:"maxIssuance"`
 	ProofTypes        []string          `json:"proofTypes"`
+	SchemaHash        string            `json:"schemaHash"`
 	SchemaType        string            `json:"schemaType"`
 	SchemaUrl         string            `json:"schemaUrl"`
 	Status            LinkStatus        `json:"status"`

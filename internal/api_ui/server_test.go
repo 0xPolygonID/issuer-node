@@ -2809,6 +2809,7 @@ func TestServer_GetLink(t *testing.T) {
 
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
+	hash, _ := link.Schema.Hash.MarshalText()
 
 	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
@@ -2862,6 +2863,8 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaUrl:         link.Schema.URL,
 					Status:            LinkStatusActive,
 					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					CreatedAt:         link.CreatedAt,
+					SchemaHash:        string(hash),
 				},
 			},
 		},
@@ -3941,7 +3944,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	credentialSubject := map[string]any{
 		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
