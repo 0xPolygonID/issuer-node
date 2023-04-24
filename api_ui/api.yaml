@@ -1081,6 +1081,8 @@ components:
         - active
         - status
         - proofTypes
+        - schemaHash
+        - createdAt
       properties:
         id:
           type: string
@@ -1091,8 +1093,13 @@ components:
           example: 8edd8112-c415-11ed-b036-debe37e1cbd6
         schemaUrl:
           type: string
+          example: https://someValidURL.com
         schemaType:
           type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
         maxIssuance:
@@ -1107,6 +1114,10 @@ components:
           example: 2023-03-17T10:18:01.400722+01:00
           x-omitempty: false
           nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-03-16T10:18:01.400722+01:00
         active:
           type: boolean
         status:

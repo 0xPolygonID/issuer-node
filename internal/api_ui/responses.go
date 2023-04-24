@@ -186,15 +186,18 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 }
 
 func getLinkResponse(link domain.Link) Link {
+	hash, _ := link.Schema.Hash.MarshalText()
 	return Link{
 		Active:            link.Active,
 		CredentialSubject: link.CredentialSubject,
 		Expiration:        link.ValidUntil,
+		CreatedAt:         link.CreatedAt,
 		Id:                link.ID,
 		IssuedClaims:      link.IssuedClaims,
 		MaxIssuance:       link.MaxIssuance,
 		SchemaType:        link.Schema.Type,
 		SchemaUrl:         link.Schema.URL,
+		SchemaHash:        string(hash),
 		Status:            LinkStatus(link.Status()),
 		ProofTypes:        getLinkProofs(link),
 	}

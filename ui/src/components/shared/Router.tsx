@@ -6,6 +6,7 @@ import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { ScanLink } from "src/components/credentials/ScanLink";
+import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
@@ -21,6 +22,7 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
+  issuerState: IssuerState,
   notFound: NotFound,
   scanLink: ScanLink,
   schemaDetails: SchemaDetails,

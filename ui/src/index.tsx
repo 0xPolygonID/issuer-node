@@ -5,8 +5,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
+import { IssuerStateProvider } from "./contexts/IssuerState";
 import { Router } from "src/components/shared/Router";
-import { EnvProvider } from "src/contexts/env";
+import { EnvProvider } from "src/contexts/Env";
 import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";
 
@@ -29,7 +30,9 @@ root.render(
     <BrowserRouter>
       <ConfigProvider theme={theme}>
         <EnvProvider>
-          <Router />
+          <IssuerStateProvider>
+            <Router />
+          </IssuerStateProvider>
         </EnvProvider>
       </ConfigProvider>
     </BrowserRouter>

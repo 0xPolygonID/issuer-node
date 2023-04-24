@@ -17,12 +17,12 @@ import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.s
 import { ClaimCredentialModal } from "src/components/credentials/ClaimCredentialModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   IMAGE_PLACEHOLDER_PATH,
-  QR_CODE_POLLING_INTERVAL,
+  POLLING_INTERVAL,
   WALLET_APP_STORE_URL,
   WALLET_PLAY_STORE_URL,
 } from "src/utils/constants";
@@ -110,7 +110,7 @@ export function ScanLink() {
       } else {
         void checkCredentialQRCode();
       }
-    }, QR_CODE_POLLING_INTERVAL);
+    }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
   }, [shareCredentialQRCode, linkID, credentialQRCheck, env]);

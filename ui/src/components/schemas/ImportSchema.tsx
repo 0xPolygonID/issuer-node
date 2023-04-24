@@ -6,7 +6,7 @@ import { importSchema } from "src/adapters/api/schemas";
 import { FormData, ImportSchemaForm } from "src/components/schemas/ImportSchemaForm";
 import { ImportSchemaPreview } from "src/components/schemas/ImportSchemaPreview";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { ROUTES } from "src/routes";
 import { IMPORT_SCHEMA } from "src/utils/constants";
 

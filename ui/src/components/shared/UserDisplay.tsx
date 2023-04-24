@@ -1,5 +1,5 @@
 import { Avatar, Row, Space, Typography } from "antd";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { IMAGE_PLACEHOLDER_PATH } from "src/utils/constants";
 
 export function UserDisplay() {

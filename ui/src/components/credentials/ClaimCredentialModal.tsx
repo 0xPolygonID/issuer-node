@@ -1,4 +1,4 @@
-import { Button, Modal, Typography, message } from "antd";
+import { Button, Modal, Typography } from "antd";
 import { QRCodeSVG } from "qrcode.react";
 
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";

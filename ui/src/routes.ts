@@ -4,6 +4,7 @@ export type RouteID =
   | "credentials"
   | "importSchema"
   | "issueCredential"
+  | "issuerState"
   | "notFound"
   | "scanLink"
   | "schemaDetails"
@@ -39,6 +40,10 @@ export const ROUTES: Routes = {
   issueCredential: {
     layout: "sider",
     path: "/credentials/issue/:schemaID?",
+  },
+  issuerState: {
+    layout: "sider",
+    path: "/issuer-state",
   },
   notFound: {
     layout: "fullWidth",
