@@ -68,6 +68,7 @@ export function CredentialSubjectForm({
     const attributeNode = showBreadcrumb ? (
       <Space direction="vertical" size="middle">
         <AttributeBreadcrumb parents={parents} />
+
         <AnyAttribute attribute={attribute} parents={parents} />
       </Space>
     ) : (

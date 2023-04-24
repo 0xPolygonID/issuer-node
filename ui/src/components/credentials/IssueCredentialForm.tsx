@@ -1,4 +1,4 @@
-import { Button, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
+import { Button, Checkbox, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { IssueCredentialFormData } from "src/adapters/parsers/forms";
 
@@ -73,6 +73,7 @@ export function IssueCredentialForm({
 
       <Space direction="vertical" size="large">
         <CredentialSubjectForm attributes={credentialSubjectAttributes} />
+
         <Form.Item
           label="Credential expiration date"
           name="expirationDate"
@@ -81,6 +82,35 @@ export function IssueCredentialForm({
           <DatePicker disabledDate={(current) => current < dayjs()} />
         </Form.Item>
       </Space>
+
+      <Form.Item
+        label="Proof type"
+        name="proofTypes"
+        rules={[{ message: "At least one proof type is required.", required: true }]}
+      >
+        <Checkbox.Group>
+          <Form.Item>
+            <Checkbox value="SIG">
+              <Typography.Text>Signature-based (SIG)</Typography.Text>
+
+              <Typography.Text type="secondary">
+                Credential signed by the issuer using a BJJ private key.
+              </Typography.Text>
+            </Checkbox>
+          </Form.Item>
+
+          <Form.Item>
+            <Checkbox value="MTP">
+              <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
+
+              <Typography.Text type="secondary">
+                Credential will be added to issuer credential Merkle tree. The state transition
+                involves an on-chain transaction and coverage of gas fees.
+              </Typography.Text>
+            </Checkbox>
+          </Form.Item>
+        </Checkbox.Group>
+      </Form.Item>
 
       <Divider />
 

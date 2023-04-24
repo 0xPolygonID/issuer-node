@@ -91,6 +91,13 @@
   }
 }
 
+.ant-checkbox-group {
+  &,
+  .ant-typography {
+    display: block;
+  }
+}
+
 .avatar-color-cyan {
   background-color: $cyan-bg;
   color: $cyan-color;

@@ -14,7 +14,7 @@ export type CredentialsTabIDs = "issued" | "links";
 
 export type LinkStatus = "active" | "inactive" | "exceeded";
 
-export type ProofType = "SIG" | "MTP";
+export type ProofType = "MTP" | "SIG";
 
 export interface Link {
   active: boolean;
