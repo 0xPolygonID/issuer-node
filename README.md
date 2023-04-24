@@ -427,7 +427,7 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 
 Once you've completed the [Installation](#installation) section, this will walk you through issuing credentials/claims.
 
-### (Optional/Skip) Create Identity
+### (Optional) Create Identity
 
 > **NOTE:** This step should have been completed in [Create Issuer ID](#create-issuer-did) step.
 
@@ -453,7 +453,7 @@ curl --location 'http://localhost:3001/v1/identities' \
 #   {"identifier":"did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE","state":{"claimsTreeRoot":"eb3d346d16f849b3cc2be69bfc58091dfaf6d90574be26bb40222aea67e08505","createdAt":"2023-03-22T22:49:02.782896Z","modifiedAt":"2023-03-22T22:49:02.782896Z","state":"b25cf54e7e648a263658416194c41ef6ae2dec101c50dfb2febc5e96eaa87110","status":"confirmed"}}
 ```
 
-### (Optional/Skip) View Existing DIDs
+### (Optional) View Existing DIDs
 
 This will output all dids that have been created with the issuer.
 
@@ -507,7 +507,7 @@ curl --location 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNc
 #   {"id":"b1eab5be-dea3-11ed-8f7d-0242ac1e0005"}
 ```
 
-### (Optional/Skip) Verifying Claim/Credentials Creation
+### (Optional) Verifying Claim/Credentials Creation
 
 Using the previous generated claim/credential id from [Creating Claim/Credentials](#creating-claimcredentials).
 
