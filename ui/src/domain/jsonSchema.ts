@@ -142,53 +142,27 @@ export type JsonLdType = { id: string; name: string };
 
 type RequiredValue<T> = { required: true; value: T } | { required: false; value: T | undefined };
 
-export type BooleanAttributeValue = {
-  name: string;
-  schema: BooleanSchema;
-  type: "boolean";
-} & RequiredValue<boolean>;
+export type BooleanAttributeValue = BooleanAttribute & RequiredValue<boolean>;
 
-export type IntegerAttributeValue = {
-  name: string;
-  schema: IntegerSchema;
-  type: "integer";
-} & RequiredValue<number>;
+export type IntegerAttributeValue = IntegerAttribute & RequiredValue<number>;
 
-export type NullAttributeValue = {
-  name: string;
-  schema: NullSchema;
-  type: "null";
-} & RequiredValue<null>;
+export type NullAttributeValue = NullAttribute & RequiredValue<null>;
 
-export type NumberAttributeValue = {
-  name: string;
-  schema: NumberSchema;
-  type: "number";
-} & RequiredValue<number>;
+export type NumberAttributeValue = NumberAttribute & RequiredValue<number>;
 
-export type StringAttributeValue = {
-  name: string;
-  schema: StringSchema;
-  type: "string";
-} & RequiredValue<string>;
+export type StringAttributeValue = StringAttribute & RequiredValue<string>;
 
-export type ArrayAttributeValue = {
-  name: string;
-  schema: ArraySchema;
-  type: "array";
-} & (
-  | { required: true; value: AttributeValue[] }
-  | { required: false; value: AttributeValue[] | undefined }
-);
+export type ArrayAttributeValue = ArrayAttribute &
+  (
+    | { required: true; value: AttributeValue[] }
+    | { required: false; value: AttributeValue[] | undefined }
+  );
 
-export type ObjectAttributeValue = {
-  name: string;
-  schema: ObjectSchema;
-  type: "object";
-} & (
-  | { required: true; value: AttributeValue[] }
-  | { required: false; value: AttributeValue[] | undefined }
-);
+export type ObjectAttributeValue = ObjectAttribute &
+  (
+    | { required: true; value: AttributeValue[] }
+    | { required: false; value: AttributeValue[] | undefined }
+  );
 
 export type MultiValue =
   | BooleanAttributeValue
@@ -199,11 +173,8 @@ export type MultiValue =
   | ArrayAttributeValue
   | ObjectAttributeValue;
 
-export type MultiAttributeValue = {
-  name: string;
-  schemas: MultiSchema[];
-  type: "multi";
-} & ({ required: true; value: MultiValue } | { required: false; value: MultiValue | undefined });
+export type MultiAttributeValue = MultiAttribute &
+  ({ required: true; value: MultiValue } | { required: false; value: MultiValue | undefined });
 
 export type AttributeValue =
   | BooleanAttributeValue
