@@ -115,7 +115,7 @@ type Credential struct {
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
 type CredentialLinkQrCodeResponse struct {
 	Issuer     IssuerDescription            `json:"issuer"`
-	LinkDetail Link                         `json:"linkDetail"`
+	LinkDetail LinkSimple                   `json:"linkDetail"`
 	QrCode     AuthenticationQrCodeResponse `json:"qrCode"`
 	SessionID  string                       `json:"sessionID"`
 }
@@ -153,7 +153,7 @@ type GetLinkQrCodeCredentialsResponseType struct {
 
 // GetLinkQrCodeResponse defines model for GetLinkQrCodeResponse.
 type GetLinkQrCodeResponse struct {
-	LinkDetail Link                       `json:"linkDetail"`
+	LinkDetail LinkSimple                 `json:"linkDetail"`
 	QrCode     *GetLinkQrCodeResponseType `json:"qrCode,omitempty"`
 	Status     *string                    `json:"status,omitempty"`
 }
@@ -193,12 +193,14 @@ type IssuerDescription struct {
 // Link defines model for Link.
 type Link struct {
 	Active            bool              `json:"active"`
+	CreatedAt         time.Time         `json:"createdAt"`
 	CredentialSubject CredentialSubject `json:"credentialSubject"`
 	Expiration        *time.Time        `json:"expiration"`
 	Id                uuid.UUID         `json:"id"`
 	IssuedClaims      int               `json:"issuedClaims"`
 	MaxIssuance       *int              `json:"maxIssuance"`
 	ProofTypes        []string          `json:"proofTypes"`
+	SchemaHash        string            `json:"schemaHash"`
 	SchemaType        string            `json:"schemaType"`
 	SchemaUrl         string            `json:"schemaUrl"`
 	Status            LinkStatus        `json:"status"`
@@ -206,6 +208,15 @@ type Link struct {
 
 // LinkStatus defines model for Link.Status.
 type LinkStatus string
+
+// LinkSimple defines model for LinkSimple.
+type LinkSimple struct {
+	Id         uuid.UUID `json:"id"`
+	ProofTypes []string  `json:"proofTypes"`
+	SchemaHash string    `json:"schemaHash"`
+	SchemaType string    `json:"schemaType"`
+	SchemaUrl  string    `json:"schemaUrl"`
+}
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {

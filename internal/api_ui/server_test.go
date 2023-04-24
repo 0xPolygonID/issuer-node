@@ -2809,6 +2809,7 @@ func TestServer_GetLink(t *testing.T) {
 
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
+	hash, _ := link.Schema.Hash.MarshalText()
 
 	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
@@ -2862,6 +2863,8 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaUrl:         link.Schema.URL,
 					Status:            LinkStatusActive,
 					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					CreatedAt:         link.CreatedAt,
+					SchemaHash:        string(hash),
 				},
 			},
 		},
@@ -3497,17 +3500,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.NotNil(t, response.QrCode.Thid)
 				assert.NotNil(t, response.SessionID)
 				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
-				assert.InDelta(t, tc.expected.linkDetail.Expiration.Unix(), response.LinkDetail.Expiration.Unix(), 100)
-				assert.Equal(t, tc.expected.linkDetail.Status, response.LinkDetail.Status)
-				assert.Equal(t, tc.expected.linkDetail.Active, response.LinkDetail.Active)
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
-				assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
-				assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
-				tcCred, err := json.Marshal(tc.expected.linkDetail.CredentialSubject)
-				require.NoError(t, err)
-				respCred, err := json.Marshal(response.LinkDetail.CredentialSubject)
-				require.NoError(t, err)
-				assert.Equal(t, tcCred, respCred)
 			}
 		})
 	}
@@ -3696,18 +3689,8 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 					assert.Equal(t, tc.expected.qrCode.Typ, response.QrCode.Typ)
 					assert.Equal(t, tc.expected.qrCode.From, response.QrCode.From)
 					assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
-					assert.InDelta(t, tc.expected.linkDetail.Expiration.Unix(), response.LinkDetail.Expiration.Unix(), 100)
-					assert.Equal(t, tc.expected.linkDetail.Status, response.LinkDetail.Status)
-					assert.Equal(t, tc.expected.linkDetail.Active, response.LinkDetail.Active)
 					assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
-					assert.Equal(t, tc.expected.linkDetail.IssuedClaims, response.LinkDetail.IssuedClaims)
-					assert.Equal(t, tc.expected.linkDetail.MaxIssuance, response.LinkDetail.MaxIssuance)
 					assert.Equal(t, tc.expected.status, *response.Status)
-					tcCred, err := json.Marshal(tc.expected.linkDetail.CredentialSubject)
-					require.NoError(t, err)
-					respCred, err := json.Marshal(response.LinkDetail.CredentialSubject)
-					require.NoError(t, err)
-					assert.Equal(t, tcCred, respCred)
 				}
 			}
 		})
@@ -3941,7 +3924,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewAdminSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	credentialSubject := map[string]any{
 		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
