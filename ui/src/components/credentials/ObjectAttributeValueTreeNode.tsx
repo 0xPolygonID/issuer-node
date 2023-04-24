@@ -46,7 +46,7 @@ function extractValue(attributeValue: AttributeValue): JsonLiteral | undefined {
   }
 }
 
-export function ObjectAttributeValuesTreeNode({
+export function ObjectAttributeValueTreeNode({
   attributeValue,
   nestingLevel,
   treeWidth,

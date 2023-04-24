@@ -3,7 +3,7 @@ import { Col, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { ObjectAttributeValuesTreeNode } from "src/components/credentials/ObjectAttributeValuesTreeNode";
+import { ObjectAttributeValueTreeNode } from "src/components/credentials/ObjectAttributeValueTreeNode";
 import { AttributeValue, ObjectAttributeValue } from "src/domain";
 
 const attributeToTreeDataNode = ({
@@ -28,7 +28,7 @@ const attributeToTreeDataNode = ({
         : [],
     key: [...parents, attributeValue].map((node) => node.name).join(" > "),
     title: (
-      <ObjectAttributeValuesTreeNode
+      <ObjectAttributeValueTreeNode
         attributeValue={attributeValue}
         nestingLevel={parents.length}
         treeWidth={treeWidth}
@@ -37,7 +37,7 @@ const attributeToTreeDataNode = ({
   };
 };
 
-export function ObjectAttributeValuesTree({
+export function ObjectAttributeValueTree({
   attributeValue,
   className,
   style,
