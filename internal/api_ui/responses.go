@@ -207,6 +207,17 @@ func getLinkResponse(link domain.Link) Link {
 	}
 }
 
+func getLinkSimpleResponse(link domain.Link) LinkSimple {
+	hash, _ := link.Schema.Hash.MarshalText()
+	return LinkSimple{
+		Id:         link.ID,
+		SchemaType: link.Schema.Type,
+		SchemaUrl:  link.Schema.URL,
+		SchemaHash: string(hash),
+		ProofTypes: getLinkProofs(link),
+	}
+}
+
 func getLinkProofs(link domain.Link) []string {
 	proofs := make([]string, 0)
 	if link.CredentialMTPProof {
