@@ -559,7 +559,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 			Type: string(createLinkQrCodeResponse.QrCode.Type),
 		},
 		SessionID:  createLinkQrCodeResponse.SessionID,
-		LinkDetail: getLinkResponse(*createLinkQrCodeResponse.Link),
+		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
 
@@ -605,7 +605,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),
-			LinkDetail: getLinkResponse(*getQRCodeResponse.Link),
+			LinkDetail: getLinkSimpleResponse(*getQRCodeResponse.Link),
 		}, nil
 	}
 
