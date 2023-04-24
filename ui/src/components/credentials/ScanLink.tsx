@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { APIError, HTTPStatusError } from "src/adapters/api";
+import { APIError } from "src/adapters/api";
 import {
   CredentialQRCheck,
   ShareCredentialQRCode,
@@ -128,7 +128,7 @@ export function ScanLink() {
     : undefined;
 
   if (hasFailed) {
-    if (hasFailed.status === HTTPStatusError.NotFound) {
+    if (hasFailed.status === 404) {
       return (
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
@@ -140,7 +140,7 @@ export function ScanLink() {
           </Typography.Text>
         </Space>
       );
-    } else if (hasFailed.status === HTTPStatusError.BadRequest) {
+    } else if (hasFailed.status === 400) {
       return (
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />

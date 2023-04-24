@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import {
   APIResponse,
-  HTTPStatusSuccess,
   ID,
   IDParser,
   ResultAccepted,
@@ -76,7 +75,7 @@ export async function getCredentials({
 const resultOKCredentialsParser = getStrictParser<ResultOK<Credential[]>>()(
   z.object({
     data: z.array(credentialParser),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -109,7 +108,7 @@ const resultAcceptedMessage = getStrictParser<ResultAccepted<{ message: string }
     data: z.object({
       message: z.string(),
     }),
-    status: z.literal(HTTPStatusSuccess.Accepted),
+    status: z.literal(202),
   })
 );
 
@@ -195,7 +194,7 @@ export async function getLinks({
 const resultOKLinks = getStrictParser<ResultOK<Link[]>>()(
   z.object({
     data: z.array(linkParser),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -309,7 +308,7 @@ const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
 const resultOKShareCredentialQRCodeParser = getStrictParser<ResultOK<ShareCredentialQRCode>>()(
   z.object({
     data: shareCredentialQRCodeParser,
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -344,7 +343,7 @@ export async function createCredentialLinkQRCode({
 const resultCreateLinkParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
     data: IDParser,
-    status: z.literal(HTTPStatusSuccess.Created),
+    status: z.literal(201),
   })
 );
 
@@ -365,7 +364,7 @@ const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheck>()(
 const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
   z.object({
     data: credentialQRCheckDoneParser,
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
