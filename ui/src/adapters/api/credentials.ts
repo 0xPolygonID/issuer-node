@@ -196,12 +196,14 @@ const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
 
 interface LinkInput {
   active: boolean;
+  createdAt: Date;
   credentialSubject: Record<string, unknown>;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
   proofTypes: ProofTypeInput[];
+  schemaHash: string;
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
@@ -210,12 +212,14 @@ interface LinkInput {
 const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
     active: z.boolean(),
+    createdAt: z.coerce.date(z.string().datetime()),
     credentialSubject: z.record(z.unknown()),
     expiration: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullable(),
     proofTypes: proofTypeParser,
+    schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
