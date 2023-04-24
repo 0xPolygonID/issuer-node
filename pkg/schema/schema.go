@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	core "github.com/iden3/go-iden3-core"
@@ -13,6 +14,12 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+)
+
+var (
+	ErrLoadSchema   = errors.New("cannot load schema")          // ErrProcessSchema Cannot process schema
+	ErrValidateData = errors.New("error validating claim data") // ErrValidateData Cannot process schema
+	ErrParseClaim   = errors.New("error parsing claim")         // ErrParseClaim Cannot process schema
 )
 
 // LoadSchema loads schema from url
@@ -93,7 +100,7 @@ func Process(ctx context.Context, ld loader.Loader, credentialType string, crede
 
 	schema, _, err := pr.Load(ctx)
 	if err != nil {
-		return nil, err
+		return nil, ErrLoadSchema
 	}
 
 	jsonCredential, err := json.Marshal(credential)
@@ -103,12 +110,12 @@ func Process(ctx context.Context, ld loader.Loader, credentialType string, crede
 
 	err = pr.ValidateData(jsonCredential, schema)
 	if err != nil {
-		return nil, err
+		return nil, ErrValidateData
 	}
 
 	claim, err := pr.ParseClaim(ctx, credential, credentialType, schema, options)
 	if err != nil {
-		return nil, err
+		return nil, ErrParseClaim
 	}
 	return claim, nil
 }

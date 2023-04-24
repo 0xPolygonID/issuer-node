@@ -322,6 +322,15 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if errors.Is(err, services.ErrLoadingSchema) {
 			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, services.ErrParseClaim) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrInvalidCredentialSubject) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		if errors.Is(err, services.ErrMalformedURL) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}

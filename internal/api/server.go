@@ -127,6 +127,15 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		if errors.Is(err, services.ErrMalformedURL) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, services.ErrParseClaim) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrInvalidCredentialSubject) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateClaim201JSONResponse{Id: resp.ID.String()}, nil

@@ -33,13 +33,15 @@ import (
 )
 
 var (
-	ErrClaimNotFound  = errors.New("claim not found")                // ErrClaimNotFound Cannot retrieve the given claim
-	ErrSchemaNotFound = errors.New("schema not found")               // ErrSchemaNotFound Cannot retrieve the given schema from DB
-	ErrLinkNotFound   = errors.New("link not found")                 // ErrLinkNotFound Cannot get the given link from the DB
-	ErrJSONLdContext  = errors.New("jsonLdContext must be a string") // ErrJSONLdContext Field jsonLdContext must be a string
-	ErrLoadingSchema  = errors.New("cannot load schema")             // ErrLoadingSchema means the system cannot load the schema file
-	ErrMalformedURL   = errors.New("malformed url")                  // ErrMalformedURL The schema url is wrong
-	ErrProcessSchema  = errors.New("cannot process schema")          // ErrProcessSchema Cannot process schema
+	ErrClaimNotFound            = errors.New("claim not found")                                       // ErrClaimNotFound Cannot retrieve the given claim
+	ErrSchemaNotFound           = errors.New("schema not found")                                      // ErrSchemaNotFound Cannot retrieve the given schema from DB
+	ErrLinkNotFound             = errors.New("link not found")                                        // ErrLinkNotFound Cannot get the given link from the DB
+	ErrJSONLdContext            = errors.New("jsonLdContext must be a string")                        // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrLoadingSchema            = errors.New("cannot load schema")                                    // ErrLoadingSchema means the system cannot load the schema file
+	ErrMalformedURL             = errors.New("malformed url")                                         // ErrMalformedURL The schema url is wrong
+	ErrProcessSchema            = errors.New("cannot process schema")                                 // ErrProcessSchema Cannot process schema
+	ErrParseClaim               = errors.New("cannot parse claim")                                    // ErrParseClaim Cannot parse claim
+	ErrInvalidCredentialSubject = errors.New("credential subject does not match the provided schema") // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
 )
 
 // ClaimCfg claim service configuration
@@ -149,8 +151,17 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "cannot process the schema", "err", err)
-		return nil, ErrProcessSchema
+		log.Error(ctx, "processing the claim against the schema", "err", err)
+		if errors.Is(err, schemaPkg.ErrParseClaim) {
+			return nil, ErrParseClaim
+		}
+		if errors.Is(err, schemaPkg.ErrValidateData) {
+			return nil, ErrInvalidCredentialSubject
+		}
+		if errors.Is(err, schemaPkg.ErrLoadSchema) {
+			return nil, ErrLoadingSchema
+		}
+		return nil, err
 	}
 
 	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
