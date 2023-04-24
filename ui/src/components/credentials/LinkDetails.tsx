@@ -122,14 +122,13 @@ export function LinkDetails() {
 
   const loading = isAsyncTaskStarting(link) || isAsyncTaskStarting(credentialSubjectValue);
 
-  const jsonSchemaErrorToString = (error: string | z.ZodError) =>
+  const credentialSubjectValueErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
-          "An error occurred while parsing the schema from the URL:",
+          "An error occurred while parsing the value of the credentialSubject:",
           ...processZodError(error).map((e) => `"${e}"`),
-          "Please provide a valid schema.",
         ].join("\n")
-      : `An error occurred while downloading the schema from the URL:\n"${error}"\nPlease try again.`;
+      : `An error occurred while processing the value of the credentialSubject:\n"${error}"`;
 
   return (
     <SiderLayoutContent
@@ -153,7 +152,9 @@ export function LinkDetails() {
         } else if (hasAsyncTaskFailed(credentialSubjectValue)) {
           return (
             <Card className="centered">
-              <ErrorResult error={jsonSchemaErrorToString(credentialSubjectValue.error)} />
+              <ErrorResult
+                error={credentialSubjectValueErrorToString(credentialSubjectValue.error)}
+              />
             </Card>
           );
         } else if (loading) {
