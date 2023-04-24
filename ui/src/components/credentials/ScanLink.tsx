@@ -103,8 +103,9 @@ export function ScanLink() {
 
     const checkQRCredentialStatusTimer = setInterval(() => {
       if (
-        isAsyncTaskDataAvailable(credentialQRCheck) &&
-        credentialQRCheck.data.status !== "pending"
+        (isAsyncTaskDataAvailable(credentialQRCheck) &&
+          credentialQRCheck.data.status !== "pending") ||
+        hasAsyncTaskFailed(credentialQRCheck)
       ) {
         clearInterval(checkQRCredentialStatusTimer);
       } else {
