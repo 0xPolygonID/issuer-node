@@ -57,9 +57,11 @@ export function LinkDetails() {
         null;
 
       if (credentialSubject) {
-        const parsedCredentialSubject = getAttributeValueParser(credentialSubject).safeParse(
-          link.credentialSubject
-        );
+        const parsedCredentialSubject = getAttributeValueParser(credentialSubject).safeParse({
+          ...link.credentialSubject,
+          // Add required id property that links lack
+          id: "",
+        });
 
         if (parsedCredentialSubject.success) {
           if (parsedCredentialSubject.data.type === "object") {

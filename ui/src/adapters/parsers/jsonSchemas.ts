@@ -859,7 +859,23 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
   return required
     ? getStrictParser<Record<string, unknown>, ObjectAttributeValue>()(
         z.record(z.unknown()).transform((object, context): ObjectAttributeValue => {
-          const x: ObjectAttributeValue = {
+          // make sure all required properties are present
+          const keys = Object.keys(object);
+          schema.properties?.forEach((attribute) => {
+            const missing =
+              attribute.required && keys.find((key) => key === attribute.name) === undefined;
+            if (missing) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                fatal: true,
+                message: `Could not find the required property "${attribute.name}" in the object attribute "${name}".`,
+              });
+              return z.NEVER;
+            }
+            return;
+          });
+
+          return {
             name,
             required,
             schema,
@@ -879,7 +895,7 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
                   context.addIssue({
                     code: z.ZodIssueCode.custom,
                     fatal: true,
-                    message: `Could not find the attribute ${name} in the object's schema.`,
+                    message: `Could not find the attribute "${name}" in the object's schema.`,
                   });
                   return z.NEVER;
                 }
@@ -888,7 +904,6 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
                 a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
               ),
           };
-          return x;
         })
       )
     : getStrictParser<Record<string, unknown> | undefined, ObjectAttributeValue>()(
@@ -896,6 +911,24 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
           .record(z.unknown())
           .optional()
           .transform((object, context): ObjectAttributeValue => {
+            if (object) {
+              // make sure all required properties are present
+              const keys = Object.keys(object);
+              schema.properties?.forEach((attribute) => {
+                const missing =
+                  attribute.required && keys.find((key) => key === attribute.name) === undefined;
+                if (missing) {
+                  context.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    fatal: true,
+                    message: `Could not find the required property "${attribute.name}" in the object attribute "${name}".`,
+                  });
+                  return z.NEVER;
+                }
+                return;
+              });
+            }
+
             return {
               name,
               required,
