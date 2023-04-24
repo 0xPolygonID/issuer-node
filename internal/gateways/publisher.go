@@ -433,7 +433,6 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 		}
 		log.Info(ctx, "sending notifications:", "numberOfClaims", len(claimsToNotify))
 
-		// TODO - group by userID
 		grupedCredentials := groupByUserId(claimsToNotify)
 		for _, claims := range grupedCredentials {
 			err = p.notificationPublisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: claims, IssuerID: state.Identifier})
@@ -442,14 +441,6 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 				continue
 			}
 		}
-
-		//for _, c := range claimsToNotify {
-		//	err = p.notificationPublisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: c.ID.String(), IssuerID: state.Identifier})
-		//	if err != nil {
-		//		log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", c.ID.String())
-		//		continue
-		//	}
-		//}
 	} else {
 		state.Status = domain.StatusFailed
 		err = p.identityService.UpdateIdentityState(ctx, state)
