@@ -2,13 +2,13 @@ package api_ui
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
