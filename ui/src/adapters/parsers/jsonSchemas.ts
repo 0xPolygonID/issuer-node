@@ -202,13 +202,21 @@ const arraySchemaInputParser = getStrictParser<ArraySchemaInput>()(
 function getArrayAttributeParser(name: string, required: boolean) {
   return getStrictParser<ArraySchemaInput, ArrayAttribute>()(
     arraySchemaInputParser.transform(
-      (schema): ArrayAttribute => ({
+      (schema, context): ArrayAttribute => ({
         name,
         required,
         schema: {
           ...schema,
           items: schema.items
-            ? getAttributeParser("items", required).parse(schema.items)
+            ? (() => {
+                const parsed = getAttributeParser("items", required).safeParse(schema.items);
+                if (parsed.success) {
+                  return parsed.data;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
+              })()
             : undefined,
         },
         type: "array",
@@ -241,7 +249,7 @@ const objectSchemaInputParser = getStrictParser<ObjectSchemaInput>()(
 function getObjectAttributeParser(name: string, required: boolean) {
   return getStrictParser<ObjectSchemaInput, ObjectAttribute>()(
     objectSchemaInputParser.transform(
-      (schema): ObjectAttribute => ({
+      (schema, context): ObjectAttribute => ({
         name,
         required,
         schema: {
@@ -249,12 +257,18 @@ function getObjectAttributeParser(name: string, required: boolean) {
           properties:
             schema.properties &&
             Object.entries(schema.properties)
-              .map(([name, value]) =>
-                getAttributeParser(
+              .map(([name, value]) => {
+                const parsed = getAttributeParser(
                   name,
                   schema.required !== undefined && schema.required.includes(name)
-                ).parse(value)
-              )
+                ).safeParse(value);
+                if (parsed.success) {
+                  return parsed.data;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
+              })
               .sort((a, b) =>
                 a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
               ),
@@ -320,42 +334,94 @@ function getMultiAttributeParser(name: string, required: boolean) {
       .and(multiPropsParser)
       .and(multiSchemaTypeParser)
       .transform(
-        (schema): MultiAttribute => ({
+        (schema, context): MultiAttribute => ({
           name,
           required,
           schemas: schema.type.map((type): MultiSchema => {
             switch (type) {
               case "boolean": {
-                return getBooleanAttributeParser(name, required).parse({
+                const parsed = getBooleanAttributeParser(name, required).safeParse({
                   ...schema,
                   type: "boolean",
-                }).schema;
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
               case "integer": {
-                return getIntegerAttributeParser(name, required).parse({
+                const parsed = getIntegerAttributeParser(name, required).safeParse({
                   ...schema,
                   type: "integer",
-                }).schema;
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
               case "null": {
-                return getNullAttributeParser(name, required).parse({ ...schema, type: "null" })
-                  .schema;
+                const parsed = getNullAttributeParser(name, required).safeParse({
+                  ...schema,
+                  type: "null",
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
               case "number": {
-                return getNumberAttributeParser(name, required).parse({ ...schema, type: "number" })
-                  .schema;
+                const parsed = getNumberAttributeParser(name, required).safeParse({
+                  ...schema,
+                  type: "number",
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
               case "string": {
-                return getStringAttributeParser(name, required).parse({ ...schema, type: "string" })
-                  .schema;
+                const parsed = getStringAttributeParser(name, required).safeParse({
+                  ...schema,
+                  type: "string",
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
               case "array": {
-                return getArrayAttributeParser(name, required).parse({ ...schema, type: "array" })
-                  .schema;
+                const parsed = getArrayAttributeParser(name, required).safeParse({
+                  ...schema,
+                  type: "array",
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
               case "object": {
-                return getObjectAttributeParser(name, required).parse({ ...schema, type: "object" })
-                  .schema;
+                const parsed = getObjectAttributeParser(name, required).safeParse({
+                  ...schema,
+                  type: "object",
+                });
+                if (parsed.success) {
+                  return parsed.data.schema;
+                } else {
+                  parsed.error.issues.map(context.addIssue);
+                  return z.NEVER;
+                }
               }
             }
           }),
@@ -517,54 +583,62 @@ function getSertoJsonLdTypeParser(schema: JsonSchema) {
           return z.NEVER;
         }
 
-        const { credentialSubject: ldContextCredentialSubject, "schema-id": schemaId } = z
+        const parsedContext = z
           .object({
             credentialSubject: z.object({
               "@context": z.record(z.unknown()),
             }),
             "schema-id": z.string().url(),
           })
-          .parse(ldContext["@context"]);
+          .safeParse(ldContext["@context"]);
 
-        const jsonLdTypeParseResult = Object.entries(ldContext["@context"]).reduce(
-          (acc: { success: false } | { jsonLdType: JsonLdType; success: true }, [key, value]) => {
-            const parsedValue = z.object({ "@id": z.literal("schema-id") }).safeParse(value);
+        if (parsedContext.success) {
+          const { credentialSubject: ldContextCredentialSubject, "schema-id": schemaId } =
+            parsedContext.data;
 
-            return !acc.success && parsedValue.success
-              ? {
-                  jsonLdType: { id: `${schemaId}${key}`, name: key },
-                  success: true,
-                }
-              : acc;
-          },
-          { success: false }
-        );
+          const jsonLdTypeParseResult = Object.entries(ldContext["@context"]).reduce(
+            (acc: { success: false } | { jsonLdType: JsonLdType; success: true }, [key, value]) => {
+              const parsedValue = z.object({ "@id": z.literal("schema-id") }).safeParse(value);
 
-        const ldContextTypePropsParseResult = schemaCredentialSubject.schema.properties?.reduce(
-          (acc: { success: true } | { error: string; success: false }, attribute) =>
-            acc.success && attribute.name in ldContextCredentialSubject["@context"]
-              ? acc
-              : {
-                  error: `Couldn't find Property "${attribute.name}" of the JSON schema in the context`,
-                  success: false,
-                },
-          { success: true }
-        ) || {
-          error: "Couldn't find any properties in schema's credentialSubject",
-          success: false,
-        };
+              return !acc.success && parsedValue.success
+                ? {
+                    jsonLdType: { id: `${schemaId}${key}`, name: key },
+                    success: true,
+                  }
+                : acc;
+            },
+            { success: false }
+          );
 
-        if (jsonLdTypeParseResult.success && ldContextTypePropsParseResult.success) {
-          return [jsonLdTypeParseResult.jsonLdType];
+          const ldContextTypePropsParseResult = schemaCredentialSubject.schema.properties?.reduce(
+            (acc: { success: true } | { error: string; success: false }, attribute) =>
+              acc.success && attribute.name in ldContextCredentialSubject["@context"]
+                ? acc
+                : {
+                    error: `Couldn't find Property "${attribute.name}" of the JSON schema in the context`,
+                    success: false,
+                  },
+            { success: true }
+          ) || {
+            error: "Couldn't find any properties in schema's credentialSubject",
+            success: false,
+          };
+
+          if (jsonLdTypeParseResult.success && ldContextTypePropsParseResult.success) {
+            return [jsonLdTypeParseResult.jsonLdType];
+          } else {
+            zodContext.addIssue({
+              code: z.ZodIssueCode.custom,
+              fatal: true,
+              message: !ldContextTypePropsParseResult.success
+                ? ldContextTypePropsParseResult.error
+                : "Couldn't find any valid type in the JSON LD context of the schema",
+            });
+
+            return z.NEVER;
+          }
         } else {
-          zodContext.addIssue({
-            code: z.ZodIssueCode.custom,
-            fatal: true,
-            message: !ldContextTypePropsParseResult.success
-              ? ldContextTypePropsParseResult.error
-              : "Couldn't find any valid type in the JSON LD context of the schema",
-          });
-
+          parsedContext.error.issues.map(zodContext.addIssue);
           return z.NEVER;
         }
       })
@@ -735,14 +809,20 @@ function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAtt
   return required
     ? getStrictParser<unknown[], ArrayAttributeValue>()(
         z.array(z.unknown()).transform(
-          (unknowns): ArrayAttributeValue => ({
+          (unknowns, context): ArrayAttributeValue => ({
             name,
             required,
             schema,
             type,
             value: attribute
               ? unknowns.map((unknown) => {
-                  return getAttributeValueParser(attribute).parse(unknown);
+                  const parsed = getAttributeValueParser(attribute).safeParse(unknown);
+                  if (parsed.success) {
+                    return parsed.data;
+                  } else {
+                    parsed.error.issues.map(context.addIssue);
+                    return z.NEVER;
+                  }
                 })
               : [],
           })
@@ -753,7 +833,7 @@ function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAtt
           .array(z.unknown())
           .optional()
           .transform(
-            (unknowns): ArrayAttributeValue => ({
+            (unknowns, context): ArrayAttributeValue => ({
               name,
               required,
               schema,
@@ -761,7 +841,13 @@ function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAtt
               value: attribute
                 ? unknowns &&
                   unknowns.map((unknown) => {
-                    return getAttributeValueParser(attribute).parse(unknown);
+                    const parsed = getAttributeValueParser(attribute).safeParse(unknown);
+                    if (parsed.success) {
+                      return parsed.data;
+                    } else {
+                      parsed.error.issues.map(context.addIssue);
+                      return z.NEVER;
+                    }
                   })
                 : [],
             })
@@ -779,10 +865,16 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
             schema,
             type,
             value: Object.entries(object)
-              .map(([name, value]): AttributeValue => {
+              .map(([name, unknown]): AttributeValue => {
                 const attribute = schema.properties?.find((property) => property.name === name);
                 if (attribute) {
-                  return getAttributeValueParser(attribute).parse(value);
+                  const parsed = getAttributeValueParser(attribute).safeParse(unknown);
+                  if (parsed.success) {
+                    return parsed.data;
+                  } else {
+                    parsed.error.issues.map(context.addIssue);
+                    return z.NEVER;
+                  }
                 } else {
                   context.addIssue({
                     code: z.ZodIssueCode.custom,
@@ -810,10 +902,16 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
               schema,
               type,
               value: object
-                ? Object.entries(object).map(([name, value]): AttributeValue => {
+                ? Object.entries(object).map(([name, unknown]): AttributeValue => {
                     const attribute = schema.properties?.find((property) => property.name === name);
                     if (attribute) {
-                      return getAttributeValueParser(attribute).parse(value);
+                      const parsed = getAttributeValueParser(attribute).safeParse(unknown);
+                      if (parsed.success) {
+                        return parsed.data;
+                      } else {
+                        parsed.error.issues.map(context.addIssue);
+                        return z.NEVER;
+                      }
                     } else {
                       context.addIssue({
                         code: z.ZodIssueCode.custom,
@@ -949,31 +1047,79 @@ function getMultiAttributeValueParser({ name, required, schemas, type }: MultiAt
 
 export function getAttributeValueParser(attribute: Attribute) {
   return getStrictParser<unknown, AttributeValue>()(
-    z.unknown().transform((unknown) => {
+    z.unknown().transform((unknown, context) => {
       switch (attribute.type) {
         case "boolean": {
-          return getBooleanAttributeValueParser(attribute).parse(unknown);
+          const parsed = getBooleanAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "integer": {
-          return getIntegerAttributeValueParser(attribute).parse(unknown);
+          const parsed = getIntegerAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "null": {
-          return getNullAttributeValueParser(attribute).parse(unknown);
+          const parsed = getNullAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "number": {
-          return getNumberAttributeValueParser(attribute).parse(unknown);
+          const parsed = getNumberAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "string": {
-          return getStringAttributeValueParser(attribute).parse(unknown);
+          const parsed = getStringAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "array": {
-          return getArrayAttributeValueParser(attribute).parse(unknown);
+          const parsed = getArrayAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "object": {
-          return getObjectAttributeValueParser(attribute).parse(unknown);
+          const parsed = getObjectAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
         case "multi": {
-          return getMultiAttributeValueParser(attribute).parse(unknown);
+          const parsed = getMultiAttributeValueParser(attribute).safeParse(unknown);
+          if (parsed.success) {
+            return parsed.data;
+          } else {
+            parsed.error.issues.map(context.addIssue);
+            return z.NEVER;
+          }
         }
       }
     })
