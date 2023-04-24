@@ -73,6 +73,7 @@ If you want to get up and running with a free public forwarding url, look at [Ge
 ```bash
 # ...
 
+# See Section: Getting A Public URL
 ISSUER_SERVER_URL=https://unique-forwaring-or-public-url.ngrok-free.app
 # Defaults for Basic Auth in Base64 ("user-issuer:password-issuer" = "dXNlci1pc3N1ZXI6cGFzc3dvcmQtaXNzdWVy")
 # If you just want to get started, don't change these
@@ -241,13 +242,12 @@ Now that you have all your files configured we can now start the issuer node api
 ```bash
 # FROM: ./
 
-make run-arm;
+make run;
 # (Equivalent)
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api;
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api;
 
 # Expected Output:
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api;
-#   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api;
 ```
 
 > For _Apple-M1/M2/Arm_:
@@ -358,6 +358,7 @@ curl --location --request GET 'http://localhost:3001/v1/identities' \
 ```
 
 ### Creating Claim/Credentials
+
 
 This will go through creating a `KYCAgeCredential` claim based off the following [KYC Age Credential Schema](https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json
 
