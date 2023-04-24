@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ErrLoadSchema   = errors.New("cannot load schema")          // ErrProcessSchema Cannot process schema
+	ErrLoadSchema   = errors.New("cannot load schema")          // ErrLoadSchema Cannot process schema
 	ErrValidateData = errors.New("error validating claim data") // ErrValidateData Cannot process schema
 	ErrParseClaim   = errors.New("error parsing claim")         // ErrParseClaim Cannot process schema
 )
