@@ -34,7 +34,7 @@ type Server struct {
 	cfg                *config.Configuration
 	identityService    ports.IdentityService
 	claimService       ports.ClaimsService
-	schemaService      ports.SchemaAdminService
+	schemaService      ports.SchemaService
 	connectionsService ports.ConnectionsService
 	linkService        ports.LinkService
 	publisherGateway   ports.Publisher
@@ -43,7 +43,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaAdminService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -310,7 +310,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil)
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true)
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -344,6 +344,18 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 	return RevokeCredential202JSONResponse{
 		Message: "claim revocation request sent",
 	}, nil
+}
+
+// GetRevocationStatus - returns weather a credential is revoked or not, this endpoint must be public available
+func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
+	rs, err := s.claimService.GetRevocationStatus(ctx, s.cfg.APIUI.IssuerDID, uint64(request.Nonce))
+	if err != nil {
+		return GetRevocationStatus500JSONResponse{N500JSONResponse{
+			Message: err.Error(),
+		}}, nil
+	}
+
+	return GetRevocationStatus200JSONResponse(getRevocationStatusResponse(rs)), err
 }
 
 // PublishState - pubish the state onchange
@@ -547,8 +559,21 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 			Type: string(createLinkQrCodeResponse.QrCode.Type),
 		},
 		SessionID:  createLinkQrCodeResponse.SessionID,
-		LinkDetail: getLinkResponse(*createLinkQrCodeResponse.Link),
+		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
+}
+
+// GetCredentialQrCode - returns a QR Code for fetching the credential
+func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
+	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
+		}
+		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
+	}
+
+	return GetCredentialQrCode200JSONResponse(getCredentialQrCodeResponse(credential, s.cfg.APIUI.ServerURL)), nil
 }
 
 // CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
@@ -570,7 +595,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -593,7 +618,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),
-			LinkDetail: getLinkResponse(*getQRCodeResponse.Link),
+			LinkDetail: getLinkSimpleResponse(*getQRCodeResponse.Link),
 		}, nil
 	}
 

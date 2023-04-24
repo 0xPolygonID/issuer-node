@@ -102,19 +102,20 @@ type Credential struct {
 	CreatedAt         time.Time              `json:"createdAt"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
-	ExpiresAt         *time.Time             `json:"expiresAt,omitempty"`
+	ExpiresAt         *time.Time             `json:"expiresAt"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
 	Revoked           bool                   `json:"revoked"`
 	SchemaHash        string                 `json:"schemaHash"`
 	SchemaType        string                 `json:"schemaType"`
+	SchemaUrl         string                 `json:"schemaUrl"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
 type CredentialLinkQrCodeResponse struct {
 	Issuer     IssuerDescription            `json:"issuer"`
-	LinkDetail Link                         `json:"linkDetail"`
+	LinkDetail LinkSimple                   `json:"linkDetail"`
 	QrCode     AuthenticationQrCodeResponse `json:"qrCode"`
 	SessionID  string                       `json:"sessionID"`
 }
@@ -144,34 +145,11 @@ type GetConnectionResponse struct {
 // GetConnectionsResponse defines model for GetConnectionsResponse.
 type GetConnectionsResponse = []GetConnectionResponse
 
-// GetLinkQrCodeCredentialsResponseType defines model for GetLinkQrCodeCredentialsResponseType.
-type GetLinkQrCodeCredentialsResponseType struct {
-	Description string `json:"description"`
-	Id          string `json:"id"`
-}
-
 // GetLinkQrCodeResponse defines model for GetLinkQrCodeResponse.
 type GetLinkQrCodeResponse struct {
-	LinkDetail Link                       `json:"linkDetail"`
-	QrCode     *GetLinkQrCodeResponseType `json:"qrCode,omitempty"`
-	Status     *string                    `json:"status,omitempty"`
-}
-
-// GetLinkQrCodeResponseBodyType defines model for GetLinkQrCodeResponseBodyType.
-type GetLinkQrCodeResponseBodyType struct {
-	Credentials []GetLinkQrCodeCredentialsResponseType `json:"credentials"`
-	Url         string                                 `json:"url"`
-}
-
-// GetLinkQrCodeResponseType defines model for GetLinkQrCodeResponseType.
-type GetLinkQrCodeResponseType struct {
-	Body GetLinkQrCodeResponseBodyType `json:"body"`
-	From string                        `json:"from"`
-	Id   string                        `json:"id"`
-	Thid string                        `json:"thid"`
-	To   string                        `json:"to"`
-	Typ  string                        `json:"typ"`
-	Type string                        `json:"type"`
+	LinkDetail LinkSimple      `json:"linkDetail"`
+	QrCode     *QrCodeResponse `json:"qrCode,omitempty"`
+	Status     *string         `json:"status,omitempty"`
 }
 
 // Health defines model for Health.
@@ -192,11 +170,14 @@ type IssuerDescription struct {
 // Link defines model for Link.
 type Link struct {
 	Active            bool              `json:"active"`
+	CreatedAt         time.Time         `json:"createdAt"`
 	CredentialSubject CredentialSubject `json:"credentialSubject"`
-	Expiration        *time.Time        `json:"expiration,omitempty"`
+	Expiration        *time.Time        `json:"expiration"`
 	Id                uuid.UUID         `json:"id"`
 	IssuedClaims      int               `json:"issuedClaims"`
 	MaxIssuance       *int              `json:"maxIssuance"`
+	ProofTypes        []string          `json:"proofTypes"`
+	SchemaHash        string            `json:"schemaHash"`
 	SchemaType        string            `json:"schemaType"`
 	SchemaUrl         string            `json:"schemaUrl"`
 	Status            LinkStatus        `json:"status"`
@@ -205,6 +186,15 @@ type Link struct {
 // LinkStatus defines model for Link.Status.
 type LinkStatus string
 
+// LinkSimple defines model for LinkSimple.
+type LinkSimple struct {
+	Id         uuid.UUID `json:"id"`
+	ProofTypes []string  `json:"proofTypes"`
+	SchemaHash string    `json:"schemaHash"`
+	SchemaType string    `json:"schemaType"`
+	SchemaUrl  string    `json:"schemaUrl"`
+}
+
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
 type PublishIdentityStateResponse struct {
 	ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
@@ -212,6 +202,47 @@ type PublishIdentityStateResponse struct {
 	RootOfRoots        *string `json:"rootOfRoots,omitempty"`
 	State              *string `json:"state,omitempty"`
 	TxID               *string `json:"txID,omitempty"`
+}
+
+// QrCodeBodyResponse defines model for QrCodeBodyResponse.
+type QrCodeBodyResponse struct {
+	Credentials []QrCodeCredentialResponse `json:"credentials"`
+	Url         string                     `json:"url"`
+}
+
+// QrCodeCredentialResponse defines model for QrCodeCredentialResponse.
+type QrCodeCredentialResponse struct {
+	Description string `json:"description"`
+	Id          string `json:"id"`
+}
+
+// QrCodeResponse defines model for QrCodeResponse.
+type QrCodeResponse struct {
+	Body QrCodeBodyResponse `json:"body"`
+	From string             `json:"from"`
+	Id   string             `json:"id"`
+	Thid string             `json:"thid"`
+	To   string             `json:"to"`
+	Typ  string             `json:"typ"`
+	Type string             `json:"type"`
+}
+
+// RevocationStatusResponse defines model for RevocationStatusResponse.
+type RevocationStatusResponse struct {
+	Issuer struct {
+		ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
+		RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
+		RootOfRoots        *string `json:"rootOfRoots,omitempty"`
+		State              *string `json:"state,omitempty"`
+	} `json:"issuer"`
+	Mtp struct {
+		Existence bool `json:"existence"`
+		NodeAux   *struct {
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
+		} `json:"node_aux,omitempty"`
+		Siblings *[]string `json:"siblings"`
+	} `json:"mtp"`
 }
 
 // RevokeCredentialResponse defines model for RevokeCredentialResponse.
@@ -459,6 +490,9 @@ type ServerInterface interface {
 	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id)
+	// Get Revocation Status
+	// (GET /v1/credentials/revocation/status/{nonce})
+	GetRevocationStatus(w http.ResponseWriter, r *http.Request, nonce PathNonce)
 	// Revoke Credential
 	// (POST /v1/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, nonce PathNonce)
@@ -468,6 +502,9 @@ type ServerInterface interface {
 	// Get Credential
 	// (GET /v1/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, id Id)
+	// Get Credential QR code
+	// (GET /v1/credentials/{id}/qrcode)
+	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id)
 	// Get Schemas
 	// (GET /v1/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, params GetSchemasParams)
@@ -483,10 +520,10 @@ type ServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/state/retry)
 	RetryPublishState(w http.ResponseWriter, r *http.Request)
-	// Endpoint to get the identity state status
+	// Get Identity State Status
 	// (GET /v1/state/status)
 	GetStateStatus(w http.ResponseWriter, r *http.Request)
-	// Endpoint to get the identity state transactions
+	// Get Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request)
 }
@@ -1105,6 +1142,32 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetRevocationStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetRevocationStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathNonce
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "nonce", runtime.ParamLocationPath, chi.URLParam(r, "nonce"), &nonce)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRevocationStatus(w, r, nonce)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // RevokeCredential operation middleware
 func (siw *ServerInterfaceWrapper) RevokeCredential(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1180,6 +1243,34 @@ func (siw *ServerInterfaceWrapper) GetCredential(w http.ResponseWriter, r *http.
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetCredential(w, r, id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetCredentialQrCode operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCredentialQrCode(w, r, id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1509,6 +1600,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatus)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/credentials/revoke/{nonce}", wrapper.RevokeCredential)
 	})
 	r.Group(func(r chi.Router) {
@@ -1516,6 +1610,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/credentials/{id}", wrapper.GetCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/credentials/{id}/qrcode", wrapper.GetCredentialQrCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/schemas", wrapper.GetSchemas)
@@ -2275,6 +2372,41 @@ func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetRevocationStatusRequestObject struct {
+	Nonce PathNonce `json:"nonce"`
+}
+
+type GetRevocationStatusResponseObject interface {
+	VisitGetRevocationStatusResponse(w http.ResponseWriter) error
+}
+
+type GetRevocationStatus200JSONResponse RevocationStatusResponse
+
+func (response GetRevocationStatus200JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatus400JSONResponse struct{ N400JSONResponse }
+
+func (response GetRevocationStatus400JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatus500JSONResponse struct{ N500JSONResponse }
+
+func (response GetRevocationStatus500JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type RevokeCredentialRequestObject struct {
 	Nonce PathNonce `json:"nonce"`
 }
@@ -2392,6 +2524,50 @@ func (response GetCredential400JSONResponse) VisitGetCredentialResponse(w http.R
 type GetCredential500JSONResponse struct{ N500JSONResponse }
 
 func (response GetCredential500JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCodeRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetCredentialQrCodeResponseObject interface {
+	VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error
+}
+
+type GetCredentialQrCode200JSONResponse QrCodeResponse
+
+func (response GetCredentialQrCode200JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode400JSONResponse struct{ N400JSONResponse }
+
+func (response GetCredentialQrCode400JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode404JSONResponse struct{ N404JSONResponse }
+
+func (response GetCredentialQrCode404JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode500JSONResponse struct{ N500JSONResponse }
+
+func (response GetCredentialQrCode500JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2695,6 +2871,9 @@ type StrictServerInterface interface {
 	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
+	// Get Revocation Status
+	// (GET /v1/credentials/revocation/status/{nonce})
+	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Revoke Credential
 	// (POST /v1/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
@@ -2704,6 +2883,9 @@ type StrictServerInterface interface {
 	// Get Credential
 	// (GET /v1/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
+	// Get Credential QR code
+	// (GET /v1/credentials/{id}/qrcode)
+	GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error)
 	// Get Schemas
 	// (GET /v1/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -2719,10 +2901,10 @@ type StrictServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/state/retry)
 	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
-	// Endpoint to get the identity state status
+	// Get Identity State Status
 	// (GET /v1/state/status)
 	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
-	// Endpoint to get the identity state transactions
+	// Get Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 }
@@ -3336,6 +3518,32 @@ func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// GetRevocationStatus operation middleware
+func (sh *strictHandler) GetRevocationStatus(w http.ResponseWriter, r *http.Request, nonce PathNonce) {
+	var request GetRevocationStatusRequestObject
+
+	request.Nonce = nonce
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRevocationStatus(ctx, request.(GetRevocationStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRevocationStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRevocationStatusResponseObject); ok {
+		if err := validResponse.VisitGetRevocationStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 // RevokeCredential operation middleware
 func (sh *strictHandler) RevokeCredential(w http.ResponseWriter, r *http.Request, nonce PathNonce) {
 	var request RevokeCredentialRequestObject
@@ -3407,6 +3615,32 @@ func (sh *strictHandler) GetCredential(w http.ResponseWriter, r *http.Request, i
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetCredentialResponseObject); ok {
 		if err := validResponse.VisitGetCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetCredentialQrCode operation middleware
+func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id) {
+	var request GetCredentialQrCodeRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCredentialQrCode(ctx, request.(GetCredentialQrCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCredentialQrCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCredentialQrCodeResponseObject); ok {
+		if err := validResponse.VisitGetCredentialQrCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

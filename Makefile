@@ -77,6 +77,22 @@ run-ui:
 run-ui-arm:
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
 
+.PHONY: build
+build:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+
+.PHONY: build-arm
+build-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+
+.PHONY: build-ui
+build-ui:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api-ui ui notificacions pending_publisher
+
+.PHONY: build-ui-arm
+build-ui-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api-ui ui notificacions pending_publisher
+
 .PHONY: down
 down:
 	$(DOCKER_COMPOSE_INFRA_CMD) down --remove-orphans
@@ -90,9 +106,6 @@ stop:
 .PHONY: up-test
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault
-
-$(BIN)/configurator:
-	$(BUILD_CMD) ./cmd/configurator
 
 .PHONY: clean-vault
 clean-vault:
@@ -116,10 +129,6 @@ $(BIN)/godotenv: tools.go go.mod go.sum
 .PHONY: db/migrate
 db/migrate: $(BIN)/install-goose $(BIN)/godotenv $(BIN)/platformid-migrate ## Install goose and apply migrations.
 	$(ENV) sh -c '$(BIN)/migrate'
-
-.PHONY: config
-config: $(BIN)/configurator
-	sh -c '$(BIN)/configurator -template=config.toml.sample -output=config.toml'
 
 .PHONY: lint
 lint: $(BIN)/golangci-lint

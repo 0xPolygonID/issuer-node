@@ -32,7 +32,7 @@ import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeMod
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { Credential } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";

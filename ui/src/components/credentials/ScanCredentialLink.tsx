@@ -15,12 +15,12 @@ import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { useEnvContext } from "src/contexts/env";
+import { useEnvContext } from "src/contexts/Env";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   IMAGE_PLACEHOLDER_PATH,
-  QR_CODE_POLLING_INTERVAL,
+  POLLING_INTERVAL,
   WALLET_APP_STORE_URL,
   WALLET_PLAY_STORE_URL,
 } from "src/utils/constants";
@@ -90,7 +90,7 @@ export function ScanCredentialLink() {
       } else {
         clearInterval(checkQRCredentialStatusTimer);
       }
-    }, QR_CODE_POLLING_INTERVAL);
+    }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
   }, [shareCredentialQRCode, linkID, credentialQRCheck, env]);

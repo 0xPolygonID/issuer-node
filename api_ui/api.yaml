@@ -351,6 +351,52 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status
+      operationId: GetRevocationStatus
+      description: Endpoint to get the revocation status of a credential
+      tags:
+        - Credential
+      parameters:
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationStatusResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/credentials/{id}/qrcode:
+    get:
+      summary: Get Credential QR code
+      operationId: GetCredentialQrCode
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a credential.
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   #schemas:
   /v1/schemas:
     post:
@@ -500,7 +546,7 @@ paths:
 
   /v1/state/status:
     get:
-      summary: Endpoint to get the identity state status
+      summary: Get Identity State Status
       operationId: GetStateStatus
       security:
         - basicAuth: [ ]
@@ -518,7 +564,7 @@ paths:
 
   /v1/state/transactions:
     get:
-      summary: Endpoint to get the identity state transactions
+      summary: Get Identity State Transactions
       operationId: GetStateTransactions
       security:
         - basicAuth: [ ]
@@ -714,7 +760,7 @@ paths:
         - Links
       responses:
         '200':
-          description: Link deleted
+          description: Credential link QRCode
           content:
             application/json:
               schema:
@@ -859,7 +905,7 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
-    GetLinkQrCodeResponseType:
+    QrCodeResponse:
       type: object
       required:
         - id
@@ -883,7 +929,7 @@ components:
           type: string
           example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
         body:
-          $ref: '#/components/schemas/GetLinkQrCodeResponseBodyType'
+          $ref: '#/components/schemas/QrCodeBodyResponse'
         from:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
@@ -891,7 +937,7 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63
 
-    GetLinkQrCodeResponseBodyType:
+    QrCodeBodyResponse:
       type: object
       required:
         - url
@@ -903,10 +949,10 @@ components:
         credentials:
           type: array
           items:
-            $ref: '#/components/schemas/GetLinkQrCodeCredentialsResponseType'
+            $ref: '#/components/schemas/QrCodeCredentialResponse'
           example: [ ]
 
-    GetLinkQrCodeCredentialsResponseType:
+    QrCodeCredentialResponse:
       type: object
       required:
         - id
@@ -938,7 +984,7 @@ components:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
         linkDetail:
-          $ref: '#/components/schemas/Link'
+          $ref: '#/components/schemas/LinkSimple'
 
     IssuerDescription:
       type: object
@@ -959,12 +1005,12 @@ components:
         - linkDetail
       properties:
         qrCode:
-          $ref: '#/components/schemas/GetLinkQrCodeResponseType'
+          $ref: '#/components/schemas/QrCodeResponse'
         status:
           type: string
           example: done | pending | pendingPublish
         linkDetail:
-          $ref: '#/components/schemas/Link'
+          $ref: '#/components/schemas/LinkSimple'
 
     UUIDResponse:
       type: object
@@ -994,6 +1040,7 @@ components:
         - expired
         - schemaHash
         - schemaType
+        - schemaUrl
         - revNonce
         - credentialSubject
         - revoked
@@ -1017,6 +1064,8 @@ components:
         expiresAt:
           type: string
           format: date-time
+          x-omitempty: false
+          nullable: true
           example: "2025-03-20T11:54:01.110295+01:00"
         expired:
           type: boolean
@@ -1026,7 +1075,10 @@ components:
           example: "c9b2370371b7fa8b3dab2a5ba81b6838"
         schemaType:
           type: string
-          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential"
+          example: "KYCAgeCredential"
+        schemaUrl:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         revoked:
           type: boolean
           example: false
@@ -1053,6 +1105,9 @@ components:
         - issuedClaims
         - active
         - status
+        - proofTypes
+        - schemaHash
+        - createdAt
       properties:
         id:
           type: string
@@ -1063,24 +1118,72 @@ components:
           example: 8edd8112-c415-11ed-b036-debe37e1cbd6
         schemaUrl:
           type: string
+          example: https://someValidURL.com
         schemaType:
           type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
         maxIssuance:
           type: integer
           x-omitempty: false
+          nullable: true
         issuedClaims:
           type: integer
         expiration:
           type: string
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
+          x-omitempty: false
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-03-16T10:18:01.400722+01:00
         active:
           type: boolean
         status:
           type: string
           enum: [ active, inactive, exceeded ]
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
+
+    LinkSimple:
+      type: object
+      required:
+        - id
+        - schemaUrl
+        - schemaType
+        - proofTypes
+        - schemaHash
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        schemaUrl:
+          type: string
+          example: https://someValidURL.com
+        schemaType:
+          type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
 
     StateTransactionsResponse:
       type: array
@@ -1286,14 +1389,17 @@ components:
         claimLinkExpiration:
           type: string
           format: date-time
-          example: 2023-04-17T11:40:43.681857-03:00
+          example: 2025-04-17T11:40:43.681857-03:00
         limitedClaims:
           type: integer
+          example: 5
           x-omitempty: false
         signatureProof:
           type: boolean
+          example: true
         mtProof:
           type: boolean
+          example: false
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
 
@@ -1304,6 +1410,45 @@ components:
         birthday: 19960424
         documentType: 2
         type: "KYCAgeCredential"
+
+    RevocationStatusResponse:
+      type: object
+      required:
+        - issuer
+        - mtp
+      properties:
+        issuer:
+          type: object
+          properties:
+            state:
+              type: string
+            rootOfRoots:
+              type: string
+            claimsTreeRoot:
+              type: string
+            revocationTreeRoot:
+              type: string
+        mtp:
+          type: object
+          required:
+            - existence
+          properties:
+            existence:
+              type: boolean
+            siblings:
+              type: array
+              x-omitempty: false
+              items:
+                type: string
+
+            node_aux:
+              type: object
+              properties:
+                key:
+                  type: string
+                value:
+                  type: string
+
 
     #Agent
     AgentResponse:

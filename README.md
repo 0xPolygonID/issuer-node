@@ -88,13 +88,18 @@ ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
 ```bash
 # FROM: ./
 
-rm ./infrastructure/local/.vault/data/init.out;
-rm -rf ./infrastructure/local/.vault/file/*; # don't forget to type 'y'
-rm ./infrastructure/local/.vault/plugins/vault-plugin-secrets-iden3;
-rm -rf ./infrastructure/local/.vault/policies;
+make clean-vault;
+# (Equivalent)
+#   rm -R infrastructure/local/.vault/data/init.out
+#   rm -R infrastructure/local/.vault/file/core/
+#   rm -R infrastructure/local/.vault/file/logical/
+#   rm -R infrastructure/local/.vault/file/sys/
 
 # Expected Output/Prompt:
-#   sure you want to delete all 3 files in /Users/username/path/to/sh-id-platform/./infrastructure/local/.vault/file [yn]? y
+#   rm -R infrastructure/local/.vault/data/init.out
+#   rm -R infrastructure/local/.vault/file/core/
+#   rm -R infrastructure/local/.vault/file/logical/
+#   rm -R infrastructure/local/.vault/file/sys/
 ```
 
 #### Start Redis Postgres & Vault
@@ -268,6 +273,114 @@ Now open up [http://localhost:3001](http://localhost:3001) and see the following
 
 ![Issuer Node API](/docs/3001.png)
 
+#### Configure UI Environment Variables
+
+This is to configure our UI admin to manage our credentials as an issuer at [http://localhost:8088](http://localhost:8088)
+
+> **NOTE:** REQUIRED STEP in order for the ui to work properly.
+
+```bash
+# FROM: ./
+
+cp ./ui/.env.sample ./ui/.env;
+```
+
+Configure the ui `.env` file with the following details:
+
+**File:** `./ui/.env`
+
+```bash
+VITE_API_URL=http://localhost:3002
+VITE_API_USERNAME=user-ui
+VITE_API_PASSWORD=password-ui
+
+VITE_ISSUER_DID=<YOUR_ISSUER_API_UI_ISSUER_DID_FROM_ENVAPI>
+VITE_ISSUER_NAME=<YOUR_ISSUER_API_UI_ISSUER_NAME_FROM_ENVAPI>
+VITE_ISSUER_LOGO=<YOUR_ISSUER_API_UI_ISSUER_LOGO_FROM_ENVAPI>
+
+VITE_BLOCK_EXPLORER_URL=https://mumbai.polygonscan.com
+```
+
+#### Start API UI, Admin UI, Notifications, & Publisher
+
+This will start your own admin ui that will allow you to create and distrubute credentials.
+
+> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+
+```bash
+# FROM: ./
+
+make run-ui;
+# (Equivalent)
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher;
+
+# Expected Output:
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher
+#   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
+#   [+] Running 4/4
+#    ⠿ Container issuer-ui-1                 Started                                                                                                           0.5s
+#    ⠿ Container issuer-api-ui-1             Started                                                                                                           0.5s
+#    ⠿ Container issuer-notificacions-1      Started                                                                                                           0.4s
+#    ⠿ Container issuer-pending_publisher-1  Running  
+```
+
+> For _Apple-M1/M2/Arm_:
+
+```bash
+# FROM: ./
+
+make run-ui-arm;
+# (Equivalent)
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher;
+
+# Expected Output:
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher
+#   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
+#   [+] Running 4/4
+#    ⠿ Container issuer-ui-1                 Started                                                                                                           0.5s
+#    ⠿ Container issuer-api-ui-1             Started                                                                                                           0.5s
+#    ⠿ Container issuer-notificacions-1      Started                                                                                                           0.4s
+#    ⠿ Container issuer-pending_publisher-1  Running  
+```
+
+Everything should be running correctly and we should see the following services:
+
+![Issuer UI API](/docs/3002.png)
+
+#### Testing API UI
+
+To test a request, make sure to set the Authentention section to the following:
+
+**File:** `./env-api`
+
+```bash
+# ...
+
+ISSUER_API_UI_AUTH_USER=user-api
+ISSUER_API_UI_AUTH_PASSWORD=password-api
+```
+
+![Issuer UI API Authentication](/docs/3002-auth.png)
+
+![Issuer UI API Get Credentials](/docs/3002-credentials.png)
+
+#### Testing Admin UI
+
+> **NOTE:** If you are using Chrome, you might get the Basic auth show and disappear quickly. For this you just need to type: [http://user-api:password-api@localhost:8088/](http://user-api:password-api@localhost:8088/) to get the service to show up correctly.
+
+Reference file for the basic auth credentials.
+
+**File:** `./env-api`
+
+```bash
+# ...
+
+ISSUER_API_UI_AUTH_USER=user-api
+ISSUER_API_UI_AUTH_PASSWORD=password-api
+```
+
+![Issuer UI Admin](/docs/8088.png)
+
 ---
 
 ### Standalone Mode Guide
@@ -290,10 +403,11 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 2. Run `make build`. This will generate a binary for each of the following commands:
-    - `platform`
-    - `migrate`
-    - `pending_publisher`
-    - `configurator`
+   - `platform`
+   - `platform_ui`
+   - `migrate`
+   - `pending_publisher`
+   - `notifications`
 3. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
 4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
 5. Run `./bin/platform` command to start the issuer.
@@ -314,6 +428,8 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 Once you've completed the [Installation](#installation) section, this will walk you through issuing credentials/claims.
 
 ### (Optional/Skip) Create Identity
+
+> **NOTE:** This step should have been completed in [Create Issuer ID](#create-issuer-did) step.
 
 This is to demonstrate how to createa an identity but is not needed as the identity is created in [Create Issuer DID](#create-issuer-did) step.
 
@@ -359,8 +475,13 @@ curl --location --request GET 'http://localhost:3001/v1/identities' \
 
 ### Creating Claim/Credentials
 
+This will go through creating a `KYCAgeCredential` claim based off the following [KYC Age Credential Schema](https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json)
 
-This will go through creating a `KYCAgeCredential` claim based off the following [KYC Age Credential Schema](https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json
+#### Option 1 - From Admin UI
+
+(Currently a WIP)
+
+#### Option 2 - From Terminal
 
 Before creating the claim, the identifier of the service/person is needed. To retrive this, the `identifier` can be copied from the Polygon ID app to the clipboard.
 
@@ -399,6 +520,14 @@ curl --location --request GET 'http://localhost:3001/v1/did:polygonid:polygon:mu
 ```
 
 ### Issuing Claim/Credential To Polygon ID App
+
+This will walk you through the steps of issueing a claim/credentials to the Polygon ID wallet app.
+
+#### Option 1 - From Admin UI
+
+(Currently a WIP)
+
+#### Option 2 - From Terminal
 
 In order to get the claim on the Polygon ID App, the claim QR Code payload is needed.
 
@@ -480,12 +609,13 @@ Completing either option of the [installation](#installation) process yields the
 2. Go to the `ui/` folder.
 3. Copy the `.env.sample` file as `.env`
 4. All variables are required to be set, with the exception of `VITE_ISSUER_LOGO`. The following are the corresponding variables present in the parent folder's `.env-api`, which need to be the same. Only `VITE_ISSUER_NAME` can differ for the UI to function in development mode.
-    - `VITE_API_URL -> ISSUER_API_UI_SERVER_URL`
-    - `VITE_API_USERNAME -> ISSUER_API_UI_AUTH_USER`
-    - `VITE_API_PASSWORD -> ISSUER_API_UI_AUTH_PASSWORD`
-    - `VITE_ISSUER_DID -> ISSUER_API_UI_ISSUER_DID`
-    - `VITE_ISSUER_NAME -> ISSUER_API_UI_ISSUER_NAME`
-    - `VITE_ISSUER_LOGO -> ISSUER_API_UI_ISSUER_LOGO`
+   - `VITE_API_URL -> ISSUER_API_UI_SERVER_URL`
+   - `VITE_API_USERNAME -> ISSUER_API_UI_AUTH_USER`
+   - `VITE_API_PASSWORD -> ISSUER_API_UI_AUTH_PASSWORD`
+   - `VITE_BLOCK_EXPLORER_URL -> ISSUER_UI_BLOCK_EXPLORER_URL`
+   - `VITE_ISSUER_DID -> ISSUER_API_UI_ISSUER_DID`
+   - `VITE_ISSUER_NAME -> ISSUER_API_UI_ISSUER_NAME`
+   - `VITE_ISSUER_LOGO -> ISSUER_API_UI_ISSUER_LOGO`
 5. Run `npm install`
 6. Run `npm start`
 7. The app will be running on <http://localhost:5173>.
@@ -564,6 +694,40 @@ For example, for inspecting the issuer API node, run:
 `docker logs issuer-api-1`
 
 In most cases, a startup failure will be due to erroneous environment variables. In the case of the UI, any missing environment variable(s) will show as part of the error message.
+
+### Made Changes To Code But Not Showing In Docker?
+
+There is a good chance that you just need to rebuild the docker images if you made any changes to the golang code or any other services.
+
+To rebuild the docker images, just run the following (this might take a bit):
+
+> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+
+```bash
+# FROM: ./
+
+# for `api` and `pending_publisher`
+make build;
+# for `api-ui` `ui` `notificacions`and ` pending_publisher`
+make build-ui;
+
+# Expected Output:
+#   ...
+```
+
+> For _Apple-M1/M2/Arm_:
+
+```bash
+# FROM: ./
+
+# for `api` and `pending_publisher`
+make build-arm;
+# for `api-ui` `ui` `notificacions`and ` pending_publisher`
+make build-ui-arm;
+
+# Expected Output:
+#   ...
+```
 
 ---
 

@@ -1,9 +1,14 @@
 package api_ui
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -51,8 +56,18 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		RevNonce:          uint64(credential.RevNonce),
 		Revoked:           credential.Revoked,
 		SchemaHash:        credential.SchemaHash,
-		SchemaType:        credential.SchemaType,
+		SchemaType:        shortType(credential.SchemaType),
+		SchemaUrl:         credential.SchemaURL,
 	}
+}
+
+func shortType(id string) string {
+	parts := strings.Split(id, "#")
+	l := len(parts)
+	if l == 0 {
+		return ""
+	}
+	return parts[l-1]
 }
 
 func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string {
@@ -62,7 +77,7 @@ func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string
 	}
 
 	if credential.MtProof {
-		proofs = append(proofs, "MTP")
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
 	}
 	return proofs
 }
@@ -143,8 +158,8 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 
 func getSigProof(w3c *verifiable.W3CCredential) *string {
 	for i := range w3c.Proof {
-		if string(w3c.Proof[i].ProofType()) == "BJJSignature2021" {
-			return common.ToPointer("BJJSignature2021")
+		if string(w3c.Proof[i].ProofType()) == string(verifiable.BJJSignatureProofType) {
+			return common.ToPointer(string(verifiable.BJJSignatureProofType))
 		}
 	}
 	return nil
@@ -175,17 +190,45 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 }
 
 func getLinkResponse(link domain.Link) Link {
+	hash, _ := link.Schema.Hash.MarshalText()
 	return Link{
 		Active:            link.Active,
 		CredentialSubject: link.CredentialSubject,
 		Expiration:        link.ValidUntil,
+		CreatedAt:         link.CreatedAt,
 		Id:                link.ID,
 		IssuedClaims:      link.IssuedClaims,
 		MaxIssuance:       link.MaxIssuance,
 		SchemaType:        link.Schema.Type,
 		SchemaUrl:         link.Schema.URL,
+		SchemaHash:        string(hash),
 		Status:            LinkStatus(link.Status()),
+		ProofTypes:        getLinkProofs(link),
 	}
+}
+
+func getLinkSimpleResponse(link domain.Link) LinkSimple {
+	hash, _ := link.Schema.Hash.MarshalText()
+	return LinkSimple{
+		Id:         link.ID,
+		SchemaType: link.Schema.Type,
+		SchemaUrl:  link.Schema.URL,
+		SchemaHash: string(hash),
+		ProofTypes: getLinkProofs(link),
+	}
+}
+
+func getLinkProofs(link domain.Link) []string {
+	proofs := make([]string, 0)
+	if link.CredentialMTPProof {
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
+	}
+
+	if link.CredentialSignatureProof {
+		proofs = append(proofs, string(verifiable.BJJSignatureProofType))
+	}
+
+	return proofs
 }
 
 func getLinkResponses(links []domain.Link) []Link {
@@ -196,28 +239,86 @@ func getLinkResponses(links []domain.Link) []Link {
 	return res
 }
 
-func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
+func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *QrCodeResponse {
 	if linkQrCode == nil {
 		return nil
 	}
-	credentials := make([]GetLinkQrCodeCredentialsResponseType, len(linkQrCode.Body.Credentials))
+	credentials := make([]QrCodeCredentialResponse, len(linkQrCode.Body.Credentials))
 	for i, c := range linkQrCode.Body.Credentials {
-		credentials[i] = GetLinkQrCodeCredentialsResponseType{
+		credentials[i] = QrCodeCredentialResponse{
 			Id:          c.ID,
 			Description: c.Description,
 		}
 	}
 
-	return &GetLinkQrCodeResponseType{
+	return &QrCodeResponse{
 		Id:   linkQrCode.ID,
 		Thid: linkQrCode.ThreadID,
 		Typ:  linkQrCode.Typ,
 		Type: linkQrCode.Type,
 		From: linkQrCode.From,
 		To:   linkQrCode.To,
-		Body: GetLinkQrCodeResponseBodyType{
+		Body: QrCodeBodyResponse{
 			Url:         linkQrCode.Body.URL,
 			Credentials: credentials,
 		},
 	}
+}
+
+func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCodeResponse {
+	id := uuid.NewString()
+	return QrCodeResponse{
+		Body: QrCodeBodyResponse{
+			Credentials: []QrCodeCredentialResponse{
+				{
+					Description: credential.SchemaType,
+					Id:          credential.ID.String(),
+				},
+			},
+			Url: getAgentEndpoint(hostURL),
+		},
+		From: credential.Issuer,
+		Id:   id,
+		Thid: id,
+		To:   credential.OtherIdentifier,
+		Typ:  string(packers.MediaTypePlainMessage),
+		Type: string(protocol.CredentialOfferMessageType),
+	}
+}
+
+func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {
+	response := RevocationStatusResponse{}
+	response.Issuer.State = rs.Issuer.State
+	response.Issuer.RevocationTreeRoot = rs.Issuer.RevocationTreeRoot
+	response.Issuer.RootOfRoots = rs.Issuer.RootOfRoots
+	response.Issuer.ClaimsTreeRoot = rs.Issuer.ClaimsTreeRoot
+	response.Mtp.Existence = rs.MTP.Existence
+
+	if rs.MTP.NodeAux != nil {
+		key := rs.MTP.NodeAux.Key
+		decodedKey := key.BigInt().String()
+		value := rs.MTP.NodeAux.Value
+		decodedValue := value.BigInt().String()
+		response.Mtp.NodeAux = &struct {
+			Key   *string `json:"key,omitempty"`
+			Value *string `json:"value,omitempty"`
+		}{
+			Key:   &decodedKey,
+			Value: &decodedValue,
+		}
+	}
+
+	response.Mtp.Existence = rs.MTP.Existence
+	siblings := make([]string, 0)
+	for _, s := range rs.MTP.AllSiblings() {
+		siblings = append(siblings, s.BigInt().String())
+	}
+
+	response.Mtp.Siblings = &siblings
+
+	return response
+}
+
+func getAgentEndpoint(hostURL string) string {
+	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/"))
 }

@@ -35,7 +35,7 @@ func Test_link_issueClaim(t *testing.T) {
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	schemaLoader := loader.HTTPFactory
 	sessionRepository := repositories.NewSessionCached(cachex)
-	schemaService := services.NewSchemaAdmin(schemaRepository, schemaLoader)
+	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "https://host.com",
@@ -78,7 +78,7 @@ func Test_link_issueClaim(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schemaUrl, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil))
+	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schemaUrl, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)
