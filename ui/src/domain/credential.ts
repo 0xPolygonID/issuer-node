@@ -26,4 +26,4 @@ export interface Link {
   status: LinkStatus;
 }
 
-type ProofTypes = "BJJSignature2021" | "SparseMerkleTreeProof";
+export type ProofTypes = "BJJSignature2021" | "SparseMerkleTreeProof";

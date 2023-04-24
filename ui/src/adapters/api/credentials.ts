@@ -14,6 +14,7 @@ import {
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Json, Link, LinkStatus } from "src/domain";
+import { ProofTypes } from "src/domain/credential";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 export const credentialParser = getStrictParser<Credential>()(
@@ -141,6 +142,10 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
+const proofTypesParser = getStrictParser<ProofTypes[]>()(
+  z.array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+);
+
 const linkParser = getStrictParser<Link>()(
   z.object({
     active: z.boolean(),
@@ -148,9 +153,7 @@ const linkParser = getStrictParser<Link>()(
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullish(),
-    proofTypes: z.array(
-      z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")])
-    ),
+    proofTypes: proofTypesParser,
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
@@ -288,7 +291,7 @@ export async function createLink({
 
 export interface ShareCredentialQRCode {
   issuer: { displayName: string; logo: string };
-  linkDetail: Link;
+  linkDetail: { proofTypes: ProofTypes[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
 }
@@ -299,7 +302,7 @@ const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
       displayName: z.string(),
       logo: z.string(),
     }),
-    linkDetail: linkParser,
+    linkDetail: z.object({ proofTypes: proofTypesParser, schemaType: z.string() }),
     qrCode: z.unknown(),
     sessionID: z.string(),
   })
