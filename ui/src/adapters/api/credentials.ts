@@ -149,6 +149,9 @@ const linkParser = getStrictParser<Link>()(
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullish(),
+    proofTypes: z.array(
+      z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")])
+    ),
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
