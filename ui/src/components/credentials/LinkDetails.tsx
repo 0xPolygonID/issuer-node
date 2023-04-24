@@ -3,12 +3,12 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
-import { LinkDeleteModal } from "./LinkDeleteModal";
 import { APIError } from "src/adapters/api";
 import { getLink } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import { LinkDeleteModal } from "src/components/credentials/LinkDeleteModal";
 import { ObjectAttributeValuesTree } from "src/components/credentials/ObjectAttributeValuesTree";
 import { Detail } from "src/components/shared/Detail";
 import { ErrorResult } from "src/components/shared/ErrorResult";
