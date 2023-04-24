@@ -93,9 +93,9 @@ export function IssueCredential() {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const issueCredentialFromCredentialDirectIssuance = (
-    CredentialDirectIssuance: CredentialDirectIssuance
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    credentialDirectIssuance: CredentialDirectIssuance
   ) => {
     // ToDo: PID-508
   };

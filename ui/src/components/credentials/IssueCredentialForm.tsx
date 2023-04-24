@@ -104,8 +104,8 @@ export function IssueCredentialForm({
               <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
 
               <Typography.Text type="secondary">
-                Credential will be added to issuer credential Merkle tree. The state transition
-                involves an on-chain transaction and coverage of gas fees.
+                Credential will be added to the issuer&apos;s state tree. The state transition
+                involves an on-chain transaction and gas fees.
               </Typography.Text>
             </Checkbox>
           </Form.Item>
