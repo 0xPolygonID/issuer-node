@@ -13,8 +13,8 @@ const (
 
 // CreateCredential defines the createCredential data
 type CreateCredential struct {
-	CredentialID string `json:"credentialID"`
-	IssuerID     string `json:"issuerID"`
+	CredentialIDs []string `json:"credentialsID"`
+	IssuerID      string   `json:"issuerID"`
 }
 
 // Marshal marshals the event into a pubsub.Message
