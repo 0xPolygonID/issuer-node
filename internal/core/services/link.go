@@ -242,7 +242,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 			}
 
 			if link.CredentialSignatureProof {
-				err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialID: credentialIssued.ID.String(), IssuerID: issuerDID.String()})
+				err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{credentialIssued.ID.String()}, IssuerID: issuerDID.String()})
 				if err != nil {
 					log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", credentialIssued.ID.String())
 				}

@@ -39,7 +39,7 @@ func (n *notification) SendCreateCredentialNotification(ctx context.Context, e p
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
 
-	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialID)
+	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialIDs)
 }
 
 func (n *notification) SendCreateConnectionNotification(ctx context.Context, e pubsub.Message) error {
@@ -51,44 +51,77 @@ func (n *notification) SendCreateConnectionNotification(ctx context.Context, e p
 	return n.sendCreateConnectionNotification(ctx, cEvent.IssuerID, cEvent.ConnectionID)
 }
 
-func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credID string) error {
+func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credIDs []string) error {
 	issuerDID, err := core.ParseDID(issuerID)
 	if err != nil {
-		log.Error(ctx, "sendCreateCredentialNotification: failed to parse issuerID", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+		log.Error(ctx, "sendCreateCredentialNotification: failed to parse issuerID", "err", err.Error(), "issuerID", issuerID)
 		return err
 	}
 
-	credUUID, err := uuid.Parse(credID)
-	if err != nil {
-		log.Error(ctx, "sendCreateCredentialNotification: failed to parse credID", "err", err.Error(), "issuerID", issuerID, "credID", credID)
-		return err
+	currentUserID := ""
+	var currentConnection *domain.Connection
+	credentials := make([]*domain.Claim, 0)
+	for i, credID := range credIDs {
+		credUUID, err := uuid.Parse(credID)
+		if err != nil {
+			log.Error(ctx, "sendCreateCredentialNotification: failed to parse credID", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+			continue
+		}
+
+		credential, err := n.credService.GetByID(ctx, issuerDID, credUUID)
+		if err != nil {
+			log.Warn(ctx, "sendCreateCredentialNotification: get credential", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+			continue
+		}
+
+		userDID, err := core.ParseDID(credential.OtherIdentifier)
+		if err != nil {
+			log.Error(ctx, "sendCreateCredentialNotification: failed to parse credential userID", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+			continue
+		}
+
+		if currentUserID == "" {
+			currentUserID = credential.OtherIdentifier
+			currentConnection, err = n.connService.GetByUserID(ctx, *issuerDID, *userDID)
+			if err != nil {
+				log.Warn(ctx, "sendCreateCredentialNotification: get currentConnection", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+				continue
+			}
+		}
+
+		// If the credential is for a different user or it's the last credential for the currentUserID, send the notification
+		if currentUserID != credential.OtherIdentifier || i == len(credIDs)-1 {
+			if i == len(credIDs)-1 {
+				credentials = append(credentials, credential)
+			}
+
+			credOfferBytes, subjectDIDDoc, err := getCredentialOfferData(currentConnection, credentials...)
+			if err != nil {
+				log.Error(ctx, "sendCreateCredentialNotification: getCredentialOfferData", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+				continue
+			}
+			// send notification
+			log.Info(ctx, "sendCreateCredentialNotification: sending notification", "issuerID", issuerID, "subjectDIDDoc", subjectDIDDoc.ID)
+			err = n.send(ctx, credOfferBytes, subjectDIDDoc)
+			if err != nil {
+				log.Error(ctx, "sendCreateCredentialNotification: send notification", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+			}
+
+			currentUserID = credential.OtherIdentifier
+			conn, err := n.connService.GetByUserID(ctx, *issuerDID, *userDID)
+			if err != nil {
+				log.Warn(ctx, "sendCreateCredentialNotification: get currentConnection", "err", err.Error(), "issuerID", issuerID, "credID", credID)
+				return err
+			}
+			currentConnection = conn
+			credentials = make([]*domain.Claim, 0)
+			credentials = append(credentials, credential)
+			continue
+		}
+		credentials = append(credentials, credential)
 	}
 
-	credential, err := n.credService.GetByID(ctx, issuerDID, credUUID)
-	if err != nil {
-		log.Warn(ctx, "sendCreateCredentialNotification: get credential", "err", err.Error(), "issuerID", issuerID, "credID", credID)
-		return err
-	}
-
-	userDID, err := core.ParseDID(credential.OtherIdentifier)
-	if err != nil {
-		log.Error(ctx, "sendCreateCredentialNotification: failed to parse credential userID", "err", err.Error(), "issuerID", issuerID, "credID", credID)
-		return err
-	}
-
-	conn, err := n.connService.GetByUserID(ctx, *issuerDID, *userDID)
-	if err != nil {
-		log.Warn(ctx, "sendCreateCredentialNotification: get connection", "err", err.Error(), "issuerID", issuerID, "credID", credID)
-		return err
-	}
-
-	credOfferBytes, subjectDIDDoc, err := getCredentialOfferData(conn, credential)
-	if err != nil {
-		log.Error(ctx, "sendCreateCredentialNotification: getCredentialOfferData", "err", err.Error(), "issuerID", issuerID, "credID", credID)
-		return err
-	}
-
-	return n.send(ctx, credOfferBytes, subjectDIDDoc)
+	return nil
 }
 
 func (n *notification) sendCreateConnectionNotification(ctx context.Context, issuerID string, connID string) error {
