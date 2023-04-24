@@ -1586,6 +1586,135 @@ func TestServer_GetCredentials(t *testing.T) {
 	}
 }
 
+func TestServer_GetCredentialQrCode(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	revocationRepository := repositories.NewRevocation()
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	claimsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
+	connectionsService := services.NewConnection(connectionsRepository, storage)
+	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
+	require.NoError(t, err)
+
+	did, err := core.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+	cfg.APIUI.IssuerDID = *did
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	handler := getHandler(ctx, server)
+
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
+	merklizedRootPosition := "index"
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	createdClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
+	require.NoError(t, err)
+
+	type expected struct {
+		message  *string
+		response QrCodeResponse
+		httpCode int
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		request  GetCredentialRequestObject
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			request: GetCredentialRequestObject{
+				Id: uuid.New(),
+			},
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "should return an error, claim not found",
+			auth: authOk,
+			request: GetCredentialRequestObject{
+				Id: uuid.New(),
+			},
+			expected: expected{
+				message:  common.ToPointer("Credential not found"),
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "happy path",
+			auth: authOk,
+			request: GetCredentialRequestObject{
+				Id: createdClaim.ID,
+			},
+			expected: expected{
+				response: QrCodeResponse{
+					Body: QrCodeBodyResponse{
+						Credentials: []QrCodeCredentialResponse{
+							{
+								Description: schema,
+								Id:          createdClaim.ID.String(),
+							},
+						},
+						Url: "",
+					},
+					From: did.String(),
+					To:   createdClaim.OtherIdentifier,
+				},
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/credentials/%s/qrcode", tc.request.Id.String())
+
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response QrCodeResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				require.Equal(t, tc.expected.response.From, response.From)
+				require.Equal(t, tc.expected.response.To, response.To)
+				require.Equal(t, len(tc.expected.response.Body.Credentials), len(response.Body.Credentials))
+			case http.StatusBadRequest:
+				var response GetCredential400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
 func TestServer_GetConnection(t *testing.T) {
 	const (
 		method     = "polygonid"

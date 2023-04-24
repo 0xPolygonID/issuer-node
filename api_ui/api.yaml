@@ -372,6 +372,31 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/{id}/qrcode:
+    get:
+      summary: Get Credential QR code
+      operationId: GetCredentialQrCode
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a credential.
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   #schemas:
   /v1/schemas:
     post:
@@ -880,7 +905,7 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
-    GetLinkQrCodeResponseType:
+    QrCodeResponse:
       type: object
       required:
         - id
@@ -904,7 +929,7 @@ components:
           type: string
           example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
         body:
-          $ref: '#/components/schemas/GetLinkQrCodeResponseBodyType'
+          $ref: '#/components/schemas/QrCodeBodyResponse'
         from:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
@@ -912,7 +937,7 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63
 
-    GetLinkQrCodeResponseBodyType:
+    QrCodeBodyResponse:
       type: object
       required:
         - url
@@ -924,10 +949,10 @@ components:
         credentials:
           type: array
           items:
-            $ref: '#/components/schemas/GetLinkQrCodeCredentialsResponseType'
+            $ref: '#/components/schemas/QrCodeCredentialResponse'
           example: [ ]
 
-    GetLinkQrCodeCredentialsResponseType:
+    QrCodeCredentialResponse:
       type: object
       required:
         - id
@@ -980,7 +1005,7 @@ components:
         - linkDetail
       properties:
         qrCode:
-          $ref: '#/components/schemas/GetLinkQrCodeResponseType'
+          $ref: '#/components/schemas/QrCodeResponse'
         status:
           type: string
           example: done | pending | pendingPublish
