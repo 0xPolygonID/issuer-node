@@ -8,7 +8,7 @@ export function FullWidthLayout({ background }: { background?: string }) {
     <Layout className={background} style={{ minHeight: "100vh" }}>
       <Layout.Header className={background} style={{ margin: "16px 0" }}>
         <Row align="middle">
-          <Col span={4}>
+          <Col style={{ width: 200 }}>
             <LogoLink />
           </Col>
         </Row>

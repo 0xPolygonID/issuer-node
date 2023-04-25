@@ -2,13 +2,7 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { z } from "zod";
 
-import {
-  APIResponse,
-  HTTPStatusSuccess,
-  ResultOK,
-  buildAPIError,
-  buildAuthorizationHeader,
-} from "src/adapters/api";
+import { APIResponse, ResultOK, buildAPIError, buildAuthorizationHeader } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
@@ -95,7 +89,7 @@ export async function getStatus({
 const resultOKStatusParser = getStrictParser<ResultOK<IssuerStatus>>()(
   z.object({
     data: z.object({ pendingActions: z.boolean() }),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -132,6 +126,6 @@ export async function getTransactions({
 const resultOKTransactionsParser = getStrictParser<ResultOK<Transaction[]>>()(
   z.object({
     data: z.array(transactionParser),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );

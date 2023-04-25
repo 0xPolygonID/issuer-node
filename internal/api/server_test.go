@@ -378,7 +378,7 @@ func TestServer_CreateClaim(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(time.Now()),
+				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
 				response:                    CreateClaim201JSONResponse{},
@@ -398,7 +398,7 @@ func TestServer_CreateClaim(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(time.Now()),
+				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
 				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "malformed url"}},
@@ -417,7 +417,7 @@ func TestServer_CreateClaim(t *testing.T) {
 					"birthday":     19960424,
 					"documentType": 2,
 				},
-				Expiration: common.ToPointer(time.Now()),
+				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
 				response: CreateClaim422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},

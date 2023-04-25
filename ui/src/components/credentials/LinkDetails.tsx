@@ -184,7 +184,7 @@ export function LinkDetails() {
         } else {
           const { createdAt, expiration, proofTypes, schemaHash, schemaType, status } = link.data;
 
-          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLink.path, {
+          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
             linkID,
           })}`;
 

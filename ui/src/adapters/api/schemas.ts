@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import {
   APIResponse,
-  HTTPStatusSuccess,
   ID,
   IDParser,
   ResultOK,
@@ -133,7 +132,7 @@ const schemaParser = getStrictParser<Schema>()(
 const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
   z.object({
     data: schemaParser,
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -165,6 +164,6 @@ const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Sche
         { errors: [], schemas: [] }
       )
     ),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );

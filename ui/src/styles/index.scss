@@ -118,6 +118,15 @@
   }
 }
 
+.avatar-color-success {
+  background-color: $success-bg;
+  color: $success-color;
+
+  path {
+    stroke: $success-color;
+  }
+}
+
 .ant-drawer-content-wrapper {
   width: 400px !important;
 }

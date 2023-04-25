@@ -26,32 +26,19 @@ interface APISuccessfulResponse<D> {
 
 export type APIResponse<D> = APISuccessfulResponse<D> | APIErrorResponse;
 
-export enum HTTPStatusError {
-  Aborted = 0,
-  Unauthorized = 401,
-  NotFound = 404,
-}
-
-export enum HTTPStatusSuccess {
-  Accepted = 202,
-  Created = 201,
-  NoContent = 204,
-  OK = 200,
-}
-
 export interface ResultAccepted<D> {
   data: D;
-  status: HTTPStatusSuccess.Accepted;
+  status: 202;
 }
 
 export interface ResultOK<D> {
   data: D;
-  status: HTTPStatusSuccess.OK;
+  status: 200;
 }
 
 export interface ResultCreated<D> {
   data: D;
-  status: HTTPStatusSuccess.Created;
+  status: 201;
 }
 
 interface ResponseError {
@@ -74,7 +61,7 @@ export const IDParser = getStrictParser<ID>()(z.object({ id: z.string() }));
 
 export function buildAPIError(error: unknown): APIError {
   if (axios.isCancel(error)) {
-    return { message: error.toString(), status: HTTPStatusError.Aborted };
+    return { message: error.toString(), status: 0 };
   }
 
   if (axios.isAxiosError(error)) {
@@ -109,6 +96,6 @@ export const resultOKMessage = getStrictParser<ResultOK<{ message: string }>>()(
     data: z.object({
       message: z.string(),
     }),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
