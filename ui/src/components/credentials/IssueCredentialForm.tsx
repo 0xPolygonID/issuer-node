@@ -1,6 +1,6 @@
 import { Button, Checkbox, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
 import dayjs from "dayjs";
-import { IssueCredentialFormData } from "src/adapters/parsers/forms";
+import { IssueCredentialFormDataInput } from "src/adapters/parsers/forms";
 
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
@@ -19,10 +19,10 @@ export function IssueCredentialForm({
   schema,
   type,
 }: {
-  initialValues: IssueCredentialFormData;
+  initialValues: IssueCredentialFormDataInput;
   jsonSchema: JsonSchema;
   onBack: () => void;
-  onSubmit: (values: IssueCredentialFormData) => void;
+  onSubmit: (values: IssueCredentialFormDataInput) => void;
   schema: Schema;
   type: "directIssue" | "credentialLink";
 }) {

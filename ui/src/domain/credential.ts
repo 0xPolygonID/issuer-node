@@ -14,7 +14,7 @@ export type CredentialsTabIDs = "issued" | "links";
 
 export type LinkStatus = "active" | "inactive" | "exceeded";
 
-export type ProofType = "MTP" | "SIG";
+export type ProofType = "MTP" | "SIG" | "MTP & SIG";
 
 export interface Link {
   active: boolean;
@@ -24,7 +24,7 @@ export interface Link {
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
-  proofTypes: ProofType[];
+  proofType: ProofType;
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;

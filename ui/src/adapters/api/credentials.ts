@@ -176,22 +176,22 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 
-const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
+const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType>()(
   z
     .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
     .min(1)
-    .transform((values) =>
-      values.map((value) => {
-        switch (value) {
-          case "BJJSignature2021": {
-            return "SIG";
-          }
-          case "SparseMerkleTreeProof": {
-            return "MTP";
-          }
-        }
-      })
-    )
+    .max(2)
+    .transform((values): ProofType => {
+      if (values.includes("BJJSignature2021") && values.includes("SparseMerkleTreeProof")) {
+        return "MTP & SIG";
+      } else if (values.includes("BJJSignature2021")) {
+        return "SIG";
+      } else if (values.includes("SparseMerkleTreeProof")) {
+        return "MTP";
+      } else {
+        return z.NEVER;
+      }
+    })
 );
 
 interface LinkInput {
@@ -202,7 +202,7 @@ interface LinkInput {
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
-  proofTypes: ProofTypeInput[];
+  proofTypes?: unknown;
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;
@@ -210,20 +210,33 @@ interface LinkInput {
 }
 
 const linkParser = getStrictParser<LinkInput, Link>()(
-  z.object({
-    active: z.boolean(),
-    createdAt: z.coerce.date(z.string().datetime()),
-    credentialSubject: z.record(z.unknown()),
-    expiration: z.coerce.date(z.string().datetime()).nullable(),
-    id: z.string(),
-    issuedClaims: z.number(),
-    maxIssuance: z.number().nullable(),
-    proofTypes: proofTypeParser,
-    schemaHash: z.string(),
-    schemaType: z.string(),
-    schemaUrl: z.string(),
-    status: linkStatusParser,
-  })
+  z
+    .object({
+      active: z.boolean(),
+      createdAt: z.coerce.date(z.string().datetime()),
+      credentialSubject: z.record(z.unknown()),
+      expiration: z.coerce.date(z.string().datetime()).nullable(),
+      id: z.string(),
+      issuedClaims: z.number(),
+      maxIssuance: z.number().nullable(),
+      proofTypes: z.unknown(),
+      schemaHash: z.string(),
+      schemaType: z.string(),
+      schemaUrl: z.string(),
+      status: linkStatusParser,
+    })
+    .transform(({ proofTypes, ...rest }, context): Link => {
+      const parsedProofType = proofTypeParser.safeParse(proofTypes);
+      if (parsedProofType.success) {
+        return {
+          ...rest,
+          proofType: parsedProofType.data,
+        };
+      } else {
+        parsedProofType.error.issues.map(context.addIssue);
+        return z.NEVER;
+      }
+    })
 );
 
 export async function getLink({
@@ -389,16 +402,20 @@ export async function createLink({
   }
 }
 
+type LinkDetailInput = { proofTypes?: unknown; schemaType: string };
+
+type LinkDetail = { proofType: ProofType; schemaType: string };
+
 export interface AuthQRCodeInput {
   issuer: { displayName: string; logo: string };
-  linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
+  linkDetail: LinkDetailInput;
   qrCode?: unknown;
   sessionID: string;
 }
 
 export interface AuthQRCode {
   issuer: { displayName: string; logo: string };
-  linkDetail: { proofTypes: ProofType[]; schemaType: string };
+  linkDetail: LinkDetail;
   qrCode?: unknown;
   sessionID: string;
 }
@@ -409,7 +426,20 @@ const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
       displayName: z.string(),
       logo: z.string(),
     }),
-    linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
+    linkDetail: z
+      .object({ proofTypes: z.unknown(), schemaType: z.string() })
+      .transform(({ proofTypes, ...rest }, context): LinkDetail => {
+        const parsedProofType = proofTypeParser.safeParse(proofTypes);
+        if (parsedProofType.success) {
+          return {
+            ...rest,
+            proofType: parsedProofType.data,
+          };
+        } else {
+          parsedProofType.error.issues.map(context.addIssue);
+          return z.NEVER;
+        }
+      }),
     qrCode: z.unknown(),
     sessionID: z.string(),
   })

@@ -182,7 +182,7 @@ export function LinkDetails() {
             </Card>
           );
         } else {
-          const { createdAt, expiration, proofTypes, schemaHash, schemaType, status } = link.data;
+          const { createdAt, expiration, proofType, schemaHash, schemaType, status } = link.data;
 
           const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
             linkID,
@@ -219,7 +219,7 @@ export function LinkDetails() {
 
                     <Detail label="Link status" tag={tag} text={text} />
 
-                    <Detail label="Proof type" text={proofTypes.join(", ")} />
+                    <Detail label="Proof type" text={proofType} />
 
                     <Detail label="Creation date" text={formatDate(createdAt)} />
 

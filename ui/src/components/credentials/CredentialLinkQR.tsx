@@ -79,13 +79,13 @@ export function CredentialLinkQR() {
           if (response.data.status !== "pending") {
             setImportQRCheck({ data: response.data, status: "successful" });
 
-            const { proofTypes } = authQRCode.data.linkDetail;
+            const { proofType } = authQRCode.data.linkDetail;
 
-            if (proofTypes.includes("MTP")) {
+            if (proofType === "MTP" || proofType === "MTP & SIG") {
               void message.info("Issuance process started");
             }
 
-            if (proofTypes.includes("SIG")) {
+            if (proofType === "SIG" || proofType === "MTP & SIG") {
               void message.success("Credential sent");
             }
           }
@@ -160,10 +160,11 @@ export function CredentialLinkQR() {
   }
 
   if (isAsyncTaskDataAvailable(importQRCheck) && importQRCheck.data.status !== "pending") {
-    const { proofTypes } = authQRCode.data.linkDetail;
-    if (proofTypes.length > 1) {
-      return (
-        <>
+    const { proofType } = authQRCode.data.linkDetail;
+
+    switch (proofType) {
+      case "MTP & SIG": {
+        return (
           <Space align="center" direction="vertical" size="large">
             <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
 
@@ -189,48 +190,48 @@ export function CredentialLinkQR() {
               />
             )}
           </Space>
-        </>
-      );
+        );
+      }
+      case "MTP": {
+        return (
+          <Space align="center" direction="vertical" size="large">
+            <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
+
+            <Typography.Title level={2}>
+              You will receive your credential via a notification
+            </Typography.Title>
+
+            <Typography.Text style={{ fontSize: 18 }} type="secondary">
+              Please ensure that you have enabled push notifications on the application.
+            </Typography.Text>
+
+            <Button icon={<IconRefresh />} onClick={onStartAgain}>
+              Start again
+            </Button>
+          </Space>
+        );
+      }
+      case "SIG": {
+        return (
+          <Space align="center" direction="vertical" size="large">
+            <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
+
+            <Typography.Title level={2}>Credential sent via notification</Typography.Title>
+
+            <Button onClick={() => setIsModalOpen(true)} type="link">
+              Missed the notification?
+            </Button>
+
+            {isModalOpen && (
+              <ClaimCredentialModal
+                onClose={() => setIsModalOpen(false)}
+                qrCode={importQRCheck.data.qrCode}
+              />
+            )}
+          </Space>
+        );
+      }
     }
-
-    return proofTypes[0] === "SIG" ? (
-      <>
-        <Space align="center" direction="vertical" size="large">
-          <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
-
-          <Typography.Title level={2}>Credential sent via notification</Typography.Title>
-
-          <Button onClick={() => setIsModalOpen(true)} type="link">
-            Missed the notification?
-          </Button>
-
-          {isModalOpen && (
-            <ClaimCredentialModal
-              onClose={() => setIsModalOpen(false)}
-              qrCode={importQRCheck.data.qrCode}
-            />
-          )}
-        </Space>
-      </>
-    ) : (
-      <>
-        <Space align="center" direction="vertical" size="large">
-          <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
-
-          <Typography.Title level={2}>
-            You will receive your credential via a notification
-          </Typography.Title>
-
-          <Typography.Text style={{ fontSize: 18 }} type="secondary">
-            Please ensure that you have enabled push notifications on the application.
-          </Typography.Text>
-
-          <Button icon={<IconRefresh />} onClick={onStartAgain}>
-            Start again
-          </Button>
-        </Space>
-      </>
-    );
   }
 
   return (

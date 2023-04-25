@@ -101,23 +101,65 @@ const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
   ])
 );
 
+type ProofTypeInput = "SIG" | "MTP";
+
+const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType>()(
+  z
+    .array(z.union([z.literal("MTP"), z.literal("SIG")]))
+    .min(1)
+    .max(2)
+    .transform((values): ProofType => {
+      if (values.includes("MTP") && values.includes("SIG")) {
+        return "MTP & SIG";
+      } else if (values.includes("SIG")) {
+        return "SIG";
+      } else if (values.includes("MTP")) {
+        return "MTP";
+      } else {
+        return z.NEVER;
+      }
+    })
+);
+
+export type IssueCredentialFormDataInput = {
+  credentialSubject?: Record<string, unknown>;
+  expirationDate?: dayjs.Dayjs | null;
+  proofTypes?: unknown;
+};
+
 export type IssueCredentialFormData = {
   credentialSubject?: Record<string, unknown>;
   expirationDate?: dayjs.Dayjs | null;
-  proofTypes: ProofType[];
+  proofType: ProofType;
 };
 
-const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()(
-  z.object({
-    credentialSubject: z.record(z.unknown()).optional(),
-    expirationDate: dayjsInstanceParser.nullable().optional(),
-    proofTypes: z.array(z.union([z.literal("MTP"), z.literal("SIG")])).min(1),
-  })
+const issueCredentialFormDataParser = getStrictParser<
+  IssueCredentialFormDataInput,
+  IssueCredentialFormData
+>()(
+  z
+    .object({
+      credentialSubject: z.record(z.unknown()).optional(),
+      expirationDate: dayjsInstanceParser.nullable().optional(),
+      proofTypes: z.unknown(),
+    })
+    .transform(({ proofTypes, ...rest }, context) => {
+      const parsedProofType = proofTypeParser.safeParse(proofTypes);
+      if (parsedProofType.success) {
+        return {
+          ...rest,
+          proofType: parsedProofType.data,
+        };
+      } else {
+        parsedProofType.error.issues.map(context.addIssue);
+        return z.NEVER;
+      }
+    })
 );
 
 export interface CredentialFormInput {
   issuanceMethod: IssuanceMethodFormData;
-  issueCredential: IssueCredentialFormData;
+  issueCredential: IssueCredentialFormDataInput;
 }
 
 export const credentialFormParser = getStrictParser<
@@ -130,14 +172,14 @@ export const credentialFormParser = getStrictParser<
       issueCredential: issueCredentialFormDataParser,
     })
     .transform(({ issuanceMethod, issueCredential }, context) => {
-      const { credentialSubject, expirationDate, proofTypes } = issueCredential;
+      const { credentialSubject, expirationDate, proofType } = issueCredential;
       const { type } = issuanceMethod;
 
-      const baseIssuance = {
+      const credentialIssuance: CredentialIssuance = {
         credentialSubject,
         expiration: expirationDate ? expirationDate.toDate() : undefined,
-        mtProof: proofTypes.includes("MTP"),
-        signatureProof: proofTypes.includes("SIG"),
+        mtProof: proofType === "MTP" || proofType === "MTP & SIG",
+        signatureProof: proofType === "SIG" || proofType === "MTP & SIG",
       };
 
       if (type === "credentialLink") {
@@ -160,7 +202,7 @@ export const credentialFormParser = getStrictParser<
         }
 
         return {
-          ...baseIssuance,
+          ...credentialIssuance,
           linkAccessibleUntil,
           linkMaximumIssuance,
           type,
@@ -171,7 +213,7 @@ export const credentialFormParser = getStrictParser<
       const { did } = issuanceMethod;
 
       return {
-        ...baseIssuance,
+        ...credentialIssuance,
         did,
         type,
       };
