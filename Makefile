@@ -77,6 +77,22 @@ run-ui:
 run-ui-arm:
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
+.PHONY: build
+build:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+
+.PHONY: build-arm
+build-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+
+.PHONY: build-ui
+build-ui:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api-ui ui notificacions pending_publisher
+
+.PHONY: build-ui-arm
+build-ui-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api-ui ui notificacions pending_publisher
+
 .PHONY: down
 down:
 	$(DOCKER_COMPOSE_INFRA_CMD) down --remove-orphans
