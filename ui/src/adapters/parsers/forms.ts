@@ -69,6 +69,13 @@ interface LinkExpiration {
   linkExpirationTime?: dayjs.Dayjs | null;
 }
 
+const linkExpirationParser = getStrictParser<LinkExpiration>()(
+  z.object({
+    linkExpirationDate: dayjsInstanceParser.nullable().optional(),
+    linkExpirationTime: dayjsInstanceParser.nullable().optional(),
+  })
+);
+
 export type IssuanceMethodFormData =
   | (LinkExpiration & {
       linkMaximumIssuance?: number;
@@ -81,12 +88,12 @@ export type IssuanceMethodFormData =
 
 const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
   z.union([
-    z.object({
-      linkExpirationDate: dayjsInstanceParser.nullable().optional(),
-      linkExpirationTime: dayjsInstanceParser.nullable().optional(),
-      linkMaximumIssuance: z.number().optional(),
-      type: z.literal("credentialLink"),
-    }),
+    linkExpirationParser.and(
+      z.object({
+        linkMaximumIssuance: z.number().optional(),
+        type: z.literal("credentialLink"),
+      })
+    ),
     z.object({
       did: z.string(),
       type: z.literal("directIssue"),

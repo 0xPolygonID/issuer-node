@@ -63,7 +63,7 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const createLinkFromCredentialLinkIssuance = (credentialLinkIssuance: CredentialLinkIssuance) => {
+  const createCredentialQRLink = (credentialLinkIssuance: CredentialLinkIssuance) => {
     if (schemaID) {
       setLinkID({ status: "loading" });
       const serializedCredentialForm = serializeCredentialLinkIssuance({
@@ -93,7 +93,7 @@ export function IssueCredential() {
     }
   };
 
-  const issueCredentialFromCredentialDirectIssuance = (
+  const issueCredential = (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     credentialDirectIssuance: CredentialDirectIssuance
   ) => {
@@ -218,9 +218,9 @@ export function IssueCredential() {
 
                                 if (parsedForm.success) {
                                   if (parsedForm.data.type === "credentialLink") {
-                                    createLinkFromCredentialLinkIssuance(parsedForm.data);
+                                    createCredentialQRLink(parsedForm.data);
                                   } else {
-                                    issueCredentialFromCredentialDirectIssuance(parsedForm.data);
+                                    issueCredential(parsedForm.data);
                                   }
                                 } else {
                                   processZodError(parsedForm.error).forEach(
