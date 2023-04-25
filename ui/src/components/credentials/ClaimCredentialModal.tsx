@@ -9,7 +9,7 @@ export function ClaimCredentialModal({
   qrCode,
 }: {
   onClose: () => void;
-  qrCode?: unknown;
+  qrCode: unknown;
 }) {
   return (
     <Modal
@@ -27,7 +27,7 @@ export function ClaimCredentialModal({
       title="Missed the notification?"
     >
       <Typography.Text type="secondary">
-        Scan the QR to add the credential to your wallet
+        Scan the QR code to add the credential to your wallet
       </Typography.Text>
 
       <QRCodeSVG

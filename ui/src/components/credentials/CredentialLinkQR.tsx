@@ -133,7 +133,7 @@ export function CredentialLinkQR() {
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
 
-          <Typography.Title level={2}>Claim link is invalid</Typography.Title>
+          <Typography.Title level={2}>Credential link is invalid</Typography.Title>
 
           <Typography.Text type="secondary">
             In case you think this is an error, please contact the issuer of this claim.
@@ -145,7 +145,9 @@ export function CredentialLinkQR() {
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />
 
-          <Typography.Title level={2}>QR code expired, start again</Typography.Title>
+          <Typography.Title level={2}>
+            The credential link has expired, please start again
+          </Typography.Title>
 
           <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
             Start again
@@ -170,7 +172,9 @@ export function CredentialLinkQR() {
           <Space align="center" direction="vertical" size="large">
             <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
 
-            <Typography.Title level={2}>Credential sent via notification, but...</Typography.Title>
+            <Typography.Title level={2}>
+              Credential sent via notification. On-chain capabilities are pending.
+            </Typography.Title>
 
             <Typography.Text style={{ fontSize: 18 }} type="secondary">
               We will send you an updated version of this credential containing an on-chain proof.
@@ -179,12 +183,9 @@ export function CredentialLinkQR() {
               </Typography.Paragraph>
             </Typography.Text>
 
-            <Space>
-              <Button onClick={() => setIsModalOpen(true)}>Missed the notification?</Button>
-              <Button icon={<IconRefresh />} onClick={onStartAgain}>
-                Start again
-              </Button>
-            </Space>
+            <Button onClick={() => setIsModalOpen(true)} type="link">
+              Missed the notification?
+            </Button>
 
             {isModalOpen && (
               <ClaimCredentialModal
@@ -204,12 +205,9 @@ export function CredentialLinkQR() {
 
           <Typography.Title level={2}>Credential sent via notification</Typography.Title>
 
-          <Space>
-            <Button onClick={() => setIsModalOpen(true)}>Missed the notification?</Button>
-            <Button icon={<IconRefresh />} onClick={onStartAgain}>
-              Start again
-            </Button>
-          </Space>
+          <Button onClick={() => setIsModalOpen(true)} type="link">
+            Missed the notification?
+          </Button>
 
           {isModalOpen && (
             <ClaimCredentialModal
