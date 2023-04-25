@@ -323,12 +323,12 @@ func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
 	}
 
 	if link.MaxIssuance != nil && *link.MaxIssuance <= link.IssuedClaims {
-		log.Debug(ctx, "cannot dispatch more claims for this link")
+		log.Debug(ctx, "cannot dispatch more credentials for this link")
 		return ErrLinkMaxExceeded
 	}
 
 	if !link.Active {
-		log.Debug(ctx, "cannot dispatch claim for inactive link")
+		log.Debug(ctx, "cannot dispatch credentials for inactive link")
 		return ErrLinkInactive
 	}
 
