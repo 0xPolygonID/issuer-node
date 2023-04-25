@@ -25,7 +25,7 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinkDetails() {
@@ -48,54 +48,62 @@ export function LinkDetails() {
   const fetchJsonSchemaFromUrl = useCallback(({ link }: { link: Link }): void => {
     setCredentialSubjectValue({ status: "loading" });
 
-    void getJsonSchemaFromUrl({ url: link.schemaUrl }).then(([jsonSchema]) => {
-      const credentialSubjectSchema =
-        (jsonSchema.type === "object" &&
-          jsonSchema.schema.properties
-            ?.filter((child): child is ObjectAttribute => child.type === "object")
-            .find((child) => child.name === "credentialSubject")) ||
-        null;
+    getJsonSchemaFromUrl({ url: link.schemaUrl })
+      .then(([jsonSchema]) => {
+        const credentialSubjectSchema =
+          (jsonSchema.type === "object" &&
+            jsonSchema.schema.properties
+              ?.filter((child): child is ObjectAttribute => child.type === "object")
+              .find((child) => child.name === "credentialSubject")) ||
+          null;
 
-      const credentialSubjectSchemaWithoutId: ObjectAttribute | null = credentialSubjectSchema && {
-        ...credentialSubjectSchema,
-        schema: {
-          ...credentialSubjectSchema.schema,
-          properties: credentialSubjectSchema.schema.properties?.filter(
-            (attribute) => attribute.name !== "id"
-          ),
-        },
-      };
+        const credentialSubjectSchemaWithoutId: ObjectAttribute | null =
+          credentialSubjectSchema && {
+            ...credentialSubjectSchema,
+            schema: {
+              ...credentialSubjectSchema.schema,
+              properties: credentialSubjectSchema.schema.properties?.filter(
+                (attribute) => attribute.name !== "id"
+              ),
+            },
+          };
 
-      if (credentialSubjectSchemaWithoutId) {
-        const parsedCredentialSubject = getAttributeValueParser(
-          credentialSubjectSchemaWithoutId
-        ).safeParse(link.credentialSubject);
+        if (credentialSubjectSchemaWithoutId) {
+          const parsedCredentialSubject = getAttributeValueParser(
+            credentialSubjectSchemaWithoutId
+          ).safeParse(link.credentialSubject);
 
-        if (parsedCredentialSubject.success) {
-          if (parsedCredentialSubject.data.type === "object") {
-            setCredentialSubjectValue({
-              data: parsedCredentialSubject.data,
-              status: "successful",
-            });
+          if (parsedCredentialSubject.success) {
+            if (parsedCredentialSubject.data.type === "object") {
+              setCredentialSubjectValue({
+                data: parsedCredentialSubject.data,
+                status: "successful",
+              });
+            } else {
+              setCredentialSubjectValue({
+                error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+                status: "failed",
+              });
+            }
           } else {
             setCredentialSubjectValue({
-              error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+              error: parsedCredentialSubject.error,
               status: "failed",
             });
           }
         } else {
           setCredentialSubjectValue({
-            error: parsedCredentialSubject.error,
+            error: `Could not find the attribute "credentialSubject" in the object's schema.`,
             status: "failed",
           });
         }
-      } else {
+      })
+      .catch((error) => {
         setCredentialSubjectValue({
-          error: `Could not find the attribute "credentialSubject" in the object's schema.`,
+          error: processError(error),
           status: "failed",
         });
-      }
-    });
+      });
   }, []);
 
   const fetchLink = useCallback(
