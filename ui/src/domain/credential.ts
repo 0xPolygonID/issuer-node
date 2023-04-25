@@ -18,12 +18,14 @@ export type ProofType = "MTP" | "SIG";
 
 export interface Link {
   active: boolean;
+  createdAt: Date;
   credentialSubject: Record<string, unknown>;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
   proofTypes: ProofType[];
+  schemaHash: string;
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;

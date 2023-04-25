@@ -1,4 +1,4 @@
-import { Button, Card, Space, Typography } from "antd";
+import { Button, Card, Space, TagProps, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -25,7 +25,7 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinkDetails() {
@@ -48,44 +48,62 @@ export function LinkDetails() {
   const fetchJsonSchemaFromUrl = useCallback(({ link }: { link: Link }): void => {
     setCredentialSubjectValue({ status: "loading" });
 
-    void getJsonSchemaFromUrl({ url: link.schemaUrl }).then(([jsonSchema]) => {
-      const credentialSubject =
-        (jsonSchema.type === "object" &&
-          jsonSchema.schema.properties
-            ?.filter((child): child is ObjectAttribute => child.type === "object")
-            .find((child) => child.name === "credentialSubject")) ||
-        null;
+    getJsonSchemaFromUrl({ url: link.schemaUrl })
+      .then(([jsonSchema]) => {
+        const credentialSubjectSchema =
+          (jsonSchema.type === "object" &&
+            jsonSchema.schema.properties
+              ?.filter((child): child is ObjectAttribute => child.type === "object")
+              .find((child) => child.name === "credentialSubject")) ||
+          null;
 
-      if (credentialSubject) {
-        const parsedCredentialSubject = getAttributeValueParser(credentialSubject).safeParse(
-          link.credentialSubject
-        );
+        const credentialSubjectSchemaWithoutId: ObjectAttribute | null =
+          credentialSubjectSchema && {
+            ...credentialSubjectSchema,
+            schema: {
+              ...credentialSubjectSchema.schema,
+              properties: credentialSubjectSchema.schema.properties?.filter(
+                (attribute) => attribute.name !== "id"
+              ),
+            },
+          };
 
-        if (parsedCredentialSubject.success) {
-          if (parsedCredentialSubject.data.type === "object") {
-            setCredentialSubjectValue({
-              data: parsedCredentialSubject.data,
-              status: "successful",
-            });
+        if (credentialSubjectSchemaWithoutId) {
+          const parsedCredentialSubject = getAttributeValueParser(
+            credentialSubjectSchemaWithoutId
+          ).safeParse(link.credentialSubject);
+
+          if (parsedCredentialSubject.success) {
+            if (parsedCredentialSubject.data.type === "object") {
+              setCredentialSubjectValue({
+                data: parsedCredentialSubject.data,
+                status: "successful",
+              });
+            } else {
+              setCredentialSubjectValue({
+                error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+                status: "failed",
+              });
+            }
           } else {
             setCredentialSubjectValue({
-              error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+              error: parsedCredentialSubject.error,
               status: "failed",
             });
           }
         } else {
           setCredentialSubjectValue({
-            error: parsedCredentialSubject.error,
+            error: `Could not find the attribute "credentialSubject" in the object's schema.`,
             status: "failed",
           });
         }
-      } else {
+      })
+      .catch((error) => {
         setCredentialSubjectValue({
-          error: `Could not find the attribute "credentialSubject" in the object's schema.`,
+          error: processError(error),
           status: "failed",
         });
-      }
-    });
+      });
   }, []);
 
   const fetchLink = useCallback(
@@ -132,7 +150,7 @@ export function LinkDetails() {
 
   return (
     <SiderLayoutContent
-      description="Control credential link accessibility, add notes and change settings."
+      description="View credential link details, attribute values and delete links."
       showBackButton
       showDivider
       title="Credential link details"
@@ -164,22 +182,22 @@ export function LinkDetails() {
             </Card>
           );
         } else {
-          const { expiration, proofTypes, schemaType, status } = link.data;
+          const { createdAt, expiration, proofTypes, schemaHash, schemaType, status } = link.data;
 
-          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLink.path, {
+          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
             linkID,
           })}`;
 
-          const [flavor, text] = (() => {
+          const [tag, text]: [TagProps, string] = (() => {
             switch (status) {
               case "active": {
-                return [{ color: "success", type: "tag" } as const, "Active"];
+                return [{ color: "success" }, "Active"];
               }
               case "inactive": {
-                return [{ type: "tag" } as const, "Inactive"];
+                return [{}, "Inactive"];
               }
               case "exceeded": {
-                return [{ color: "error", type: "tag" } as const, "Exceeded"];
+                return [{ color: "error" }, "Exceeded"];
               }
             }
           })();
@@ -189,7 +207,7 @@ export function LinkDetails() {
               className="centered"
               extra={
                 <Button danger icon={<IconTrash />} onClick={() => setShowModal(true)} type="text">
-                  Delete Link
+                  Delete link
                 </Button>
               }
               title={schemaType}
@@ -199,18 +217,18 @@ export function LinkDetails() {
                   <Space direction="vertical">
                     <Typography.Text type="secondary">CREDENTIAL LINK DETAILS</Typography.Text>
 
-                    <Detail flavor={flavor} label="Link status" text={text} />
+                    <Detail label="Link status" tag={tag} text={text} />
 
                     <Detail label="Proof type" text={proofTypes.join(", ")} />
 
-                    <Detail label="Creation date" text="-" />
+                    <Detail label="Creation date" text={formatDate(createdAt)} />
 
                     <Detail
                       label="Credential expiration date"
-                      text={expiration ? formatDate(expiration, "date-time") : "-"}
+                      text={expiration ? formatDate(expiration) : "-"}
                     />
 
-                    <Detail copyable label="Schema hash" text="-" />
+                    <Detail copyable label="Schema hash" text={schemaHash} />
 
                     <Detail copyable label="Link" text={linkURL} />
                   </Space>

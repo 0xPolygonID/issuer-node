@@ -322,6 +322,15 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if errors.Is(err, services.ErrLoadingSchema) {
 			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, services.ErrParseClaim) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrInvalidCredentialSubject) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		if errors.Is(err, services.ErrMalformedURL) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
@@ -559,8 +568,21 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 			Type: string(createLinkQrCodeResponse.QrCode.Type),
 		},
 		SessionID:  createLinkQrCodeResponse.SessionID,
-		LinkDetail: getLinkResponse(*createLinkQrCodeResponse.Link),
+		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
+}
+
+// GetCredentialQrCode - returns a QR Code for fetching the credential
+func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
+	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
+	if err != nil {
+		if errors.Is(err, services.ErrClaimNotFound) {
+			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
+		}
+		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
+	}
+
+	return GetCredentialQrCode200JSONResponse(getCredentialQrCodeResponse(credential, s.cfg.APIUI.ServerURL)), nil
 }
 
 // CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
@@ -582,7 +604,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl)
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -605,7 +627,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),
-			LinkDetail: getLinkResponse(*getQRCodeResponse.Link),
+			LinkDetail: getLinkSimpleResponse(*getQRCodeResponse.Link),
 		}, nil
 	}
 

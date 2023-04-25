@@ -372,6 +372,31 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/credentials/{id}/qrcode:
+    get:
+      summary: Get Credential QR code
+      operationId: GetCredentialQrCode
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a credential.
+      tags:
+        - Credential
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   #schemas:
   /v1/schemas:
     post:
@@ -735,7 +760,7 @@ paths:
         - Links
       responses:
         '200':
-          description: Link deleted
+          description: Credential link QRCode
           content:
             application/json:
               schema:
@@ -880,7 +905,7 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
-    GetLinkQrCodeResponseType:
+    QrCodeResponse:
       type: object
       required:
         - id
@@ -904,7 +929,7 @@ components:
           type: string
           example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
         body:
-          $ref: '#/components/schemas/GetLinkQrCodeResponseBodyType'
+          $ref: '#/components/schemas/QrCodeBodyResponse'
         from:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
@@ -912,7 +937,7 @@ components:
           type: string
           example: did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63
 
-    GetLinkQrCodeResponseBodyType:
+    QrCodeBodyResponse:
       type: object
       required:
         - url
@@ -924,10 +949,10 @@ components:
         credentials:
           type: array
           items:
-            $ref: '#/components/schemas/GetLinkQrCodeCredentialsResponseType'
+            $ref: '#/components/schemas/QrCodeCredentialResponse'
           example: [ ]
 
-    GetLinkQrCodeCredentialsResponseType:
+    QrCodeCredentialResponse:
       type: object
       required:
         - id
@@ -959,7 +984,7 @@ components:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
         linkDetail:
-          $ref: '#/components/schemas/Link'
+          $ref: '#/components/schemas/LinkSimple'
 
     IssuerDescription:
       type: object
@@ -980,12 +1005,12 @@ components:
         - linkDetail
       properties:
         qrCode:
-          $ref: '#/components/schemas/GetLinkQrCodeResponseType'
+          $ref: '#/components/schemas/QrCodeResponse'
         status:
           type: string
           example: done | pending | pendingPublish
         linkDetail:
-          $ref: '#/components/schemas/Link'
+          $ref: '#/components/schemas/LinkSimple'
 
     UUIDResponse:
       type: object
@@ -1081,6 +1106,8 @@ components:
         - active
         - status
         - proofTypes
+        - schemaHash
+        - createdAt
       properties:
         id:
           type: string
@@ -1091,8 +1118,13 @@ components:
           example: 8edd8112-c415-11ed-b036-debe37e1cbd6
         schemaUrl:
           type: string
+          example: https://someValidURL.com
         schemaType:
           type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
         maxIssuance:
@@ -1107,11 +1139,46 @@ components:
           example: 2023-03-17T10:18:01.400722+01:00
           x-omitempty: false
           nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          example: 2023-03-16T10:18:01.400722+01:00
         active:
           type: boolean
         status:
           type: string
           enum: [ active, inactive, exceeded ]
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
+
+    LinkSimple:
+      type: object
+      required:
+        - id
+        - schemaUrl
+        - schemaType
+        - proofTypes
+        - schemaHash
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        schemaUrl:
+          type: string
+          example: https://someValidURL.com
+        schemaType:
+          type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
         proofTypes:
           type: array
           items:

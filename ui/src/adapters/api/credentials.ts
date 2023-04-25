@@ -4,7 +4,6 @@ import { z } from "zod";
 import {
   APIResponse,
   GetAll,
-  HTTPStatusSuccess,
   ID,
   IDParser,
   ResultAccepted,
@@ -71,7 +70,7 @@ const resultOKGetAllCredentialsParser = getStrictParser<
         { failed: [], successful: [] }
       )
     ),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -140,7 +139,7 @@ const resultAcceptedMessage = getStrictParser<ResultAccepted<{ message: string }
     data: z.object({
       message: z.string(),
     }),
-    status: z.literal(HTTPStatusSuccess.Accepted),
+    status: z.literal(202),
   })
 );
 
@@ -197,12 +196,14 @@ const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
 
 interface LinkInput {
   active: boolean;
+  createdAt: Date;
   credentialSubject: Record<string, unknown>;
   expiration: Date | null;
   id: string;
   issuedClaims: number;
   maxIssuance: number | null;
   proofTypes: ProofTypeInput[];
+  schemaHash: string;
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
@@ -211,12 +212,14 @@ interface LinkInput {
 const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
     active: z.boolean(),
+    createdAt: z.coerce.date(z.string().datetime()),
     credentialSubject: z.record(z.unknown()),
     expiration: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullable(),
     proofTypes: proofTypeParser,
+    schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
@@ -253,7 +256,7 @@ export async function getLink({
 const resultOKLinkParser = getStrictParser<ResultOK<LinkInput>, ResultOK<Link>>()(
   z.object({
     data: linkParser,
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -294,7 +297,7 @@ export async function getLinks({
 const resultOKLinksParser = getStrictParser<ResultOK<LinkInput[]>, ResultOK<Link[]>>()(
   z.object({
     data: z.array(linkParser),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
@@ -386,83 +389,40 @@ export async function createLink({
   }
 }
 
-const resultCreatedLinkParser = getStrictParser<ResultCreated<ID>>()(
-  z.object({
-    data: IDParser,
-    status: z.literal(HTTPStatusSuccess.Created),
-  })
-);
-
-// QR codes
-
-interface CredentialQRCode {
-  body: {
-    callbackUrl: string;
-    reason: string;
-    scope: unknown[];
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
-  z.object({
-    body: z.object({
-      callbackUrl: z.string(),
-      reason: z.string(),
-      scope: z.array(z.unknown()),
-    }),
-    from: z.string(),
-    id: z.string(),
-    thid: z.string(),
-    typ: z.string(),
-    type: z.string(),
-  })
-);
-
-interface ShareCredentialQRCodeInput {
+export interface AuthQRCodeInput {
   issuer: { displayName: string; logo: string };
-  linkDetail: LinkInput;
-  qrCode: CredentialQRCode;
+  linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
+  qrCode?: unknown;
   sessionID: string;
 }
 
-export interface ShareCredentialQRCode {
+export interface AuthQRCode {
   issuer: { displayName: string; logo: string };
-  linkDetail: Link;
-  qrCode: CredentialQRCode;
+  linkDetail: { proofTypes: ProofType[]; schemaType: string };
+  qrCode?: unknown;
   sessionID: string;
 }
 
-const shareCredentialQRCodeParser = getStrictParser<
-  ShareCredentialQRCodeInput,
-  ShareCredentialQRCode
->()(
+const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
       logo: z.string(),
     }),
-    linkDetail: linkParser,
-    qrCode: credentialQRCodeParser,
+    linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
+    qrCode: z.unknown(),
     sessionID: z.string(),
   })
 );
 
-const resultOKShareCredentialQRCodeParser = getStrictParser<
-  ResultOK<ShareCredentialQRCodeInput>,
-  ResultOK<ShareCredentialQRCode>
->()(
+const resultOKAuthQRCodeParser = getStrictParser<ResultOK<AuthQRCodeInput>, ResultOK<AuthQRCode>>()(
   z.object({
-    data: shareCredentialQRCodeParser,
-    status: z.literal(HTTPStatusSuccess.OK),
+    data: authQRCodeParser,
+    status: z.literal(200),
   })
 );
 
-export async function getCredentialLinkQRCode({
+export async function createAuthQRCode({
   env,
   linkID,
   signal,
@@ -470,7 +430,7 @@ export async function getCredentialLinkQRCode({
   env: Env;
   linkID: string;
   signal?: AbortSignal;
-}): Promise<APIResponse<ShareCredentialQRCode>> {
+}): Promise<APIResponse<AuthQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -482,7 +442,7 @@ export async function getCredentialLinkQRCode({
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
 
-    const { data } = resultOKShareCredentialQRCodeParser.parse(response);
+    const { data } = resultOKAuthQRCodeParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -490,99 +450,33 @@ export async function getCredentialLinkQRCode({
   }
 }
 
-interface AddingQRCode {
-  body: {
-    credentials: {
-      description: string;
-      id: string;
-    }[];
-    url: string;
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-const addingQRCodeParser = getStrictParser<AddingQRCode>()(
+const resultCreatedLinkParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
-    body: z.object({
-      credentials: z.array(
-        z.object({
-          description: z.string(),
-          id: z.string(),
-        })
-      ),
-      url: z.string(),
-    }),
-    from: z.string(),
-    id: z.string(),
-    thid: z.string(),
-    typ: z.string(),
-    type: z.string(),
+    data: IDParser,
+    status: z.literal(201),
   })
 );
 
-export enum CredentialQRStatus {
-  Done = "done",
-  Error = "error",
-  Pending = "pending",
+export interface ImportQRCode {
+  qrCode?: unknown;
+  status: "done" | "pending" | "pendingPublish";
 }
 
-interface CredentialQRCheckDone {
-  qrcode: AddingQRCode;
-  status: CredentialQRStatus.Done;
-}
-
-interface CredentialQRCheckError {
-  status: CredentialQRStatus.Error;
-}
-
-interface CredentialQRCheckPending {
-  status: CredentialQRStatus.Pending;
-}
-
-export type CredentialQRCheck =
-  | CredentialQRCheckDone
-  | CredentialQRCheckError
-  | CredentialQRCheckPending;
-
-const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheckDone>()(
+const importQRCheckDoneParser = getStrictParser<ImportQRCode>()(
   z.object({
-    qrcode: addingQRCodeParser,
-    status: z.literal(CredentialQRStatus.Done),
+    qrCode: z.unknown(),
+    status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
   })
 );
 
-const credentialQRCheckErrorParser = getStrictParser<CredentialQRCheckError>()(
+const resultOKImportQRCheckParser = getStrictParser<ResultOK<ImportQRCode>>()(
   z.object({
-    status: z.literal(CredentialQRStatus.Error),
+    data: importQRCheckDoneParser,
+    status: z.literal(200),
   })
 );
 
-const credentialQRCheckPendingParser = getStrictParser<CredentialQRCheckPending>()(
-  z.object({
-    status: z.literal(CredentialQRStatus.Pending),
-  })
-);
-
-const credentialQRCheckParser = getStrictParser<CredentialQRCheck>()(
-  z.union([
-    credentialQRCheckDoneParser,
-    credentialQRCheckErrorParser,
-    credentialQRCheckPendingParser,
-  ])
-);
-
-const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
-  z.object({
-    data: credentialQRCheckParser,
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-export async function credentialsQRCheck({
+export async function getImportQRCode({
   env,
   linkID,
   sessionID,
@@ -590,18 +484,20 @@ export async function credentialsQRCheck({
   env: Env;
   linkID: string;
   sessionID: string;
-}): Promise<APIResponse<CredentialQRCheck>> {
+}): Promise<APIResponse<ImportQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
       method: "GET",
       params: {
         sessionID,
       },
-      url: `${API_VERSION}/offers-qrcode/${linkID}`,
+      url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-
-    const { data } = resultOKCredentialQRCheckParser.parse(response);
+    const { data } = resultOKImportQRCheckParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {

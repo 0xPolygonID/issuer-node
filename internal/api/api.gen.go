@@ -34,7 +34,7 @@ type AgentResponse struct {
 type CreateClaimRequest struct {
 	CredentialSchema      string                 `json:"credentialSchema"`
 	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
-	Expiration            *time.Time             `json:"expiration,omitempty"`
+	Expiration            *int64                 `json:"expiration,omitempty"`
 	MerklizedRootPosition *string                `json:"merklizedRootPosition,omitempty"`
 	RevNonce              *uint64                `json:"revNonce,omitempty"`
 	SubjectPosition       *string                `json:"subjectPosition,omitempty"`

@@ -44,7 +44,14 @@ export function SiderMenu() {
     ) {
       return [schemasPath];
     } else if (
-      matchRoutes([{ path: credentialsPath }, { path: ROUTES.issueCredential.path }], pathname)
+      matchRoutes(
+        [
+          { path: credentialsPath },
+          { path: ROUTES.issueCredential.path },
+          { path: ROUTES.linkDetails.path },
+        ],
+        pathname
+      )
     ) {
       return [credentialsPath];
     } else if (
