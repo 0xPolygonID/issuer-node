@@ -191,7 +191,7 @@ export function LinkDetails() {
               className="centered"
               extra={
                 <Button danger icon={<IconTrash />} onClick={() => setShowModal(true)} type="text">
-                  Delete Link
+                  Delete link
                 </Button>
               }
               title={schemaType}
