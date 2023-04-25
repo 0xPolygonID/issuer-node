@@ -314,7 +314,7 @@ const resultOKAuthQRCodeParser = getStrictParser<ResultOK<AuthQRCode>>()(
   })
 );
 
-export async function createCredentialLinkQRCode({
+export async function createAuthQRCode({
   env,
   linkID,
   signal,
@@ -368,7 +368,7 @@ const resultOKImportQRCheckParser = getStrictParser<ResultOK<ImportQRCode>>()(
   })
 );
 
-export async function getCredentialLinkQRCode({
+export async function getImportQRCode({
   env,
   linkID,
   sessionID,

@@ -7,8 +7,8 @@ import { APIError } from "src/adapters/api";
 import {
   AuthQRCode,
   ImportQRCode,
-  createCredentialLinkQRCode,
-  getCredentialLinkQRCode,
+  createAuthQRCode,
+  getImportQRCode,
 } from "src/adapters/api/credentials";
 import { ReactComponent as AlertIcon } from "src/assets/icons/alert-circle.svg";
 import { ReactComponent as CheckIcon } from "src/assets/icons/check.svg";
@@ -31,12 +31,10 @@ export function CredentialLinkQR() {
   const env = useEnvContext();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [shareCredentialQRCode, setShareCredentialQRCode] = useState<
-    AsyncTask<AuthQRCode, APIError>
-  >({
+  const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, APIError>>({
     status: "pending",
   });
-  const [credentialQRCheck, setCredentialQRCheck] = useState<AsyncTask<ImportQRCode, APIError>>({
+  const [importQRCheck, setImportQRCheck] = useState<AsyncTask<ImportQRCode, APIError>>({
     status: "pending",
   });
 
@@ -46,15 +44,15 @@ export function CredentialLinkQR() {
   const createCredentialQR = useCallback(
     async (signal: AbortSignal) => {
       if (linkID) {
-        setShareCredentialQRCode({ status: "loading" });
+        setAuthQRCode({ status: "loading" });
 
-        const response = await createCredentialLinkQRCode({ env, linkID, signal });
+        const response = await createAuthQRCode({ env, linkID, signal });
 
         if (response.isSuccessful) {
-          setShareCredentialQRCode({ data: response.data, status: "successful" });
+          setAuthQRCode({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {
-            setShareCredentialQRCode({ error: response.error, status: "failed" });
+            setAuthQRCode({ error: response.error, status: "failed" });
           }
         }
       }
@@ -70,18 +68,18 @@ export function CredentialLinkQR() {
 
   useEffect(() => {
     const checkCredentialQRCode = async () => {
-      if (isAsyncTaskDataAvailable(shareCredentialQRCode) && linkID) {
-        const response = await getCredentialLinkQRCode({
+      if (isAsyncTaskDataAvailable(authQRCode) && linkID) {
+        const response = await getImportQRCode({
           env,
           linkID,
-          sessionID: shareCredentialQRCode.data.sessionID,
+          sessionID: authQRCode.data.sessionID,
         });
 
         if (response.isSuccessful) {
           if (response.data.status !== "pending") {
-            setCredentialQRCheck({ data: response.data, status: "successful" });
+            setImportQRCheck({ data: response.data, status: "successful" });
 
-            const { proofTypes } = shareCredentialQRCode.data.linkDetail;
+            const { proofTypes } = authQRCode.data.linkDetail;
 
             if (proofTypes.includes("SparseMerkleTreeProof")) {
               void message.info("Issuance process started");
@@ -92,7 +90,7 @@ export function CredentialLinkQR() {
             }
           }
         } else {
-          setCredentialQRCheck({ error: response.error, status: "failed" });
+          setImportQRCheck({ error: response.error, status: "failed" });
 
           void message.error(response.error.message);
         }
@@ -101,9 +99,8 @@ export function CredentialLinkQR() {
 
     const checkQRCredentialStatusTimer = setInterval(() => {
       if (
-        (isAsyncTaskDataAvailable(credentialQRCheck) &&
-          credentialQRCheck.data.status !== "pending") ||
-        hasAsyncTaskFailed(credentialQRCheck)
+        (isAsyncTaskDataAvailable(importQRCheck) && importQRCheck.data.status !== "pending") ||
+        hasAsyncTaskFailed(importQRCheck)
       ) {
         clearInterval(checkQRCredentialStatusTimer);
       } else {
@@ -112,17 +109,17 @@ export function CredentialLinkQR() {
     }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [shareCredentialQRCode, linkID, credentialQRCheck, env]);
+  }, [authQRCode, linkID, importQRCheck, env]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
-    setCredentialQRCheck({ status: "pending" });
+    setImportQRCheck({ status: "pending" });
   };
 
-  const hasFailed = hasAsyncTaskFailed(shareCredentialQRCode)
-    ? shareCredentialQRCode.error
-    : hasAsyncTaskFailed(credentialQRCheck)
-    ? credentialQRCheck.error
+  const hasFailed = hasAsyncTaskFailed(authQRCode)
+    ? authQRCode.error
+    : hasAsyncTaskFailed(importQRCheck)
+    ? importQRCheck.error
     : undefined;
 
   if (hasFailed) {
@@ -158,12 +155,12 @@ export function CredentialLinkQR() {
     );
   }
 
-  if (!isAsyncTaskDataAvailable(shareCredentialQRCode)) {
+  if (!isAsyncTaskDataAvailable(authQRCode)) {
     return <LoadingResult />;
   }
 
-  if (isAsyncTaskDataAvailable(credentialQRCheck) && credentialQRCheck.data.status !== "pending") {
-    const { proofTypes } = shareCredentialQRCode.data.linkDetail;
+  if (isAsyncTaskDataAvailable(importQRCheck) && importQRCheck.data.status !== "pending") {
+    const { proofTypes } = authQRCode.data.linkDetail;
     if (proofTypes.length > 1) {
       return (
         <>
@@ -188,7 +185,7 @@ export function CredentialLinkQR() {
             {isModalOpen && (
               <ClaimCredentialModal
                 onClose={() => setIsModalOpen(false)}
-                qrCode={credentialQRCheck.data.qrCode}
+                qrCode={importQRCheck.data.qrCode}
               />
             )}
           </Space>
@@ -210,7 +207,7 @@ export function CredentialLinkQR() {
           {isModalOpen && (
             <ClaimCredentialModal
               onClose={() => setIsModalOpen(false)}
-              qrCode={credentialQRCheck.data.qrCode}
+              qrCode={importQRCheck.data.qrCode}
             />
           )}
         </Space>
@@ -241,7 +238,7 @@ export function CredentialLinkQR() {
       <Avatar
         shape="square"
         size={64}
-        src={shareCredentialQRCode.data.issuer.logo || IMAGE_PLACEHOLDER_PATH}
+        src={authQRCode.data.issuer.logo || IMAGE_PLACEHOLDER_PATH}
       />
 
       <Space
@@ -249,7 +246,7 @@ export function CredentialLinkQR() {
         style={{ padding: "0 24px", textAlign: "center", width: lg ? 800 : "100%" }}
       >
         <Typography.Title level={2}>
-          {shareCredentialQRCode.data.issuer.displayName} wants to send you a credential
+          {authQRCode.data.issuer.displayName} wants to send you a credential
         </Typography.Title>
 
         <Typography.Text style={{ fontSize: 18 }} type="secondary">
@@ -284,7 +281,7 @@ export function CredentialLinkQR() {
               includeMargin
               level="H"
               style={{ height: 300 }}
-              value={JSON.stringify(shareCredentialQRCode.data.qrCode)}
+              value={JSON.stringify(authQRCode.data.qrCode)}
             />
           </Col>
         </Row>
@@ -296,7 +293,7 @@ export function CredentialLinkQR() {
             }}
           >
             <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-              {shareCredentialQRCode.data.linkDetail.schemaType}
+              {authQRCode.data.linkDetail.schemaType}
             </Typography.Title>
           </Col>
         </Row>
