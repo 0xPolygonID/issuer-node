@@ -1,5 +1,8 @@
-# Export values
-echo "here"
+# Export values(
+echo "VAULT CONFIGURATION SCRIPT"
+echo "(./infrastructure/local/./vault/scripts/init.sh):"
+echo "===================================";
+
 vault server -config=/vault/config/vault.json 1>&1 2>&1 &
 
 # export VAULT_SKIP_VERIFY='true'
