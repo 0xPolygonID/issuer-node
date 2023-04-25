@@ -134,7 +134,7 @@ export function LinkDetails() {
 
   return (
     <SiderLayoutContent
-      description="Control credential link accessibility, add notes and change settings."
+      description="View credential link details, attribute values and delete links."
       showBackButton
       showDivider
       title="Credential link details"
