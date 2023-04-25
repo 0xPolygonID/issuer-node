@@ -21,10 +21,6 @@ interface APISuccessfulResponse<D> {
 
 export type APIResponse<D> = APISuccessfulResponse<D> | APIErrorResponse;
 
-export type HTTPStatusError = 0 | 400 | 401 | 404;
-
-export type HTTPStatusSuccess = 200 | 201 | 202 | 204;
-
 export interface ResultAccepted<D> {
   data: D;
   status: 202;
