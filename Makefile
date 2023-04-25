@@ -71,11 +71,11 @@ run-arm:
 
 .PHONY: run-ui
 run-ui:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
 .PHONY: run-ui-arm
 run-ui-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
 .PHONY: down
 down:
