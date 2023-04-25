@@ -13,8 +13,7 @@ import {
   resultOKMessage,
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Json, Link, LinkStatus } from "src/domain";
-import { ProofTypes } from "src/domain/credential";
+import { Credential, Env, Json, Link, LinkStatus, ProofTypes } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 export const credentialParser = getStrictParser<Credential>()(
@@ -289,14 +288,14 @@ export async function createLink({
   }
 }
 
-export interface ShareCredentialQRCode {
+export interface AuthQRCode {
   issuer: { displayName: string; logo: string };
   linkDetail: { proofTypes: ProofTypes[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
 }
 
-const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
+const authQRCodeParser = getStrictParser<AuthQRCode>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
@@ -308,9 +307,9 @@ const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
   })
 );
 
-const resultOKShareCredentialQRCodeParser = getStrictParser<ResultOK<ShareCredentialQRCode>>()(
+const resultOKAuthQRCodeParser = getStrictParser<ResultOK<AuthQRCode>>()(
   z.object({
-    data: shareCredentialQRCodeParser,
+    data: authQRCodeParser,
     status: z.literal(200),
   })
 );
@@ -323,7 +322,7 @@ export async function createCredentialLinkQRCode({
   env: Env;
   linkID: string;
   signal?: AbortSignal;
-}): Promise<APIResponse<ShareCredentialQRCode>> {
+}): Promise<APIResponse<AuthQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -335,7 +334,7 @@ export async function createCredentialLinkQRCode({
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
 
-    const { data } = resultOKShareCredentialQRCodeParser.parse(response);
+    const { data } = resultOKAuthQRCodeParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -350,23 +349,21 @@ const resultCreateLinkParser = getStrictParser<ResultCreated<ID>>()(
   })
 );
 
-export type CredentialQRStatus = "done" | "pending" | "pendingPublish";
-
-export interface CredentialQRCheck {
+export interface ImportQRCode {
   qrCode?: unknown;
-  status: CredentialQRStatus;
+  status: "done" | "pending" | "pendingPublish";
 }
 
-const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheck>()(
+const importQRCheckDoneParser = getStrictParser<ImportQRCode>()(
   z.object({
     qrCode: z.unknown(),
     status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
   })
 );
 
-const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
+const resultOKImportQRCheckParser = getStrictParser<ResultOK<ImportQRCode>>()(
   z.object({
-    data: credentialQRCheckDoneParser,
+    data: importQRCheckDoneParser,
     status: z.literal(200),
   })
 );
@@ -379,7 +376,7 @@ export async function getCredentialLinkQRCode({
   env: Env;
   linkID: string;
   sessionID: string;
-}): Promise<APIResponse<CredentialQRCheck>> {
+}): Promise<APIResponse<ImportQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -392,7 +389,7 @@ export async function getCredentialLinkQRCode({
       },
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-    const { data } = resultOKCredentialQRCheckParser.parse(response);
+    const { data } = resultOKImportQRCheckParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {

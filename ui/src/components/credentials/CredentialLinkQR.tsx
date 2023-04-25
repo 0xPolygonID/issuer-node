@@ -5,8 +5,8 @@ import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import {
-  CredentialQRCheck,
-  ShareCredentialQRCode,
+  AuthQRCode,
+  ImportQRCode,
   createCredentialLinkQRCode,
   getCredentialLinkQRCode,
 } from "src/adapters/api/credentials";
@@ -32,13 +32,11 @@ export function CredentialLinkQR() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [shareCredentialQRCode, setShareCredentialQRCode] = useState<
-    AsyncTask<ShareCredentialQRCode, APIError>
+    AsyncTask<AuthQRCode, APIError>
   >({
     status: "pending",
   });
-  const [credentialQRCheck, setCredentialQRCheck] = useState<
-    AsyncTask<CredentialQRCheck, APIError>
-  >({
+  const [credentialQRCheck, setCredentialQRCheck] = useState<AsyncTask<ImportQRCode, APIError>>({
     status: "pending",
   });
 
@@ -177,7 +175,7 @@ export function CredentialLinkQR() {
             </Typography.Title>
 
             <Typography.Text style={{ fontSize: 18 }} type="secondary">
-              We will send you an updated version of this credential containing an on-chain proof.
+              You will receive an additional version of the credential containing an MTP proof.
               <Typography.Paragraph style={{ fontSize: 18, textAlign: "center" }} type="secondary">
                 Please ensure that you have enabled push notifications on the application.
               </Typography.Paragraph>
