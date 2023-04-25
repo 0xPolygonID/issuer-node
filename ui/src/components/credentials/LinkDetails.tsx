@@ -205,11 +205,11 @@ export function LinkDetails() {
 
                     <Detail label="Proof type" text={proofTypes.join(", ")} />
 
-                    <Detail label="Creation date" text={formatDate(createdAt, "date-time")} />
+                    <Detail label="Creation date" text={formatDate(createdAt)} />
 
                     <Detail
                       label="Credential expiration date"
-                      text={expiration ? formatDate(expiration, "date-time") : "-"}
+                      text={expiration ? formatDate(expiration) : "-"}
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />

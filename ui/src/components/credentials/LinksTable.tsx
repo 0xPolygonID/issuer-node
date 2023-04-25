@@ -103,9 +103,7 @@ export function LinksTable() {
       ellipsis: true,
       key: "expiration",
       render: (expiration: Link["expiration"]) => (
-        <Typography.Text>
-          {expiration ? formatDate(expiration, "date-time") : "Unlimited"}
-        </Typography.Text>
+        <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
       sorter: ({ expiration: a }, { expiration: b }) => {
         if (a && b) {

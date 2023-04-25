@@ -127,7 +127,7 @@ export function IssuerState() {
       ellipsis: { showTitle: false },
       key: "publishDate",
       render: (publishDate: Transaction["publishDate"]) => (
-        <Typography.Text>{formatDate(publishDate, "date-time")}</Typography.Text>
+        <Typography.Text>{formatDate(publishDate)}</Typography.Text>
       ),
       sorter: ({ publishDate: a }, { publishDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: "Publish date",

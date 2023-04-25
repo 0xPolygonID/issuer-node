@@ -203,7 +203,7 @@ export function SchemaDetails() {
 
                   <Detail copyable label="URL" text={url} />
 
-                  <Detail label="Import date" text={formatDate(createdAt, "date-time")} />
+                  <Detail label="Import date" text={formatDate(createdAt)} />
 
                   <Row justify="space-between">
                     <Typography.Text type="secondary">Download</Typography.Text>

@@ -74,7 +74,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt, "date-time")}</Typography.Text>
+        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
       sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
@@ -84,7 +84,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       key: "expiresAt",
       render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
         expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt, "date-time")}>
+          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
             <Typography.Text>
               {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
             </Typography.Text>
