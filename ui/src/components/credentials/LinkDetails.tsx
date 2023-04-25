@@ -1,4 +1,4 @@
-import { Button, Card, Space, Typography } from "antd";
+import { Button, Card, Space, TagProps, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -188,16 +188,16 @@ export function LinkDetails() {
             linkID,
           })}`;
 
-          const [flavor, text] = (() => {
+          const [tag, text]: [TagProps, string] = (() => {
             switch (status) {
               case "active": {
-                return [{ color: "success", type: "tag" } as const, "Active"];
+                return [{ color: "success" }, "Active"];
               }
               case "inactive": {
-                return [{ type: "tag" } as const, "Inactive"];
+                return [{}, "Inactive"];
               }
               case "exceeded": {
-                return [{ color: "error", type: "tag" } as const, "Exceeded"];
+                return [{ color: "error" }, "Exceeded"];
               }
             }
           })();
@@ -217,7 +217,7 @@ export function LinkDetails() {
                   <Space direction="vertical">
                     <Typography.Text type="secondary">CREDENTIAL LINK DETAILS</Typography.Text>
 
-                    <Detail flavor={flavor} label="Link status" text={text} />
+                    <Detail label="Link status" tag={tag} text={text} />
 
                     <Detail label="Proof type" text={proofTypes.join(", ")} />
 
