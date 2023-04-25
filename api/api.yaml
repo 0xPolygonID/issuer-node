@@ -484,8 +484,8 @@ components:
           type: object
           x-omitempty: false
         expiration:
-          type: string
-          format: date-time
+          type: integer
+          format: int64
         version:
           type: integer
           format: uint32
@@ -503,7 +503,7 @@ components:
           id: "fill with did"
           birthday: 19960424
           documentType: 2
-        expiration: "2025-03-20T11:54:01.110295+01:00"
+        expiration: 1903357766
 
     CreateClaimResponse:
       type: object
