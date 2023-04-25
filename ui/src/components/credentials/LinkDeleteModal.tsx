@@ -3,6 +3,7 @@ import { Modal, Typography, message } from "antd";
 import { deleteLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
+import { CLOSE } from "src/utils/constants";
 
 export function LinkDeleteModal({
   id,
@@ -30,7 +31,7 @@ export function LinkDeleteModal({
 
   return (
     <Modal
-      cancelText="Close"
+      cancelText={CLOSE}
       centered
       closable
       closeIcon={<IconClose />}

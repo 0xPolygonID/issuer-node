@@ -20,7 +20,10 @@ export interface Link {
   id: string;
   issuedClaims: number;
   maxIssuance?: number | null;
+  proofTypes: ProofTypes[];
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
 }
+
+export type ProofTypes = "BJJSignature2021" | "SparseMerkleTreeProof";

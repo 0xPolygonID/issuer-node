@@ -1,8 +1,8 @@
 import { AxiosError } from "axios";
-import { APIError, HTTPStatusError } from "src/adapters/api";
+import { APIError } from "src/adapters/api";
 
 export function isAbortedError(response: APIError | AxiosError) {
-  return HTTPStatusError.Aborted === response.status;
+  return response.status === 0;
 }
 
 export function makeRequestAbortable<T>(request: (signal: AbortSignal) => T | Promise<T>) {

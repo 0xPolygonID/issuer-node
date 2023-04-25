@@ -3,9 +3,9 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 
+import { CredentialLinkQR } from "src/components/credentials/CredentialLinkQR";
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
-import { ScanCredentialLink } from "src/components/credentials/ScanCredentialLink";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
@@ -19,7 +19,7 @@ import { ROOT_PATH } from "src/utils/constants";
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
-  credentialLink: ScanCredentialLink,
+  credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,

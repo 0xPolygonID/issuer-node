@@ -1,7 +1,7 @@
 export type RouteID =
   | "connectionDetails"
   | "connections"
-  | "credentialLink"
+  | "credentialLinkQR"
   | "credentials"
   | "importSchema"
   | "issueCredential"
@@ -29,9 +29,9 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
-  credentialLink: {
+  credentialLinkQR: {
     layout: "fullWidthGrey",
-    path: "/credential-link/:linkID",
+    path: "/credentials/scan-link/:linkID",
   },
   credentials: {
     layout: "sider",

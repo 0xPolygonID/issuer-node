@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import {
   APIResponse,
-  HTTPStatusSuccess,
   ResultOK,
   buildAPIError,
   buildAuthorizationHeader,
@@ -27,14 +26,14 @@ const connectionParser = getStrictParser<Connection>()(
 const resultOKConnectionParser = getStrictParser<ResultOK<Connection>>()(
   z.object({
     data: connectionParser,
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
 const resultOKConnectionsParser = getStrictParser<ResultOK<Connection[]>>()(
   z.object({
     data: z.array(connectionParser),
-    status: z.literal(HTTPStatusSuccess.OK),
+    status: z.literal(200),
   })
 );
 
