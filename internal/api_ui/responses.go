@@ -1,10 +1,14 @@
 package api_ui
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -235,29 +239,50 @@ func getLinkResponses(links []domain.Link) []Link {
 	return res
 }
 
-func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *GetLinkQrCodeResponseType {
+func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *QrCodeResponse {
 	if linkQrCode == nil {
 		return nil
 	}
-	credentials := make([]GetLinkQrCodeCredentialsResponseType, len(linkQrCode.Body.Credentials))
+	credentials := make([]QrCodeCredentialResponse, len(linkQrCode.Body.Credentials))
 	for i, c := range linkQrCode.Body.Credentials {
-		credentials[i] = GetLinkQrCodeCredentialsResponseType{
+		credentials[i] = QrCodeCredentialResponse{
 			Id:          c.ID,
 			Description: c.Description,
 		}
 	}
 
-	return &GetLinkQrCodeResponseType{
+	return &QrCodeResponse{
 		Id:   linkQrCode.ID,
 		Thid: linkQrCode.ThreadID,
 		Typ:  linkQrCode.Typ,
 		Type: linkQrCode.Type,
 		From: linkQrCode.From,
 		To:   linkQrCode.To,
-		Body: GetLinkQrCodeResponseBodyType{
+		Body: QrCodeBodyResponse{
 			Url:         linkQrCode.Body.URL,
 			Credentials: credentials,
 		},
+	}
+}
+
+func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCodeResponse {
+	id := uuid.NewString()
+	return QrCodeResponse{
+		Body: QrCodeBodyResponse{
+			Credentials: []QrCodeCredentialResponse{
+				{
+					Description: credential.SchemaType,
+					Id:          credential.ID.String(),
+				},
+			},
+			Url: getAgentEndpoint(hostURL),
+		},
+		From: credential.Issuer,
+		Id:   id,
+		Thid: id,
+		To:   credential.OtherIdentifier,
+		Typ:  string(packers.MediaTypePlainMessage),
+		Type: string(protocol.CredentialOfferMessageType),
 	}
 }
 
@@ -292,4 +317,8 @@ func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStat
 	response.Mtp.Siblings = &siblings
 
 	return response
+}
+
+func getAgentEndpoint(hostURL string) string {
+	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/"))
 }
