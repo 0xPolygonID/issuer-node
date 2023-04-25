@@ -49,19 +49,27 @@ export function LinkDetails() {
     setCredentialSubjectValue({ status: "loading" });
 
     void getJsonSchemaFromUrl({ url: link.schemaUrl }).then(([jsonSchema]) => {
-      const credentialSubject =
+      const credentialSubjectSchema =
         (jsonSchema.type === "object" &&
           jsonSchema.schema.properties
             ?.filter((child): child is ObjectAttribute => child.type === "object")
             .find((child) => child.name === "credentialSubject")) ||
         null;
 
-      if (credentialSubject) {
-        const parsedCredentialSubject = getAttributeValueParser(credentialSubject).safeParse({
-          ...link.credentialSubject,
-          // Add required id property that links lack
-          id: "",
-        });
+      const credentialSubjectSchemaWithoutId: ObjectAttribute | null = credentialSubjectSchema && {
+        ...credentialSubjectSchema,
+        schema: {
+          ...credentialSubjectSchema.schema,
+          properties: credentialSubjectSchema.schema.properties?.filter(
+            (attribute) => attribute.name !== "id"
+          ),
+        },
+      };
+
+      if (credentialSubjectSchemaWithoutId) {
+        const parsedCredentialSubject = getAttributeValueParser(
+          credentialSubjectSchemaWithoutId
+        ).safeParse(link.credentialSubject);
 
         if (parsedCredentialSubject.success) {
           if (parsedCredentialSubject.data.type === "object") {
