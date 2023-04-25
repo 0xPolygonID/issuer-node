@@ -3555,6 +3555,11 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
+
+	yesterday := time.Now().Add(-24 * time.Hour)
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	require.NoError(t, err)
+
 	handler := getHandler(ctx, server)
 
 	linkDetail := getLinkResponse(*link)
@@ -3562,6 +3567,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	type expected struct {
 		linkDetail Link
 		httpCode   int
+		message    string
 	}
 
 	type testConfig struct {
@@ -3586,6 +3592,16 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			id:   uuid.New(),
 			expected: expected{
 				httpCode: http.StatusNotFound,
+				message:  "error: link not found",
+			},
+		},
+		{
+			name: "Expired link",
+			auth: authOk,
+			id:   linkExpired.ID,
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				message:  "error: cannot issue a credential for an expired link",
 			},
 		},
 		{
@@ -3630,6 +3646,10 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.NotNil(t, response.SessionID)
 				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
+			case http.StatusNotFound:
+				var response CreateLinkQrCode404JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.message, response.Message)
 			}
 		})
 	}

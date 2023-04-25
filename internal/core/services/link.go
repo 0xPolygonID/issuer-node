@@ -34,6 +34,8 @@ var (
 	ErrLinkAlreadyExpired = errors.New("cannot issue a credential for an expired link")
 	// ErrLinkMaxExceeded - link max exceeded
 	ErrLinkMaxExceeded = errors.New("cannot issue a credential for an expired link")
+	// ErrLinkInactive - link inactive
+	ErrLinkInactive = errors.New("cannot issue a credential for an inactive link")
 	// ErrClaimAlreadyIssued - claim already issued
 	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
 )
@@ -141,6 +143,16 @@ func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did core.DID) error {
 
 // CreateQRCode - generates a qr code for a link
 func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*ports.CreateQRCodeResponse, error) {
+	link, err := ls.GetByID(ctx, issuerDID, linkID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ls.validate(ctx, link)
+	if err != nil {
+		return nil, err
+	}
+
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 	qrCode := &protocol.AuthorizationRequestMessage{
@@ -155,7 +167,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		},
 	}
 
-	err := ls.sessionManager.Set(ctx, sessionID, *qrCode)
+	err = ls.sessionManager.Set(ctx, sessionID, *qrCode)
 	if err != nil {
 		return nil, err
 	}
@@ -165,13 +177,6 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-	link, err := ls.GetByID(ctx, issuerDID, linkID)
-	if err != nil {
-		return nil, err
-	}
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
 		QrCode:    qrCode,
@@ -198,7 +203,13 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 		return ErrClaimAlreadyIssued
 	}
 
-	if err := ls.validate(ctx, sessionID, link, linkID); err != nil {
+	if err := ls.validate(ctx, link); err != nil {
+		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(err))
+		if err != nil {
+			log.Error(ctx, "cannot set the sate", "err", err)
+			return err
+		}
+
 		return err
 	}
 
@@ -305,27 +316,20 @@ func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID cor
 	}, nil
 }
 
-func (ls *Link) validate(ctx context.Context, sessionID string, link *domain.Link, linkID uuid.UUID) error {
+func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
 	if link.ValidUntil != nil && time.Now().UTC().After(*link.ValidUntil) {
 		log.Debug(ctx, "cannot issue a credential for an expired link")
-		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkAlreadyExpired))
-		if err != nil {
-			log.Error(ctx, "cannot set the sate", "err", err)
-			return err
-		}
-
 		return ErrLinkAlreadyExpired
 	}
 
 	if link.MaxIssuance != nil && *link.MaxIssuance <= link.IssuedClaims {
 		log.Debug(ctx, "cannot dispatch more claims for this link")
-		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(ErrLinkMaxExceeded))
-		if err != nil {
-			log.Error(ctx, "cannot set the sate", "err", err)
-			return err
-		}
-
 		return ErrLinkMaxExceeded
+	}
+
+	if !link.Active {
+		log.Debug(ctx, "cannot dispatch claim for inactive link")
+		return ErrLinkInactive
 	}
 
 	return nil
