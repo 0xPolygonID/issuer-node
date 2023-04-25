@@ -12,11 +12,15 @@ function decode(src: string): Uint8Array {
   const dst: number[] = [];
 
   for (; j < src.length; j += 2) {
-    const a = fromHexChar(src[j - 1].charCodeAt(0));
-    const b = fromHexChar(src[j].charCodeAt(0));
+    const aHex = src[j - 1];
+    const bHex = src[j];
+    if (aHex !== undefined && bHex !== undefined) {
+      const a = fromHexChar(aHex.charCodeAt(0));
+      const b = fromHexChar(bHex.charCodeAt(0));
 
-    dst[i] = (a << 4) | b;
-    i++;
+      dst[i] = (a << 4) | b;
+      i++;
+    }
   }
 
   if (src.length % 2 == 1) {
@@ -31,9 +35,16 @@ function encode(src: Uint8Array): Uint8Array {
   let j = 0;
 
   for (let i = 0; i < src.length; i++) {
-    dst[j] = HEX_TABLE[src[i] >> 4].charCodeAt(0);
-    dst[j + 1] = HEX_TABLE[src[i] & 0x0f].charCodeAt(0);
-    j += 2;
+    const int = src[i];
+    if (int !== undefined) {
+      const a = HEX_TABLE[int >> 4];
+      const b = HEX_TABLE[int & 0x0f];
+      if (a !== undefined && b !== undefined) {
+        dst[j] = a.charCodeAt(0);
+        dst[j + 1] = b.charCodeAt(0);
+        j += 2;
+      }
+    }
   }
 
   return dst;

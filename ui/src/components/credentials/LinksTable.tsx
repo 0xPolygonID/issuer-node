@@ -103,7 +103,7 @@ export function LinksTable() {
       ellipsis: true,
       key: "expiration",
       render: (expiration: Link["expiration"]) => (
-        <Typography.Text>{expiration ? formatDate(expiration, true) : "Unlimited"}</Typography.Text>
+        <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
       sorter: ({ expiration: a }, { expiration: b }) => {
         if (a && b) {
@@ -173,6 +173,7 @@ export function LinksTable() {
                   icon: <IconInfoCircle />,
                   key: "details",
                   label: "Details",
+                  onClick: () => navigate(generatePath(ROUTES.linkDetails.path, { linkID: id })),
                 },
                 {
                   key: "divider",

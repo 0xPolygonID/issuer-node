@@ -81,11 +81,11 @@ export function CredentialLinkQR() {
 
             const { proofTypes } = authQRCode.data.linkDetail;
 
-            if (proofTypes.includes("SparseMerkleTreeProof")) {
+            if (proofTypes.includes("MTP")) {
               void message.info("Issuance process started");
             }
 
-            if (proofTypes.includes("BJJSignature2021")) {
+            if (proofTypes.includes("SIG")) {
               void message.success("Credential sent");
             }
           }
@@ -193,7 +193,7 @@ export function CredentialLinkQR() {
       );
     }
 
-    return proofTypes[0] === "BJJSignature2021" ? (
+    return proofTypes[0] === "SIG" ? (
       <>
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />

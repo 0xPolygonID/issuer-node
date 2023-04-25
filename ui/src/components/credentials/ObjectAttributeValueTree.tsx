@@ -3,50 +3,54 @@ import { Col, Tree } from "antd";
 import type { DataNode } from "antd/es/tree";
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { SchemaTreeNode } from "src/components/schemas/SchemaTreeNode";
-import { Attribute, JsonSchema } from "src/domain";
+import { ObjectAttributeValueTreeNode } from "src/components/credentials/ObjectAttributeValueTreeNode";
+import { AttributeValue, ObjectAttributeValue } from "src/domain";
 
 const attributeToTreeDataNode = ({
-  attribute,
+  attributeValue,
   parents,
   treeWidth,
 }: {
-  attribute: Attribute;
-  parents: Attribute[];
+  attributeValue: AttributeValue;
+  parents: ObjectAttributeValue[];
   treeWidth: number;
 }): DataNode => {
   return {
     children:
-      attribute.type === "object"
-        ? attribute.schema.properties?.map((child) =>
+      attributeValue.type === "object"
+        ? attributeValue.value?.map((child) =>
             attributeToTreeDataNode({
-              attribute: child,
-              parents: [...parents, attribute],
+              attributeValue: child,
+              parents: [...parents, attributeValue],
               treeWidth,
             })
           )
         : [],
-    key: [...parents, attribute].map((node) => node.name).join(" > "),
+    key: [...parents, attributeValue].map((node) => node.name).join(" > "),
     title: (
-      <SchemaTreeNode attribute={attribute} nestingLevel={parents.length} treeWidth={treeWidth} />
+      <ObjectAttributeValueTreeNode
+        attributeValue={attributeValue}
+        nestingLevel={parents.length}
+        treeWidth={treeWidth}
+      />
     ),
   };
 };
 
-export function SchemaTree({
+export function ObjectAttributeValueTree({
+  attributeValue,
   className,
-  jsonSchema,
   style,
 }: {
+  attributeValue: ObjectAttributeValue;
   className?: string;
-  jsonSchema: JsonSchema;
   style?: React.CSSProperties;
 }) {
   const [treeWidth, setTreeWidth] = useState(0);
 
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const treeData = [attributeToTreeDataNode({ attribute: jsonSchema, parents: [], treeWidth })];
+  const treeData = [attributeToTreeDataNode({ attributeValue, parents: [], treeWidth })];
 
   useLayoutEffect(() => {
     const updateWidth = () => {

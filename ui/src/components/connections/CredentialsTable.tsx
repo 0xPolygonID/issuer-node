@@ -37,7 +37,6 @@ import { Credential } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
-  CREDENTIALS,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
   ISSUE_CREDENTIAL,
@@ -60,23 +59,22 @@ export function CredentialsTable({ userID }: { userID: string }) {
 
   const tableColumns: ColumnsType<Credential> = [
     {
-      dataIndex: "credentialSubject",
+      dataIndex: "schemaType",
       ellipsis: { showTitle: false },
-      key: "credentialSubject",
-      render: (credentialSubject: Credential["credentialSubject"]) => (
-        <Tooltip placement="topLeft" title={credentialSubject.type}>
-          <Typography.Text strong>{credentialSubject.type}</Typography.Text>
+      key: "schemaType",
+      render: (schemaType: Credential["schemaType"]) => (
+        <Tooltip placement="topLeft" title={schemaType}>
+          <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ credentialSubject: { type: a } }, { credentialSubject: { type: b } }) =>
-        a.localeCompare(b),
-      title: CREDENTIALS,
+      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      title: "Credential",
     },
     {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>
+        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
       sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
@@ -86,7 +84,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       key: "expiresAt",
       render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
         expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt, true)}>
+          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
             <Typography.Text>
               {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
             </Typography.Text>
@@ -179,9 +177,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
         });
         if (response.isSuccessful) {
           setCredentials({
-            data: response.data,
+            data: response.data.successful,
             status: "successful",
           });
+          response.data.failed.map((error) =>
+            processZodError(error).forEach((error) => void message.error(error))
+          );
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });

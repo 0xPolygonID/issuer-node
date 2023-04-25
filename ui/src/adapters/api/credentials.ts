@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   APIResponse,
+  GetAll,
   ID,
   IDParser,
   ResultAccepted,
@@ -13,20 +14,22 @@ import {
   resultOKMessage,
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Json, Link, LinkStatus, ProofTypes } from "src/domain";
+import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
+
+// Credentials
 
 export const credentialParser = getStrictParser<Credential>()(
   z.object({
-    createdAt: z.coerce.date(),
-    credentialSubject: z.object({
-      type: z.string(),
-    }),
+    createdAt: z.coerce.date(z.string().datetime()),
+    credentialSubject: z.record(z.unknown()),
     expired: z.boolean(),
-    expiresAt: z.coerce.date().optional(),
+    expiresAt: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
     revNonce: z.number(),
     revoked: z.boolean(),
+    schemaType: z.string(),
+    schemaUrl: z.string(),
   })
 );
 
@@ -34,6 +37,41 @@ export type CredentialStatus = "all" | "revoked" | "expired";
 
 export const credentialStatusParser = getStrictParser<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
+);
+
+const resultOKGetAllCredentialsParser = getStrictParser<
+  ResultOK<unknown[]>,
+  ResultOK<GetAll<Credential>>
+>()(
+  z.object({
+    data: z.array(z.unknown()).transform((unknowns) =>
+      unknowns.reduce(
+        (acc: GetAll<Credential>, curr: unknown, index): GetAll<Credential> => {
+          const parsedCredential = credentialParser.safeParse(curr);
+
+          return parsedCredential.success
+            ? {
+                ...acc,
+                successful: [...acc.successful, parsedCredential.data],
+              }
+            : {
+                ...acc,
+                failed: [
+                  ...acc.failed,
+                  new z.ZodError<Credential>(
+                    parsedCredential.error.issues.map((issue) => ({
+                      ...issue,
+                      path: [index, ...issue.path],
+                    }))
+                  ),
+                ],
+              };
+        },
+        { failed: [], successful: [] }
+      )
+    ),
+    status: z.literal(200),
+  })
 );
 
 export async function getCredentials({
@@ -48,7 +86,7 @@ export async function getCredentials({
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<Credential[]>> {
+}): Promise<APIResponse<GetAll<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -64,20 +102,13 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultOKCredentialsParser.parse(response);
+    const { data } = resultOKGetAllCredentialsParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
-
-const resultOKCredentialsParser = getStrictParser<ResultOK<Credential[]>>()(
-  z.object({
-    data: z.array(credentialParser),
-    status: z.literal(200),
-  })
-);
 
 export async function revokeCredential({
   env,
@@ -137,25 +168,94 @@ export async function deleteCredential({
   }
 }
 
+// Links
+
 export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-const proofTypesParser = getStrictParser<ProofTypes[]>()(
-  z.array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
+
+const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
+  z
+    .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+    .transform((values) =>
+      values.map((value) => {
+        switch (value) {
+          case "BJJSignature2021": {
+            return "SIG";
+          }
+          case "SparseMerkleTreeProof": {
+            return "MTP";
+          }
+        }
+      })
+    )
 );
 
-const linkParser = getStrictParser<Link>()(
+interface LinkInput {
+  active: boolean;
+  createdAt: Date;
+  credentialSubject: Record<string, unknown>;
+  expiration: Date | null;
+  id: string;
+  issuedClaims: number;
+  maxIssuance: number | null;
+  proofTypes: ProofTypeInput[];
+  schemaHash: string;
+  schemaType: string;
+  schemaUrl: string;
+  status: LinkStatus;
+}
+
+const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
     active: z.boolean(),
-    expiration: z.coerce.date().optional(),
+    createdAt: z.coerce.date(z.string().datetime()),
+    credentialSubject: z.record(z.unknown()),
+    expiration: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
     issuedClaims: z.number(),
-    maxIssuance: z.number().nullish(),
-    proofTypes: proofTypesParser,
+    maxIssuance: z.number().nullable(),
+    proofTypes: proofTypeParser,
+    schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
+  })
+);
+
+export async function getLink({
+  env,
+  linkID,
+  signal,
+}: {
+  env: Env;
+  linkID: string;
+  signal: AbortSignal;
+}): Promise<APIResponse<Link>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/links/${linkID}`,
+    });
+    const { data } = resultOKLinkParser.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+const resultOKLinkParser = getStrictParser<ResultOK<LinkInput>, ResultOK<Link>>()(
+  z.object({
+    data: linkParser,
+    status: z.literal(200),
   })
 );
 
@@ -185,7 +285,7 @@ export async function getLinks({
       signal,
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultOKLinks.parse(response);
+    const { data } = resultOKLinksParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -193,7 +293,7 @@ export async function getLinks({
   }
 }
 
-const resultOKLinks = getStrictParser<ResultOK<Link[]>>()(
+const resultOKLinksParser = getStrictParser<ResultOK<LinkInput[]>, ResultOK<Link[]>>()(
   z.object({
     data: z.array(linkParser),
     status: z.literal(200),
@@ -280,7 +380,7 @@ export async function createLink({
       method: "POST",
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultCreateLinkParser.parse(response);
+    const { data } = resultCreatedLinkParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -288,26 +388,33 @@ export async function createLink({
   }
 }
 
-export interface AuthQRCode {
+export interface AuthQRCodeInput {
   issuer: { displayName: string; logo: string };
-  linkDetail: { proofTypes: ProofTypes[]; schemaType: string };
+  linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
 }
 
-const authQRCodeParser = getStrictParser<AuthQRCode>()(
+export interface AuthQRCode {
+  issuer: { displayName: string; logo: string };
+  linkDetail: { proofTypes: ProofType[]; schemaType: string };
+  qrCode?: unknown;
+  sessionID: string;
+}
+
+const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
     issuer: z.object({
       displayName: z.string(),
       logo: z.string(),
     }),
-    linkDetail: z.object({ proofTypes: proofTypesParser, schemaType: z.string() }),
+    linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
     qrCode: z.unknown(),
     sessionID: z.string(),
   })
 );
 
-const resultOKAuthQRCodeParser = getStrictParser<ResultOK<AuthQRCode>>()(
+const resultOKAuthQRCodeParser = getStrictParser<ResultOK<AuthQRCodeInput>, ResultOK<AuthQRCode>>()(
   z.object({
     data: authQRCodeParser,
     status: z.literal(200),
@@ -342,7 +449,7 @@ export async function createAuthQRCode({
   }
 }
 
-const resultCreateLinkParser = getStrictParser<ResultCreated<ID>>()(
+const resultCreatedLinkParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
     data: IDParser,
     status: z.literal(201),

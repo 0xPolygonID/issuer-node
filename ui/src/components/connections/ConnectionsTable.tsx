@@ -55,8 +55,8 @@ export function ConnectionsTable() {
       render: (credentials: Credential[]) => (
         <Typography.Text>
           {[...credentials]
-            .sort((a, b) => a.credentialSubject.type.localeCompare(b.credentialSubject.type))
-            .map((credential) => credential.credentialSubject.type)
+            .sort((a, b) => a.schemaType.localeCompare(b.schemaType))
+            .map((credential) => credential.schemaType)
             .join(", ")}
         </Typography.Text>
       ),

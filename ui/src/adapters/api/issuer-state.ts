@@ -20,7 +20,7 @@ const transactionStatusParser = getStrictParser<TransactionStatus>()(
 const transactionParser = getStrictParser<Transaction>()(
   z.object({
     id: z.number(),
-    publishDate: z.coerce.date(),
+    publishDate: z.coerce.date(z.string().datetime()),
     state: z.string(),
     status: transactionStatusParser,
     txID: z.string(),

@@ -2,7 +2,7 @@ import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
 
-export async function getSchemaFromUrl({
+export async function getJsonSchemaFromUrl({
   signal,
   url,
 }: {

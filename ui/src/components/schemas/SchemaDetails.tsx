@@ -6,7 +6,7 @@ import { z } from "zod";
 import { APIError } from "src/adapters/api";
 import { getSchema } from "src/adapters/api/schemas";
 import { downloadJsonFromUrl } from "src/adapters/json";
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
+import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
@@ -18,7 +18,7 @@ import { Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
@@ -41,13 +41,10 @@ export function SchemaDetails() {
     status: "pending",
   });
 
-  const extractError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
-
-  const fetchSchemaFromUrl = useCallback((schema: Schema): void => {
+  const fetchJsonSchemaFromUrl = useCallback((schema: Schema): void => {
     setJsonSchemaTuple({ status: "loading" });
 
-    getSchemaFromUrl({
+    getJsonSchemaFromUrl({
       url: schema.url,
     })
       .then(([jsonSchema, rawJsonSchema]) => {
@@ -71,14 +68,14 @@ export function SchemaDetails() {
           })
           .catch((error) => {
             setContextTuple({
-              error: extractError(error),
+              error: processError(error),
               status: "failed",
             });
           });
       })
       .catch((error) => {
         setJsonSchemaTuple({
-          error: extractError(error),
+          error: processError(error),
           status: "failed",
         });
       });
@@ -97,7 +94,7 @@ export function SchemaDetails() {
 
         if (response.isSuccessful) {
           setSchema({ data: response.data, status: "successful" });
-          fetchSchemaFromUrl(response.data);
+          fetchJsonSchemaFromUrl(response.data);
         } else {
           if (!isAbortedError(response.error)) {
             setSchema({ error: response.error, status: "failed" });
@@ -105,7 +102,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [env, fetchSchemaFromUrl, schemaID]
+    [env, fetchJsonSchemaFromUrl, schemaID]
   );
 
   useEffect(() => {
@@ -125,7 +122,7 @@ export function SchemaDetails() {
         ].join("\n")
       : `An error occurred while downloading the context referenced in the schema:\n"${error}"\nPlease try again.`;
 
-  const schemaTupleErrorToString = (error: string | z.ZodError) =>
+  const jsonSchemaTupleErrorToString = (error: string | z.ZodError) =>
     error instanceof z.ZodError
       ? [
           "An error occurred while parsing the schema from the URL:",
@@ -161,7 +158,7 @@ export function SchemaDetails() {
         } else if (hasAsyncTaskFailed(jsonSchemaTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={schemaTupleErrorToString(jsonSchemaTuple.error)} />
+              <ErrorResult error={jsonSchemaTupleErrorToString(jsonSchemaTuple.error)} />
             </Card>
           );
         } else if (hasAsyncTaskFailed(contextTuple)) {
@@ -206,7 +203,7 @@ export function SchemaDetails() {
 
                   <Detail copyable label="URL" text={url} />
 
-                  <Detail label="Import date" text={formatDate(createdAt, true)} />
+                  <Detail label="Import date" text={formatDate(createdAt)} />
 
                   <Row justify="space-between">
                     <Typography.Text type="secondary">Download</Typography.Text>

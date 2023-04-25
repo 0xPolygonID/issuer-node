@@ -2,12 +2,12 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { getSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
+import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { processZodError } from "src/utils/error";
+import { processError, processZodError } from "src/utils/error";
 
 export type FormData = {
   jsonLdType: JsonLdType;
@@ -54,13 +54,10 @@ export function ImportSchemaForm({
         }
   );
 
-  const processError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
-
-  const fetchSchemaFromUrl = (url: string): void => {
+  const fetchJsonSchemaFromUrl = (url: string): void => {
     setJsonSchema({ status: "loading" });
 
-    getSchemaFromUrl({
+    getJsonSchemaFromUrl({
       url,
     })
       .then(([jsonSchema, rawJsonSchema]) => {
@@ -102,7 +99,7 @@ export function ImportSchemaForm({
       setJsonSchema({ status: "pending" });
       setJsonLdTypes({ status: "pending" });
       setJsonLdTypeInput(undefined);
-      fetchSchemaFromUrl(parsedUrl.data);
+      fetchJsonSchemaFromUrl(parsedUrl.data);
     } else {
       setJsonSchema({ error: `"${schemaUrlInput}" is not a valid URL`, status: "failed" });
     }
