@@ -497,7 +497,7 @@ function getIden3JsonLdTypeParser(schema: JsonSchema) {
           zodContext.addIssue({
             code: z.ZodIssueCode.custom,
             fatal: true,
-            message: "Couldn't find attribute credentialSubject in the schema",
+            message: "Couldn't find the attribute credentialSubject in the JSON Schema",
           });
           return z.NEVER;
         }
@@ -577,7 +577,7 @@ function getSertoJsonLdTypeParser(schema: JsonSchema) {
           zodContext.addIssue({
             code: z.ZodIssueCode.custom,
             fatal: true,
-            message: "Couldn't find attribute credentialSubject in the schema",
+            message: "Couldn't find the attribute credentialSubject in the JSON Schema",
           });
 
           return z.NEVER;
@@ -895,7 +895,7 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
                   context.addIssue({
                     code: z.ZodIssueCode.custom,
                     fatal: true,
-                    message: `Could not find the attribute "${name}" in the object's schema.`,
+                    message: `The attribute "${name}" from the credentialSubject does not exist in the JSON Schema.`,
                   });
                   return z.NEVER;
                 }
@@ -949,7 +949,7 @@ function getObjectAttributeValueParser({ name, required, schema, type }: ObjectA
                       context.addIssue({
                         code: z.ZodIssueCode.custom,
                         fatal: true,
-                        message: `Could not find the attribute ${name} in the object's schema.`,
+                        message: `The attribute "${name}" from the credentialSubject does not exist in the JSON Schema.`,
                       });
                       return z.NEVER;
                     }
