@@ -113,7 +113,7 @@ export async function getCredentials({
 export interface CreateCredential {
   credentialSchema: string;
   credentialSubject: Json;
-  expirationDate: string | null;
+  expiration: string | null;
   mtProof: boolean;
   signatureProof: boolean;
   type: string;

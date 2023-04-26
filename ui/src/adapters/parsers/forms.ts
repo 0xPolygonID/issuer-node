@@ -246,13 +246,11 @@ export function serializeCredentialIssuance({
 }): { data: CreateCredential; success: true } | { error: z.ZodError<FormInput>; success: false } {
   const parsedCredentialSubject = formParser.safeParse({ ...credentialSubject, id: did });
   if (parsedCredentialSubject.success) {
-    const expirationDate = expiration ? dayjs(expiration).format("YYYY-MM-DD") : null;
-
     return {
       data: {
         credentialSchema,
         credentialSubject: parsedCredentialSubject.data,
-        expirationDate,
+        expiration: expiration ? dayjs(expiration).toISOString() : null,
         mtProof,
         signatureProof,
         type,
