@@ -30,4 +30,3 @@ jobs:
       - run: make tests
         env:
           POSTGRES_TEST_DATABASE: postgres://postgres:postgres@localhost:5432
-

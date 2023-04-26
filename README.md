@@ -3,7 +3,7 @@
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
 
-This is a set of tools and APIs for issuers of zk-proof credentials, designed to be extensible. It allows an authenticated user to create schemas for issuing and managing credentials of identities. It also provides a web-based [frontend (UI)](ui/README.md) to manage issuer schemas, credentials and connections.
+This is a set of tools and APIs for issuers of zk-proof credentials, designed to be extensible. It allows an authenticated user to create schemas for issuing and managing credentials of identities. It also provides a [user interface](ui/README.md) to manage issuer schemas, credentials, issuer state and connections.
 
 This repository is for anyone to create their own [issuer node](https://0xpolygonid.github.io/tutorials/issuer-node/issuer-node-overview/) for Polygon ID.
 
@@ -13,22 +13,26 @@ This repository is for anyone to create their own [issuer node](https://0xpolygo
 
 There are two options for installing and running the server alongside the UI:
 
-1. [Docker Quick Start Guide](#docker-quick-start-guide)
+1. [Docker Setup Guide](#docker-setup-guide)
 2. [Standalone Mode Guide](#standalone-mode-guide)
 
-### Docker Quick Start Guide
+### Docker Setup Guide
 
 Running the app with Docker allows for minimal installation and a quick setup. This is recommended **for evaluation use-cases only**, such as local development builds.
 
-**TL;DR Steps:**
+#### (Optional) Quick Start Steps
+
+These steps can be followed to get up and running with all features as quickly as possible.
+
+> **NOTE:** For more detailed step-by-step instructions and guides to commands and examples, you may skip to the next section.
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
-2. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
-3. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose frontend can be accessed via the browser (default <http://localhost:3001>).
-4. Follow the [steps](#import-wallet-private-key-to-vault) for adding an Ethereum private key to the Vault.
-5. Follow the [steps](#create-issuer-did) for creating an identity as your issuer DID.
-6. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#development-ui) section for more details.
-7. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
+1. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
+1. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose frontend can be accessed via the browser (default <http://localhost:3001>).
+1. Follow the [steps](#import-wallet-private-key-to-vault) for adding an Ethereum private key to the Vault.
+1. Follow the [steps](#create-issuer-did) for creating an identity as your issuer DID.
+1. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#development-ui) section for more details.
+1. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
 
 #### Docker Guide Requirements
 
@@ -36,10 +40,9 @@ Running the app with Docker allows for minimal installation and a quick setup. T
 - [Docker Engine](https://docs.docker.com/engine/) `1.27+`
 - Makefile toolchain `GNU Make 3.81`
 
-> _**NOTE:** There is no compatibility with Windows environments at this time._
+> **NOTE:** There is no compatibility with Windows environments at this time.
 
-To help expedite a lot of the docker commands, many have been abstracted using `make` commands.
-Included in each step are the equivalent docker commands to show what is being run.
+To help expedite a lot of the Docker commands, many have been abstracted using `make` commands. Included in the following sections are the equivalent Docker commands that show what is being run.
 
 #### Create Docker Configuration Files
 
@@ -50,15 +53,15 @@ Make a copy of the following environment variables files:
 
 cp .env-api.sample .env-api;
 cp .env-issuer.sample .env-issuer;
-# (Optional - For Issuer UI)
+# (Optional - For issuer UI)
 cp .env-ui.sample .env-ui;
 ```
 
 #### Node Issuer Configuration
 
-The `.env-issuer` will be loaded into the [docker compose initializer](/infrastructure/local/docker-compose.yml)
+The `.env-issuer` will be loaded into the [Docker compose initializer](/infrastructure/local/docker-compose.yml)
 
-You can use one of the following RPC providers:
+Any of the following RPC providers can be used:
 
 - [Chainstack](https://chainstack.com/)
 - [Ankr](https://ankr.com/)
@@ -66,15 +69,15 @@ You can use one of the following RPC providers:
 - [Alchemy](https://www.alchemy.com/)
 - [Infura](https://www.infura.io/)
 
-If you want to get up and running with a free public forwarding url, look at [Getting A Public URL](#getting-a-public-url).
+If it is desired to run a free public forwarding URL, see [Getting A Public URL](#getting-a-public-url).
 
-**File:** `./.env-issuer`
+Configure `.env-issuer` with the following details (or amend as desired).
 
 ```bash
 # ...
 
 # See Section: Getting A Public URL
-ISSUER_SERVER_URL=https://unique-forwaring-or-public-url.ngrok-free.app
+ISSUER_SERVER_URL=<https://unique-forwaring-or-public-url.ngrok-free.app>
 # Defaults for Basic Auth in Base64 ("user-issuer:password-issuer" = "dXNlci1pc3N1ZXI6cGFzc3dvcmQtaXNzdWVy")
 # If you just want to get started, don't change these
 ISSUER_API_AUTH_USER=user-issuer
@@ -83,7 +86,7 @@ ISSUER_API_AUTH_PASSWORD=password-issuer
 ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
 ```
 
-> **NOTE:** In case you have loaded the vault multiple times and want a fresh start, run the following to remove remnant data:
+> **NOTE:** In case the Vault was loaded multiple times and a fresh start is needed, the following will remove remnant data:
 
 ```bash
 # FROM: ./
@@ -104,7 +107,7 @@ make clean-vault;
 
 #### Start Redis Postgres & Vault
 
-This will start the necessary local services needed to store the wallet private key to the hashicord vault and allow storing data associated to the issuer.
+This will start the necessary local services needed to store the wallet private key to the Hashicorp vault and allow storing data associated to the issuer.
 
 ```bash
 # FROM: ./
@@ -122,7 +125,7 @@ make up;
 #   ⠿ Container issuer-postgres-1  Started  
 ```
 
-If you want to remove all the services (ignore the warnings):
+To remove all services, run the following (ignore the warnings):
 
 ```bash
 # FROM: ./
@@ -147,14 +150,14 @@ make down;
 
 #### Import Wallet Private Key To Vault
 
-In order to secure our wallet private key so that the issuer can use it to issue claims/credentials, we'll store it in the hashicorp vault.
+In order to secure the wallet private key so that the issuer can use it to issue credentials, it must be stored in the Hashicorp Vault.
 
-> **NOTE:** Make sure the wallet you're providing has Testnet Matic to send transactions.
+> **NOTE:** Make sure the wallet that is provided has Testnet Matic to be able to send transactions.
 
 ```bash
 # FROM: ./
 
-# Make sure to verify that the issuer-vault-1 is full initialised to avoid: "Error writing data to iden3/import/pbkey: Error making API request."
+# Make sure to verify that the issuer-vault-1 is full initialized to avoid: "Error writing data to iden3/import/pbkey: Error making API request."
 make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key;
 # (Equivalent)
 #   docker exec issuer-vault-1 vault write iden3/import/pbkey key_type=ethereum private_key=<YOUR_WALLET_PRIVATE_KEY>;
@@ -167,7 +170,7 @@ make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key;
 
 #### Add Vault To Configuration File
 
-This will get the vault token from the hashicorp vault docker instance and add it to our `./env-issuer` file.
+This will get the vault token from the Hashicorp vault docker instance and add it to our `./env-issuer` file.
 
 ```bash
 # FROM: ./
@@ -175,9 +178,9 @@ This will get the vault token from the hashicorp vault docker instance and add i
 make add-vault-token;
 # (Equivalent)
 #   TOKEN=$(docker logs issuer-vault-1 2>&1 | grep " .hvs" | awk  '{print $2}' | tail -1);
-#	sed '/ISSUER_KEY_STORE_TOKEN/d' .env-issuer > .env-issuer.tmp;
-#	echo ISSUER_KEY_STORE_TOKEN=$TOKEN >> .env-issuer.tmp;
-#	mv .env-issuer.tmp .env-issuer;
+# sed '/ISSUER_KEY_STORE_TOKEN/d' .env-issuer > .env-issuer.tmp;
+# echo ISSUER_KEY_STORE_TOKEN=$TOKEN >> .env-issuer.tmp;
+# mv .env-issuer.tmp .env-issuer;
 
 # Expected Output:
 #   sed '/ISSUER_KEY_STORE_TOKEN/d' .env-issuer > .env-issuer.tmp
@@ -186,11 +189,13 @@ make add-vault-token;
 
 #### Create Issuer DID
 
-This will create a new issuer DID by creating a new docker instance of the issuer, generating the DID for the issuer, storing it in the database, and deleting the instance.
+> **NOTE:** This can also be done via the [UI API](#using-the-ui-api).
 
-It generates a new DID for the issuer node and saves it to `.env-api`
+This will create a new issuer DID by creating a new Docker instance of the issuer, generating the DID of the issuer, storing it in the database, then deleting the instance.
 
-> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+It then copies the new DID to `.env-api`.
+
+**For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):**
 
 ```bash
 # FROM: ./
@@ -199,16 +204,16 @@ It generates a new DID for the issuer node and saves it to `.env-api`
 make generate-issuer-did;
 # (Equivalent)
 #   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f ./infrastructure/local/docker-compose.yml up -d initializer
-#	sleep 5
-# 	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
-# 	@echo $(DID)
-# 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-# 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-# 	mv .env-api.tmp .env-api
-# 	docker rm issuer-initializer-1
+# sleep 5
+#  $(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
+#  @echo $(DID)
+#  sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
+#  @echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
+#  mv .env-api.tmp .env-api
+#  docker rm issuer-initializer-1
 ```
 
-> For _Apple-M1/M2/Arm_:
+**For _Apple-M1/M2/Arm_:**
 
 ```bash
 # FROM: ./
@@ -217,7 +222,7 @@ make generate-issuer-did;
 make generate-issuer-did-arm;
 # (Equivalent)
 #   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d initializer;
-#	sleep 5;
+# sleep 5;
 #   DID=$(docker logs -f --tail 1 issuer-initializer-1 | grep "did");
 #   echo $DID;
 #   sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp;
@@ -238,11 +243,11 @@ make generate-issuer-did-arm;
 #   issuer-initializer-1
 ```
 
-#### Start Issuer Node API
+#### Start Issuer API
 
-Now that you have all your files configured we can now start the issuer node api itself.
+Now that the issuer API is configured, it can be started.
 
-> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+**For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):**
 
 ```bash
 # FROM: ./
@@ -255,7 +260,7 @@ make run;
 #   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api;
 ```
 
-> For _Apple-M1/M2/Arm_:
+**For _Apple-M1/M2/Arm_:**
 
 ```bash
 # FROM: ./
@@ -269,89 +274,79 @@ make run-arm;
 #   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
 ```
 
-Now open up [http://localhost:3001](http://localhost:3001) and see the following:
+Navigating to <http://localhost:3001> shows te issuer API's frontend:
 
-![Issuer Node API](/docs/3001.png)
+![Issuer API frontend](/docs/3001.png)
 
-#### Configure UI Environment Variables
+#### (Optional) Configure UI
 
-This is to configure our UI admin to manage our credentials as an issuer at [http://localhost:8088](http://localhost:8088)
+This step is required to run the separate UI application, which allows intuitive and convenient management of schemas, credentials, connections and issuer state.
 
-> **NOTE:** REQUIRED STEP in order for the ui to work properly.
+> **NOTE:** Running and using the UI is optional, since it implements funcionality already exposed via the [UI API](#using-the-ui-api). It is highly recommended though, because it makes issuer management far simpler and more intuitive.
 
 ```bash
 # FROM: ./
 
-cp ./ui/.env.sample ./ui/.env;
+cp .env-ui.sample .env-ui;
 ```
 
-Configure the ui `.env` file with the following details:
-
-**File:** `./ui/.env`
+Configure the `.env-ui` file with the following details (or amend as desired):
 
 ```bash
-VITE_API_URL=http://localhost:3002
-VITE_API_USERNAME=user-ui
-VITE_API_PASSWORD=password-ui
-
-VITE_ISSUER_DID=<YOUR_ISSUER_API_UI_ISSUER_DID_FROM_ENVAPI>
-VITE_ISSUER_NAME=<YOUR_ISSUER_API_UI_ISSUER_NAME_FROM_ENVAPI>
-VITE_ISSUER_LOGO=<YOUR_ISSUER_API_UI_ISSUER_LOGO_FROM_ENVAPI>
-
-VITE_BLOCK_EXPLORER_URL=https://mumbai.polygonscan.com
+ISSUER_UI_BLOCK_EXPLORER_URL=https://mumbai.polygonscan.com
+ISSUER_UI_AUTH_USERNAME=user-ui
+ISSUER_UI_AUTH_PASSWORD=password-ui
 ```
 
-#### Start API UI, Admin UI, Notifications, & Publisher
+#### Start API UI, UI, Notifications server & Publisher
 
-This will start your own admin ui that will allow you to create and distrubute credentials.
+This will start the UI API that exposes endpoints to manage schemas, credentials, connections and issuer state, as well as the UI that relies on it.
 
-> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+**For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):**
 
 ```bash
 # FROM: ./
 
 make run-ui;
 # (Equivalent)
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher;
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api-ui ui notifications pending_publisher;
 
 # Expected Output:
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api-ui ui notifications pending_publisher
 #   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
 #   [+] Running 4/4
 #    ⠿ Container issuer-ui-1                 Started                                                                                                           0.5s
 #    ⠿ Container issuer-api-ui-1             Started                                                                                                           0.5s
-#    ⠿ Container issuer-notificacions-1      Started                                                                                                           0.4s
+#    ⠿ Container issuer-notifications-1      Started                                                                                                           0.4s
 #    ⠿ Container issuer-pending_publisher-1  Running  
 ```
 
-> For _Apple-M1/M2/Arm_:
+**For _Apple-M1/M2/Arm_:**
 
 ```bash
 # FROM: ./
 
 make run-ui-arm;
 # (Equivalent)
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher;
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/local/docker-compose.yml up -d api-ui ui notifications pending_publisher;
 
 # Expected Output:
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api-ui ui notificacions pending_publisher
+#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d api-ui ui notifications pending_publisher
 #   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
 #   [+] Running 4/4
 #    ⠿ Container issuer-ui-1                 Started                                                                                                           0.5s
 #    ⠿ Container issuer-api-ui-1             Started                                                                                                           0.5s
-#    ⠿ Container issuer-notificacions-1      Started                                                                                                           0.4s
+#    ⠿ Container issuer-notifications-1      Started                                                                                                           0.4s
 #    ⠿ Container issuer-pending_publisher-1  Running  
 ```
 
-Everything should be running correctly and we should see the following services:
+Now navigate to <http://localhost:3002> to see the UI API's frontend:
 
-![Issuer UI API](/docs/3002.png)
+![Issuer UI API frontend](/docs/3002.png)
 
-#### Testing API UI
+#### Using the UI API
 
-To test a request, make sure to set the Authentention section to the following:
-
-**File:** `./env-api`
+Make sure to set the HTTP authentication credentials in `.env-api` to the following:
 
 ```bash
 # ...
@@ -359,27 +354,33 @@ To test a request, make sure to set the Authentention section to the following:
 ISSUER_API_UI_AUTH_USER=user-api
 ISSUER_API_UI_AUTH_PASSWORD=password-api
 ```
+
+Then authenticate via the following form on <http://localhost:3002>:
 
 ![Issuer UI API Authentication](/docs/3002-auth.png)
 
+This allows you to make a request via any of the endpoints using this frontend.
+
 ![Issuer UI API Get Credentials](/docs/3002-credentials.png)
 
-#### Testing Admin UI
+#### (Optional) Using the UI
 
-> **NOTE:** If you are using Chrome, you might get the Basic auth show and disappear quickly. For this you just need to type: [http://user-api:password-api@localhost:8088/](http://user-api:password-api@localhost:8088/) to get the service to show up correctly.
+This service is running on <http://localhost:8088>.
 
-Reference file for the basic auth credentials.
+> **NOTE:** If you are using Chrome, you might get the HTTP auth modal showing and disappearing quickly. To remedy this, use the following URL: <http://user-api:password-api@localhost:8088/>.
 
-**File:** `./env-api`
+File containing the basic auth credentials: `.env-ui`
 
 ```bash
 # ...
 
-ISSUER_API_UI_AUTH_USER=user-api
-ISSUER_API_UI_AUTH_PASSWORD=password-api
+ISSUER_UI_AUTH_USERNAME=user-ui
+ISSUER_UI_AUTH_PASSWORD=password-ui
 ```
 
-![Issuer UI Admin](/docs/8088.png)
+![Issuer UI](/docs/8088.png)
+
+> **NOTE:** If you want to run the UI app in development mode, i.e. with HMR enabled, please follow the steps in the [Development (UI)](#development-ui) section.
 
 ---
 
@@ -387,7 +388,7 @@ ISSUER_API_UI_AUTH_PASSWORD=password-api
 
 Running the app in standalone mode means you will need to install the binaries for the server to run natively. This is essential for production deployments.
 
-Make sure you have Postgres, Redis and Vault properly installed & configured. Do _not_ use `make up` since those will start the containers for non-production builds, see [Docker Quick Start Guide](#docker-quick-start-guide).
+Make sure you have Postgres, Redis and Vault properly installed & configured. Do _not_ use `make up` since those will start the containers for non-production builds, see [Docker Setup Guide](#docker-setup-guide).
 
 #### Standalone Mode Guide Requirements
 
@@ -402,42 +403,34 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 #### Standalone Mode Setup
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
-2. Run `make build`. This will generate a binary for each of the following commands:
+1. Run `make build`. This will generate a binary for each of the following commands:
    - `platform`
    - `platform_ui`
    - `migrate`
    - `pending_publisher`
    - `notifications`
-3. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
-4. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
-5. Run `./bin/platform` command to start the issuer.
-6. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
-7. Follow the [steps](#adding-ethereum-private-key-to-the-vault) for adding an Ethereum private key to the Vault.
-8. Follow the [steps](#creating-the-issuer-did) for creating an identity as your issuer DID.
-9. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-10. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
-
-> If you want to run the UI app in development mode, i.e. with HMR enabled, please follow the steps in the [Development (UI)](#development-ui) section.
+1. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
+1. Run `./bin/platform` command to start the issuer.
+1. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
+1. Follow the [steps](#import-wallet-private-key-to-vault) for adding an Ethereum private key to the Vault.
+1. Follow the [steps](#create-issuer-did) for creating an identity as your issuer DID.
+1. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
+1. _Documentation pending: standalone UI setup._
 
 ---
 
-## Issuing Credentials/Claims
+## Issuing Credentials via CLI
 
-> **NOTE:** A lot of these steps can be done through the API UI at [http://localhost:3001](http://localhost:3001).
+Once the [Installation](#installation) is completed, the following will walk you through issuing credentials via a CLI.
 
-Once you've completed the [Installation](#installation) section, this will walk you through issuing credentials/claims.
+> **NOTE:** These steps can be done either via the API UI (<http://localhost:3001>) or directly in the UI (<http://localhost:8088>) (see [Docker setup](#docker-setup-guide)).
 
-### (Optional) Create Identity
+### Create Identity
 
-> **NOTE:** This step should have been completed in [Create Issuer ID](#create-issuer-did) step.
-
-This is to demonstrate how to createa an identity but is not needed as the identity is created in [Create Issuer DID](#create-issuer-did) step.
+> **NOTE:** This is an alternative to the following: [Create Issuer ID](#create-issuer-did).
 
 ```bash
-# NOTE: dXNlci1pc3N1ZXI6cGFzc3dvcmQtaXNzdWVy is a Basic HTTP Authorizatio as base64(user-issuer:password-issuer) from our .env-issuer file
-# [HTTPBasicAuth]
-# User="user"
-# Password="password"
+# NOTE: dXNlci1pc3N1ZXI6cGFzc3dvcmQtaXNzdWVy is a Basic HTTP Authorization as base64(user-issuer:password-issuer) from our .env-issuer file
 curl --location 'http://localhost:3001/v1/identities' \
 --header 'Authorization: Basic dXNlci1pc3N1ZXI6cGFzc3dvcmQtaXNzdWVy' \
 --header 'Content-Type: application/json' \
@@ -453,9 +446,17 @@ curl --location 'http://localhost:3001/v1/identities' \
 #   {"identifier":"did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE","state":{"claimsTreeRoot":"eb3d346d16f849b3cc2be69bfc58091dfaf6d90574be26bb40222aea67e08505","createdAt":"2023-03-22T22:49:02.782896Z","modifiedAt":"2023-03-22T22:49:02.782896Z","state":"b25cf54e7e648a263658416194c41ef6ae2dec101c50dfb2febc5e96eaa87110","status":"confirmed"}}
 ```
 
-### (Optional) View Existing DIDs
+### (Optional) View Existing DIDs (connections)
 
-This will output all dids that have been created with the issuer.
+A connection is a DID that is linked to the issuer when they authenticate via an issued credential.
+
+#### Option 1 - Using the UI
+
+_Documentation pending_
+
+#### Option 2 - Using a CLI
+
+This will output all DIDs (i.e. connections) that have been created with the issuer.
 
 ```bash
 curl --location --request GET 'http://localhost:3001/v1/identities' \
@@ -473,17 +474,17 @@ curl --location --request GET 'http://localhost:3001/v1/identities' \
 #   ["did:polygonid:polygon:mumbai:2qMd3PtcVbzDNQZBiSDctaigbQtYW9KTqrLFoUm4Ur","did:polygonid:polygon:mumbai:2qMeNWv9xSSvWyBpn5tDojzQ8sga4VtrfuAkV65zQa","did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE","did:polygonid:polygon:mumbai:2qLR2qA22RemPeQDsQwdrrMU3SM9CNLnRBhmQtzo5v","did:polygonid:polygon:mumbai:2qHYtws8GQN3RniHLjPf5GuZUZtcD37o1MUgUmw287"]
 ```
 
-### Creating Claim/Credentials
+### Creating Credentials
 
-This will go through creating a `KYCAgeCredential` claim based off the following [KYC Age Credential Schema](https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json)
+This will go through creating a `KYCAgeCredential` credential based off the following [KYC Age Credential Schema](https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json)
 
-#### Option 1 - From Admin UI
+#### Option 1 - Using the UI
 
-(Currently a WIP)
+_Documentation pending_
 
-#### Option 2 - From Terminal
+#### Option 2 - Using a CLI
 
-Before creating the claim, the identifier of the service/person is needed. To retrive this, the `identifier` can be copied from the Polygon ID app to the clipboard.
+Before creating a credential, the identifier of the service/person is needed. To retrieve this, the `identifier` can be copied from the Polygon ID app to the clipboard.
 
 !["ID Within Polygon ID App"](/docs/polygonid-app-id.png)
 
@@ -507,9 +508,15 @@ curl --location 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNc
 #   {"id":"b1eab5be-dea3-11ed-8f7d-0242ac1e0005"}
 ```
 
-### (Optional) Verifying Claim/Credentials Creation
+### (Optional) Verifying Credentials Creation
 
-Using the previous generated claim/credential id from [Creating Claim/Credentials](#creating-claimcredentials).
+#### Option 1 - Using the UI
+
+_Documentation pending_
+
+#### Option 2 - Using a CLI
+
+Using the previous generated credential ID from [Creating Credentials](#creating-credentials).
 
 ```bash
 curl --location --request GET 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE/claims/b1eab5be-dea3-11ed-8f7d-0242ac1e0005' \
@@ -519,17 +526,17 @@ curl --location --request GET 'http://localhost:3001/v1/did:polygonid:polygon:mu
 #   {"@context":["https://www.w3.org/2018/credentials/v1","https://schema.iden3.io/core/jsonld/iden3proofs.jsonld","https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"],"credentialSchema":{"id":"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json","type":"JsonSchemaValidator2018"},"credentialStatus":{"id":"https://unique-forwaring-or-public-url.ngrok-free.app/v1/did%3Apolygonid%3Apolygon%3Amumbai%3A2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahUQ/claims/revocation/status/2512063162","revocationNonce":2512063162,"type":"SparseMerkleTreeProof"},"credentialSubject":{"birthday":19960424,"documentType":2,"id":"did:polygonid:polygon:mumbai:2qEsg1AeTohAq6Euc3hBaDapfLVfQiWS7DUfvutYEq","type":"KYCAgeCredential"},"id":"http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE/claims/b1eab5be-dea3-11ed-8f7d-0242ac1e0005","issuanceDate":"2023-04-19T11:16:56.433871253Z","issuer":"did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE","proof":[{"type":"BJJSignature2021","issuerData":{"id":"did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE","state":{"claimsTreeRoot":"78b7651adb5d063553f7fdc11d279a3e307880aef6dec2b347abf0df53a11d27","value":"....
 ```
 
-### Issuing Claim/Credential To Polygon ID App
+### Issuing Credential To Polygon ID Wallet User
 
-This will walk you through the steps of issueing a claim/credentials to the Polygon ID wallet app.
+This will walk you through the steps of issuing a credentials to the Polygon ID wallet app.
 
-#### Option 1 - From Admin UI
+#### Option 1 - Using the UI
 
-(Currently a WIP)
+_Documentation pending_
 
-#### Option 2 - From Terminal
+#### Option 2 - Using a CLI
 
-In order to get the claim on the Polygon ID App, the claim QR Code payload is needed.
+In order to get the credential on the Polygon ID App, the credential QR Code payload is needed.
 
 ```bash
 curl --location 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNczpXhkTDXfrNmmt9fGMzfDHewUnqGLahYE/claims/b1eab5be-dea3-11ed-8f7d-0242ac1e0005/qrcode' \
@@ -545,11 +552,11 @@ Take this JSON data, copy, and paste into [https://qr.io](https://qr.io).
 
 With the Polygon ID app, open it up and scan the QR code.
 
-!["Polygon ID App Adding Claim/Credential"](/docs/polygonid-app-claim.png)
+!["Polygon ID App Adding Credential"](/docs/polygonid-app-claim.png)
 
-### Verifying Claim
+### Verifying Credential
 
-> **NOTE:** The goal is to build your own type of claims and ways to verify claims, but this is an example of how things could work.
+> **NOTE:** The goal is to build your own type of credential and ways to verify it, but this is an example of how things could work.
 
 A quick way to validate this KYCAge Claim is to use [https://verifier-demo.polygonid.me/](https://verifier-demo.polygonid.me/).
 
@@ -565,7 +572,9 @@ A quick way to validate this KYCAge Claim is to use [https://verifier-demo.polyg
 
 ## Configuration
 
-For a full user guide, please refer to the [getting started docs](https://0xpolygonid.github.io/tutorials/issuer-node/getting-started-flow).
+For a full user guide, please refer to the ~~[getting started docs](https://0xpolygonid.github.io/tutorials/issuer-node/getting-started-flow)~~.
+
+_Documentation pending for tutorial_
 
 ### Getting A Public URL
 
@@ -603,7 +612,7 @@ An _experimental_ helper command is provided via `make config` to allow an inter
 
 ## Development (UI)
 
-Completing either option of the [installation](#installation) process yields the UI as a minified Javascript app. Any changes to the UI source code would necessitate a Docker image removal and re-build to apply them. In most development scenarios this is undesirable, so the UI app can also be run in development mode like any [React](https://17.reactjs.org/) application to enable hot module replacement ([HMR](https://webpack.js.org/guides/hot-module-replacement/)).
+Completing the [installation](#installation) process yields the UI as a minified Javascript app. Any changes to the UI source code would necessitate a full re-build to apply them. In most development scenarios this is undesirable, so the UI app can also be run in development mode like any [React](https://17.reactjs.org/) application to enable hot module replacement ([HMR](https://webpack.js.org/guides/hot-module-replacement/)).
 
 1. Make sure that the UI API is set up and running properly (default <http://localhost:3002>).
 2. Go to the `ui/` folder.
@@ -701,28 +710,28 @@ There is a good chance that you just need to rebuild the docker images if you ma
 
 To rebuild the docker images, just run the following (this might take a bit):
 
-> For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):
+**For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):**
 
 ```bash
 # FROM: ./
 
 # for `api` and `pending_publisher`
 make build;
-# for `api-ui` `ui` `notificacions`and ` pending_publisher`
+# for `api-ui` `ui` `notifications`and ` pending_publisher`
 make build-ui;
 
 # Expected Output:
 #   ...
 ```
 
-> For _Apple-M1/M2/Arm_:
+**For _Apple-M1/M2/Arm_:**
 
 ```bash
 # FROM: ./
 
 # for `api` and `pending_publisher`
 make build-arm;
-# for `api-ui` `ui` `notificacions`and ` pending_publisher`
+# for `api-ui` `ui` `notifications`and ` pending_publisher`
 make build-ui-arm;
 
 # Expected Output:

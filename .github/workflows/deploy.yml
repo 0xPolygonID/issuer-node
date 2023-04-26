@@ -31,5 +31,3 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE_MAIN }}
           port: ${{ secrets.PORT_MAIN }}
           script: sh update.sh
-
-     
