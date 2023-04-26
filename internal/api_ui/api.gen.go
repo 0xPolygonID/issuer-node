@@ -430,6 +430,9 @@ type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
+	// Gets the favicon
+	// (GET /favicon.ico)
+	GetFavicon(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
 	// (GET /static/docs/api_ui/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
@@ -543,6 +546,21 @@ func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDocumentation(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetFavicon operation middleware
+func (siw *ServerInterfaceWrapper) GetFavicon(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFavicon(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1540,6 +1558,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/", wrapper.GetDocumentation)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/favicon.ico", wrapper.GetFavicon)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/static/docs/api_ui/api.yaml", wrapper.GetYaml)
 	})
 	r.Group(func(r chi.Router) {
@@ -1660,6 +1681,21 @@ type GetDocumentation200Response struct {
 }
 
 func (response GetDocumentation200Response) VisitGetDocumentationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type GetFaviconRequestObject struct {
+}
+
+type GetFaviconResponseObject interface {
+	VisitGetFaviconResponse(w http.ResponseWriter) error
+}
+
+type GetFavicon200Response struct {
+}
+
+func (response GetFavicon200Response) VisitGetFaviconResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
 }
@@ -2811,6 +2847,9 @@ type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
+	// Gets the favicon
+	// (GET /favicon.ico)
+	GetFavicon(ctx context.Context, request GetFaviconRequestObject) (GetFaviconResponseObject, error)
 	// Get the documentation yaml file
 	// (GET /static/docs/api_ui/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
@@ -2956,6 +2995,30 @@ func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetDocumentationResponseObject); ok {
 		if err := validResponse.VisitGetDocumentationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetFavicon operation middleware
+func (sh *strictHandler) GetFavicon(w http.ResponseWriter, r *http.Request) {
+	var request GetFaviconRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFavicon(ctx, request.(GetFaviconRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFavicon")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFaviconResponseObject); ok {
+		if err := validResponse.VisitGetFaviconResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

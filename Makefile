@@ -17,10 +17,9 @@ DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_IN
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
 
-.PHONY: build
-build:
+.PHONY: build-local
+build-local:
 	$(BUILD_CMD) ./cmd/...
-
 
 .PHONY: build/docker
 build/docker: ## Build the docker image.

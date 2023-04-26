@@ -821,6 +821,15 @@ paths:
         200:
           description: success and returns the documentation in Yaml format
 
+  /favicon.ico:
+    get:
+      summary: Gets the favicon
+      operationId: GetFavicon
+      x-internal: true
+      responses:
+        200:
+          description: success and returns a favicon
+
   /status:
     get:
       summary: Healthcheck
