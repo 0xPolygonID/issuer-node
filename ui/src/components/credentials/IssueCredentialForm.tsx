@@ -79,7 +79,7 @@ export function IssueCredentialForm({
         </Form.Item>
       </Space>
 
-      <Form.Item label="Proof type" name="proofTypes">
+      <Form.Item label="Proof type" name="proofTypes" required>
         <Checkbox.Group>
           <Form.Item>
             <Checkbox value="SIG">
