@@ -17,19 +17,57 @@ import { getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
+type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
+
+const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
+  z
+    .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+    .min(1)
+    .transform((values) =>
+      values.map((value) => {
+        switch (value) {
+          case "BJJSignature2021": {
+            return "SIG";
+          }
+          case "SparseMerkleTreeProof": {
+            return "MTP";
+          }
+        }
+      })
+    )
+);
+
 // Credentials
 
-export const credentialParser = getStrictParser<Credential>()(
+export interface CredentialInput {
+  createdAt: Date;
+  credentialSubject: Record<string, unknown>;
+  expired: boolean;
+  expiresAt: Date | null;
+  id: string;
+  proofTypes: ProofTypeInput[];
+  revNonce: number;
+  revoked: boolean;
+  schemaHash: string;
+  schemaType: string;
+  schemaUrl: string;
+  userID: string;
+}
+
+export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z.object({
     createdAt: z.coerce.date(z.string().datetime()),
     credentialSubject: z.record(z.unknown()),
     expired: z.boolean(),
     expiresAt: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
+    proofTypes: proofTypeParser,
     revNonce: z.number(),
     revoked: z.boolean(),
+    schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
+    userID: z.string(),
   })
 );
 
@@ -39,37 +77,36 @@ export const credentialStatusParser = getStrictParser<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
 
-const resultOKGetAllCredentialsParser = getStrictParser<
-  ResultOK<unknown[]>,
-  ResultOK<GetAll<Credential>>
->()(
-  z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: GetAll<Credential>, curr: unknown, index): GetAll<Credential> => {
-          const parsedCredential = credentialParser.safeParse(curr);
+export async function getCredential({
+  credentialID,
+  env,
+  signal,
+}: {
+  credentialID: string;
+  env: Env;
+  signal?: AbortSignal;
+}): Promise<APIResponse<Credential>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/${credentialID}`,
+    });
+    const { data } = resultOKCredentialParser.parse(response);
 
-          return parsedCredential.success
-            ? {
-                ...acc,
-                successful: [...acc.successful, parsedCredential.data],
-              }
-            : {
-                ...acc,
-                failed: [
-                  ...acc.failed,
-                  new z.ZodError<Credential>(
-                    parsedCredential.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { failed: [], successful: [] }
-      )
-    ),
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+const resultOKCredentialParser = getStrictParser<ResultOK<CredentialInput>, ResultOK<Credential>>()(
+  z.object({
+    data: credentialParser,
     status: z.literal(200),
   })
 );
@@ -109,6 +146,41 @@ export async function getCredentials({
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
+
+const resultOKGetAllCredentialsParser = getStrictParser<
+  ResultOK<unknown[]>,
+  ResultOK<GetAll<Credential>>
+>()(
+  z.object({
+    data: z.array(z.unknown()).transform((unknowns) =>
+      unknowns.reduce(
+        (acc: GetAll<Credential>, curr: unknown, index): GetAll<Credential> => {
+          const parsedCredential = credentialParser.safeParse(curr);
+
+          return parsedCredential.success
+            ? {
+                ...acc,
+                successful: [...acc.successful, parsedCredential.data],
+              }
+            : {
+                ...acc,
+                failed: [
+                  ...acc.failed,
+                  new z.ZodError<Credential>(
+                    parsedCredential.error.issues.map((issue) => ({
+                      ...issue,
+                      path: [index, ...issue.path],
+                    }))
+                  ),
+                ],
+              };
+        },
+        { failed: [], successful: [] }
+      )
+    ),
+    status: z.literal(200),
+  })
+);
 
 export async function revokeCredential({
   env,
@@ -172,26 +244,6 @@ export async function deleteCredential({
 
 export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
-);
-
-type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
-
-const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
-  z
-    .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
-    .min(1)
-    .transform((values) =>
-      values.map((value) => {
-        switch (value) {
-          case "BJJSignature2021": {
-            return "SIG";
-          }
-          case "SparseMerkleTreeProof": {
-            return "MTP";
-          }
-        }
-      })
-    )
 );
 
 interface LinkInput {

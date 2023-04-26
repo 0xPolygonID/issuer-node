@@ -13,6 +13,7 @@ export const EXPIRATION = "Expiration";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
+export const ISSUED_CREDENTIALS = "Issued credentials";
 export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
 export const ISSUER_STATE = "Issuer state";

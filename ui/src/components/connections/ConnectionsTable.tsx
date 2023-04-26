@@ -19,7 +19,12 @@ import { Connection, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import {
+  CONNECTIONS,
+  IDENTIFIER,
+  ISSUED_CREDENTIALS,
+  QUERY_SEARCH_PARAM,
+} from "src/utils/constants";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
@@ -60,7 +65,7 @@ export function ConnectionsTable() {
             .join(", ")}
         </Typography.Text>
       ),
-      title: "Issued credentials",
+      title: ISSUED_CREDENTIALS,
     },
     {
       dataIndex: "id",

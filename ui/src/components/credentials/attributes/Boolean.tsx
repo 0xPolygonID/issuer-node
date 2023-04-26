@@ -15,6 +15,7 @@ export function Boolean({
       label={<Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>}
       name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
       required={attribute.required}
+      rules={[{ required: attribute.required }]}
     >
       {attribute.schema.enum ? (
         <Select placeholder="Select option">

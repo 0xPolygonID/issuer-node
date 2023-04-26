@@ -50,7 +50,7 @@ export function SchemaTreeNode({
             <Typography.Text
               ellipsis={{ tooltip: true }}
               style={{
-                maxWidth: treeWidth - 200 - nestingLevel * 20,
+                maxWidth: treeWidth - name.length * 12 - nestingLevel * 20,
               }}
               type="secondary"
             >

@@ -15,7 +15,7 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { Link, generatePath, useSearchParams } from "react-router-dom";
+import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
@@ -50,6 +50,8 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
   const env = useEnvContext();
+
+  const navigate = useNavigate();
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
@@ -134,6 +136,8 @@ export function CredentialsTable() {
                 icon: <IconInfoCircle />,
                 key: "details",
                 label: "Details",
+                onClick: () =>
+                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
               },
               {
                 key: "divider1",
@@ -324,7 +328,6 @@ export function CredentialsTable() {
           onDelete={() => void fetchCredentials()}
         />
       )}
-
       {credentialToRevoke && (
         <CredentialRevokeModal
           credential={credentialToRevoke}
