@@ -103,6 +103,7 @@ type Credential struct {
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
 	ExpiresAt         *time.Time             `json:"expiresAt"`
+	Holder            string                 `json:"holder"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
