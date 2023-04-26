@@ -540,8 +540,11 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
 	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
-		if errors.Is(services.ErrLinkNotFound, err) {
+		if errors.Is(err, services.ErrLinkNotFound) {
 			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
+		}
+		if errors.Is(err, services.ErrLinkAlreadyExpired) || errors.Is(err, services.ErrLinkMaxExceeded) || errors.Is(err, services.ErrLinkInactive) {
+			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: " + err.Error()}}, nil
 		}
 		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
