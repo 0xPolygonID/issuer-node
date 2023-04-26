@@ -63,7 +63,7 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const createCredentialQRLink = (credentialLinkIssuance: CredentialLinkIssuance) => {
+  const createCredentialLink = (credentialLinkIssuance: CredentialLinkIssuance) => {
     if (schemaID) {
       setLinkID({ status: "loading" });
       const serializedCredentialForm = serializeCredentialLinkIssuance({
@@ -218,7 +218,7 @@ export function IssueCredential() {
 
                                 if (parsedForm.success) {
                                   if (parsedForm.data.type === "credentialLink") {
-                                    createCredentialQRLink(parsedForm.data);
+                                    createCredentialLink(parsedForm.data);
                                   } else {
                                     issueCredential(parsedForm.data);
                                   }

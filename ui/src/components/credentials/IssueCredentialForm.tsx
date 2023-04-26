@@ -9,7 +9,7 @@ import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { CredentialSubjectForm } from "src/components/credentials/CredentialSubjectForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
-import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
+import { SCHEMA_HASH } from "src/utils/constants";
 
 export function IssueCredentialForm({
   initialValues,
@@ -74,20 +74,12 @@ export function IssueCredentialForm({
       <Space direction="vertical" size="large">
         <CredentialSubjectForm attributes={credentialSubjectAttributes} />
 
-        <Form.Item
-          label="Credential expiration date"
-          name="expirationDate"
-          rules={[{ message: DATE_VALIDITY_MESSAGE, required: false }]}
-        >
+        <Form.Item label="Credential expiration date" name="expirationDate">
           <DatePicker disabledDate={(current) => current < dayjs()} />
         </Form.Item>
       </Space>
 
-      <Form.Item
-        label="Proof type"
-        name="proofTypes"
-        rules={[{ message: "At least one proof type is required.", required: true }]}
-      >
+      <Form.Item label="Proof type" name="proofTypes">
         <Checkbox.Group>
           <Form.Item>
             <Checkbox value="SIG">
