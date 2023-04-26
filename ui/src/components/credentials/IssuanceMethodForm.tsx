@@ -105,6 +105,7 @@ export function IssuanceMethodForm({
                   </Space>
                 </Radio>
                 <Form.Item
+                  initialValue={didParam}
                   label="Select connection/Paste identifier"
                   name="did"
                   required
@@ -113,7 +114,6 @@ export function IssuanceMethodForm({
                   {isAsyncTaskDataAvailable(connections) ? (
                     <Select
                       className="full-width"
-                      defaultValue={didParam}
                       disabled={!isDirectIssue}
                       placeholder="Select or paste"
                     >
