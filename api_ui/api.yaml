@@ -1044,7 +1044,7 @@ components:
         - revNonce
         - credentialSubject
         - revoked
-        - holder
+        - userID
       properties:
         id:
           type: string
@@ -1095,7 +1095,7 @@ components:
             documentType: 2
             id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
             type: "KYCAgeCredential"
-        holder:
+        userID:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 

@@ -103,7 +103,6 @@ type Credential struct {
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
 	ExpiresAt         *time.Time             `json:"expiresAt"`
-	Holder            string                 `json:"holder"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
@@ -111,6 +110,7 @@ type Credential struct {
 	SchemaHash        string                 `json:"schemaHash"`
 	SchemaType        string                 `json:"schemaType"`
 	SchemaUrl         string                 `json:"schemaUrl"`
+	UserID            string                 `json:"userID"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.

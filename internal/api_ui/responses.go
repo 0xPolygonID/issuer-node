@@ -58,7 +58,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		SchemaHash:        credential.SchemaHash,
 		SchemaType:        shortType(credential.SchemaType),
 		SchemaUrl:         credential.SchemaURL,
-		Holder:            credential.OtherIdentifier,
+		UserID:            credential.OtherIdentifier,
 	}
 }
 
