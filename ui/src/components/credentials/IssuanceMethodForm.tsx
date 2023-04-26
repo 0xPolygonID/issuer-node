@@ -19,10 +19,9 @@ import { getConnections } from "src/adapters/api/connections";
 
 import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
-import { Spinner } from "src/components/shared/Spinner";
 import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
-import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, DID_SEARCH_PARAM } from "src/utils/constants";
 
@@ -63,7 +62,8 @@ export function IssuanceMethodForm({
   }, [fetchConnections]);
 
   const isDirectIssue = issuanceMethod.type === "directIssue";
-  const isNextButtonDisabled = issuanceMethod.type === "directIssue" && !issuanceMethod.did;
+  const isNextButtonDisabled =
+    issuanceMethod.type === "directIssue" && !issuanceMethod.did && !didParam;
 
   return (
     <Card className="issue-credential-card" title="Choose how to issue credential">
@@ -111,27 +111,24 @@ export function IssuanceMethodForm({
                   required
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
-                  {isAsyncTaskDataAvailable(connections) ? (
-                    <Select
-                      className="full-width"
-                      disabled={!isDirectIssue}
-                      placeholder="Select or paste"
-                    >
-                      {isAsyncTaskDataAvailable(connections) &&
-                        connections.data.map(({ userID }) => {
-                          const network = userID.split(":").splice(0, 4).join(":");
-                          const did = userID.split(":").pop();
+                  <Select
+                    className="full-width"
+                    disabled={!isDirectIssue}
+                    loading={isAsyncTaskStarting(connections)}
+                    placeholder="Select or paste"
+                  >
+                    {isAsyncTaskDataAvailable(connections) &&
+                      connections.data.map(({ userID }) => {
+                        const network = userID.split(":").splice(0, 4).join(":");
+                        const did = userID.split(":").pop();
 
-                          return (
-                            <Select.Option key={userID} value={userID}>
-                              {network}:{did?.slice(0, 6)}...{did?.slice(-6)}
-                            </Select.Option>
-                          );
-                        })}
-                    </Select>
-                  ) : (
-                    <Spinner />
-                  )}
+                        return (
+                          <Select.Option key={userID} value={userID}>
+                            {network}:{did?.slice(0, 6)}...{did?.slice(-6)}
+                          </Select.Option>
+                        );
+                      })}
+                  </Select>
                 </Form.Item>
               </Card>
 
