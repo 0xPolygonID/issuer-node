@@ -7,11 +7,11 @@ import { z } from "zod";
 import { createLink } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import {
+  CredentialDirectIssuance,
   CredentialFormInput,
-  CredentialLinkForm,
-  DirectIssueForm,
+  CredentialLinkIssuance,
   credentialFormParser,
-  serializeCredentialLinkForm,
+  serializeCredentialLinkIssuance,
 } from "src/adapters/parsers/forms";
 import { IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
 import { IssueCredentialForm } from "src/components/credentials/IssueCredentialForm";
@@ -33,7 +33,9 @@ const defaultCredentialFormInput: CredentialFormInput = {
   issuanceMethod: {
     type: "credentialLink",
   },
-  issueCredential: {},
+  issueCredential: {
+    proofTypes: ["SIG"],
+  },
 };
 
 const jsonSchemaErrorToString = (error: string | z.ZodError) =>
@@ -61,11 +63,11 @@ export function IssueCredential() {
 
   const { schemaID } = useParams();
 
-  const createLinkFromCredentialLinkForm = (credentialLinkForm: CredentialLinkForm) => {
+  const createCredentialLink = (credentialLinkIssuance: CredentialLinkIssuance) => {
     if (schemaID) {
       setLinkID({ status: "loading" });
-      const serializedCredentialForm = serializeCredentialLinkForm({
-        issueCredential: credentialLinkForm,
+      const serializedCredentialForm = serializeCredentialLinkIssuance({
+        issueCredential: credentialLinkIssuance,
         schemaID,
       });
 
@@ -91,8 +93,10 @@ export function IssueCredential() {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const issueCredentialFromDirectIssueForm = (directIssueForm: DirectIssueForm) => {
+  const issueCredential = (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    credentialDirectIssuance: CredentialDirectIssuance
+  ) => {
     // ToDo: PID-508
   };
 
@@ -214,9 +218,9 @@ export function IssueCredential() {
 
                                 if (parsedForm.success) {
                                   if (parsedForm.data.type === "credentialLink") {
-                                    createLinkFromCredentialLinkForm(parsedForm.data);
+                                    createCredentialLink(parsedForm.data);
                                   } else {
-                                    issueCredentialFromDirectIssueForm(parsedForm.data);
+                                    issueCredential(parsedForm.data);
                                   }
                                 } else {
                                   processZodError(parsedForm.error).forEach(

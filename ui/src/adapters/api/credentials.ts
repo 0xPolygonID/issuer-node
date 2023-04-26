@@ -179,6 +179,7 @@ type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
   z
     .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+    .min(1)
     .transform((values) =>
       values.map((value) => {
         switch (value) {
