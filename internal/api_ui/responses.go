@@ -16,6 +16,8 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
+const credSubjectType = "type"
+
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
 	return Schema{
@@ -45,6 +47,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 	}
 
 	proofs := getProofs(w3c, credential)
+	delete(w3c.CredentialSubject, credSubjectType)
 
 	return Credential{
 		CredentialSubject: w3c.CredentialSubject,
