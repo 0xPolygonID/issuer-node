@@ -82,7 +82,7 @@ export type IssuanceMethodFormData =
       type: "credentialLink";
     })
   | {
-      did: string;
+      did?: string;
       type: "directIssue";
     };
 
@@ -95,7 +95,7 @@ const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
       })
     ),
     z.object({
-      did: z.string(),
+      did: z.string().optional(),
       type: z.literal("directIssue"),
     }),
   ])
@@ -143,6 +143,7 @@ export const credentialFormParser = getStrictParser<
       };
 
       if (type === "credentialLink") {
+        // Link issuance
         const { linkExpirationDate, linkExpirationTime, linkMaximumIssuance } = issuanceMethod;
         const linkAccessibleUntil = buildLinkAccessibleUntil({
           linkExpirationDate,
@@ -167,16 +168,23 @@ export const credentialFormParser = getStrictParser<
           linkMaximumIssuance,
           type,
         };
+      } else {
+        // Direct issuance
+        if (!issuanceMethod.did) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: `A connection identifier must be provided.`,
+          });
+          return z.NEVER;
+        }
+
+        return {
+          ...baseIssuance,
+          did: issuanceMethod.did,
+          type,
+        };
       }
-
-      // Direct issuance
-      const { did } = issuanceMethod;
-
-      return {
-        ...baseIssuance,
-        did,
-        type,
-      };
     })
 );
 

@@ -33,7 +33,7 @@ type Step = "issuanceMethod" | "issueCredential" | "summary";
 
 const defaultCredentialFormInput: CredentialFormInput = {
   issuanceMethod: {
-    type: "credentialLink",
+    type: "directIssue",
   },
   issueCredential: {
     proofTypes: ["SIG"],

@@ -68,6 +68,7 @@ export function IssuanceMethodForm({
   }, [searchParams]);
 
   const isDirectIssue = issuanceMethod.type === "directIssue";
+  const isNextButtonDisabled = issuanceMethod.type === "directIssue" && !issuanceMethod.did;
 
   return (
     <Card className="issue-credential-card" title="Choose how to issue credential">
@@ -227,7 +228,7 @@ export function IssuanceMethodForm({
         </Form.Item>
 
         <Row gutter={8} justify="end">
-          <Button htmlType="submit" type="primary">
+          <Button disabled={isNextButtonDisabled} htmlType="submit" type="primary">
             Next step <IconRight />
           </Button>
         </Row>
