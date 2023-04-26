@@ -110,6 +110,7 @@ type Credential struct {
 	SchemaHash        string                 `json:"schemaHash"`
 	SchemaType        string                 `json:"schemaType"`
 	SchemaUrl         string                 `json:"schemaUrl"`
+	UserID            string                 `json:"userID"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.

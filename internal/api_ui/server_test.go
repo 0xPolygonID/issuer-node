@@ -1264,6 +1264,7 @@ func TestServer_GetCredential(t *testing.T) {
 					SchemaHash: createdClaim1.SchemaHash,
 					SchemaType: typeC,
 					SchemaUrl:  schema,
+					UserID:     createdClaim1.OtherIdentifier,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1292,6 +1293,7 @@ func TestServer_GetCredential(t *testing.T) {
 					SchemaHash: createdClaim2.SchemaHash,
 					SchemaType: typeC,
 					SchemaUrl:  schema,
+					UserID:     createdClaim2.OtherIdentifier,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1320,6 +1322,7 @@ func TestServer_GetCredential(t *testing.T) {
 					SchemaHash: createdClaim3.SchemaHash,
 					SchemaType: typeC,
 					SchemaUrl:  schema,
+					UserID:     createdClaim3.OtherIdentifier,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1843,6 +1846,7 @@ func TestServer_GetConnection(t *testing.T) {
 							SchemaHash: claim.SchemaHash,
 							SchemaType: claim.SchemaType,
 							SchemaUrl:  claim.SchemaURL,
+							UserID:     claim.OtherIdentifier,
 						},
 					},
 				},
@@ -2357,6 +2361,7 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 	assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &respAttributes))
 	assert.EqualValues(t, respAttributes, tcCredentialSubject)
 	assert.EqualValues(t, tc.ProofTypes, response.ProofTypes)
+	assert.Equal(t, tc.UserID, response.UserID)
 }
 
 func TestServer_RevokeCredential(t *testing.T) {
