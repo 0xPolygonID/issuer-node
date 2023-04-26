@@ -1252,7 +1252,6 @@ func TestServer_GetCredential(t *testing.T) {
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
-						"type":         "KYCAgeCredential",
 					},
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
@@ -1281,7 +1280,6 @@ func TestServer_GetCredential(t *testing.T) {
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
-						"type":         "KYCAgeCredential",
 					},
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
@@ -1310,7 +1308,6 @@ func TestServer_GetCredential(t *testing.T) {
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
-						"type":         "KYCAgeCredential",
 					},
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
@@ -1834,7 +1831,6 @@ func TestServer_GetConnection(t *testing.T) {
 								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 								"birthday":     19960424,
 								"documentType": 2,
-								"type":         "KYCAgeCredential",
 							},
 							CreatedAt:  time.Now().UTC(),
 							Expired:    false,
@@ -2343,7 +2339,6 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 		Id           string `json:"id"`
 		Birthday     uint64 `json:"birthday"`
 		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
 	}
 
 	assert.Equal(t, tc.Id, response.Id)
