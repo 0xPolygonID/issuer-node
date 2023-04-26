@@ -26,7 +26,7 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CREDENTIALS_TABS } from "src/utils/constants";
+import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
 import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
@@ -188,7 +188,7 @@ export function CredentialDetails() {
                     onClick={() => setShowRevokeModal(true)}
                     type="text"
                   >
-                    Revoke credential
+                    {REVOKE}
                   </Button>
                   <Button
                     danger
@@ -196,7 +196,7 @@ export function CredentialDetails() {
                     onClick={() => setShowDeleteModal(true)}
                     type="text"
                   >
-                    Delete credential
+                    {DELETE}
                   </Button>
                 </Space>
               }

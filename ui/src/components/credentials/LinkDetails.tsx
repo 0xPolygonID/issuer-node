@@ -24,7 +24,7 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CREDENTIALS_TABS } from "src/utils/constants";
+import { CREDENTIALS_TABS, DELETE } from "src/utils/constants";
 import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
@@ -207,7 +207,7 @@ export function LinkDetails() {
               className="centered"
               extra={
                 <Button danger icon={<IconTrash />} onClick={() => setShowModal(true)} type="text">
-                  Delete link
+                  {DELETE}
                 </Button>
               }
               title={schemaType}

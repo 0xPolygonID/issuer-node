@@ -3,7 +3,7 @@ import { Modal, Typography, message } from "antd";
 import { deleteLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
-import { CLOSE } from "src/utils/constants";
+import { CLOSE, DELETE } from "src/utils/constants";
 
 export function LinkDeleteModal({
   id,
@@ -37,7 +37,7 @@ export function LinkDeleteModal({
       closeIcon={<IconClose />}
       maskClosable
       okButtonProps={{ danger: true }}
-      okText="Delete"
+      okText={DELETE}
       onCancel={onClose}
       onOk={handleDeleteLink}
       open

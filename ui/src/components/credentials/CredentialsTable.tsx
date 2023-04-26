@@ -36,6 +36,8 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DELETE,
+  DETAILS,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
   ISSUED,
@@ -43,6 +45,7 @@ import {
   ISSUE_DATE,
   QUERY_SEARCH_PARAM,
   REVOCATION,
+  REVOKE,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
@@ -135,7 +138,7 @@ export function CredentialsTable() {
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
                 onClick: () =>
                   navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
               },
@@ -148,7 +151,7 @@ export function CredentialsTable() {
                 disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
-                label: "Revoke",
+                label: REVOKE,
                 onClick: () => setCredentialToRevoke(credential),
               },
               {
@@ -159,7 +162,7 @@ export function CredentialsTable() {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete",
+                label: DELETE,
                 onClick: () => setCredentialToDelete(credential),
               },
             ],
