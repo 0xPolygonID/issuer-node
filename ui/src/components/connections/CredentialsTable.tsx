@@ -14,6 +14,7 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import {
@@ -34,9 +35,11 @@ import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { Credential } from "src/domain";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DID_SEARCH_PARAM,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
   ISSUE_CREDENTIAL,
@@ -56,6 +59,13 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
   const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
   const [query, setQuery] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+  const navigateIssueDirectly = () =>
+    navigate({
+      pathname: generatePath(ROUTES.issueCredential.path),
+      search: `${DID_SEARCH_PARAM}=${userID}`,
+    });
 
   const tableColumns: ColumnsType<Credential> = [
     {
@@ -229,7 +239,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             </Typography.Text>
           </>
         }
-        extraButton={<IssueDirectlyButton />}
+        extraButton={<IssueDirectlyButton onClick={navigateIssueDirectly} />}
         isLoading={isAsyncTaskStarting(credentials)}
         onSearch={setQuery}
         query={query}
@@ -268,7 +278,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
               <Tag color="blue">{credentialsList.length}</Tag>
             </Space>
             {showDefaultContent && credentialStatus === "all" ? (
-              <IssueDirectlyButton />
+              <IssueDirectlyButton onClick={navigateIssueDirectly} />
             ) : (
               <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
                 <Radio.Button value="all">All</Radio.Button>

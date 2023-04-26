@@ -6,17 +6,24 @@ import {
   InputNumber,
   Radio,
   Row,
+  Select,
   Space,
-  Tag,
   TimePicker,
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { APIError } from "src/adapters/api";
+import { getConnections } from "src/adapters/api/connections";
 
 import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
-import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
+import { useEnvContext } from "src/contexts/Env";
+import { Connection } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
+import { makeRequestAbortable } from "src/utils/browser";
+import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, DID_SEARCH_PARAM } from "src/utils/constants";
 
 export function IssuanceMethodForm({
   initialValues,
@@ -25,7 +32,40 @@ export function IssuanceMethodForm({
   initialValues: IssuanceMethodFormData;
   onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
+  const env = useEnvContext();
+  const [searchParams] = useSearchParams();
+
   const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
+  const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
+    status: "pending",
+  });
+  const [connection, setConnection] = useState<string>();
+
+  const fetchConnections = useCallback(
+    async (signal: AbortSignal) => {
+      const response = await getConnections({ credentials: false, env, signal });
+
+      if (response.isSuccessful) {
+        setConnections({ data: response.data, status: "successful" });
+      } else {
+        setConnections({ error: response.error, status: "failed" });
+      }
+    },
+    [env]
+  );
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchConnections);
+
+    return () => aborter();
+  }, [fetchConnections]);
+
+  useEffect(() => {
+    const didParam = searchParams.get(DID_SEARCH_PARAM);
+    if (didParam) {
+      setConnection(didParam);
+    }
+  }, [searchParams]);
 
   const isDirectIssue = issuanceMethod.type === "directIssue";
 
@@ -57,12 +97,10 @@ export function IssuanceMethodForm({
         <Form.Item name="type" rules={[{ message: "Value required", required: true }]}>
           <Radio.Group className="full-width" name="type">
             <Space direction="vertical">
-              <Card className={`${isDirectIssue ? "selected" : ""} disabled`}>
-                <Radio disabled value="directIssue">
+              <Card className={`${isDirectIssue ? "selected" : ""}`}>
+                <Radio value="directIssue">
                   <Space direction="vertical">
-                    <Typography.Text>
-                      Direct issue <Tag>Coming soon</Tag>
-                    </Typography.Text>
+                    <Typography.Text>Direct issue</Typography.Text>
 
                     <Typography.Text type="secondary">
                       Issue credentials directly using a known identifier - connections with your
@@ -70,6 +108,33 @@ export function IssuanceMethodForm({
                     </Typography.Text>
                   </Space>
                 </Radio>
+                <Form.Item
+                  label="Select connection/Paste identifier"
+                  name="did"
+                  required
+                  style={{ paddingLeft: 28, paddingTop: 16 }}
+                >
+                  <Select
+                    className="full-width"
+                    defaultValue={connection}
+                    disabled={!isDirectIssue}
+                    loading={isAsyncTaskStarting(connections)}
+                    placeholder="Select or paste"
+                    value={connection}
+                  >
+                    {isAsyncTaskDataAvailable(connections) &&
+                      connections.data.map(({ userID }) => {
+                        const network = userID.split(":").splice(0, 4).join(":");
+                        const did = userID.split(":").pop();
+
+                        return (
+                          <Select.Option key={userID} value={userID}>
+                            {network}:{did?.slice(0, 6)}...{did?.slice(-6)}
+                          </Select.Option>
+                        );
+                      })}
+                  </Select>
+                </Form.Item>
               </Card>
 
               <Card className={issuanceMethod.type === "credentialLink" ? "selected" : ""}>

@@ -1,7 +1,7 @@
 import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
-import { CreateLink } from "src/adapters/api/credentials";
+import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
 import { Json, ProofType } from "src/domain";
@@ -219,6 +219,35 @@ export function serializeCredentialLinkIssuance({
         mtProof,
         schemaID,
         signatureProof,
+      },
+      success: true,
+    };
+  } else {
+    return parsedCredentialSubject;
+  }
+}
+
+export function serializeCredentialIssuance({
+  credentialSchema,
+  issueCredential: { credentialSubject, did, expiration, mtProof, signatureProof },
+  type,
+}: {
+  credentialSchema: string;
+  issueCredential: CredentialDirectIssuance;
+  type: string;
+}): { data: CreateCredential; success: true } | { error: z.ZodError<FormInput>; success: false } {
+  const parsedCredentialSubject = formParser.safeParse({ ...credentialSubject, id: did });
+  if (parsedCredentialSubject.success) {
+    const expirationDate = expiration ? dayjs(expiration).format("YYYY-MM-DD") : null;
+
+    return {
+      data: {
+        credentialSchema,
+        credentialSubject: parsedCredentialSubject.data,
+        expirationDate,
+        mtProof,
+        signatureProof,
+        type,
       },
       success: true,
     };

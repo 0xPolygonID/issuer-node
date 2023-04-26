@@ -67,12 +67,12 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params: { query },
+  params: { query } = { query: undefined },
   signal,
 }: {
   credentials: boolean;
   env: Env;
-  params: {
+  params?: {
     query?: string;
   };
   signal?: AbortSignal;

@@ -110,6 +110,40 @@ export async function getCredentials({
   }
 }
 
+export interface CreateCredential {
+  credentialSchema: string;
+  credentialSubject: Json;
+  expirationDate: string | null;
+  mtProof: boolean;
+  signatureProof: boolean;
+  type: string;
+}
+
+export async function createCredential({
+  env,
+  payload,
+}: {
+  env: Env;
+  payload: CreateCredential;
+}): Promise<APIResponse<ID>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/credentials`,
+    });
+    const { data } = resultCreatedParser.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
 export async function revokeCredential({
   env,
   nonce,
@@ -381,7 +415,7 @@ export async function createLink({
       method: "POST",
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultCreatedLinkParser.parse(response);
+    const { data } = resultCreatedParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -450,7 +484,7 @@ export async function createAuthQRCode({
   }
 }
 
-const resultCreatedLinkParser = getStrictParser<ResultCreated<ID>>()(
+const resultCreatedParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
     data: IDParser,
     status: z.literal(201),

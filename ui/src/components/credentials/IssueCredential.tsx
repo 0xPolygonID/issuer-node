@@ -1,16 +1,17 @@
 import { Card, Space, message } from "antd";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
-import { createLink } from "src/adapters/api/credentials";
+import { createCredential, createLink } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import {
   CredentialDirectIssuance,
   CredentialFormInput,
   CredentialLinkIssuance,
   credentialFormParser,
+  serializeCredentialIssuance,
   serializeCredentialLinkIssuance,
 } from "src/adapters/parsers/forms";
 import { IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
@@ -22,9 +23,10 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { JsonSchema, Schema } from "src/domain";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { ISSUE_CREDENTIAL } from "src/utils/constants";
+import { CREDENTIALS_TABS, ISSUE_CREDENTIAL } from "src/utils/constants";
 import { processError, processZodError } from "src/utils/error";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
@@ -48,6 +50,7 @@ const jsonSchemaErrorToString = (error: string | z.ZodError) =>
 
 export function IssueCredential() {
   const env = useEnvContext();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("issuanceMethod");
   const [credentialFormInput, setCredentialFormInput] = useState<CredentialFormInput>(
@@ -60,44 +63,72 @@ export function IssueCredential() {
   const [linkID, setLinkID] = useState<AsyncTask<string, null>>({
     status: "pending",
   });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { schemaID } = useParams();
 
-  const createCredentialLink = (credentialLinkIssuance: CredentialLinkIssuance) => {
+  const createCredentialLink = async (credentialLinkIssuance: CredentialLinkIssuance) => {
     if (schemaID) {
       setLinkID({ status: "loading" });
+      setIsLoading(true);
       const serializedCredentialForm = serializeCredentialLinkIssuance({
         issueCredential: credentialLinkIssuance,
         schemaID,
       });
 
       if (serializedCredentialForm.success) {
-        void createLink({
+        const response = await createLink({
           env,
           payload: serializedCredentialForm.data,
-        }).then((response) => {
-          if (response.isSuccessful) {
-            setLinkID({ data: response.data.id, status: "successful" });
-            setStep("summary");
-
-            void message.success("Credential link created");
-          } else {
-            setLinkID({ error: null, status: "failed" });
-
-            void message.error(response.error.message);
-          }
         });
+        if (response.isSuccessful) {
+          setLinkID({ data: response.data.id, status: "successful" });
+          setStep("summary");
+
+          void message.success("Credential link created");
+        } else {
+          setLinkID({ error: null, status: "failed" });
+
+          void message.error(response.error.message);
+        }
       } else {
         processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
       }
+      setIsLoading(false);
     }
   };
 
-  const issueCredential = (
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    credentialDirectIssuance: CredentialDirectIssuance
-  ) => {
-    // ToDo: PID-508
+  const issueCredential = async (credentialIssuance: CredentialDirectIssuance) => {
+    if (schema) {
+      setIsLoading(true);
+      const serializedCredentialForm = serializeCredentialIssuance({
+        credentialSchema: schema.url,
+        issueCredential: credentialIssuance,
+        type: schema.type,
+      });
+
+      if (serializedCredentialForm.success) {
+        const response = await createCredential({
+          env,
+          payload: serializedCredentialForm.data,
+        });
+        if (response.isSuccessful) {
+          navigate(
+            generatePath(ROUTES.credentials.path, {
+              tabID: CREDENTIALS_TABS[1].tabID,
+            })
+          );
+
+          void message.success("Credential issued");
+        } else {
+          void message.error(response.error.message);
+        }
+      } else {
+        processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
+      }
+
+      setIsLoading(false);
+    }
   };
 
   const fetchJsonSchema = useCallback(
@@ -184,32 +215,16 @@ export function IssueCredential() {
                             <IssueCredentialForm
                               initialValues={credentialFormInput.issueCredential}
                               jsonSchema={jsonSchema.data}
+                              loading={isLoading}
                               onBack={() => {
                                 setJsonSchema({ status: "pending" });
                                 setStep("issuanceMethod");
                               }}
                               onSubmit={(values) => {
-                                const updatedValues = values.expirationDate
-                                  ? {
-                                      ...values,
-                                      expirationDate: values.expirationDate.endOf("day"),
-                                    }
-                                  : values;
-                                const newCredentialFormInput: CredentialFormInput =
-                                  credentialFormInput.issuanceMethod.type === "credentialLink" &&
-                                  updatedValues.expirationDate?.isBefore(
-                                    credentialFormInput.issuanceMethod.linkExpirationDate
-                                  )
-                                    ? {
-                                        ...credentialFormInput,
-                                        issuanceMethod: {
-                                          ...credentialFormInput.issuanceMethod,
-                                          linkExpirationDate: undefined,
-                                          linkExpirationTime: undefined,
-                                        },
-                                        issueCredential: updatedValues,
-                                      }
-                                    : { ...credentialFormInput, issueCredential: updatedValues };
+                                const newCredentialFormInput: CredentialFormInput = {
+                                  ...credentialFormInput,
+                                  issueCredential: values,
+                                };
 
                                 setCredentialFormInput(newCredentialFormInput);
 
@@ -218,9 +233,9 @@ export function IssueCredential() {
 
                                 if (parsedForm.success) {
                                   if (parsedForm.data.type === "credentialLink") {
-                                    createCredentialLink(parsedForm.data);
+                                    void createCredentialLink(parsedForm.data);
                                   } else {
-                                    issueCredential(parsedForm.data);
+                                    void issueCredential(parsedForm.data);
                                   }
                                 } else {
                                   processZodError(parsedForm.error).forEach(

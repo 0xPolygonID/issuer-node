@@ -24,6 +24,7 @@ export const SCHEMAS = "Schemas";
 export const STATUS = "Status";
 
 // URL params
+export const DID_SEARCH_PARAM = "did";
 export const QUERY_SEARCH_PARAM = "query";
 export const STATUS_SEARCH_PARAM = "status";
 
