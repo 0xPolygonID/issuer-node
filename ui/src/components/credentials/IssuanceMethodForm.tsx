@@ -19,9 +19,10 @@ import { getConnections } from "src/adapters/api/connections";
 
 import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
+import { Spinner } from "src/components/shared/Spinner";
 import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, DID_SEARCH_PARAM } from "src/utils/constants";
 
@@ -39,7 +40,8 @@ export function IssuanceMethodForm({
   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
     status: "pending",
   });
-  const [connection, setConnection] = useState<string>();
+
+  const didParam = searchParams.get(DID_SEARCH_PARAM);
 
   const fetchConnections = useCallback(
     async (signal: AbortSignal) => {
@@ -59,13 +61,6 @@ export function IssuanceMethodForm({
 
     return () => aborter();
   }, [fetchConnections]);
-
-  useEffect(() => {
-    const didParam = searchParams.get(DID_SEARCH_PARAM);
-    if (didParam) {
-      setConnection(didParam);
-    }
-  }, [searchParams]);
 
   const isDirectIssue = issuanceMethod.type === "directIssue";
   const isNextButtonDisabled = issuanceMethod.type === "directIssue" && !issuanceMethod.did;
@@ -115,26 +110,28 @@ export function IssuanceMethodForm({
                   required
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
-                  <Select
-                    className="full-width"
-                    defaultValue={connection}
-                    disabled={!isDirectIssue}
-                    loading={isAsyncTaskStarting(connections)}
-                    placeholder="Select or paste"
-                    value={connection}
-                  >
-                    {isAsyncTaskDataAvailable(connections) &&
-                      connections.data.map(({ userID }) => {
-                        const network = userID.split(":").splice(0, 4).join(":");
-                        const did = userID.split(":").pop();
+                  {isAsyncTaskDataAvailable(connections) ? (
+                    <Select
+                      className="full-width"
+                      defaultValue={didParam}
+                      disabled={!isDirectIssue}
+                      placeholder="Select or paste"
+                    >
+                      {isAsyncTaskDataAvailable(connections) &&
+                        connections.data.map(({ userID }) => {
+                          const network = userID.split(":").splice(0, 4).join(":");
+                          const did = userID.split(":").pop();
 
-                        return (
-                          <Select.Option key={userID} value={userID}>
-                            {network}:{did?.slice(0, 6)}...{did?.slice(-6)}
-                          </Select.Option>
-                        );
-                      })}
-                  </Select>
+                          return (
+                            <Select.Option key={userID} value={userID}>
+                              {network}:{did?.slice(0, 6)}...{did?.slice(-6)}
+                            </Select.Option>
+                          );
+                        })}
+                    </Select>
+                  ) : (
+                    <Spinner />
+                  )}
                 </Form.Item>
               </Card>
 

@@ -174,7 +174,7 @@ export const credentialFormParser = getStrictParser<
           context.addIssue({
             code: z.ZodIssueCode.custom,
             fatal: true,
-            message: `A connection identifier must be provided.`,
+            message: `A connection or identifier must be provided.`,
           });
           return z.NEVER;
         }

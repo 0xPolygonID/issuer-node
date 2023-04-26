@@ -115,7 +115,7 @@ export function IssueCredential() {
         if (response.isSuccessful) {
           navigate(
             generatePath(ROUTES.credentials.path, {
-              tabID: CREDENTIALS_TABS[1].tabID,
+              tabID: CREDENTIALS_TABS[0].tabID,
             })
           );
 

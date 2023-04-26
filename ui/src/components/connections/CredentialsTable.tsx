@@ -61,7 +61,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const [query, setQuery] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  const navigateIssueDirectly = () =>
+  const navigateToDirectIssue = () =>
     navigate({
       pathname: generatePath(ROUTES.issueCredential.path),
       search: `${DID_SEARCH_PARAM}=${userID}`,
@@ -239,7 +239,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             </Typography.Text>
           </>
         }
-        extraButton={<IssueDirectlyButton onClick={navigateIssueDirectly} />}
+        extraButton={<IssueDirectlyButton onClick={navigateToDirectIssue} />}
         isLoading={isAsyncTaskStarting(credentials)}
         onSearch={setQuery}
         query={query}
@@ -278,7 +278,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
               <Tag color="blue">{credentialsList.length}</Tag>
             </Space>
             {showDefaultContent && credentialStatus === "all" ? (
-              <IssueDirectlyButton onClick={navigateIssueDirectly} />
+              <IssueDirectlyButton onClick={navigateToDirectIssue} />
             ) : (
               <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
                 <Radio.Button value="all">All</Radio.Button>

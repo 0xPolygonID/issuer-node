@@ -136,7 +136,7 @@ export async function createCredential({
       method: "POST",
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultCreatedParser.parse(response);
+    const { data } = resultCreatedIDParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -415,7 +415,7 @@ export async function createLink({
       method: "POST",
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultCreatedParser.parse(response);
+    const { data } = resultCreatedIDParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
@@ -484,7 +484,7 @@ export async function createAuthQRCode({
   }
 }
 
-const resultCreatedParser = getStrictParser<ResultCreated<ID>>()(
+const resultCreatedIDParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
     data: IDParser,
     status: z.literal(201),
