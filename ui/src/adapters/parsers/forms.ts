@@ -111,7 +111,9 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
   z.object({
     credentialSubject: z.record(z.unknown()).optional(),
     expirationDate: dayjsInstanceParser.nullable().optional(),
-    proofTypes: z.array(z.union([z.literal("MTP"), z.literal("SIG")])).min(1),
+    proofTypes: z
+      .array(z.union([z.literal("MTP"), z.literal("SIG")]))
+      .min(1, "At least one proof type is required"),
   })
 );
 
