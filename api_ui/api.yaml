@@ -1094,7 +1094,6 @@ components:
             birthday: 19960424
             documentType: 2
             id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
-            type: "KYCAgeCredential"
         userID:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
