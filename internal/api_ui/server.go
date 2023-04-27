@@ -446,8 +446,8 @@ func (s *Server) RevokeConnectionCredentials(ctx context.Context, request Revoke
 
 // CreateLink - creates a link for issuing a credential
 func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
-	if request.Body.ClaimLinkExpiration != nil {
-		if isBeforeNow(*request.Body.ClaimLinkExpiration) {
+	if request.Body.Expiration != nil {
+		if isBeforeNow(*request.Body.Expiration) {
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
@@ -470,11 +470,11 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	}
 
 	var expirationDate *time.Time
-	if request.Body.ExpirationDate != nil {
-		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
+	if request.Body.CredentialExpiration != nil {
+		expirationDate = &request.Body.CredentialExpiration.Time
 	}
 
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
