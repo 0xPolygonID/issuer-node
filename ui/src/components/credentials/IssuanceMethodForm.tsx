@@ -14,9 +14,9 @@ import {
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+
 import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
-
 import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { useEnvContext } from "src/contexts/Env";
