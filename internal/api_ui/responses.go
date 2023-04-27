@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm/packers"
@@ -195,19 +196,25 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 func getLinkResponse(link domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
+	var date *openapi_types.Date
+	if link.CredentialExpiration != nil {
+		date = &openapi_types.Date{Time: *link.CredentialExpiration}
+	}
+
 	return Link{
-		Active:            link.Active,
-		CredentialSubject: link.CredentialSubject,
-		Expiration:        link.ValidUntil,
-		CreatedAt:         link.CreatedAt,
-		Id:                link.ID,
-		IssuedClaims:      link.IssuedClaims,
-		MaxIssuance:       link.MaxIssuance,
-		SchemaType:        link.Schema.Type,
-		SchemaUrl:         link.Schema.URL,
-		SchemaHash:        string(hash),
-		Status:            LinkStatus(link.Status()),
-		ProofTypes:        getLinkProofs(link),
+		Id:                   link.ID,
+		Active:               link.Active,
+		CredentialSubject:    link.CredentialSubject,
+		IssuedClaims:         link.IssuedClaims,
+		MaxIssuance:          link.MaxIssuance,
+		SchemaType:           link.Schema.Type,
+		SchemaUrl:            link.Schema.URL,
+		SchemaHash:           string(hash),
+		Status:               LinkStatus(link.Status()),
+		ProofTypes:           getLinkProofs(link),
+		CreatedAt:            link.CreatedAt,
+		Expiration:           link.ValidUntil,
+		CredentialExpiration: date,
 	}
 }
 
