@@ -1,6 +1,7 @@
 import { Form, InputNumber, Select, Typography } from "antd";
 
 import { IntegerAttribute, NumberAttribute, ObjectAttribute } from "src/domain";
+import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function Number({
   attribute,
@@ -14,7 +15,7 @@ export function Number({
       extra={attribute.schema.description}
       label={<Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>}
       name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
-      rules={[{ required: attribute.required }]}
+      rules={[{ message: VALUE_REQUIRED, required: attribute.required }]}
     >
       {attribute.schema.enum ? (
         <Select placeholder="Select option">

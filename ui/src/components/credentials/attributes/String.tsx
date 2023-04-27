@@ -1,7 +1,7 @@
 import { DatePicker, Form, FormItemProps, Input, Select, TimePicker, Typography } from "antd";
 
 import { ObjectAttribute, StringAttribute } from "src/domain";
-import { DATE_VALIDITY_MESSAGE, TIME_VALIDITY_MESSAGE } from "src/utils/constants";
+import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function String({
   attribute,
@@ -14,7 +14,7 @@ export function String({
     extra: attribute.schema.description,
     label: <Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>,
     name: ["credentialSubject", ...parents.map((parent) => parent.name), attribute.name],
-    rules: [{ required: attribute.required }],
+    rules: [{ message: VALUE_REQUIRED, required: attribute.required }],
   };
 
   if (attribute.schema.enum) {
@@ -34,20 +34,14 @@ export function String({
       case "date":
       case "date-time": {
         return (
-          <Form.Item
-            {...commonFormItemProps}
-            rules={[{ message: DATE_VALIDITY_MESSAGE, required: attribute.required }]}
-          >
+          <Form.Item {...commonFormItemProps}>
             <DatePicker showTime={attribute.schema.format === "date-time"} />
           </Form.Item>
         );
       }
       case "time": {
         return (
-          <Form.Item
-            {...commonFormItemProps}
-            rules={[{ message: TIME_VALIDITY_MESSAGE, required: attribute.required }]}
-          >
+          <Form.Item {...commonFormItemProps}>
             <TimePicker />
           </Form.Item>
         );

@@ -6,7 +6,6 @@ export const CLOSE = "Close";
 export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
-export const DATE_VALIDITY_MESSAGE = "Valid date required";
 export const DELETE = "Delete";
 export const DETAILS = "Details";
 export const ERROR_MESSAGE = "Something went wrong";
@@ -25,7 +24,7 @@ export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 export const STATUS = "Status";
-export const TIME_VALIDITY_MESSAGE = "Valid time required";
+export const VALUE_REQUIRED = "Value required";
 
 // URL params
 export const QUERY_SEARCH_PARAM = "query";
