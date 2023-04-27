@@ -63,6 +63,7 @@ export function IssuanceMethodForm({
   }, [fetchConnections]);
 
   const isDirectIssue = issuanceMethod.type === "directIssue";
+  const isLinkIssue = issuanceMethod.type === "credentialLink";
   const isNextButtonDisabled =
     issuanceMethod.type === "directIssue" && !issuanceMethod.did && !didParam;
 
@@ -118,6 +119,7 @@ export function IssuanceMethodForm({
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
                   <AutoComplete
+                    disabled={isLinkIssue}
                     options={
                       isAsyncTaskDataAvailable(connections)
                         ? connections.data.map(({ userID }) => {
