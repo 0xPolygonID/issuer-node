@@ -436,7 +436,8 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 				   identity_states.status,
 				   credential_status,
 				   core_claim,
-				   revoked
+				   revoked,
+				   mtp
 			FROM claims
 			JOIN connections ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
@@ -664,7 +665,8 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 			&claim.Status,
 			&claim.CredentialStatus,
 			&claim.CoreClaim,
-			&claim.Revoked)
+			&claim.Revoked,
+			&claim.MtProof)
 		if err != nil {
 			return nil, err
 		}
@@ -693,7 +695,8 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 				   identity_states.status,
 				   credential_status,
 				   core_claim,
-				   revoked
+				   revoked,
+				   mtp
 			FROM claims
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 			`
