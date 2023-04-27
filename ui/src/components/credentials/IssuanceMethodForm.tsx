@@ -1,4 +1,5 @@
 import {
+  AutoComplete,
   Button,
   Card,
   DatePicker,
@@ -6,7 +7,6 @@ import {
   InputNumber,
   Radio,
   Row,
-  Select,
   Space,
   TimePicker,
   Typography,
@@ -21,7 +21,7 @@ import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/p
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
-import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, DID_SEARCH_PARAM } from "src/utils/constants";
 
@@ -104,6 +104,7 @@ export function IssuanceMethodForm({
                     </Typography.Text>
                   </Space>
                 </Radio>
+
                 <Form.Item
                   initialValue={didParam}
                   label="Select connection/Paste identifier"
@@ -111,24 +112,26 @@ export function IssuanceMethodForm({
                   required
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
-                  <Select
-                    className="full-width"
-                    disabled={!isDirectIssue}
-                    loading={isAsyncTaskStarting(connections)}
-                    placeholder="Select or paste"
-                  >
-                    {isAsyncTaskDataAvailable(connections) &&
-                      connections.data.map(({ userID }) => {
-                        const network = userID.split(":").splice(0, 4).join(":");
-                        const did = userID.split(":").pop();
+                  <AutoComplete
+                    options={
+                      isAsyncTaskDataAvailable(connections)
+                        ? connections.data.map(({ userID }) => {
+                            const network = userID.split(":").splice(0, 4).join(":");
+                            const did = userID.split(":").pop();
 
-                        return (
-                          <Select.Option key={userID} value={userID}>
-                            {network}:{did?.slice(0, 6)}...{did?.slice(-6)}
-                          </Select.Option>
-                        );
-                      })}
-                  </Select>
+                            if (did) {
+                              return {
+                                label: `${network}:${did.slice(0, 6)}...${did.slice(-6)}`,
+                                value: userID,
+                              };
+                            } else {
+                              return { value: userID };
+                            }
+                          })
+                        : undefined
+                    }
+                    placeholder="Select or paste"
+                  />
                 </Form.Item>
               </Card>
 

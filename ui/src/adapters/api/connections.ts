@@ -67,7 +67,7 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params: { query } = { query: undefined },
+  params,
   signal,
 }: {
   credentials: boolean;
@@ -85,7 +85,7 @@ export async function getConnections({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(params?.query !== undefined ? { [QUERY_SEARCH_PARAM]: params?.query } : {}),
         ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,
