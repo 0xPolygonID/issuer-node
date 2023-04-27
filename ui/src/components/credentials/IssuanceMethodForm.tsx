@@ -37,7 +37,7 @@ export function IssuanceMethodForm({
   const [searchParams] = useSearchParams();
 
   const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(
-    initialValues.type === "directIssue"
+    initialValues.type === "directIssue" && !initialValues.did
       ? {
           ...initialValues,
           did: searchParams.get(DID_SEARCH_PARAM) || undefined,
