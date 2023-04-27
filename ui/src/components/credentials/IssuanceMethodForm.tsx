@@ -68,7 +68,7 @@ export function IssuanceMethodForm({
   return (
     <Card className="issue-credential-card" title="Choose how to issue credential">
       <Form
-        initialValues={initialValues}
+        initialValues={didParam ? { ...initialValues, did: didParam } : initialValues}
         layout="vertical"
         name="issueCredentialMethod"
         onFinish={onSubmit}
@@ -106,7 +106,6 @@ export function IssuanceMethodForm({
                 </Radio>
 
                 <Form.Item
-                  initialValue={didParam}
                   label="Select connection/Paste identifier"
                   name="did"
                   required
