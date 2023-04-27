@@ -74,7 +74,7 @@ export function IssueCredentialForm({
       <Space direction="vertical" size="large">
         <CredentialSubjectForm attributes={credentialSubjectAttributes} />
 
-        <Form.Item label="Credential expiration date" name="expirationDate">
+        <Form.Item label="Credential expiration date" name="credentialExpiration">
           <DatePicker disabledDate={(current) => current < dayjs()} />
         </Form.Item>
       </Space>

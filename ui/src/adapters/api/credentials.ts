@@ -249,6 +249,7 @@ const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
     active: z.boolean(),
     createdAt: z.coerce.date(z.string().datetime()),
+    credentialExpiration: z.coerce.date(z.string().datetime()).nullable(),
     credentialSubject: z.record(z.unknown()),
     expiration: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
@@ -391,9 +392,9 @@ export async function deleteLink({
 }
 
 export interface CreateLink {
-  claimLinkExpiration: string | null;
+  credentialExpiration: string | null;
   credentialSubject: Json;
-  expirationDate: string | null;
+  expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
   schemaID: string;

@@ -174,7 +174,8 @@ export function LinkDetails() {
             </Card>
           );
         } else {
-          const { createdAt, expiration, proofTypes, schemaHash, schemaType, status } = link.data;
+          const { createdAt, credentialExpiration, proofTypes, schemaHash, schemaType, status } =
+            link.data;
 
           const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
             linkID,
@@ -217,7 +218,7 @@ export function LinkDetails() {
 
                     <Detail
                       label="Credential expiration date"
-                      text={expiration ? formatDate(expiration) : "-"}
+                      text={credentialExpiration ? formatDate(credentialExpiration, "date") : "-"}
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />

@@ -22,6 +22,7 @@ export type LinkStatus = "active" | "inactive" | "exceeded";
 export interface Link {
   active: boolean;
   createdAt: Date;
+  credentialExpiration: Date | null;
   credentialSubject: Record<string, unknown>;
   expiration: Date | null;
   id: string;
