@@ -36,7 +36,14 @@ export function IssuanceMethodForm({
   const env = useEnvContext();
   const [searchParams] = useSearchParams();
 
-  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
+  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(
+    initialValues.type === "directIssue"
+      ? {
+          ...initialValues,
+          did: searchParams.get(DID_SEARCH_PARAM) || "",
+        }
+      : initialValues
+  );
   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
     status: "pending",
   });
@@ -44,16 +51,12 @@ export function IssuanceMethodForm({
   const isLinkIssue = issuanceMethod.type === "credentialLink";
   const isDirectIssue = issuanceMethod.type === "directIssue";
 
-  const did = (isDirectIssue && issuanceMethod.did) || searchParams.get(DID_SEARCH_PARAM);
-
-  const [didInputValue, setDidInputValue] = useState(did || "");
-
-  const isNextButtonDisabled = isDirectIssue && (!did || !didInputValue);
+  const isNextButtonDisabled = isDirectIssue && issuanceMethod.did === "";
 
   const isConnectedSuffixVisible =
-    didInputValue &&
+    isDirectIssue &&
     isAsyncTaskDataAvailable(connections) &&
-    connections.data.find((connection) => connection.userID === did) !== undefined;
+    connections.data.find((connection) => connection.userID === issuanceMethod.did) !== undefined;
 
   const fetchConnections = useCallback(
     async (signal: AbortSignal) => {
@@ -77,13 +80,12 @@ export function IssuanceMethodForm({
   return (
     <Card className="issue-credential-card" title="Choose how to issue credential">
       <Form
-        initialValues={did ? { ...initialValues, did: did } : initialValues}
+        initialValues={issuanceMethod}
         layout="vertical"
         name="issueCredentialMethod"
         onFinish={onSubmit}
         onValuesChange={(changedValues, allValues) => {
           const parsedLinkExpirationDate = linkExpirationDateParser.safeParse(changedValues);
-
           if (
             allValues.type === "credentialLink" &&
             parsedLinkExpirationDate.success &&
@@ -122,9 +124,6 @@ export function IssuanceMethodForm({
                 >
                   <AutoComplete
                     disabled={isLinkIssue}
-                    onChange={(value: string) => {
-                      setDidInputValue(value);
-                    }}
                     options={
                       isAsyncTaskDataAvailable(connections)
                         ? connections.data.map(({ userID }) => {
@@ -145,12 +144,8 @@ export function IssuanceMethodForm({
                   >
                     <Input
                       className={isConnectedSuffixVisible ? undefined : "hidden-suffix"}
-                      onChange={(event) => {
-                        setDidInputValue(event.target.value);
-                      }}
                       placeholder="Select or paste"
                       suffix={<Typography.Text type="secondary">Connected</Typography.Text>}
-                      value={didInputValue}
                     />
                   </AutoComplete>
                 </Form.Item>
