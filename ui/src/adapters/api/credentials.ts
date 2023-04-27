@@ -39,20 +39,9 @@ const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
 
 // Credentials
 
-export interface CredentialInput {
-  createdAt: Date;
-  credentialSubject: Record<string, unknown>;
-  expired: boolean;
-  expiresAt: Date | null;
-  id: string;
+export type CredentialInput = Omit<Credential, "proofTypes"> & {
   proofTypes: ProofTypeInput[];
-  revNonce: number;
-  revoked: boolean;
-  schemaHash: string;
-  schemaType: string;
-  schemaUrl: string;
-  userID: string;
-}
+};
 
 export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z.object({
@@ -246,20 +235,9 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-interface LinkInput {
-  active: boolean;
-  createdAt: Date;
-  credentialSubject: Record<string, unknown>;
-  expiration: Date | null;
-  id: string;
-  issuedClaims: number;
-  maxIssuance: number | null;
+type LinkInput = Omit<Link, "proofTypes"> & {
   proofTypes: ProofTypeInput[];
-  schemaHash: string;
-  schemaType: string;
-  schemaUrl: string;
-  status: LinkStatus;
-}
+};
 
 const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
@@ -441,12 +419,9 @@ export async function createLink({
   }
 }
 
-export interface AuthQRCodeInput {
-  issuer: { displayName: string; logo: string };
+type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
   linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
-  qrCode?: unknown;
-  sessionID: string;
-}
+};
 
 export interface AuthQRCode {
   issuer: { displayName: string; logo: string };

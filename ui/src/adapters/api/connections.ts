@@ -13,13 +13,9 @@ import { getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
-export interface ConnectionInput {
-  createdAt: Date;
+type ConnectionInput = Omit<Connection, "credentials"> & {
   credentials: CredentialInput[];
-  id: string;
-  issuerID: string;
-  userID: string;
-}
+};
 
 const connectionParser = getStrictParser<ConnectionInput, Connection>()(
   z.object({
