@@ -11,7 +11,6 @@ import (
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
@@ -160,15 +159,6 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 	default:
 		return "failed"
 	}
-}
-
-func getSigProof(w3c *verifiable.W3CCredential) *string {
-	for i := range w3c.Proof {
-		if string(w3c.Proof[i].ProofType()) == string(verifiable.BJJSignatureProofType) {
-			return common.ToPointer(string(verifiable.BJJSignatureProofType))
-		}
-	}
-	return nil
 }
 
 func deleteConnectionResponse(deleteCredentials bool, revokeCredentials bool) string {
