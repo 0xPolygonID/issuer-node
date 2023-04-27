@@ -25,7 +25,7 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE } from "src/utils/constants";
-import { processError, processZodError } from "src/utils/error";
+import { credentialSubjectValueErrorToString, processError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinkDetails() {
@@ -139,14 +139,6 @@ export function LinkDetails() {
   }, [fetchLink, linkID]);
 
   const loading = isAsyncTaskStarting(link) || isAsyncTaskStarting(credentialSubjectValue);
-
-  const credentialSubjectValueErrorToString = (error: string | z.ZodError) =>
-    error instanceof z.ZodError
-      ? [
-          "An error occurred while parsing the value of the credentialSubject:",
-          ...processZodError(error).map((e) => `"${e}"`),
-        ].join("\n")
-      : `An error occurred while processing the value of the credentialSubject:\n"${error}"`;
 
   return (
     <SiderLayoutContent

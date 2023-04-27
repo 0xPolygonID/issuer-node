@@ -34,3 +34,11 @@ export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
     }
   }, init);
 }
+
+export const credentialSubjectValueErrorToString = (error: string | z.ZodError) =>
+  error instanceof z.ZodError
+    ? [
+        "An error occurred while parsing the value of the credentialSubject:",
+        ...processZodError(error).map((e) => `"${e}"`),
+      ].join("\n")
+    : `An error occurred while processing the value of the credentialSubject:\n"${error}"`;
