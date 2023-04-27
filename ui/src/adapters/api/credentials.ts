@@ -130,7 +130,13 @@ export async function getCredentials({
     });
     const { data } = resultOKGetAllCredentialsParser.parse(response);
 
-    return { data, isSuccessful: true };
+    return {
+      data: {
+        failed: data.failed,
+        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      },
+      isSuccessful: true,
+    };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
