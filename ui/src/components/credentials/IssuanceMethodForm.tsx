@@ -4,6 +4,7 @@ import {
   Card,
   DatePicker,
   Form,
+  Input,
   InputNumber,
   Radio,
   Row,
@@ -65,6 +66,11 @@ export function IssuanceMethodForm({
   const isNextButtonDisabled =
     issuanceMethod.type === "directIssue" && !issuanceMethod.did && !didParam;
 
+  const isConnectedSuffixVisible =
+    issuanceMethod.type === "directIssue" &&
+    isAsyncTaskDataAvailable(connections) &&
+    connections.data.find((connection) => connection.userID === issuanceMethod.did) !== undefined;
+
   return (
     <Card className="issue-credential-card" title="Choose how to issue credential">
       <Form
@@ -124,13 +130,18 @@ export function IssuanceMethodForm({
                                 value: userID,
                               };
                             } else {
-                              return { value: userID };
+                              return { label: userID, value: userID };
                             }
                           })
                         : undefined
                     }
-                    placeholder="Select or paste"
-                  />
+                  >
+                    <Input
+                      className={isConnectedSuffixVisible ? undefined : "hidden-suffix"}
+                      placeholder="Select or paste"
+                      suffix={<Typography.Text type="secondary">Connected</Typography.Text>}
+                    />
+                  </AutoComplete>
                 </Form.Item>
               </Card>
 

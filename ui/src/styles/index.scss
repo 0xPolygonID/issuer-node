@@ -91,6 +91,14 @@
   }
 }
 
+.ant-select-selection-search-input {
+  &.hidden-suffix {
+    .ant-input-suffix {
+      display: none;
+    }
+  }
+}
+
 .ant-checkbox-group {
   &,
   .ant-typography {
