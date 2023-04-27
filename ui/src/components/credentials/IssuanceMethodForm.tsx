@@ -124,6 +124,11 @@ export function IssuanceMethodForm({
                 >
                   <AutoComplete
                     disabled={isLinkIssue}
+                    filterOption={(inputValue, option) =>
+                      option !== undefined
+                        ? option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                        : false
+                    }
                     options={
                       isAsyncTaskDataAvailable(connections)
                         ? connections.data.map(({ userID }) => {
