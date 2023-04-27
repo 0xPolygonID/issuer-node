@@ -821,6 +821,15 @@ paths:
         200:
           description: success and returns the documentation in Yaml format
 
+  /favicon.ico:
+    get:
+      summary: Gets the favicon
+      operationId: GetFavicon
+      x-internal: true
+      responses:
+        200:
+          description: success and returns a favicon
+
   /status:
     get:
       summary: Healthcheck
@@ -1142,6 +1151,12 @@ components:
           example: 2023-03-17T10:18:01.400722+01:00
           x-omitempty: false
           nullable: true
+        credentialExpiration:
+          type: string
+          format: date
+          example: "2022-12-20"
+          x-omitempty: false
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -1385,11 +1400,11 @@ components:
           type: string
           x-go-type: uuid.UUID
           x-omitempty: false
-        expirationDate:
+        credentialExpiration:
           type: string
           format: date
           example: "2022-12-20"
-        claimLinkExpiration:
+        expiration:
           type: string
           format: date-time
           example: 2025-04-17T11:40:43.681857-03:00

@@ -122,6 +122,11 @@ func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestOb
 	return nil, nil
 }
 
+// GetFavicon this method will be overridden in the main function
+func (s *Server) GetFavicon(_ context.Context, _ GetFaviconRequestObject) (GetFaviconResponseObject, error) {
+	return nil, nil
+}
+
 // AuthCallback receives the authentication information of a holder
 func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error) {
 	if request.Body == nil || *request.Body == "" {
@@ -441,8 +446,8 @@ func (s *Server) RevokeConnectionCredentials(ctx context.Context, request Revoke
 
 // CreateLink - creates a link for issuing a credential
 func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error) {
-	if request.Body.ClaimLinkExpiration != nil {
-		if isBeforeNow(*request.Body.ClaimLinkExpiration) {
+	if request.Body.Expiration != nil {
+		if isBeforeNow(*request.Body.Expiration) {
 			return CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}}, nil
 		}
 	}
@@ -465,11 +470,11 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 	}
 
 	var expirationDate *time.Time
-	if request.Body.ExpirationDate != nil {
-		expirationDate = common.ToPointer(request.Body.ExpirationDate.Time)
+	if request.Body.CredentialExpiration != nil {
+		expirationDate = &request.Body.CredentialExpiration.Time
 	}
 
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.ClaimLinkExpiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
@@ -711,23 +716,28 @@ func isBeforeNow(t time.Time) bool {
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)
 	mux.Get("/static/docs/api_ui/api.yaml", swagger)
+	mux.Get("/favicon.ico", favicon)
 }
 
 func documentation(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api_ui/spec.html", w)
+	writeFile("api_ui/spec.html", "text/html; charset=UTF-8", w)
+}
+
+func favicon(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api_ui/polygon.png", "image/png", w)
 }
 
 func swagger(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api_ui/api.yaml", w)
+	writeFile("api_ui/api.yaml", "text/html; charset=UTF-8", w)
 }
 
-func writeFile(path string, w http.ResponseWriter) {
+func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	f, err := os.ReadFile(path)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("not found"))
 	}
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	w.Header().Set("Content-Type", mimeType)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
 }

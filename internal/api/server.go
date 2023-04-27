@@ -64,6 +64,11 @@ func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestOb
 	return nil, nil
 }
 
+// GetFavicon this method will be overridden in the main function
+func (s *Server) GetFavicon(_ context.Context, _ GetFaviconRequestObject) (GetFaviconResponseObject, error) {
+	return nil, nil
+}
+
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
@@ -394,6 +399,7 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)
 	mux.Get("/static/docs/api/api.yaml", swagger)
+	mux.Get("/favicon.ico", favicon)
 }
 
 func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
@@ -454,20 +460,24 @@ func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetCl
 }
 
 func documentation(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api/spec.html", w)
+	writeFile("api/spec.html", "text/html; charset=UTF-8", w)
+}
+
+func favicon(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api/polygon.png", "image/png", w)
 }
 
 func swagger(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api/api.yaml", w)
+	writeFile("api/api.yaml", "text/html; charset=UTF-8", w)
 }
 
-func writeFile(path string, w http.ResponseWriter) {
+func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	f, err := os.ReadFile(path)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("not found"))
 	}
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	w.Header().Set("Content-Type", mimeType)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
 }
