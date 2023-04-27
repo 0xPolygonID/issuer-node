@@ -8,7 +8,7 @@ import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { CredentialSubjectForm } from "src/components/credentials/CredentialSubjectForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
-import { SCHEMA_HASH } from "src/utils/constants";
+import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
 
 export function IssueCredentialForm({
   initialValues,
@@ -108,7 +108,7 @@ export function IssueCredentialForm({
           </Button>
 
           <Button disabled={!schema} htmlType="submit" loading={loading} type="primary">
-            {type === "directIssue" ? "Issue credential directly" : "Create credential link"}
+            {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
             {type === "credentialLink" && <IconRight />}
           </Button>
         </Space>

@@ -28,7 +28,12 @@ import { JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CREDENTIALS_TABS, ISSUE_CREDENTIAL } from "src/utils/constants";
+import {
+  CREDENTIALS_TABS,
+  ISSUE_CREDENTIAL,
+  ISSUE_CREDENTIAL_DIRECT,
+  ISSUE_CREDENTIAL_LINK,
+} from "src/utils/constants";
 import { processError, processZodError } from "src/utils/error";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
@@ -261,7 +266,9 @@ export function IssueCredential() {
                         </Button>
 
                         <Button disabled htmlType="submit" type="primary">
-                          Create credential link
+                          {credentialFormInput.issuanceMethod.type === "directIssue"
+                            ? ISSUE_CREDENTIAL_DIRECT
+                            : ISSUE_CREDENTIAL_LINK}
                           <IconRight />
                         </Button>
                       </Space>
