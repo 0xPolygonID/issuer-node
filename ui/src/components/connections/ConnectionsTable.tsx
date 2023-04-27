@@ -5,6 +5,7 @@ import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
+import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
@@ -23,6 +24,7 @@ import {
   CONNECTIONS,
   DELETE,
   DETAILS,
+  DID_SEARCH_PARAM,
   IDENTIFIER,
   ISSUED_CREDENTIALS,
   QUERY_SEARCH_PARAM,
@@ -72,7 +74,7 @@ export function ConnectionsTable() {
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Connection["id"]) => (
+      render: (id: Connection["id"], { userID }: Connection) => (
         <Dropdown
           menu={{
             items: [
@@ -84,7 +86,21 @@ export function ConnectionsTable() {
                   navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
               },
               {
-                key: "divider",
+                key: "divider1",
+                type: "divider",
+              },
+              {
+                icon: <IconCreditCardPlus />,
+                key: "issue",
+                label: "Issue credential directly",
+                onClick: () =>
+                  navigate({
+                    pathname: generatePath(ROUTES.issueCredential.path),
+                    search: `${DID_SEARCH_PARAM}=${userID}`,
+                  }),
+              },
+              {
+                key: "divider2",
                 type: "divider",
               },
               {

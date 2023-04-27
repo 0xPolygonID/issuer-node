@@ -41,6 +41,7 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   DELETE,
   DETAILS,
+  DID_SEARCH_PARAM,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
   ISSUED_CREDENTIALS,
@@ -54,8 +55,6 @@ import { formatDate } from "src/utils/forms";
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
 
-  const navigate = useNavigate();
-
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
   });
@@ -63,6 +62,13 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
   const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
   const [query, setQuery] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+  const navigateToDirectIssue = () =>
+    navigate({
+      pathname: generatePath(ROUTES.issueCredential.path),
+      search: `${DID_SEARCH_PARAM}=${userID}`,
+    });
 
   const tableColumns: ColumnsType<Credential> = [
     {
@@ -238,7 +244,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             </Typography.Text>
           </>
         }
-        extraButton={<IssueDirectlyButton />}
+        extraButton={<IssueDirectlyButton onClick={navigateToDirectIssue} />}
         isLoading={isAsyncTaskStarting(credentials)}
         onSearch={setQuery}
         query={query}
@@ -277,7 +283,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
               <Tag color="blue">{credentialsList.length}</Tag>
             </Space>
             {showDefaultContent && credentialStatus === "all" ? (
-              <IssueDirectlyButton />
+              <IssueDirectlyButton onClick={navigateToDirectIssue} />
             ) : (
               <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
                 <Radio.Button value="all">All</Radio.Button>

@@ -74,12 +74,12 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params: { query },
+  params,
   signal,
 }: {
   credentials: boolean;
   env: Env;
-  params: {
+  params?: {
     query?: string;
   };
   signal?: AbortSignal;
@@ -92,7 +92,7 @@ export async function getConnections({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(params?.query !== undefined ? { [QUERY_SEARCH_PARAM]: params?.query } : {}),
         ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,

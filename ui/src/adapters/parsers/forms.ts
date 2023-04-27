@@ -1,7 +1,7 @@
 import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
-import { CreateLink } from "src/adapters/api/credentials";
+import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
 import { Json, ProofType } from "src/domain";
@@ -82,7 +82,7 @@ export type IssuanceMethodFormData =
       type: "credentialLink";
     })
   | {
-      did: string;
+      did?: string;
       type: "directIssue";
     };
 
@@ -95,7 +95,7 @@ const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
       })
     ),
     z.object({
-      did: z.string(),
+      did: z.string().optional(),
       type: z.literal("directIssue"),
     }),
   ])
@@ -143,6 +143,7 @@ export const credentialFormParser = getStrictParser<
       };
 
       if (type === "credentialLink") {
+        // Link issuance
         const { linkExpirationDate, linkExpirationTime, linkMaximumIssuance } = issuanceMethod;
         const linkAccessibleUntil = buildLinkAccessibleUntil({
           linkExpirationDate,
@@ -167,16 +168,23 @@ export const credentialFormParser = getStrictParser<
           linkMaximumIssuance,
           type,
         };
+      } else {
+        // Direct issuance
+        if (!issuanceMethod.did) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            fatal: true,
+            message: `A connection or identifier must be provided.`,
+          });
+          return z.NEVER;
+        }
+
+        return {
+          ...baseIssuance,
+          did: issuanceMethod.did,
+          type,
+        };
       }
-
-      // Direct issuance
-      const { did } = issuanceMethod;
-
-      return {
-        ...baseIssuance,
-        did,
-        type,
-      };
     })
 );
 
@@ -217,6 +225,33 @@ export function serializeCredentialLinkIssuance({
         mtProof,
         schemaID,
         signatureProof,
+      },
+      success: true,
+    };
+  } else {
+    return parsedCredentialSubject;
+  }
+}
+
+export function serializeCredentialIssuance({
+  credentialSchema,
+  issueCredential: { credentialExpiration, credentialSubject, did, mtProof, signatureProof },
+  type,
+}: {
+  credentialSchema: string;
+  issueCredential: CredentialDirectIssuance;
+  type: string;
+}): { data: CreateCredential; success: true } | { error: z.ZodError<FormInput>; success: false } {
+  const parsedCredentialSubject = formParser.safeParse({ ...credentialSubject, id: did });
+  if (parsedCredentialSubject.success) {
+    return {
+      data: {
+        credentialSchema,
+        credentialSubject: parsedCredentialSubject.data,
+        expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
+        mtProof,
+        signatureProof,
+        type,
       },
       success: true,
     };

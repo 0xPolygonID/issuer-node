@@ -13,6 +13,8 @@ export const EXPIRATION = "Expiration";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
+export const ISSUE_CREDENTIAL_DIRECT = "Issue credential directly";
+export const ISSUE_CREDENTIAL_LINK = "Create credential link";
 export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
 export const ISSUED_CREDENTIALS = "Issued credentials";
@@ -27,6 +29,7 @@ export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
 
 // URL params
+export const DID_SEARCH_PARAM = "did";
 export const QUERY_SEARCH_PARAM = "query";
 export const STATUS_SEARCH_PARAM = "status";
 
