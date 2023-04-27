@@ -40,7 +40,7 @@ export function IssuanceMethodForm({
     initialValues.type === "directIssue"
       ? {
           ...initialValues,
-          did: searchParams.get(DID_SEARCH_PARAM) || "",
+          did: searchParams.get(DID_SEARCH_PARAM) || undefined,
         }
       : initialValues
   );
@@ -51,7 +51,7 @@ export function IssuanceMethodForm({
   const isLinkIssue = issuanceMethod.type === "credentialLink";
   const isDirectIssue = issuanceMethod.type === "directIssue";
 
-  const isNextButtonDisabled = isDirectIssue && issuanceMethod.did === "";
+  const isNextButtonDisabled = isDirectIssue && !issuanceMethod.did;
 
   const isConnectedSuffixVisible =
     isDirectIssue &&
