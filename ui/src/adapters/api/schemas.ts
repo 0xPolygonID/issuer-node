@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   APIResponse,
+  GetAll,
   ID,
   IDParser,
   ResultOK,
@@ -12,11 +13,6 @@ import {
 import { getStrictParser } from "src/adapters/parsers";
 import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-
-interface Schemas {
-  errors: z.ZodError<Schema>[];
-  schemas: Schema[];
-}
 
 export async function importSchema({
   env,
@@ -85,12 +81,7 @@ export async function getSchemas({
     query?: string;
   };
   signal: AbortSignal;
-}): Promise<
-  APIResponse<{
-    errors: z.ZodError<Schema>[];
-    schemas: Schema[];
-  }>
-> {
+}): Promise<APIResponse<GetAll<Schema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -108,8 +99,8 @@ export async function getSchemas({
 
     return {
       data: {
-        errors: data.errors,
-        schemas: data.schemas.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        failed: data.failed,
+        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
       },
       isSuccessful: true,
     };
@@ -136,22 +127,22 @@ const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
   })
 );
 
-const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Schemas>>()(
+const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<GetAll<Schema>>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: Schemas, curr: unknown, index) => {
+        (acc: GetAll<Schema>, curr: unknown, index) => {
           const parsedSchema = schemaParser.safeParse(curr);
 
           return parsedSchema.success
             ? {
                 ...acc,
-                schemas: [...acc.schemas, parsedSchema.data],
+                successful: [...acc.successful, parsedSchema.data],
               }
             : {
                 ...acc,
-                errors: [
-                  ...acc.errors,
+                failed: [
+                  ...acc.failed,
                   new z.ZodError<Schema>(
                     parsedSchema.error.issues.map((issue) => ({
                       ...issue,
@@ -161,7 +152,7 @@ const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Sche
                 ],
               };
         },
-        { errors: [], schemas: [] }
+        { failed: [], successful: [] }
       )
     ),
     status: z.literal(200),

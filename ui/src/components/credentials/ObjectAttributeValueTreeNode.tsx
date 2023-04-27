@@ -48,16 +48,25 @@ function extractValue(attributeValue: AttributeValue): JsonLiteral | undefined {
 
 export function ObjectAttributeValueTreeNode({
   attributeValue,
+  ellipsisPosition,
   nestingLevel,
   treeWidth,
 }: {
   attributeValue: AttributeValue;
+  ellipsisPosition?: number;
   nestingLevel: number;
   treeWidth: number;
 }) {
   const commonProps =
     attributeValue.type !== "multi" ? attributeValue.schema : attributeValue.schemas[0];
   const name = commonProps?.title || attributeValue.name;
+  const rawValue = extractValue(attributeValue);
+  const stringValue =
+    rawValue === null ? "null" : rawValue === undefined ? undefined : rawValue.toString();
+  const slicedValue =
+    stringValue !== undefined && ellipsisPosition
+      ? stringValue.slice(0, stringValue.length - ellipsisPosition)
+      : stringValue;
 
   return (
     <Col>
@@ -75,13 +84,17 @@ export function ObjectAttributeValueTreeNode({
 
         <Col style={{ marginLeft: 28 }}>
           <Typography.Text
-            ellipsis={{ tooltip: true }}
+            ellipsis={
+              stringValue && ellipsisPosition
+                ? { suffix: stringValue.slice(-ellipsisPosition), tooltip: { title: stringValue } }
+                : { tooltip: { title: stringValue } }
+            }
             style={{
-              maxWidth: treeWidth - 200 - nestingLevel * 20,
+              maxWidth: treeWidth - name.length * 12 - nestingLevel * 20,
             }}
             type="secondary"
           >
-            {extractValue(attributeValue)}
+            {slicedValue}
           </Typography.Text>
         </Col>
       </Row>

@@ -1,4 +1,4 @@
-import { Card, Space, message } from "antd";
+import { Button, Card, Row, Space, message } from "antd";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
@@ -14,6 +14,8 @@ import {
   serializeCredentialIssuance,
   serializeCredentialLinkIssuance,
 } from "src/adapters/parsers/forms";
+import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
+import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
 import { IssueCredentialForm } from "src/components/credentials/IssueCredentialForm";
 import { SelectSchema } from "src/components/credentials/SelectSchema";
@@ -192,12 +194,16 @@ export function IssueCredential() {
           }
 
           case "issueCredential": {
+            const onBack = () => {
+              setJsonSchema({ status: "pending" });
+              setStep("issuanceMethod");
+            };
             return (
               <Card className="issue-credential-card" title="Credential details">
                 <Space direction="vertical">
                   <SelectSchema onSelect={setSchema} schemaID={schemaID} />
 
-                  {schema &&
+                  {schema ? (
                     (() => {
                       switch (jsonSchema.status) {
                         case "pending":
@@ -216,10 +222,7 @@ export function IssueCredential() {
                               initialValues={credentialFormInput.issueCredential}
                               jsonSchema={jsonSchema.data}
                               loading={isLoading}
-                              onBack={() => {
-                                setJsonSchema({ status: "pending" });
-                                setStep("issuanceMethod");
-                              }}
+                              onBack={onBack}
                               onSubmit={(values) => {
                                 const newCredentialFormInput: CredentialFormInput = {
                                   ...credentialFormInput,
@@ -249,7 +252,21 @@ export function IssueCredential() {
                           );
                         }
                       }
-                    })()}
+                    })()
+                  ) : (
+                    <Row justify="end">
+                      <Space size="middle">
+                        <Button icon={<IconBack />} onClick={onBack} type="default">
+                          Previous step
+                        </Button>
+
+                        <Button disabled htmlType="submit" type="primary">
+                          Create credential link
+                          <IconRight />
+                        </Button>
+                      </Space>
+                    </Row>
+                  )}
                 </Space>
               </Card>
             );

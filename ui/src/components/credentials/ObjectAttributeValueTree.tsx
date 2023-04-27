@@ -30,6 +30,7 @@ const attributeToTreeDataNode = ({
     title: (
       <ObjectAttributeValueTreeNode
         attributeValue={attributeValue}
+        ellipsisPosition={attributeValue.name === "id" ? 5 : undefined}
         nestingLevel={parents.length}
         treeWidth={treeWidth}
       />

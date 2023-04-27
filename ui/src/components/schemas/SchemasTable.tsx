@@ -92,9 +92,9 @@ export function MySchemas() {
         signal,
       });
       if (response.isSuccessful) {
-        setSchemas({ data: response.data.schemas, status: "successful" });
+        setSchemas({ data: response.data.successful, status: "successful" });
 
-        response.data.errors.forEach((zodError) => {
+        response.data.failed.forEach((zodError) => {
           processZodError(zodError).forEach((error) => void message.error(error));
         });
       } else {

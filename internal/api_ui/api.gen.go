@@ -88,13 +88,13 @@ type CreateCredentialRequest struct {
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	ClaimLinkExpiration *time.Time          `json:"claimLinkExpiration,omitempty"`
-	CredentialSubject   CredentialSubject   `json:"credentialSubject"`
-	ExpirationDate      *openapi_types.Date `json:"expirationDate,omitempty"`
-	LimitedClaims       *int                `json:"limitedClaims"`
-	MtProof             bool                `json:"mtProof"`
-	SchemaID            uuid.UUID           `json:"schemaID"`
-	SignatureProof      bool                `json:"signatureProof"`
+	CredentialExpiration *openapi_types.Date `json:"credentialExpiration,omitempty"`
+	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
+	Expiration           *time.Time          `json:"expiration,omitempty"`
+	LimitedClaims        *int                `json:"limitedClaims"`
+	MtProof              bool                `json:"mtProof"`
+	SchemaID             uuid.UUID           `json:"schemaID"`
+	SignatureProof       bool                `json:"signatureProof"`
 }
 
 // Credential defines model for Credential.
@@ -170,18 +170,19 @@ type IssuerDescription struct {
 
 // Link defines model for Link.
 type Link struct {
-	Active            bool              `json:"active"`
-	CreatedAt         time.Time         `json:"createdAt"`
-	CredentialSubject CredentialSubject `json:"credentialSubject"`
-	Expiration        *time.Time        `json:"expiration"`
-	Id                uuid.UUID         `json:"id"`
-	IssuedClaims      int               `json:"issuedClaims"`
-	MaxIssuance       *int              `json:"maxIssuance"`
-	ProofTypes        []string          `json:"proofTypes"`
-	SchemaHash        string            `json:"schemaHash"`
-	SchemaType        string            `json:"schemaType"`
-	SchemaUrl         string            `json:"schemaUrl"`
-	Status            LinkStatus        `json:"status"`
+	Active               bool                `json:"active"`
+	CreatedAt            time.Time           `json:"createdAt"`
+	CredentialExpiration *openapi_types.Date `json:"credentialExpiration"`
+	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
+	Expiration           *time.Time          `json:"expiration"`
+	Id                   uuid.UUID           `json:"id"`
+	IssuedClaims         int                 `json:"issuedClaims"`
+	MaxIssuance          *int                `json:"maxIssuance"`
+	ProofTypes           []string            `json:"proofTypes"`
+	SchemaHash           string              `json:"schemaHash"`
+	SchemaType           string              `json:"schemaType"`
+	SchemaUrl            string              `json:"schemaUrl"`
+	Status               LinkStatus          `json:"status"`
 }
 
 // LinkStatus defines model for Link.Status.

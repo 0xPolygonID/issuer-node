@@ -24,7 +24,12 @@ import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
-import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, DID_SEARCH_PARAM } from "src/utils/constants";
+import {
+  ACCESSIBLE_UNTIL,
+  CREDENTIAL_LINK,
+  DID_SEARCH_PARAM,
+  VALUE_REQUIRED,
+} from "src/utils/constants";
 
 export function IssuanceMethodForm({
   initialValues,
@@ -101,7 +106,7 @@ export function IssuanceMethodForm({
         requiredMark={false}
         validateTrigger="onBlur"
       >
-        <Form.Item name="type" rules={[{ message: "Value required", required: true }]}>
+        <Form.Item name="type" rules={[{ message: VALUE_REQUIRED, required: true }]}>
           <Radio.Group className="full-width" name="type">
             <Space direction="vertical">
               <Card className={`${isDirectIssue ? "selected" : ""}`}>

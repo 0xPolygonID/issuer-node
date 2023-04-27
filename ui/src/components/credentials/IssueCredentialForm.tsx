@@ -95,7 +95,7 @@ export function IssueCredentialForm({
         </Form.Item>
       </Space>
 
-      <Form.Item label="Credential expiration date" name="expirationDate">
+      <Form.Item label="Credential expiration date" name="credentialExpiration">
         <DatePicker />
       </Form.Item>
 

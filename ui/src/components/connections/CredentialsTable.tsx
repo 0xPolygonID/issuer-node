@@ -39,12 +39,15 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DELETE,
+  DETAILS,
   DID_SEARCH_PARAM,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
-  ISSUE_CREDENTIAL,
+  ISSUED_CREDENTIALS,
   ISSUE_DATE,
   REVOCATION,
+  REVOKE,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
@@ -131,7 +134,9 @@ export function CredentialsTable({ userID }: { userID: string }) {
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
+                onClick: () =>
+                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
               },
               {
                 key: "divider1",
@@ -142,7 +147,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
-                label: "Revoke",
+                label: REVOKE,
                 onClick: () => setCredentialToRevoke(credential),
               },
               {
@@ -153,7 +158,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete",
+                label: DELETE,
                 onClick: () => setCredentialToDelete(credential),
               },
             ],
@@ -273,7 +278,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         title={
           <Row align="middle" justify="space-between">
             <Space align="end" size="middle">
-              <Card.Meta title={ISSUE_CREDENTIAL} />
+              <Card.Meta title={ISSUED_CREDENTIALS} />
 
               <Tag color="blue">{credentialsList.length}</Tag>
             </Space>
