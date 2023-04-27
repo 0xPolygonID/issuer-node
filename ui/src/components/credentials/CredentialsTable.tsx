@@ -15,7 +15,7 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { Link, generatePath, useSearchParams } from "react-router-dom";
+import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
@@ -36,6 +36,8 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DELETE,
+  DETAILS,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
   ISSUED,
@@ -43,6 +45,7 @@ import {
   ISSUE_DATE,
   QUERY_SEARCH_PARAM,
   REVOCATION,
+  REVOKE,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
@@ -50,6 +53,8 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
   const env = useEnvContext();
+
+  const navigate = useNavigate();
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
     status: "pending",
@@ -133,7 +138,9 @@ export function CredentialsTable() {
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
+                onClick: () =>
+                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
               },
               {
                 key: "divider1",
@@ -144,7 +151,7 @@ export function CredentialsTable() {
                 disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
-                label: "Revoke",
+                label: REVOKE,
                 onClick: () => setCredentialToRevoke(credential),
               },
               {
@@ -155,7 +162,7 @@ export function CredentialsTable() {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete",
+                label: DELETE,
                 onClick: () => setCredentialToDelete(credential),
               },
             ],
@@ -324,7 +331,6 @@ export function CredentialsTable() {
           onDelete={() => void fetchCredentials()}
         />
       )}
-
       {credentialToRevoke && (
         <CredentialRevokeModal
           credential={credentialToRevoke}

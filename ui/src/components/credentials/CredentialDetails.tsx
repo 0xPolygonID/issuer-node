@@ -1,21 +1,23 @@
-import { Button, Card, Space, TagProps, Typography } from "antd";
+import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
-import { getLink } from "src/adapters/api/credentials";
+import { getCredential } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
-import { LinkDeleteModal } from "src/components/credentials/LinkDeleteModal";
+import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { ObjectAttributeValueTree } from "src/components/credentials/ObjectAttributeValueTree";
+import { CredentialDeleteModal } from "src/components/shared/CredentialDeleteModal";
+import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeModal";
 import { Detail } from "src/components/shared/Detail";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { Link, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { Credential, ObjectAttribute, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -24,13 +26,13 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CREDENTIALS_TABS, DELETE } from "src/utils/constants";
+import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
 import { credentialSubjectValueErrorToString, processError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
-export function LinkDetails() {
+export function CredentialDetails() {
   const navigate = useNavigate();
-  const { linkID } = useParams();
+  const { credentialID } = useParams();
 
   const env = useEnvContext();
 
@@ -39,16 +41,16 @@ export function LinkDetails() {
   >({
     status: "pending",
   });
-  const [link, setLink] = useState<AsyncTask<Link, APIError>>({
+  const [credential, setCredential] = useState<AsyncTask<Credential, APIError>>({
     status: "pending",
   });
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [showRevokeModal, setShowRevokeModal] = useState<boolean>(false);
 
-  const [showModal, setShowModal] = useState<boolean>(false);
-
-  const fetchJsonSchemaFromUrl = useCallback(({ link }: { link: Link }): void => {
+  const fetchJsonSchemaFromUrl = useCallback(({ credential }: { credential: Credential }): void => {
     setCredentialSubjectValue({ status: "loading" });
 
-    getJsonSchemaFromUrl({ url: link.schemaUrl })
+    getJsonSchemaFromUrl({ url: credential.schemaUrl })
       .then(([jsonSchema]) => {
         const credentialSubjectSchema =
           (jsonSchema.type === "object" &&
@@ -57,21 +59,10 @@ export function LinkDetails() {
               .find((child) => child.name === "credentialSubject")) ||
           null;
 
-        const credentialSubjectSchemaWithoutId: ObjectAttribute | null =
-          credentialSubjectSchema && {
-            ...credentialSubjectSchema,
-            schema: {
-              ...credentialSubjectSchema.schema,
-              properties: credentialSubjectSchema.schema.properties?.filter(
-                (attribute) => attribute.name !== "id"
-              ),
-            },
-          };
-
-        if (credentialSubjectSchemaWithoutId) {
+        if (credentialSubjectSchema) {
           const parsedCredentialSubject = getAttributeValueParser(
-            credentialSubjectSchemaWithoutId
-          ).safeParse(link.credentialSubject);
+            credentialSubjectSchema
+          ).safeParse(credential.credentialSubject);
 
           if (parsedCredentialSubject.success) {
             if (parsedCredentialSubject.data.type === "object") {
@@ -106,55 +97,55 @@ export function LinkDetails() {
       });
   }, []);
 
-  const fetchLink = useCallback(
-    async (signal: AbortSignal) => {
-      if (linkID) {
-        setLink({ status: "loading" });
+  const fetchCredential = useCallback(
+    async (signal?: AbortSignal) => {
+      if (credentialID) {
+        setCredential({ status: "loading" });
 
-        const response = await getLink({
+        const response = await getCredential({
+          credentialID,
           env,
-          linkID,
           signal,
         });
 
         if (response.isSuccessful) {
-          setLink({ data: response.data, status: "successful" });
-          fetchJsonSchemaFromUrl({ link: response.data });
+          setCredential({ data: response.data, status: "successful" });
+          fetchJsonSchemaFromUrl({ credential: response.data });
         } else {
           if (!isAbortedError(response.error)) {
-            setLink({ error: response.error, status: "failed" });
+            setCredential({ error: response.error, status: "failed" });
           }
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, linkID]
+    [env, fetchJsonSchemaFromUrl, credentialID]
   );
 
   useEffect(() => {
-    if (linkID) {
-      const { aborter } = makeRequestAbortable(fetchLink);
+    if (credentialID) {
+      const { aborter } = makeRequestAbortable(fetchCredential);
       return aborter;
     }
     return;
-  }, [fetchLink, linkID]);
+  }, [fetchCredential, credentialID]);
 
-  const loading = isAsyncTaskStarting(link) || isAsyncTaskStarting(credentialSubjectValue);
+  const loading = isAsyncTaskStarting(credential) || isAsyncTaskStarting(credentialSubjectValue);
 
   return (
     <SiderLayoutContent
-      description="View credential link details, attribute values and delete links."
+      description="View credential details, attribute values and revoke credentials."
       showBackButton
       showDivider
-      title="Credential link details"
+      title="Credential details"
     >
       {(() => {
-        if (hasAsyncTaskFailed(link)) {
+        if (hasAsyncTaskFailed(credential)) {
           return (
             <Card className="centered">
               <ErrorResult
                 error={[
-                  "An error occurred while downloading or parsing the link from the API:",
-                  link.error.message,
+                  "An error occurred while downloading or parsing the credential from the API:",
+                  credential.error.message,
                 ].join("\n")}
               />
             </Card>
@@ -174,56 +165,57 @@ export function LinkDetails() {
             </Card>
           );
         } else {
-          const { createdAt, credentialExpiration, proofTypes, schemaHash, schemaType, status } =
-            link.data;
-
-          const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
-            linkID,
-          })}`;
-
-          const [tag, text]: [TagProps, string] = (() => {
-            switch (status) {
-              case "active": {
-                return [{ color: "success" }, "Active"];
-              }
-              case "inactive": {
-                return [{}, "Inactive"];
-              }
-              case "exceeded": {
-                return [{ color: "error" }, "Exceeded"];
-              }
-            }
-          })();
+          const { createdAt, expiresAt, proofTypes, revoked, schemaHash, schemaType, userID } =
+            credential.data;
 
           return (
             <Card
               className="centered"
               extra={
-                <Button danger icon={<IconTrash />} onClick={() => setShowModal(true)} type="text">
-                  {DELETE}
-                </Button>
+                <Space>
+                  <Button
+                    danger
+                    disabled={revoked}
+                    icon={<IconClose />}
+                    onClick={() => setShowRevokeModal(true)}
+                    type="text"
+                  >
+                    {REVOKE}
+                  </Button>
+                  <Button
+                    danger
+                    icon={<IconTrash />}
+                    onClick={() => setShowDeleteModal(true)}
+                    type="text"
+                  >
+                    {DELETE}
+                  </Button>
+                </Space>
               }
               title={schemaType}
             >
               <Space direction="vertical" size="large">
                 <Card className="background-grey">
                   <Space direction="vertical">
-                    <Typography.Text type="secondary">CREDENTIAL LINK DETAILS</Typography.Text>
-
-                    <Detail label="Link status" tag={tag} text={text} />
+                    <Typography.Text type="secondary">CREDENTIAL DETAILS</Typography.Text>
 
                     <Detail label="Proof type" text={proofTypes.join(", ")} />
 
-                    <Detail label="Creation date" text={formatDate(createdAt)} />
+                    <Detail label="Issue date" text={formatDate(createdAt)} />
 
                     <Detail
                       label="Credential expiration date"
-                      text={credentialExpiration ? formatDate(credentialExpiration, "date") : "-"}
+                      text={expiresAt ? formatDate(expiresAt) : "-"}
+                    />
+
+                    <Detail
+                      copyable
+                      ellipsisPosition={5}
+                      label="Issued to identifier"
+                      text={userID}
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
-
-                    <Detail copyable label="Link" text={linkURL} />
                   </Space>
                 </Card>
                 <Card className="background-grey">
@@ -241,17 +233,24 @@ export function LinkDetails() {
           );
         }
       })()}
-      {isAsyncTaskDataAvailable(link) && showModal && (
-        <LinkDeleteModal
-          id={link.data.id}
-          onClose={() => setShowModal(false)}
+      {isAsyncTaskDataAvailable(credential) && showDeleteModal && (
+        <CredentialDeleteModal
+          credential={credential.data}
+          onClose={() => setShowDeleteModal(false)}
           onDelete={() =>
             navigate(
               generatePath(ROUTES.credentials.path, {
-                tabID: CREDENTIALS_TABS[1].tabID,
+                tabID: CREDENTIALS_TABS[0].tabID,
               })
             )
           }
+        />
+      )}
+      {isAsyncTaskDataAvailable(credential) && showRevokeModal && (
+        <CredentialRevokeModal
+          credential={credential.data}
+          onClose={() => setShowRevokeModal(false)}
+          onRevoke={() => void fetchCredential()}
         />
       )}
     </SiderLayoutContent>

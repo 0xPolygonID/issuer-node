@@ -19,7 +19,14 @@ import { Connection, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import {
+  CONNECTIONS,
+  DELETE,
+  DETAILS,
+  IDENTIFIER,
+  ISSUED_CREDENTIALS,
+  QUERY_SEARCH_PARAM,
+} from "src/utils/constants";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
@@ -60,7 +67,7 @@ export function ConnectionsTable() {
             .join(", ")}
         </Typography.Text>
       ),
-      title: "Issued credentials",
+      title: ISSUED_CREDENTIALS,
     },
     {
       dataIndex: "id",
@@ -72,7 +79,7 @@ export function ConnectionsTable() {
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
                 onClick: () =>
                   navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
               },
@@ -84,7 +91,7 @@ export function ConnectionsTable() {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete connection",
+                label: DELETE,
                 onClick: () => setConnectionToDelete(id),
               },
             ],

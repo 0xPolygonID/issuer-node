@@ -16,7 +16,7 @@ import { useState } from "react";
 
 import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
-import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
+import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/constants";
 
 export function IssuanceMethodForm({
   initialValues,
@@ -54,7 +54,7 @@ export function IssuanceMethodForm({
         requiredMark={false}
         validateTrigger="onBlur"
       >
-        <Form.Item name="type" rules={[{ message: "Value required", required: true }]}>
+        <Form.Item name="type" rules={[{ message: VALUE_REQUIRED, required: true }]}>
           <Radio.Group className="full-width" name="type">
             <Space direction="vertical">
               <Card className={`${isDirectIssue ? "selected" : ""} disabled`}>

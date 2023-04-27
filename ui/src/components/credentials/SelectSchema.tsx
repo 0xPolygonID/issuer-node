@@ -39,7 +39,7 @@ export function SelectSchema({
       });
 
       if (response.isSuccessful) {
-        setSchemas({ data: response.data.schemas, status: "successful" });
+        setSchemas({ data: response.data.successful, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {
           setSchemas({ error: undefined, status: "failed" });

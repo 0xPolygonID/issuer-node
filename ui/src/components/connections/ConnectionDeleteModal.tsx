@@ -6,7 +6,7 @@ import { deleteConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { CLOSE } from "src/utils/constants";
+import { CLOSE, DELETE } from "src/utils/constants";
 
 export function ConnectionDeleteModal({
   id,
@@ -48,7 +48,7 @@ export function ConnectionDeleteModal({
       closeIcon={<IconClose />}
       maskClosable
       okButtonProps={{ danger: true }}
-      okText="Delete connection"
+      okText={DELETE}
       onCancel={onClose}
       onOk={handleDeleteConnection}
       open

@@ -1,6 +1,7 @@
 import { Form, Radio, Select, Space, Typography } from "antd";
 
 import { BooleanAttribute, ObjectAttribute } from "src/domain";
+import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function Boolean({
   attribute,
@@ -14,7 +15,7 @@ export function Boolean({
       extra={attribute.schema.description}
       label={<Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>}
       name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
-      required={attribute.required}
+      rules={[{ message: VALUE_REQUIRED, required: attribute.required }]}
     >
       {attribute.schema.enum ? (
         <Select placeholder="Select option">
