@@ -196,7 +196,8 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 				   claims.identity_state,
 				   identity_states.status,
 				   claims.credential_status,
-				   claims.core_claim
+				   claims.core_claim,
+				   claims.mtp
 	FROM connections 
 	LEFT JOIN claims
 	ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
@@ -255,7 +256,8 @@ func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {
 			&dbConn.IdentityState,
 			&dbConn.Status,
 			&dbConn.CredentialStatus,
-			&dbConn.CoreClaim)
+			&dbConn.CoreClaim,
+			&dbConn.MtProof)
 		if err != nil {
 			return nil, err
 		}

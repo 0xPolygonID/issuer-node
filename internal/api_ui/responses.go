@@ -47,7 +47,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		}
 	}
 
-	proofs := getProofs(w3c, credential)
+	proofs := getProofs(credential)
 	delete(w3c.CredentialSubject, credSubjectType)
 
 	return Credential{
@@ -75,15 +75,16 @@ func shortType(id string) string {
 	return parts[l-1]
 }
 
-func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string {
+func getProofs(credential *domain.Claim) []string {
 	proofs := make([]string, 0)
-	if sp := getSigProof(w3c); sp != nil {
-		proofs = append(proofs, *sp)
+	if credential.SignatureProof.Bytes != nil {
+		proofs = append(proofs, string(verifiable.BJJSignatureProofType))
 	}
 
 	if credential.MtProof {
 		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
 	}
+
 	return proofs
 }
 
