@@ -1,6 +1,5 @@
 import { Row, Tag, TagProps, Typography } from "antd";
 
-import { z } from "zod";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 

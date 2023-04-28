@@ -518,7 +518,12 @@ export async function createAuthQRCode({
   }
 }
 
-const resultGetQRParser = getStrictParser<ResultOK<unknown>>()(
+type ResultOKUnkown = {
+  data?: unknown;
+  status: 200;
+};
+
+const resultGetQRParser = getStrictParser<ResultOKUnkown>()(
   z.object({
     data: z.unknown(),
     status: z.literal(200),
