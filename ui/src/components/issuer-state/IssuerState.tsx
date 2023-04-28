@@ -175,7 +175,7 @@ export function IssuerState() {
 
   return (
     <SiderLayoutContent
-      description="Issuing Merkle tree type credentials and revoking credentials require an additional step, know as publishing issuer state."
+      description="Issuing Merkle tree type credentials and revoking credentials require an additional step, known as publishing issuer state."
       title={ISSUER_STATE}
     >
       <Divider />
