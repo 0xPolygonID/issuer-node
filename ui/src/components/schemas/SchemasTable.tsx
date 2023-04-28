@@ -34,7 +34,7 @@ export function MySchemas() {
       dataIndex: "type",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (type: string) => (
+      render: (type: Schema["type"]) => (
         <Tooltip placement="topLeft" title={type}>
           <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
@@ -46,14 +46,16 @@ export function MySchemas() {
       dataIndex: "createdAt",
       ellipsis: { showTitle: false },
       key: "createdAt",
-      render: (createdAt: Date) => <Typography.Text>{formatDate(createdAt)}</Typography.Text>,
+      render: (createdAt: Schema["createdAt"]) => (
+        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+      ),
       sorter: ({ createdAt: a }, { createdAt: b }) => b.getTime() - a.getTime(),
       title: "Import date",
     },
     {
       dataIndex: "id",
       key: "id",
-      render: (schemaID: string) => (
+      render: (schemaID: Schema["id"]) => (
         <Row>
           <Space size="large">
             <Link

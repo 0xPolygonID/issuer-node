@@ -11,6 +11,7 @@ import {
   Space,
   TimePicker,
   Typography,
+  message,
 } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
@@ -30,6 +31,7 @@ import {
   DID_SEARCH_PARAM,
   VALUE_REQUIRED,
 } from "src/utils/constants";
+import { processZodError } from "src/utils/error";
 
 export function IssuanceMethodForm({
   initialValues,
@@ -68,7 +70,10 @@ export function IssuanceMethodForm({
       const response = await getConnections({ credentials: false, env, signal });
 
       if (response.isSuccessful) {
-        setConnections({ data: response.data, status: "successful" });
+        setConnections({ data: response.data.successful, status: "successful" });
+        response.data.failed.map((error) =>
+          processZodError(error).forEach((error) => void message.error(error))
+        );
       } else {
         setConnections({ error: response.error, status: "failed" });
       }

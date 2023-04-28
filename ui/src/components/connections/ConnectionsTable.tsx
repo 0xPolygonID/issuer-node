@@ -1,4 +1,16 @@
-import { Avatar, Card, Divider, Dropdown, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
+import {
+  Avatar,
+  Card,
+  Divider,
+  Dropdown,
+  Row,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+  message,
+} from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
@@ -16,7 +28,7 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection, Credential } from "src/domain";
+import { Connection } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -29,6 +41,7 @@ import {
   ISSUED_CREDENTIALS,
   QUERY_SEARCH_PARAM,
 } from "src/utils/constants";
+import { processZodError } from "src/utils/error";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
@@ -61,9 +74,9 @@ export function ConnectionsTable() {
       dataIndex: "credentials",
       ellipsis: { showTitle: false },
       key: "credentials",
-      render: (credentials: Credential[]) => (
+      render: (credentials: Connection["credentials"]) => (
         <Typography.Text>
-          {[...credentials]
+          {[...credentials.successful]
             .sort((a, b) => a.schemaType.localeCompare(b.schemaType))
             .map((credential) => credential.schemaType)
             .join(", ")}
@@ -135,7 +148,10 @@ export function ConnectionsTable() {
         signal,
       });
       if (response.isSuccessful) {
-        setConnections({ data: response.data, status: "successful" });
+        setConnections({ data: response.data.successful, status: "successful" });
+        response.data.failed.map((error) =>
+          processZodError(error).forEach((error) => void message.error(error))
+        );
       } else {
         if (!isAbortedError(response.error)) {
           setConnections({ error: response.error, status: "failed" });

@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import {
   APIResponse,
-  GetAll,
   ID,
   IDParser,
   ResultAccepted,
@@ -13,9 +12,10 @@ import {
   buildAuthorizationHeader,
   resultOKMessage,
 } from "src/adapters/api";
-import { getStrictParser } from "src/adapters/parsers";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 
@@ -39,7 +39,7 @@ const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
 
 // Credentials
 
-export type CredentialInput = Omit<Credential, "proofTypes"> & {
+type CredentialInput = Omit<Credential, "proofTypes"> & {
   proofTypes: ProofTypeInput[];
 };
 
@@ -112,7 +112,7 @@ export async function getCredentials({
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<GetAll<Credential>>> {
+}): Promise<APIResponse<List<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -128,7 +128,7 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultOKGetAllCredentialsParser.parse(response);
+    const { data } = resultOKCredentialListParser.parse(response);
 
     return {
       data: {
@@ -142,37 +142,12 @@ export async function getCredentials({
   }
 }
 
-const resultOKGetAllCredentialsParser = getStrictParser<
+const resultOKCredentialListParser = getStrictParser<
   ResultOK<unknown[]>,
-  ResultOK<GetAll<Credential>>
+  ResultOK<List<Credential>>
 >()(
   z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: GetAll<Credential>, curr: unknown, index): GetAll<Credential> => {
-          const parsedCredential = credentialParser.safeParse(curr);
-
-          return parsedCredential.success
-            ? {
-                ...acc,
-                successful: [...acc.successful, parsedCredential.data],
-              }
-            : {
-                ...acc,
-                failed: [
-                  ...acc.failed,
-                  new z.ZodError<Credential>(
-                    parsedCredential.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { failed: [], successful: [] }
-      )
-    ),
+    data: getListParser(credentialParser),
     status: z.literal(200),
   })
 );
@@ -342,7 +317,7 @@ export async function getLinks({
     status?: LinkStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<Link[]>> {
+}): Promise<APIResponse<List<Link>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -357,17 +332,23 @@ export async function getLinks({
       signal,
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultOKLinksParser.parse(response);
+    const { data } = resultOKLinkListParser.parse(response);
 
-    return { data, isSuccessful: true };
+    return {
+      data: {
+        failed: data.failed,
+        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      },
+      isSuccessful: true,
+    };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }
 }
 
-const resultOKLinksParser = getStrictParser<ResultOK<LinkInput[]>, ResultOK<Link[]>>()(
+const resultOKLinkListParser = getStrictParser<ResultOK<unknown[]>, ResultOK<List<Link>>>()(
   z.object({
-    data: z.array(linkParser),
+    data: getListParser(linkParser),
     status: z.literal(200),
   })
 );

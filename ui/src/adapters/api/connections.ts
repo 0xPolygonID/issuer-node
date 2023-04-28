@@ -8,19 +8,20 @@ import {
   buildAuthorizationHeader,
   resultOKMessage,
 } from "src/adapters/api";
-import { CredentialInput, credentialParser } from "src/adapters/api/credentials";
-import { getStrictParser } from "src/adapters/parsers";
+import { credentialParser } from "src/adapters/api/credentials";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
 type ConnectionInput = Omit<Connection, "credentials"> & {
-  credentials: CredentialInput[];
+  credentials: unknown[];
 };
 
 const connectionParser = getStrictParser<ConnectionInput, Connection>()(
   z.object({
     createdAt: z.coerce.date(z.string().datetime()),
-    credentials: z.array(credentialParser),
+    credentials: getListParser(credentialParser),
     id: z.string(),
     issuerID: z.string(),
     userID: z.string(),
@@ -34,12 +35,12 @@ const resultOKConnectionParser = getStrictParser<ResultOK<ConnectionInput>, Resu
   })
 );
 
-const resultOKConnectionsParser = getStrictParser<
-  ResultOK<ConnectionInput[]>,
-  ResultOK<Connection[]>
+const resultOKConnectionListParser = getStrictParser<
+  ResultOK<unknown[]>,
+  ResultOK<List<Connection>>
 >()(
   z.object({
-    data: z.array(connectionParser),
+    data: getListParser(connectionParser),
     status: z.literal(200),
   })
 );
@@ -83,7 +84,7 @@ export async function getConnections({
     query?: string;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<Connection[]>> {
+}): Promise<APIResponse<List<Connection>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -98,9 +99,15 @@ export async function getConnections({
       signal,
       url: `${API_VERSION}/connections`,
     });
-    const { data } = resultOKConnectionsParser.parse(response);
+    const { data } = resultOKConnectionListParser.parse(response);
 
-    return { data, isSuccessful: true };
+    return {
+      data: {
+        failed: data.failed,
+        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      },
+      isSuccessful: true,
+    };
   } catch (error) {
     return { error: buildAPIError(error), isSuccessful: false };
   }

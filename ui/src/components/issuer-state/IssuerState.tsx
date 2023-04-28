@@ -30,6 +30,7 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 import { ISSUER_STATE, POLLING_INTERVAL, STATUS } from "src/utils/constants";
+import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 const PUBLISHED_MESSAGE = "Issuer state is being published";
@@ -75,7 +76,10 @@ export function IssuerState() {
       const response = await getTransactions({ env, signal });
 
       if (response.isSuccessful) {
-        setTransactions({ data: response.data, status: "successful" });
+        setTransactions({ data: response.data.successful, status: "successful" });
+        response.data.failed.map((error) =>
+          processZodError(error).forEach((error) => void message.error(error))
+        );
       } else {
         if (!isAbortedError(response.error)) {
           setTransactions({ error: response.error, status: "failed" });
