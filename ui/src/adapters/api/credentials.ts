@@ -518,6 +518,41 @@ export async function createAuthQRCode({
   }
 }
 
+const resultGetQRParser = getStrictParser<ResultOK<unknown>>()(
+  z.object({
+    data: z.unknown(),
+    status: z.literal(200),
+  })
+);
+
+export async function getIssuedQRCode({
+  credentialID,
+  env,
+  signal,
+}: {
+  credentialID: string;
+  env: Env;
+  signal: AbortSignal;
+}): Promise<APIResponse<unknown>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+    });
+
+    const { data } = resultGetQRParser.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
 const resultCreatedIDParser = getStrictParser<ResultCreated<ID>>()(
   z.object({
     data: IDParser,

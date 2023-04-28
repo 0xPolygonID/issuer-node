@@ -18,7 +18,7 @@ export function Detail({
   text: string;
 }) {
   const value = ellipsisPosition ? text.slice(0, text.length - ellipsisPosition) : text;
-  const isUrl = z.string().url().safeParse(text).success;
+  const isUrl = text.startsWith("http://") || text.startsWith("https://");
   const element = (
     <Typography.Text
       copyable={
