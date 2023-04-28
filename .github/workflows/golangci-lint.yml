@@ -11,6 +11,12 @@ jobs:
   golangci:
     runs-on: ubuntu-latest
     steps:
+      - name: Create .env-api, .env-issuer and .env-ui files
+        run: |
+          touch .env-api
+          touch .env-issuer
+          touch .env-ui
+
       - uses: actions/checkout@v3
 
       - uses: actions/setup-go@v3
