@@ -128,7 +128,7 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultOKGetAllCredentialsParser.parse(response);
+    const { data } = resultOKCredentialListParser.parse(response);
 
     return {
       data: {
@@ -142,7 +142,7 @@ export async function getCredentials({
   }
 }
 
-const resultOKGetAllCredentialsParser = getStrictParser<
+const resultOKCredentialListParser = getStrictParser<
   ResultOK<unknown[]>,
   ResultOK<List<Credential>>
 >()(
