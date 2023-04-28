@@ -15,7 +15,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IDENTIFIER } from "src/utils/constants";
+import { DELETE, IDENTIFIER } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
 
 export function ConnectionDetails() {
@@ -92,7 +92,7 @@ export function ConnectionDetails() {
                         onClick={() => setShowModal(true)}
                         type="text"
                       >
-                        Delete connection
+                        {DELETE}
                       </Button>
                     </Row>
                     <Card className="background-grey">

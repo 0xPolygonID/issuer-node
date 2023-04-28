@@ -8,12 +8,16 @@ import {
   buildAuthorizationHeader,
   resultOKMessage,
 } from "src/adapters/api";
-import { credentialParser } from "src/adapters/api/credentials";
+import { CredentialInput, credentialParser } from "src/adapters/api/credentials";
 import { getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
-const connectionParser = getStrictParser<Connection>()(
+type ConnectionInput = Omit<Connection, "credentials"> & {
+  credentials: CredentialInput[];
+};
+
+const connectionParser = getStrictParser<ConnectionInput, Connection>()(
   z.object({
     createdAt: z.coerce.date(z.string().datetime()),
     credentials: z.array(credentialParser),
@@ -23,14 +27,17 @@ const connectionParser = getStrictParser<Connection>()(
   })
 );
 
-const resultOKConnectionParser = getStrictParser<ResultOK<Connection>>()(
+const resultOKConnectionParser = getStrictParser<ResultOK<ConnectionInput>, ResultOK<Connection>>()(
   z.object({
     data: connectionParser,
     status: z.literal(200),
   })
 );
 
-const resultOKConnectionsParser = getStrictParser<ResultOK<Connection[]>>()(
+const resultOKConnectionsParser = getStrictParser<
+  ResultOK<ConnectionInput[]>,
+  ResultOK<Connection[]>
+>()(
   z.object({
     data: z.array(connectionParser),
     status: z.literal(200),
@@ -67,12 +74,12 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params: { query },
+  params,
   signal,
 }: {
   credentials: boolean;
   env: Env;
-  params: {
+  params?: {
     query?: string;
   };
   signal?: AbortSignal;
@@ -85,7 +92,7 @@ export async function getConnections({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(params?.query !== undefined ? { [QUERY_SEARCH_PARAM]: params?.query } : {}),
         ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,

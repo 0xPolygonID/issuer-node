@@ -14,6 +14,7 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import {
@@ -34,14 +35,19 @@ import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { Credential } from "src/domain";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DELETE,
+  DETAILS,
+  DID_SEARCH_PARAM,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
-  ISSUE_CREDENTIAL,
+  ISSUED_CREDENTIALS,
   ISSUE_DATE,
   REVOCATION,
+  REVOKE,
 } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
@@ -56,6 +62,13 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
   const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
   const [query, setQuery] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+  const navigateToDirectIssue = () =>
+    navigate({
+      pathname: generatePath(ROUTES.issueCredential.path),
+      search: `${DID_SEARCH_PARAM}=${userID}`,
+    });
 
   const tableColumns: ColumnsType<Credential> = [
     {
@@ -121,7 +134,9 @@ export function CredentialsTable({ userID }: { userID: string }) {
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
+                onClick: () =>
+                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
               },
               {
                 key: "divider1",
@@ -132,7 +147,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
-                label: "Revoke",
+                label: REVOKE,
                 onClick: () => setCredentialToRevoke(credential),
               },
               {
@@ -143,7 +158,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete",
+                label: DELETE,
                 onClick: () => setCredentialToDelete(credential),
               },
             ],
@@ -229,7 +244,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             </Typography.Text>
           </>
         }
-        extraButton={<IssueDirectlyButton />}
+        extraButton={<IssueDirectlyButton onClick={navigateToDirectIssue} />}
         isLoading={isAsyncTaskStarting(credentials)}
         onSearch={setQuery}
         query={query}
@@ -263,12 +278,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
         title={
           <Row align="middle" justify="space-between">
             <Space align="end" size="middle">
-              <Card.Meta title={ISSUE_CREDENTIAL} />
+              <Card.Meta title={ISSUED_CREDENTIALS} />
 
               <Tag color="blue">{credentialsList.length}</Tag>
             </Space>
             {showDefaultContent && credentialStatus === "all" ? (
-              <IssueDirectlyButton />
+              <IssueDirectlyButton onClick={navigateToDirectIssue} />
             ) : (
               <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
                 <Radio.Button value="all">All</Radio.Button>

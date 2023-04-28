@@ -37,6 +37,8 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   ACCESSIBLE_UNTIL,
+  DELETE,
+  DETAILS,
   LINKS,
   QUERY_SEARCH_PARAM,
   STATUS,
@@ -172,7 +174,7 @@ export function LinksTable() {
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: "Details",
+                  label: DETAILS,
                   onClick: () => navigate(generatePath(ROUTES.linkDetails.path, { linkID: id })),
                 },
                 {
@@ -183,7 +185,7 @@ export function LinksTable() {
                   danger: true,
                   icon: <IconTrash />,
                   key: "delete",
-                  label: "Delete",
+                  label: DELETE,
                   onClick: () => setLinkToDelete(id),
                 },
               ],

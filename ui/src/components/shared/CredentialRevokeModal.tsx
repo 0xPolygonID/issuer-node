@@ -6,7 +6,7 @@ import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
-import { CLOSE } from "src/utils/constants";
+import { CLOSE, REVOKE } from "src/utils/constants";
 
 export function CredentialRevokeModal({
   credential,
@@ -49,7 +49,7 @@ export function CredentialRevokeModal({
       closeIcon={<IconClose />}
       maskClosable
       okButtonProps={{ danger: true, loading: isLoading }}
-      okText="Revoke credential"
+      okText={REVOKE}
       onCancel={onClose}
       onOk={handleRevokeCredential}
       open
