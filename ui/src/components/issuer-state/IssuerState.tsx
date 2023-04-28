@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
+import { ReactComponent as IconAlert } from "src/assets/icons/alert-circle.svg";
 import { ReactComponent as IconSwitch } from "src/assets/icons/switch-horizontal.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
@@ -26,7 +27,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
-import { makeRequestAbortable } from "src/utils/browser";
+import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 import { ISSUER_STATE, POLLING_INTERVAL, STATUS } from "src/utils/constants";
 import { formatDate } from "src/utils/forms";
@@ -76,7 +77,9 @@ export function IssuerState() {
       if (response.isSuccessful) {
         setTransactions({ data: response.data, status: "successful" });
       } else {
-        setTransactions({ error: response.error, status: "failed" });
+        if (!isAbortedError(response.error)) {
+          setTransactions({ error: response.error, status: "failed" });
+        }
       }
     },
     [env]
@@ -186,9 +189,14 @@ export function IssuerState() {
               <Card.Meta title="No pending actions" />
             ) : (
               <Card.Meta
+                avatar={
+                  failedTransaction && (
+                    <Avatar className="avatar-color-error" icon={<IconAlert />} />
+                  )
+                }
                 description={
                   failedTransaction
-                    ? "Retry to publish the issuer state."
+                    ? "Please try again."
                     : "You can publish issuer state now or bulk publish with other actions."
                 }
                 title={
@@ -202,9 +210,9 @@ export function IssuerState() {
               disabled={disablePublishState}
               loading={isPublishing || isAsyncTaskStarting(status)}
               onClick={publish}
-              type={failedTransaction ? "default" : "primary"}
+              type="primary"
             >
-              Publish issuer state
+              {failedTransaction ? "Republish" : "Publish"} issuer state
             </Button>
           </Row>
         </Card>
