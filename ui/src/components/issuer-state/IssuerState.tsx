@@ -89,9 +89,13 @@ export function IssuerState() {
       key: "txID",
       render: (txID: Transaction["txID"]) => (
         <Typography.Text strong>
-          <Link target="_blank" to={`${env.blockExplorerUrl}/tx/${txID}`}>
-            {txID}
-          </Link>
+          {txID ? (
+            <Link target="_blank" to={`${env.blockExplorerUrl}/tx/${txID}`}>
+              {txID}
+            </Link>
+          ) : (
+            "-"
+          )}
         </Typography.Text>
       ),
       title: "Transaction ID",
