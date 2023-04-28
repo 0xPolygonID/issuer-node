@@ -1,3 +1,4 @@
+include .env-api
 BIN := $(shell pwd)/bin
 VERSION ?= $(shell git rev-parse --short HEAD)
 GO?=$(shell which go)
@@ -69,11 +70,11 @@ run-arm:
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
 
 .PHONY: run-ui
-run-ui:
+run-ui: add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
 .PHONY: run-ui-arm
-run-ui-arm:
+run-ui-arm: add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
 .PHONY: build
@@ -180,6 +181,9 @@ generate-issuer-did-arm: run-initializer-arm
 	mv .env-api.tmp .env-api
 	docker rm issuer-initializer-1
 
+.PHONY: add-host-url-swagger
+add-host-url-swagger:
+	sed -i -e  "s#server-url = [^ ]*#server-url = \""${ISSUER_API_UI_SERVER_URL}"\"#g" api_ui/spec.html
 
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop

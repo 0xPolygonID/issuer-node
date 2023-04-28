@@ -246,7 +246,8 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 				   claims.identifier,
 				   identity_state,
 				   credential_status,
-				   core_claim
+				   core_claim,
+				   mtp
 			FROM claims
 			LEFT JOIN identity_states ON claims.identity_state = identity_states.state
 			WHERE claims.identifier = $1
@@ -267,7 +268,8 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 		&claim.Identifier,
 		&claim.IdentityState,
 		&claim.CredentialStatus,
-		&claim.CoreClaim)
+		&claim.CoreClaim,
+		&claim.MtProof)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
