@@ -38,7 +38,6 @@ export function IssuerState() {
   const { refreshStatus, status } = useIssuerStateContext();
 
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
-  const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [transactions, setTransactions] = useState<AsyncTask<Transaction[], APIError>>({
     status: "pending",
   });
@@ -49,12 +48,14 @@ export function IssuerState() {
   );
 
   const failedTransaction = transactionsList.find((transaction) => transaction.status === "failed");
-  const disablePublishState =
-    failedTransaction !== undefined || !isAsyncTaskDataAvailable(status) || !status.data;
+  const disablePublishState = !isAsyncTaskDataAvailable(status) || !status.data;
 
   const publish = () => {
     setIsPublishing(true);
-    void publishState({ env }).then((response) => {
+
+    const functionToExecute = failedTransaction ? retryPublishState : publishState;
+
+    void functionToExecute({ env }).then((response) => {
       if (response.isSuccessful) {
         void message.success(PUBLISHED_MESSAGE);
       } else {
@@ -65,22 +66,6 @@ export function IssuerState() {
       void fetchTransactions();
 
       setIsPublishing(false);
-    });
-  };
-
-  const retry = () => {
-    setIsRetrying(true);
-    void retryPublishState({ env }).then((response) => {
-      if (response.isSuccessful) {
-        void message.success(PUBLISHED_MESSAGE);
-      } else {
-        void message.error(response.error.message);
-      }
-
-      void refreshStatus();
-      void fetchTransactions();
-
-      setIsRetrying(false);
     });
   };
 
@@ -147,14 +132,7 @@ export function IssuerState() {
             return <Tag color="success">{status}</Tag>;
           }
           case "failed": {
-            return (
-              <>
-                <Tag color="error">{status}</Tag>
-                <Button loading={isRetrying} onClick={retry} type="link">
-                  Retry
-                </Button>
-              </>
-            );
+            return <Tag color="error">{status}</Tag>;
           }
         }
       },
@@ -200,14 +178,27 @@ export function IssuerState() {
       <Space direction="vertical" size="large">
         <Card>
           <Row align="middle" justify="space-between">
-            <Card.Meta
-              title={disablePublishState ? "No pending actions" : "Pending actions to be published"}
-            />
+            {disablePublishState ? (
+              <Card.Meta title="No pending actions" />
+            ) : (
+              <Card.Meta
+                description={
+                  failedTransaction
+                    ? "Retry to publish the issuer state."
+                    : "You can publish issuer state now or bulk publish with other actions."
+                }
+                title={
+                  failedTransaction
+                    ? "Transaction failed to publish"
+                    : "Pending actions to be published"
+                }
+              />
+            )}
             <Button
               disabled={disablePublishState}
               loading={isPublishing || isAsyncTaskStarting(status)}
               onClick={publish}
-              type="primary"
+              type={failedTransaction ? "default" : "primary"}
             >
               Publish issuer state
             </Button>
