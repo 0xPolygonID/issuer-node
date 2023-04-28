@@ -17,6 +17,11 @@ export interface Credential {
   userID: string;
 }
 
+export interface IssuedQRCode {
+  qrCode: unknown;
+  schemaType?: string;
+}
+
 export type LinkStatus = "active" | "inactive" | "exceeded";
 
 export interface Link {

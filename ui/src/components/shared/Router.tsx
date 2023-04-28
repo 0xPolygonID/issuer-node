@@ -3,10 +3,10 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
+import { CredentialIssuedQR } from "src/components/credentials/CredentialIssuedQR";
 import { CredentialLinkQR } from "src/components/credentials/CredentialLinkQR";
 import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
-import { IssuedQR } from "src/components/credentials/IssuedQR";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
@@ -22,11 +22,11 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
   credentialDetails: CredentialDetails,
+  credentialIssuedQR: CredentialIssuedQR,
   credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
-  issuedQR: IssuedQR,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   notFound: NotFound,

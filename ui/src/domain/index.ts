@@ -3,6 +3,7 @@ export type { Connection } from "src/domain/connection";
 export type {
   Credential,
   CredentialsTabIDs,
+  IssuedQRCode,
   Link,
   LinkStatus,
   ProofType,

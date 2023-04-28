@@ -8,13 +8,14 @@ import { getIssuedQRCode } from "src/adapters/api/credentials";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
+import { IssuedQRCode } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
 
-export function IssuedQR() {
+export function CredentialIssuedQR() {
   const env = useEnvContext();
-  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<unknown, APIError>>({
+  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<IssuedQRCode, APIError>>({
     status: "pending",
   });
 
@@ -100,10 +101,24 @@ export function IssuedQR() {
               includeMargin
               level="H"
               style={{ height: 300 }}
-              value={JSON.stringify(issuedQRCode.data)}
+              value={JSON.stringify(issuedQRCode.data.qrCode)}
             />
           </Col>
         </Row>
+        {issuedQRCode.data.schemaType && (
+          <Row>
+            <Col
+              style={{
+                padding: 24,
+                paddingBottom: 8,
+              }}
+            >
+              <Typography.Title ellipsis={{ tooltip: true }} level={3}>
+                {issuedQRCode.data.schemaType}
+              </Typography.Title>
+            </Col>
+          </Row>
+        )}
       </Card>
     </Space>
   );

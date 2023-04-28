@@ -1,13 +1,12 @@
 import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { Link, generatePath, useNavigate, useParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
 import { getCredential } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
-import { ReactComponent as IconQR } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { ObjectAttributeValueTree } from "src/components/credentials/ObjectAttributeValueTree";
@@ -174,11 +173,6 @@ export function CredentialDetails() {
               className="centered"
               extra={
                 <Space>
-                  <Link target="_blank" to={generatePath(ROUTES.issuedQR.path, { credentialID })}>
-                    <Button icon={<IconQR />} type="link">
-                      Scan
-                    </Button>
-                  </Link>
                   <Button
                     danger
                     disabled={revoked}
@@ -222,6 +216,15 @@ export function CredentialDetails() {
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
+
+                    <Detail
+                      copyable
+                      label="QR code link"
+                      text={`${window.location.origin}${generatePath(
+                        ROUTES.credentialIssuedQR.path,
+                        { credentialID }
+                      )}`}
+                    />
                   </Space>
                 </Card>
                 <Card className="background-grey">

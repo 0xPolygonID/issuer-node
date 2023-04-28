@@ -14,7 +14,7 @@ import {
   resultOKMessage,
 } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
+import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
@@ -518,14 +518,49 @@ export async function createAuthQRCode({
   }
 }
 
-type ResultOKUnknown = {
+type BodyIssuedQRCode = {
+  body: {
+    credentials: {
+      description: string;
+    }[];
+  };
+};
+
+const bodyIssuedQRCodeParser = getStrictParser<BodyIssuedQRCode>()(
+  z.object({
+    body: z.object({ credentials: z.array(z.object({ description: z.string() })) }),
+  })
+);
+
+interface ResultOkIssuedQRCode {
+  data: IssuedQRCode;
+  status: 200;
+}
+
+type ResultOkIssuedQRCodeInput = {
   data?: unknown;
   status: 200;
 };
 
-const resultGetQRParser = getStrictParser<ResultOKUnknown>()(
+const resultOKSIssuedQRCodeParser = getStrictParser<
+  ResultOkIssuedQRCodeInput,
+  ResultOkIssuedQRCode
+>()(
   z.object({
-    data: z.unknown(),
+    data: z.unknown().transform((unknown): IssuedQRCode => {
+      const parsed = bodyIssuedQRCodeParser.safeParse(unknown);
+
+      if (parsed.success) {
+        return {
+          qrCode: unknown,
+          schemaType: parsed.data.body.credentials[0]?.description.split("#").pop(),
+        };
+      } else {
+        return {
+          qrCode: unknown,
+        };
+      }
+    }),
     status: z.literal(200),
   })
 );
@@ -538,7 +573,7 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<APIResponse<unknown>> {
+}): Promise<APIResponse<IssuedQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -550,7 +585,7 @@ export async function getIssuedQRCode({
       url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
     });
 
-    const { data } = resultGetQRParser.parse(response);
+    const { data } = resultOKSIssuedQRCodeParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
