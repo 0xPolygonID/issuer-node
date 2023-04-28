@@ -54,7 +54,7 @@ export const DEBOUNCE_INPUT_TIMEOUT = 500;
 
 export const DOTS_DROPDOWN_WIDTH = 60;
 
-export const FEEDBACK_URL = "https://forms.gle/ckDgvw1e9yZJBNfH6";
+export const FEEDBACK_URL = "https://forms.gle/W8xuqY3UjPnY5Nj16";
 
 export const IMAGE_PLACEHOLDER_PATH = "/images/image-preview.png";
 
