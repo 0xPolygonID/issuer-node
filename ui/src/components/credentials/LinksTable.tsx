@@ -44,6 +44,7 @@ import {
   STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
+import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
@@ -221,7 +222,10 @@ export function LinksTable() {
       });
 
       if (response.isSuccessful) {
-        setLinks({ data: response.data, status: "successful" });
+        setLinks({ data: response.data.successful, status: "successful" });
+        response.data.failed.map((error) =>
+          processZodError(error).forEach((error) => void message.error(error))
+        );
       } else {
         if (!isAbortedError(response.error)) {
           setLinks({ error: response.error, status: "failed" });

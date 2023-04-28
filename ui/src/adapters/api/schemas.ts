@@ -9,7 +9,7 @@ import {
   buildAPIError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
-import { getStrictParser } from "src/adapters/parsers";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -95,7 +95,7 @@ export async function getSchemas({
       signal,
       url: `${API_VERSION}/schemas`,
     });
-    const { data } = resultOKSchemasParser.parse(response);
+    const { data } = resultOKSchemaListParser.parse(response);
 
     return {
       data: {
@@ -127,34 +127,9 @@ const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
   })
 );
 
-const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<List<Schema>>>()(
+const resultOKSchemaListParser = getStrictParser<ResultOK<unknown[]>, ResultOK<List<Schema>>>()(
   z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: List<Schema>, curr: unknown, index) => {
-          const parsedSchema = schemaParser.safeParse(curr);
-
-          return parsedSchema.success
-            ? {
-                ...acc,
-                successful: [...acc.successful, parsedSchema.data],
-              }
-            : {
-                ...acc,
-                failed: [
-                  ...acc.failed,
-                  new z.ZodError<Schema>(
-                    parsedSchema.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { failed: [], successful: [] }
-      )
-    ),
+    data: getListParser(schemaParser),
     status: z.literal(200),
   })
 );

@@ -3,9 +3,10 @@ import dayjs from "dayjs";
 import { z } from "zod";
 
 import { APIResponse, ResultOK, buildAPIError, buildAuthorizationHeader } from "src/adapters/api";
-import { getStrictParser } from "src/adapters/parsers";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
+import { List } from "src/utils/types";
 
 const transactionStatusParser = getStrictParser<TransactionStatus>()(
   z.union([
@@ -99,7 +100,7 @@ export async function getTransactions({
 }: {
   env: Env;
   signal?: AbortSignal;
-}): Promise<APIResponse<Transaction[]>> {
+}): Promise<APIResponse<List<Transaction>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -110,12 +111,15 @@ export async function getTransactions({
       signal,
       url: `${API_VERSION}/state/transactions`,
     });
-    const { data } = resultOKTransactionsParser.parse(response);
+    const { data } = resultOKTransactionListParser.parse(response);
 
     return {
-      data: data.sort(
-        ({ publishDate: a }, { publishDate: b }) => dayjs(b).unix() - dayjs(a).unix()
-      ),
+      data: {
+        failed: data.failed,
+        successful: data.successful.sort(
+          ({ publishDate: a }, { publishDate: b }) => dayjs(b).unix() - dayjs(a).unix()
+        ),
+      },
       isSuccessful: true,
     };
   } catch (error) {
@@ -123,9 +127,12 @@ export async function getTransactions({
   }
 }
 
-const resultOKTransactionsParser = getStrictParser<ResultOK<Transaction[]>>()(
+const resultOKTransactionListParser = getStrictParser<
+  ResultOK<unknown[]>,
+  ResultOK<List<Transaction>>
+>()(
   z.object({
-    data: z.array(transactionParser),
+    data: getListParser(transactionParser),
     status: z.literal(200),
   })
 );
