@@ -5,67 +5,97 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
-func Test_Attributes(t *testing.T) {
+func TestValidateCredentialSubject(t *testing.T) {
+	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cache.NewMemoryCache())
 	ctx := context.Background()
-	const url = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	jsonSchema, err := Load(ctx, loader.HTTPFactory(url))
-	assert.NoError(t, err)
-	attributes, err := jsonSchema.Attributes()
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(attributes))
-}
+	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCEmployee-v101.json"
+	schemaType := "KYCEmployee"
 
-func Test_ValidateCredentialSubject(t *testing.T) {
-	ctx := context.Background()
-	const url = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	jsonSchema, err := Load(ctx, loader.HTTPFactory(url))
-	require.NoError(t, err)
-
-	type testConfig struct {
-		name  string
-		input domain.CredentialSubject
-		error bool
+	type config struct {
+		name              string
+		credentialSubject map[string]interface{}
+		expectedError     bool
 	}
 
-	for _, tc := range []testConfig{
+	for _, tc := range []config{
 		{
-			name:  "should get an error, empty credentialSubject",
-			input: domain.CredentialSubject{},
-			error: true,
+			name: "invalid date format",
+			credentialSubject: map[string]interface{}{
+				"ZKPexperiance": true,
+				"documentType":  4,
+				"hireDate":      "asdads2022-10-10",
+				"position":      "p",
+				"salary":        123,
+			},
+			expectedError: true,
 		},
 		{
-			name:  "should get an error, birthday and documentType required, 1 provided",
-			input: domain.CredentialSubject{"birthday": 19960424},
-			error: true,
+			name: "invalid bool format",
+			credentialSubject: map[string]interface{}{
+				"ZKPexperiance": "true",
+				"documentType":  4,
+				"hireDate":      "asdads2022-10-10",
+				"position":      "p",
+				"salary":        123,
+			},
+			expectedError: true,
 		},
 		{
-			name:  "should get an error, birthday and documentType required, 1 provided",
-			input: domain.CredentialSubject{"documentType": 2},
-			error: true,
+			name: "invalid integer format",
+			credentialSubject: map[string]interface{}{
+				"ZKPexperiance": true,
+				"documentType":  "4",
+				"hireDate":      "2022-10-10",
+				"position":      "p",
+				"salary":        123,
+			},
+			expectedError: false,
 		},
 		{
-			name:  "should get an error, both required provided but invalid type of documentType",
-			input: domain.CredentialSubject{"documentType": "2", "birthday": 19960424},
-			error: true,
+			name: "invalid number format",
+			credentialSubject: map[string]interface{}{
+				"ZKPexperiance": true,
+				"documentType":  4,
+				"hireDate":      "2022-10-10",
+				"position":      "p",
+				"salary":        "123",
+			},
+			expectedError: false,
 		},
 		{
-			name:  "happy path",
-			input: domain.CredentialSubject{"documentType": 2, "birthday": 19960424},
-			error: false,
+			name: "invalid string format",
+			credentialSubject: map[string]interface{}{
+				"ZKPexperiance": true,
+				"documentType":  4,
+				"hireDate":      "2022-10-10",
+				"position":      123,
+				"salary":        123,
+			},
+			expectedError: false,
+		},
+		{
+			name: "happy path, ok",
+			credentialSubject: map[string]interface{}{
+				"ZKPexperiance": true,
+				"documentType":  4,
+				"hireDate":      "2022-10-10",
+				"position":      "p",
+				"salary":        123,
+			},
+			expectedError: false,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			err := jsonSchema.ValidateCredentialSubject(tc.input)
-			if tc.error {
-				require.Error(t, err)
+			err := ValidateCredentialSubject(ctx, schemaLoader(schemaURL), schemaType, tc.credentialSubject)
+			if tc.expectedError {
+				assert.Error(t, err)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		})
 	}
