@@ -760,108 +760,82 @@ function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAtt
       );
 }
 
-function getObjectAttributeValueParser({ name, required, schema, type }: ObjectAttribute) {
+function objectToObjectAttributeValue({
+  context,
+  object,
+  objectAttribute,
+}: {
+  context: z.RefinementCtx;
+  object: Record<string, unknown>;
+  objectAttribute: ObjectAttribute;
+}): ObjectAttributeValue {
+  const { name, required, schema, type } = objectAttribute;
+
+  // make sure all required properties of the objectAttribute are present in the object
+  objectAttribute.schema.properties?.forEach((attribute) => {
+    const missing = attribute.required && Object.keys(object).includes(attribute.name) === false;
+    if (missing) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        fatal: true,
+        message: `Could not find the schema's required property "${attribute.name}" in the attribute "${name}".`,
+      });
+    }
+  });
+
+  return {
+    name,
+    required,
+    schema,
+    type,
+    value: Object.entries(object)
+      .reduce((acc: AttributeValue[], [name, unknown]) => {
+        const attribute = schema.properties?.find((attribute) => attribute.name === name);
+        if (attribute) {
+          const parsedAttributeValue = getAttributeValueParser(attribute).safeParse(unknown);
+          if (parsedAttributeValue.success) {
+            return [...acc, parsedAttributeValue.data];
+          } else {
+            parsedAttributeValue.error.issues.map((issue) => {
+              context.addIssue({ ...issue, path: [...issue.path, attribute.name] });
+            });
+          }
+        }
+        return acc;
+      }, [])
+      .sort((a, b) =>
+        a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
+      ),
+  };
+}
+
+function getObjectAttributeValueParser(objectAttribute: ObjectAttribute) {
+  const { name, required, schema, type } = objectAttribute;
   return required
     ? getStrictParser<Record<string, unknown>, ObjectAttributeValue>()(
-        z.record(z.unknown()).transform((object, context): ObjectAttributeValue => {
-          // make sure all required properties are present
-          const keys = Object.keys(object);
-          schema.properties?.forEach((attribute) => {
-            const missing =
-              attribute.required && keys.find((key) => key === attribute.name) === undefined;
-            if (missing) {
-              context.addIssue({
-                code: z.ZodIssueCode.custom,
-                fatal: true,
-                message: `Could not find the required property "${attribute.name}" in the object attribute "${name}".`,
-              });
-              return z.NEVER;
-            }
-            return;
-          });
-
-          return {
-            name,
-            required,
-            schema,
-            type,
-            value: Object.entries(object)
-              .map(([name, unknown]): AttributeValue => {
-                const attribute = schema.properties?.find((property) => property.name === name);
-                if (attribute) {
-                  const parsed = getAttributeValueParser(attribute).safeParse(unknown);
-                  if (parsed.success) {
-                    return parsed.data;
-                  } else {
-                    parsed.error.issues.map(context.addIssue);
-                    return z.NEVER;
-                  }
-                } else {
-                  context.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    fatal: true,
-                    message: `The attribute "${name}" from the credentialSubject does not exist in the JSON Schema.`,
-                  });
-                  return z.NEVER;
-                }
-              })
-              .sort((a, b) =>
-                a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
-              ),
-          };
-        })
+        z
+          .record(z.unknown())
+          .transform(
+            (object, context): ObjectAttributeValue =>
+              objectToObjectAttributeValue({ context, object, objectAttribute })
+          )
       )
     : getStrictParser<Record<string, unknown> | undefined, ObjectAttributeValue>()(
         z
           .record(z.unknown())
           .optional()
-          .transform((object, context): ObjectAttributeValue => {
-            if (object) {
-              // make sure all required properties are present
-              const keys = Object.keys(object);
-              schema.properties?.forEach((attribute) => {
-                const missing =
-                  attribute.required && keys.find((key) => key === attribute.name) === undefined;
-                if (missing) {
-                  context.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    fatal: true,
-                    message: `Could not find the required property "${attribute.name}" in the object attribute "${name}".`,
-                  });
-                  return z.NEVER;
-                }
-                return;
-              });
-            }
-
-            return {
-              name,
-              required,
-              schema,
-              type,
-              value: object
-                ? Object.entries(object).map(([name, unknown]): AttributeValue => {
-                    const attribute = schema.properties?.find((property) => property.name === name);
-                    if (attribute) {
-                      const parsed = getAttributeValueParser(attribute).safeParse(unknown);
-                      if (parsed.success) {
-                        return parsed.data;
-                      } else {
-                        parsed.error.issues.map(context.addIssue);
-                        return z.NEVER;
-                      }
-                    } else {
-                      context.addIssue({
-                        code: z.ZodIssueCode.custom,
-                        fatal: true,
-                        message: `The attribute "${name}" from the credentialSubject does not exist in the JSON Schema.`,
-                      });
-                      return z.NEVER;
-                    }
-                  })
-                : undefined,
-            };
-          })
+          .transform(
+            (object, context): ObjectAttributeValue =>
+              object
+                ? objectToObjectAttributeValue({ context, object, objectAttribute })
+                : {
+                    name,
+                    required,
+                    schema,
+                    type,
+                    value: undefined,
+                  }
+          )
       );
 }
 
