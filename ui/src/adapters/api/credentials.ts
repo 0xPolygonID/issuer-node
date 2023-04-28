@@ -513,11 +513,6 @@ const bodyIssuedQRCodeParser = getStrictParser<BodyIssuedQRCode>()(
   })
 );
 
-interface ResultOkIssuedQRCode {
-  data: IssuedQRCode;
-  status: 200;
-}
-
 type ResultOkIssuedQRCodeInput = {
   data?: unknown;
   status: 200;
@@ -525,7 +520,7 @@ type ResultOkIssuedQRCodeInput = {
 
 const resultOKSIssuedQRCodeParser = getStrictParser<
   ResultOkIssuedQRCodeInput,
-  ResultOkIssuedQRCode
+  ResultOK<IssuedQRCode>
 >()(
   z.object({
     data: z.unknown().transform((unknown): IssuedQRCode => {

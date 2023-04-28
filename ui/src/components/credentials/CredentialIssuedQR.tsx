@@ -15,6 +15,7 @@ import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants
 
 export function CredentialIssuedQR() {
   const env = useEnvContext();
+
   const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<IssuedQRCode, APIError>>({
     status: "pending",
   });
@@ -52,11 +53,13 @@ export function CredentialIssuedQR() {
     setIssuedQRCode({ status: "pending" });
   };
 
-  const hasFailed = hasAsyncTaskFailed(issuedQRCode) ? issuedQRCode.error : undefined;
-
-  if (hasFailed) {
+  if (hasAsyncTaskFailed(issuedQRCode)) {
     return (
-      <ErrorResult error={hasFailed.message} labelRetry="Start again" onRetry={onStartAgain} />
+      <ErrorResult
+        error={issuedQRCode.error.message}
+        labelRetry="Start again"
+        onRetry={onStartAgain}
+      />
     );
   }
 
