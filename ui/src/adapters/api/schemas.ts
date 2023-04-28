@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import {
   APIResponse,
-  GetAll,
   ID,
   IDParser,
   ResultOK,
@@ -13,6 +12,7 @@ import {
 import { getStrictParser } from "src/adapters/parsers";
 import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
 export async function importSchema({
   env,
@@ -81,7 +81,7 @@ export async function getSchemas({
     query?: string;
   };
   signal: AbortSignal;
-}): Promise<APIResponse<GetAll<Schema>>> {
+}): Promise<APIResponse<List<Schema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -127,11 +127,11 @@ const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
   })
 );
 
-const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<GetAll<Schema>>>()(
+const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<List<Schema>>>()(
   z.object({
     data: z.array(z.unknown()).transform((unknowns) =>
       unknowns.reduce(
-        (acc: GetAll<Schema>, curr: unknown, index) => {
+        (acc: List<Schema>, curr: unknown, index) => {
           const parsedSchema = schemaParser.safeParse(curr);
 
           return parsedSchema.success

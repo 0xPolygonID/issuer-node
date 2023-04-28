@@ -16,7 +16,7 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection, Credential } from "src/domain";
+import { Connection } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -61,9 +61,9 @@ export function ConnectionsTable() {
       dataIndex: "credentials",
       ellipsis: { showTitle: false },
       key: "credentials",
-      render: (credentials: Credential[]) => (
+      render: (credentials: Connection["credentials"]) => (
         <Typography.Text>
-          {[...credentials]
+          {[...credentials.successful]
             .sort((a, b) => a.schemaType.localeCompare(b.schemaType))
             .map((credential) => credential.schemaType)
             .join(", ")}

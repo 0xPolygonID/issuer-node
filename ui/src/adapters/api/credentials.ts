@@ -3,7 +3,6 @@ import { z } from "zod";
 
 import {
   APIResponse,
-  GetAll,
   ID,
   IDParser,
   ResultAccepted,
@@ -16,6 +15,7 @@ import {
 import { getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 
@@ -39,7 +39,7 @@ const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
 
 // Credentials
 
-export type CredentialInput = Omit<Credential, "proofTypes"> & {
+type CredentialInput = Omit<Credential, "proofTypes"> & {
   proofTypes: ProofTypeInput[];
 };
 
@@ -112,7 +112,7 @@ export async function getCredentials({
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<GetAll<Credential>>> {
+}): Promise<APIResponse<List<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -142,37 +142,41 @@ export async function getCredentials({
   }
 }
 
+export const credentialListParser = getStrictParser<unknown[], List<Credential>>()(
+  z.array(z.unknown()).transform((unknowns) =>
+    unknowns.reduce(
+      (acc: List<Credential>, curr: unknown, index): List<Credential> => {
+        const parsedCredential = credentialParser.safeParse(curr);
+
+        return parsedCredential.success
+          ? {
+              ...acc,
+              successful: [...acc.successful, parsedCredential.data],
+            }
+          : {
+              ...acc,
+              failed: [
+                ...acc.failed,
+                new z.ZodError<Credential>(
+                  parsedCredential.error.issues.map((issue) => ({
+                    ...issue,
+                    path: [index, ...issue.path],
+                  }))
+                ),
+              ],
+            };
+      },
+      { failed: [], successful: [] }
+    )
+  )
+);
+
 const resultOKGetAllCredentialsParser = getStrictParser<
   ResultOK<unknown[]>,
-  ResultOK<GetAll<Credential>>
+  ResultOK<List<Credential>>
 >()(
   z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: GetAll<Credential>, curr: unknown, index): GetAll<Credential> => {
-          const parsedCredential = credentialParser.safeParse(curr);
-
-          return parsedCredential.success
-            ? {
-                ...acc,
-                successful: [...acc.successful, parsedCredential.data],
-              }
-            : {
-                ...acc,
-                failed: [
-                  ...acc.failed,
-                  new z.ZodError<Credential>(
-                    parsedCredential.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { failed: [], successful: [] }
-      )
-    ),
+    data: credentialListParser,
     status: z.literal(200),
   })
 );

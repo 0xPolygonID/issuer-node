@@ -8,19 +8,19 @@ import {
   buildAuthorizationHeader,
   resultOKMessage,
 } from "src/adapters/api";
-import { CredentialInput, credentialParser } from "src/adapters/api/credentials";
+import { credentialListParser } from "src/adapters/api/credentials";
 import { getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
 type ConnectionInput = Omit<Connection, "credentials"> & {
-  credentials: CredentialInput[];
+  credentials: unknown[];
 };
 
 const connectionParser = getStrictParser<ConnectionInput, Connection>()(
   z.object({
     createdAt: z.coerce.date(z.string().datetime()),
-    credentials: z.array(credentialParser),
+    credentials: credentialListParser,
     id: z.string(),
     issuerID: z.string(),
     userID: z.string(),
