@@ -2677,7 +2677,7 @@ func TestServer_CreateLink(t *testing.T) {
 				SignatureProof:       true,
 			},
 			expected: expected{
-				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credentialSubject.documentType: Invalid type. Expected: integer, given: boolean \n"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "cannot parse claim"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2969,7 +2969,7 @@ func TestServer_GetLink(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
 					Active:            link.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12},
+					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
 					Expiration:        link.ValidUntil,
 					Id:                link.ID,
 					IssuedClaims:      link.IssuedClaims,
@@ -2991,7 +2991,7 @@ func TestServer_GetLink(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
 					Active:            linkExpired.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12},
+					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
 					Expiration:        linkExpired.ValidUntil,
 					Id:                linkExpired.ID,
 					IssuedClaims:      linkExpired.IssuedClaims,

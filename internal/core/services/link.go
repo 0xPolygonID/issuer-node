@@ -78,23 +78,24 @@ func (ls *Link) Save(
 	credentialMTPProof bool,
 	credentialSubject domain.CredentialSubject,
 ) (*domain.Link, error) {
-	schema, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
+	schemaDB, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ls.validateCredentialSubjectAgainstSchema(ctx, credentialSubject, schema.URL)
-	if err != nil {
-		return nil, err
+	if err := ls.validateCredentialSubjectAgainstSchema(ctx, credentialSubject, schemaDB); err != nil {
+		log.Error(ctx, "validating credential subject", "err", err)
+		return nil, ErrParseClaim
 	}
 
 	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
-
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
 	}
-	link.Schema = schema
+
+	link.Schema = schemaDB
+
 	return link, nil
 }
 
@@ -335,11 +336,6 @@ func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
 	return nil
 }
 
-func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaURL string) error {
-	schema, err := jsonschema.Load(ctx, ls.loaderFactory(schemaURL))
-	if err != nil {
-		return ErrLoadingSchema
-	}
-
-	return schema.ValidateCredentialSubject(cSubject)
+func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaDB *domain.Schema) error {
+	return jsonschema.ValidateCredentialSubject(ctx, ls.loaderFactory(schemaDB.URL), schemaDB.Type, cSubject)
 }
