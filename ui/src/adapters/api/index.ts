@@ -3,11 +3,7 @@ import z from "zod";
 
 import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
-
-export type GetAll<T> = {
-  failed: z.ZodError<T>[];
-  successful: T[];
-};
+import { processZodError } from "src/utils/error";
 
 export interface APIError {
   message: string;
@@ -75,6 +71,10 @@ export function buildAPIError(error: unknown): APIError {
       // This catches a CORS or other network error.
       return { message: error.message };
     }
+  }
+
+  if (error instanceof z.ZodError) {
+    return { message: processZodError(error).join("\n") };
   }
 
   if (error instanceof Error) {
