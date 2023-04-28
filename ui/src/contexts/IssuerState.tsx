@@ -15,7 +15,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
-type EventType = "revoke";
+type EventType = "credential" | "revoke";
 
 interface IssuerState {
   notifyChange: (event: EventType) => Promise<void>;
@@ -52,7 +52,10 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
   const notifyChange = useCallback(
     (event: EventType) => {
-      const eventTitle: Record<EventType, string> = { revoke: "Revocation" };
+      const eventTitle: Record<EventType, string> = {
+        credential: "Credential",
+        revoke: "Revocation",
+      };
 
       void message.info({
         content: (

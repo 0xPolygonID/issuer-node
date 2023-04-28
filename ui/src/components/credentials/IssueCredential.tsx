@@ -24,6 +24,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
@@ -57,6 +58,8 @@ const jsonSchemaErrorToString = (error: string | z.ZodError) =>
 
 export function IssueCredential() {
   const env = useEnvContext();
+  const { notifyChange } = useIssuerStateContext();
+
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("issuanceMethod");
@@ -125,6 +128,10 @@ export function IssueCredential() {
               tabID: CREDENTIALS_TABS[0].tabID,
             })
           );
+
+          if (credentialIssuance.mtProof) {
+            void notifyChange("credential");
+          }
 
           void message.success("Credential issued");
         } else {
