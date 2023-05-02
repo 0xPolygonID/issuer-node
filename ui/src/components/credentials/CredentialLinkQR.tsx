@@ -230,7 +230,7 @@ export function CredentialLinkQR() {
   return (
     <CredentialQR
       qrCode={authQRCode.data.qrCode}
-      schemaTypes={[authQRCode.data.linkDetail.schemaType]}
+      schemaType={authQRCode.data.linkDetail.schemaType}
       subTitle="Scan the QR code with your Polygon ID wallet to accept it. Make sure push notifications are enabled."
     />
   );

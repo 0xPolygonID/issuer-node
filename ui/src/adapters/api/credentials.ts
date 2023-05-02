@@ -496,18 +496,20 @@ export async function createAuthQRCode({
 
 type IssuedQRCodeTypeInput = {
   body: {
-    credentials: {
-      description: string;
-    }[];
+    credentials: [
+      {
+        description: string;
+      }
+    ];
   };
 };
 
-const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string[]>()(
+const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string | undefined>()(
   z
     .object({
-      body: z.object({ credentials: z.array(z.object({ description: z.string() })) }),
+      body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
     })
-    .transform((data) => data.body.credentials.map((item) => item.description))
+    .transform((data) => data.body.credentials[0].description.split("#").pop())
 );
 
 type ResultOkIssuedQRCodeInput = {
@@ -522,11 +524,11 @@ const resultOKIssuedQRCodeParser = getStrictParser<
   z.object({
     data: z.unknown().transform((unknown): IssuedQRCode => {
       const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
-      const schemaTypes = parsedSchemaType.success ? parsedSchemaType.data : [];
+      const schemaType = parsedSchemaType.success ? parsedSchemaType.data : undefined;
 
       return {
         qrCode: unknown,
-        schemaTypes,
+        schemaType,
       };
     }),
     status: z.literal(200),

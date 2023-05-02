@@ -19,7 +19,7 @@ export interface Credential {
 
 export interface IssuedQRCode {
   qrCode: unknown;
-  schemaTypes: string[];
+  schemaType?: string;
 }
 
 export type LinkStatus = "active" | "inactive" | "exceeded";
