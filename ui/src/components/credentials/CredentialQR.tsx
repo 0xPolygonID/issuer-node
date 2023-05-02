@@ -10,7 +10,7 @@ export function CredentialQR({
   subTitle,
 }: {
   qrCode: unknown;
-  schemaType?: string;
+  schemaType: string;
   subTitle: string;
 }) {
   const env = useEnvContext();

@@ -504,12 +504,12 @@ type IssuedQRCodeTypeInput = {
   };
 };
 
-const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string | undefined>()(
+const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string>()(
   z
     .object({
       body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
     })
-    .transform((data) => data.body.credentials[0].description.split("#").pop())
+    .transform((data) => data.body.credentials[0].description)
 );
 
 type ResultOkIssuedQRCodeInput = {
@@ -522,14 +522,17 @@ const resultOKIssuedQRCodeParser = getStrictParser<
   ResultOK<IssuedQRCode>
 >()(
   z.object({
-    data: z.unknown().transform((unknown): IssuedQRCode => {
+    data: z.unknown().transform((unknown, context): IssuedQRCode => {
       const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
-      const schemaType = parsedSchemaType.success ? parsedSchemaType.data : undefined;
-
-      return {
-        qrCode: unknown,
-        schemaType,
-      };
+      if (parsedSchemaType.success) {
+        return {
+          qrCode: unknown,
+          schemaType: parsedSchemaType.data,
+        };
+      } else {
+        parsedSchemaType.error.issues.map(context.addIssue);
+        return z.NEVER;
+      }
     }),
     status: z.literal(200),
   })
