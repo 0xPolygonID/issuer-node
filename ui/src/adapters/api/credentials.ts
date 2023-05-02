@@ -499,7 +499,7 @@ export async function createAuthQRCode({
   }
 }
 
-type BodyIssuedQRCode = {
+type IssuedQRCodeDescription = {
   body: {
     credentials: {
       description: string;
@@ -507,10 +507,12 @@ type BodyIssuedQRCode = {
   };
 };
 
-const bodyIssuedQRCodeParser = getStrictParser<BodyIssuedQRCode>()(
-  z.object({
-    body: z.object({ credentials: z.array(z.object({ description: z.string() })) }),
-  })
+const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeDescription, string | undefined>()(
+  z
+    .object({
+      body: z.object({ credentials: z.array(z.object({ description: z.string() })) }),
+    })
+    .transform((parsed) => parsed.body.credentials[0]?.description.split("#").pop())
 );
 
 type ResultOkIssuedQRCodeInput = {
@@ -524,18 +526,13 @@ const resultOKSIssuedQRCodeParser = getStrictParser<
 >()(
   z.object({
     data: z.unknown().transform((unknown): IssuedQRCode => {
-      const parsed = bodyIssuedQRCodeParser.safeParse(unknown);
+      const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
+      const schemaType = parsedSchemaType.success ? parsedSchemaType.data : undefined;
 
-      if (parsed.success) {
-        return {
-          qrCode: unknown,
-          schemaType: parsed.data.body.credentials[0]?.description.split("#").pop(),
-        };
-      } else {
-        return {
-          qrCode: unknown,
-        };
-      }
+      return {
+        qrCode: unknown,
+        schemaType,
+      };
     }),
     status: z.literal(200),
   })
