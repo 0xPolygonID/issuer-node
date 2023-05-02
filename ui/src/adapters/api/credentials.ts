@@ -522,7 +522,7 @@ type ResultOkIssuedQRCodeInput = {
   status: 200;
 };
 
-const resultOKSIssuedQRCodeParser = getStrictParser<
+const resultOKIssuedQRCodeParser = getStrictParser<
   ResultOkIssuedQRCodeInput,
   ResultOK<IssuedQRCode>
 >()(
@@ -560,7 +560,7 @@ export async function getIssuedQRCode({
       url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
     });
 
-    const { data } = resultOKSIssuedQRCodeParser.parse(response);
+    const { data } = resultOKIssuedQRCodeParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {
