@@ -499,20 +499,22 @@ export async function createAuthQRCode({
   }
 }
 
-type IssuedQRCodeDescription = {
+type IssuedQRCodeTypeInput = {
   body: {
-    credentials: {
-      description: string;
-    }[];
+    credentials: [
+      {
+        description: string;
+      }
+    ];
   };
 };
 
-const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeDescription, string | undefined>()(
+const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string | undefined>()(
   z
     .object({
-      body: z.object({ credentials: z.array(z.object({ description: z.string() })) }),
+      body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
     })
-    .transform((parsed) => parsed.body.credentials[0]?.description.split("#").pop())
+    .transform((parsed) => parsed.body.credentials[0].description.split("#").pop())
 );
 
 type ResultOkIssuedQRCodeInput = {
