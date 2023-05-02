@@ -1637,24 +1637,12 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		auth     func() (string, string)
 		request  GetCredentialRequestObject
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
-			request: GetCredentialRequestObject{
-				Id: uuid.New(),
-			},
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
 			name: "should return an error, claim not found",
-			auth: authOk,
 			request: GetCredentialRequestObject{
 				Id: uuid.New(),
 			},
@@ -1665,7 +1653,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		},
 		{
 			name: "happy path",
-			auth: authOk,
 			request: GetCredentialRequestObject{
 				Id: createdClaim.ID,
 			},
@@ -1692,7 +1679,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			url := fmt.Sprintf("/v1/credentials/%s/qrcode", tc.request.Id.String())
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -3559,22 +3545,12 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	type testConfig struct {
 		name     string
 		id       uuid.UUID
-		auth     func() (string, string)
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
-			id:   link.ID,
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
 			name: "Wrong link id",
-			auth: authOk,
 			id:   uuid.New(),
 			expected: expected{
 				httpCode: http.StatusNotFound,
@@ -3583,7 +3559,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Expired link",
-			auth: authOk,
 			id:   linkExpired.ID,
 			expected: expected{
 				httpCode: http.StatusNotFound,
@@ -3592,7 +3567,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Happy path",
-			auth: authOk,
 			id:   link.ID,
 			expected: expected{
 				linkDetail: linkDetail,
@@ -3605,7 +3579,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id.String())
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, nil))
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -3726,23 +3699,13 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		id        uuid.UUID
 		sessionID uuid.UUID
 		state     *linkState.State
-		auth      func() (string, string)
 		expected  expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
-			id:   link.ID,
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
 			name:      "Wrong sessionID",
 			sessionID: uuid.New(),
-			auth:      authOk,
 			id:        link.ID,
 			state:     nil,
 			expected: expected{
@@ -3752,7 +3715,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		{
 			name:      "Wrong linkID",
 			sessionID: sessionID,
-			auth:      authOk,
 			id:        uuid.New(),
 			state:     nil,
 			expected: expected{
@@ -3762,7 +3724,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		{
 			name:      "Error state",
 			sessionID: sessionID,
-			auth:      authOk,
 			id:        link.ID,
 			state:     linkState.NewStateError(errors.New("something wrong")),
 			expected: expected{
@@ -3772,7 +3733,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		{
 			name:      "Pending state",
 			sessionID: sessionID,
-			auth:      authOk,
 			id:        link.ID,
 			state:     linkState.NewStatePending(),
 			expected: expected{
@@ -3782,7 +3742,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		},
 		{
 			name:      "Happy path",
-			auth:      authOk,
 			id:        link.ID,
 			sessionID: sessionID,
 			state:     linkState.NewStateDone(qrcode),
@@ -3803,7 +3762,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode?sessionID=%s", tc.id, tc.sessionID)
 			req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
 
