@@ -1,17 +1,15 @@
-import { Card, Col, Grid, Image, Row, Space, Typography } from "antd";
-import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { getIssuedQRCode } from "src/adapters/api/credentials";
+import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { IssuedQRCode } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
 
 export function CredentialIssuedQR() {
   const env = useEnvContext();
@@ -20,7 +18,6 @@ export function CredentialIssuedQR() {
     status: "pending",
   });
 
-  const { lg } = Grid.useBreakpoint();
   const { credentialID } = useParams();
 
   const createCredentialQR = useCallback(
@@ -68,61 +65,10 @@ export function CredentialIssuedQR() {
   }
 
   return (
-    <Space align="center" direction="vertical" size="large">
-      <Space
-        direction="vertical"
-        style={{ padding: "0 24px", textAlign: "center", width: lg ? 800 : "100%" }}
-      >
-        <Typography.Title level={3}>
-          Scan the QR code to add the credential to your wallet
-        </Typography.Title>
-      </Space>
-
-      <Space>
-        <Typography.Link href={WALLET_APP_STORE_URL} target="_blank">
-          <Image preview={false} src="/images/apple-store.svg" />
-        </Typography.Link>
-
-        <Typography.Link href={WALLET_PLAY_STORE_URL} target="_blank">
-          <Image preview={false} src="/images/google-play.svg" />
-        </Typography.Link>
-      </Space>
-
-      <Card bodyStyle={{ padding: 0 }} style={{ margin: "auto", width: lg ? 800 : "100%" }}>
-        <Row>
-          <Col
-            className="full-width"
-            style={{
-              background:
-                'url("/images/noise-bg.png"), linear-gradient(50deg, rgb(130 101 208) 0%, rgba(221, 178, 248, 1) 50%',
-              borderRadius: 8,
-              padding: 24,
-            }}
-          >
-            <QRCodeSVG
-              className="full-width"
-              includeMargin
-              level="H"
-              style={{ height: 300 }}
-              value={JSON.stringify(issuedQRCode.data.qrCode)}
-            />
-          </Col>
-        </Row>
-        {issuedQRCode.data.schemaType && (
-          <Row>
-            <Col
-              style={{
-                padding: 24,
-                paddingBottom: 8,
-              }}
-            >
-              <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {issuedQRCode.data.schemaType}
-              </Typography.Title>
-            </Col>
-          </Row>
-        )}
-      </Card>
-    </Space>
+    <CredentialQR
+      qrCode={issuedQRCode.data.qrCode}
+      schemaType={issuedQRCode.data.schemaType}
+      subTitle="Scan the QR code to add the credential to your wallet"
+    />
   );
 }

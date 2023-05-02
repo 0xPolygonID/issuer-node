@@ -1,5 +1,4 @@
-import { Avatar, Button, Card, Col, Grid, Image, Row, Space, Typography, message } from "antd";
-import { QRCodeSVG } from "qrcode.react";
+import { Avatar, Button, Space, Typography, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
@@ -15,17 +14,13 @@ import { ReactComponent as CheckIcon } from "src/assets/icons/check.svg";
 import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
 import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
 import { ClaimCredentialModal } from "src/components/credentials/ClaimCredentialModal";
+import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import {
-  IMAGE_PLACEHOLDER_PATH,
-  POLLING_INTERVAL,
-  WALLET_APP_STORE_URL,
-  WALLET_PLAY_STORE_URL,
-} from "src/utils/constants";
+import { POLLING_INTERVAL } from "src/utils/constants";
 
 export function CredentialLinkQR() {
   const env = useEnvContext();
@@ -38,7 +33,6 @@ export function CredentialLinkQR() {
     status: "pending",
   });
 
-  const { lg } = Grid.useBreakpoint();
   const { linkID } = useParams();
 
   const createCredentialQR = useCallback(
@@ -234,70 +228,10 @@ export function CredentialLinkQR() {
   }
 
   return (
-    <Space align="center" direction="vertical" size="large">
-      <Avatar
-        shape="square"
-        size={64}
-        src={authQRCode.data.issuer.logo || IMAGE_PLACEHOLDER_PATH}
-      />
-
-      <Space
-        direction="vertical"
-        style={{ padding: "0 24px", textAlign: "center", width: lg ? 800 : "100%" }}
-      >
-        <Typography.Title level={2}>
-          {authQRCode.data.issuer.displayName} wants to send you a credential
-        </Typography.Title>
-
-        <Typography.Text style={{ fontSize: 18 }} type="secondary">
-          Scan the QR code with your Polygon ID wallet to accept it. Make sure push notifications
-          are enabled
-        </Typography.Text>
-      </Space>
-
-      <Space>
-        <Typography.Link href={WALLET_APP_STORE_URL} target="_blank">
-          <Image preview={false} src="/images/apple-store.svg" />
-        </Typography.Link>
-
-        <Typography.Link href={WALLET_PLAY_STORE_URL} target="_blank">
-          <Image preview={false} src="/images/google-play.svg" />
-        </Typography.Link>
-      </Space>
-
-      <Card bodyStyle={{ padding: 0 }} style={{ margin: "auto", width: lg ? 800 : "100%" }}>
-        <Row>
-          <Col
-            className="full-width"
-            style={{
-              background:
-                'url("/images/noise-bg.png"), linear-gradient(50deg, rgb(130 101 208) 0%, rgba(221, 178, 248, 1) 50%',
-              borderRadius: 8,
-              padding: 24,
-            }}
-          >
-            <QRCodeSVG
-              className="full-width"
-              includeMargin
-              level="H"
-              style={{ height: 300 }}
-              value={JSON.stringify(authQRCode.data.qrCode)}
-            />
-          </Col>
-        </Row>
-        <Row>
-          <Col
-            style={{
-              padding: 24,
-              paddingBottom: 8,
-            }}
-          >
-            <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-              {authQRCode.data.linkDetail.schemaType}
-            </Typography.Title>
-          </Col>
-        </Row>
-      </Card>
-    </Space>
+    <CredentialQR
+      qrCode={authQRCode.data.qrCode}
+      schemaType={authQRCode.data.linkDetail.schemaType}
+      subTitle="Scan the QR code with your Polygon ID wallet to accept it. Make sure push notifications are enabled."
+    />
   );
 }
