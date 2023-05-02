@@ -10,7 +10,7 @@ export function CredentialQR({
   subTitle,
 }: {
   qrCode: unknown;
-  schemaType?: string;
+  schemaType: string;
   subTitle: string;
 }) {
   const env = useEnvContext();
@@ -65,20 +65,18 @@ export function CredentialQR({
           </Col>
         </Row>
 
-        {schemaType && (
-          <Row>
-            <Col
-              style={{
-                padding: 24,
-                paddingBottom: 8,
-              }}
-            >
-              <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {schemaType}
-              </Typography.Title>
-            </Col>
-          </Row>
-        )}
+        <Row>
+          <Col
+            style={{
+              padding: 24,
+              paddingBottom: 8,
+            }}
+          >
+            <Typography.Title ellipsis={{ tooltip: true }} level={3}>
+              {schemaType}
+            </Typography.Title>
+          </Col>
+        </Row>
       </Card>
     </Space>
   );
