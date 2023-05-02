@@ -13,7 +13,7 @@ import {
   resultOKMessage,
 } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
+import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -446,7 +446,6 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
 };
 
 export interface AuthQRCode {
-  issuer: { displayName: string; logo: string };
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
@@ -454,10 +453,6 @@ export interface AuthQRCode {
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
-    issuer: z.object({
-      displayName: z.string(),
-      logo: z.string(),
-    }),
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
     qrCode: z.unknown(),
     sessionID: z.string(),
@@ -492,6 +487,75 @@ export async function createAuthQRCode({
     });
 
     const { data } = resultOKAuthQRCodeParser.parse(response);
+
+    return { data, isSuccessful: true };
+  } catch (error) {
+    return { error: buildAPIError(error), isSuccessful: false };
+  }
+}
+
+type IssuedQRCodeTypeInput = {
+  body: {
+    credentials: [
+      {
+        description: string;
+      }
+    ];
+  };
+};
+
+const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string | undefined>()(
+  z
+    .object({
+      body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
+    })
+    .transform((data) => data.body.credentials[0].description.split("#").pop())
+);
+
+type ResultOkIssuedQRCodeInput = {
+  data?: unknown;
+  status: 200;
+};
+
+const resultOKIssuedQRCodeParser = getStrictParser<
+  ResultOkIssuedQRCodeInput,
+  ResultOK<IssuedQRCode>
+>()(
+  z.object({
+    data: z.unknown().transform((unknown): IssuedQRCode => {
+      const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
+      const schemaType = parsedSchemaType.success ? parsedSchemaType.data : undefined;
+
+      return {
+        qrCode: unknown,
+        schemaType,
+      };
+    }),
+    status: z.literal(200),
+  })
+);
+
+export async function getIssuedQRCode({
+  credentialID,
+  env,
+  signal,
+}: {
+  credentialID: string;
+  env: Env;
+  signal: AbortSignal;
+}): Promise<APIResponse<IssuedQRCode>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+    });
+
+    const { data } = resultOKIssuedQRCodeParser.parse(response);
 
     return { data, isSuccessful: true };
   } catch (error) {

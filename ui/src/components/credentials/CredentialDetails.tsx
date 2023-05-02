@@ -216,6 +216,15 @@ export function CredentialDetails() {
                     />
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
+
+                    <Detail
+                      copyable
+                      label="QR code link"
+                      text={`${window.location.origin}${generatePath(
+                        ROUTES.credentialIssuedQR.path,
+                        { credentialID }
+                      )}`}
+                    />
                   </Space>
                 </Card>
                 <Card className="background-grey">

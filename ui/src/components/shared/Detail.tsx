@@ -1,6 +1,5 @@
 import { Row, Tag, TagProps, Typography } from "antd";
 
-import { z } from "zod";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 
@@ -18,7 +17,7 @@ export function Detail({
   text: string;
 }) {
   const value = ellipsisPosition ? text.slice(0, text.length - ellipsisPosition) : text;
-  const isUrl = z.string().url().safeParse(text).success;
+  const isUrl = text.startsWith("http://") || text.startsWith("https://");
   const element = (
     <Typography.Text
       copyable={
