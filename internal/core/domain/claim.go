@@ -40,9 +40,15 @@ type Claim struct {
 	Status           *IdentityStatus `json:"status"`
 	CredentialStatus pgtype.JSONB    `json:"credential_status"`
 	HIndex           string          `json:"-"`
+
+	MtProof bool       `json:"mt_poof"`
+	LinkID  *uuid.UUID `json:"-"`
 }
 
-// FromClaimer TODO
+// Credentials is the type of array of credential
+type Credentials []*Claim
+
+// FromClaimer TODO add description
 func FromClaimer(claim *core.Claim, schemaURL, schemaType string) (*Claim, error) {
 	otherIdentifier := ""
 	id, err := claim.GetID()

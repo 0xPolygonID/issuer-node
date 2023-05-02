@@ -17,5 +17,12 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+
+      - name: Create .env-api, .env-issuer and .env-ui files
+        run: |
+          touch .env-api
+          touch .env-issuer
+          touch .env-ui
+
       - name: Run golangci-lint
         run: make lint

@@ -4,21 +4,14 @@
 package api
 
 import (
-	"bytes"
-	"compress/gzip"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"path"
-	"strings"
 	"time"
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -217,8 +210,11 @@ type GetClaimsParams struct {
 	// Self Filter per retrieve claims of the provided identifier. Example - true
 	Self *bool `form:"self,omitempty" json:"self,omitempty"`
 
-	// QueryField Filter inside the data of the claim.
+	// QueryField Filter this field inside the data of the claim
 	QueryField *string `form:"query_field,omitempty" json:"query_field,omitempty"`
+
+	// QueryValue Filter this value inside the data of the claim for the specified field in query_field
+	QueryValue *string `form:"query_value,omitempty" json:"query_value,omitempty"`
 }
 
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
@@ -235,6 +231,9 @@ type ServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
+	// Gets the favicon
+	// (GET /favicon.ico)
+	GetFavicon(w http.ResponseWriter, r *http.Request)
 	// Get the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
@@ -288,6 +287,21 @@ func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *ht
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetDocumentation(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetFavicon operation middleware
+func (siw *ServerInterfaceWrapper) GetFavicon(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFavicon(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -441,6 +455,14 @@ func (siw *ServerInterfaceWrapper) GetClaims(w http.ResponseWriter, r *http.Requ
 	err = runtime.BindQueryParameter("form", true, false, "query_field", r.URL.Query(), &params.QueryField)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_field", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "query_value" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query_value", r.URL.Query(), &params.QueryValue)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_value", Err: err})
 		return
 	}
 
@@ -774,6 +796,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/", wrapper.GetDocumentation)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/favicon.ico", wrapper.GetFavicon)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/static/docs/api/api.yaml", wrapper.GetYaml)
 	})
 	r.Group(func(r chi.Router) {
@@ -840,6 +865,21 @@ type GetDocumentation200Response struct {
 }
 
 func (response GetDocumentation200Response) VisitGetDocumentationResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type GetFaviconRequestObject struct {
+}
+
+type GetFaviconResponseObject interface {
+	VisitGetFaviconResponse(w http.ResponseWriter) error
+}
+
+type GetFavicon200Response struct {
+}
+
+func (response GetFavicon200Response) VisitGetFaviconResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return nil
 }
@@ -1150,6 +1190,15 @@ func (response RevokeClaim202JSONResponse) VisitRevokeClaimResponse(w http.Respo
 	return json.NewEncoder(w).Encode(response)
 }
 
+type RevokeClaim400JSONResponse struct{ N400JSONResponse }
+
+func (response RevokeClaim400JSONResponse) VisitRevokeClaimResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type RevokeClaim401JSONResponse struct{ N401JSONResponse }
 
 func (response RevokeClaim401JSONResponse) VisitRevokeClaimResponse(w http.ResponseWriter) error {
@@ -1334,6 +1383,9 @@ type StrictServerInterface interface {
 	// Get the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
+	// Gets the favicon
+	// (GET /favicon.ico)
+	GetFavicon(ctx context.Context, request GetFaviconRequestObject) (GetFaviconResponseObject, error)
 	// Get the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
@@ -1419,6 +1471,30 @@ func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetDocumentationResponseObject); ok {
 		if err := validResponse.VisitGetDocumentationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetFavicon operation middleware
+func (sh *strictHandler) GetFavicon(w http.ResponseWriter, r *http.Request) {
+	var request GetFaviconRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetFavicon(ctx, request.(GetFaviconRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetFavicon")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetFaviconResponseObject); ok {
+		if err := validResponse.VisitGetFaviconResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1753,125 +1829,4 @@ func (sh *strictHandler) PublishIdentityState(w http.ResponseWriter, r *http.Req
 	} else if response != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
-}
-
-// Base64 encoded, gzipped, json marshaled Swagger object
-var swaggerSpec = []string{
-
-	"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",
-}
-
-// GetSwagger returns the content of the embedded swagger specification file
-// or error if failed to decode
-func decodeSpec() ([]byte, error) {
-	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
-	if err != nil {
-		return nil, fmt.Errorf("error base64 decoding spec: %s", err)
-	}
-	zr, err := gzip.NewReader(bytes.NewReader(zipped))
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %s", err)
-	}
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(zr)
-	if err != nil {
-		return nil, fmt.Errorf("error decompressing spec: %s", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-var rawSpec = decodeSpecCached()
-
-// a naive cached of a decoded swagger spec
-func decodeSpecCached() func() ([]byte, error) {
-	data, err := decodeSpec()
-	return func() ([]byte, error) {
-		return data, err
-	}
-}
-
-// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
-func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
-	var res = make(map[string]func() ([]byte, error))
-	if len(pathToFile) > 0 {
-		res[pathToFile] = rawSpec
-	}
-
-	return res
-}
-
-// GetSwagger returns the Swagger specification corresponding to the generated code
-// in this file. The external references of Swagger specification are resolved.
-// The logic of resolving external references is tightly connected to "import-mapping" feature.
-// Externally referenced files must be embedded in the corresponding golang packages.
-// Urls can be supported but this task was out of the scope.
-func GetSwagger() (swagger *openapi3.T, err error) {
-	var resolvePath = PathToRawSpec("")
-
-	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		var pathToFile = url.String()
-		pathToFile = path.Clean(pathToFile)
-		getSpec, ok := resolvePath[pathToFile]
-		if !ok {
-			err1 := fmt.Errorf("path not found: %s", pathToFile)
-			return nil, err1
-		}
-		return getSpec()
-	}
-	var specData []byte
-	specData, err = rawSpec()
-	if err != nil {
-		return
-	}
-	swagger, err = loader.LoadFromData(specData)
-	if err != nil {
-		return
-	}
-	return
 }

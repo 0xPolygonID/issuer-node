@@ -10,17 +10,23 @@ import (
 	"math/big"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	auth "github.com/iden3/go-iden3-auth"
+	"github.com/iden3/go-iden3-auth/pubsignals"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql/v2"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/iden3comm/protocol"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -29,11 +35,20 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
 	"github.com/polygonid/sh-id-platform/pkg/primitive"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
+const (
+	transitionDelay = time.Minute * 5
+	serviceContext  = "https://www.w3.org/ns/did/v1"
+	authReason      = "authentication"
+)
+
 // ErrWrongDIDMetada - represents an error in the identity metadata
-var ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+var (
+	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+)
 
 type identity struct {
 	identityRepository      ports.IndentityRepository
@@ -41,28 +56,40 @@ type identity struct {
 	identityStateRepository ports.IdentityStateRepository
 	claimsRepository        ports.ClaimsRepository
 	revocationRepository    ports.RevocationRepository
+	connectionsRepository   ports.ConnectionsRepository
+	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
 	kms                     kms.KMSType
+	verifier                *auth.Verifier
 
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
+	pubsub          pubsub.Publisher
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
 		identityStateRepository: identityStateRepository,
 		claimsRepository:        claimsRepository,
 		revocationRepository:    revocationRepository,
+		connectionsRepository:   connectionsRepository,
+		sessionManager:          sessionRepository,
 		storage:                 storage,
 		mtService:               mtservice,
 		kms:                     kms,
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
+		verifier:                verifier,
+		pubsub:                  ps,
 	}
+}
+
+func (i *identity) GetByDID(ctx context.Context, identifier core.DID) (*domain.Identity, error) {
+	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 }
 
 func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, networkID, hostURL string) (*domain.Identity, error) {
@@ -86,7 +113,7 @@ func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, net
 		return nil, fmt.Errorf("cannot create identity: %w", err)
 	}
 
-	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
+	identityDB, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *identifier)
 	if err != nil {
 		log.Error(ctx, "loading identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("can't get identity: %w", err)
@@ -142,7 +169,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
-func (i *identity) Exists(ctx context.Context, identifier *core.DID) (bool, error) {
+func (i *identity) Exists(ctx context.Context, identifier core.DID) (bool, error) {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 	if err != nil {
 		return false, err
@@ -201,9 +228,9 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 }
 
 // GetLatestStateByID get latest identity state by identifier
-func (i *identity) GetLatestStateByID(ctx context.Context, identifier *core.DID) (*domain.IdentityState, error) {
+func (i *identity) GetLatestStateByID(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
 	// check that identity exists in the db
-	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, identifier)
+	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &identifier)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +286,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 	return keyID, errors.New("private key not found")
 }
 
-func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.IdentityState, error) {
+func (i *identity) UpdateState(ctx context.Context, did core.DID) (*domain.IdentityState, error) {
 	newState := &domain.IdentityState{
 		Identifier: did.String(),
 		Status:     domain.StatusCreated,
@@ -267,17 +294,17 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 
 	err := i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
-			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, did)
+			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, &did)
 			if err != nil {
 				return err
 			}
 
-			previousState, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, tx, did)
+			previousState, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, tx, &did)
 			if err != nil {
 				return fmt.Errorf("error getting the identifier last state: %w", err)
 			}
 
-			lc, err := i.claimsRepository.GetAllByState(ctx, tx, did, nil)
+			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
 			if err != nil {
 				return fmt.Errorf("error getting the states: %w", err)
 			}
@@ -294,12 +321,12 @@ func (i *identity) UpdateState(ctx context.Context, did *core.DID) (*domain.Iden
 				return err
 			}
 
-			err = i.update(ctx, tx, did, *newState)
+			err = i.update(ctx, tx, &did, *newState)
 			if err != nil {
 				return err
 			}
 
-			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, did)
+			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, &did)
 			if err != nil {
 				return err
 			}
@@ -343,6 +370,77 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 		return nil
 	})
 	return err
+}
+
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) (*protocol.AuthorizationResponseMessage, error) {
+	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
+	if err != nil {
+		log.Warn(ctx, "authentication session not found")
+		return nil, err
+	}
+
+	arm, err := i.verifier.FullVerify(ctx, message, authReq, pubsignals.WithAcceptedStateTransitionDelay(transitionDelay))
+	if err != nil {
+		log.Error(ctx, "authentication failed", "err", err)
+		return nil, err
+	}
+
+	issuerDoc := newDIDDocument(serverURL, issuerDID)
+	bytesIssuerDoc, err := json.Marshal(issuerDoc)
+	if err != nil {
+		log.Error(ctx, "failed to marshal issuerDoc", "err", err)
+		return nil, err
+	}
+
+	userDID, err := core.ParseDID(arm.From)
+	if err != nil {
+		log.Error(ctx, "failed to parse userDID", "err", err)
+		return nil, err
+	}
+
+	conn := &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  bytesIssuerDoc,
+		UserDoc:    arm.Body.DIDDoc,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	}
+	connID, err := i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+	if err != nil {
+		return nil, err
+	}
+
+	if connID == conn.ID { // a connection has been created so previously created credentials have to be sent
+		err = i.pubsub.Publish(ctx, event.CreateConnectionEvent, &event.CreateConnection{ConnectionID: connID.String(), IssuerID: issuerDID.String()})
+		if err != nil {
+			log.Error(ctx, "sending connection notification", "err", err.Error(), "connection", connID)
+		}
+	}
+
+	return arm, nil
+}
+
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
+	sessionID := uuid.New().String()
+	reqID := uuid.New().String()
+
+	qrCode := &protocol.AuthorizationRequestMessage{
+		From:     issuerDID.String(),
+		ID:       reqID,
+		ThreadID: reqID,
+		Typ:      packers.MediaTypePlainMessage,
+		Type:     protocol.AuthorizationRequestMessageType,
+		Body: protocol.AuthorizationRequestMessageBody{
+			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
+			Reason:      authReason,
+		},
+	}
+
+	err := i.sessionManager.Set(ctx, sessionID, *qrCode)
+
+	return qrCode, err
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {
@@ -604,6 +702,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 
 	authClaimModel.IdentityState = identity.State.State
 	authClaimModel.Identifier = &identity.Identifier
+	authClaimModel.MtProof = true
 	_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't save auth claim: %w", err)
@@ -661,6 +760,42 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
+func (i *identity) GetStates(ctx context.Context, issuerDID core.DID) ([]domain.IdentityState, error) {
+	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID)
+}
+
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
+}
+
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, &identifier)
+}
+
+func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+	return i.identityRepository.HasUnprocessedAndFailedStatesByID(ctx, i.storage.Pgx, &identifier)
+}
+
+func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
+	if err != nil {
+		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+	}
+
+	return states, nil
+}
+
+func (i *identity) GetFailedState(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
+	states, err := i.identityStateRepository.GetStatesByStatusAndIssuerID(ctx, i.storage.Pgx, domain.StatusFailed, identifier)
+	if err != nil {
+		return nil, fmt.Errorf("error getting failed state: %w", err)
+	}
+	if len(states) > 0 {
+		return &states[0], nil
+	}
+	return nil, nil
+}
+
 // newAuthClaim generate BabyJubKeyTypeAuthorizeKSign claimL
 func newAuthClaim(key *babyjub.PublicKey) (*core.Claim, error) {
 	revNonce, err := common.RandInt64()
@@ -681,19 +816,16 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	return kms.DecodeBJJPubKey(keyBytes)
 }
 
-func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
-	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
-}
-
-func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier *core.DID) (bool, error) {
-	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, identifier)
-}
-
-func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error) {
-	states, err := i.identityStateRepository.GetStatesByStatus(ctx, i.storage.Pgx, domain.StatusCreated)
-	if err != nil {
-		return nil, fmt.Errorf("error getting non transacted states: %w", err)
+func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument {
+	return verifiable.DIDDocument{
+		Context: []string{serviceContext},
+		ID:      issuerDID.String(),
+		Service: []interface{}{
+			verifiable.Service{
+				ID:              fmt.Sprintf("%s#%s", issuerDID, verifiable.Iden3CommServiceType),
+				Type:            verifiable.Iden3CommServiceType,
+				ServiceEndpoint: fmt.Sprintf("%s/v1/agent", serverURL),
+			},
+		},
 	}
-
-	return states, nil
 }

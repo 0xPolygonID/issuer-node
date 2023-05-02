@@ -20,7 +20,7 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE_DEVELOP }}
           port: ${{ secrets.PORT_DEVELOP }}
           script: sh update.sh
-
+      
       - name: executing remote ssh commands using ssh key on main env
         if: ${{ env.BRANCH == 'main' }}
         uses: appleboy/ssh-action@master

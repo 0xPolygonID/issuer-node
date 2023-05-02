@@ -1,0 +1,22 @@
+# dependencies
+/node_modules
+
+# production
+/dist
+
+# development
+.env*
+
+# linter
+.eslintcache
+
+# IDE
+*.code-workspace
+.idea
+.vscode
+
+# Mac OS
+.DS_Store
+
+# package managers
+npm-debug.log*

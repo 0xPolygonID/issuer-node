@@ -16,10 +16,12 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
 )
 
@@ -27,9 +29,11 @@ type jobIDType string
 
 var (
 	// ErrNoStatesToProcess No states to process
-	ErrNoStatesToProcess = errors.New("no states to process")
+	ErrNoStatesToProcess = errors.New("no states to process or previous state transaction failed")
 	// ErrStateIsBeingProcessed State is being processed
 	ErrStateIsBeingProcessed = errors.New("the state is being processed")
+	// ErrNoFailedStatesToProcess - No fialed states to process
+	ErrNoFailedStatesToProcess = errors.New("no failed states to process")
 )
 
 const (
@@ -44,34 +48,36 @@ type PublisherGateway interface {
 }
 
 type publisher struct {
-	storage             *db.Storage
-	identityService     ports.IdentityService
-	claimService        ports.ClaimsService
-	mtService           ports.MtService
-	kms                 kms.KMSType
-	transactionService  ports.TransactionService
-	confirmationTimeout time.Duration
-	zkService           ports.ZKGenerator
-	publisherGateway    PublisherGateway
-	pendingTransactions *sync_ttl_map.TTLMap
+	storage               *db.Storage
+	identityService       ports.IdentityService
+	claimService          ports.ClaimsService
+	mtService             ports.MtService
+	kms                   kms.KMSType
+	transactionService    ports.TransactionService
+	confirmationTimeout   time.Duration
+	zkService             ports.ZKGenerator
+	publisherGateway      PublisherGateway
+	pendingTransactions   *sync_ttl_map.TTLMap
+	notificationPublisher pubsub.Publisher
 }
 
 // NewPublisher - Constructor
-func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration) *publisher {
+func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration, notificationPublisher pubsub.Publisher) *publisher {
 	pendingTransactions := sync_ttl_map.New(ttl)
 	pendingTransactions.CleaningBackground(transactionCleanup)
 
 	return &publisher{
-		identityService:     identityService,
-		claimService:        claimService,
-		storage:             storage,
-		mtService:           mtService,
-		kms:                 kms,
-		transactionService:  transactionService,
-		zkService:           zkService,
-		publisherGateway:    publisherGateway,
-		confirmationTimeout: confirmationTimeout,
-		pendingTransactions: pendingTransactions,
+		identityService:       identityService,
+		claimService:          claimService,
+		storage:               storage,
+		mtService:             mtService,
+		kms:                   kms,
+		transactionService:    transactionService,
+		zkService:             zkService,
+		publisherGateway:      publisherGateway,
+		confirmationTimeout:   confirmationTimeout,
+		pendingTransactions:   pendingTransactions,
+		notificationPublisher: notificationPublisher,
 	}
 }
 
@@ -91,8 +97,24 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*do
 	return newState, err
 }
 
+func (p *publisher) RetryPublishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+	idStr := identifier.String()
+	processingEntity := p.pendingTransactions.Load(idStr)
+	if processingEntity != nil {
+		return nil, ErrStateIsBeingProcessed
+	}
+
+	p.pendingTransactions.Store(idStr, true)
+	newState, err := p.retrypublishFailedState(ctx, identifier)
+	if err != nil {
+		p.pendingTransactions.Delete(idStr)
+	}
+
+	return newState, err
+}
+
 func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
-	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, identifier)
+	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching unprocessed issuers did", "err", err)
 		return nil, err
@@ -104,7 +126,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	}
 
 	// 4. Calculate new states and publish them synchronously
-	updatedState, err := p.identityService.UpdateState(ctx, identifier)
+	updatedState, err := p.identityService.UpdateState(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "Error during processing claims", "err", err, "did", identifier.String())
 		return nil, err
@@ -113,6 +135,12 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
 		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
+		updatedState.Status = domain.StatusFailed
+		errUpdating := p.identityService.UpdateIdentityState(ctx, updatedState)
+		if errUpdating != nil {
+			log.Error(ctx, "Error saving the state as failed:", "err", err, "did", identifier.String())
+			return nil, errUpdating
+		}
 		return nil, err
 	}
 
@@ -125,6 +153,33 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	}, nil
 }
 
+func (p *publisher) retrypublishFailedState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+	failedState, err := p.identityService.GetFailedState(ctx, *identifier)
+	if err != nil {
+		log.Error(ctx, "error fetching failed state", "err", err)
+		return nil, err
+	}
+
+	if failedState == nil {
+		log.Info(ctx, "no failed state for the given issuer id")
+		return nil, ErrNoFailedStatesToProcess
+	}
+
+	txID, err := p.publishProof(ctx, identifier, *failedState)
+	if err != nil {
+		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
+		return nil, err
+	}
+
+	return &domain.PublishedState{
+		TxID:               txID,
+		ClaimsTreeRoot:     failedState.ClaimsTreeRoot,
+		State:              failedState.State,
+		RevocationTreeRoot: failedState.RevocationTreeRoot,
+		RootOfRoots:        failedState.RootOfRoots,
+	}, nil
+}
+
 // PublishProof publishes new proof using the latest state
 func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newState domain.IdentityState) (*string, error) {
 	did, err := core.ParseDID(newState.Identifier)
@@ -133,7 +188,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newS
 	}
 
 	// 1. Get latest transacted state
-	latestState, err := p.identityService.GetLatestStateByID(ctx, did)
+	latestState, err := p.identityService.GetLatestStateByID(ctx, *did)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +310,7 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID,
 			var errIn error
 
 			var idState *domain.IdentityState
-			idState, errIn = p.identityService.GetLatestStateByID(ctx, identifier)
+			idState, errIn = p.identityService.GetLatestStateByID(ctx, *identifier)
 			if errIn != nil {
 				return errIn
 			}
@@ -366,6 +421,26 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	if receipt.Status == types.ReceiptStatusSuccessful {
 		state.Status = domain.StatusConfirmed
 		err = p.claimService.UpdateClaimsMTPAndState(ctx, state)
+		did, err := core.ParseDID(state.Identifier)
+		if err != nil {
+			log.Error(ctx, "error getting did from state: ", "err", err, "state", state.StateID)
+			return err
+		}
+		claimsToNotify, err := p.claimService.GetByStateIDWithMTPProof(ctx, did, *state.State)
+		if err != nil {
+			log.Error(ctx, "couldn't fetch the credentials to send notifications: ", "err", err, "state", state.StateID)
+			return err
+		}
+		log.Info(ctx, "sending notifications:", "numberOfClaims", len(claimsToNotify))
+
+		grupedCredentials := groupByUserId(claimsToNotify)
+		for _, claims := range grupedCredentials {
+			err = p.notificationPublisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: claims, IssuerID: state.Identifier})
+			if err != nil {
+				log.Error(ctx, "publish EventCreateCredential", "err", err.Error(), "credential", claims)
+				continue
+			}
+		}
 	} else {
 		state.Status = domain.StatusFailed
 		err = p.identityService.UpdateIdentityState(ctx, state)
@@ -377,6 +452,15 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	}
 
 	return nil
+}
+
+// groupByUserId - groups claims by user id
+func groupByUserId(claims []*domain.Claim) map[string][]string {
+	grouped := make(map[string][]string)
+	for _, c := range claims {
+		grouped[c.OtherIdentifier] = append(grouped[c.OtherIdentifier], c.ID.String())
+	}
+	return grouped
 }
 
 // CheckTransactionStatus - checks transaction status
@@ -433,7 +517,8 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 	}
 
 	if !confirmed {
-		return fmt.Errorf("transaction receipt is found, but it is not confirmed yet - %s", *state.TxID)
+		log.Debug(ctx, "transaction receipt is found, but it is not confirmed yet", "TxID", *state.TxID)
+		return ErrStateIsBeingProcessed
 	}
 
 	err = p.updateIdentityStateTxStatus(ctx, state, receipt)

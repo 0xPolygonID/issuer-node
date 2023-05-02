@@ -1,0 +1,8 @@
+# Ignore everything
+/*
+
+# Except these files
+!vite.config.ts
+!src
+!*.json
+!*.md

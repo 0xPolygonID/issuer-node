@@ -2,122 +2,79 @@ package services
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"errors"
+	"time"
 
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/processor"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 type schema struct {
+	repo          ports.SchemaRepository
 	loaderFactory loader.Factory
 }
 
-// NewSchema creates a new schema service
-func NewSchema(lf loader.Factory) ports.SchemaService {
-	return &schema{
-		loaderFactory: lf,
-	}
+// NewSchema is the schema service constructor
+func NewSchema(repo ports.SchemaRepository, lf loader.Factory) *schema {
+	return &schema{repo: repo, loaderFactory: lf}
 }
 
-// LoadSchema loads schema from url
-func (s *schema) LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, error) {
-	schemaBytes, _, err := s.load(ctx, url)
-	if err != nil {
-		return jsonSuite.Schema{}, err
+// GetByID returns a domain.Schema by ID
+func (s *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
+	schema, err := s.repo.GetByID(ctx, issuerDID, id)
+	if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
+		return nil, ErrSchemaNotFound
 	}
-
-	var schema jsonSuite.Schema
-	err = json.Unmarshal(schemaBytes, &schema)
-
-	return schema, err
+	if err != nil {
+		return nil, err
+	}
+	return schema, nil
 }
 
-// Process data and schema and create Index and Value slots
-func (s *schema) Process(ctx context.Context, schemaURL, credentialType string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
-	var parser processor.Parser
-	var validator processor.Validator
-	pr := &processor.Processor{}
-
-	validator = jsonSuite.Validator{}
-	parser = jsonSuite.Parser{}
-
-	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(s.loaderFactory(schemaURL)))
-
-	schema, _, err := pr.Load(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	jsonCredential, err := json.Marshal(credential)
-	if err != nil {
-		return nil, err
-	}
-
-	err = pr.ValidateData(jsonCredential, schema)
-	if err != nil {
-		return nil, err
-	}
-
-	claim, err := pr.ParseClaim(ctx, credential, credentialType, schema, options)
-	if err != nil {
-		return nil, err
-	}
-	return claim, nil
+// GetAll return all schemas in the database that matches the query string
+func (s *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
+	return s.repo.GetAll(ctx, issuerDID, query)
 }
 
-// FromClaimModelToW3CCredential JSON-LD response base on claim
-func (s *schema) FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.W3CCredential, error) {
-	var cred verifiable.W3CCredential
-
-	err := json.Unmarshal(claim.Data.Bytes, &cred)
+// ImportSchema process an schema url and imports into the system
+func (s *schema) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
+	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(url))
 	if err != nil {
+		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", url)
+		return nil, ErrLoadingSchema
+	}
+	attributeNames, err := remoteSchema.Attributes()
+	if err != nil {
+		log.Error(ctx, "processing jsonschema", "err", err, "jsonschema", url)
+		return nil, ErrProcessSchema
+	}
+
+	hash, err := remoteSchema.SchemaHash(sType)
+	if err != nil {
+		log.Error(ctx, "hashing schema", "err", err, "jsonschema", url)
+		return nil, ErrProcessSchema
+	}
+
+	schema := &domain.Schema{
+		ID:         uuid.New(),
+		IssuerDID:  did,
+		URL:        url,
+		Type:       sType,
+		Hash:       hash,
+		Attributes: attributeNames.SchemaAttrs(),
+		CreatedAt:  time.Now(),
+	}
+
+	if err := s.repo.Save(ctx, schema); err != nil {
+		log.Error(ctx, "saving imported schema", "err", err)
 		return nil, err
 	}
-	if claim.CredentialStatus.Status == pgtype.Null {
-		return nil, fmt.Errorf("credential status is not set")
-	}
-
-	proofs := make(verifiable.CredentialProofs, 0)
-
-	var signatureProof *verifiable.BJJSignatureProof2021
-	if claim.SignatureProof.Status != pgtype.Null {
-		err = claim.SignatureProof.AssignTo(&signatureProof)
-		if err != nil {
-			return nil, err
-		}
-		proofs = append(proofs, signatureProof)
-	}
-
-	var mtpProof *verifiable.Iden3SparseMerkleTreeProof
-
-	if claim.MTPProof.Status != pgtype.Null {
-		err = claim.MTPProof.AssignTo(&mtpProof)
-		if err != nil {
-			return nil, err
-		}
-		proofs = append(proofs, mtpProof)
-
-	}
-	cred.Proof = proofs
-
-	return &cred, nil
-}
-
-// load returns schema content by url
-func (s *schema) load(ctx context.Context, schemaURL string) (schema []byte, extension string, err error) {
-	var schemaBytes []byte
-	schemaBytes, _, err = s.loaderFactory(schemaURL).Load(ctx)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return schemaBytes, string(domain.JSONLD), nil
+	return schema, nil
 }

@@ -1,2 +1,16 @@
-# Global code owners
-*   @martinsaporiti @javip97 @x1m3
+# Any file in root, folders excluded
+/*                  @0xPolygonID/backend
+
+# Other folders
+/api                @0xPolygonID/backend
+/api-ui             @0xPolygonID/backend
+/cmd                @0xPolygonID/backend
+/infrastructure     @0xPolygonID/backend
+/internal           @0xPolygonID/backend
+/pkg                @0xPolygonID/backend
+
+/ui                 @0xPolygonID/frontend
+
+./.github           @martinsaporiti
+
+

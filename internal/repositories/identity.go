@@ -23,7 +23,7 @@ func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.I
 	return err
 }
 
-func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.Identity, error) {
+func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error) {
 	identity := domain.Identity{
 		State: domain.IdentityState{},
 	}
@@ -143,7 +143,7 @@ func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier
 						SELECT identifier FROM revocation where status = 0
 				), transacted_issuers AS
 				(
-					SELECT identifier from identity_states WHERE status = 'transacted'  
+					SELECT identifier from identity_states WHERE status = 'transacted' or status = 'failed'
 				)
 				
 				SELECT COUNT(*) FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FROM transacted_issuers) AND issuer = $1`, identifier.String())
@@ -151,6 +151,38 @@ func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier
 	var res int64
 	if err := row.Scan(&res); err != nil {
 		return false, fmt.Errorf("error getting unprocessed rows %w", err)
+	}
+
+	return res > 0, nil
+}
+
+func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, conn db.Querier, identifier *core.DID) (bool, error) {
+	row := conn.QueryRow(ctx,
+		`WITH issuers_to_process AS
+         (
+             SELECT  issuer
+             FROM claims
+             WHERE identity_state ISNULL AND identifier = issuer
+             UNION
+             SELECT identifier FROM revocation where status = 0
+         ), transacted_issuers AS
+         (
+             SELECT identifier from identity_states WHERE status = 'transacted'
+         )
+
+		SELECT COUNT(*) FROM (SELECT issuers_to_process.issuer
+                    FROM issuers_to_process
+                    WHERE issuer NOT IN (SELECT identifier FROM transacted_issuers)
+                      AND issuer = $1
+                    UNION
+                    SELECT identity_states.tx_id
+                    FROM identity_states
+                    WHERE identifier = $1
+                      AND status = 'failed') as res;`, identifier.String())
+
+	var res int64
+	if err := row.Scan(&res); err != nil {
+		return false, fmt.Errorf("error getting unprocessed and failed rows %w", err)
 	}
 
 	return res > 0, nil

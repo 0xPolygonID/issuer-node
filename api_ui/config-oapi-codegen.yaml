@@ -1,0 +1,14 @@
+# Configuration file for deepmap/oapi-codegen
+#
+# A good source to understand each config param is this file
+# https://github.com/deepmap/oapi-codegen/blob/050c4bfe15b589e8d47d73dcb2391a6c0ebd40c8/pkg/codegen/configuration.go#L75
+#
+package: api_ui
+generate:
+  models: true
+  echo-server: false
+  chi-server: true
+  strict-server: true
+  embedded-spec: false
+output-options:
+  user-templates:

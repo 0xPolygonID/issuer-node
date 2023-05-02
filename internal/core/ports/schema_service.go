@@ -3,17 +3,15 @@ package ports
 import (
 	"context"
 
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/processor"
-	"github.com/iden3/go-schema-processor/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
 
-// SchemaService is the interface implemented by the Schema service
+// SchemaService defines the methods that Schema manager will expose.
 type SchemaService interface {
-	LoadSchema(ctx context.Context, url string) (jsonSuite.Schema, error)
-	Process(ctx context.Context, schemaURL, credentialType string, credential verifiable.W3CCredential, opts *processor.CoreClaimOptions) (*core.Claim, error)
-	FromClaimModelToW3CCredential(claim domain.Claim) (*verifiable.W3CCredential, error)
+	ImportSchema(ctx context.Context, issuerDID core.DID, url string, sType string) (*domain.Schema, error)
+	GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error)
+	GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error)
 }

@@ -1,116 +1,65 @@
 version: "3.9"
 services:
 
-  platform:
+  ui:
+    build:
+      context: ../../ui/
+      dockerfile: Dockerfile
+    ports:
+      - "8088:80"
+    env_file:
+      - ../../.env-api
+      - ../../.env-ui
+
+  api:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
     ports:
       - "3001:3001"
-    depends_on:
-      - postgres
-      - redis
-      - vault
-    environment:
-      # This environment vars overwrite the ones in config.toml
-      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
-      - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s && ./migrate && ./platform"
 
-  admin:
+  api-ui:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
     ports:
       - "3002:3002"
-    depends_on:
-      - postgres
-      - redis
-      - vault
-    environment:
-      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
-      - SH_ID_PLATFORM_REDIS_URL=redis://@redis:6379/1
-      - SH_ID_PLATFORM_HTTP_ADMIN_AUTH_USER=user
-      - SH_ID_PLATFORM_HTTP_ADNMIN_AUTH_PASSWORD=password
-    command: sh -c "sleep 4s && ./migrate && ./admin"
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
+    command: sh -c "sleep 4s && ./migrate && ./platform_ui"
+
+  notifications:
+    build:
+      context: ../../
+      dockerfile: ${DOCKER_FILE}
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
+    command: sh -c "sleep 4s && ./notifications"
 
   pending_publisher:
     build:
       context: ../../
-    depends_on:
-      - postgres
-      - vault
-    environment:
-      # This environment vars overwrite the ones in config.toml
-      - SH_ID_PLATFORM_DATABASE_URL=postgres://polygonid:polygonid@postgres:5432/platformid?sslmode=disable
-      - SH_ID_PLATFORM_KEY_STORE_ADDRESS=http://vault:8200
-      - SH_ID_PLATFORM_KEY_STORE_TOKEN=${KEY_STORE_TOKEN}
+      dockerfile: ${DOCKER_FILE}
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
     command: sh -c "sleep 4s &&  ./pending_publisher"
 
-  postgres:
-    image: postgres:14-alpine
-    hostname: postgres
-    environment:
-      - PGPORT=5432
-      - PGUSER=postgres
-      - POSTGRES_HOST_AUTH_METHOD=trust
-      - POSTGRES_USER=postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./scripts/sql:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  initializer:
+    build:
+      context: ../../
+      dockerfile: ${DOCKER_FILE}
+    env_file:
+      - ../../.env-api
+      - ../../.env-issuer
+    command: sh -c "sleep 4s && ./migrate && ./issuer_initializer"
 
-  test_postgres:
-    image: postgres:14-alpine
-    environment:
-      - PGPORT=5435
-      - PGUSER=postgres
-      - POSTGRES_HOST_AUTH_METHOD=trust
-      - POSTGRES_USER=postgres
-    command: -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-    ports:
-      - "5435:5435"
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:6-alpine
-    ports:
-      - "6380:6379"
-    healthcheck:
-      test: [ "CMD", "redis-cli", "-p", "6380", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  vault:
-    image: vault:latest
-    container_name: sh-id-platform-test-vault
-    volumes:
-      - ./.vault/config:/vault/config
-      - ./.vault/policies:/vault/policies
-      - ./.vault/data:/vault/data
-      - ./.vault/file:/vault/file:rw
-      - ./.vault/scripts:/vault/scripts
-      - ./.vault/plugins:/vault/plugins
-    ports:
-      - 8200:8200
-    environment:
-      - VAULT_ADDR=http://0.0.0.0:8200
-      - VAULT_API_ADDR=http://0.0.0.0:8200
-      - VAULT_ADDRESS=http://0.0.0.0:8200
-    cap_add:
-      - IPC_LOCK
-    command: ./vault/scripts/init.sh
+networks:
+  default:
+      name: issuer-network
