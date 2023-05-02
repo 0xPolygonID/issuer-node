@@ -1103,8 +1103,6 @@ func (siw *ServerInterfaceWrapper) GetLinkQRCode(w http.ResponseWriter, r *http.
 		return
 	}
 
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
-
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetLinkQRCodeParams
 
@@ -1148,8 +1146,6 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
 	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateLinkQrCode(w, r, id)
@@ -1286,8 +1282,6 @@ func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r 
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
 		return
 	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetCredentialQrCode(w, r, id)

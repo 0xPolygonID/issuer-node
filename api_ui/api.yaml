@@ -379,8 +379,6 @@ paths:
       description: Returns a a json that can be used to create the QR Code to scan for accepting a credential.
       tags:
         - Credential
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
       responses:
@@ -728,8 +726,6 @@ paths:
     post:
       summary: Create Authentication Link QRCode
       operationId: CreateLinkQrCode
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
       tags:
@@ -751,8 +747,6 @@ paths:
     get:
       summary: Get Credential Link QRCode
       operationId: GetLinkQRCode
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
         - $ref: '#/components/parameters/sessionID'
