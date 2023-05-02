@@ -12,6 +12,7 @@ DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 DOCKER_COMPOSE_FILE_INFRA := $(LOCAL_DEV_PATH)/docker-compose-infra.yml
 DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
 DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
+ENVIRONMENT := ${ISSUER_API_ENVIRONMENT}
 
 
 # Local environment overrides via godotenv
@@ -183,7 +184,9 @@ generate-issuer-did-arm: run-initializer-arm
 
 .PHONY: add-host-url-swagger
 add-host-url-swagger:
-	sed -i -e  "s#server-url = [^ ]*#server-url = \""${ISSUER_API_UI_SERVER_URL}"\"#g" api_ui/spec.html
+	@if [ $(ENVIRONMENT) != "" ] && [ $(ENVIRONMENT) != "local" ]; then \
+		sed -i -e  "s#server-url = [^ ]*#server-url = \""${ISSUER_API_UI_SERVER_URL}"\"#g" api_ui/spec.html; \
+	fi
 
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop
