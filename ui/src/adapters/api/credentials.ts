@@ -514,7 +514,7 @@ const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string | u
     .object({
       body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
     })
-    .transform((parsed) => parsed.body.credentials[0].description.split("#").pop())
+    .transform((data) => data.body.credentials[0].description.split("#").pop())
 );
 
 type ResultOkIssuedQRCodeInput = {
