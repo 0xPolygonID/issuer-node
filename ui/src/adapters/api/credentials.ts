@@ -478,9 +478,6 @@ export async function createAuthQRCode({
   try {
     const response = await axios({
       baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
       method: "POST",
       signal,
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
@@ -547,9 +544,6 @@ export async function getIssuedQRCode({
   try {
     const response = await axios({
       baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
       method: "GET",
       signal,
       url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
@@ -601,9 +595,6 @@ export async function getImportQRCode({
   try {
     const response = await axios({
       baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
       method: "GET",
       params: {
         sessionID,
