@@ -6,7 +6,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { Env } from "src/domain";
 import { processZodError } from "src/utils/error";
 
-const envDefaultValue: Env = {
+const defaultEnvContext: Env = {
   api: {
     password: "",
     url: "",
@@ -15,11 +15,12 @@ const envDefaultValue: Env = {
   blockExplorerUrl: "",
   issuer: {
     did: "",
+    logo: "",
     name: "",
   },
 };
 
-const EnvContext = createContext(envDefaultValue);
+const EnvContext = createContext(defaultEnvContext);
 
 export function EnvProvider(props: PropsWithChildren) {
   const [env, setEnv] = useState<z.SafeParseReturnType<EnvInput, Env>>();

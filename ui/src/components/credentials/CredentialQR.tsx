@@ -2,11 +2,7 @@ import { Avatar, Card, Col, Grid, Image, Row, Space, Typography } from "antd";
 import { QRCodeSVG } from "qrcode.react";
 
 import { useEnvContext } from "src/contexts/Env";
-import {
-  IMAGE_PLACEHOLDER_PATH,
-  WALLET_APP_STORE_URL,
-  WALLET_PLAY_STORE_URL,
-} from "src/utils/constants";
+import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
 
 export function CredentialQR({
   qrCode,
@@ -23,7 +19,7 @@ export function CredentialQR({
 
   return (
     <Space align="center" direction="vertical" size="large">
-      <Avatar shape="square" size={64} src={env.issuer.logo || IMAGE_PLACEHOLDER_PATH} />
+      <Avatar shape="square" size={64} src={env.issuer.logo} />
 
       <Space
         direction="vertical"
