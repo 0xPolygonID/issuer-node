@@ -67,7 +67,7 @@ export function CredentialIssuedQR() {
   return (
     <CredentialQR
       qrCode={issuedQRCode.data.qrCode}
-      schemaType={issuedQRCode.data.schemaType}
+      schemaTypes={issuedQRCode.data.schemaTypes}
       subTitle="Scan the QR code to add the credential to your wallet"
     />
   );

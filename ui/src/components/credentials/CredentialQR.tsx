@@ -6,11 +6,11 @@ import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants
 
 export function CredentialQR({
   qrCode,
-  schemaType,
+  schemaTypes,
   subTitle,
 }: {
   qrCode: unknown;
-  schemaType?: string;
+  schemaTypes: string[];
   subTitle: string;
 }) {
   const env = useEnvContext();
@@ -65,7 +65,7 @@ export function CredentialQR({
           </Col>
         </Row>
 
-        {schemaType && (
+        {schemaTypes.length && (
           <Row>
             <Col
               style={{
@@ -74,7 +74,7 @@ export function CredentialQR({
               }}
             >
               <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-                {schemaType}
+                {schemaTypes.join(", ")}
               </Typography.Title>
             </Col>
           </Row>
