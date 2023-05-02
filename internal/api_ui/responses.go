@@ -16,6 +16,10 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
+const (
+	schemaParts = 2
+)
+
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
 	return Schema{
@@ -270,7 +274,7 @@ func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCod
 		Body: QrCodeBodyResponse{
 			Credentials: []QrCodeCredentialResponse{
 				{
-					Description: credential.SchemaType,
+					Description: getCredentialType(credential.SchemaType),
 					Id:          credential.ID.String(),
 				},
 			},
@@ -283,6 +287,14 @@ func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCod
 		Typ:  string(packers.MediaTypePlainMessage),
 		Type: string(protocol.CredentialOfferMessageType),
 	}
+}
+
+func getCredentialType(credentialType string) string {
+	parse := strings.Split(credentialType, "#")
+	if len(parse) != schemaParts {
+		return credentialType
+	}
+	return parse[1]
 }
 
 func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {
