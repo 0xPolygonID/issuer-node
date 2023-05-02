@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
+import { IMAGE_PLACEHOLDER_PATH } from "src/utils/constants";
 
 export interface EnvInput {
   VITE_API_PASSWORD: string;
@@ -42,7 +43,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
         blockExplorerUrl: VITE_BLOCK_EXPLORER_URL,
         issuer: {
           did: VITE_ISSUER_DID,
-          logo: VITE_ISSUER_LOGO,
+          logo: VITE_ISSUER_LOGO || IMAGE_PLACEHOLDER_PATH,
           name: VITE_ISSUER_NAME,
         },
       })

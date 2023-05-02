@@ -47,6 +47,7 @@ export function SiderMenu() {
       matchRoutes(
         [
           { path: credentialsPath },
+          { path: ROUTES.credentialDetails.path },
           { path: ROUTES.issueCredential.path },
           { path: ROUTES.linkDetails.path },
         ],

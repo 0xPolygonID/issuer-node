@@ -446,7 +446,6 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
 };
 
 export interface AuthQRCode {
-  issuer: { displayName: string; logo: string };
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
@@ -454,10 +453,6 @@ export interface AuthQRCode {
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
-    issuer: z.object({
-      displayName: z.string(),
-      logo: z.string(),
-    }),
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
     qrCode: z.unknown(),
     sessionID: z.string(),

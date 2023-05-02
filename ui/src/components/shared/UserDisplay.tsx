@@ -1,13 +1,12 @@
 import { Avatar, Row, Space, Typography } from "antd";
 import { useEnvContext } from "src/contexts/Env";
-import { IMAGE_PLACEHOLDER_PATH } from "src/utils/constants";
 
 export function UserDisplay() {
   const env = useEnvContext();
 
   return (
     <Space>
-      <Avatar shape="square" size="large" src={env.issuer.logo || IMAGE_PLACEHOLDER_PATH} />
+      <Avatar shape="square" size="large" src={env.issuer.logo} />
 
       <Row>
         <Typography.Text className="font-small" ellipsis strong>
