@@ -1,12 +1,11 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { RequestResponse } from "src/adapters";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
 
 const schemaParser = getStrictParser<Schema>()(
@@ -28,7 +27,7 @@ export async function importSchema({
   env: Env;
   jsonLdType: JsonLdType;
   schemaUrl: string;
-}): Promise<RequestResponse<ID>> {
+}): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -42,11 +41,9 @@ export async function importSchema({
       method: "POST",
       url: `${API_VERSION}/schemas`,
     });
-    const { id } = IDParser.parse(response.data);
-
-    return { data: { id }, success: true };
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -58,7 +55,7 @@ export async function getSchema({
   env: Env;
   schemaID: string;
   signal: AbortSignal;
-}): Promise<RequestResponse<Schema>> {
+}): Promise<Response<Schema>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -69,11 +66,9 @@ export async function getSchema({
       signal,
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
-    const data = schemaParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(schemaParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -87,7 +82,7 @@ export async function getSchemas({
     query?: string;
   };
   signal: AbortSignal;
-}): Promise<RequestResponse<List<Schema>>> {
+}): Promise<Response<List<Schema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -101,16 +96,15 @@ export async function getSchemas({
       signal,
       url: `${API_VERSION}/schemas`,
     });
-    const data = getListParser(schemaParser).parse(response.data);
-
-    return {
-      data: {
-        failed: data.failed,
-        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-      },
-      success: true,
-    };
+    return buildSuccessResponse(
+      getListParser(schemaParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }

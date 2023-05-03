@@ -1,13 +1,12 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { RequestResponse } from "src/adapters";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
 
 type ConnectionInput = Omit<Connection, "credentials"> & {
@@ -32,7 +31,7 @@ export async function getConnection({
   env: Env;
   id: string;
   signal: AbortSignal;
-}): Promise<RequestResponse<Connection>> {
+}): Promise<Response<Connection>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -43,11 +42,9 @@ export async function getConnection({
       signal,
       url: `${API_VERSION}/connections/${id}`,
     });
-    const data = connectionParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(connectionParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -63,7 +60,7 @@ export async function getConnections({
     query?: string;
   };
   signal?: AbortSignal;
-}): Promise<RequestResponse<List<Connection>>> {
+}): Promise<Response<List<Connection>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -78,17 +75,16 @@ export async function getConnections({
       signal,
       url: `${API_VERSION}/connections`,
     });
-    const data = getListParser(connectionParser).parse(response.data);
-
-    return {
-      data: {
-        failed: data.failed,
-        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-      },
-      success: true,
-    };
+    return buildSuccessResponse(
+      getListParser(connectionParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -102,7 +98,7 @@ export async function deleteConnection({
   env: Env;
   id: string;
   revokeCredentials: boolean;
-}): Promise<RequestResponse<Message>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -116,11 +112,8 @@ export async function deleteConnection({
       }),
       url: `${API_VERSION}/connections/${id}`,
     });
-
-    const data = messageParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }

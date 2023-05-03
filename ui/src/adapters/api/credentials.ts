@@ -1,12 +1,11 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { RequestResponse } from "src/adapters";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
-import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
@@ -66,7 +65,7 @@ export async function getCredential({
   credentialID: string;
   env: Env;
   signal?: AbortSignal;
-}): Promise<RequestResponse<Credential>> {
+}): Promise<Response<Credential>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -77,11 +76,9 @@ export async function getCredential({
       signal,
       url: `${API_VERSION}/credentials/${credentialID}`,
     });
-    const data = credentialParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(credentialParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -97,7 +94,7 @@ export async function getCredentials({
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<RequestResponse<List<Credential>>> {
+}): Promise<Response<List<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -113,17 +110,16 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const data = getListParser(credentialParser).parse(response.data);
-
-    return {
-      data: {
-        failed: data.failed,
-        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-      },
-      success: true,
-    };
+    return buildSuccessResponse(
+      getListParser(credentialParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -142,7 +138,7 @@ export async function createCredential({
 }: {
   env: Env;
   payload: CreateCredential;
-}): Promise<RequestResponse<ID>> {
+}): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -153,11 +149,9 @@ export async function createCredential({
       method: "POST",
       url: `${API_VERSION}/credentials`,
     });
-    const data = IDParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -167,7 +161,7 @@ export async function revokeCredential({
 }: {
   env: Env;
   nonce: number;
-}): Promise<RequestResponse<Message>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -177,11 +171,9 @@ export async function revokeCredential({
       method: "POST",
       url: `${API_VERSION}/credentials/revoke/${nonce}`,
     });
-    const data = messageParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -191,7 +183,7 @@ export async function deleteCredential({
 }: {
   env: Env;
   id: string;
-}): Promise<RequestResponse<Message>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -201,12 +193,9 @@ export async function deleteCredential({
       method: "DELETE",
       url: `${API_VERSION}/credentials/${id}`,
     });
-
-    const data = messageParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -246,7 +235,7 @@ export async function getLink({
   env: Env;
   linkID: string;
   signal: AbortSignal;
-}): Promise<RequestResponse<Link>> {
+}): Promise<Response<Link>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -257,11 +246,9 @@ export async function getLink({
       signal,
       url: `${API_VERSION}/credentials/links/${linkID}`,
     });
-    const data = linkParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(linkParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -276,7 +263,7 @@ export async function getLinks({
     status?: LinkStatus;
   };
   signal?: AbortSignal;
-}): Promise<RequestResponse<List<Link>>> {
+}): Promise<Response<List<Link>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -291,17 +278,16 @@ export async function getLinks({
       signal,
       url: `${API_VERSION}/credentials/links`,
     });
-    const data = getListParser(linkParser).parse(response.data);
-
-    return {
-      data: {
-        failed: data.failed,
-        successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-      },
-      success: true,
-    };
+    return buildSuccessResponse(
+      getListParser(linkParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -315,7 +301,7 @@ export async function updateLink({
   payload: {
     active: boolean;
   };
-}): Promise<RequestResponse<Message>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -326,11 +312,9 @@ export async function updateLink({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const data = messageParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -340,7 +324,7 @@ export async function deleteLink({
 }: {
   env: Env;
   id: string;
-}): Promise<RequestResponse<Message>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -350,11 +334,9 @@ export async function deleteLink({
       method: "DELETE",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const data = messageParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -374,7 +356,7 @@ export async function createLink({
 }: {
   env: Env;
   payload: CreateLink;
-}): Promise<RequestResponse<ID>> {
+}): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -385,11 +367,9 @@ export async function createLink({
       method: "POST",
       url: `${API_VERSION}/credentials/links`,
     });
-    const data = IDParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -419,7 +399,7 @@ export async function createAuthQRCode({
   env: Env;
   linkID: string;
   signal?: AbortSignal;
-}): Promise<RequestResponse<AuthQRCode>> {
+}): Promise<Response<AuthQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -427,12 +407,9 @@ export async function createAuthQRCode({
       signal,
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-
-    const data = authQRCodeParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(authQRCodeParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -477,7 +454,7 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<RequestResponse<IssuedQRCode>> {
+}): Promise<Response<IssuedQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -485,12 +462,9 @@ export async function getIssuedQRCode({
       signal,
       url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
     });
-
-    const data = issuedQRCodeParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(issuedQRCodeParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -514,7 +488,7 @@ export async function getImportQRCode({
   env: Env;
   linkID: string;
   sessionID: string;
-}): Promise<RequestResponse<ImportQRCode>> {
+}): Promise<Response<ImportQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -524,10 +498,8 @@ export async function getImportQRCode({
       },
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-    const data = importQRCheckDoneParser.parse(response.data);
-
-    return { data, success: true };
+    return buildSuccessResponse(importQRCheckDoneParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }

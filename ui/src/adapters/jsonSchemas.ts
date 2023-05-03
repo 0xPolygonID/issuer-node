@@ -1,4 +1,4 @@
-import { RequestResponse } from "src/adapters";
+import { Response } from "src/adapters";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
@@ -10,7 +10,7 @@ export async function getJsonSchemaFromUrl({
 }: {
   signal?: AbortSignal;
   url: string;
-}): Promise<RequestResponse<[JsonSchema, Json]>> {
+}): Promise<Response<[JsonSchema, Json]>> {
   try {
     const jsonResponse = await getJsonFromUrl({
       signal,
@@ -38,7 +38,7 @@ export async function getSchemaJsonLdTypes({
   jsonSchema,
 }: {
   jsonSchema: JsonSchema;
-}): Promise<RequestResponse<[JsonLdType[], Json]>> {
+}): Promise<Response<[JsonLdType[], Json]>> {
   try {
     const jsonResponse = await getJsonFromUrl({
       url: jsonSchema.$metadata.uris.jsonLdContext,

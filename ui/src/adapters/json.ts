@@ -1,10 +1,9 @@
 import axios from "axios";
 import z from "zod";
 
-import { RequestResponse } from "src/adapters";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { getStrictParser } from "src/adapters/parsers";
 import { Json, JsonLiteral } from "src/domain";
-import { buildAppError } from "src/utils/error";
 
 const jsonLiteralParser = getStrictParser<JsonLiteral>()(
   z.union([z.string(), z.number(), z.boolean(), z.null()])
@@ -34,20 +33,15 @@ export async function getJsonFromUrl({
 }: {
   signal?: AbortSignal;
   url: string;
-}): Promise<RequestResponse<Json>> {
+}): Promise<Response<Json>> {
   try {
     const response = await axios({
       method: "GET",
       signal,
       url,
     });
-    const data = jsonParser.parse(response.data);
-
-    return {
-      data,
-      success: true,
-    };
+    return buildSuccessResponse(jsonParser.parse(response.data));
   } catch (error) {
-    return { error: buildAppError(error), success: false };
+    return buildErrorResponse(error);
   }
 }
