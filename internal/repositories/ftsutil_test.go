@@ -183,5 +183,4 @@ func TestBuildPartialQueryDidLikes(t *testing.T) {
 			assert.Equal(t, tc.expect, buildPartialQueryDidLikes(tc.field, tc.input, tc.cond))
 		})
 	}
-
 }

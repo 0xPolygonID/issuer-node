@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
-var onlyLettersAndNumbers = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
-var didCharacters = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
+var (
+	onlyLettersAndNumbers = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
+	didCharacters         = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
+)
 
 // fullTextSearchQuery accepts a query with a list of words and returns a tsquery that includes words that
 // begin or contains that words. operator is used to pass an operator between words.
