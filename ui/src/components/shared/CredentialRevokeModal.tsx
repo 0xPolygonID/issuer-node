@@ -32,7 +32,7 @@ export function CredentialRevokeModal({
         onRevoke();
 
         void notifyChange("revoke");
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         setIsLoading(false);
 

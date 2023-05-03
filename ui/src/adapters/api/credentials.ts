@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { RequestResponse } from "src/adapters";
-import { ID, IDParser, buildAuthorizationHeader, messageParser } from "src/adapters/api";
+import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
@@ -167,7 +167,7 @@ export async function revokeCredential({
 }: {
   env: Env;
   nonce: number;
-}): Promise<RequestResponse<string>> {
+}): Promise<RequestResponse<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -179,7 +179,7 @@ export async function revokeCredential({
     });
     const data = messageParser.parse(response.data);
 
-    return { data: data.message, success: true };
+    return { data, success: true };
   } catch (error) {
     return { error: buildAppError(error), success: false };
   }
@@ -191,7 +191,7 @@ export async function deleteCredential({
 }: {
   env: Env;
   id: string;
-}): Promise<RequestResponse<string>> {
+}): Promise<RequestResponse<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -204,7 +204,7 @@ export async function deleteCredential({
 
     const data = messageParser.parse(response.data);
 
-    return { data: data.message, success: true };
+    return { data, success: true };
   } catch (error) {
     return { error: buildAppError(error), success: false };
   }
@@ -315,7 +315,7 @@ export async function updateLink({
   payload: {
     active: boolean;
   };
-}): Promise<RequestResponse<string>> {
+}): Promise<RequestResponse<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -328,7 +328,7 @@ export async function updateLink({
     });
     const data = messageParser.parse(response.data);
 
-    return { data: data.message, success: true };
+    return { data, success: true };
   } catch (error) {
     return { error: buildAppError(error), success: false };
   }
@@ -340,7 +340,7 @@ export async function deleteLink({
 }: {
   env: Env;
   id: string;
-}): Promise<RequestResponse<string>> {
+}): Promise<RequestResponse<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -352,7 +352,7 @@ export async function deleteLink({
     });
     const data = messageParser.parse(response.data);
 
-    return { data: data.message, success: true };
+    return { data, success: true };
   } catch (error) {
     return { error: buildAppError(error), success: false };
   }
@@ -374,7 +374,7 @@ export async function createLink({
 }: {
   env: Env;
   payload: CreateLink;
-}): Promise<RequestResponse<{ id: string }>> {
+}): Promise<RequestResponse<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,

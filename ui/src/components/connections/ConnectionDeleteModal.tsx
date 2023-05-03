@@ -33,7 +33,7 @@ export function ConnectionDeleteModal({
           void notifyChange("revoke");
         }
 
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
       }

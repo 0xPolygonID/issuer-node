@@ -285,7 +285,7 @@ export function LinksTable() {
       if (response.success) {
         updateCredentialInState(active, id);
 
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
       }

@@ -33,7 +33,7 @@ export function CredentialDeleteModal({
         onClose();
         onDelete();
 
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
       }

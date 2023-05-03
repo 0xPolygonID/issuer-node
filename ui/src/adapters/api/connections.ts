@@ -2,7 +2,7 @@ import axios from "axios";
 import { z } from "zod";
 
 import { RequestResponse } from "src/adapters";
-import { buildAuthorizationHeader, messageParser } from "src/adapters/api";
+import { Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
@@ -102,7 +102,7 @@ export async function deleteConnection({
   env: Env;
   id: string;
   revokeCredentials: boolean;
-}): Promise<RequestResponse<string>> {
+}): Promise<RequestResponse<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -119,7 +119,7 @@ export async function deleteConnection({
 
     const data = messageParser.parse(response.data);
 
-    return { data: data.message, success: true };
+    return { data, success: true };
   } catch (error) {
     return { error: buildAppError(error), success: false };
   }
