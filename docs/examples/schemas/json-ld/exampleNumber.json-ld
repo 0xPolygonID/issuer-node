@@ -7,13 +7,13 @@
         "id": "@id",
         "type": "@type",
         "SalaryCredential": {
-          "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/adding-schema-examples/docs/examples/json-ld/exampleNumber.json-ld#SalaryCredential",
+          "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/json-ld/exampleNumber.json-ld#SalaryCredential",
           "@context": {
             "@version": 1.1,
             "@protected": true,
             "id": "@id",
             "type": "@type",
-            "vocab": "https://github.com/0xPolygonID/sh-id-platform/blob/adding-schema-examples/docs/examples/schemas/vocab/exampleEmployee.md#",
+            "vocab": "https://github.com/0xPolygonID/sh-id-platform/blob/main/docs/examples/schemas/vocab/exampleEmployee.md#",
             "xsd": "http://www.w3.org/2001/XMLSchema#",
             "salary": {
               "@id": "vocab:salary",
