@@ -14,7 +14,7 @@
             "type": "@type",
             "vocab": "https://github.com/0xPolygonID/sh-id-platform/blob/adding-schema-examples/docs/examples/schemas/vocab/exampleEmployee.md#",
             "xsd": "http://www.w3.org/2001/XMLSchema#",
-            "hireDate": {
+            "role": {
               "@id": "vocab:role",
               "@type": "xsd:string"
             }

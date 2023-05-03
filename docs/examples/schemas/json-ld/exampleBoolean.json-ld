@@ -15,7 +15,7 @@
           "vocab": "https://github.com/0xPolygonID/sh-id-platform/blob/adding-schema-examples/docs/examples/schemas/vocab/exampleEmployee.md#",
           "xsd": "http://www.w3.org/2001/XMLSchema#",
           "codingExperience": {
-            "@id": "vocab:birthday",
+            "@id": "vocab:codingExperience",
             "@type": "xsd:boolean"
           }
         }
