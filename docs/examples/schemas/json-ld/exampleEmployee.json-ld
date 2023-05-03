@@ -6,7 +6,7 @@
         "id": "@id",
         "type": "@type",
         "EmployeeCredential": {
-          "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/adding-schema-examples/docs/examples/json-ld/exampleEmloyee.json-ld#EmployeeCredential",
+          "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/adding-schema-examples/docs/examples/json-ld/exampleEmployee.json-ld#EmployeeCredential",
           "@context": {
             "@version": 1.1,
             "@protected": true,
