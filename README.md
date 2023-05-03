@@ -276,7 +276,7 @@ make run-arm;
 
 Navigating to <http://localhost:3001> shows te issuer API's frontend:
 
-![Issuer API frontend](/docs/3001.png)
+![Issuer API frontend](docs/assets/img/3001.png)
 
 #### (Optional) Configure UI
 
@@ -342,7 +342,7 @@ make run-ui-arm;
 
 Now navigate to <http://localhost:3002> to see the UI API's frontend:
 
-![Issuer UI API frontend](/docs/3002.png)
+![Issuer UI API frontend](docs/assets/img/3002.png)
 
 #### Using the UI API
 
@@ -357,11 +357,11 @@ ISSUER_API_UI_AUTH_PASSWORD=password-api
 
 Then authenticate via the following form on <http://localhost:3002>:
 
-![Issuer UI API Authentication](/docs/3002-auth.png)
+![Issuer UI API Authentication](docs/assets/img/3002-auth.png)
 
 This allows you to make a request via any of the endpoints using this frontend.
 
-![Issuer UI API Get Credentials](/docs/3002-credentials.png)
+![Issuer UI API Get Credentials](docs/assets/img/3002-credentials.png)
 
 #### (Optional) Using the UI
 
@@ -378,7 +378,7 @@ ISSUER_UI_AUTH_USERNAME=user-ui
 ISSUER_UI_AUTH_PASSWORD=password-ui
 ```
 
-![Issuer UI](/docs/8088.png)
+![Issuer UI](docs/assets/img/8088.png)
 
 > **NOTE:** If you want to run the UI app in development mode, i.e. with HMR enabled, please follow the steps in the [Development (UI)](#development-ui) section.
 
@@ -486,7 +486,7 @@ _Documentation pending_
 
 Before creating a credential, the identifier of the service/person is needed. To retrieve this, the `identifier` can be copied from the Polygon ID app to the clipboard.
 
-!["ID Within Polygon ID App"](/docs/polygonid-app-id.png)
+!["ID Within Polygon ID App"](docs/assets/img/polygonid-app-id.png)
 
 > **NOTE:** The issuer node DID can be retrieved by looking at `.env-api` for `ISSUER_API_UI_ISSUER_DID`
 
@@ -548,11 +548,11 @@ curl --location 'http://localhost:3001/v1/did:polygonid:polygon:mumbai:2qPdb2hNc
 
 Take this JSON data, copy, and paste into [https://qr.io](https://qr.io).
 
-!["QR.io"](/docs/qrio.png)
+!["QR.io"](docs/assets/img/qrio.png)
 
 With the Polygon ID app, open it up and scan the QR code.
 
-!["Polygon ID App Adding Credential"](/docs/polygonid-app-claim.png)
+!["Polygon ID App Adding Credential"](docs/assets/img/polygonid-app-claim.png)
 
 ### Verifying Credential
 
@@ -560,13 +560,13 @@ With the Polygon ID app, open it up and scan the QR code.
 
 A quick way to validate this KYCAge Claim is to use [https://verifier-demo.polygonid.me/](https://verifier-demo.polygonid.me/).
 
-!["Verifier Selecting KYCAgeCredential"](/docs/verifier-kycagecredential.png)
+!["Verifier Selecting KYCAgeCredential"](docs/assets/img/verifier-kycagecredential.png)
 
-!["Verifier Verification Prompt"](/docs/verifier-verification.png)
+!["Verifier Verification Prompt"](docs/assets/img/verifier-verification.png)
 
-!["Polygon ID App Generating Proof"](/docs/polygonid-app-proof.png)
+!["Polygon ID App Generating Proof"](docs/assets/img/polygonid-app-proof.png)
 
-!["Verifier Proof Verified"](/docs/verifier-success-verified.png)
+!["Verifier Proof Verified"](docs/assets/img/verifier-success-verified.png)
 
 ---
 
