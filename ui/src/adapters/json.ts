@@ -1,9 +1,10 @@
 import axios from "axios";
 import z from "zod";
 
-import { RequestResponse, buildAppError } from "src/adapters/api";
+import { RequestResponse } from "src/adapters";
 import { getStrictParser } from "src/adapters/parsers";
 import { Json, JsonLiteral } from "src/domain";
+import { buildAppError } from "src/utils/error";
 
 const jsonLiteralParser = getStrictParser<JsonLiteral>()(
   z.union([z.string(), z.number(), z.boolean(), z.null()])
@@ -44,9 +45,9 @@ export async function getJsonFromUrl({
 
     return {
       data,
-      isSuccessful: true,
+      success: true,
     };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }

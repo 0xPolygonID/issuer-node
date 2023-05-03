@@ -60,7 +60,7 @@ export function ImportSchemaForm({
     void getJsonSchemaFromUrl({
       url,
     }).then((jsonSchemaResponse) => {
-      if (jsonSchemaResponse.isSuccessful) {
+      if (jsonSchemaResponse.success) {
         const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
         setSchemaUrl(url);
         setJsonSchema({ data: jsonSchema, status: "successful" });
@@ -70,7 +70,7 @@ export function ImportSchemaForm({
         void getSchemaJsonLdTypes({
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
-          if (jsonLdTypesResponse.isSuccessful) {
+          if (jsonLdTypesResponse.success) {
             const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
             setJsonLdTypes({ data: jsonLdTypes, status: "successful" });
             setRawJsonLdContext(rawJsonLdContext);

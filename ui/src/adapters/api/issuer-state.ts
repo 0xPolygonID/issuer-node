@@ -2,15 +2,12 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { z } from "zod";
 
-import {
-  RequestResponse,
-  ResultOK,
-  buildAppError,
-  buildAuthorizationHeader,
-} from "src/adapters/api";
+import { RequestResponse } from "src/adapters";
+import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
 
 const transactionStatusParser = getStrictParser<TransactionStatus>()(
@@ -44,9 +41,9 @@ export async function publishState({ env }: { env: Env }): Promise<RequestRespon
       url: `${API_VERSION}/state/publish`,
     });
 
-    return { data: true, isSuccessful: true };
+    return { data: true, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -61,9 +58,9 @@ export async function retryPublishState({ env }: { env: Env }): Promise<RequestR
       url: `${API_VERSION}/state/retry`,
     });
 
-    return { data: true, isSuccessful: true };
+    return { data: true, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -84,19 +81,16 @@ export async function getStatus({
       signal,
       url: `${API_VERSION}/state/status`,
     });
-    const { data } = resultOKStatusParser.parse(response);
+    const data = issuerStatusParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
-const resultOKStatusParser = getStrictParser<ResultOK<IssuerStatus>>()(
-  z.object({
-    data: z.object({ pendingActions: z.boolean() }),
-    status: z.literal(200),
-  })
+const issuerStatusParser = getStrictParser<IssuerStatus>()(
+  z.object({ pendingActions: z.boolean() })
 );
 
 export async function getTransactions({
@@ -116,7 +110,7 @@ export async function getTransactions({
       signal,
       url: `${API_VERSION}/state/transactions`,
     });
-    const { data } = resultOKTransactionListParser.parse(response);
+    const data = getListParser(transactionParser).parse(response.data);
 
     return {
       data: {
@@ -125,19 +119,9 @@ export async function getTransactions({
           ({ publishDate: a }, { publishDate: b }) => dayjs(b).unix() - dayjs(a).unix()
         ),
       },
-      isSuccessful: true,
+      success: true,
     };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultOKTransactionListParser = getStrictParser<
-  ResultOK<unknown[]>,
-  ResultOK<List<Transaction>>
->()(
-  z.object({
-    data: getListParser(transactionParser),
-    status: z.literal(200),
-  })
-);

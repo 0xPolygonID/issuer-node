@@ -26,7 +26,7 @@ export function CredentialIssuedQR() {
 
         const response = await getIssuedQRCode({ credentialID, env, signal });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           setIssuedQRCode({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {

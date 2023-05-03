@@ -39,7 +39,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
     async (signal?: AbortSignal) => {
       const response = await getStatus({ env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setStatus({ data: response.data.pendingActions, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {

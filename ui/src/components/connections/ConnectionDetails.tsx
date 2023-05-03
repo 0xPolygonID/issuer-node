@@ -39,7 +39,7 @@ export function ConnectionDetails() {
           id: connectionID,
           signal,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           setConnection({
             data: response.data,
             status: "successful",

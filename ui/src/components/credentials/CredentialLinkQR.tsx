@@ -42,7 +42,7 @@ export function CredentialLinkQR() {
 
         const response = await createAuthQRCode({ env, linkID, signal });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           setAuthQRCode({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {
@@ -69,7 +69,7 @@ export function CredentialLinkQR() {
           sessionID: authQRCode.data.sessionID,
         });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           if (response.data.status !== "pending") {
             setImportQRCheck({ data: response.data, status: "successful" });
 

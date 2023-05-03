@@ -18,7 +18,7 @@ export function LinkDeleteModal({
 
   const handleDeleteLink = () => {
     void deleteLink({ env, id }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         onClose();
         onDelete();
 

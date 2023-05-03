@@ -1,20 +1,12 @@
 import axios from "axios";
 import { z } from "zod";
 
-import {
-  ID,
-  IDParser,
-  RequestResponse,
-  ResultAccepted,
-  ResultCreated,
-  ResultOK,
-  buildAppError,
-  buildAuthorizationHeader,
-  resultOKMessage,
-} from "src/adapters/api";
+import { RequestResponse } from "src/adapters";
+import { ID, IDParser, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
@@ -85,20 +77,13 @@ export async function getCredential({
       signal,
       url: `${API_VERSION}/credentials/${credentialID}`,
     });
-    const { data } = resultOKCredentialParser.parse(response);
+    const data = credentialParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultOKCredentialParser = getStrictParser<ResultOK<CredentialInput>, ResultOK<Credential>>()(
-  z.object({
-    data: credentialParser,
-    status: z.literal(200),
-  })
-);
 
 export async function getCredentials({
   env,
@@ -128,29 +113,19 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultOKCredentialListParser.parse(response);
+    const data = getListParser(credentialParser).parse(response.data);
 
     return {
       data: {
         failed: data.failed,
         successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
       },
-      isSuccessful: true,
+      success: true,
     };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultOKCredentialListParser = getStrictParser<
-  ResultOK<unknown[]>,
-  ResultOK<List<Credential>>
->()(
-  z.object({
-    data: getListParser(credentialParser),
-    status: z.literal(200),
-  })
-);
 
 export interface CreateCredential {
   credentialSchema: string;
@@ -178,11 +153,11 @@ export async function createCredential({
       method: "POST",
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultCreatedIDParser.parse(response);
+    const data = IDParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -202,22 +177,13 @@ export async function revokeCredential({
       method: "POST",
       url: `${API_VERSION}/credentials/revoke/${nonce}`,
     });
-    const { data } = resultAcceptedMessage.parse(response);
+    const data = messageParser.parse(response.data);
 
-    return { data: data.message, isSuccessful: true };
+    return { data: data.message, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultAcceptedMessage = getStrictParser<ResultAccepted<{ message: string }>>()(
-  z.object({
-    data: z.object({
-      message: z.string(),
-    }),
-    status: z.literal(202),
-  })
-);
 
 export async function deleteCredential({
   env,
@@ -236,11 +202,11 @@ export async function deleteCredential({
       url: `${API_VERSION}/credentials/${id}`,
     });
 
-    const { data } = resultOKMessage.parse(response);
+    const data = messageParser.parse(response.data);
 
-    return { data: data.message, isSuccessful: true };
+    return { data: data.message, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -291,20 +257,13 @@ export async function getLink({
       signal,
       url: `${API_VERSION}/credentials/links/${linkID}`,
     });
-    const { data } = resultOKLinkParser.parse(response);
+    const data = linkParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultOKLinkParser = getStrictParser<ResultOK<LinkInput>, ResultOK<Link>>()(
-  z.object({
-    data: linkParser,
-    status: z.literal(200),
-  })
-);
 
 export async function getLinks({
   env,
@@ -332,26 +291,19 @@ export async function getLinks({
       signal,
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultOKLinkListParser.parse(response);
+    const data = getListParser(linkParser).parse(response.data);
 
     return {
       data: {
         failed: data.failed,
         successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
       },
-      isSuccessful: true,
+      success: true,
     };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultOKLinkListParser = getStrictParser<ResultOK<unknown[]>, ResultOK<List<Link>>>()(
-  z.object({
-    data: getListParser(linkParser),
-    status: z.literal(200),
-  })
-);
 
 export async function updateLink({
   env,
@@ -374,11 +326,11 @@ export async function updateLink({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const { data } = resultOKMessage.parse(response);
+    const data = messageParser.parse(response.data);
 
-    return { data: data.message, isSuccessful: true };
+    return { data: data.message, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -398,11 +350,11 @@ export async function deleteLink({
       method: "DELETE",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const { data } = resultOKMessage.parse(response);
+    const data = messageParser.parse(response.data);
 
-    return { data: data.message, isSuccessful: true };
+    return { data: data.message, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -433,11 +385,11 @@ export async function createLink({
       method: "POST",
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultCreatedIDParser.parse(response);
+    const data = IDParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -459,13 +411,6 @@ const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   })
 );
 
-const resultOKAuthQRCodeParser = getStrictParser<ResultOK<AuthQRCodeInput>, ResultOK<AuthQRCode>>()(
-  z.object({
-    data: authQRCodeParser,
-    status: z.literal(200),
-  })
-);
-
 export async function createAuthQRCode({
   env,
   linkID,
@@ -483,11 +428,11 @@ export async function createAuthQRCode({
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
 
-    const { data } = resultOKAuthQRCodeParser.parse(response);
+    const data = authQRCodeParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -509,29 +454,18 @@ const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string>()(
     .transform((data) => data.body.credentials[0].description)
 );
 
-type ResultOkIssuedQRCodeInput = {
-  data?: unknown;
-  status: 200;
-};
-
-const resultOKIssuedQRCodeParser = getStrictParser<
-  ResultOkIssuedQRCodeInput,
-  ResultOK<IssuedQRCode>
->()(
-  z.object({
-    data: z.unknown().transform((unknown, context): IssuedQRCode => {
-      const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
-      if (parsedSchemaType.success) {
-        return {
-          qrCode: unknown,
-          schemaType: parsedSchemaType.data,
-        };
-      } else {
-        parsedSchemaType.error.issues.map(context.addIssue);
-        return z.NEVER;
-      }
-    }),
-    status: z.literal(200),
+const issuedQRCodeParser = getStrictParser<unknown, IssuedQRCode>()(
+  z.unknown().transform((unknown, context): IssuedQRCode => {
+    const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
+    if (parsedSchemaType.success) {
+      return {
+        qrCode: unknown,
+        schemaType: parsedSchemaType.data,
+      };
+    } else {
+      parsedSchemaType.error.issues.map(context.addIssue);
+      return z.NEVER;
+    }
   })
 );
 
@@ -552,20 +486,13 @@ export async function getIssuedQRCode({
       url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
     });
 
-    const { data } = resultOKIssuedQRCodeParser.parse(response);
+    const data = issuedQRCodeParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const resultCreatedIDParser = getStrictParser<ResultCreated<ID>>()(
-  z.object({
-    data: IDParser,
-    status: z.literal(201),
-  })
-);
 
 export interface ImportQRCode {
   qrCode?: unknown;
@@ -576,13 +503,6 @@ const importQRCheckDoneParser = getStrictParser<ImportQRCode>()(
   z.object({
     qrCode: z.unknown(),
     status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
-  })
-);
-
-const resultOKImportQRCheckParser = getStrictParser<ResultOK<ImportQRCode>>()(
-  z.object({
-    data: importQRCheckDoneParser,
-    status: z.literal(200),
   })
 );
 
@@ -604,10 +524,10 @@ export async function getImportQRCode({
       },
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-    const { data } = resultOKImportQRCheckParser.parse(response);
+    const data = importQRCheckDoneParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }

@@ -2,7 +2,6 @@ import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { buildAppError } from "src/adapters/api";
 import { getCredential } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
@@ -26,7 +25,7 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
-import { credentialSubjectValueErrorToString } from "src/utils/error";
+import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialDetails() {
@@ -50,7 +49,7 @@ export function CredentialDetails() {
     setCredentialSubjectValue({ status: "loading" });
 
     void getJsonSchemaFromUrl({ url: credential.schemaUrl }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         const [jsonSchema] = response.data;
         const credentialSubjectSchema =
           (jsonSchema.type === "object" &&
@@ -114,7 +113,7 @@ export function CredentialDetails() {
           signal,
         });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           setCredential({ data: response.data, status: "successful" });
           fetchJsonSchemaFromUrl({ credential: response.data });
         } else {

@@ -81,7 +81,7 @@ export function IssueCredential() {
           env,
           payload: serializedCredentialForm.data,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           setLinkID({ data: response.data.id, status: "successful" });
           setStep("summary");
 
@@ -112,7 +112,7 @@ export function IssueCredential() {
           env,
           payload: serializedCredentialForm.data,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           navigate(
             generatePath(ROUTES.credentials.path, {
               tabID: CREDENTIALS_TABS[0].tabID,
@@ -143,7 +143,7 @@ export function IssueCredential() {
           signal,
           url: schema.url,
         }).then((response) => {
-          if (response.isSuccessful) {
+          if (response.success) {
             const [jsonSchema] = response.data;
             setJsonSchema({
               data: jsonSchema,

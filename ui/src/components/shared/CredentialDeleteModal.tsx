@@ -29,7 +29,7 @@ export function CredentialDeleteModal({
     setIsLoading(true);
 
     void deleteCredential({ env, id }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         onClose();
         onDelete();
 
@@ -46,7 +46,7 @@ export function CredentialDeleteModal({
     setIsLoading(true);
 
     void revokeCredential({ env, nonce }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         handleDeleteCredential();
 
         void notifyChange("revoke");

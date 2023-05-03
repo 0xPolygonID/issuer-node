@@ -1,7 +1,8 @@
-import { RequestResponse, buildAppError } from "./api";
+import { RequestResponse } from "src/adapters";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { buildAppError } from "src/utils/error";
 
 export async function getJsonSchemaFromUrl({
   signal,
@@ -15,20 +16,20 @@ export async function getJsonSchemaFromUrl({
       signal,
       url,
     });
-    if (!jsonResponse.isSuccessful) {
+    if (!jsonResponse.success) {
       return jsonResponse;
     } else {
       const json = jsonResponse.data;
       const jsonSchema = jsonSchemaParser.parse(json);
       return {
         data: [jsonSchema, json],
-        isSuccessful: true,
+        success: true,
       };
     }
   } catch (error) {
     return {
       error: buildAppError(error),
-      isSuccessful: false,
+      success: false,
     };
   }
 }
@@ -42,20 +43,20 @@ export async function getSchemaJsonLdTypes({
     const jsonResponse = await getJsonFromUrl({
       url: jsonSchema.$metadata.uris.jsonLdContext,
     });
-    if (!jsonResponse.isSuccessful) {
+    if (!jsonResponse.success) {
       return jsonResponse;
     } else {
       const json = jsonResponse.data;
       const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(json);
       return {
         data: [jsonLdTypes, json],
-        isSuccessful: true,
+        success: true,
       };
     }
   } catch (error) {
     return {
       error: buildAppError(error),
-      isSuccessful: false,
+      success: false,
     };
   }
 }

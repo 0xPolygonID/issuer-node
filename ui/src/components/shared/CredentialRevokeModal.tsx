@@ -27,7 +27,7 @@ export function CredentialRevokeModal({
     setIsLoading(true);
 
     void revokeCredential({ env, nonce }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         onClose();
         onRevoke();
 

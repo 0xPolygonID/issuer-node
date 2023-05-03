@@ -188,7 +188,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           },
           signal,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           setCredentials({
             data: response.data.successful,
             status: "successful",

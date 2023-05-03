@@ -1,4 +1,5 @@
 import { message } from "antd";
+import { isAxiosError, isCancel } from "axios";
 import z from "zod";
 import { AppError } from "src/domain";
 
@@ -34,6 +35,42 @@ export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
       }
     }
   }, init);
+}
+
+export function buildAppError(error: unknown): AppError {
+  if (isCancel(error)) {
+    return {
+      error,
+      message: error.message
+        ? `The request has been aborted. ${error.message}`
+        : "The request has been aborted.",
+      type: "cancel-error",
+    };
+  } else if (isAxiosError(error)) {
+    return {
+      error,
+      message: error.message,
+      type: "request-error",
+    };
+  } else if (error instanceof z.ZodError) {
+    return {
+      error,
+      message: processZodError(error).join("\n"),
+      type: "parse-error",
+    };
+  } else if (error instanceof Error) {
+    return {
+      error,
+      message: error.message,
+      type: "general-error",
+    };
+  } else {
+    return {
+      error,
+      message: "Unknown error",
+      type: "unknown-error",
+    };
+  }
 }
 
 export const credentialSubjectValueErrorToString = (error: AppError) =>

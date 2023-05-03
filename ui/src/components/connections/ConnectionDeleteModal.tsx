@@ -25,7 +25,7 @@ export function ConnectionDeleteModal({
 
   const handleDeleteConnection = () => {
     void deleteConnection({ deleteCredentials, env, id, revokeCredentials }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         onClose();
         onDelete();
 

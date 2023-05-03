@@ -67,7 +67,7 @@ export function IssuanceMethodForm({
     async (signal: AbortSignal) => {
       const response = await getConnections({ credentials: false, env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setConnections({ data: response.data.successful, status: "successful" });
         notifyParseErrors(response.data.failed);
       } else {

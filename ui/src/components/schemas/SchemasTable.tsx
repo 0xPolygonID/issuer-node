@@ -92,7 +92,7 @@ export function MySchemas() {
         },
         signal,
       });
-      if (response.isSuccessful) {
+      if (response.success) {
         setSchemas({ data: response.data.successful, status: "successful" });
         notifyParseErrors(response.data.failed);
       } else {

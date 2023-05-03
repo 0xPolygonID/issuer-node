@@ -220,7 +220,7 @@ export function LinksTable() {
         signal,
       });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setLinks({ data: response.data.successful, status: "successful" });
         notifyParseErrors(response.data.failed);
       } else {
@@ -282,7 +282,7 @@ export function LinksTable() {
       id,
       payload: { active },
     }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         updateCredentialInState(active, id);
 
         void message.success(response.data);

@@ -1,18 +1,24 @@
 import axios from "axios";
 import { z } from "zod";
 
-import {
-  ID,
-  IDParser,
-  RequestResponse,
-  ResultOK,
-  buildAppError,
-  buildAuthorizationHeader,
-} from "src/adapters/api";
+import { RequestResponse } from "src/adapters";
+import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
+
+const schemaParser = getStrictParser<Schema>()(
+  z.object({
+    bigInt: z.string(),
+    createdAt: z.coerce.date(z.string().datetime()),
+    hash: z.string(),
+    id: z.string(),
+    type: z.string(),
+    url: z.string(),
+  })
+);
 
 export async function importSchema({
   env,
@@ -38,9 +44,9 @@ export async function importSchema({
     });
     const { id } = IDParser.parse(response.data);
 
-    return { data: { id }, isSuccessful: true };
+    return { data: { id }, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -63,11 +69,11 @@ export async function getSchema({
       signal,
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
-    const { data } = resultOKSchemaParser.parse(response);
+    const data = schemaParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -95,41 +101,16 @@ export async function getSchemas({
       signal,
       url: `${API_VERSION}/schemas`,
     });
-    const { data } = resultOKSchemaListParser.parse(response);
+    const data = getListParser(schemaParser).parse(response.data);
 
     return {
       data: {
         failed: data.failed,
         successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
       },
-      isSuccessful: true,
+      success: true,
     };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
-
-const schemaParser = getStrictParser<Schema>()(
-  z.object({
-    bigInt: z.string(),
-    createdAt: z.coerce.date(z.string().datetime()),
-    hash: z.string(),
-    id: z.string(),
-    type: z.string(),
-    url: z.string(),
-  })
-);
-
-const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
-  z.object({
-    data: schemaParser,
-    status: z.literal(200),
-  })
-);
-
-const resultOKSchemaListParser = getStrictParser<ResultOK<unknown[]>, ResultOK<List<Schema>>>()(
-  z.object({
-    data: getListParser(schemaParser),
-    status: z.literal(200),
-  })
-);

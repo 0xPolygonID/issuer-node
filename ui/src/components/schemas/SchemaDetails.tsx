@@ -41,14 +41,14 @@ export function SchemaDetails() {
     void getJsonSchemaFromUrl({
       url: schema.url,
     }).then((jsonSchemaResponse) => {
-      if (jsonSchemaResponse.isSuccessful) {
+      if (jsonSchemaResponse.success) {
         const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
         setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
         setContextTuple({ status: "loading" });
         void getSchemaJsonLdTypes({
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
-          if (jsonLdTypesResponse.isSuccessful) {
+          if (jsonLdTypesResponse.success) {
             const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
             const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
@@ -91,7 +91,7 @@ export function SchemaDetails() {
           signal,
         });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           setSchema({ data: response.data, status: "successful" });
           fetchJsonSchemaFromUrl(response.data);
         } else {

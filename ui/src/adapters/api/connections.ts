@@ -1,17 +1,13 @@
 import axios from "axios";
 import { z } from "zod";
 
-import {
-  RequestResponse,
-  ResultOK,
-  buildAppError,
-  buildAuthorizationHeader,
-  resultOKMessage,
-} from "src/adapters/api";
+import { RequestResponse } from "src/adapters";
+import { buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { buildAppError } from "src/utils/error";
 import { List } from "src/utils/types";
 
 type ConnectionInput = Omit<Connection, "credentials"> & {
@@ -25,23 +21,6 @@ const connectionParser = getStrictParser<ConnectionInput, Connection>()(
     id: z.string(),
     issuerID: z.string(),
     userID: z.string(),
-  })
-);
-
-const resultOKConnectionParser = getStrictParser<ResultOK<ConnectionInput>, ResultOK<Connection>>()(
-  z.object({
-    data: connectionParser,
-    status: z.literal(200),
-  })
-);
-
-const resultOKConnectionListParser = getStrictParser<
-  ResultOK<unknown[]>,
-  ResultOK<List<Connection>>
->()(
-  z.object({
-    data: getListParser(connectionParser),
-    status: z.literal(200),
   })
 );
 
@@ -64,11 +43,11 @@ export async function getConnection({
       signal,
       url: `${API_VERSION}/connections/${id}`,
     });
-    const { data } = resultOKConnectionParser.parse(response);
+    const data = connectionParser.parse(response.data);
 
-    return { data, isSuccessful: true };
+    return { data, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -99,17 +78,17 @@ export async function getConnections({
       signal,
       url: `${API_VERSION}/connections`,
     });
-    const { data } = resultOKConnectionListParser.parse(response);
+    const data = getListParser(connectionParser).parse(response.data);
 
     return {
       data: {
         failed: data.failed,
         successful: data.successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
       },
-      isSuccessful: true,
+      success: true,
     };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }
 
@@ -138,10 +117,10 @@ export async function deleteConnection({
       url: `${API_VERSION}/connections/${id}`,
     });
 
-    const { data } = resultOKMessage.parse(response);
+    const data = messageParser.parse(response.data);
 
-    return { data: data.message, isSuccessful: true };
+    return { data: data.message, success: true };
   } catch (error) {
-    return { error: buildAppError(error), isSuccessful: false };
+    return { error: buildAppError(error), success: false };
   }
 }

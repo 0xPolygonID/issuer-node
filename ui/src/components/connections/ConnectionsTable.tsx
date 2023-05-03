@@ -134,7 +134,7 @@ export function ConnectionsTable() {
         },
         signal,
       });
-      if (response.isSuccessful) {
+      if (response.success) {
         setConnections({ data: response.data.successful, status: "successful" });
         notifyParseErrors(response.data.failed);
       } else {

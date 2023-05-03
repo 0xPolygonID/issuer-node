@@ -57,7 +57,7 @@ export function IssuerState() {
     const functionToExecute = failedTransaction ? retryPublishState : publishState;
 
     void functionToExecute({ env }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         void message.success(PUBLISHED_MESSAGE);
       } else {
         void message.error(response.error.message);
@@ -74,7 +74,7 @@ export function IssuerState() {
     async (signal?: AbortSignal) => {
       const response = await getTransactions({ env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setTransactions({ data: response.data.successful, status: "successful" });
         notifyParseErrors(response.data.failed);
       } else {
