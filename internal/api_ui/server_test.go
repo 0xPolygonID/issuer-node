@@ -2080,7 +2080,7 @@ func TestServer_GetConnections(t *testing.T) {
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
-					Query: common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Ge"),
+					Query: common.ToPointer("Z7gcmEoP2KppvFPCZqyzyb5tK9T6Ge"),
 				},
 			},
 			expected: expected{
@@ -2155,7 +2155,7 @@ func TestServer_GetConnections(t *testing.T) {
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ"),
+					Query:       common.ToPointer("5HFANQ"),
 				},
 			},
 			expected: expected{
@@ -2199,7 +2199,7 @@ func TestServer_GetConnections(t *testing.T) {
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 birthday"),
+					Query:       common.ToPointer("CZqyzyb5tK9T6Ge  credential"),
 				},
 			},
 			expected: expected{
@@ -2216,12 +2216,12 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
-			name: "should return one connection with invalid did and valid attributes",
+			name: "should return one connection with not existing did and valid attributes",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk birthday"),
+					Query:       common.ToPointer("did:polygon:myhouse:ZZZZZZ birthday"),
 				},
 			},
 			expected: expected{
