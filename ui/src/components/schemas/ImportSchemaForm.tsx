@@ -5,13 +5,13 @@ import { z } from "zod";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { processError, processZodError } from "src/utils/error";
+import { jsonLdContextErrorToString, jsonSchemaErrorToString } from "src/utils/error";
 
 export type FormData = {
   jsonLdType: JsonLdType;
-  jsonLdTypes: AsyncTask<JsonLdType[], string | z.ZodError>;
+  jsonLdTypes: AsyncTask<JsonLdType[], AppError>;
   jsonSchema: JsonSchema;
   rawJsonLdContext: Json;
   rawJsonSchema: Json;
@@ -39,14 +39,14 @@ export function ImportSchemaForm({
   const [rawJsonSchema, setRawJsonSchema] = useState<Json | undefined>(
     initialFormData?.rawJsonSchema
   );
-  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>(
+  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>(
     initialFormData
       ? { data: initialFormData.jsonSchema, status: "successful" }
       : {
           status: "pending",
         }
   );
-  const [jsonLdTypes, setJsonLdTypes] = useState<AsyncTask<JsonLdType[], string | z.ZodError>>(
+  const [jsonLdTypes, setJsonLdTypes] = useState<AsyncTask<JsonLdType[], AppError>>(
     initialFormData
       ? initialFormData.jsonLdTypes
       : {
@@ -57,39 +57,35 @@ export function ImportSchemaForm({
   const fetchJsonSchemaFromUrl = (url: string): void => {
     setJsonSchema({ status: "loading" });
 
-    getJsonSchemaFromUrl({
+    void getJsonSchemaFromUrl({
       url,
-    })
-      .then(([jsonSchema, rawJsonSchema]) => {
+    }).then((jsonSchemaResponse) => {
+      if (jsonSchemaResponse.isSuccessful) {
+        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
         setSchemaUrl(url);
         setJsonSchema({ data: jsonSchema, status: "successful" });
         setRawJsonSchema(rawJsonSchema);
         setJsonLdTypes({ status: "loading" });
 
-        getSchemaJsonLdTypes({
+        void getSchemaJsonLdTypes({
           jsonSchema,
-        })
-          .then(([jsonLdTypes, rawJsonLdContext]) => {
+        }).then((jsonLdTypesResponse) => {
+          if (jsonLdTypesResponse.isSuccessful) {
+            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
             setJsonLdTypes({ data: jsonLdTypes, status: "successful" });
             setRawJsonLdContext(rawJsonLdContext);
 
             if (jsonLdTypes.length === 1) {
               setJsonLdTypeInput(jsonLdTypes[0]);
             }
-          })
-          .catch((error) => {
-            setJsonLdTypes({
-              error: processError(error),
-              status: "failed",
-            });
-          });
-      })
-      .catch((error) => {
-        setJsonSchema({
-          error: processError(error),
-          status: "failed",
+          } else {
+            setJsonLdTypes({ error: jsonLdTypesResponse.error, status: "failed" });
+          }
         });
-      });
+      } else {
+        setJsonSchema({ error: jsonSchemaResponse.error, status: "failed" });
+      }
+    });
   };
 
   const loadSchema = () => {
@@ -101,7 +97,13 @@ export function ImportSchemaForm({
       setJsonLdTypeInput(undefined);
       fetchJsonSchemaFromUrl(parsedUrl.data);
     } else {
-      setJsonSchema({ error: `"${schemaUrlInput}" is not a valid URL`, status: "failed" });
+      setJsonSchema({
+        error: {
+          message: `"${schemaUrlInput}" is not a valid URL`,
+          type: "custom-error",
+        },
+        status: "failed",
+      });
     }
   };
 
@@ -174,31 +176,11 @@ export function ImportSchemaForm({
           )}
 
           {jsonSchema.status === "failed" && (
-            <ErrorResult
-              error={
-                jsonSchema.error instanceof z.ZodError
-                  ? [
-                      "An error occurred while trying to parse this schema:",
-                      ...processZodError(jsonSchema.error).map((e) => `"${e}"`),
-                      "Please provide a valid JSON Schema.",
-                    ].join("\n")
-                  : `An error occurred while downloading this schema:\n"${jsonSchema.error}"\nPlease try again.`
-              }
-            />
+            <ErrorResult error={jsonSchemaErrorToString(jsonSchema.error)} />
           )}
 
           {jsonLdTypes.status === "failed" && (
-            <ErrorResult
-              error={
-                jsonLdTypes.error instanceof z.ZodError
-                  ? [
-                      "An error occurred while trying to parse the JSON LD Type referenced in this schema:",
-                      ...processZodError(jsonLdTypes.error).map((e) => `"${e}"`),
-                      "Please provide a schema with a valid JSON LD Type.",
-                    ].join("\n")
-                  : `An error occurred while downloading the JSON LD Type referenced in this schema:\n"${jsonLdTypes.error}"\nPlease try again.`
-              }
-            />
+            <ErrorResult error={jsonLdContextErrorToString(jsonLdTypes.error)} />
           )}
 
           <Divider />

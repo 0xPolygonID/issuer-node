@@ -2,7 +2,12 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { z } from "zod";
 
-import { APIResponse, ResultOK, buildAPIError, buildAuthorizationHeader } from "src/adapters/api";
+import {
+  RequestResponse,
+  ResultOK,
+  buildAppError,
+  buildAuthorizationHeader,
+} from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
@@ -28,7 +33,7 @@ const transactionParser = getStrictParser<Transaction>()(
   })
 );
 
-export async function publishState({ env }: { env: Env }): Promise<APIResponse<boolean>> {
+export async function publishState({ env }: { env: Env }): Promise<RequestResponse<boolean>> {
   try {
     await axios({
       baseURL: env.api.url,
@@ -41,11 +46,11 @@ export async function publishState({ env }: { env: Env }): Promise<APIResponse<b
 
     return { data: true, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
-export async function retryPublishState({ env }: { env: Env }): Promise<APIResponse<boolean>> {
+export async function retryPublishState({ env }: { env: Env }): Promise<RequestResponse<boolean>> {
   try {
     await axios({
       baseURL: env.api.url,
@@ -58,7 +63,7 @@ export async function retryPublishState({ env }: { env: Env }): Promise<APIRespo
 
     return { data: true, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -68,7 +73,7 @@ export async function getStatus({
 }: {
   env: Env;
   signal?: AbortSignal;
-}): Promise<APIResponse<IssuerStatus>> {
+}): Promise<RequestResponse<IssuerStatus>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -83,7 +88,7 @@ export async function getStatus({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -100,7 +105,7 @@ export async function getTransactions({
 }: {
   env: Env;
   signal?: AbortSignal;
-}): Promise<APIResponse<List<Transaction>>> {
+}): Promise<RequestResponse<List<Transaction>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -123,7 +128,7 @@ export async function getTransactions({
       isSuccessful: true,
     };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 

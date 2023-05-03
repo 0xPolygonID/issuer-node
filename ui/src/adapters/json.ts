@@ -1,6 +1,7 @@
 import axios from "axios";
 import z from "zod";
 
+import { RequestResponse, buildAppError } from "src/adapters/api";
 import { getStrictParser } from "src/adapters/parsers";
 import { Json, JsonLiteral } from "src/domain";
 
@@ -26,12 +27,26 @@ export async function downloadJsonFromUrl({ fileName, url }: { fileName: string;
   a.remove();
 }
 
-export async function getJsonFromUrl({ signal, url }: { signal?: AbortSignal; url: string }) {
-  const response = await axios({
-    method: "GET",
-    signal,
-    url,
-  });
+export async function getJsonFromUrl({
+  signal,
+  url,
+}: {
+  signal?: AbortSignal;
+  url: string;
+}): Promise<RequestResponse<Json>> {
+  try {
+    const response = await axios({
+      method: "GET",
+      signal,
+      url,
+    });
+    const data = jsonParser.parse(response.data);
 
-  return jsonParser.parse(response.data);
+    return {
+      data,
+      isSuccessful: true,
+    };
+  } catch (error) {
+    return { error: buildAppError(error), isSuccessful: false };
+  }
 }

@@ -19,7 +19,6 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -31,7 +30,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Link } from "src/domain";
+import { AppError, Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -44,7 +43,7 @@ import {
   STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
@@ -52,7 +51,7 @@ export function LinksTable() {
 
   const navigate = useNavigate();
 
-  const [links, setLinks] = useState<AsyncTask<Link[], APIError>>({
+  const [links, setLinks] = useState<AsyncTask<Link[], AppError>>({
     status: "pending",
   });
   const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
@@ -223,9 +222,7 @@ export function LinksTable() {
 
       if (response.isSuccessful) {
         setLinks({ data: response.data.successful, status: "successful" });
-        response.data.failed.map((error) =>
-          processZodError(error).forEach((error) => void message.error(error))
-        );
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setLinks({ error: response.error, status: "failed" });

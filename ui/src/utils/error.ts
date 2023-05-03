@@ -1,13 +1,14 @@
+import { message } from "antd";
 import z from "zod";
+import { AppError } from "src/domain";
 
-export const processError = (error: unknown) =>
-  error instanceof z.ZodError
-    ? error
-    : error instanceof Error
-    ? error.message
-    : typeof error === "string"
-    ? error
-    : "Unknown error";
+export function notifyParseError(error: z.ZodError): void {
+  processZodError(error).forEach((error) => void message.error(error));
+}
+
+export function notifyParseErrors(errors: z.ZodError[]): void {
+  errors.forEach(notifyParseError);
+}
 
 export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   return error.errors.reduce((mainAcc, issue): string[] => {
@@ -35,10 +36,29 @@ export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   }, init);
 }
 
-export const credentialSubjectValueErrorToString = (error: string | z.ZodError) =>
-  error instanceof z.ZodError
-    ? [
-        "An error occurred while parsing the value of the credentialSubject:",
-        ...processZodError(error).map((e) => `"${e}"`),
-      ].join("\n")
-    : `An error occurred while processing the value of the credentialSubject:\n"${error}"`;
+export const credentialSubjectValueErrorToString = (error: AppError) =>
+  [
+    error.type === "parse-error" || error.type === "custom-error"
+      ? "An error occurred while parsing the value of the credentialSubject:"
+      : "An error occurred while processing the value of the credentialSubject",
+    error.message,
+    "Please try again.",
+  ].join("\n");
+
+export const jsonSchemaErrorToString = (error: AppError) =>
+  [
+    error.type === "parse-error" || error.type === "custom-error"
+      ? "An error occurred while parsing the json schema:"
+      : "An error occurred while downloading the json schema:",
+    error.message,
+    "Please try again.",
+  ].join("\n");
+
+export const jsonLdContextErrorToString = (error: AppError) =>
+  [
+    error.type === "parse-error" || error.type === "custom-error"
+      ? "An error occurred while parsing the JSON LD Type referenced in this schema:"
+      : "An error occurred while downloading the JSON LD Type referenced in this schema:",
+    error.message,
+    "Please try again.",
+  ].join("\n");

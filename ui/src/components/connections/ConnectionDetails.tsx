@@ -2,7 +2,6 @@ import { Button, Card, Row, Space } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getConnection } from "src/adapters/api/connections";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ConnectionDeleteModal } from "src/components/connections/ConnectionDeleteModal";
@@ -12,7 +11,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection } from "src/domain";
+import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { DELETE, IDENTIFIER } from "src/utils/constants";
@@ -23,7 +22,7 @@ export function ConnectionDetails() {
 
   const navigate = useNavigate();
 
-  const [connection, setConnection] = useState<AsyncTask<Connection, APIError>>({
+  const [connection, setConnection] = useState<AsyncTask<Connection, AppError>>({
     status: "pending",
   });
 

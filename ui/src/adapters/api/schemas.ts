@@ -2,11 +2,11 @@ import axios from "axios";
 import { z } from "zod";
 
 import {
-  APIResponse,
   ID,
   IDParser,
+  RequestResponse,
   ResultOK,
-  buildAPIError,
+  buildAppError,
   buildAuthorizationHeader,
 } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
@@ -22,7 +22,7 @@ export async function importSchema({
   env: Env;
   jsonLdType: JsonLdType;
   schemaUrl: string;
-}): Promise<APIResponse<ID>> {
+}): Promise<RequestResponse<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -40,7 +40,7 @@ export async function importSchema({
 
     return { data: { id }, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -52,7 +52,7 @@ export async function getSchema({
   env: Env;
   schemaID: string;
   signal: AbortSignal;
-}): Promise<APIResponse<Schema>> {
+}): Promise<RequestResponse<Schema>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -67,7 +67,7 @@ export async function getSchema({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -81,7 +81,7 @@ export async function getSchemas({
     query?: string;
   };
   signal: AbortSignal;
-}): Promise<APIResponse<List<Schema>>> {
+}): Promise<RequestResponse<List<Schema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -105,7 +105,7 @@ export async function getSchemas({
       isSuccessful: true,
     };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 

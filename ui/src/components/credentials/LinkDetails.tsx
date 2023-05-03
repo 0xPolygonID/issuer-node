@@ -1,9 +1,8 @@
 import { Button, Card, Space, TagProps, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
-import { z } from "zod";
 
-import { APIError } from "src/adapters/api";
+import { buildAppError } from "src/adapters/api";
 import { getLink } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
@@ -15,7 +14,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { Link, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { AppError, Link, ObjectAttribute, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -25,7 +24,7 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE } from "src/utils/constants";
-import { credentialSubjectValueErrorToString, processError } from "src/utils/error";
+import { credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinkDetails() {
@@ -35,11 +34,11 @@ export function LinkDetails() {
   const env = useEnvContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
-    AsyncTask<ObjectAttributeValue, string | z.ZodError>
+    AsyncTask<ObjectAttributeValue, AppError>
   >({
     status: "pending",
   });
-  const [link, setLink] = useState<AsyncTask<Link, APIError>>({
+  const [link, setLink] = useState<AsyncTask<Link, AppError>>({
     status: "pending",
   });
 
@@ -48,8 +47,10 @@ export function LinkDetails() {
   const fetchJsonSchemaFromUrl = useCallback(({ link }: { link: Link }): void => {
     setCredentialSubjectValue({ status: "loading" });
 
-    getJsonSchemaFromUrl({ url: link.schemaUrl })
-      .then(([jsonSchema]) => {
+    void getJsonSchemaFromUrl({ url: link.schemaUrl }).then((response) => {
+      if (response.isSuccessful) {
+        const [jsonSchema] = response.data;
+
         const credentialSubjectSchema =
           (jsonSchema.type === "object" &&
             jsonSchema.schema.properties
@@ -81,29 +82,35 @@ export function LinkDetails() {
               });
             } else {
               setCredentialSubjectValue({
-                error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+                error: {
+                  message: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+                  type: "custom-error",
+                },
                 status: "failed",
               });
             }
           } else {
             setCredentialSubjectValue({
-              error: parsedCredentialSubject.error,
+              error: buildAppError(parsedCredentialSubject.error),
               status: "failed",
             });
           }
         } else {
           setCredentialSubjectValue({
-            error: `Could not find the attribute "credentialSubject" in the object's schema.`,
+            error: {
+              message: `Could not find the attribute "credentialSubject" in the object's schema.`,
+              type: "custom-error",
+            },
             status: "failed",
           });
         }
-      })
-      .catch((error) => {
+      } else {
         setCredentialSubjectValue({
-          error: processError(error),
+          error: response.error,
           status: "failed",
         });
-      });
+      }
+    });
   }, []);
 
   const fetchLink = useCallback(

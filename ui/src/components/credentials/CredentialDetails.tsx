@@ -1,9 +1,8 @@
 import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
-import { z } from "zod";
 
-import { APIError } from "src/adapters/api";
+import { buildAppError } from "src/adapters/api";
 import { getCredential } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
@@ -17,7 +16,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { Credential, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { AppError, Credential, ObjectAttribute, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -27,7 +26,7 @@ import {
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
-import { credentialSubjectValueErrorToString, processError } from "src/utils/error";
+import { credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialDetails() {
@@ -37,11 +36,11 @@ export function CredentialDetails() {
   const env = useEnvContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
-    AsyncTask<ObjectAttributeValue, string | z.ZodError>
+    AsyncTask<ObjectAttributeValue, AppError>
   >({
     status: "pending",
   });
-  const [credential, setCredential] = useState<AsyncTask<Credential, APIError>>({
+  const [credential, setCredential] = useState<AsyncTask<Credential, AppError>>({
     status: "pending",
   });
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
@@ -50,8 +49,9 @@ export function CredentialDetails() {
   const fetchJsonSchemaFromUrl = useCallback(({ credential }: { credential: Credential }): void => {
     setCredentialSubjectValue({ status: "loading" });
 
-    getJsonSchemaFromUrl({ url: credential.schemaUrl })
-      .then(([jsonSchema]) => {
+    void getJsonSchemaFromUrl({ url: credential.schemaUrl }).then((response) => {
+      if (response.isSuccessful) {
+        const [jsonSchema] = response.data;
         const credentialSubjectSchema =
           (jsonSchema.type === "object" &&
             jsonSchema.schema.properties
@@ -72,29 +72,35 @@ export function CredentialDetails() {
               });
             } else {
               setCredentialSubjectValue({
-                error: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+                error: {
+                  message: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
+                  type: "custom-error",
+                },
                 status: "failed",
               });
             }
           } else {
             setCredentialSubjectValue({
-              error: parsedCredentialSubject.error,
+              error: buildAppError(parsedCredentialSubject.error),
               status: "failed",
             });
           }
         } else {
           setCredentialSubjectValue({
-            error: `Could not find the attribute "credentialSubject" in the object's schema.`,
+            error: {
+              message: `Could not find the attribute "credentialSubject" in the object's schema.`,
+              type: "custom-error",
+            },
             status: "failed",
           });
         }
-      })
-      .catch((error) => {
+      } else {
         setCredentialSubjectValue({
-          error: processError(error),
+          error: response.error,
           status: "failed",
         });
-      });
+      }
+    });
   }, []);
 
   const fetchCredential = useCallback(

@@ -2,25 +2,20 @@ import axios from "axios";
 import z from "zod";
 
 import { getStrictParser } from "src/adapters/parsers";
-import { Env } from "src/domain";
+import { AppError, Env } from "src/domain";
 import { processZodError } from "src/utils/error";
 
-export interface APIError {
-  message: string;
-  status?: number;
-}
-
-interface APIErrorResponse {
-  error: APIError;
+interface RequestErrorResponse {
+  error: AppError;
   isSuccessful: false;
 }
 
-interface APISuccessfulResponse<D> {
+interface RequestSuccessfulResponse<D> {
   data: D;
   isSuccessful: true;
 }
 
-export type APIResponse<D> = APISuccessfulResponse<D> | APIErrorResponse;
+export type RequestResponse<D> = RequestSuccessfulResponse<D> | RequestErrorResponse;
 
 export interface ResultAccepted<D> {
   data: D;
@@ -37,54 +32,46 @@ export interface ResultCreated<D> {
   status: 201;
 }
 
-interface ResponseError {
-  data: { message: string };
-  status: number;
-}
-
-const responseErrorParser = getStrictParser<ResponseError>()(
-  z.object({
-    data: z.object({ message: z.string() }),
-    status: z.number(),
-  })
-);
-
 export interface ID {
   id: string;
 }
 
 export const IDParser = getStrictParser<ID>()(z.object({ id: z.string() }));
 
-export function buildAPIError(error: unknown): APIError {
+export function buildAppError(error: unknown): AppError {
   if (axios.isCancel(error)) {
-    return { message: error.toString(), status: 0 };
+    return {
+      error,
+      message: error.message
+        ? `The request has been aborted. ${error.message}`
+        : "The request has been aborted.",
+      type: "cancel-error",
+    };
+  } else if (axios.isAxiosError(error)) {
+    return {
+      error,
+      message: error.message,
+      type: "request-error",
+    };
+  } else if (error instanceof z.ZodError) {
+    return {
+      error,
+      message: processZodError(error).join("\n"),
+      type: "parse-error",
+    };
+  } else if (error instanceof Error) {
+    return {
+      error,
+      message: error.message,
+      type: "general-error",
+    };
+  } else {
+    return {
+      error,
+      message: "Unknown error",
+      type: "unknown-error",
+    };
   }
-
-  if (axios.isAxiosError(error)) {
-    try {
-      // This is a UI API error.
-      const { data, status } = responseErrorParser.parse(error.response);
-      const { message } = data;
-
-      return { message, status };
-    } catch (e) {
-      // This catches a CORS or other network error.
-      return { message: error.message };
-    }
-  }
-
-  if (error instanceof z.ZodError) {
-    return { message: processZodError(error).join("\n") };
-  }
-
-  if (error instanceof Error) {
-    // This is an application-level error.
-    return { message: error.toString() };
-  }
-
-  // This shouldn't happen (catch-all).
-  console.error(error);
-  return { message: "Unknown error" };
 }
 
 export function buildAuthorizationHeader(env: Env) {

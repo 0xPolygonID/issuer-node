@@ -2,7 +2,6 @@ import { Avatar, Button, Space, Typography, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import {
   AuthQRCode,
   ImportQRCode,
@@ -18,6 +17,7 @@ import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
+import { AppError } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { POLLING_INTERVAL } from "src/utils/constants";
@@ -26,10 +26,10 @@ export function CredentialLinkQR() {
   const env = useEnvContext();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, APIError>>({
+  const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, AppError>>({
     status: "pending",
   });
-  const [importQRCheck, setImportQRCheck] = useState<AsyncTask<ImportQRCode, APIError>>({
+  const [importQRCheck, setImportQRCheck] = useState<AsyncTask<ImportQRCode, AppError>>({
     status: "pending",
   });
 
@@ -117,7 +117,7 @@ export function CredentialLinkQR() {
     : undefined;
 
   if (hasFailed) {
-    if (hasFailed.status === 404) {
+    if (hasFailed.type === "request-error" && hasFailed.error.status === 404) {
       return (
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
@@ -129,7 +129,7 @@ export function CredentialLinkQR() {
           </Typography.Text>
         </Space>
       );
-    } else if (hasFailed.status === 400) {
+    } else if (hasFailed.type === "request-error" && hasFailed.error.status === 400) {
       return (
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />

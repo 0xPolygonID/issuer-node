@@ -2,9 +2,9 @@ import axios from "axios";
 import { z } from "zod";
 
 import {
-  APIResponse,
+  RequestResponse,
   ResultOK,
-  buildAPIError,
+  buildAppError,
   buildAuthorizationHeader,
   resultOKMessage,
 } from "src/adapters/api";
@@ -53,7 +53,7 @@ export async function getConnection({
   env: Env;
   id: string;
   signal: AbortSignal;
-}): Promise<APIResponse<Connection>> {
+}): Promise<RequestResponse<Connection>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -68,7 +68,7 @@ export async function getConnection({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -84,7 +84,7 @@ export async function getConnections({
     query?: string;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<List<Connection>>> {
+}): Promise<RequestResponse<List<Connection>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -109,7 +109,7 @@ export async function getConnections({
       isSuccessful: true,
     };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -123,7 +123,7 @@ export async function deleteConnection({
   env: Env;
   id: string;
   revokeCredentials: boolean;
-}): Promise<APIResponse<string>> {
+}): Promise<RequestResponse<string>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -142,6 +142,6 @@ export async function deleteConnection({
 
     return { data: data.message, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }

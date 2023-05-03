@@ -2,13 +2,13 @@ import axios from "axios";
 import { z } from "zod";
 
 import {
-  APIResponse,
   ID,
   IDParser,
+  RequestResponse,
   ResultAccepted,
   ResultCreated,
   ResultOK,
-  buildAPIError,
+  buildAppError,
   buildAuthorizationHeader,
   resultOKMessage,
 } from "src/adapters/api";
@@ -74,7 +74,7 @@ export async function getCredential({
   credentialID: string;
   env: Env;
   signal?: AbortSignal;
-}): Promise<APIResponse<Credential>> {
+}): Promise<RequestResponse<Credential>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -89,7 +89,7 @@ export async function getCredential({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -112,7 +112,7 @@ export async function getCredentials({
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<List<Credential>>> {
+}): Promise<RequestResponse<List<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -138,7 +138,7 @@ export async function getCredentials({
       isSuccessful: true,
     };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -167,7 +167,7 @@ export async function createCredential({
 }: {
   env: Env;
   payload: CreateCredential;
-}): Promise<APIResponse<ID>> {
+}): Promise<RequestResponse<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -182,7 +182,7 @@ export async function createCredential({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -192,7 +192,7 @@ export async function revokeCredential({
 }: {
   env: Env;
   nonce: number;
-}): Promise<APIResponse<string>> {
+}): Promise<RequestResponse<string>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -206,7 +206,7 @@ export async function revokeCredential({
 
     return { data: data.message, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -225,7 +225,7 @@ export async function deleteCredential({
 }: {
   env: Env;
   id: string;
-}): Promise<APIResponse<string>> {
+}): Promise<RequestResponse<string>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -240,7 +240,7 @@ export async function deleteCredential({
 
     return { data: data.message, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -280,7 +280,7 @@ export async function getLink({
   env: Env;
   linkID: string;
   signal: AbortSignal;
-}): Promise<APIResponse<Link>> {
+}): Promise<RequestResponse<Link>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -295,7 +295,7 @@ export async function getLink({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -317,7 +317,7 @@ export async function getLinks({
     status?: LinkStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<List<Link>>> {
+}): Promise<RequestResponse<List<Link>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -342,7 +342,7 @@ export async function getLinks({
       isSuccessful: true,
     };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -363,7 +363,7 @@ export async function updateLink({
   payload: {
     active: boolean;
   };
-}): Promise<APIResponse<string>> {
+}): Promise<RequestResponse<string>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -378,7 +378,7 @@ export async function updateLink({
 
     return { data: data.message, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -388,7 +388,7 @@ export async function deleteLink({
 }: {
   env: Env;
   id: string;
-}): Promise<APIResponse<string>> {
+}): Promise<RequestResponse<string>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -402,7 +402,7 @@ export async function deleteLink({
 
     return { data: data.message, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -422,7 +422,7 @@ export async function createLink({
 }: {
   env: Env;
   payload: CreateLink;
-}): Promise<APIResponse<{ id: string }>> {
+}): Promise<RequestResponse<{ id: string }>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -437,7 +437,7 @@ export async function createLink({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -474,7 +474,7 @@ export async function createAuthQRCode({
   env: Env;
   linkID: string;
   signal?: AbortSignal;
-}): Promise<APIResponse<AuthQRCode>> {
+}): Promise<RequestResponse<AuthQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -487,7 +487,7 @@ export async function createAuthQRCode({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -543,7 +543,7 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<APIResponse<IssuedQRCode>> {
+}): Promise<RequestResponse<IssuedQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -556,7 +556,7 @@ export async function getIssuedQRCode({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
 
@@ -594,7 +594,7 @@ export async function getImportQRCode({
   env: Env;
   linkID: string;
   sessionID: string;
-}): Promise<APIResponse<ImportQRCode>> {
+}): Promise<RequestResponse<ImportQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -608,6 +608,6 @@ export async function getImportQRCode({
 
     return { data, isSuccessful: true };
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return { error: buildAppError(error), isSuccessful: false };
   }
 }
