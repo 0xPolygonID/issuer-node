@@ -12,6 +12,7 @@ export interface EnvInput {
   VITE_ISSUER_DID: string;
   VITE_ISSUER_LOGO?: string;
   VITE_ISSUER_NAME: string;
+  VITE_WARNING_MESSAGE?: string;
 }
 
 export const envParser = getStrictParser<EnvInput, Env>()(
@@ -24,6 +25,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
       VITE_ISSUER_DID: z.string(),
       VITE_ISSUER_LOGO: z.string().optional(),
       VITE_ISSUER_NAME: z.string().min(1),
+      VITE_WARNING_MESSAGE: z.string().optional(),
     })
     .transform(
       ({
@@ -34,6 +36,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
         VITE_ISSUER_DID,
         VITE_ISSUER_LOGO,
         VITE_ISSUER_NAME,
+        VITE_WARNING_MESSAGE,
       }): Env => ({
         api: {
           password: VITE_API_PASSWORD,
@@ -46,6 +49,7 @@ export const envParser = getStrictParser<EnvInput, Env>()(
           logo: VITE_ISSUER_LOGO || IMAGE_PLACEHOLDER_PATH,
           name: VITE_ISSUER_NAME,
         },
+        warningMessage: VITE_WARNING_MESSAGE,
       })
     )
 );
