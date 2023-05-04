@@ -26,7 +26,7 @@ import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { AppError, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { makeRequestAbortable } from "src/utils/browser";
+import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS_TABS,
   ISSUE_CREDENTIAL,
@@ -150,7 +150,7 @@ export function IssueCredential() {
               status: "successful",
             });
           } else {
-            if (response.error.type !== "cancel-error") {
+            if (!isAbortedError(response.error)) {
               setJsonSchema({ error: response.error, status: "failed" });
             }
           }
