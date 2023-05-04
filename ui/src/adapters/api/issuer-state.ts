@@ -28,7 +28,7 @@ const transactionParser = getStrictParser<Transaction>()(
   })
 );
 
-export async function publishState({ env }: { env: Env }): Promise<Response<void>> {
+export async function publishState({ env }: { env: Env }): Promise<Response<null>> {
   try {
     await axios({
       baseURL: env.api.url,
@@ -38,13 +38,13 @@ export async function publishState({ env }: { env: Env }): Promise<Response<void
       method: "POST",
       url: `${API_VERSION}/state/publish`,
     });
-    return buildSuccessResponse(undefined);
+    return buildSuccessResponse(null);
   } catch (error) {
     return buildErrorResponse(error);
   }
 }
 
-export async function retryPublishState({ env }: { env: Env }): Promise<Response<void>> {
+export async function retryPublishState({ env }: { env: Env }): Promise<Response<null>> {
   try {
     await axios({
       baseURL: env.api.url,
@@ -54,7 +54,7 @@ export async function retryPublishState({ env }: { env: Env }): Promise<Response
       method: "POST",
       url: `${API_VERSION}/state/retry`,
     });
-    return buildSuccessResponse(undefined);
+    return buildSuccessResponse(null);
   } catch (error) {
     return buildErrorResponse(error);
   }
