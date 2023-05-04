@@ -115,7 +115,8 @@
             "format": "uri"
           },
           "hireDate": {
-            "type": "string"
+            "type": "string",
+            "format": "date-time"
           }
         }
       }
