@@ -15,7 +15,13 @@ import { Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IMPORT_SCHEMA, QUERY_SEARCH_PARAM, SCHEMAS, SCHEMA_TYPE } from "src/utils/constants";
+import {
+  IMPORT_SCHEMA,
+  QUERY_SEARCH_PARAM,
+  SCHEMAS,
+  SCHEMA_SEARCH_PARAM,
+  SCHEMA_TYPE,
+} from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
@@ -66,9 +72,10 @@ export function MySchemas() {
               Details
             </Link>
             <Link
-              to={generatePath(ROUTES.issueCredential.path, {
-                schemaID,
-              })}
+              to={{
+                pathname: generatePath(ROUTES.issueCredential.path),
+                search: `?${SCHEMA_SEARCH_PARAM}=${schemaID}`,
+              }}
             >
               Issue
             </Link>

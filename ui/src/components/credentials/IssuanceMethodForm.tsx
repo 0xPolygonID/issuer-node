@@ -15,7 +15,6 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
@@ -25,32 +24,23 @@ import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
-import {
-  ACCESSIBLE_UNTIL,
-  CREDENTIAL_LINK,
-  DID_SEARCH_PARAM,
-  VALUE_REQUIRED,
-} from "src/utils/constants";
+import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/constants";
 import { processZodError } from "src/utils/error";
 
 export function IssuanceMethodForm({
+  did,
   initialValues,
+  onChangeDid,
   onSubmit,
 }: {
+  did?: string;
   initialValues: IssuanceMethodFormData;
+  onChangeDid: (did: unknown) => void;
   onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
   const env = useEnvContext();
-  const [searchParams] = useSearchParams();
 
-  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(
-    initialValues.type === "directIssue" && !initialValues.did
-      ? {
-          ...initialValues,
-          did: searchParams.get(DID_SEARCH_PARAM) || undefined,
-        }
-      : initialValues
-  );
+  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
   const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
     status: "pending",
   });
@@ -96,6 +86,7 @@ export function IssuanceMethodForm({
         onFinish={onSubmit}
         onValuesChange={(changedValues, allValues) => {
           const parsedLinkExpirationDate = linkExpirationDateParser.safeParse(changedValues);
+
           if (
             allValues.type === "credentialLink" &&
             parsedLinkExpirationDate.success &&
@@ -105,6 +96,7 @@ export function IssuanceMethodForm({
           ) {
             setIssuanceMethod({ ...allValues, linkExpirationTime: undefined });
           } else {
+            onChangeDid(changedValues);
             setIssuanceMethod(allValues);
           }
         }}

@@ -196,6 +196,14 @@ export const linkExpirationDateParser = getStrictParser<{
   })
 );
 
+export const didParser = getStrictParser<{
+  did: string;
+}>()(
+  z.object({
+    did: z.string(),
+  })
+);
+
 // Serializers
 
 export function serializeCredentialLinkIssuance({

@@ -18,6 +18,7 @@ import { Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+import { SCHEMA_SEARCH_PARAM } from "src/utils/constants";
 import { processError, processZodError } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
@@ -185,7 +186,10 @@ export function SchemaDetails() {
                   <Button
                     icon={<CreditCardIcon />}
                     onClick={() => {
-                      navigate(generatePath(ROUTES.issueCredential.path, { schemaID }));
+                      navigate({
+                        pathname: generatePath(ROUTES.issueCredential.path),
+                        search: schemaID ? `?${SCHEMA_SEARCH_PARAM}=${schemaID}` : "",
+                      });
                     }}
                     type="primary"
                   >
