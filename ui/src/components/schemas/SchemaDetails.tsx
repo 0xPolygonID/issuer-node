@@ -137,6 +137,10 @@ export function SchemaDetails() {
     isAsyncTaskStarting(jsonSchemaTuple) ||
     isAsyncTaskStarting(contextTuple);
 
+  if (!schemaID) {
+    return <ErrorResult error="No schema id provided" />;
+  }
+
   return (
     <SiderLayoutContent
       description="Schema details include a hash, schema URL and attributes. The schema can be viewed formatted by its attributes, as the JSON LD Context or as a JSON."
@@ -188,7 +192,7 @@ export function SchemaDetails() {
                     onClick={() => {
                       navigate({
                         pathname: generatePath(ROUTES.issueCredential.path),
-                        search: schemaID ? `${SCHEMA_SEARCH_PARAM}=${schemaID}` : "",
+                        search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
                       });
                     }}
                     type="primary"

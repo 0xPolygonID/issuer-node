@@ -87,7 +87,7 @@ export function IssueCredential() {
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const onChangeDid = (did: string) => {
+  const onChangeDid = (did?: string) => {
     const search = new URLSearchParams(searchParams);
 
     if (did) {
@@ -243,14 +243,13 @@ export function IssueCredential() {
           case "issuanceMethod": {
             return (
               <IssuanceMethodForm
-                did={did}
                 initialValues={credentialFormInput.issuanceMethod}
                 onChangeDid={onChangeDid}
                 onSubmit={(values) => {
                   if (values.type === "directIssue" && values.did) {
                     onChangeDid(values.did);
                   } else {
-                    onChangeDid("");
+                    onChangeDid(undefined);
                   }
 
                   setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });

@@ -76,7 +76,13 @@ export function SelectSchema({
             }
           }}
           placeholder={SCHEMA_TYPE}
-          value={schemaID && isAsyncTaskDataAvailable(schemas) ? schemaID : undefined}
+          value={
+            schemaID &&
+            isAsyncTaskDataAvailable(schemas) &&
+            schemas.data.find((schema) => schema.id === schemaID)
+              ? schemaID
+              : undefined
+          }
         >
           {isAsyncTaskDataAvailable(schemas) &&
             schemas.data.map(({ id, type }) => (

@@ -36,7 +36,6 @@ export function IssuanceMethodForm({
   onChangeDid,
   onSubmit,
 }: {
-  did?: string;
   initialValues: IssuanceMethodFormData;
   onChangeDid: (did: string) => void;
   onSubmit: (values: IssuanceMethodFormData) => void;
