@@ -11,7 +11,6 @@ import {
   CredentialFormInput,
   CredentialLinkIssuance,
   credentialFormParser,
-  didParser,
   serializeCredentialIssuance,
   serializeCredentialLinkIssuance,
 } from "src/adapters/parsers/forms";
@@ -88,27 +87,22 @@ export function IssueCredential() {
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const onChangeDid = (changedValues: unknown) => {
-    const parsedDid = didParser.safeParse(changedValues);
+  const onChangeDid = (did: string) => {
+    const search = new URLSearchParams(searchParams);
 
-    if (parsedDid.success) {
-      const { did } = parsedDid.data;
-      const search = new URLSearchParams(searchParams);
-
-      if (did) {
-        search.set(DID_SEARCH_PARAM, did);
-      } else {
-        search.delete(DID_SEARCH_PARAM);
-      }
-
-      navigate(
-        {
-          pathname: generatePath(ROUTES.issueCredential.path),
-          search: search.toString(),
-        },
-        { replace: true }
-      );
+    if (did) {
+      search.set(DID_SEARCH_PARAM, did);
+    } else {
+      search.delete(DID_SEARCH_PARAM);
     }
+
+    navigate(
+      {
+        pathname: generatePath(ROUTES.issueCredential.path),
+        search: search.toString(),
+      },
+      { replace: true }
+    );
   };
 
   const onChangeSchema = useCallback(
@@ -253,10 +247,10 @@ export function IssueCredential() {
                 initialValues={credentialFormInput.issuanceMethod}
                 onChangeDid={onChangeDid}
                 onSubmit={(values) => {
-                  if (values.type === "directIssue") {
-                    onChangeDid({ did: values.did });
+                  if (values.type === "directIssue" && values.did) {
+                    onChangeDid(values.did);
                   } else {
-                    onChangeDid({ did: "" });
+                    onChangeDid("");
                   }
 
                   setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
