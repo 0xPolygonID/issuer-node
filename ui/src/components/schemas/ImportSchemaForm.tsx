@@ -7,7 +7,11 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { jsonLdContextErrorToString, jsonSchemaErrorToString } from "src/utils/error";
+import {
+  buildAppError,
+  jsonLdContextErrorToString,
+  jsonSchemaErrorToString,
+} from "src/utils/error";
 
 export type FormData = {
   jsonLdType: JsonLdType;
@@ -98,10 +102,7 @@ export function ImportSchemaForm({
       fetchJsonSchemaFromUrl(parsedUrl.data);
     } else {
       setJsonSchema({
-        error: {
-          message: `"${schemaUrlInput}" is not a valid URL`,
-          type: "custom-error",
-        },
+        error: buildAppError(`"${schemaUrlInput}" is not a valid URL`),
         status: "failed",
       });
     }

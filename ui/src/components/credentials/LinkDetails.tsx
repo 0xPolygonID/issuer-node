@@ -81,10 +81,9 @@ export function LinkDetails() {
               });
             } else {
               setCredentialSubjectValue({
-                error: {
-                  message: `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`,
-                  type: "custom-error",
-                },
+                error: buildAppError(
+                  `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`
+                ),
                 status: "failed",
               });
             }
@@ -96,10 +95,9 @@ export function LinkDetails() {
           }
         } else {
           setCredentialSubjectValue({
-            error: {
-              message: `Could not find the attribute "credentialSubject" in the object's schema.`,
-              type: "custom-error",
-            },
+            error: buildAppError(
+              `Could not find the attribute "credentialSubject" in the object's schema.`
+            ),
             status: "failed",
           });
         }

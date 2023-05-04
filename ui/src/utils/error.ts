@@ -38,7 +38,12 @@ export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
 }
 
 export function buildAppError(error: unknown): AppError {
-  if (isCancel(error)) {
+  if (typeof error === "string") {
+    return {
+      message: error,
+      type: "custom-error",
+    };
+  } else if (isCancel(error)) {
     return {
       error,
       message: error.message

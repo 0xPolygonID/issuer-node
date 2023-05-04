@@ -16,7 +16,11 @@ import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { jsonLdContextErrorToString, jsonSchemaErrorToString } from "src/utils/error";
+import {
+  buildAppError,
+  jsonLdContextErrorToString,
+  jsonSchemaErrorToString,
+} from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
@@ -56,11 +60,9 @@ export function SchemaDetails() {
               setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
             } else {
               setContextTuple({
-                error: {
-                  message:
-                    "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL",
-                  type: "custom-error",
-                },
+                error: buildAppError(
+                  "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL"
+                ),
                 status: "failed",
               });
             }
