@@ -138,7 +138,7 @@ export function SchemaDetails() {
     isAsyncTaskStarting(contextTuple);
 
   if (!schemaID) {
-    return <ErrorResult error="No schema id provided" />;
+    return <ErrorResult error="No schema ID provided." />;
   }
 
   return (
