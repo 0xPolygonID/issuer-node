@@ -188,7 +188,7 @@ export function SchemaDetails() {
                     onClick={() => {
                       navigate({
                         pathname: generatePath(ROUTES.issueCredential.path),
-                        search: schemaID ? `?${SCHEMA_SEARCH_PARAM}=${schemaID}` : "",
+                        search: schemaID ? `${SCHEMA_SEARCH_PARAM}=${schemaID}` : "",
                       });
                     }}
                     type="primary"

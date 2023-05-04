@@ -28,7 +28,6 @@ import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/con
 import { processZodError } from "src/utils/error";
 
 export function IssuanceMethodForm({
-  did,
   initialValues,
   onChangeDid,
   onSubmit,

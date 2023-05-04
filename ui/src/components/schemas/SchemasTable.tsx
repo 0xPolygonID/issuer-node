@@ -74,7 +74,7 @@ export function MySchemas() {
             <Link
               to={{
                 pathname: generatePath(ROUTES.issueCredential.path),
-                search: `?${SCHEMA_SEARCH_PARAM}=${schemaID}`,
+                search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
               }}
             >
               Issue
