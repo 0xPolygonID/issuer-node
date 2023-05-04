@@ -7,16 +7,9 @@ interface CancelError {
   type: "cancel-error";
 }
 
-interface RequestError {
-  error: AxiosError;
+interface CustomError {
   message: string;
-  type: "request-error";
-}
-
-interface ParseError {
-  error: ZodError;
-  message: string;
-  type: "parse-error";
+  type: "custom-error";
 }
 
 interface GeneralError {
@@ -25,9 +18,16 @@ interface GeneralError {
   type: "general-error";
 }
 
-interface CustomError {
+interface ParseError {
+  error: ZodError;
   message: string;
-  type: "custom-error";
+  type: "parse-error";
+}
+
+interface RequestError {
+  error: AxiosError;
+  message: string;
+  type: "request-error";
 }
 
 interface UnknownError {
@@ -38,8 +38,8 @@ interface UnknownError {
 
 export type AppError =
   | CancelError
-  | RequestError
-  | ParseError
-  | GeneralError
   | CustomError
+  | GeneralError
+  | ParseError
+  | RequestError
   | UnknownError;
