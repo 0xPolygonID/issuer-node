@@ -16,6 +16,7 @@ import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+import { SCHEMA_SEARCH_PARAM } from "src/utils/constants";
 import {
   buildAppError,
   jsonLdContextErrorToString,
@@ -119,6 +120,10 @@ export function SchemaDetails() {
     isAsyncTaskStarting(jsonSchemaTuple) ||
     isAsyncTaskStarting(contextTuple);
 
+  if (!schemaID) {
+    return <ErrorResult error="No schema ID provided." />;
+  }
+
   return (
     <SiderLayoutContent
       description="Schema details include a hash, schema URL and attributes. The schema can be viewed formatted by its attributes, as the JSON LD Context or as a JSON."
@@ -168,7 +173,10 @@ export function SchemaDetails() {
                   <Button
                     icon={<CreditCardIcon />}
                     onClick={() => {
-                      navigate(generatePath(ROUTES.issueCredential.path, { schemaID }));
+                      navigate({
+                        pathname: generatePath(ROUTES.issueCredential.path),
+                        search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
+                      });
                     }}
                     type="primary"
                   >

@@ -31,6 +31,7 @@ export const VALUE_REQUIRED = "Value required";
 // URL params
 export const DID_SEARCH_PARAM = "did";
 export const QUERY_SEARCH_PARAM = "query";
+export const SCHEMA_SEARCH_PARAM = "schema";
 export const STATUS_SEARCH_PARAM = "status";
 
 export const API_VERSION = "v1";
