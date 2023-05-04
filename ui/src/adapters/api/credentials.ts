@@ -473,7 +473,7 @@ export interface ImportQRCode {
   status: "done" | "pending" | "pendingPublish";
 }
 
-const importQRCheckDoneParser = getStrictParser<ImportQRCode>()(
+const importQRCodeParser = getStrictParser<ImportQRCode>()(
   z.object({
     qrCode: z.unknown(),
     status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
@@ -498,7 +498,7 @@ export async function getImportQRCode({
       },
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-    return buildSuccessResponse(importQRCheckDoneParser.parse(response.data));
+    return buildSuccessResponse(importQRCodeParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
