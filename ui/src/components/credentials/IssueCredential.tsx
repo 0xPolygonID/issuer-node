@@ -246,12 +246,6 @@ export function IssueCredential() {
                 initialValues={credentialFormInput.issuanceMethod}
                 onChangeDid={onChangeDid}
                 onSubmit={(values) => {
-                  if (values.type === "directIssue" && values.did) {
-                    onChangeDid(values.did);
-                  } else {
-                    onChangeDid(undefined);
-                  }
-
                   setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
                   setStep("issueCredential");
                 }}
