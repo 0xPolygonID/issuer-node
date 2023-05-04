@@ -110,14 +110,14 @@ export function CredentialLinkQR() {
     setImportQRCheck({ status: "pending" });
   };
 
-  const hasFailed = hasAsyncTaskFailed(authQRCode)
+  const appError = hasAsyncTaskFailed(authQRCode)
     ? authQRCode.error
     : hasAsyncTaskFailed(importQRCheck)
     ? importQRCheck.error
     : undefined;
 
-  if (hasFailed) {
-    if (hasFailed.type === "request-error" && hasFailed.error.status === 404) {
+  if (appError) {
+    if (appError.type === "request-error" && appError.error.response?.status === 404) {
       return (
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
@@ -129,7 +129,7 @@ export function CredentialLinkQR() {
           </Typography.Text>
         </Space>
       );
-    } else if (hasFailed.type === "request-error" && hasFailed.error.status === 400) {
+    } else if (appError.type === "request-error" && appError.error.response?.status === 400) {
       return (
         <Space align="center" direction="vertical" size="large">
           <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />
@@ -144,9 +144,7 @@ export function CredentialLinkQR() {
         </Space>
       );
     }
-    return (
-      <ErrorResult error={hasFailed.message} labelRetry="Start again" onRetry={onStartAgain} />
-    );
+    return <ErrorResult error={appError.message} labelRetry="Start again" onRetry={onStartAgain} />;
   }
 
   if (!isAsyncTaskDataAvailable(authQRCode)) {
