@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
-import { IssuanceMethodFormData } from "src/adapters/parsers/forms";
+import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
@@ -83,21 +83,23 @@ export function IssuanceMethodForm({
         name="issueCredentialMethod"
         onFinish={onSubmit}
         onValuesChange={(_, allValues) => {
-          if (
-            allValues.type === "credentialLink" &&
-            (allValues.linkExpirationDate === null ||
-              (dayjs().isSame(allValues.linkExpirationDate, "day") &&
-                dayjs().isAfter(allValues.linkExpirationTime)))
-          ) {
-            setIssuanceMethod({ ...allValues, linkExpirationTime: undefined });
-          } else {
-            if (allValues.type === "directIssue") {
-              onChangeDid(allValues.did);
-            } else {
-              onChangeDid(undefined);
-            }
+          const parsedIssuanceMethodFormData = issuanceMethodFormDataParser.safeParse(allValues);
 
-            setIssuanceMethod(allValues);
+          if (parsedIssuanceMethodFormData.success) {
+            const { data } = parsedIssuanceMethodFormData;
+
+            if (
+              data.type === "credentialLink" &&
+              (data.linkExpirationDate === null ||
+                (dayjs().isSame(data.linkExpirationDate, "day") &&
+                  dayjs().isAfter(data.linkExpirationTime)))
+            ) {
+              setIssuanceMethod({ ...data, linkExpirationTime: undefined });
+            } else {
+              onChangeDid(data.type === "directIssue" ? data.did : undefined);
+
+              setIssuanceMethod(data);
+            }
           }
         }}
         requiredMark={false}

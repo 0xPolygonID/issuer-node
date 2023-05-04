@@ -86,7 +86,7 @@ export type IssuanceMethodFormData =
       type: "directIssue";
     };
 
-const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
+export const issuanceMethodFormDataParser = getStrictParser<IssuanceMethodFormData>()(
   z.union([
     linkExpirationParser.and(
       z.object({
@@ -186,14 +186,6 @@ export const credentialFormParser = getStrictParser<
         };
       }
     })
-);
-
-export const didParser = getStrictParser<{
-  did: string;
-}>()(
-  z.object({
-    did: z.string(),
-  })
 );
 
 // Serializers
