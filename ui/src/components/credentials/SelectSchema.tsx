@@ -1,11 +1,9 @@
 import { Form, Select, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 
-import { generatePath, useNavigate } from "react-router-dom";
 import { getSchemas } from "src/adapters/api/schemas";
 import { useEnvContext } from "src/contexts/Env";
 import { Schema } from "src/domain";
-import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { SCHEMA_TYPE } from "src/utils/constants";
@@ -21,8 +19,6 @@ export function SelectSchema({
   const [schemas, setSchemas] = useState<AsyncTask<Schema[], undefined>>({
     status: "pending",
   });
-
-  const navigate = useNavigate();
 
   const fetchSchemas = useCallback(
     async (signal: AbortSignal) => {
@@ -76,14 +72,17 @@ export function SelectSchema({
             const schema =
               isAsyncTaskDataAvailable(schemas) && schemas.data.find((schema) => schema.id === id);
             if (schema) {
-              navigate(generatePath(ROUTES.issueCredential.path, { schemaID: id }), {
-                replace: true,
-              });
               onSelect(schema);
             }
           }}
           placeholder={SCHEMA_TYPE}
-          value={schemaID && isAsyncTaskDataAvailable(schemas) ? schemaID : undefined}
+          value={
+            schemaID &&
+            isAsyncTaskDataAvailable(schemas) &&
+            schemas.data.find((schema) => schema.id === schemaID)
+              ? schemaID
+              : undefined
+          }
         >
           {isAsyncTaskDataAvailable(schemas) &&
             schemas.data.map(({ id, type }) => (

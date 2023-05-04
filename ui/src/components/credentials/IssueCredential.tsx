@@ -1,7 +1,7 @@
 import { Button, Card, Row, Space, message } from "antd";
 import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
-import { generatePath, useNavigate, useParams } from "react-router-dom";
+import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import { createCredential, createLink } from "src/adapters/api/credentials";
@@ -31,9 +31,11 @@ import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CREDENTIALS_TABS,
+  DID_SEARCH_PARAM,
   ISSUE_CREDENTIAL,
   ISSUE_CREDENTIAL_DIRECT,
   ISSUE_CREDENTIAL_LINK,
+  SCHEMA_SEARCH_PARAM,
 } from "src/utils/constants";
 import { processError, processZodError } from "src/utils/error";
 
@@ -62,10 +64,20 @@ export function IssueCredential() {
 
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<Step>("issuanceMethod");
+  const [searchParams] = useSearchParams();
+  const schemaID = searchParams.get(SCHEMA_SEARCH_PARAM) || undefined;
+  const did = searchParams.get(DID_SEARCH_PARAM) || undefined;
+
+  const [step, setStep] = useState<Step>(did ? "issueCredential" : "issuanceMethod");
   const [credentialFormInput, setCredentialFormInput] = useState<CredentialFormInput>(
-    defaultCredentialFormInput
+    defaultCredentialFormInput.issuanceMethod.type === "directIssue"
+      ? {
+          ...defaultCredentialFormInput,
+          issuanceMethod: { ...defaultCredentialFormInput.issuanceMethod, did },
+        }
+      : defaultCredentialFormInput
   );
+
   const [schema, setSchema] = useState<Schema>();
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
     status: "pending",
@@ -75,7 +87,42 @@ export function IssueCredential() {
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { schemaID } = useParams();
+  const onChangeDid = (did?: string) => {
+    const search = new URLSearchParams(searchParams);
+
+    if (did) {
+      search.set(DID_SEARCH_PARAM, did);
+    } else {
+      search.delete(DID_SEARCH_PARAM);
+    }
+
+    navigate(
+      {
+        pathname: generatePath(ROUTES.issueCredential.path),
+        search: search.toString(),
+      },
+      { replace: true }
+    );
+  };
+
+  const onChangeSchema = useCallback(
+    (schema: Schema) => {
+      const search = new URLSearchParams(searchParams);
+
+      search.set(SCHEMA_SEARCH_PARAM, schema.id);
+
+      navigate(
+        {
+          pathname: generatePath(ROUTES.issueCredential.path),
+          search: search.toString(),
+        },
+        { replace: true }
+      );
+
+      setSchema((currentSchema) => (currentSchema?.id === schema.id ? currentSchema : schema));
+    },
+    [navigate, searchParams]
+  );
 
   const createCredentialLink = async (credentialLinkIssuance: CredentialLinkIssuance) => {
     if (schemaID) {
@@ -147,7 +194,7 @@ export function IssueCredential() {
 
   const fetchJsonSchema = useCallback(
     (signal: AbortSignal) => {
-      if (schema) {
+      if (schema && step === "issueCredential") {
         setJsonSchema({ status: "loading" });
         getJsonSchemaFromUrl({
           signal,
@@ -166,7 +213,7 @@ export function IssueCredential() {
           });
       }
     },
-    [schema]
+    [schema, step]
   );
 
   useEffect(() => {
@@ -197,6 +244,7 @@ export function IssueCredential() {
             return (
               <IssuanceMethodForm
                 initialValues={credentialFormInput.issuanceMethod}
+                onChangeDid={onChangeDid}
                 onSubmit={(values) => {
                   setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
                   setStep("issueCredential");
@@ -213,7 +261,7 @@ export function IssueCredential() {
             return (
               <Card className="issue-credential-card" title="Credential details">
                 <Space direction="vertical">
-                  <SelectSchema onSelect={setSchema} schemaID={schemaID} />
+                  <SelectSchema onSelect={onChangeSchema} schemaID={schemaID} />
 
                   {schema ? (
                     (() => {
