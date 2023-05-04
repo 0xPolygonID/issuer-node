@@ -188,14 +188,6 @@ export const credentialFormParser = getStrictParser<
     })
 );
 
-export const linkExpirationDateParser = getStrictParser<{
-  linkExpirationDate: dayjs.Dayjs | null;
-}>()(
-  z.object({
-    linkExpirationDate: dayjsInstanceParser.nullable(),
-  })
-);
-
 export const didParser = getStrictParser<{
   did: string;
 }>()(

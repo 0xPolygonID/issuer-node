@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
-import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
+import { IssuanceMethodFormData } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { useEnvContext } from "src/contexts/Env";
 import { Connection } from "src/domain";
@@ -82,14 +82,11 @@ export function IssuanceMethodForm({
         layout="vertical"
         name="issueCredentialMethod"
         onFinish={onSubmit}
-        onValuesChange={(changedValues, allValues) => {
-          const parsedLinkExpirationDate = linkExpirationDateParser.safeParse(changedValues);
-
+        onValuesChange={(_, allValues) => {
           if (
             allValues.type === "credentialLink" &&
-            parsedLinkExpirationDate.success &&
-            (parsedLinkExpirationDate.data.linkExpirationDate === null ||
-              (dayjs().isSame(parsedLinkExpirationDate.data.linkExpirationDate, "day") &&
+            (allValues.linkExpirationDate === null ||
+              (dayjs().isSame(allValues.linkExpirationDate, "day") &&
                 dayjs().isAfter(allValues.linkExpirationTime)))
           ) {
             setIssuanceMethod({ ...allValues, linkExpirationTime: undefined });
