@@ -15,19 +15,19 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/hashicorp/vault/api v1.9.0
-	github.com/iden3/contracts-abi/state/go/abi v0.0.0-20230405152923-4a25f6f1f0f4
-	github.com/iden3/go-circuits v1.0.2
+	github.com/iden3/contracts-abi/state/go/abi v1.0.0-beta.3
+	github.com/iden3/go-circuits v1.0.3
 	github.com/iden3/go-iden3-auth v1.0.1
-	github.com/iden3/go-iden3-core v1.0.1
-	github.com/iden3/go-iden3-crypto v0.0.14
-	github.com/iden3/go-jwz v1.0.0-beta.0
-	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.2
-	github.com/iden3/go-merkletree-sql/v2 v2.0.2
-	github.com/iden3/go-rapidsnark/prover v0.0.9
-	github.com/iden3/go-rapidsnark/witness v0.0.4-0.20230217163707-fad5b5345629
-	github.com/iden3/go-schema-processor v1.1.2
-	github.com/iden3/iden3comm v1.0.0-beta.1
-	github.com/iden3/merkletree-proof v0.0.2
+	github.com/iden3/go-iden3-core v1.0.2
+	github.com/iden3/go-iden3-crypto v0.0.15
+	github.com/iden3/go-jwz v1.0.0
+	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
+	github.com/iden3/go-merkletree-sql/v2 v2.0.5
+	github.com/iden3/go-rapidsnark/prover v0.0.10
+	github.com/iden3/go-rapidsnark/witness v0.0.6
+	github.com/iden3/go-schema-processor v1.1.5
+	github.com/iden3/iden3comm v1.0.0
+	github.com/iden3/merkletree-proof v0.0.3
 	github.com/jackc/pgconn v1.14.0
 	github.com/jackc/pgtype v1.14.0
 	github.com/jackc/pgx/v4 v4.18.1
@@ -147,9 +147,9 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.2 // indirect
-	github.com/iden3/go-rapidsnark/types v0.0.2 // indirect
-	github.com/iden3/go-rapidsnark/verifier v0.0.4-0.20221129112904-b9f8680ca8e2 // indirect
-	github.com/iden3/wasmer-go v0.0.0-20230217163329-62d85068ec47 // indirect
+	github.com/iden3/go-rapidsnark/types v0.0.3 // indirect
+	github.com/iden3/go-rapidsnark/verifier v0.0.5 // indirect
+	github.com/iden3/wasmer-go v0.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/ipfs/go-cid v0.3.2 // indirect
