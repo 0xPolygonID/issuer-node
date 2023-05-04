@@ -1,0 +1,25 @@
+{
+    "@context": [
+      {
+        "@version": 1.1,
+        "@protected": true,
+        "id": "@id",
+        "type": "@type",
+        "RoleCredential": {
+          "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/json-ld/exampleString.json-ld#RoleCredential",
+          "@context": {
+            "@version": 1.1,
+            "@protected": true,
+            "id": "@id",
+            "type": "@type",
+            "vocab": "https://github.com/0xPolygonID/sh-id-platform/blob/main/docs/examples/schemas/vocab/exampleEmployee.md#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "role": {
+              "@id": "vocab:role",
+              "@type": "xsd:string"
+            }
+          }
+        }
+      }
+    ]
+  }
