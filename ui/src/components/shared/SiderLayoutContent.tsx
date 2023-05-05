@@ -1,8 +1,14 @@
-import { Button, Col, Divider, Layout, Row, Space, Typography } from "antd";
-import { ReactNode } from "react";
+import { Button, Col, Divider, Layout, Row, Space, Typography, notification } from "antd";
+import { keccak256 } from "js-sha3";
+import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { z } from "zod";
 
+import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg";
 import { ReactComponent as IconArrowLeft } from "src/assets/icons/arrow-narrow-left.svg";
+import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import { useEnvContext } from "src/contexts/Env";
+import { getStorageByKey, setStorageByKey } from "src/utils/localStorage";
 
 export function SiderLayoutContent({
   children,
@@ -19,7 +25,33 @@ export function SiderLayoutContent({
   showDivider?: boolean;
   title?: string;
 }) {
+  // TODO - PID-684 reimplement warning notification conditionals to take into account authenticated & public routes instead once session flow is implemented.
+  const { warningMessage } = useEnvContext();
+
+  const warningKey =
+    warningMessage !== undefined && `warningNotification-${keccak256(warningMessage)}`;
+
+  const [isShowingWarning, setShowWarning] = useState(
+    !!warningKey && getStorageByKey({ defaultValue: true, key: warningKey, parser: z.boolean() })
+  );
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isShowingWarning && warningKey) {
+      notification.warning({
+        closeIcon: <IconClose />,
+        description: warningMessage,
+        duration: 0,
+        icon: <IconAlert />,
+        key: warningKey,
+        message: "Warning",
+        onClose: () => setShowWarning(setStorageByKey({ key: warningKey, value: false })),
+        placement: "bottom",
+      });
+    }
+  }, [warningMessage, isShowingWarning, warningKey]);
+
   return (
     <>
       <Layout.Header
