@@ -27,7 +27,6 @@ export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
-export const WARNING_ID = "warningNotification";
 
 // URL params
 export const DID_SEARCH_PARAM = "did";

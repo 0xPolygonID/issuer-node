@@ -8,8 +8,9 @@ import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg
 import { ReactComponent as IconArrowLeft } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
-import { WARNING_ID } from "src/utils/constants";
 import { getStorageByKey, setStorageByKey } from "src/utils/localStorage";
+
+const WARNING_ID = "warningNotification";
 
 export function SiderLayoutContent({
   children,
