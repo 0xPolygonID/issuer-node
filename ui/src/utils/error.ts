@@ -3,15 +3,7 @@ import { isAxiosError, isCancel } from "axios";
 import z from "zod";
 import { AppError } from "src/domain";
 
-export function notifyParseError(error: z.ZodError): void {
-  processZodError(error).forEach((error) => void message.error(error));
-}
-
-export function notifyParseErrors(errors: z.ZodError[]): void {
-  errors.forEach(notifyParseError);
-}
-
-export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
+function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   return error.errors.reduce((mainAcc, issue): string[] => {
     switch (issue.code) {
       case "invalid_union": {
@@ -35,6 +27,14 @@ export function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
       }
     }
   }, init);
+}
+
+export function notifyParseError(error: z.ZodError): void {
+  processZodError(error).forEach((error) => void message.error(error));
+}
+
+export function notifyParseErrors(errors: z.ZodError[]): void {
+  errors.forEach(notifyParseError);
 }
 
 export function buildAppError(error: unknown): AppError {
@@ -77,6 +77,13 @@ export function buildAppError(error: unknown): AppError {
     };
   }
 }
+
+export const envErrorToString = (error: AppError) =>
+  [
+    "An error occurred while reading the environment variables:",
+    error.message,
+    "Please provide valid environment variables.",
+  ].join("\n");
 
 export const credentialSubjectValueErrorToString = (error: AppError) =>
   [
