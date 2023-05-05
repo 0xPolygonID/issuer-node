@@ -8,6 +8,7 @@ import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg
 import { ReactComponent as IconArrowLeft } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
+import { WARNING_ID } from "src/utils/constants";
 import { getStorageByKey, setStorageByKey } from "src/utils/localStorage";
 
 export function SiderLayoutContent({
@@ -28,8 +29,7 @@ export function SiderLayoutContent({
   // TODO - PID-684 reimplement warning notification conditionals to take into account authenticated & public routes instead once session flow is implemented.
   const { warningMessage } = useEnvContext();
 
-  const warningKey =
-    warningMessage !== undefined && `warningNotification-${keccak256(warningMessage)}`;
+  const warningKey = warningMessage !== undefined && `${WARNING_ID}-${keccak256(warningMessage)}`;
 
   const [isShowingWarning, setShowWarning] = useState(
     !!warningKey && getStorageByKey({ defaultValue: true, key: warningKey, parser: z.boolean() })
@@ -38,16 +38,24 @@ export function SiderLayoutContent({
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isShowingWarning && warningKey) {
-      notification.warning({
-        closeIcon: <IconClose />,
-        description: warningMessage,
-        duration: 0,
-        icon: <IconAlert />,
-        key: warningKey,
-        message: "Warning",
-        onClose: () => setShowWarning(setStorageByKey({ key: warningKey, value: false })),
-        placement: "bottom",
+    if (warningKey) {
+      if (isShowingWarning) {
+        notification.warning({
+          closeIcon: <IconClose />,
+          description: warningMessage,
+          duration: 0,
+          icon: <IconAlert />,
+          key: warningKey,
+          message: "Warning",
+          onClose: () => setShowWarning(setStorageByKey({ key: warningKey, value: false })),
+          placement: "bottom",
+        });
+      }
+
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith(WARNING_ID) && key !== warningKey) {
+          localStorage.removeItem(key);
+        }
       });
     }
   }, [warningMessage, isShowingWarning, warningKey]);
