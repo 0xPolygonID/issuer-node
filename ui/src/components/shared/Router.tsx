@@ -1,4 +1,5 @@
 import { notification } from "antd";
+import { keccak256 } from "js-sha3";
 import { ComponentType, useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { z } from "zod";
@@ -42,11 +43,13 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
 };
 
 export function Router() {
-  const warningKey = "warningNotification";
+  const { warningMessage } = useEnvContext();
 
-  const env = useEnvContext();
+  const warningKey =
+    warningMessage !== undefined && `warningNotification-${keccak256(warningMessage)}`;
+
   const [isShowingWarning, setShowWarning] = useState(
-    getStorageByKey({ defaultValue: true, key: warningKey, parser: z.boolean() })
+    !!warningKey && getStorageByKey({ defaultValue: true, key: warningKey, parser: z.boolean() })
   );
 
   const getLayoutRoutes = (currentLayout: Layout) =>
@@ -62,10 +65,10 @@ export function Router() {
     }, []);
 
   useEffect(() => {
-    if (env.warningMessage && isShowingWarning) {
+    if (isShowingWarning && warningKey) {
       notification.warning({
         closeIcon: <IconClose />,
-        description: env.warningMessage,
+        description: warningMessage,
         duration: 0,
         icon: <IconAlert />,
         key: warningKey,
@@ -74,7 +77,7 @@ export function Router() {
         placement: "bottom",
       });
     }
-  }, [env.warningMessage, isShowingWarning]);
+  }, [warningMessage, isShowingWarning, warningKey]);
 
   return (
     <Routes>
