@@ -1,9 +1,8 @@
-import { Avatar, Button, Card, Row, Space, Table, Tag, Tooltip, Typography, message } from "antd";
+import { Avatar, Button, Card, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getSchemas } from "src/adapters/api/schemas";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
@@ -11,7 +10,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Schema } from "src/domain";
+import { AppError, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -22,12 +21,12 @@ import {
   SCHEMA_SEARCH_PARAM,
   SCHEMA_TYPE,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function MySchemas() {
   const env = useEnvContext();
-  const [schemas, setSchemas] = useState<AsyncTask<Schema[], APIError>>({
+  const [schemas, setSchemas] = useState<AsyncTask<Schema[], AppError>>({
     status: "pending",
   });
 
@@ -100,12 +99,9 @@ export function MySchemas() {
         },
         signal,
       });
-      if (response.isSuccessful) {
+      if (response.success) {
         setSchemas({ data: response.data.successful, status: "successful" });
-
-        response.data.failed.forEach((zodError) => {
-          processZodError(zodError).forEach((error) => void message.error(error));
-        });
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setSchemas({ error: response.error, status: "failed" });

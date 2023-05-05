@@ -11,21 +11,19 @@ import {
   Space,
   TimePicker,
   Typography,
-  message,
 } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
-import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
 import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection } from "src/domain";
+import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
 import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseErrors } from "src/utils/error";
 
 export function IssuanceMethodForm({
   initialValues,
@@ -39,7 +37,7 @@ export function IssuanceMethodForm({
   const env = useEnvContext();
 
   const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
-  const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
+  const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
     status: "pending",
   });
 
@@ -57,11 +55,9 @@ export function IssuanceMethodForm({
     async (signal: AbortSignal) => {
       const response = await getConnections({ credentials: false, env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setConnections({ data: response.data.successful, status: "successful" });
-        response.data.failed.map((error) =>
-          processZodError(error).forEach((error) => void message.error(error))
-        );
+        notifyParseErrors(response.data.failed);
       } else {
         setConnections({ error: response.error, status: "failed" });
       }

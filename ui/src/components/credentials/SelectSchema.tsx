@@ -34,7 +34,7 @@ export function SelectSchema({
         signal,
       });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setSchemas({ data: response.data.successful, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {

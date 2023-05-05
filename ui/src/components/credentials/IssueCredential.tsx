@@ -1,8 +1,6 @@
 import { Button, Card, Row, Space, message } from "antd";
-import { isAxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
-import { z } from "zod";
 
 import { createCredential, createLink } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
@@ -25,7 +23,7 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { JsonSchema, Schema } from "src/domain";
+import { AppError, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -37,7 +35,7 @@ import {
   ISSUE_CREDENTIAL_LINK,
   SCHEMA_SEARCH_PARAM,
 } from "src/utils/constants";
-import { processError, processZodError } from "src/utils/error";
+import { jsonSchemaErrorToString, notifyParseError } from "src/utils/error";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
 
@@ -49,14 +47,6 @@ const defaultCredentialFormInput: CredentialFormInput = {
     proofTypes: ["SIG"],
   },
 };
-
-const jsonSchemaErrorToString = (error: string | z.ZodError) =>
-  error instanceof z.ZodError
-    ? [
-        "An error occurred while parsing the json schema:",
-        ...processZodError(error).map((e) => `"${e}"`),
-      ].join("\n")
-    : `An error occurred while downloading the json schema from the URL:\n"${error}"\nPlease try again.`;
 
 export function IssueCredential() {
   const env = useEnvContext();
@@ -79,7 +69,7 @@ export function IssueCredential() {
   );
 
   const [schema, setSchema] = useState<Schema>();
-  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
+  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>({
     status: "pending",
   });
   const [linkID, setLinkID] = useState<AsyncTask<string, null>>({
@@ -138,7 +128,7 @@ export function IssueCredential() {
           env,
           payload: serializedCredentialForm.data,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           setLinkID({ data: response.data.id, status: "successful" });
           setStep("summary");
 
@@ -149,7 +139,7 @@ export function IssueCredential() {
           void message.error(response.error.message);
         }
       } else {
-        processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
+        notifyParseError(serializedCredentialForm.error);
       }
       setIsLoading(false);
     }
@@ -169,7 +159,7 @@ export function IssueCredential() {
           env,
           payload: serializedCredentialForm.data,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           navigate(
             generatePath(ROUTES.credentials.path, {
               tabID: CREDENTIALS_TABS[0].tabID,
@@ -185,7 +175,7 @@ export function IssueCredential() {
           void message.error(response.error.message);
         }
       } else {
-        processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
+        notifyParseError(serializedCredentialForm.error);
       }
 
       setIsLoading(false);
@@ -196,21 +186,22 @@ export function IssueCredential() {
     (signal: AbortSignal) => {
       if (schema && step === "issueCredential") {
         setJsonSchema({ status: "loading" });
-        getJsonSchemaFromUrl({
+        void getJsonSchemaFromUrl({
           signal,
           url: schema.url,
-        })
-          .then(([jsonSchema]) => {
+        }).then((response) => {
+          if (response.success) {
+            const [jsonSchema] = response.data;
             setJsonSchema({
               data: jsonSchema,
               status: "successful",
             });
-          })
-          .catch((error) => {
-            if (!isAxiosError(error) || !isAbortedError(error)) {
-              setJsonSchema({ error: processError(error), status: "failed" });
+          } else {
+            if (!isAbortedError(response.error)) {
+              setJsonSchema({ error: response.error, status: "failed" });
             }
-          });
+          }
+        });
       }
     },
     [schema, step]
@@ -301,9 +292,7 @@ export function IssueCredential() {
                                     void issueCredential(parsedForm.data);
                                   }
                                 } else {
-                                  processZodError(parsedForm.error).forEach(
-                                    (msg) => void message.error(msg)
-                                  );
+                                  notifyParseError(parsedForm.error);
                                 }
                               }}
                               schema={schema}
