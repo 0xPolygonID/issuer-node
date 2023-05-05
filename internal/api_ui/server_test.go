@@ -1534,7 +1534,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		{
 			name:  "FTS is doing and OR when no did passed:",
 			auth:  authOk,
-			query: common.ToPointer("birthday is an schema attribute but not the rest of words in this sentence"),
+			query: common.ToPointer("birthday  schema attribute  not the rest of words  this sentence"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    4,
@@ -1544,11 +1544,13 @@ func TestServer_GetCredentials(t *testing.T) {
 			name:  "FTS is doing and AND when did passed:",
 			auth:  authOk,
 			did:   &claim.OtherIdentifier,
-			query: common.ToPointer("birthday is an schema attribute but not the rest of words in this sentence"),
+			query: common.ToPointer("birthday is an schema attribute but not the rest of words"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    0,
 			},
+
+			// TODO: A test that does partial search texts over dids.
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
