@@ -10,4 +10,5 @@ export interface Env {
     logo: string;
     name: string;
   };
+  warningMessage?: string;
 }

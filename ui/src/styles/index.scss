@@ -207,6 +207,16 @@
   }
 }
 
+.ant-notification-notice {
+  width: auto;
+
+  &.ant-notification-notice-warning {
+    .ant-notification-notice-icon {
+      color: $text-color-warning;
+    }
+  }
+}
+
 .ant-radio-group .ant-card-body .ant-radio-wrapper .ant-radio {
   align-self: flex-start;
   margin-top: 2px;
