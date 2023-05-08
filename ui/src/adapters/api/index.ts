@@ -3,15 +3,15 @@ import z from "zod";
 import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
 
-export interface ID {
+export type ID = {
   id: string;
-}
+};
 
 export const IDParser = getStrictParser<ID>()(z.object({ id: z.string() }));
 
-export interface Message {
+export type Message = {
   message: string;
-}
+};
 
 export const messageParser = getStrictParser<Message>()(z.object({ message: z.string() }));
 

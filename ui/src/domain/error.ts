@@ -1,40 +1,40 @@
 import { AxiosError, Cancel } from "axios";
 import { ZodError } from "zod";
 
-interface CancelError {
+type CancelError = {
   error: Cancel;
   message: string;
   type: "cancel-error";
-}
+};
 
-interface CustomError {
+type CustomError = {
   message: string;
   type: "custom-error";
-}
+};
 
-interface GeneralError {
+type GeneralError = {
   error: Error;
   message: string;
   type: "general-error";
-}
+};
 
-interface ParseError {
+type ParseError = {
   error: ZodError;
   message: string;
   type: "parse-error";
-}
+};
 
-interface RequestError {
+type RequestError = {
   error: AxiosError;
   message: string;
   type: "request-error";
-}
+};
 
-interface UnknownError {
+type UnknownError = {
   error: unknown;
   message: string;
   type: "unknown-error";
-}
+};
 
 export type AppError =
   | CancelError

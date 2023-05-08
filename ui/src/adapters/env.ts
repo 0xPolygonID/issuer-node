@@ -4,7 +4,7 @@ import { getStrictParser } from "src/adapters/parsers";
 import { Env } from "src/domain";
 import { IMAGE_PLACEHOLDER_PATH } from "src/utils/constants";
 
-export interface EnvInput {
+export type EnvInput = {
   VITE_API_PASSWORD: string;
   VITE_API_URL: string;
   VITE_API_USERNAME: string;
@@ -13,7 +13,7 @@ export interface EnvInput {
   VITE_ISSUER_LOGO?: string;
   VITE_ISSUER_NAME: string;
   VITE_WARNING_MESSAGE?: string;
-}
+};
 
 export const envParser = getStrictParser<EnvInput, Env>()(
   z
