@@ -30,7 +30,7 @@ export function SiderLayoutContent({
   // TODO - PID-684 reimplement warning notification conditionals to take into account authenticated & public routes instead once session flow is implemented.
   const { warningMessage } = useEnvContext();
 
-  const warningKey = warningMessage !== undefined && `${WARNING_ID}-${keccak256(warningMessage)}`;
+  const warningKey = !!warningMessage && `${WARNING_ID}-${keccak256(warningMessage)}`;
 
   const [isShowingWarning, setShowWarning] = useState(
     !!warningKey && getStorageByKey({ defaultValue: true, key: warningKey, parser: z.boolean() })
