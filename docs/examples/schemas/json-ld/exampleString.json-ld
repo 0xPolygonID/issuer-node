@@ -6,7 +6,7 @@
         "id": "@id",
         "type": "@type",
         "RoleCredential": {
-          "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/json-ld/exampleString.json-ld#RoleCredential",
+          "@id": "https://raw.githubusercontent.com/0xPolygonID/issuer-node/main/docs/examples/json-ld/exampleString.json-ld#RoleCredential",
           "@context": {
             "@version": 1.1,
             "@protected": true,

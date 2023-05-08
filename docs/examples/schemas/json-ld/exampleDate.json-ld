@@ -6,7 +6,7 @@
       "id": "@id",
       "type": "@type",
       "HireDateCredential": {
-        "@id": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/json-ld/exampleDate.json-ld#HireDateCredential",
+        "@id": "https://raw.githubusercontent.com/0xPolygonID/issuer-node/main/docs/examples/json-ld/exampleDate.json-ld#HireDateCredential",
         "@context": {
           "@version": 1.1,
           "@protected": true,
