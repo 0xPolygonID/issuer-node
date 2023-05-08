@@ -151,14 +151,17 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "processing the claim against the schema", "err", err)
+		log.Error(ctx, "credential subject attributes don't match the provided schema", "err", err)
 		if errors.Is(err, schemaPkg.ErrParseClaim) {
+			log.Error(ctx, "error parsing claim", "err", err)
 			return nil, ErrParseClaim
 		}
 		if errors.Is(err, schemaPkg.ErrValidateData) {
+			log.Error(ctx, "error validating data", "err", err)
 			return nil, ErrInvalidCredentialSubject
 		}
 		if errors.Is(err, schemaPkg.ErrLoadSchema) {
+			log.Error(ctx, "error loading schema", "err", err)
 			return nil, ErrLoadingSchema
 		}
 		return nil, err
