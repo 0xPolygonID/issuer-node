@@ -1,13 +1,13 @@
-import { Button, Card, Row, Space, Typography, message } from "antd";
+import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 
 import { APIError } from "src/adapters/api";
 import { getSchema } from "src/adapters/api/schemas";
-import { downloadJsonFromUrl } from "src/adapters/json";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
+import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -205,30 +205,7 @@ export function SchemaDetails() {
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 
-                  <Row justify="space-between">
-                    <Typography.Text type="secondary">Download</Typography.Text>
-
-                    <Button
-                      onClick={() => {
-                        downloadJsonFromUrl({
-                          fileName: jsonSchema.name,
-                          url: url,
-                        })
-                          .then(() => {
-                            void message.success("Schema downloaded successfully.");
-                          })
-                          .catch(() => {
-                            void message.error(
-                              "An error occurred while downloading the schema. Please try again."
-                            );
-                          });
-                      }}
-                      style={{ height: 24, padding: 0 }}
-                      type="link"
-                    >
-                      JSON Schema
-                    </Button>
-                  </Row>
+                  <DownloadSchema fileName={jsonSchema.name} url={url} />
                 </Space>
               }
               jsonLdType={jsonLdType}
