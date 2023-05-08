@@ -1523,9 +1523,36 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:  "Search by did in query params:",
+			name:  "Search by did and other words in query params:",
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "Search by partial did and other words in query params:",
+			auth:  authOk,
+			query: common.ToPointer("some words and " + revoked.OtherIdentifier[9:14]),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "Search by did in query params:",
+			auth:  authOk,
+			query: &revoked.OtherIdentifier,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "Search by partial did in query params:",
+			auth:  authOk,
+			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    4,
@@ -1549,8 +1576,6 @@ func TestServer_GetCredentials(t *testing.T) {
 				httpCode: http.StatusOK,
 				count:    0,
 			},
-
-			// TODO: A test that does partial search texts over dids.
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
