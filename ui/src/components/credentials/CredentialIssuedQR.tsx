@@ -68,7 +68,7 @@ export function CredentialIssuedQR() {
     <CredentialQR
       qrCode={issuedQRCode.data.qrCode}
       schemaType={issuedQRCode.data.schemaType}
-      subTitle="Scan the QR code to add the credential to your wallet"
+      subTitle="Scan the QR code with your Polygon ID wallet to add the credential."
     />
   );
 }

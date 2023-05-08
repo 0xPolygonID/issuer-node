@@ -22,6 +22,9 @@ import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/uti
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { POLLING_INTERVAL } from "src/utils/constants";
 
+const PUSH_NOTIFICATIONS_REMINDER =
+  "Please ensure that you have enabled push notifications on your wallet app.";
+
 export function CredentialLinkQR() {
   const env = useEnvContext();
 
@@ -125,7 +128,7 @@ export function CredentialLinkQR() {
           <Typography.Title level={2}>Credential link is invalid</Typography.Title>
 
           <Typography.Text type="secondary">
-            In case you think this is an error, please contact the issuer of this claim.
+            If you think this is an error, please contact the issuer of this credential.
           </Typography.Text>
         </Space>
       );
@@ -155,6 +158,7 @@ export function CredentialLinkQR() {
 
   if (isAsyncTaskDataAvailable(importQRCheck) && importQRCheck.data.status !== "pending") {
     const { proofTypes } = authQRCode.data.linkDetail;
+
     if (proofTypes.length > 1) {
       return (
         <>
@@ -167,9 +171,8 @@ export function CredentialLinkQR() {
 
             <Typography.Text style={{ fontSize: 18 }} type="secondary">
               You will receive an additional version of the credential containing an MTP proof.
-              <Typography.Paragraph style={{ fontSize: 18, textAlign: "center" }} type="secondary">
-                Please ensure that you have enabled push notifications on the application.
-              </Typography.Paragraph>
+              <br />
+              {PUSH_NOTIFICATIONS_REMINDER}
             </Typography.Text>
 
             <Button onClick={() => setIsModalOpen(true)} type="link">
@@ -216,7 +219,7 @@ export function CredentialLinkQR() {
           </Typography.Title>
 
           <Typography.Text style={{ fontSize: 18 }} type="secondary">
-            Please ensure that you have enabled push notifications on the application.
+            {PUSH_NOTIFICATIONS_REMINDER}
           </Typography.Text>
 
           <Button icon={<IconRefresh />} onClick={onStartAgain}>
@@ -231,7 +234,13 @@ export function CredentialLinkQR() {
     <CredentialQR
       qrCode={authQRCode.data.qrCode}
       schemaType={authQRCode.data.linkDetail.schemaType}
-      subTitle="Scan the QR code with your Polygon ID wallet to accept it. Make sure push notifications are enabled."
+      subTitle={
+        <>
+          Scan the QR code with your Polygon ID wallet to accept it.
+          <br />
+          {PUSH_NOTIFICATIONS_REMINDER}
+        </>
+      }
     />
   );
 }
