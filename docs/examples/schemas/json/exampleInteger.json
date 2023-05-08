@@ -1,0 +1,124 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "$metadata": {
+      "uris": {
+        "jsonLdContext": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/schemas/json-ld/exampleInteger.json-ld",
+        "jsonSchema": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/schemas/json/exampleInteger.json"
+      }
+    },
+    "required": [
+      "@context",
+      "id",
+      "type",
+      "issuanceDate",
+      "credentialSubject",
+      "credentialSchema",
+      "credentialStatus",
+      "issuer"
+    ],
+    "properties": {
+      "@context": {
+        "type": [
+          "string",
+          "array",
+          "object"
+        ]
+      },
+      "id": {
+        "type": "string"
+      },
+      "type": {
+        "type": [
+          "string",
+          "array"
+        ],
+        "items": {
+          "type": "string"
+        }
+      },
+      "issuer": {
+        "type": [
+          "string",
+          "object"
+        ],
+        "format": "uri",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "issuanceDate": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "expirationDate": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "credentialSchema": {
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uri"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "subjectPosition": {
+        "type": "string",
+        "enum": [
+          "none",
+          "index",
+          "value"
+        ]
+      },
+      "merklizationRootPosition": {
+        "type": "string",
+        "enum": [
+          "none",
+          "index",
+          "value"
+        ]
+      },
+      "revNonce": {
+        "type": "integer"
+      },
+      "version": {
+        "type": "integer"
+      },
+      "updatable": {
+        "type": "boolean"
+      },
+      "credentialSubject": {
+        "type": "object",
+        "required": [
+          "id",
+          "birthday"
+        ],
+        "properties": {
+          "id": {
+            "title": "Credential Subject ID",
+            "type": "string",
+            "format": "uri"
+          },
+          "birthday": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+  

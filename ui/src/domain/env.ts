@@ -7,7 +7,8 @@ export interface Env {
   blockExplorerUrl: string;
   issuer: {
     did: string;
-    logo?: string;
+    logo: string;
     name: string;
   };
+  warningMessage?: string;
 }

@@ -26,6 +26,16 @@ paths:
       responses:
         200:
           description: success and returns the documentation in HTML format
+
+  /favicon.ico:
+    get:
+      summary: Gets the favicon
+      operationId: GetFavicon
+      x-internal: true
+      responses:
+        200:
+          description: success and returns a favicon
+
   /static/docs/api/api.yaml:
     get:
       summary: Get the documentation yaml file
@@ -484,8 +494,8 @@ components:
           type: object
           x-omitempty: false
         expiration:
-          type: string
-          format: date-time
+          type: integer
+          format: int64
         version:
           type: integer
           format: uint32
@@ -503,7 +513,7 @@ components:
           id: "fill with did"
           birthday: 19960424
           documentType: 2
-        expiration: "2025-03-20T11:54:01.110295+01:00"
+        expiration: 1903357766
 
     CreateClaimResponse:
       type: object

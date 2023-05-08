@@ -1,5 +1,4 @@
-import { Button, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
-import dayjs from "dayjs";
+import { Button, Checkbox, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
 import { IssueCredentialFormData } from "src/adapters/parsers/forms";
 
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
@@ -9,11 +8,12 @@ import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { CredentialSubjectForm } from "src/components/credentials/CredentialSubjectForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
-import { DATE_VALIDITY_MESSAGE, SCHEMA_HASH } from "src/utils/constants";
+import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
 
 export function IssueCredentialForm({
   initialValues,
   jsonSchema,
+  loading,
   onBack,
   onSubmit,
   schema,
@@ -21,6 +21,7 @@ export function IssueCredentialForm({
 }: {
   initialValues: IssueCredentialFormData;
   jsonSchema: JsonSchema;
+  loading: boolean;
   onBack: () => void;
   onSubmit: (values: IssueCredentialFormData) => void;
   schema: Schema;
@@ -33,13 +34,9 @@ export function IssueCredentialForm({
         .find((child) => child.name === "credentialSubject")?.schema.properties) ||
     null;
 
-  // When creating a link, we are unable to provide the identity holder's did on the credential issuance form
-  // because the connection may not yet exist. Therefore, we have to filter this field and skip its validation.
   const credentialSubjectAttributes =
-    type === "directIssue"
-      ? rawCredentialSubjectAttributes
-      : rawCredentialSubjectAttributes &&
-        rawCredentialSubjectAttributes.filter((attribute) => attribute.name !== "id");
+    rawCredentialSubjectAttributes &&
+    rawCredentialSubjectAttributes.filter((attribute) => attribute.name !== "id");
 
   return credentialSubjectAttributes ? (
     <Form
@@ -73,14 +70,34 @@ export function IssueCredentialForm({
 
       <Space direction="vertical" size="large">
         <CredentialSubjectForm attributes={credentialSubjectAttributes} />
-        <Form.Item
-          label="Credential expiration date"
-          name="expirationDate"
-          rules={[{ message: DATE_VALIDITY_MESSAGE, required: false }]}
-        >
-          <DatePicker disabledDate={(current) => current < dayjs()} />
+
+        <Form.Item label="Proof type" name="proofTypes" required>
+          <Checkbox.Group>
+            <Space direction="vertical">
+              <Checkbox value="SIG">
+                <Typography.Text>Signature-based (SIG)</Typography.Text>
+
+                <Typography.Text type="secondary">
+                  Credential signed by the issuer using a BJJ private key.
+                </Typography.Text>
+              </Checkbox>
+
+              <Checkbox value="MTP">
+                <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
+
+                <Typography.Text type="secondary">
+                  Credential will be added to the issuer&apos;s state tree. The state transition
+                  involves an on-chain transaction and gas fees.
+                </Typography.Text>
+              </Checkbox>
+            </Space>
+          </Checkbox.Group>
         </Form.Item>
       </Space>
+
+      <Form.Item label="Credential expiration date" name="credentialExpiration">
+        <DatePicker />
+      </Form.Item>
 
       <Divider />
 
@@ -90,9 +107,9 @@ export function IssueCredentialForm({
             Previous step
           </Button>
 
-          <Button disabled={!schema} htmlType="submit" type="primary">
-            Create credential link
-            <IconRight />
+          <Button disabled={!schema} htmlType="submit" loading={loading} type="primary">
+            {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
+            {type === "credentialLink" && <IconRight />}
           </Button>
         </Space>
       </Row>

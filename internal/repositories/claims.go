@@ -246,7 +246,8 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 				   claims.identifier,
 				   identity_state,
 				   credential_status,
-				   core_claim
+				   core_claim,
+				   mtp
 			FROM claims
 			LEFT JOIN identity_states ON claims.identity_state = identity_states.state
 			WHERE claims.identifier = $1
@@ -267,7 +268,8 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 		&claim.Identifier,
 		&claim.IdentityState,
 		&claim.CredentialStatus,
-		&claim.CoreClaim)
+		&claim.CoreClaim,
+		&claim.MtProof)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -436,7 +438,8 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 				   identity_states.status,
 				   credential_status,
 				   core_claim,
-				   revoked
+				   revoked,
+				   mtp
 			FROM claims
 			JOIN connections ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
@@ -664,7 +667,8 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 			&claim.Status,
 			&claim.CredentialStatus,
 			&claim.CoreClaim,
-			&claim.Revoked)
+			&claim.Revoked,
+			&claim.MtProof)
 		if err != nil {
 			return nil, err
 		}
@@ -693,7 +697,8 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 				   identity_states.status,
 				   credential_status,
 				   core_claim,
-				   revoked
+				   revoked,
+				   mtp
 			FROM claims
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 			`
@@ -792,7 +797,8 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 		identity_states.status,
        	credential_status,
        	core_claim,
-       	revoked
+       	revoked,
+		mtp
 	FROM claims
 	LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 	LEFT JOIN revocation  ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier

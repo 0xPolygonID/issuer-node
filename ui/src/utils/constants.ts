@@ -6,30 +6,39 @@ export const CLOSE = "Close";
 export const CONNECTIONS = "Connections";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
-export const DATE_VALIDITY_MESSAGE = "Valid date required";
-export const TIME_VALIDITY_MESSAGE = "Valid time required";
+export const DELETE = "Delete";
+export const DETAILS = "Details";
 export const ERROR_MESSAGE = "Something went wrong";
 export const EXPIRATION = "Expiration";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
+export const ISSUE_CREDENTIAL_DIRECT = "Issue credential directly";
+export const ISSUE_CREDENTIAL_LINK = "Create credential link";
 export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
+export const ISSUED_CREDENTIALS = "Issued credentials";
 export const ISSUER_STATE = "Issuer state";
 export const LINKS = "Links";
 export const REVOCATION = "Revocation";
+export const REVOKE = "Revoke";
 export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 export const STATUS = "Status";
+export const VALUE_REQUIRED = "Value required";
 
 // URL params
+export const DID_SEARCH_PARAM = "did";
 export const QUERY_SEARCH_PARAM = "query";
+export const SCHEMA_SEARCH_PARAM = "schema";
 export const STATUS_SEARCH_PARAM = "status";
 
 export const API_VERSION = "v1";
 
-export const CREDENTIALS_TABS: { id: CredentialsTabIDs; tabID: string; title: string }[] = [
+type CredentialsTab = { id: CredentialsTabIDs; tabID: string; title: string };
+
+export const CREDENTIALS_TABS: [CredentialsTab, CredentialsTab] = [
   {
     id: "issued",
     tabID: "issued",
@@ -46,7 +55,7 @@ export const DEBOUNCE_INPUT_TIMEOUT = 500;
 
 export const DOTS_DROPDOWN_WIDTH = 60;
 
-export const FEEDBACK_URL = "https://forms.gle/ckDgvw1e9yZJBNfH6";
+export const FEEDBACK_URL = "https://forms.gle/W8xuqY3UjPnY5Nj16";
 
 export const IMAGE_PLACEHOLDER_PATH = "/images/image-preview.png";
 

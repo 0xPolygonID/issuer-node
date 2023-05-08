@@ -126,24 +126,20 @@ func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, iss
 	all := `SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
 FROM connections 
 WHERE connections.issuer_id = $1`
-	var err error
-	var rows pgx.Rows
-	attrs := []interface{}{issuerDID.String()}
+
 	if query != "" {
-		did := getDIDFromQuery(query)
-		if did != "" {
-			all += ` AND connections.user_id LIKE CONCAT($2::text,'%%')`
-			attrs = append(attrs, did)
+		dids := tokenizeQuery(query)
+		if len(dids) > 0 {
+			all += " AND (" + buildPartialQueryDidLikes("connections.user_id", dids, "OR") + ")"
 		}
 	}
 
-	rows, err = conn.Query(ctx, all, attrs...)
-
+	rows, err := conn.Query(ctx, all, issuerDID.String())
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
+
 	domainConns := make([]*domain.Connection, 0)
 	dbConn := dbConnection{}
 	for rows.Next() {
@@ -196,7 +192,8 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 				   claims.identity_state,
 				   identity_states.status,
 				   claims.credential_status,
-				   claims.core_claim
+				   claims.core_claim,
+				   claims.mtp
 	FROM connections 
 	LEFT JOIN claims
 	ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
@@ -207,17 +204,17 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 	}
 
 	filters := []interface{}{issuerDID.String()}
+
 	sqlQuery = fmt.Sprintf("%s WHERE connections.issuer_id = $%d", sqlQuery, len(filters))
 	if query != "" {
 		filters = append(filters, fullTextSearchQuery(query, " | "))
 		ftsConds := fmt.Sprintf("(schemas.ts_words @@ to_tsquery($%d))", len(filters))
-		if did := getDIDFromQuery(query); did != "" {
-			if did != "" {
-				filters = append(filters, did)
-				ftsConds = fmt.Sprintf(`%s OR connections.user_id LIKE CONCAT($%d::text,'%%')`, ftsConds, len(filters))
-			}
+
+		dids := tokenizeQuery(query)
+		if len(dids) > 0 {
+			ftsConds += " OR " + buildPartialQueryDidLikes("connections.user_id", dids, "OR")
 		}
-		sqlQuery = fmt.Sprintf("%s AND (%s) ", sqlQuery, ftsConds)
+		sqlQuery += fmt.Sprintf(" AND (%s) ", ftsConds)
 	}
 
 	sqlQuery += " ORDER BY connections.id DESC"
@@ -255,7 +252,8 @@ func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {
 			&dbConn.IdentityState,
 			&dbConn.Status,
 			&dbConn.CredentialStatus,
-			&dbConn.CoreClaim)
+			&dbConn.CoreClaim,
+			&dbConn.MtProof)
 		if err != nil {
 			return nil, err
 		}

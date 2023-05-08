@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -63,6 +64,11 @@ func (s *Server) GetDocumentation(_ context.Context, _ GetDocumentationRequestOb
 	return nil, nil
 }
 
+// GetFavicon this method will be overridden in the main function
+func (s *Server) GetFavicon(_ context.Context, _ GetFaviconRequestObject) (GetFaviconResponseObject, error) {
+	return nil, nil
+}
+
 // GetYaml this method will be overridden in the main function
 func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResponseObject, error) {
 	return nil, nil
@@ -110,8 +116,12 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
+	var expiration *time.Time
+	if request.Body.Expiration != nil {
+		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
+	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false)
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false)
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -125,6 +135,15 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 			return CreateClaim422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrParseClaim) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrInvalidCredentialSubject) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -380,6 +399,7 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)
 	mux.Get("/static/docs/api/api.yaml", swagger)
+	mux.Get("/favicon.ico", favicon)
 }
 
 func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
@@ -440,20 +460,24 @@ func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetCl
 }
 
 func documentation(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api/spec.html", w)
+	writeFile("api/spec.html", "text/html; charset=UTF-8", w)
+}
+
+func favicon(w http.ResponseWriter, _ *http.Request) {
+	writeFile("api/polygon.png", "image/png", w)
 }
 
 func swagger(w http.ResponseWriter, _ *http.Request) {
-	writeFile("api/api.yaml", w)
+	writeFile("api/api.yaml", "text/html; charset=UTF-8", w)
 }
 
-func writeFile(path string, w http.ResponseWriter) {
+func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	f, err := os.ReadFile(path)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = w.Write([]byte("not found"))
 	}
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	w.Header().Set("Content-Type", mimeType)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
 }

@@ -8,14 +8,18 @@ import (
 
 	core "github.com/iden3/go-iden3-core"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
+	"github.com/iden3/go-schema-processor/merklize"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/mitchellh/mapstructure"
-	"github.com/xeipuuv/gojsonschema"
+	"github.com/piprate/json-gold/ld"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+)
+
+const (
+	fakeUserDID   = "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
+	fakeIssuerDID = "did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5"
 )
 
 // Attributes is a list of Attribute entities
@@ -70,17 +74,6 @@ func Load(ctx context.Context, loader loader.Loader) (*JSONSchema, error) {
 	return schema, nil
 }
 
-// ValidateCredentialSubject checks if the given credential subject matches the schema definition
-func (s *JSONSchema) ValidateCredentialSubject(cSubject domain.CredentialSubject) error {
-	valJSONSchema := s.getValidationJSONSchema()
-	err := valJSONSchema.formatForValidation()
-	if err != nil {
-		return err
-	}
-
-	return valJSONSchema.validateCredentialSubject(cSubject)
-}
-
 // Attributes returns a list with the attributes in properties.credentialSubject.properties
 func (s *JSONSchema) Attributes() (Attributes, error) {
 	var props map[string]any
@@ -102,94 +95,6 @@ func (s *JSONSchema) Attributes() (Attributes, error) {
 		return nil, err
 	}
 	return attrs, nil
-}
-
-func (s *JSONSchema) properties() (map[string]any, error) {
-	props, ok := s.content["properties"].(map[string]any)
-	if !ok {
-		return nil, errors.New("missing properties field")
-	}
-
-	return props, nil
-}
-
-func (s *JSONSchema) setRequired(required []string) {
-	s.content["required"] = required
-}
-
-func (s *JSONSchema) removeIDFromRequired() error {
-	props, err := s.properties()
-	if err != nil {
-		return err
-	}
-
-	credentialSubject, ok := props["credentialSubject"].(map[string]any)
-	if !ok {
-		return errors.New("malformed credentialSubject")
-	}
-
-	credRequired, ok := credentialSubject["required"].([]any)
-	if !ok {
-		return errors.New("malformed required")
-	}
-
-	required := make([]string, 0)
-	for _, credRequired := range credRequired {
-		credRequiredStr, ok := credRequired.(string)
-		if !ok {
-			return fmt.Errorf("malformed required property inside credentialSubject %v", credRequired)
-		}
-
-		if credRequiredStr != "id" {
-			required = append(required, credRequiredStr)
-		}
-	}
-
-	credentialSubject["required"] = required
-	props["credentialSubject"] = credentialSubject
-
-	return nil
-}
-
-func (s *JSONSchema) formatForValidation() error {
-	s.setRequired([]string{"credentialSubject"})
-
-	return s.removeIDFromRequired()
-}
-
-func (s *JSONSchema) getValidationJSONSchema() JSONSchema {
-	return JSONSchema{content: common.CopyMap(s.content)}
-}
-
-func (s *JSONSchema) validateCredentialSubject(cSubject domain.CredentialSubject) error {
-	schemaBytes, err := json.Marshal(s.content)
-	if err != nil {
-		return errors.New("marshalling schema credential subject")
-	}
-
-	cSubjectBytes, err := json.Marshal(map[string]interface{}{"credentialSubject": cSubject})
-	if err != nil {
-		return errors.New("marshalling link credential subject")
-	}
-
-	schemaLoader := gojsonschema.NewStringLoader(string(schemaBytes))
-	linkLoader := gojsonschema.NewStringLoader(string(cSubjectBytes))
-
-	result, err := gojsonschema.Validate(schemaLoader, linkLoader)
-	if err != nil {
-		return err
-	}
-
-	if result.Valid() {
-		return nil
-	}
-
-	var errStr string
-	for _, e := range result.Errors() {
-		errStr += fmt.Sprintf("%s \n", e.String())
-	}
-
-	return errors.New(errStr)
 }
 
 // AttributeByID returns the attribute with this id or an error if not found
@@ -232,6 +137,80 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 	}
 	id := jsonLdContext + "#" + schemaType
 	return utils.CreateSchemaHash([]byte(id)), nil
+}
+
+// ValidateCredentialSubject validates that the given credential subject matches the given schema
+func ValidateCredentialSubject(ctx context.Context, loader loader.Loader, schemaType string, cSubject map[string]interface{}) error {
+	schema, err := Load(ctx, loader)
+	if err != nil {
+		return err
+	}
+
+	schemaContext, err := schema.JSONLdContext()
+	if err != nil {
+		return err
+	}
+
+	dummyVC, err := createDummyVC(cSubject, schemaType, schemaContext)
+	if err != nil {
+		return err
+	}
+
+	return validateDummyVC(dummyVC)
+}
+
+func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaContext string) (map[string]interface{}, error) {
+	cSubject["id"] = fakeUserDID
+	cSubject["type"] = schemaType
+
+	vc := map[string]interface{}{
+		"@context": []interface{}{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", schemaContext},
+		"credentialSchema": map[string]interface{}{
+			"id":   schemaType,
+			"type": "JsonSchemaValidator2018",
+		},
+		"credentialStatus": map[string]interface{}{
+			"id": "testStatus",
+		},
+		"credentialSubject": cSubject,
+		"id":                "testID",
+		"issuanceDate":      "2023-04-27T23:45:29.498555+02:00",
+		"issuer":            fakeIssuerDID,
+		"type": []interface{}{
+			"VerifiableCredential", schemaType,
+		},
+	}
+
+	mBytes, err := json.Marshal(vc) // this marshal and unmarshal needs to be done for the validateDummyVC function
+	if err != nil {
+		return nil, err
+	}
+
+	var resp map[string]interface{}
+	err = json.Unmarshal(mBytes, &resp)
+
+	return resp, err
+}
+
+func validateDummyVC(vc map[string]interface{}) error {
+	proc := ld.NewJsonLdProcessor()
+	options := ld.NewJsonLdOptions("")
+	options.Algorithm = ld.AlgorithmURDNA2015
+	options.SafeMode = true
+
+	normDoc, err := proc.Normalize(vc, options)
+	if err != nil {
+		return err
+	}
+
+	dataset, ok := normDoc.(*ld.RDFDataset)
+	if !ok {
+		return errors.New("[assertion] expected *ld.RDFDataset type")
+	}
+
+	_, err = merklize.EntriesFromRDF(dataset)
+
+	return err
 }
 
 func findIndexForSchemaAttribute(attributes Attributes, name string) int {

@@ -10,11 +10,11 @@ import { CREDENTIALS_TABS, CREDENTIAL_LINK } from "src/utils/constants";
 export function Summary({ linkID }: { linkID: string }) {
   const navigate = useNavigate();
 
-  const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLink.path, {
+  const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
     linkID,
   })}`;
 
-  const navigateToSharedLinks = () => {
+  const navigateToLinks = () => {
     navigate(
       generatePath(ROUTES.credentials.path, {
         tabID: CREDENTIALS_TABS[1].tabID,
@@ -39,7 +39,7 @@ export function Summary({ linkID }: { linkID: string }) {
       className="issue-credential-card"
       extra={
         <Button
-          href={generatePath(ROUTES.credentialLink.path, { linkID })}
+          href={generatePath(ROUTES.credentialLinkQR.path, { linkID })}
           icon={<ExternalLinkIcon />}
           target="_blank"
           type="link"
@@ -62,7 +62,7 @@ export function Summary({ linkID }: { linkID: string }) {
       <Divider />
 
       <Row justify="end">
-        <Button onClick={navigateToSharedLinks} type="primary">
+        <Button onClick={navigateToLinks} type="primary">
           Done
         </Button>
       </Row>

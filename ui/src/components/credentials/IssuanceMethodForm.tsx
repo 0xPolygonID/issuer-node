@@ -1,68 +1,113 @@
 import {
+  AutoComplete,
   Button,
   Card,
   DatePicker,
   Form,
+  Input,
   InputNumber,
   Radio,
   Row,
   Space,
-  Tag,
   TimePicker,
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
+import { getConnections } from "src/adapters/api/connections";
+import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
-import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK } from "src/utils/constants";
+import { useEnvContext } from "src/contexts/Env";
+import { AppError, Connection } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
+import { makeRequestAbortable } from "src/utils/browser";
+import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 
 export function IssuanceMethodForm({
   initialValues,
+  onChangeDid,
   onSubmit,
 }: {
   initialValues: IssuanceMethodFormData;
+  onChangeDid: (did?: string) => void;
   onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
-  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
+  const env = useEnvContext();
 
+  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
+  const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
+    status: "pending",
+  });
+
+  const isLinkIssue = issuanceMethod.type === "credentialLink";
   const isDirectIssue = issuanceMethod.type === "directIssue";
+
+  const isNextButtonDisabled = isDirectIssue && !issuanceMethod.did;
+
+  const isConnectedSuffixVisible =
+    isDirectIssue &&
+    isAsyncTaskDataAvailable(connections) &&
+    connections.data.find((connection) => connection.userID === issuanceMethod.did) !== undefined;
+
+  const fetchConnections = useCallback(
+    async (signal: AbortSignal) => {
+      const response = await getConnections({ credentials: false, env, signal });
+
+      if (response.success) {
+        setConnections({ data: response.data.successful, status: "successful" });
+        notifyParseErrors(response.data.failed);
+      } else {
+        setConnections({ error: response.error, status: "failed" });
+      }
+    },
+    [env]
+  );
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchConnections);
+
+    return () => aborter();
+  }, [fetchConnections]);
 
   return (
     <Card className="issue-credential-card" title="Choose how to issue credential">
       <Form
-        initialValues={initialValues}
+        initialValues={issuanceMethod}
         layout="vertical"
         name="issueCredentialMethod"
         onFinish={onSubmit}
-        onValuesChange={(changedValues, allValues) => {
-          const parsedLinkExpirationDate = linkExpirationDateParser.safeParse(changedValues);
+        onValuesChange={(_, allValues) => {
+          const parsedIssuanceMethodFormData = issuanceMethodFormDataParser.safeParse(allValues);
 
-          if (
-            allValues.type === "credentialLink" &&
-            parsedLinkExpirationDate.success &&
-            (parsedLinkExpirationDate.data.linkExpirationDate === null ||
-              (dayjs().isSame(parsedLinkExpirationDate.data.linkExpirationDate, "day") &&
-                dayjs().isAfter(allValues.linkExpirationTime)))
-          ) {
-            setIssuanceMethod({ ...allValues, linkExpirationTime: undefined });
-          } else {
-            setIssuanceMethod(allValues);
+          if (parsedIssuanceMethodFormData.success) {
+            const { data } = parsedIssuanceMethodFormData;
+
+            if (
+              data.type === "credentialLink" &&
+              (data.linkExpirationDate === null ||
+                (dayjs().isSame(data.linkExpirationDate, "day") &&
+                  dayjs().isAfter(data.linkExpirationTime)))
+            ) {
+              setIssuanceMethod({ ...data, linkExpirationTime: undefined });
+            } else {
+              onChangeDid(data.type === "directIssue" ? data.did : undefined);
+
+              setIssuanceMethod(data);
+            }
           }
         }}
         requiredMark={false}
         validateTrigger="onBlur"
       >
-        <Form.Item name="type" rules={[{ message: "Value required", required: true }]}>
+        <Form.Item name="type" rules={[{ message: VALUE_REQUIRED, required: true }]}>
           <Radio.Group className="full-width" name="type">
             <Space direction="vertical">
-              <Card className={`${isDirectIssue ? "selected" : ""} disabled`}>
-                <Radio disabled value="directIssue">
+              <Card className={`${isDirectIssue ? "selected" : ""}`}>
+                <Radio value="directIssue">
                   <Space direction="vertical">
-                    <Typography.Text>
-                      Direct issue <Tag>Coming soon</Tag>
-                    </Typography.Text>
+                    <Typography.Text>Direct issue</Typography.Text>
 
                     <Typography.Text type="secondary">
                       Issue credentials directly using a known identifier - connections with your
@@ -70,6 +115,45 @@ export function IssuanceMethodForm({
                     </Typography.Text>
                   </Space>
                 </Radio>
+
+                <Form.Item
+                  label="Select connection/Paste identifier"
+                  name="did"
+                  required
+                  style={{ paddingLeft: 28, paddingTop: 16 }}
+                >
+                  <AutoComplete
+                    disabled={isLinkIssue}
+                    filterOption={(inputValue, option) =>
+                      option !== undefined
+                        ? option.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                        : false
+                    }
+                    options={
+                      isAsyncTaskDataAvailable(connections)
+                        ? connections.data.map(({ userID }) => {
+                            const network = userID.split(":").splice(0, 4).join(":");
+                            const did = userID.split(":").pop();
+
+                            if (did) {
+                              return {
+                                label: `${network}:${did.slice(0, 6)}...${did.slice(-6)}`,
+                                value: userID,
+                              };
+                            } else {
+                              return { label: userID, value: userID };
+                            }
+                          })
+                        : undefined
+                    }
+                  >
+                    <Input
+                      className={isConnectedSuffixVisible ? undefined : "hidden-suffix"}
+                      placeholder="Select or paste"
+                      suffix={<Typography.Text type="secondary">Connected</Typography.Text>}
+                    />
+                  </AutoComplete>
+                </Form.Item>
               </Card>
 
               <Card className={issuanceMethod.type === "credentialLink" ? "selected" : ""}>
@@ -162,7 +246,7 @@ export function IssuanceMethodForm({
         </Form.Item>
 
         <Row gutter={8} justify="end">
-          <Button htmlType="submit" type="primary">
+          <Button disabled={isNextButtonDisabled} htmlType="submit" type="primary">
             Next step <IconRight />
           </Button>
         </Row>

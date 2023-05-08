@@ -91,6 +91,21 @@
   }
 }
 
+.ant-select-selection-search-input {
+  &.hidden-suffix {
+    .ant-input-suffix {
+      display: none;
+    }
+  }
+}
+
+.ant-checkbox-group {
+  &,
+  .ant-typography {
+    display: block;
+  }
+}
+
 .avatar-color-cyan {
   background-color: $cyan-bg;
   color: $cyan-color;
@@ -115,6 +130,15 @@
 
   path {
     stroke: $primary-color;
+  }
+}
+
+.avatar-color-success {
+  background-color: $success-bg;
+  color: $success-color;
+
+  path {
+    stroke: $success-color;
   }
 }
 
@@ -180,6 +204,16 @@
   > .ant-menu-item,
   .ant-menu-submenu-title {
     padding-left: 16px !important;
+  }
+}
+
+.ant-notification-notice {
+  width: auto;
+
+  &.ant-notification-notice-warning {
+    .ant-notification-notice-icon {
+      color: $text-color-warning;
+    }
   }
 }
 
@@ -271,6 +305,10 @@
 
 .pointer {
   cursor: pointer;
+}
+
+a .ant-typography {
+  color: $primary-color;
 }
 
 body {

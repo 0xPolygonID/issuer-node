@@ -9,18 +9,18 @@ import {
   useState,
 } from "react";
 
-import { APIError } from "src/adapters/api";
 import { getStatus } from "src/adapters/api/issuer-state";
 import { useEnvContext } from "src/contexts/Env";
+import { AppError } from "src/domain";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
-type EventType = "revoke";
+type EventType = "credential" | "revoke";
 
 interface IssuerState {
   notifyChange: (event: EventType) => Promise<void>;
   refreshStatus: () => Promise<void>;
-  status: AsyncTask<boolean, APIError>;
+  status: AsyncTask<boolean, AppError>;
 }
 
 const CONTEXT_NOT_READY_MESSAGE = "The issuer state context is not yet ready";
@@ -33,13 +33,13 @@ const IssuerStateContext = createContext<IssuerState>({
 
 export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
-  const [status, setStatus] = useState<AsyncTask<boolean, APIError>>({ status: "pending" });
+  const [status, setStatus] = useState<AsyncTask<boolean, AppError>>({ status: "pending" });
 
   const refreshStatus = useCallback(
     async (signal?: AbortSignal) => {
       const response = await getStatus({ env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setStatus({ data: response.data.pendingActions, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {
@@ -52,7 +52,10 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
   const notifyChange = useCallback(
     (event: EventType) => {
-      const eventTitle: Record<EventType, string> = { revoke: "Revocation" };
+      const eventTitle: Record<EventType, string> = {
+        credential: "Credential",
+        revoke: "Revocation",
+      };
 
       void message.info({
         content: (

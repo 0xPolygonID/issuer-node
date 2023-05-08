@@ -1,23 +1,23 @@
 import axios from "axios";
 import { z } from "zod";
 
-import {
-  APIResponse,
-  HTTPStatusSuccess,
-  ID,
-  IDParser,
-  ResultOK,
-  buildAPIError,
-  buildAuthorizationHeader,
-} from "src/adapters/api";
-import { getStrictParser } from "src/adapters/parsers";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
+import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, JsonLdType, Schema } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
-interface Schemas {
-  errors: z.ZodError<Schema>[];
-  schemas: Schema[];
-}
+const schemaParser = getStrictParser<Schema>()(
+  z.object({
+    bigInt: z.string(),
+    createdAt: z.coerce.date(z.string().datetime()),
+    hash: z.string(),
+    id: z.string(),
+    type: z.string(),
+    url: z.string(),
+  })
+);
 
 export async function importSchema({
   env,
@@ -27,7 +27,7 @@ export async function importSchema({
   env: Env;
   jsonLdType: JsonLdType;
   schemaUrl: string;
-}): Promise<APIResponse<ID>> {
+}): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -41,11 +41,9 @@ export async function importSchema({
       method: "POST",
       url: `${API_VERSION}/schemas`,
     });
-    const { id } = IDParser.parse(response.data);
-
-    return { data: { id }, isSuccessful: true };
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -57,7 +55,7 @@ export async function getSchema({
   env: Env;
   schemaID: string;
   signal: AbortSignal;
-}): Promise<APIResponse<Schema>> {
+}): Promise<Response<Schema>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -68,11 +66,9 @@ export async function getSchema({
       signal,
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
-    const { data } = resultOKSchemaParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(schemaParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -86,12 +82,7 @@ export async function getSchemas({
     query?: string;
   };
   signal: AbortSignal;
-}): Promise<
-  APIResponse<{
-    errors: z.ZodError<Schema>[];
-    schemas: Schema[];
-  }>
-> {
+}): Promise<Response<List<Schema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -105,66 +96,15 @@ export async function getSchemas({
       signal,
       url: `${API_VERSION}/schemas`,
     });
-    const { data } = resultOKSchemasParser.parse(response);
-
-    return {
-      data: {
-        errors: data.errors,
-        schemas: data.schemas.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-      },
-      isSuccessful: true,
-    };
+    return buildSuccessResponse(
+      getListParser(schemaParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
-
-const schemaParser = getStrictParser<Schema>()(
-  z.object({
-    bigInt: z.string(),
-    createdAt: z.coerce.date(),
-    hash: z.string(),
-    id: z.string(),
-    type: z.string(),
-    url: z.string(),
-  })
-);
-
-const resultOKSchemaParser = getStrictParser<ResultOK<Schema>>()(
-  z.object({
-    data: schemaParser,
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-const resultOKSchemasParser = getStrictParser<ResultOK<unknown[]>, ResultOK<Schemas>>()(
-  z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: Schemas, curr: unknown, index) => {
-          const parsedSchema = schemaParser.safeParse(curr);
-
-          return parsedSchema.success
-            ? {
-                ...acc,
-                schemas: [...acc.schemas, parsedSchema.data],
-              }
-            : {
-                ...acc,
-                errors: [
-                  ...acc.errors,
-                  new z.ZodError<Schema>(
-                    parsedSchema.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { errors: [], schemas: [] }
-      )
-    ),
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);

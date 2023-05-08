@@ -1252,7 +1252,6 @@ func TestServer_GetCredential(t *testing.T) {
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
-						"type":         "KYCAgeCredential",
 					},
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
@@ -1264,6 +1263,7 @@ func TestServer_GetCredential(t *testing.T) {
 					SchemaHash: createdClaim1.SchemaHash,
 					SchemaType: typeC,
 					SchemaUrl:  schema,
+					UserID:     createdClaim1.OtherIdentifier,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1280,7 +1280,6 @@ func TestServer_GetCredential(t *testing.T) {
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
-						"type":         "KYCAgeCredential",
 					},
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
@@ -1292,6 +1291,7 @@ func TestServer_GetCredential(t *testing.T) {
 					SchemaHash: createdClaim2.SchemaHash,
 					SchemaType: typeC,
 					SchemaUrl:  schema,
+					UserID:     createdClaim2.OtherIdentifier,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1308,7 +1308,6 @@ func TestServer_GetCredential(t *testing.T) {
 						"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 						"birthday":     19960424,
 						"documentType": 2,
-						"type":         "KYCAgeCredential",
 					},
 					CreatedAt:  time.Now().UTC(),
 					Expired:    false,
@@ -1320,6 +1319,7 @@ func TestServer_GetCredential(t *testing.T) {
 					SchemaHash: createdClaim3.SchemaHash,
 					SchemaType: typeC,
 					SchemaUrl:  schema,
+					UserID:     createdClaim3.OtherIdentifier,
 				},
 				httpCode: http.StatusOK,
 			},
@@ -1637,24 +1637,12 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		auth     func() (string, string)
 		request  GetCredentialRequestObject
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
-			request: GetCredentialRequestObject{
-				Id: uuid.New(),
-			},
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
 			name: "should return an error, claim not found",
-			auth: authOk,
 			request: GetCredentialRequestObject{
 				Id: uuid.New(),
 			},
@@ -1665,7 +1653,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		},
 		{
 			name: "happy path",
-			auth: authOk,
 			request: GetCredentialRequestObject{
 				Id: createdClaim.ID,
 			},
@@ -1692,7 +1679,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			url := fmt.Sprintf("/v1/credentials/%s/qrcode", tc.request.Id.String())
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -1831,7 +1817,6 @@ func TestServer_GetConnection(t *testing.T) {
 								"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 								"birthday":     19960424,
 								"documentType": 2,
-								"type":         "KYCAgeCredential",
 							},
 							CreatedAt:  time.Now().UTC(),
 							Expired:    false,
@@ -1843,6 +1828,7 @@ func TestServer_GetConnection(t *testing.T) {
 							SchemaHash: claim.SchemaHash,
 							SchemaType: claim.SchemaType,
 							SchemaUrl:  claim.SchemaURL,
+							UserID:     claim.OtherIdentifier,
 						},
 					},
 				},
@@ -2080,7 +2066,7 @@ func TestServer_GetConnections(t *testing.T) {
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
-					Query: common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Ge"),
+					Query: common.ToPointer("Z7gcmEoP2KppvFPCZqyzyb5tK9T6Ge"),
 				},
 			},
 			expected: expected{
@@ -2155,7 +2141,7 @@ func TestServer_GetConnections(t *testing.T) {
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ"),
+					Query:       common.ToPointer("5HFANQ"),
 				},
 			},
 			expected: expected{
@@ -2199,7 +2185,7 @@ func TestServer_GetConnections(t *testing.T) {
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 birthday"),
+					Query:       common.ToPointer("CZqyzyb5tK9T6Ge  credential"),
 				},
 			},
 			expected: expected{
@@ -2216,12 +2202,12 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
-			name: "should return one connection with invalid did and valid attributes",
+			name: "should return one connection with not existing did and valid attributes",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk birthday"),
+					Query:       common.ToPointer("did:polygon:myhouse:ZZZZZZ birthday"),
 				},
 			},
 			expected: expected{
@@ -2339,7 +2325,6 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 		Id           string `json:"id"`
 		Birthday     uint64 `json:"birthday"`
 		DocumentType uint64 `json:"documentType"`
-		Type         string `json:"type"`
 	}
 
 	assert.Equal(t, tc.Id, response.Id)
@@ -2357,6 +2342,7 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 	assert.NoError(t, mapstructure.Decode(response.CredentialSubject, &respAttributes))
 	assert.EqualValues(t, respAttributes, tcCredentialSubject)
 	assert.EqualValues(t, tc.ProofTypes, response.ProofTypes)
+	assert.Equal(t, tc.UserID, response.UserID)
 }
 
 func TestServer_RevokeCredential(t *testing.T) {
@@ -2566,15 +2552,13 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Happy path",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: importedSchema.ID,
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             importedSchema.ID,
+				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: &types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
 				response: CreateLink201JSONResponse{},
@@ -2585,15 +2569,13 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "No merkle tree proof or signature proof selected. At least one should be enabled",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: importedSchema.ID,
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
-				MtProof:             false,
-				SignatureProof:      false,
+				SchemaID:             importedSchema.ID,
+				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: &types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
+				MtProof:              false,
+				SignatureProof:       false,
 			},
 			expected: expected{
 				response: CreateLink400JSONResponse{N400JSONResponse{Message: "at least one proof type should be enabled"}},
@@ -2601,18 +2583,16 @@ func TestServer_CreateLink(t *testing.T) {
 			},
 		},
 		{
-			name: "Claim link expiration invalid",
+			name: "Claim link expiration exceeded",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: importedSchema.ID,
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             importedSchema.ID,
+				Expiration:           common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: &types.Date{Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)},
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
 				response: CreateLink400JSONResponse{N400JSONResponse{Message: "invalid claimLinkExpiration. Cannot be a date time prior current time."}},
@@ -2623,15 +2603,13 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Claim link expiration nil",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: importedSchema.ID,
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: nil,
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             importedSchema.ID,
+				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: nil,
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
 				response: CreateLink201JSONResponse{},
@@ -2642,13 +2620,13 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Claim expiration date nil",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID:            importedSchema.ID,
-				ExpirationDate:      nil,
-				ClaimLinkExpiration: nil,
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             importedSchema.ID,
+				Expiration:           nil,
+				CredentialExpiration: nil,
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
 				response: CreateLink201JSONResponse{},
@@ -2659,15 +2637,13 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Claim link wrong number of attributes",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: importedSchema.ID,
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             importedSchema.ID,
+				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
 				response: CreateLink400JSONResponse{N400JSONResponse{Message: "you must provide at least one attribute"}},
@@ -2678,18 +2654,16 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Claim link wrong attribute type",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: importedSchema.ID,
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": true},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             importedSchema.ID,
+				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": true},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
-				response: CreateLink400JSONResponse{N400JSONResponse{Message: "credentialSubject.documentType: Invalid type. Expected: integer, given: boolean \n"}},
+				response: CreateLink400JSONResponse{N400JSONResponse{Message: "cannot parse claim"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -2697,15 +2671,13 @@ func TestServer_CreateLink(t *testing.T) {
 			name: "Claim link wrong schema id",
 			auth: authOk,
 			body: CreateLinkRequest{
-				SchemaID: uuid.New(),
-				ExpirationDate: &types.Date{
-					Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local),
-				},
-				ClaimLinkExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				LimitedClaims:       common.ToPointer(10),
-				CredentialSubject:   CredentialSubject{"birthday": 19790911, "documentType": 12},
-				MtProof:             true,
-				SignatureProof:      true,
+				SchemaID:             uuid.New(),
+				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
+				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				LimitedClaims:        common.ToPointer(10),
+				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
+				MtProof:              true,
+				SignatureProof:       true,
 			},
 			expected: expected{
 				response: CreateLink400JSONResponse{N400JSONResponse{Message: "schema does not exist"}},
@@ -2983,7 +2955,7 @@ func TestServer_GetLink(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
 					Active:            link.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12},
+					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
 					Expiration:        link.ValidUntil,
 					Id:                link.ID,
 					IssuedClaims:      link.IssuedClaims,
@@ -3005,7 +2977,7 @@ func TestServer_GetLink(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
 					Active:            linkExpired.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12},
+					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
 					Expiration:        linkExpired.ValidUntil,
 					Id:                linkExpired.ID,
 					IssuedClaims:      linkExpired.IssuedClaims,
@@ -3555,6 +3527,11 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
+
+	yesterday := time.Now().Add(-24 * time.Hour)
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	require.NoError(t, err)
+
 	handler := getHandler(ctx, server)
 
 	linkDetail := getLinkResponse(*link)
@@ -3562,35 +3539,34 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	type expected struct {
 		linkDetail Link
 		httpCode   int
+		message    string
 	}
 
 	type testConfig struct {
 		name     string
 		id       uuid.UUID
-		auth     func() (string, string)
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
-			id:   link.ID,
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
 			name: "Wrong link id",
-			auth: authOk,
 			id:   uuid.New(),
 			expected: expected{
 				httpCode: http.StatusNotFound,
+				message:  "error: link not found",
+			},
+		},
+		{
+			name: "Expired link",
+			id:   linkExpired.ID,
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				message:  "error: cannot issue a credential for an expired link",
 			},
 		},
 		{
 			name: "Happy path",
-			auth: authOk,
 			id:   link.ID,
 			expected: expected{
 				linkDetail: linkDetail,
@@ -3603,7 +3579,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id.String())
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, nil))
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -3630,6 +3605,10 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				assert.NotNil(t, response.SessionID)
 				assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
 				assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
+			case http.StatusNotFound:
+				var response CreateLinkQrCode404JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.EqualValues(t, tc.expected.message, response.Message)
 			}
 		})
 	}
@@ -3720,23 +3699,13 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		id        uuid.UUID
 		sessionID uuid.UUID
 		state     *linkState.State
-		auth      func() (string, string)
 		expected  expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
-			id:   link.ID,
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
 			name:      "Wrong sessionID",
 			sessionID: uuid.New(),
-			auth:      authOk,
 			id:        link.ID,
 			state:     nil,
 			expected: expected{
@@ -3746,7 +3715,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		{
 			name:      "Wrong linkID",
 			sessionID: sessionID,
-			auth:      authOk,
 			id:        uuid.New(),
 			state:     nil,
 			expected: expected{
@@ -3756,7 +3724,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		{
 			name:      "Error state",
 			sessionID: sessionID,
-			auth:      authOk,
 			id:        link.ID,
 			state:     linkState.NewStateError(errors.New("something wrong")),
 			expected: expected{
@@ -3766,7 +3733,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		{
 			name:      "Pending state",
 			sessionID: sessionID,
-			auth:      authOk,
 			id:        link.ID,
 			state:     linkState.NewStatePending(),
 			expected: expected{
@@ -3776,7 +3742,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		},
 		{
 			name:      "Happy path",
-			auth:      authOk,
 			id:        link.ID,
 			sessionID: sessionID,
 			state:     linkState.NewStateDone(qrcode),
@@ -3797,7 +3762,6 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode?sessionID=%s", tc.id, tc.sessionID)
 			req, err := http.NewRequest(http.MethodGet, url, tests.JSONBody(t, nil))
-			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
 

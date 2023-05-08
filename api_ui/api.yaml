@@ -379,8 +379,6 @@ paths:
       description: Returns a a json that can be used to create the QR Code to scan for accepting a credential.
       tags:
         - Credential
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
       responses:
@@ -728,8 +726,6 @@ paths:
     post:
       summary: Create Authentication Link QRCode
       operationId: CreateLinkQrCode
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
       tags:
@@ -751,8 +747,6 @@ paths:
     get:
       summary: Get Credential Link QRCode
       operationId: GetLinkQRCode
-      security:
-        - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/id'
         - $ref: '#/components/parameters/sessionID'
@@ -820,6 +814,15 @@ paths:
       responses:
         200:
           description: success and returns the documentation in Yaml format
+
+  /favicon.ico:
+    get:
+      summary: Gets the favicon
+      operationId: GetFavicon
+      x-internal: true
+      responses:
+        200:
+          description: success and returns a favicon
 
   /status:
     get:
@@ -1044,6 +1047,7 @@ components:
         - revNonce
         - credentialSubject
         - revoked
+        - userID
       properties:
         id:
           type: string
@@ -1093,7 +1097,9 @@ components:
             birthday: 19960424
             documentType: 2
             id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
-            type: "KYCAgeCredential"
+        userID:
+          type: string
+          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
     Link:
       type: object
@@ -1137,6 +1143,12 @@ components:
           type: string
           format: date-time
           example: 2023-03-17T10:18:01.400722+01:00
+          x-omitempty: false
+          nullable: true
+        credentialExpiration:
+          type: string
+          format: date
+          example: "2022-12-20"
           x-omitempty: false
           nullable: true
         createdAt:
@@ -1382,11 +1394,11 @@ components:
           type: string
           x-go-type: uuid.UUID
           x-omitempty: false
-        expirationDate:
+        credentialExpiration:
           type: string
           format: date
           example: "2022-12-20"
-        claimLinkExpiration:
+        expiration:
           type: string
           format: date-time
           example: 2025-04-17T11:40:43.681857-03:00

@@ -19,7 +19,6 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -31,17 +30,20 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Link } from "src/domain";
+import { AppError, Link } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   ACCESSIBLE_UNTIL,
+  DELETE,
+  DETAILS,
   LINKS,
   QUERY_SEARCH_PARAM,
   STATUS,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
@@ -49,7 +51,7 @@ export function LinksTable() {
 
   const navigate = useNavigate();
 
-  const [links, setLinks] = useState<AsyncTask<Link[], APIError>>({
+  const [links, setLinks] = useState<AsyncTask<Link[], AppError>>({
     status: "pending",
   });
   const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
@@ -103,7 +105,7 @@ export function LinksTable() {
       ellipsis: true,
       key: "expiration",
       render: (expiration: Link["expiration"]) => (
-        <Typography.Text>{expiration ? formatDate(expiration, true) : "Unlimited"}</Typography.Text>
+        <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
       sorter: ({ expiration: a }, { expiration: b }) => {
         if (a && b) {
@@ -172,7 +174,8 @@ export function LinksTable() {
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: "Details",
+                  label: DETAILS,
+                  onClick: () => navigate(generatePath(ROUTES.linkDetails.path, { linkID: id })),
                 },
                 {
                   key: "divider",
@@ -182,7 +185,7 @@ export function LinksTable() {
                   danger: true,
                   icon: <IconTrash />,
                   key: "delete",
-                  label: "Delete",
+                  label: DELETE,
                   onClick: () => setLinkToDelete(id),
                 },
               ],
@@ -217,8 +220,9 @@ export function LinksTable() {
         signal,
       });
 
-      if (response.isSuccessful) {
-        setLinks({ data: response.data, status: "successful" });
+      if (response.success) {
+        setLinks({ data: response.data.successful, status: "successful" });
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setLinks({ error: response.error, status: "failed" });
@@ -278,10 +282,10 @@ export function LinksTable() {
       id,
       payload: { active },
     }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         updateCredentialInState(active, id);
 
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
       }

@@ -9,13 +9,12 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { generatePath, useNavigate } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import {
   CredentialStatus,
   credentialStatusParser,
@@ -33,24 +32,28 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Credential } from "src/domain";
+import { AppError, Credential } from "src/domain";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
-  CREDENTIALS,
+  DELETE,
+  DETAILS,
+  DID_SEARCH_PARAM,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
-  ISSUE_CREDENTIAL,
+  ISSUED_CREDENTIALS,
   ISSUE_DATE,
   REVOCATION,
+  REVOKE,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
 
-  const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
+  const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
   });
   const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>("all");
@@ -58,25 +61,31 @@ export function CredentialsTable({ userID }: { userID: string }) {
   const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
   const [query, setQuery] = useState<string | null>(null);
 
+  const navigate = useNavigate();
+  const navigateToDirectIssue = () =>
+    navigate({
+      pathname: generatePath(ROUTES.issueCredential.path),
+      search: `${DID_SEARCH_PARAM}=${userID}`,
+    });
+
   const tableColumns: ColumnsType<Credential> = [
     {
-      dataIndex: "credentialSubject",
+      dataIndex: "schemaType",
       ellipsis: { showTitle: false },
-      key: "credentialSubject",
-      render: (credentialSubject: Credential["credentialSubject"]) => (
-        <Tooltip placement="topLeft" title={credentialSubject.type}>
-          <Typography.Text strong>{credentialSubject.type}</Typography.Text>
+      key: "schemaType",
+      render: (schemaType: Credential["schemaType"]) => (
+        <Tooltip placement="topLeft" title={schemaType}>
+          <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ credentialSubject: { type: a } }, { credentialSubject: { type: b } }) =>
-        a.localeCompare(b),
-      title: CREDENTIALS,
+      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      title: "Credential",
     },
     {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>
+        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
       sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: ISSUE_DATE,
@@ -86,7 +95,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       key: "expiresAt",
       render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
         expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt, true)}>
+          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
             <Typography.Text>
               {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
             </Typography.Text>
@@ -123,7 +132,9 @@ export function CredentialsTable({ userID }: { userID: string }) {
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
+                onClick: () =>
+                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
               },
               {
                 key: "divider1",
@@ -134,7 +145,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 disabled: credential.revoked,
                 icon: <IconClose />,
                 key: "revoke",
-                label: "Revoke",
+                label: REVOKE,
                 onClick: () => setCredentialToRevoke(credential),
               },
               {
@@ -145,7 +156,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete",
+                label: DELETE,
                 onClick: () => setCredentialToDelete(credential),
               },
             ],
@@ -177,11 +188,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
           },
           signal,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           setCredentials({
-            data: response.data,
+            data: response.data.successful,
             status: "successful",
           });
+          notifyParseErrors(response.data.failed);
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });
@@ -197,7 +209,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     if (parsedCredentialStatus.success) {
       setCredentialStatus(parsedCredentialStatus.data);
     } else {
-      processZodError(parsedCredentialStatus.error).forEach((error) => void message.error(error));
+      notifyParseError(parsedCredentialStatus.error);
     }
   };
 
@@ -228,7 +240,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             </Typography.Text>
           </>
         }
-        extraButton={<IssueDirectlyButton />}
+        extraButton={<IssueDirectlyButton onClick={navigateToDirectIssue} />}
         isLoading={isAsyncTaskStarting(credentials)}
         onSearch={setQuery}
         query={query}
@@ -262,12 +274,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
         title={
           <Row align="middle" justify="space-between">
             <Space align="end" size="middle">
-              <Card.Meta title={ISSUE_CREDENTIAL} />
+              <Card.Meta title={ISSUED_CREDENTIALS} />
 
               <Tag color="blue">{credentialsList.length}</Tag>
             </Space>
             {showDefaultContent && credentialStatus === "all" ? (
-              <IssueDirectlyButton />
+              <IssueDirectlyButton onClick={navigateToDirectIssue} />
             ) : (
               <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
                 <Radio.Button value="all">All</Radio.Button>

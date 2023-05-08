@@ -17,8 +17,8 @@ const attributeToTreeDataNode = ({
 }): DataNode => {
   return {
     children:
-      attribute.type === "object" && attribute.schema.properties
-        ? attribute.schema.properties.map((child) =>
+      attribute.type === "object"
+        ? attribute.schema.properties?.map((child) =>
             attributeToTreeDataNode({
               attribute: child,
               parents: [...parents, attribute],

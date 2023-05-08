@@ -1,3 +1,4 @@
+include .env-api
 BIN := $(shell pwd)/bin
 VERSION ?= $(shell git rev-parse --short HEAD)
 GO?=$(shell which go)
@@ -11,16 +12,16 @@ DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 DOCKER_COMPOSE_FILE_INFRA := $(LOCAL_DEV_PATH)/docker-compose-infra.yml
 DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
 DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
+ENVIRONMENT := ${ISSUER_API_ENVIRONMENT}
 
 
 # Local environment overrides via godotenv
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
 
-.PHONY: build
-build:
+.PHONY: build-local
+build-local:
 	$(BUILD_CMD) ./cmd/...
-
 
 .PHONY: build/docker
 build/docker: ## Build the docker image.
@@ -63,19 +64,41 @@ up:
 
 .PHONY: run
 run:
+	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
+	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
+	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
 
 .PHONY: run-arm
 run-arm:
+	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
+	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
+	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
 
 .PHONY: run-ui
-run-ui:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
+run-ui: add-host-url-swagger
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
 .PHONY: run-ui-arm
-run-ui-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notificacions pending_publisher
+run-ui-arm: add-host-url-swagger
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
+	
+.PHONY: build
+build:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+
+.PHONY: build-arm
+build-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+
+.PHONY: build-ui
+build-ui:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api-ui ui notifications pending_publisher
+
+.PHONY: build-ui-arm
+build-ui-arm:
+	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api-ui ui notifications pending_publisher
 
 .PHONY: down
 down:
@@ -165,6 +188,11 @@ generate-issuer-did-arm: run-initializer-arm
 	mv .env-api.tmp .env-api
 	docker rm issuer-initializer-1
 
+.PHONY: add-host-url-swagger
+add-host-url-swagger:
+	@if [ $(ENVIRONMENT) != "" ] && [ $(ENVIRONMENT) != "local" ]; then \
+		sed -i -e  "s#server-url = [^ ]*#server-url = \""${ISSUER_API_UI_SERVER_URL}"\"#g" api_ui/spec.html; \
+	fi
 
 .PHONY: rm-issuer-imgs
 rm-issuer-imgs: stop

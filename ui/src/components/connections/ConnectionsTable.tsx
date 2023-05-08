@@ -3,8 +3,8 @@ import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
+import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
@@ -15,18 +15,27 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection, Credential } from "src/domain";
+import { AppError, Connection } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CONNECTIONS, IDENTIFIER, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import {
+  CONNECTIONS,
+  DELETE,
+  DETAILS,
+  DID_SEARCH_PARAM,
+  IDENTIFIER,
+  ISSUED_CREDENTIALS,
+  QUERY_SEARCH_PARAM,
+} from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
 
   const navigate = useNavigate();
 
-  const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
+  const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
     status: "pending",
   });
   const [connectionToDelete, setConnectionToDelete] = useState<string>();
@@ -52,39 +61,53 @@ export function ConnectionsTable() {
       dataIndex: "credentials",
       ellipsis: { showTitle: false },
       key: "credentials",
-      render: (credentials: Credential[]) => (
+      render: (credentials: Connection["credentials"]) => (
         <Typography.Text>
-          {[...credentials]
-            .sort((a, b) => a.credentialSubject.type.localeCompare(b.credentialSubject.type))
-            .map((credential) => credential.credentialSubject.type)
+          {[...credentials.successful]
+            .sort((a, b) => a.schemaType.localeCompare(b.schemaType))
+            .map((credential) => credential.schemaType)
             .join(", ")}
         </Typography.Text>
       ),
-      title: "Issued credentials",
+      title: ISSUED_CREDENTIALS,
     },
     {
       dataIndex: "id",
       key: "id",
-      render: (id: Connection["id"]) => (
+      render: (id: Connection["id"], { userID }: Connection) => (
         <Dropdown
           menu={{
             items: [
               {
                 icon: <IconInfoCircle />,
                 key: "details",
-                label: "Details",
+                label: DETAILS,
                 onClick: () =>
                   navigate(generatePath(ROUTES.connectionDetails.path, { connectionID: id })),
               },
               {
-                key: "divider",
+                key: "divider1",
+                type: "divider",
+              },
+              {
+                icon: <IconCreditCardPlus />,
+                key: "issue",
+                label: "Issue credential directly",
+                onClick: () =>
+                  navigate({
+                    pathname: generatePath(ROUTES.issueCredential.path),
+                    search: `${DID_SEARCH_PARAM}=${userID}`,
+                  }),
+              },
+              {
+                key: "divider2",
                 type: "divider",
               },
               {
                 danger: true,
                 icon: <IconTrash />,
                 key: "delete",
-                label: "Delete connection",
+                label: DELETE,
                 onClick: () => setConnectionToDelete(id),
               },
             ],
@@ -111,8 +134,9 @@ export function ConnectionsTable() {
         },
         signal,
       });
-      if (response.isSuccessful) {
-        setConnections({ data: response.data, status: "successful" });
+      if (response.success) {
+        setConnections({ data: response.data.successful, status: "successful" });
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setConnections({ error: response.error, status: "failed" });

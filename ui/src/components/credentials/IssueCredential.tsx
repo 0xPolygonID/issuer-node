@@ -1,18 +1,19 @@
-import { Card, Space, message } from "antd";
-import { isAxiosError } from "axios";
+import { Button, Card, Row, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { z } from "zod";
+import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { createLink } from "src/adapters/api/credentials";
-import { getSchemaFromUrl } from "src/adapters/jsonSchemas";
+import { createCredential, createLink } from "src/adapters/api/credentials";
+import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import {
+  CredentialDirectIssuance,
   CredentialFormInput,
-  CredentialLinkForm,
-  DirectIssueForm,
+  CredentialLinkIssuance,
   credentialFormParser,
-  serializeCredentialLinkForm,
+  serializeCredentialIssuance,
+  serializeCredentialLinkIssuance,
 } from "src/adapters/parsers/forms";
+import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
+import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
 import { IssueCredentialForm } from "src/components/credentials/IssueCredentialForm";
 import { SelectSchema } from "src/components/credentials/SelectSchema";
@@ -21,106 +22,189 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { JsonSchema, Schema } from "src/domain";
+import { useIssuerStateContext } from "src/contexts/IssuerState";
+import { AppError, JsonSchema, Schema } from "src/domain";
+import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { ISSUE_CREDENTIAL } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import {
+  CREDENTIALS_TABS,
+  DID_SEARCH_PARAM,
+  ISSUE_CREDENTIAL,
+  ISSUE_CREDENTIAL_DIRECT,
+  ISSUE_CREDENTIAL_LINK,
+  SCHEMA_SEARCH_PARAM,
+} from "src/utils/constants";
+import { jsonSchemaErrorToString, notifyParseError } from "src/utils/error";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
 
 const defaultCredentialFormInput: CredentialFormInput = {
   issuanceMethod: {
-    type: "credentialLink",
+    type: "directIssue",
   },
-  issueCredential: {},
+  issueCredential: {
+    proofTypes: ["SIG"],
+  },
 };
-
-const jsonSchemaErrorToString = (error: string | z.ZodError) =>
-  error instanceof z.ZodError
-    ? [
-        "An error occurred while parsing the json schema:",
-        ...processZodError(error).map((e) => `"${e}"`),
-      ].join("\n")
-    : `An error occurred while downloading the json schema from the URL:\n"${error}"\nPlease try again.`;
 
 export function IssueCredential() {
   const env = useEnvContext();
+  const { notifyChange } = useIssuerStateContext();
 
-  const [step, setStep] = useState<Step>("issuanceMethod");
+  const navigate = useNavigate();
+
+  const [searchParams] = useSearchParams();
+  const schemaID = searchParams.get(SCHEMA_SEARCH_PARAM) || undefined;
+  const did = searchParams.get(DID_SEARCH_PARAM) || undefined;
+
+  const [step, setStep] = useState<Step>(did ? "issueCredential" : "issuanceMethod");
   const [credentialFormInput, setCredentialFormInput] = useState<CredentialFormInput>(
-    defaultCredentialFormInput
+    defaultCredentialFormInput.issuanceMethod.type === "directIssue"
+      ? {
+          ...defaultCredentialFormInput,
+          issuanceMethod: { ...defaultCredentialFormInput.issuanceMethod, did },
+        }
+      : defaultCredentialFormInput
   );
+
   const [schema, setSchema] = useState<Schema>();
-  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, string | z.ZodError>>({
+  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>({
     status: "pending",
   });
   const [linkID, setLinkID] = useState<AsyncTask<string, null>>({
     status: "pending",
   });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { schemaID } = useParams();
+  const onChangeDid = (did?: string) => {
+    const search = new URLSearchParams(searchParams);
 
-  const processError = (error: unknown) =>
-    error instanceof z.ZodError ? error : error instanceof Error ? error.message : "Unknown error";
+    if (did) {
+      search.set(DID_SEARCH_PARAM, did);
+    } else {
+      search.delete(DID_SEARCH_PARAM);
+    }
 
-  const createLinkFromCredentialLinkForm = (credentialLinkForm: CredentialLinkForm) => {
+    navigate(
+      {
+        pathname: generatePath(ROUTES.issueCredential.path),
+        search: search.toString(),
+      },
+      { replace: true }
+    );
+  };
+
+  const onChangeSchema = useCallback(
+    (schema: Schema) => {
+      const search = new URLSearchParams(searchParams);
+
+      search.set(SCHEMA_SEARCH_PARAM, schema.id);
+
+      navigate(
+        {
+          pathname: generatePath(ROUTES.issueCredential.path),
+          search: search.toString(),
+        },
+        { replace: true }
+      );
+
+      setSchema((currentSchema) => (currentSchema?.id === schema.id ? currentSchema : schema));
+    },
+    [navigate, searchParams]
+  );
+
+  const createCredentialLink = async (credentialLinkIssuance: CredentialLinkIssuance) => {
     if (schemaID) {
       setLinkID({ status: "loading" });
-      const serializedCredentialForm = serializeCredentialLinkForm({
-        issueCredential: credentialLinkForm,
+      setIsLoading(true);
+      const serializedCredentialForm = serializeCredentialLinkIssuance({
+        issueCredential: credentialLinkIssuance,
         schemaID,
       });
 
       if (serializedCredentialForm.success) {
-        void createLink({
+        const response = await createLink({
           env,
           payload: serializedCredentialForm.data,
-        }).then((response) => {
-          if (response.isSuccessful) {
-            setLinkID({ data: response.data.id, status: "successful" });
-            setStep("summary");
-
-            void message.success("Credential link created");
-          } else {
-            setLinkID({ error: null, status: "failed" });
-
-            void message.error(response.error.message);
-          }
         });
+        if (response.success) {
+          setLinkID({ data: response.data.id, status: "successful" });
+          setStep("summary");
+
+          void message.success("Credential link created");
+        } else {
+          setLinkID({ error: null, status: "failed" });
+
+          void message.error(response.error.message);
+        }
       } else {
-        processZodError(serializedCredentialForm.error).forEach((msg) => void message.error(msg));
+        notifyParseError(serializedCredentialForm.error);
       }
+      setIsLoading(false);
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const issueCredentialFromDirectIssueForm = (directIssueForm: DirectIssueForm) => {
-    // ToDo: PID-508
+  const issueCredential = async (credentialIssuance: CredentialDirectIssuance) => {
+    if (schema) {
+      setIsLoading(true);
+      const serializedCredentialForm = serializeCredentialIssuance({
+        credentialSchema: schema.url,
+        issueCredential: credentialIssuance,
+        type: schema.type,
+      });
+
+      if (serializedCredentialForm.success) {
+        const response = await createCredential({
+          env,
+          payload: serializedCredentialForm.data,
+        });
+        if (response.success) {
+          navigate(
+            generatePath(ROUTES.credentials.path, {
+              tabID: CREDENTIALS_TABS[0].tabID,
+            })
+          );
+
+          if (credentialIssuance.mtProof) {
+            void notifyChange("credential");
+          }
+
+          void message.success("Credential issued");
+        } else {
+          void message.error(response.error.message);
+        }
+      } else {
+        notifyParseError(serializedCredentialForm.error);
+      }
+
+      setIsLoading(false);
+    }
   };
 
   const fetchJsonSchema = useCallback(
     (signal: AbortSignal) => {
-      if (schema) {
+      if (schema && step === "issueCredential") {
         setJsonSchema({ status: "loading" });
-        getSchemaFromUrl({
+        void getJsonSchemaFromUrl({
           signal,
           url: schema.url,
-        })
-          .then(([jsonSchema]) => {
+        }).then((response) => {
+          if (response.success) {
+            const [jsonSchema] = response.data;
             setJsonSchema({
               data: jsonSchema,
               status: "successful",
             });
-          })
-          .catch((error) => {
-            if (!isAxiosError(error) || !isAbortedError(error)) {
-              setJsonSchema({ error: processError(error), status: "failed" });
+          } else {
+            if (!isAbortedError(response.error)) {
+              setJsonSchema({ error: response.error, status: "failed" });
             }
-          });
+          }
+        });
       }
     },
-    [schema]
+    [schema, step]
   );
 
   useEffect(() => {
@@ -151,6 +235,7 @@ export function IssueCredential() {
             return (
               <IssuanceMethodForm
                 initialValues={credentialFormInput.issuanceMethod}
+                onChangeDid={onChangeDid}
                 onSubmit={(values) => {
                   setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
                   setStep("issueCredential");
@@ -160,12 +245,16 @@ export function IssueCredential() {
           }
 
           case "issueCredential": {
+            const onBack = () => {
+              setJsonSchema({ status: "pending" });
+              setStep("issuanceMethod");
+            };
             return (
               <Card className="issue-credential-card" title="Credential details">
                 <Space direction="vertical">
-                  <SelectSchema onSelect={setSchema} schemaID={schemaID} />
+                  <SelectSchema onSelect={onChangeSchema} schemaID={schemaID} />
 
-                  {schema &&
+                  {schema ? (
                     (() => {
                       switch (jsonSchema.status) {
                         case "pending":
@@ -183,32 +272,13 @@ export function IssueCredential() {
                             <IssueCredentialForm
                               initialValues={credentialFormInput.issueCredential}
                               jsonSchema={jsonSchema.data}
-                              onBack={() => {
-                                setJsonSchema({ status: "pending" });
-                                setStep("issuanceMethod");
-                              }}
+                              loading={isLoading}
+                              onBack={onBack}
                               onSubmit={(values) => {
-                                const updatedValues = values.expirationDate
-                                  ? {
-                                      ...values,
-                                      expirationDate: values.expirationDate.endOf("day"),
-                                    }
-                                  : values;
-                                const newCredentialFormInput: CredentialFormInput =
-                                  credentialFormInput.issuanceMethod.type === "credentialLink" &&
-                                  updatedValues.expirationDate?.isBefore(
-                                    credentialFormInput.issuanceMethod.linkExpirationDate
-                                  )
-                                    ? {
-                                        ...credentialFormInput,
-                                        issuanceMethod: {
-                                          ...credentialFormInput.issuanceMethod,
-                                          linkExpirationDate: undefined,
-                                          linkExpirationTime: undefined,
-                                        },
-                                        issueCredential: updatedValues,
-                                      }
-                                    : { ...credentialFormInput, issueCredential: updatedValues };
+                                const newCredentialFormInput: CredentialFormInput = {
+                                  ...credentialFormInput,
+                                  issueCredential: values,
+                                };
 
                                 setCredentialFormInput(newCredentialFormInput);
 
@@ -217,14 +287,12 @@ export function IssueCredential() {
 
                                 if (parsedForm.success) {
                                   if (parsedForm.data.type === "credentialLink") {
-                                    createLinkFromCredentialLinkForm(parsedForm.data);
+                                    void createCredentialLink(parsedForm.data);
                                   } else {
-                                    issueCredentialFromDirectIssueForm(parsedForm.data);
+                                    void issueCredential(parsedForm.data);
                                   }
                                 } else {
-                                  processZodError(parsedForm.error).forEach(
-                                    (msg) => void message.error(msg)
-                                  );
+                                  notifyParseError(parsedForm.error);
                                 }
                               }}
                               schema={schema}
@@ -233,7 +301,23 @@ export function IssueCredential() {
                           );
                         }
                       }
-                    })()}
+                    })()
+                  ) : (
+                    <Row justify="end">
+                      <Space size="middle">
+                        <Button icon={<IconBack />} onClick={onBack} type="default">
+                          Previous step
+                        </Button>
+
+                        <Button disabled htmlType="submit" type="primary">
+                          {credentialFormInput.issuanceMethod.type === "directIssue"
+                            ? ISSUE_CREDENTIAL_DIRECT
+                            : ISSUE_CREDENTIAL_LINK}
+                          <IconRight />
+                        </Button>
+                      </Space>
+                    </Row>
+                  )}
                 </Space>
               </Card>
             );

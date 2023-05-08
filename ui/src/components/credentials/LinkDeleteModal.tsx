@@ -3,6 +3,7 @@ import { Modal, Typography, message } from "antd";
 import { deleteLink } from "src/adapters/api/credentials";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
+import { CLOSE, DELETE } from "src/utils/constants";
 
 export function LinkDeleteModal({
   id,
@@ -17,11 +18,11 @@ export function LinkDeleteModal({
 
   const handleDeleteLink = () => {
     void deleteLink({ env, id }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         onClose();
         onDelete();
 
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
       }
@@ -30,13 +31,13 @@ export function LinkDeleteModal({
 
   return (
     <Modal
-      cancelText="Close"
+      cancelText={CLOSE}
       centered
       closable
       closeIcon={<IconClose />}
       maskClosable
       okButtonProps={{ danger: true }}
-      okText="Delete"
+      okText={DELETE}
       onCancel={onClose}
       onOk={handleDeleteLink}
       open

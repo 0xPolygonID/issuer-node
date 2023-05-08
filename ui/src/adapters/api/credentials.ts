@@ -1,33 +1,53 @@
 import axios from "axios";
 import { z } from "zod";
 
-import {
-  APIResponse,
-  HTTPStatusSuccess,
-  ID,
-  IDParser,
-  ResultAccepted,
-  ResultCreated,
-  ResultOK,
-  buildAPIError,
-  buildAuthorizationHeader,
-  resultOKMessage,
-} from "src/adapters/api";
-import { getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Json, Link, LinkStatus } from "src/domain";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
+import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
+import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
-export const credentialParser = getStrictParser<Credential>()(
+type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
+
+const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
+  z
+    .array(z.union([z.literal("BJJSignature2021"), z.literal("SparseMerkleTreeProof")]))
+    .min(1)
+    .transform((values) =>
+      values.map((value) => {
+        switch (value) {
+          case "BJJSignature2021": {
+            return "SIG";
+          }
+          case "SparseMerkleTreeProof": {
+            return "MTP";
+          }
+        }
+      })
+    )
+);
+
+// Credentials
+
+type CredentialInput = Omit<Credential, "proofTypes"> & {
+  proofTypes: ProofTypeInput[];
+};
+
+export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z.object({
-    createdAt: z.coerce.date(),
-    credentialSubject: z.object({
-      type: z.string(),
-    }),
+    createdAt: z.coerce.date(z.string().datetime()),
+    credentialSubject: z.record(z.unknown()),
     expired: z.boolean(),
-    expiresAt: z.coerce.date().optional(),
+    expiresAt: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
+    proofTypes: proofTypeParser,
     revNonce: z.number(),
     revoked: z.boolean(),
+    schemaHash: z.string(),
+    schemaType: z.string(),
+    schemaUrl: z.string(),
+    userID: z.string(),
   })
 );
 
@@ -36,6 +56,31 @@ export type CredentialStatus = "all" | "revoked" | "expired";
 export const credentialStatusParser = getStrictParser<CredentialStatus>()(
   z.union([z.literal("all"), z.literal("revoked"), z.literal("expired")])
 );
+
+export async function getCredential({
+  credentialID,
+  env,
+  signal,
+}: {
+  credentialID: string;
+  env: Env;
+  signal?: AbortSignal;
+}): Promise<Response<Credential>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/${credentialID}`,
+    });
+    return buildSuccessResponse(credentialParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
 
 export async function getCredentials({
   env,
@@ -49,7 +94,7 @@ export async function getCredentials({
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<Credential[]>> {
+}): Promise<Response<List<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -65,20 +110,50 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    const { data } = resultOKCredentialsParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(
+      getListParser(credentialParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
-const resultOKCredentialsParser = getStrictParser<ResultOK<Credential[]>>()(
-  z.object({
-    data: z.array(credentialParser),
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
+export interface CreateCredential {
+  credentialSchema: string;
+  credentialSubject: Json;
+  expiration: string | null;
+  mtProof: boolean;
+  signatureProof: boolean;
+  type: string;
+}
+
+export async function createCredential({
+  env,
+  payload,
+}: {
+  env: Env;
+  payload: CreateCredential;
+}): Promise<Response<ID>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/credentials`,
+    });
+    return buildSuccessResponse(IDParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
 
 export async function revokeCredential({
   env,
@@ -86,7 +161,7 @@ export async function revokeCredential({
 }: {
   env: Env;
   nonce: number;
-}): Promise<APIResponse<string>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -96,22 +171,11 @@ export async function revokeCredential({
       method: "POST",
       url: `${API_VERSION}/credentials/revoke/${nonce}`,
     });
-    const { data } = resultAcceptedMessage.parse(response);
-
-    return { data: data.message, isSuccessful: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
-
-const resultAcceptedMessage = getStrictParser<ResultAccepted<{ message: string }>>()(
-  z.object({
-    data: z.object({
-      message: z.string(),
-    }),
-    status: z.literal(HTTPStatusSuccess.Accepted),
-  })
-);
 
 export async function deleteCredential({
   env,
@@ -119,7 +183,7 @@ export async function deleteCredential({
 }: {
   env: Env;
   id: string;
-}): Promise<APIResponse<string>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -129,31 +193,64 @@ export async function deleteCredential({
       method: "DELETE",
       url: `${API_VERSION}/credentials/${id}`,
     });
-
-    const { data } = resultOKMessage.parse(response);
-
-    return { data: data.message, isSuccessful: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
+
+// Links
 
 export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-const linkParser = getStrictParser<Link>()(
+type LinkInput = Omit<Link, "proofTypes"> & {
+  proofTypes: ProofTypeInput[];
+};
+
+const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
     active: z.boolean(),
-    expiration: z.coerce.date().optional(),
+    createdAt: z.coerce.date(z.string().datetime()),
+    credentialExpiration: z.coerce.date(z.string().datetime()).nullable(),
+    credentialSubject: z.record(z.unknown()),
+    expiration: z.coerce.date(z.string().datetime()).nullable(),
     id: z.string(),
     issuedClaims: z.number(),
-    maxIssuance: z.number().nullish(),
+    maxIssuance: z.number().nullable(),
+    proofTypes: proofTypeParser,
+    schemaHash: z.string(),
     schemaType: z.string(),
     schemaUrl: z.string(),
     status: linkStatusParser,
   })
 );
+
+export async function getLink({
+  env,
+  linkID,
+  signal,
+}: {
+  env: Env;
+  linkID: string;
+  signal: AbortSignal;
+}): Promise<Response<Link>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/links/${linkID}`,
+    });
+    return buildSuccessResponse(linkParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
 
 export async function getLinks({
   env,
@@ -166,7 +263,7 @@ export async function getLinks({
     status?: LinkStatus;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<Link[]>> {
+}): Promise<Response<List<Link>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -181,20 +278,18 @@ export async function getLinks({
       signal,
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultOKLinks.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(
+      getListParser(linkParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
-
-const resultOKLinks = getStrictParser<ResultOK<Link[]>>()(
-  z.object({
-    data: z.array(linkParser),
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
 
 export async function updateLink({
   env,
@@ -206,7 +301,7 @@ export async function updateLink({
   payload: {
     active: boolean;
   };
-}): Promise<APIResponse<string>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -217,11 +312,9 @@ export async function updateLink({
       method: "PATCH",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const { data } = resultOKMessage.parse(response);
-
-    return { data: data.message, isSuccessful: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -231,7 +324,7 @@ export async function deleteLink({
 }: {
   env: Env;
   id: string;
-}): Promise<APIResponse<string>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -241,18 +334,16 @@ export async function deleteLink({
       method: "DELETE",
       url: `${API_VERSION}/credentials/links/${id}`,
     });
-    const { data } = resultOKMessage.parse(response);
-
-    return { data: data.message, isSuccessful: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
 export interface CreateLink {
-  claimLinkExpiration: string | null;
+  credentialExpiration: string | null;
   credentialSubject: Json;
-  expirationDate: string | null;
+  expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
   schemaID: string;
@@ -265,7 +356,7 @@ export async function createLink({
 }: {
   env: Env;
   payload: CreateLink;
-}): Promise<APIResponse<{ id: string }>> {
+}): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -276,114 +367,31 @@ export async function createLink({
       method: "POST",
       url: `${API_VERSION}/credentials/links`,
     });
-    const { data } = resultCreateLinkParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
-export async function credentialsGetAll({
-  env,
-  params: { query, valid },
-  signal,
-}: {
-  env: Env;
-  params: {
-    query?: string;
-    valid?: boolean;
-  };
-  signal?: AbortSignal;
-}): Promise<
-  APIResponse<{
-    credentials: Credential[];
-    errors: z.ZodError<Credential>[];
-  }>
-> {
-  try {
-    const response = await axios({
-      baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
-      method: "GET",
-      params: new URLSearchParams({
-        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-        ...(valid !== undefined ? { valid: valid.toString() } : {}),
-      }),
-      signal,
-      url: `${API_VERSION}/issuers/${env.issuer.did}/offers`,
-    });
-    const { data } = resultOKCredentialsGetAllParser.parse(response);
+type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
+  linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
+};
 
-    return {
-      data: {
-        credentials: data.credentials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-        errors: data.errors,
-      },
-      isSuccessful: true,
-    };
-  } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
-  }
-}
-
-interface CredentialQRCode {
-  body: {
-    callbackUrl: string;
-    reason: string;
-    scope: unknown[];
-  };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
-
-const credentialQRCodeParser = getStrictParser<CredentialQRCode>()(
-  z.object({
-    body: z.object({
-      callbackUrl: z.string(),
-      reason: z.string(),
-      scope: z.array(z.unknown()),
-    }),
-    from: z.string(),
-    id: z.string(),
-    thid: z.string(),
-    typ: z.string(),
-    type: z.string(),
-  })
-);
-
-export interface ShareCredentialQRCode {
-  issuer: { displayName: string; logo: string };
-  linkDetail: Link;
-  qrCode: CredentialQRCode;
+export interface AuthQRCode {
+  linkDetail: { proofTypes: ProofType[]; schemaType: string };
+  qrCode?: unknown;
   sessionID: string;
 }
 
-const shareCredentialQRCodeParser = getStrictParser<ShareCredentialQRCode>()(
+const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
-    issuer: z.object({
-      displayName: z.string(),
-      logo: z.string(),
-    }),
-    linkDetail: linkParser,
-    qrCode: credentialQRCodeParser,
+    linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
+    qrCode: z.unknown(),
     sessionID: z.string(),
   })
 );
 
-const resultOKShareCredentialQRCodeParser = getStrictParser<ResultOK<ShareCredentialQRCode>>()(
-  z.object({
-    data: shareCredentialQRCodeParser,
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-export async function getCredentialLinkQRCode({
+export async function createAuthQRCode({
   env,
   linkID,
   signal,
@@ -391,166 +399,88 @@ export async function getCredentialLinkQRCode({
   env: Env;
   linkID: string;
   signal?: AbortSignal;
-}): Promise<APIResponse<ShareCredentialQRCode>> {
+}): Promise<Response<AuthQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
       method: "POST",
       signal,
       url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-
-    const { data } = resultOKShareCredentialQRCodeParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(authQRCodeParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
-const resultCreateLinkParser = getStrictParser<ResultCreated<ID>>()(
-  z.object({
-    data: IDParser,
-    status: z.literal(HTTPStatusSuccess.Created),
-  })
-);
-
-interface CredentialsGetAll {
-  credentials: Credential[];
-  errors: z.ZodError<Credential>[];
-}
-
-const resultOKCredentialsGetAllParser = getStrictParser<
-  ResultOK<unknown[]>,
-  ResultOK<CredentialsGetAll>
->()(
-  z.object({
-    data: z.array(z.unknown()).transform((unknowns) =>
-      unknowns.reduce(
-        (acc: CredentialsGetAll, curr: unknown, index): CredentialsGetAll => {
-          const parsedCredential = credentialParser.safeParse(curr);
-
-          return parsedCredential.success
-            ? {
-                ...acc,
-                credentials: [...acc.credentials, parsedCredential.data],
-              }
-            : {
-                ...acc,
-                errors: [
-                  ...acc.errors,
-                  new z.ZodError<Credential>(
-                    parsedCredential.error.issues.map((issue) => ({
-                      ...issue,
-                      path: [index, ...issue.path],
-                    }))
-                  ),
-                ],
-              };
-        },
-        { credentials: [], errors: [] }
-      )
-    ),
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-interface AddingQRCode {
+type IssuedQRCodeTypeInput = {
   body: {
-    credentials: {
-      description: string;
-      id: string;
-    }[];
-    url: string;
+    credentials: [
+      {
+        description: string;
+      }
+    ];
   };
-  from: string;
-  id: string;
-  thid: string;
-  typ: string;
-  type: string;
-}
+};
 
-const addingQRCodeParser = getStrictParser<AddingQRCode>()(
-  z.object({
-    body: z.object({
-      credentials: z.array(
-        z.object({
-          description: z.string(),
-          id: z.string(),
-        })
-      ),
-      url: z.string(),
-    }),
-    from: z.string(),
-    id: z.string(),
-    thid: z.string(),
-    typ: z.string(),
-    type: z.string(),
+const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string>()(
+  z
+    .object({
+      body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
+    })
+    .transform((data) => data.body.credentials[0].description)
+);
+
+const issuedQRCodeParser = getStrictParser<unknown, IssuedQRCode>()(
+  z.unknown().transform((unknown, context): IssuedQRCode => {
+    const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
+    if (parsedSchemaType.success) {
+      return {
+        qrCode: unknown,
+        schemaType: parsedSchemaType.data,
+      };
+    } else {
+      parsedSchemaType.error.issues.map(context.addIssue);
+      return z.NEVER;
+    }
   })
 );
 
-export enum CredentialQRStatus {
-  Done = "done",
-  Error = "error",
-  Pending = "pending",
+export async function getIssuedQRCode({
+  credentialID,
+  env,
+  signal,
+}: {
+  credentialID: string;
+  env: Env;
+  signal: AbortSignal;
+}): Promise<Response<IssuedQRCode>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+    });
+    return buildSuccessResponse(issuedQRCodeParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
 }
 
-interface CredentialQRCheckDone {
-  qrcode: AddingQRCode;
-  status: CredentialQRStatus.Done;
+export interface ImportQRCode {
+  qrCode?: unknown;
+  status: "done" | "pending" | "pendingPublish";
 }
 
-interface CredentialQRCheckError {
-  status: CredentialQRStatus.Error;
-}
-
-interface CredentialQRCheckPending {
-  status: CredentialQRStatus.Pending;
-}
-
-export type CredentialQRCheck =
-  | CredentialQRCheckDone
-  | CredentialQRCheckError
-  | CredentialQRCheckPending;
-
-const credentialQRCheckDoneParser = getStrictParser<CredentialQRCheckDone>()(
+const importQRCodeParser = getStrictParser<ImportQRCode>()(
   z.object({
-    qrcode: addingQRCodeParser,
-    status: z.literal(CredentialQRStatus.Done),
+    qrCode: z.unknown(),
+    status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
   })
 );
 
-const credentialQRCheckErrorParser = getStrictParser<CredentialQRCheckError>()(
-  z.object({
-    status: z.literal(CredentialQRStatus.Error),
-  })
-);
-
-const credentialQRCheckPendingParser = getStrictParser<CredentialQRCheckPending>()(
-  z.object({
-    status: z.literal(CredentialQRStatus.Pending),
-  })
-);
-
-const credentialQRCheckParser = getStrictParser<CredentialQRCheck>()(
-  z.union([
-    credentialQRCheckDoneParser,
-    credentialQRCheckErrorParser,
-    credentialQRCheckPendingParser,
-  ])
-);
-
-const resultOKCredentialQRCheckParser = getStrictParser<ResultOK<CredentialQRCheck>>()(
-  z.object({
-    data: credentialQRCheckParser,
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-export async function credentialsQRCheck({
+export async function getImportQRCode({
   env,
   linkID,
   sessionID,
@@ -558,7 +488,7 @@ export async function credentialsQRCheck({
   env: Env;
   linkID: string;
   sessionID: string;
-}): Promise<APIResponse<CredentialQRCheck>> {
+}): Promise<Response<ImportQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -566,13 +496,10 @@ export async function credentialsQRCheck({
       params: {
         sessionID,
       },
-      url: `${API_VERSION}/offers-qrcode/${linkID}`,
+      url: `${API_VERSION}/credentials/links/${linkID}/qrcode`,
     });
-
-    const { data } = resultOKCredentialQRCheckParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(importQRCodeParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }

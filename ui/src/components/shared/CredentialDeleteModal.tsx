@@ -7,7 +7,7 @@ import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
-import { CLOSE } from "src/utils/constants";
+import { CLOSE, DELETE } from "src/utils/constants";
 
 export function CredentialDeleteModal({
   credential,
@@ -29,11 +29,11 @@ export function CredentialDeleteModal({
     setIsLoading(true);
 
     void deleteCredential({ env, id }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         onClose();
         onDelete();
 
-        void message.success(response.data);
+        void message.success(response.data.message);
       } else {
         void message.error(response.error.message);
       }
@@ -46,7 +46,7 @@ export function CredentialDeleteModal({
     setIsLoading(true);
 
     void revokeCredential({ env, nonce }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         handleDeleteCredential();
 
         void notifyChange("revoke");
@@ -74,7 +74,7 @@ export function CredentialDeleteModal({
           onClick={handleDeleteCredential}
           type="primary"
         >
-          Delete
+          {DELETE}
         </Button>,
         !revoked && (
           <Button

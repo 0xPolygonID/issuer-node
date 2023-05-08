@@ -1,40 +1,25 @@
 import axios from "axios";
 import { z } from "zod";
 
-import {
-  APIResponse,
-  HTTPStatusSuccess,
-  ResultOK,
-  buildAPIError,
-  buildAuthorizationHeader,
-  resultOKMessage,
-} from "src/adapters/api";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
+import { Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
-import { getStrictParser } from "src/adapters/parsers";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { List } from "src/utils/types";
 
-const connectionParser = getStrictParser<Connection>()(
+type ConnectionInput = Omit<Connection, "credentials"> & {
+  credentials: unknown[];
+};
+
+const connectionParser = getStrictParser<ConnectionInput, Connection>()(
   z.object({
-    createdAt: z.coerce.date(),
-    credentials: z.array(credentialParser),
+    createdAt: z.coerce.date(z.string().datetime()),
+    credentials: getListParser(credentialParser),
     id: z.string(),
     issuerID: z.string(),
     userID: z.string(),
-  })
-);
-
-const resultOKConnectionParser = getStrictParser<ResultOK<Connection>>()(
-  z.object({
-    data: connectionParser,
-    status: z.literal(HTTPStatusSuccess.OK),
-  })
-);
-
-const resultOKConnectionsParser = getStrictParser<ResultOK<Connection[]>>()(
-  z.object({
-    data: z.array(connectionParser),
-    status: z.literal(HTTPStatusSuccess.OK),
   })
 );
 
@@ -46,7 +31,7 @@ export async function getConnection({
   env: Env;
   id: string;
   signal: AbortSignal;
-}): Promise<APIResponse<Connection>> {
+}): Promise<Response<Connection>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -57,27 +42,25 @@ export async function getConnection({
       signal,
       url: `${API_VERSION}/connections/${id}`,
     });
-    const { data } = resultOKConnectionParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(connectionParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
 export async function getConnections({
   credentials,
   env,
-  params: { query },
+  params,
   signal,
 }: {
   credentials: boolean;
   env: Env;
-  params: {
+  params?: {
     query?: string;
   };
   signal?: AbortSignal;
-}): Promise<APIResponse<Connection[]>> {
+}): Promise<Response<List<Connection>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -86,17 +69,22 @@ export async function getConnections({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+        ...(params?.query !== undefined ? { [QUERY_SEARCH_PARAM]: params?.query } : {}),
         ...(credentials ? { credentials: "true" } : {}),
       }),
       signal,
       url: `${API_VERSION}/connections`,
     });
-    const { data } = resultOKConnectionsParser.parse(response);
-
-    return { data, isSuccessful: true };
+    return buildSuccessResponse(
+      getListParser(connectionParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        }))
+        .parse(response.data)
+    );
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }
 
@@ -110,7 +98,7 @@ export async function deleteConnection({
   env: Env;
   id: string;
   revokeCredentials: boolean;
-}): Promise<APIResponse<string>> {
+}): Promise<Response<Message>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -124,11 +112,8 @@ export async function deleteConnection({
       }),
       url: `${API_VERSION}/connections/${id}`,
     });
-
-    const { data } = resultOKMessage.parse(response);
-
-    return { data: data.message, isSuccessful: true };
+    return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
-    return { error: buildAPIError(error), isSuccessful: false };
+    return buildErrorResponse(error);
   }
 }

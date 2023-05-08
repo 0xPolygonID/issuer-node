@@ -14,8 +14,8 @@ export function SchemaTreeNode({
   treeWidth: number;
 }) {
   const commonProps = attribute.type !== "multi" ? attribute.schema : attribute.schemas[0];
-  const name = commonProps.title || attribute.name;
-  const description = commonProps.description;
+  const name = commonProps?.title || attribute.name;
+  const description = commonProps?.description;
 
   return (
     <Col>
@@ -50,7 +50,7 @@ export function SchemaTreeNode({
             <Typography.Text
               ellipsis={{ tooltip: true }}
               style={{
-                maxWidth: treeWidth - 200 - nestingLevel * 20,
+                maxWidth: treeWidth - name.length * 12 - nestingLevel * 20,
               }}
               type="secondary"
             >

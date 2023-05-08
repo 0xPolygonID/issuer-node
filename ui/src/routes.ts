@@ -1,11 +1,14 @@
 export type RouteID =
   | "connectionDetails"
   | "connections"
-  | "credentialLink"
+  | "credentialDetails"
+  | "credentialIssuedQR"
+  | "credentialLinkQR"
   | "credentials"
   | "importSchema"
   | "issueCredential"
   | "issuerState"
+  | "linkDetails"
   | "notFound"
   | "schemaDetails"
   | "schemas";
@@ -29,9 +32,17 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
-  credentialLink: {
+  credentialDetails: {
+    layout: "sider",
+    path: "/credentials/issued/:credentialID",
+  },
+  credentialIssuedQR: {
     layout: "fullWidthGrey",
-    path: "/credential-link/:linkID",
+    path: "/credentials/scan-issued/:credentialID",
+  },
+  credentialLinkQR: {
+    layout: "fullWidthGrey",
+    path: "/credentials/scan-link/:linkID",
   },
   credentials: {
     layout: "sider",
@@ -43,11 +54,15 @@ export const ROUTES: Routes = {
   },
   issueCredential: {
     layout: "sider",
-    path: "/credentials/issue/:schemaID?",
+    path: "/credentials/issue",
   },
   issuerState: {
     layout: "sider",
     path: "/issuer-state",
+  },
+  linkDetails: {
+    layout: "sider",
+    path: "/credentials/links/:linkID",
   },
   notFound: {
     layout: "fullWidth",

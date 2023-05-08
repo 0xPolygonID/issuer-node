@@ -16,19 +16,20 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
+import { ReactComponent as IconAlert } from "src/assets/icons/alert-circle.svg";
 import { ReactComponent as IconSwitch } from "src/assets/icons/switch-horizontal.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { Transaction } from "src/domain";
+import { AppError, Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
-import { makeRequestAbortable } from "src/utils/browser";
+import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 import { ISSUER_STATE, POLLING_INTERVAL, STATUS } from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 const PUBLISHED_MESSAGE = "Issuer state is being published";
@@ -38,8 +39,7 @@ export function IssuerState() {
   const { refreshStatus, status } = useIssuerStateContext();
 
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
-  const [isRetrying, setIsRetrying] = useState<boolean>(false);
-  const [transactions, setTransactions] = useState<AsyncTask<Transaction[], APIError>>({
+  const [transactions, setTransactions] = useState<AsyncTask<Transaction[], AppError>>({
     status: "pending",
   });
 
@@ -49,13 +49,15 @@ export function IssuerState() {
   );
 
   const failedTransaction = transactionsList.find((transaction) => transaction.status === "failed");
-  const disablePublishState =
-    failedTransaction !== undefined || !isAsyncTaskDataAvailable(status) || !status.data;
+  const disablePublishState = !isAsyncTaskDataAvailable(status) || !status.data;
 
   const publish = () => {
     setIsPublishing(true);
-    void publishState({ env }).then((response) => {
-      if (response.isSuccessful) {
+
+    const functionToExecute = failedTransaction ? retryPublishState : publishState;
+
+    void functionToExecute({ env }).then((response) => {
+      if (response.success) {
         void message.success(PUBLISHED_MESSAGE);
       } else {
         void message.error(response.error.message);
@@ -68,30 +70,17 @@ export function IssuerState() {
     });
   };
 
-  const retry = () => {
-    setIsRetrying(true);
-    void retryPublishState({ env }).then((response) => {
-      if (response.isSuccessful) {
-        void message.success(PUBLISHED_MESSAGE);
-      } else {
-        void message.error(response.error.message);
-      }
-
-      void refreshStatus();
-      void fetchTransactions();
-
-      setIsRetrying(false);
-    });
-  };
-
   const fetchTransactions = useCallback(
     async (signal?: AbortSignal) => {
       const response = await getTransactions({ env, signal });
 
-      if (response.isSuccessful) {
-        setTransactions({ data: response.data, status: "successful" });
+      if (response.success) {
+        setTransactions({ data: response.data.successful, status: "successful" });
+        notifyParseErrors(response.data.failed);
       } else {
-        setTransactions({ error: response.error, status: "failed" });
+        if (!isAbortedError(response.error)) {
+          setTransactions({ error: response.error, status: "failed" });
+        }
       }
     },
     [env]
@@ -104,9 +93,13 @@ export function IssuerState() {
       key: "txID",
       render: (txID: Transaction["txID"]) => (
         <Typography.Text strong>
-          <Link target="_blank" to={`${env.blockExplorerUrl}/tx/${txID}`}>
-            {txID}
-          </Link>
+          {txID ? (
+            <Link target="_blank" to={`${env.blockExplorerUrl}/tx/${txID}`}>
+              {txID}
+            </Link>
+          ) : (
+            "-"
+          )}
         </Typography.Text>
       ),
       title: "Transaction ID",
@@ -127,7 +120,7 @@ export function IssuerState() {
       ellipsis: { showTitle: false },
       key: "publishDate",
       render: (publishDate: Transaction["publishDate"]) => (
-        <Typography.Text>{formatDate(publishDate, true)}</Typography.Text>
+        <Typography.Text>{formatDate(publishDate)}</Typography.Text>
       ),
       sorter: ({ publishDate: a }, { publishDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: "Publish date",
@@ -147,14 +140,7 @@ export function IssuerState() {
             return <Tag color="success">{status}</Tag>;
           }
           case "failed": {
-            return (
-              <>
-                <Tag color="error">{status}</Tag>
-                <Button loading={isRetrying} onClick={retry} type="link">
-                  Retry
-                </Button>
-              </>
-            );
+            return <Tag color="error">{status}</Tag>;
           }
         }
       },
@@ -193,23 +179,41 @@ export function IssuerState() {
 
   return (
     <SiderLayoutContent
-      description="Issuing Merkle tree type credentials and revoking credentials require an additional step, know as publishing issuer state."
+      description="Issuing Merkle tree type credentials and revoking credentials require an additional step, known as publishing issuer state."
       title={ISSUER_STATE}
     >
       <Divider />
       <Space direction="vertical" size="large">
         <Card>
           <Row align="middle" justify="space-between">
-            <Card.Meta
-              title={disablePublishState ? "No pending actions" : "Pending actions to be published"}
-            />
+            {disablePublishState ? (
+              <Card.Meta title="No pending actions" />
+            ) : (
+              <Card.Meta
+                avatar={
+                  failedTransaction && (
+                    <Avatar className="avatar-color-error" icon={<IconAlert />} />
+                  )
+                }
+                description={
+                  failedTransaction
+                    ? "Please try again."
+                    : "You can publish issuer state now or bulk publish with other actions."
+                }
+                title={
+                  failedTransaction
+                    ? "Transaction failed to publish"
+                    : "Pending actions to be published"
+                }
+              />
+            )}
             <Button
               disabled={disablePublishState}
               loading={isPublishing || isAsyncTaskStarting(status)}
               onClick={publish}
               type="primary"
             >
-              Publish issuer state
+              {failedTransaction ? "Republish" : "Publish"} issuer state
             </Button>
           </Row>
         </Card>

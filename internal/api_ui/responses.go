@@ -5,15 +5,19 @@ import (
 	"strings"
 	"time"
 
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
+)
+
+const (
+	schemaParts = 2
 )
 
 func schemaResponse(s *domain.Schema) Schema {
@@ -44,7 +48,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		}
 	}
 
-	proofs := getProofs(w3c, credential)
+	proofs := getProofs(credential)
 
 	return Credential{
 		CredentialSubject: w3c.CredentialSubject,
@@ -58,6 +62,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		SchemaHash:        credential.SchemaHash,
 		SchemaType:        shortType(credential.SchemaType),
 		SchemaUrl:         credential.SchemaURL,
+		UserID:            credential.OtherIdentifier,
 	}
 }
 
@@ -70,15 +75,16 @@ func shortType(id string) string {
 	return parts[l-1]
 }
 
-func getProofs(w3c *verifiable.W3CCredential, credential *domain.Claim) []string {
+func getProofs(credential *domain.Claim) []string {
 	proofs := make([]string, 0)
-	if sp := getSigProof(w3c); sp != nil {
-		proofs = append(proofs, *sp)
+	if credential.SignatureProof.Bytes != nil {
+		proofs = append(proofs, string(verifiable.BJJSignatureProofType))
 	}
 
 	if credential.MtProof {
 		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
 	}
+
 	return proofs
 }
 
@@ -156,15 +162,6 @@ func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
 	}
 }
 
-func getSigProof(w3c *verifiable.W3CCredential) *string {
-	for i := range w3c.Proof {
-		if string(w3c.Proof[i].ProofType()) == string(verifiable.BJJSignatureProofType) {
-			return common.ToPointer(string(verifiable.BJJSignatureProofType))
-		}
-	}
-	return nil
-}
-
 func deleteConnectionResponse(deleteCredentials bool, revokeCredentials bool) string {
 	msg := "Connection successfully deleted."
 	if deleteCredentials {
@@ -191,19 +188,25 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 func getLinkResponse(link domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
+	var date *openapi_types.Date
+	if link.CredentialExpiration != nil {
+		date = &openapi_types.Date{Time: *link.CredentialExpiration}
+	}
+
 	return Link{
-		Active:            link.Active,
-		CredentialSubject: link.CredentialSubject,
-		Expiration:        link.ValidUntil,
-		CreatedAt:         link.CreatedAt,
-		Id:                link.ID,
-		IssuedClaims:      link.IssuedClaims,
-		MaxIssuance:       link.MaxIssuance,
-		SchemaType:        link.Schema.Type,
-		SchemaUrl:         link.Schema.URL,
-		SchemaHash:        string(hash),
-		Status:            LinkStatus(link.Status()),
-		ProofTypes:        getLinkProofs(link),
+		Id:                   link.ID,
+		Active:               link.Active,
+		CredentialSubject:    link.CredentialSubject,
+		IssuedClaims:         link.IssuedClaims,
+		MaxIssuance:          link.MaxIssuance,
+		SchemaType:           link.Schema.Type,
+		SchemaUrl:            link.Schema.URL,
+		SchemaHash:           string(hash),
+		Status:               LinkStatus(link.Status()),
+		ProofTypes:           getLinkProofs(link),
+		CreatedAt:            link.CreatedAt,
+		Expiration:           link.ValidUntil,
+		CredentialExpiration: date,
 	}
 }
 
@@ -271,7 +274,7 @@ func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCod
 		Body: QrCodeBodyResponse{
 			Credentials: []QrCodeCredentialResponse{
 				{
-					Description: credential.SchemaType,
+					Description: getCredentialType(credential.SchemaType),
 					Id:          credential.ID.String(),
 				},
 			},
@@ -284,6 +287,14 @@ func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCod
 		Typ:  string(packers.MediaTypePlainMessage),
 		Type: string(protocol.CredentialOfferMessageType),
 	}
+}
+
+func getCredentialType(credentialType string) string {
+	parse := strings.Split(credentialType, "#")
+	if len(parse) != schemaParts {
+		return credentialType
+	}
+	return parse[1]
 }
 
 func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {

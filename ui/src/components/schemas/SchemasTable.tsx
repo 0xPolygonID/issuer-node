@@ -1,9 +1,8 @@
-import { Avatar, Button, Card, Row, Space, Table, Tag, Tooltip, Typography, message } from "antd";
+import { Avatar, Button, Card, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getSchemas } from "src/adapters/api/schemas";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
@@ -11,17 +10,23 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Schema } from "src/domain";
+import { AppError, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { IMPORT_SCHEMA, QUERY_SEARCH_PARAM, SCHEMAS, SCHEMA_TYPE } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import {
+  IMPORT_SCHEMA,
+  QUERY_SEARCH_PARAM,
+  SCHEMAS,
+  SCHEMA_SEARCH_PARAM,
+  SCHEMA_TYPE,
+} from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function MySchemas() {
   const env = useEnvContext();
-  const [schemas, setSchemas] = useState<AsyncTask<Schema[], APIError>>({
+  const [schemas, setSchemas] = useState<AsyncTask<Schema[], AppError>>({
     status: "pending",
   });
 
@@ -34,7 +39,7 @@ export function MySchemas() {
       dataIndex: "type",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (type: string) => (
+      render: (type: Schema["type"]) => (
         <Tooltip placement="topLeft" title={type}>
           <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
@@ -46,14 +51,16 @@ export function MySchemas() {
       dataIndex: "createdAt",
       ellipsis: { showTitle: false },
       key: "createdAt",
-      render: (createdAt: Date) => <Typography.Text>{formatDate(createdAt, true)}</Typography.Text>,
+      render: (createdAt: Schema["createdAt"]) => (
+        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+      ),
       sorter: ({ createdAt: a }, { createdAt: b }) => b.getTime() - a.getTime(),
       title: "Import date",
     },
     {
       dataIndex: "id",
       key: "id",
-      render: (schemaID: string) => (
+      render: (schemaID: Schema["id"]) => (
         <Row>
           <Space size="large">
             <Link
@@ -64,9 +71,10 @@ export function MySchemas() {
               Details
             </Link>
             <Link
-              to={generatePath(ROUTES.issueCredential.path, {
-                schemaID,
-              })}
+              to={{
+                pathname: generatePath(ROUTES.issueCredential.path),
+                search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
+              }}
             >
               Issue
             </Link>
@@ -91,12 +99,9 @@ export function MySchemas() {
         },
         signal,
       });
-      if (response.isSuccessful) {
-        setSchemas({ data: response.data.schemas, status: "successful" });
-
-        response.data.errors.forEach((zodError) => {
-          processZodError(zodError).forEach((error) => void message.error(error));
-        });
+      if (response.success) {
+        setSchemas({ data: response.data.successful, status: "successful" });
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setSchemas({ error: response.error, status: "failed" });
