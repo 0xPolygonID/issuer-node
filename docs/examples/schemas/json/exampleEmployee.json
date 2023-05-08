@@ -3,8 +3,8 @@
     "type": "object",
     "$metadata": {
       "uris": {
-        "jsonLdContext": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/schemas/json-ld/exampleEmployee.json-ld",
-        "jsonSchema": "https://raw.githubusercontent.com/0xPolygonID/sh-id-platform/main/docs/examples/schemas/json/exampleEmployee.json"
+        "jsonLdContext": "https://raw.githubusercontent.com/0xPolygonID/issuer-node/main/docs/examples/schemas/json-ld/exampleEmployee.json-ld",
+        "jsonSchema": "https://raw.githubusercontent.com/0xPolygonID/issuer-node/main/docs/examples/schemas/json/exampleEmployee.json"
       }
     },
     "required": [
