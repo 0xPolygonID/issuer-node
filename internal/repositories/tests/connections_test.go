@@ -191,6 +191,7 @@ func TestGetAllWithCredentialsByIssuerID(t *testing.T) {
 	}
 	fixture.CreateIdentity(t, identity)
 	issuerDID, err := core.ParseDID(idStr)
+	require.NoError(t, err)
 
 	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qNtJm8v3c8b7XjQtAtSvAbudnUAfzsjHFqRnyYDq7")
 	require.NoError(t, err)
