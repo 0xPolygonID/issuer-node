@@ -11,47 +11,33 @@ import {
   Space,
   TimePicker,
   Typography,
-  message,
 } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
-import { IssuanceMethodFormData, linkExpirationDateParser } from "src/adapters/parsers/forms";
+import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection } from "src/domain";
+import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
-import {
-  ACCESSIBLE_UNTIL,
-  CREDENTIAL_LINK,
-  DID_SEARCH_PARAM,
-  VALUE_REQUIRED,
-} from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { ACCESSIBLE_UNTIL, CREDENTIAL_LINK, VALUE_REQUIRED } from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 
 export function IssuanceMethodForm({
   initialValues,
+  onChangeDid,
   onSubmit,
 }: {
   initialValues: IssuanceMethodFormData;
+  onChangeDid: (did?: string) => void;
   onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
   const env = useEnvContext();
-  const [searchParams] = useSearchParams();
 
-  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(
-    initialValues.type === "directIssue" && !initialValues.did
-      ? {
-          ...initialValues,
-          did: searchParams.get(DID_SEARCH_PARAM) || undefined,
-        }
-      : initialValues
-  );
-  const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
+  const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
+  const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
     status: "pending",
   });
 
@@ -69,11 +55,9 @@ export function IssuanceMethodForm({
     async (signal: AbortSignal) => {
       const response = await getConnections({ credentials: false, env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setConnections({ data: response.data.successful, status: "successful" });
-        response.data.failed.map((error) =>
-          processZodError(error).forEach((error) => void message.error(error))
-        );
+        notifyParseErrors(response.data.failed);
       } else {
         setConnections({ error: response.error, status: "failed" });
       }
@@ -94,18 +78,24 @@ export function IssuanceMethodForm({
         layout="vertical"
         name="issueCredentialMethod"
         onFinish={onSubmit}
-        onValuesChange={(changedValues, allValues) => {
-          const parsedLinkExpirationDate = linkExpirationDateParser.safeParse(changedValues);
-          if (
-            allValues.type === "credentialLink" &&
-            parsedLinkExpirationDate.success &&
-            (parsedLinkExpirationDate.data.linkExpirationDate === null ||
-              (dayjs().isSame(parsedLinkExpirationDate.data.linkExpirationDate, "day") &&
-                dayjs().isAfter(allValues.linkExpirationTime)))
-          ) {
-            setIssuanceMethod({ ...allValues, linkExpirationTime: undefined });
-          } else {
-            setIssuanceMethod(allValues);
+        onValuesChange={(_, allValues) => {
+          const parsedIssuanceMethodFormData = issuanceMethodFormDataParser.safeParse(allValues);
+
+          if (parsedIssuanceMethodFormData.success) {
+            const { data } = parsedIssuanceMethodFormData;
+
+            if (
+              data.type === "credentialLink" &&
+              (data.linkExpirationDate === null ||
+                (dayjs().isSame(data.linkExpirationDate, "day") &&
+                  dayjs().isAfter(data.linkExpirationTime)))
+            ) {
+              setIssuanceMethod({ ...data, linkExpirationTime: undefined });
+            } else {
+              onChangeDid(data.type === "directIssue" ? data.did : undefined);
+
+              setIssuanceMethod(data);
+            }
           }
         }}
         requiredMark={false}

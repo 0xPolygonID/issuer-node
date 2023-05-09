@@ -54,7 +54,7 @@ export const ROUTES: Routes = {
   },
   issueCredential: {
     layout: "sider",
-    path: "/credentials/issue/:schemaID?",
+    path: "/credentials/issue",
   },
   issuerState: {
     layout: "sider",

@@ -112,7 +112,8 @@ func TestDelete(t *testing.T) {
 	})
 }
 
-func TestGetConnections(t *testing.T) {
+func TestConnectionsGetAllByIssuerID(t *testing.T) {
+	ctx := context.Background()
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)
 
@@ -131,37 +132,49 @@ func TestGetConnections(t *testing.T) {
 	})
 
 	t.Run("should get 0 connections for a non existing issuerDID", func(t *testing.T) {
-		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *userDID, "")
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *userDID, "")
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 0)
+		assert.Equal(t, 0, len(conns))
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and no query", func(t *testing.T) {
-		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *issuerDID, "")
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "")
 		require.NoError(t, err)
 		assert.Equal(t, len(conns), 1)
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and valid query, just beginning", func(t *testing.T) {
-		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *issuerDID, "did:")
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "did:")
 		require.NoError(t, err)
 		assert.Equal(t, len(conns), 1)
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and valid query, full did", func(t *testing.T) {
-		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *issuerDID, "did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 		require.NoError(t, err)
 		assert.Equal(t, len(conns), 1)
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and valid query, part of did", func(t *testing.T) {
-		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *issuerDID, "did:polygonid:polygon:mumbai:2qH7XAw")
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "did:polygonid:polygon:mumbai:2qH7XAw")
+		require.NoError(t, err)
+		assert.Equal(t, len(conns), 1)
+	})
+
+	t.Run("should get 1 connection for a the given issuerDID and a query with some chars in the middle of a string", func(t *testing.T) {
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "H7XAw")
+		require.NoError(t, err)
+		assert.Equal(t, len(conns), 1)
+	})
+
+	t.Run("should get 1 connection for a the given issuerDID and a query with some chars in the middle of a string and other words", func(t *testing.T) {
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "H7XAw other words")
 		require.NoError(t, err)
 		assert.Equal(t, len(conns), 1)
 	})
 
 	t.Run("should get 0 connections for a the given issuerDID and non existing userDID", func(t *testing.T) {
-		conns, err := connectionsRepo.GetAllByIssuerID(context.Background(), storage.Pgx, *issuerDID, "did:polygonid:polygon:mumbai:2qH7XAwnonexisting")
+		conns, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, "did:polygonid:polygon:mumbai:2qH7XAwnonexisting")
 		require.NoError(t, err)
 		assert.Equal(t, len(conns), 0)
 	})
