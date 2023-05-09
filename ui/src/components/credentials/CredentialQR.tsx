@@ -14,21 +14,19 @@ export function CredentialQR({
   schemaType: string;
   subTitle: ReactNode;
 }) {
-  const env = useEnvContext();
+  const { issuer } = useEnvContext();
 
   const { lg } = Grid.useBreakpoint();
 
   return (
     <Space align="center" direction="vertical" size="large">
-      <Avatar shape="square" size={64} src={env.issuer.logo} />
+      <Avatar shape="square" size={64} src={issuer.logo} />
 
       <Space
         direction="vertical"
         style={{ padding: "0 24px", textAlign: "center", width: lg ? 800 : "100%" }}
       >
-        <Typography.Title level={2}>
-          {env.issuer.name} wants to send you a credential
-        </Typography.Title>
+        <Typography.Title level={2}>{issuer.name} wants to send you a credential</Typography.Title>
 
         <Typography.Text style={{ fontSize: 18 }} type="secondary">
           {subTitle}
