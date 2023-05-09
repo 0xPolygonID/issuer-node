@@ -2,6 +2,8 @@
   "name": "sh-id-issuer-ui",
   "version": "1.0.0",
   "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
     "antd": "^5.1.7",
     "axios": "^1.3.2",
     "copy-to-clipboard": "^3.3.3",

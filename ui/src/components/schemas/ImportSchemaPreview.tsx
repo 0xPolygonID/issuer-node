@@ -4,24 +4,24 @@ import { downloadJsonFromUrl } from "src/adapters/json";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
-import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({
+  jsonLdContextObject,
   jsonLdType,
   jsonSchema,
+  jsonSchemaObject,
   onBack,
   onImport,
-  rawJsonLdContext,
-  rawJsonSchema,
   url,
 }: {
+  jsonLdContextObject: Record<string, unknown>;
   jsonLdType: JsonLdType;
   jsonSchema: JsonSchema;
+  jsonSchemaObject: Record<string, unknown>;
   onBack: () => void;
   onImport: () => void;
-  rawJsonLdContext: Json;
-  rawJsonSchema: Json;
   url: string;
 }) {
   const bigintResult = getBigint(jsonLdType);
@@ -83,10 +83,10 @@ export function ImportSchemaPreview({
           </Row>
         </Space>
       }
+      jsonLdContextObject={jsonLdContextObject}
       jsonLdType={jsonLdType}
       jsonSchema={jsonSchema}
-      rawJsonLdContext={rawJsonLdContext}
-      rawJsonSchema={rawJsonSchema}
+      jsonSchemaObject={jsonSchemaObject}
     />
   );
 }

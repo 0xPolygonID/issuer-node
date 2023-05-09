@@ -12,7 +12,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
+import { AppError, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -30,13 +30,17 @@ export function SchemaDetails() {
 
   const env = useEnvContext();
 
-  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<AsyncTask<[JsonSchema, Json], AppError>>({
+  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<
+    AsyncTask<[JsonSchema, Record<string, unknown>], AppError>
+  >({
     status: "pending",
   });
   const [schema, setSchema] = useState<AsyncTask<Schema, AppError>>({
     status: "pending",
   });
-  const [contextTuple, setContextTuple] = useState<AsyncTask<[JsonLdType, Json], AppError>>({
+  const [contextTuple, setContextTuple] = useState<
+    AsyncTask<[JsonLdType, Record<string, unknown>], AppError>
+  >({
     status: "pending",
   });
 
@@ -47,18 +51,18 @@ export function SchemaDetails() {
       url: schema.url,
     }).then((jsonSchemaResponse) => {
       if (jsonSchemaResponse.success) {
-        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
-        setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
+        const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
+        setJsonSchemaTuple({ data: [jsonSchema, jsonSchemaObject], status: "successful" });
         setContextTuple({ status: "loading" });
         void getSchemaJsonLdTypes({
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
           if (jsonLdTypesResponse.success) {
-            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
+            const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
             const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
             if (jsonLdType) {
-              setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
+              setContextTuple({ data: [jsonLdType, jsonLdContextObject], status: "successful" });
             } else {
               setContextTuple({
                 error: buildAppError(
@@ -163,8 +167,8 @@ export function SchemaDetails() {
           );
         } else {
           const { bigInt, createdAt, hash, url } = schema.data;
-          const [jsonSchema, rawJsonSchema] = jsonSchemaTuple.data;
-          const [jsonLdType, rawJsonLdContext] = contextTuple.data;
+          const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
+          const [jsonLdType, jsonLdContextObject] = contextTuple.data;
 
           return (
             <SchemaViewer
@@ -222,10 +226,10 @@ export function SchemaDetails() {
                   </Row>
                 </Space>
               }
+              jsonLdContextObject={jsonLdContextObject}
               jsonLdType={jsonLdType}
               jsonSchema={jsonSchema}
-              rawJsonLdContext={rawJsonLdContext}
-              rawJsonSchema={rawJsonSchema}
+              jsonSchemaObject={jsonSchemaObject}
             />
           );
         }

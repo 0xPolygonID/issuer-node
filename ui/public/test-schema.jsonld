@@ -5,8 +5,8 @@
             "@protected": true,
             "id": "@id",
             "type": "@type",
-            "KYCAgeCredential": {
-                "@id": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v4.jsonld#KYCAgeCredential",
+            "ComplexTypeNotNested": {
+                "@id": "http://localhost:5173/test-schema.jsonld#ComplexTypeNotNested",
                 "@context": {
                     "@version": 1.1,
                     "@protected": true,
@@ -14,32 +14,63 @@
                     "type": "@type",
                     "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
                     "xsd": "http://www.w3.org/2001/XMLSchema#",
-                    "birthday": {
-                        "@id": "kyc-vocab:birthday",
-                        "@type": "xsd:integer"
+                    "passportInfo": {
+                        "@id": "kyc-vocab:passportInfo",
+                        "@context": {
+                            "@version": 1.1,
+                            "@protected": true,
+                            "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
+                            "xsd": "http://www.w3.org/2001/XMLSchema#",
+                            "id": "@id",
+                            "type": "@type",
+                            "birthyear": {
+                                "@type": "xsd:integer",
+                                "@id": "kyc-vocab:birthyear"
+                            },
+                            "numberOfBrothers": {
+                                "@type": "xsd:integer",
+                                "@id": "kyc-vocab:numberOfBrothers"
+                            },
+                            "name": {
+                                "@id": "kyc-vocab:name",
+                                "@type": "xsd:string"
+                            },
+                            "nestedPassportInfo": {
+                                "@id": "kyc-vocab:nestedPassportInfo",
+                                "@context": {
+                                    "@version": 1.1,
+                                    "@protected": true,
+                                    "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
+                                    "xsd": "http://www.w3.org/2001/XMLSchema#",
+                                    "id": "@id",
+                                    "type": "@type",
+                                    "birthyear": {
+                                        "@type": "xsd:integer",
+                                        "@id": "kyc-vocab:birthyear"
+                                    },
+                                    "numberOfBrothers": {
+                                        "@type": "xsd:integer",
+                                        "@id": "kyc-vocab:numberOfBrothers"
+                                    },
+                                    "name": {
+                                        "@id": "kyc-vocab:name",
+                                        "@type": "xsd:string"
+                                    }
+                                }
+                            }
+                        }
                     },
-                    "documentType": {
-                        "@id": "kyc-vocab:documentType",
-                        "@type": "xsd:integer"
-                    }
-                }
-            },
-            "KYCCountryOfResidenceCredential": {
-                "@id": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v4.jsonld#KYCCountryOfResidenceCredential",
-                "@context": {
-                    "@version": 1.1,
-                    "@protected": true,
-                    "id": "@id",
-                    "type": "@type",
-                    "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
-                    "xsd": "http://www.w3.org/2001/XMLSchema#",
-                    "countryCode": {
-                        "@id": "kyc-vocab:countryCode",
-                        "@type": "xsd:integer"
+                    "hireDate": {
+                        "@id": "kyc-vocab:hireDate",
+                        "@type": "xsd:dateTime"
                     },
-                    "documentType": {
-                        "@id": "kyc-vocab:documentType",
-                        "@type": "xsd:integer"
+                    "position": {
+                        "@id": "kyc-vocab:position",
+                        "@type": "xsd:string"
+                    },
+                    "salary": {
+                        "@id": "kyc-vocab:salary",
+                        "@type": "xsd:double"
                     }
                 }
             }

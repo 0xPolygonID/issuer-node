@@ -53,7 +53,7 @@ export function CredentialDetails() {
         const [jsonSchema] = response.data;
         const credentialSubjectSchema =
           (jsonSchema.type === "object" &&
-            jsonSchema.schema.properties
+            jsonSchema.schema.attributes
               ?.filter((child): child is ObjectAttribute => child.type === "object")
               .find((child) => child.name === "credentialSubject")) ||
           null;

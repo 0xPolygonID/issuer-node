@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { ReactComponent as ChevronDownIcon } from "src/assets/icons/chevron-down.svg";
 import { JSONHighlighter } from "src/components/schemas/JSONHighlighter";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
-import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { JsonLdType, JsonSchema } from "src/domain";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
 
@@ -17,17 +17,17 @@ const JSON_VIEW_LABELS: Record<JsonView, string> = {
 export function SchemaViewer({
   actions,
   contents,
+  jsonLdContextObject,
   jsonLdType,
   jsonSchema,
-  rawJsonLdContext,
-  rawJsonSchema,
+  jsonSchemaObject,
 }: {
   actions: ReactNode;
   contents: ReactNode;
+  jsonLdContextObject: Record<string, unknown>;
   jsonLdType: JsonLdType;
   jsonSchema: JsonSchema;
-  rawJsonLdContext: Json;
-  rawJsonSchema: Json;
+  jsonSchemaObject: Record<string, unknown>;
 }) {
   const [jsonView, setJsonView] = useState<JsonView>("formatted");
 
@@ -86,10 +86,10 @@ export function SchemaViewer({
               );
             }
             case "jsonLdContext": {
-              return <JSONHighlighter json={rawJsonLdContext} />;
+              return <JSONHighlighter json={jsonLdContextObject} />;
             }
             case "jsonSchema": {
-              return <JSONHighlighter json={rawJsonSchema} />;
+              return <JSONHighlighter json={jsonSchemaObject} />;
             }
           }
         })()}

@@ -1,7 +1,7 @@
 import { Response } from "src/adapters";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
-import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { JsonLdType, JsonSchema } from "src/domain";
 import { buildAppError } from "src/utils/error";
 
 export async function getJsonSchemaFromUrl({
@@ -10,7 +10,7 @@ export async function getJsonSchemaFromUrl({
 }: {
   signal?: AbortSignal;
   url: string;
-}): Promise<Response<[JsonSchema, Json]>> {
+}): Promise<Response<[JsonSchema, Record<string, unknown>]>> {
   try {
     const jsonResponse = await getJsonFromUrl({
       signal,
@@ -19,10 +19,10 @@ export async function getJsonSchemaFromUrl({
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
-      const json = jsonResponse.data;
-      const jsonSchema = jsonSchemaParser.parse(json);
+      const jsonSchemaObject = jsonResponse.data;
+      const jsonSchema = jsonSchemaParser.parse(jsonSchemaObject);
       return {
-        data: [jsonSchema, json],
+        data: [jsonSchema, jsonSchemaObject],
         success: true,
       };
     }
@@ -38,7 +38,7 @@ export async function getSchemaJsonLdTypes({
   jsonSchema,
 }: {
   jsonSchema: JsonSchema;
-}): Promise<Response<[JsonLdType[], Json]>> {
+}): Promise<Response<[JsonLdType[], Record<string, unknown>]>> {
   try {
     const jsonResponse = await getJsonFromUrl({
       url: jsonSchema.$metadata.uris.jsonLdContext,
@@ -46,10 +46,10 @@ export async function getSchemaJsonLdTypes({
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
-      const json = jsonResponse.data;
-      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(json);
+      const jsonLdContextObject = jsonResponse.data;
+      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
       return {
-        data: [jsonLdTypes, json],
+        data: [jsonLdTypes, jsonLdContextObject],
         success: true,
       };
     }

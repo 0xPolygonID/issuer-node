@@ -225,9 +225,7 @@ function getArrayAttributeParser(name: string, required: boolean) {
   );
 }
 
-type ObjectPropsInput = Omit<ObjectProps, "properties"> & {
-  properties?: Record<string, unknown>;
-};
+type ObjectPropsInput = Omit<ObjectProps, "attributes">;
 
 type ObjectSchemaInput = CommonProps & ObjectPropsInput & { type: "object" };
 
@@ -254,7 +252,7 @@ function getObjectAttributeParser(name: string, required: boolean) {
         required,
         schema: {
           ...schema,
-          properties:
+          attributes:
             schema.properties &&
             Object.entries(schema.properties)
               .map(([name, value]) => {
@@ -272,6 +270,7 @@ function getObjectAttributeParser(name: string, required: boolean) {
               .sort((a, b) =>
                 a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
               ),
+          properties: schema.properties,
         },
         type: "object",
       })
@@ -485,8 +484,8 @@ function getIden3JsonLdTypeParser(schema: JsonSchema) {
       })
       .transform((ldContext, zodContext): JsonLdType[] => {
         const schemaCredentialSubject =
-          schema.type === "object" && schema.schema.properties
-            ? schema.schema.properties.reduce(
+          schema.type === "object" && schema.schema.attributes
+            ? schema.schema.attributes.reduce(
                 (acc: ObjectAttribute | undefined, curr: Attribute) =>
                   curr.type === "object" && curr.name === "credentialSubject" ? curr : acc,
                 undefined
@@ -512,7 +511,7 @@ function getIden3JsonLdTypeParser(schema: JsonSchema) {
               .safeParse(value);
 
             const ldContextTypePropsParseResult = parsedValue.success
-              ? schemaCredentialSubject.schema.properties?.reduce(
+              ? schemaCredentialSubject.schema.attributes?.reduce(
                   (acc: { success: true } | { error: string; success: false }, attribute) =>
                     acc.success && attribute.name in parsedValue.data["@context"]
                       ? acc
@@ -772,7 +771,7 @@ function objectToObjectAttributeValue({
   const { name, required, schema, type } = objectAttribute;
 
   // make sure all required properties of the objectAttribute are present in the object
-  objectAttribute.schema.properties?.forEach((attribute) => {
+  objectAttribute.schema.attributes?.forEach((attribute) => {
     const missing = attribute.required && Object.keys(object).includes(attribute.name) === false;
     if (missing) {
       context.addIssue({
@@ -790,7 +789,7 @@ function objectToObjectAttributeValue({
     type,
     value: Object.entries(object)
       .reduce((acc: AttributeValue[], [name, unknown]) => {
-        const attribute = schema.properties?.find((attribute) => attribute.name === name);
+        const attribute = schema.attributes?.find((attribute) => attribute.name === name);
         if (attribute) {
           const parsedAttributeValue = getAttributeValueParser(attribute).safeParse(unknown);
           if (parsedAttributeValue.success) {

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { AppError, Json, JsonLdType, JsonSchema } from "src/domain";
+import { AppError, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import {
   buildAppError,
@@ -14,11 +14,11 @@ import {
 } from "src/utils/error";
 
 export type FormData = {
+  jsonLdContextObject: Record<string, unknown>;
   jsonLdType: JsonLdType;
   jsonLdTypes: AsyncTask<JsonLdType[], AppError>;
   jsonSchema: JsonSchema;
-  rawJsonLdContext: Json;
-  rawJsonSchema: Json;
+  jsonSchemaObject: Record<string, unknown>;
   schemaUrl: string;
   schemaUrlInput: string;
 };
@@ -37,11 +37,11 @@ export function ImportSchemaForm({
   const [jsonLdTypeInput, setJsonLdTypeInput] = useState<JsonLdType | undefined>(
     initialFormData?.jsonLdType
   );
-  const [rawJsonLdContext, setRawJsonLdContext] = useState<Json | undefined>(
-    initialFormData?.rawJsonLdContext
-  );
-  const [rawJsonSchema, setRawJsonSchema] = useState<Json | undefined>(
-    initialFormData?.rawJsonSchema
+  const [jsonLdContextObject, setJsonLdContextObject] = useState<
+    Record<string, unknown> | undefined
+  >(initialFormData?.jsonLdContextObject);
+  const [jsonSchemaObject, setJsonSchemaObject] = useState<Record<string, unknown> | undefined>(
+    initialFormData?.jsonSchemaObject
   );
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>(
     initialFormData
@@ -65,19 +65,19 @@ export function ImportSchemaForm({
       url,
     }).then((jsonSchemaResponse) => {
       if (jsonSchemaResponse.success) {
-        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
+        const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
         setSchemaUrl(url);
         setJsonSchema({ data: jsonSchema, status: "successful" });
-        setRawJsonSchema(rawJsonSchema);
+        setJsonSchemaObject(jsonSchemaObject);
         setJsonLdTypes({ status: "loading" });
 
         void getSchemaJsonLdTypes({
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
           if (jsonLdTypesResponse.success) {
-            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
+            const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
             setJsonLdTypes({ data: jsonLdTypes, status: "successful" });
-            setRawJsonLdContext(rawJsonLdContext);
+            setJsonLdContextObject(jsonLdContextObject);
 
             if (jsonLdTypes.length === 1) {
               setJsonLdTypeInput(jsonLdTypes[0]);
@@ -123,15 +123,15 @@ export function ImportSchemaForm({
               schemaUrl &&
               isAsyncTaskDataAvailable(jsonSchema) &&
               jsonLdTypeInput &&
-              rawJsonSchema &&
-              rawJsonLdContext
+              jsonSchemaObject &&
+              jsonLdContextObject
             ) {
               onFinish({
+                jsonLdContextObject: jsonLdContextObject,
                 jsonLdType: jsonLdTypeInput,
                 jsonLdTypes: jsonLdTypes,
                 jsonSchema: jsonSchema.data,
-                rawJsonLdContext,
-                rawJsonSchema,
+                jsonSchemaObject: jsonSchemaObject,
                 schemaUrl: schemaUrl,
                 schemaUrlInput: schemaUrlInput,
               });

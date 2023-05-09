@@ -83,7 +83,8 @@ export type ArrayAttribute = {
 };
 
 export type ObjectProps = {
-  properties?: Attribute[];
+  attributes?: Attribute[];
+  properties?: Record<string, unknown>;
   required?: string[];
 };
 

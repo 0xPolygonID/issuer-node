@@ -50,9 +50,12 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
   ])
 );
 
-const formParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<FormInput, Json>()(
+export const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<
+  FormInput,
+  Json
+>()(
   z
-    .lazy(() => z.record(z.union([formLiteralParser, formParser])))
+    .lazy(() => z.record(z.union([formLiteralParser, schemaFormValuesParser])))
     .transform((data, context) => {
       const parsedJson = jsonParser.safeParse(data);
       if (parsedJson.success) {
@@ -204,7 +207,7 @@ export function serializeCredentialLinkIssuance({
   issueCredential: CredentialLinkIssuance;
   schemaID: string;
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
-  const parsedCredentialSubject = formParser.safeParse(credentialSubject);
+  const parsedCredentialSubject = schemaFormValuesParser.safeParse(credentialSubject);
   if (parsedCredentialSubject.success) {
     return {
       data: {
@@ -234,7 +237,10 @@ export function serializeCredentialIssuance({
   issueCredential: CredentialDirectIssuance;
   type: string;
 }): { data: CreateCredential; success: true } | { error: z.ZodError<FormInput>; success: false } {
-  const parsedCredentialSubject = formParser.safeParse({ ...credentialSubject, id: did });
+  const parsedCredentialSubject = schemaFormValuesParser.safeParse({
+    ...credentialSubject,
+    id: did,
+  });
   if (parsedCredentialSubject.success) {
     return {
       data: {

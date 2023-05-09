@@ -4,7 +4,7 @@
     "$metadata": {
         "uris": {
             "jsonLdContext": "http://localhost:5173/test-schema.jsonld",
-            "jsonSchema": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v4.json"
+            "jsonSchema": "http://localhost:5173/test-schema.json"
         }
     },
     "required": [
@@ -106,8 +106,10 @@
             "type": "object",
             "required": [
                 "id",
-                "birthday",
-                "documentType"
+                "passportInfo",
+                "hireDate",
+                "position",
+                "salary"
             ],
             "properties": {
                 "id": {
@@ -115,11 +117,83 @@
                     "type": "string",
                     "format": "uri"
                 },
-                "birthday": {
-                    "type": "integer"
+                "passportInfo": {
+                    "type": "object",
+                    "properties": {
+                        "birthyear": {
+                            "type": "integer",
+                            "minimum": 1950,
+                            "maximum": 2010
+                        },
+                        "numberOfBrothers": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "nestedPassportInfo": {
+                            "type": "object",
+                            "properties": {
+                                "birthyear": {
+                                    "type": "integer",
+                                    "minimum": 1950,
+                                    "maximum": 2010
+                                },
+                                "numberOfBrothers": {
+                                    "type": "integer",
+                                    "minimum": 0
+                                },
+                                "name": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "birthyear",
+                                "numberOfBrothers",
+                                "name"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "birthyear",
+                        "numberOfBrothers",
+                        "name",
+                        "nestedPassportInfo"
+                    ]
                 },
-                "documentType": {
-                    "type": "integer"
+                "hireDate": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "position": {
+                    "type": "string",
+                    "enum": [
+                        "Account Executive",
+                        "Account Manager",
+                        "Administrative assistant",
+                        "Chief Executive Officer",
+                        "Chief Financial Officer",
+                        "Chief Information Officer",
+                        "Chief Marketing Officer",
+                        "Chief Operating Officer",
+                        "Chief Technology Officer",
+                        "Customer service representative",
+                        "Executive Director",
+                        "General Manager",
+                        "Human resource management",
+                        "Marketing management",
+                        "Operations management",
+                        "Product Manager",
+                        "Project manager",
+                        "Sales Management",
+                        "Sales Representative"
+                    ]
+                },
+                "salary": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
                 }
             }
         }

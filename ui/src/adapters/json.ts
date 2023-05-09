@@ -33,14 +33,14 @@ export async function getJsonFromUrl({
 }: {
   signal?: AbortSignal;
   url: string;
-}): Promise<Response<Json>> {
+}): Promise<Response<Record<string, unknown>>> {
   try {
     const response = await axios({
       method: "GET",
       signal,
       url,
     });
-    return buildSuccessResponse(jsonParser.parse(response.data));
+    return buildSuccessResponse(z.record(z.unknown()).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

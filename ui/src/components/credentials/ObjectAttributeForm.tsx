@@ -7,23 +7,30 @@ import { Number } from "src/components/credentials/attributes/Number";
 import { String } from "src/components/credentials/attributes/String";
 import { Attribute, ObjectAttribute } from "src/domain";
 
+export type InputErrors = { [key: string]: string | InputErrors };
+
 function AnyAttribute({
   attribute,
+  inputErrors,
   parents,
 }: {
   attribute: Attribute;
+  inputErrors?: InputErrors;
   parents: ObjectAttribute[];
 }): JSX.Element {
+  const attributeError = inputErrors && inputErrors[attribute.name];
+  const currentError = typeof attributeError === "string" ? attributeError : undefined;
+  const nestedInputErrors = typeof attributeError !== "string" ? attributeError : undefined;
   switch (attribute.type) {
     case "boolean": {
-      return <Boolean attribute={attribute} parents={parents} />;
+      return <Boolean attribute={attribute} error={currentError} parents={parents} />;
     }
     case "number":
     case "integer": {
-      return <Number attribute={attribute} parents={parents} />;
+      return <Number attribute={attribute} error={currentError} parents={parents} />;
     }
     case "string": {
-      return <String attribute={attribute} parents={parents} />;
+      return <String attribute={attribute} error={currentError} parents={parents} />;
     }
     case "null": {
       return (
@@ -45,8 +52,9 @@ function AnyAttribute({
     }
     case "object": {
       return (
-        <CredentialSubjectForm
-          attributes={attribute.schema.properties || []}
+        <ObjectAttributeForm
+          attributes={attribute.schema.attributes || []}
+          inputErrors={nestedInputErrors}
           parents={[...parents, attribute]}
         />
       );
@@ -54,11 +62,13 @@ function AnyAttribute({
   }
 }
 
-export function CredentialSubjectForm({
+export function ObjectAttributeForm({
   attributes,
+  inputErrors,
   parents = [],
 }: {
   attributes: Attribute[];
+  inputErrors?: InputErrors;
   parents?: ObjectAttribute[];
 }) {
   const isRootAttribute = parents.length === 0;
@@ -69,10 +79,10 @@ export function CredentialSubjectForm({
       <Space direction="vertical" size="middle">
         <AttributeBreadcrumb parents={parents} />
 
-        <AnyAttribute attribute={attribute} parents={parents} />
+        <AnyAttribute attribute={attribute} inputErrors={inputErrors} parents={parents} />
       </Space>
     ) : (
-      <AnyAttribute attribute={attribute} parents={parents} />
+      <AnyAttribute attribute={attribute} inputErrors={inputErrors} parents={parents} />
     );
 
     const shouldShowTitle = isRootAttribute && attribute.type === "object";

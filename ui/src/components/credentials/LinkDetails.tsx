@@ -52,7 +52,7 @@ export function LinkDetails() {
 
         const credentialSubjectSchema =
           (jsonSchema.type === "object" &&
-            jsonSchema.schema.properties
+            jsonSchema.schema.attributes
               ?.filter((child): child is ObjectAttribute => child.type === "object")
               .find((child) => child.name === "credentialSubject")) ||
           null;
@@ -62,7 +62,7 @@ export function LinkDetails() {
             ...credentialSubjectSchema,
             schema: {
               ...credentialSubjectSchema.schema,
-              properties: credentialSubjectSchema.schema.properties?.filter(
+              attributes: credentialSubjectSchema.schema.attributes?.filter(
                 (attribute) => attribute.name !== "id"
               ),
             },
