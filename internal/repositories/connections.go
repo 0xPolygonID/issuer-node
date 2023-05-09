@@ -218,7 +218,7 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 		sqlQuery += fmt.Sprintf(" AND (%s) ", ftsConds)
 	}
 
-	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST"
+	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST, connections.created_at DESC"
 
 	return sqlQuery, filters
 }
