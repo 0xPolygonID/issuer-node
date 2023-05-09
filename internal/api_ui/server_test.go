@@ -1523,7 +1523,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:  "Search by did in query params:",
+			name:  "Search by did and other words in query params:",
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
@@ -1532,9 +1532,36 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
+			name:  "Search by partial did and other words in query params:",
+			auth:  authOk,
+			query: common.ToPointer("some words and " + revoked.OtherIdentifier[9:14]),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "Search by did in query params:",
+			auth:  authOk,
+			query: &revoked.OtherIdentifier,
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "Search by partial did in query params:",
+			auth:  authOk,
+			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
 			name:  "FTS is doing and OR when no did passed:",
 			auth:  authOk,
-			query: common.ToPointer("birthday is an schema attribute but not the rest of words in this sentence"),
+			query: common.ToPointer("birthday  schema attribute  not the rest of words  this sentence"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    4,
@@ -1544,7 +1571,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			name:  "FTS is doing and AND when did passed:",
 			auth:  authOk,
 			did:   &claim.OtherIdentifier,
-			query: common.ToPointer("birthday is an schema attribute but not the rest of words in this sentence"),
+			query: common.ToPointer("birthday is an schema attribute but not the rest of words"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    0,
@@ -2066,7 +2093,7 @@ func TestServer_GetConnections(t *testing.T) {
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
-					Query: common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Ge"),
+					Query: common.ToPointer("Z7gcmEoP2KppvFPCZqyzyb5tK9T6Ge"),
 				},
 			},
 			expected: expected{
@@ -2141,7 +2168,7 @@ func TestServer_GetConnections(t *testing.T) {
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ"),
+					Query:       common.ToPointer("5HFANQ"),
 				},
 			},
 			expected: expected{
@@ -2185,7 +2212,7 @@ func TestServer_GetConnections(t *testing.T) {
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9 birthday"),
+					Query:       common.ToPointer("CZqyzyb5tK9T6Ge  credential"),
 				},
 			},
 			expected: expected{
@@ -2202,12 +2229,12 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
-			name: "should return one connection with invalid did and valid attributes",
+			name: "should return one connection with not existing did and valid attributes",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
 					Credentials: common.ToPointer(true),
-					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk birthday"),
+					Query:       common.ToPointer("did:polygon:myhouse:ZZZZZZ birthday"),
 				},
 			},
 			expected: expected{

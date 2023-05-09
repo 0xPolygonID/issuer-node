@@ -1,0 +1,25 @@
+{
+    "@context": [
+      {
+        "@version": 1.1,
+        "@protected": true,
+        "id": "@id",
+        "type": "@type",
+        "BirthdayCredential": {
+          "@id": "https://raw.githubusercontent.com/0xPolygonID/issuer-node/main/docs/examples/json-ld/exampleInteger.json-ld#BirthdayCredential",
+          "@context": {
+            "@version": 1.1,
+            "@protected": true,
+            "id": "@id",
+            "type": "@type",
+            "vocab": "https://github.com/0xPolygonID/sh-id-platform/blob/main/docs/examples/schemas/vocab/exampleEmployee.md#",
+            "xsd": "http://www.w3.org/2001/XMLSchema#",
+            "birthday": {
+                "@id": "vocab:birthday",
+                "@type": "xsd:integer"
+              }
+          }
+        }
+      }
+    ]
+  }

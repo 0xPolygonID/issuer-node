@@ -10,14 +10,12 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
@@ -31,7 +29,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Credential } from "src/domain";
+import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -48,7 +46,7 @@ import {
   REVOKE,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
@@ -56,7 +54,7 @@ export function CredentialsTable() {
 
   const navigate = useNavigate();
 
-  const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
+  const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
   });
   const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
@@ -193,14 +191,12 @@ export function CredentialsTable() {
         },
         signal,
       });
-      if (response.isSuccessful) {
+      if (response.success) {
         setCredentials({
           data: response.data.successful,
           status: "successful",
         });
-        response.data.failed.map((error) =>
-          processZodError(error).forEach((error) => void message.error(error))
-        );
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });
@@ -242,7 +238,7 @@ export function CredentialsTable() {
 
       setSearchParams(params);
     } else {
-      processZodError(parsedCredentialStatus.error).forEach((error) => void message.error(error));
+      notifyParseError(parsedCredentialStatus.error);
     }
   };
 

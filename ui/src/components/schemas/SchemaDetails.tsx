@@ -1,9 +1,7 @@
 import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
-import { z } from "zod";
 
-import { APIError } from "src/adapters/api";
 import { getSchema } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
@@ -14,11 +12,16 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { Json, JsonLdType, JsonSchema, Schema } from "src/domain";
+import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { processError, processZodError } from "src/utils/error";
+import { SCHEMA_SEARCH_PARAM } from "src/utils/constants";
+import {
+  buildAppError,
+  jsonLdContextErrorToString,
+  jsonSchemaErrorToString,
+} from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
@@ -27,58 +30,57 @@ export function SchemaDetails() {
 
   const env = useEnvContext();
 
-  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<
-    AsyncTask<[JsonSchema, Json], string | z.ZodError>
-  >({
+  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<AsyncTask<[JsonSchema, Json], AppError>>({
     status: "pending",
   });
-  const [schema, setSchema] = useState<AsyncTask<Schema, APIError>>({
+  const [schema, setSchema] = useState<AsyncTask<Schema, AppError>>({
     status: "pending",
   });
-  const [contextTuple, setContextTuple] = useState<
-    AsyncTask<[JsonLdType, Json], string | z.ZodError>
-  >({
+  const [contextTuple, setContextTuple] = useState<AsyncTask<[JsonLdType, Json], AppError>>({
     status: "pending",
   });
 
   const fetchJsonSchemaFromUrl = useCallback((schema: Schema): void => {
     setJsonSchemaTuple({ status: "loading" });
 
-    getJsonSchemaFromUrl({
+    void getJsonSchemaFromUrl({
       url: schema.url,
-    })
-      .then(([jsonSchema, rawJsonSchema]) => {
+    }).then((jsonSchemaResponse) => {
+      if (jsonSchemaResponse.success) {
+        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
         setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
         setContextTuple({ status: "loading" });
-        getSchemaJsonLdTypes({
+        void getSchemaJsonLdTypes({
           jsonSchema,
-        })
-          .then(([jsonLdTypes, rawJsonLdContext]) => {
+        }).then((jsonLdTypesResponse) => {
+          if (jsonLdTypesResponse.success) {
+            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
             const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
             if (jsonLdType) {
               setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
             } else {
               setContextTuple({
-                error:
-                  "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL",
+                error: buildAppError(
+                  "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL"
+                ),
                 status: "failed",
               });
             }
-          })
-          .catch((error) => {
+          } else {
             setContextTuple({
-              error: processError(error),
+              error: jsonLdTypesResponse.error,
               status: "failed",
             });
-          });
-      })
-      .catch((error) => {
+          }
+        });
+      } else {
         setJsonSchemaTuple({
-          error: processError(error),
+          error: jsonSchemaResponse.error,
           status: "failed",
         });
-      });
+      }
+    });
   }, []);
 
   const fetchApiSchema = useCallback(
@@ -92,7 +94,7 @@ export function SchemaDetails() {
           signal,
         });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           setSchema({ data: response.data, status: "successful" });
           fetchJsonSchemaFromUrl(response.data);
         } else {
@@ -113,28 +115,14 @@ export function SchemaDetails() {
     return;
   }, [fetchApiSchema, schemaID]);
 
-  const contextTupleErrorToString = (error: string | z.ZodError) =>
-    error instanceof z.ZodError
-      ? [
-          "An error occurred while parsing the context referenced in the schema:",
-          ...processZodError(error).map((e) => `"${e}"`),
-          "Please provide a schema with a valid context.",
-        ].join("\n")
-      : `An error occurred while downloading the context referenced in the schema:\n"${error}"\nPlease try again.`;
-
-  const jsonSchemaTupleErrorToString = (error: string | z.ZodError) =>
-    error instanceof z.ZodError
-      ? [
-          "An error occurred while parsing the schema from the URL:",
-          ...processZodError(error).map((e) => `"${e}"`),
-          "Please provide a valid schema.",
-        ].join("\n")
-      : `An error occurred while downloading the schema from the URL:\n"${error}"\nPlease try again.`;
-
   const loading =
     isAsyncTaskStarting(schema) ||
     isAsyncTaskStarting(jsonSchemaTuple) ||
     isAsyncTaskStarting(contextTuple);
+
+  if (!schemaID) {
+    return <ErrorResult error="No schema ID provided." />;
+  }
 
   return (
     <SiderLayoutContent
@@ -158,13 +146,13 @@ export function SchemaDetails() {
         } else if (hasAsyncTaskFailed(jsonSchemaTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={jsonSchemaTupleErrorToString(jsonSchemaTuple.error)} />
+              <ErrorResult error={jsonSchemaErrorToString(jsonSchemaTuple.error)} />
             </Card>
           );
         } else if (hasAsyncTaskFailed(contextTuple)) {
           return (
             <Card className="centered">
-              <ErrorResult error={contextTupleErrorToString(contextTuple.error)} />
+              <ErrorResult error={jsonLdContextErrorToString(contextTuple.error)} />
             </Card>
           );
         } else if (loading) {
@@ -185,7 +173,10 @@ export function SchemaDetails() {
                   <Button
                     icon={<CreditCardIcon />}
                     onClick={() => {
-                      navigate(generatePath(ROUTES.issueCredential.path, { schemaID }));
+                      navigate({
+                        pathname: generatePath(ROUTES.issueCredential.path),
+                        search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
+                      });
                     }}
                     type="primary"
                   >

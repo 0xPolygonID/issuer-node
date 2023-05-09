@@ -4,7 +4,7 @@ import { z } from "zod";
 import { EnvInput, envParser } from "src/adapters/env";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { Env } from "src/domain";
-import { processZodError } from "src/utils/error";
+import { buildAppError, envErrorToString } from "src/utils/error";
 
 const defaultEnvContext: Env = {
   api: {
@@ -36,13 +36,7 @@ export function EnvProvider(props: PropsWithChildren) {
   return value?.success ? (
     <EnvContext.Provider value={value.data} {...props} />
   ) : !value ? null : (
-    <ErrorResult
-      error={[
-        "An error occurred while reading the environment variables:\n",
-        ...processZodError(value.error).map((e) => `"${e}"`),
-        "\nPlease provide valid environment variables.",
-      ].join("\n")}
-    />
+    <ErrorResult error={envErrorToString(buildAppError(value.error))} />
   );
 }
 

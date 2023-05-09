@@ -45,6 +45,8 @@ As described above, the `enum` keyword is partially supported to fit use cases t
 - `enum` only schemas (without a type) will not pass validation.
 - Repeated values won't produce an error.
 
+While the UI correctly parses all the schemas above, currently there's a limitation regarding the issuance of credentials since the issue credential form does not yet support the schemas `array` and `null`. This, in practice, means that while you can import schemas that declare attributes of type `array` and `null`, such attributes will not be operative in the issue credential form, rendering the credential not-issuable in practice when the attributes are required, since the user will not be able to provide a value for them in the UI.
+
 ## License
 
 See [LICENSE](../LICENSE.md).

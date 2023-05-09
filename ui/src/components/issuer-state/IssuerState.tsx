@@ -16,7 +16,6 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
 import { ReactComponent as IconAlert } from "src/assets/icons/alert-circle.svg";
 import { ReactComponent as IconSwitch } from "src/assets/icons/switch-horizontal.svg";
@@ -25,12 +24,12 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { Transaction } from "src/domain";
+import { AppError, Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 import { ISSUER_STATE, POLLING_INTERVAL, STATUS } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 const PUBLISHED_MESSAGE = "Issuer state is being published";
@@ -40,7 +39,7 @@ export function IssuerState() {
   const { refreshStatus, status } = useIssuerStateContext();
 
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
-  const [transactions, setTransactions] = useState<AsyncTask<Transaction[], APIError>>({
+  const [transactions, setTransactions] = useState<AsyncTask<Transaction[], AppError>>({
     status: "pending",
   });
 
@@ -58,7 +57,7 @@ export function IssuerState() {
     const functionToExecute = failedTransaction ? retryPublishState : publishState;
 
     void functionToExecute({ env }).then((response) => {
-      if (response.isSuccessful) {
+      if (response.success) {
         void message.success(PUBLISHED_MESSAGE);
       } else {
         void message.error(response.error.message);
@@ -75,11 +74,9 @@ export function IssuerState() {
     async (signal?: AbortSignal) => {
       const response = await getTransactions({ env, signal });
 
-      if (response.isSuccessful) {
+      if (response.success) {
         setTransactions({ data: response.data.successful, status: "successful" });
-        response.data.failed.map((error) =>
-          processZodError(error).forEach((error) => void message.error(error))
-        );
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setTransactions({ error: response.error, status: "failed" });

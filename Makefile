@@ -64,11 +64,17 @@ up:
 
 .PHONY: run
 run:
+	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
+	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
+	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
 
 .PHONY: run-arm
 run-arm:
+	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
+	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
+	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
 
 .PHONY: run-ui
 run-ui: add-host-url-swagger
@@ -77,7 +83,7 @@ run-ui: add-host-url-swagger
 .PHONY: run-ui-arm
 run-ui-arm: add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
-
+	
 .PHONY: build
 build:
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api pending_publisher

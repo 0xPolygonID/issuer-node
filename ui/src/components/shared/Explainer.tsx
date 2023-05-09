@@ -2,7 +2,7 @@ import { Button, Card, Grid, Image, Space, Typography } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { getStorageByKey, setStorageByKey } from "src/utils/localStorage";
+import { getStorageByKey, setStorageByKey } from "src/utils/browser";
 
 export function Explainer({
   CTA,

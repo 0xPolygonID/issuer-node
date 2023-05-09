@@ -1,20 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getIssuedQRCode } from "src/adapters/api/credentials";
 import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { IssuedQRCode } from "src/domain";
+import { AppError, IssuedQRCode } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 export function CredentialIssuedQR() {
   const env = useEnvContext();
 
-  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<IssuedQRCode, APIError>>({
+  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<IssuedQRCode, AppError>>({
     status: "pending",
   });
 
@@ -27,7 +26,7 @@ export function CredentialIssuedQR() {
 
         const response = await getIssuedQRCode({ credentialID, env, signal });
 
-        if (response.isSuccessful) {
+        if (response.success) {
           setIssuedQRCode({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {

@@ -1,3 +1,5 @@
+export type { AppError } from "src/domain/error";
+
 export type { Connection } from "src/domain/connection";
 
 export type {

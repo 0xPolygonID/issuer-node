@@ -151,14 +151,17 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		Updatable:             false,
 	})
 	if err != nil {
-		log.Error(ctx, "processing the claim against the schema", "err", err)
+		log.Error(ctx, "credential subject attributes don't match the provided schema", "err", err)
 		if errors.Is(err, schemaPkg.ErrParseClaim) {
+			log.Error(ctx, "error parsing claim", "err", err)
 			return nil, ErrParseClaim
 		}
 		if errors.Is(err, schemaPkg.ErrValidateData) {
+			log.Error(ctx, "error validating data", "err", err)
 			return nil, ErrInvalidCredentialSubject
 		}
 		if errors.Is(err, schemaPkg.ErrLoadSchema) {
+			log.Error(ctx, "error loading schema", "err", err)
 			return nil, ErrLoadingSchema
 		}
 		return nil, err
@@ -573,7 +576,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 
 	issuanceDate := time.Now()
 	return verifiable.W3CCredential{
-		ID:                fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(c.cfg.Host, "/"), claimReq.DID.String(), vcID),
+		ID:                c.buildCredentialID(*claimReq.DID, vcID, claimReq.SingleIssuer),
 		Context:           credentialCtx,
 		Type:              credentialType,
 		Expiration:        claimReq.Expiration,
@@ -606,6 +609,14 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer
 		Type:            verifiable.SparseMerkleTreeProof,
 		RevocationNonce: nonce,
 	}
+}
+
+func (c *claim) buildCredentialID(issuerDID core.DID, credID uuid.UUID, singleIssuer bool) string {
+	if singleIssuer {
+		return fmt.Sprintf("%s/v1/credentials/%s", strings.TrimSuffix(c.cfg.Host, "/"), credID.String())
+	}
+
+	return fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(c.cfg.Host, "/"), issuerDID.String(), credID.String())
 }
 
 func buildRevocationURL(host, issuerDID string, nonce uint64, singleIssuer bool) string {

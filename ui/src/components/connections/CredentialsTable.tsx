@@ -9,14 +9,12 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import {
   CredentialStatus,
   credentialStatusParser,
@@ -34,7 +32,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Credential } from "src/domain";
+import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -49,13 +47,13 @@ import {
   REVOCATION,
   REVOKE,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
 
-  const [credentials, setCredentials] = useState<AsyncTask<Credential[], APIError>>({
+  const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
   });
   const [credentialStatus, setCredentialStatus] = useState<CredentialStatus>("all");
@@ -190,14 +188,12 @@ export function CredentialsTable({ userID }: { userID: string }) {
           },
           signal,
         });
-        if (response.isSuccessful) {
+        if (response.success) {
           setCredentials({
             data: response.data.successful,
             status: "successful",
           });
-          response.data.failed.map((error) =>
-            processZodError(error).forEach((error) => void message.error(error))
-          );
+          notifyParseErrors(response.data.failed);
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });
@@ -213,7 +209,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     if (parsedCredentialStatus.success) {
       setCredentialStatus(parsedCredentialStatus.data);
     } else {
-      processZodError(parsedCredentialStatus.error).forEach((error) => void message.error(error));
+      notifyParseError(parsedCredentialStatus.error);
     }
   };
 

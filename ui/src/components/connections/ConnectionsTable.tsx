@@ -1,21 +1,8 @@
-import {
-  Avatar,
-  Card,
-  Divider,
-  Dropdown,
-  Row,
-  Space,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-  message,
-} from "antd";
+import { Avatar, Card, Divider, Dropdown, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { APIError } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -28,7 +15,7 @@ import { NoResults } from "src/components/shared/NoResults";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { Connection } from "src/domain";
+import { AppError, Connection } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -41,14 +28,14 @@ import {
   ISSUED_CREDENTIALS,
   QUERY_SEARCH_PARAM,
 } from "src/utils/constants";
-import { processZodError } from "src/utils/error";
+import { notifyParseErrors } from "src/utils/error";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
 
   const navigate = useNavigate();
 
-  const [connections, setConnections] = useState<AsyncTask<Connection[], APIError>>({
+  const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
     status: "pending",
   });
   const [connectionToDelete, setConnectionToDelete] = useState<string>();
@@ -147,11 +134,9 @@ export function ConnectionsTable() {
         },
         signal,
       });
-      if (response.isSuccessful) {
+      if (response.success) {
         setConnections({ data: response.data.successful, status: "successful" });
-        response.data.failed.map((error) =>
-          processZodError(error).forEach((error) => void message.error(error))
-        );
+        notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setConnections({ error: response.error, status: "failed" });
