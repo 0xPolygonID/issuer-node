@@ -207,14 +207,14 @@ export function serializeCredentialLinkIssuance({
   issueCredential: CredentialLinkIssuance;
   schemaID: string;
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
-  const parsedCredentialSubject = schemaFormValuesParser.safeParse(credentialSubject);
-  if (parsedCredentialSubject.success) {
+  const parsedSchemaFormValues = schemaFormValuesParser.safeParse(credentialSubject);
+  if (parsedSchemaFormValues.success) {
     return {
       data: {
         credentialExpiration: credentialExpiration
           ? dayjs(credentialExpiration).format("YYYY-MM-DD")
           : null,
-        credentialSubject: parsedCredentialSubject.data,
+        credentialSubject: parsedSchemaFormValues.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
@@ -224,7 +224,7 @@ export function serializeCredentialLinkIssuance({
       success: true,
     };
   } else {
-    return parsedCredentialSubject;
+    return parsedSchemaFormValues;
   }
 }
 
@@ -237,15 +237,15 @@ export function serializeCredentialIssuance({
   issueCredential: CredentialDirectIssuance;
   type: string;
 }): { data: CreateCredential; success: true } | { error: z.ZodError<FormInput>; success: false } {
-  const parsedCredentialSubject = schemaFormValuesParser.safeParse({
+  const parsedSchemaFormValues = schemaFormValuesParser.safeParse({
     ...credentialSubject,
     id: did,
   });
-  if (parsedCredentialSubject.success) {
+  if (parsedSchemaFormValues.success) {
     return {
       data: {
         credentialSchema,
-        credentialSubject: parsedCredentialSubject.data,
+        credentialSubject: parsedSchemaFormValues.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,
         signatureProof,
@@ -254,7 +254,7 @@ export function serializeCredentialIssuance({
       success: true,
     };
   } else {
-    return parsedCredentialSubject;
+    return parsedSchemaFormValues;
   }
 }
 

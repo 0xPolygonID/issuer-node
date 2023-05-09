@@ -270,7 +270,6 @@ function getObjectAttributeParser(name: string, required: boolean) {
               .sort((a, b) =>
                 a.type !== "object" && b.type !== "object" ? 0 : a.type === "object" ? 1 : -1
               ),
-          properties: schema.properties,
         },
         type: "object",
       })
