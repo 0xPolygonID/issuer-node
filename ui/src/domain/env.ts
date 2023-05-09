@@ -5,6 +5,7 @@ export interface Env {
     username: string;
   };
   blockExplorerUrl: string;
+  buildTag?: string;
   issuer: {
     did: string;
     logo: string;
