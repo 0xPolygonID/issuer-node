@@ -12,7 +12,7 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
-import { notifyParseError } from "src/utils/error";
+import { buildAppError, notifyError, notifyParseError } from "src/utils/error";
 
 function addErrorToPath(inputErrors: InputErrors, path: string[], error: string): InputErrors {
   const key = path[0];
@@ -56,31 +56,40 @@ export function IssueCredentialForm({
     const parsedSchemaFormValues = schemaFormValuesParser.safeParse(values);
     if (parsedSchemaFormValues.success) {
       const { properties, required, type } = objectAttribute.schema;
+      try {
+        const ajv = new Ajv({ allErrors: true });
+        addFormats(ajv);
+        const validate = ajv.compile({
+          properties,
+          required,
+          type,
+        });
+        const valid = validate(parsedSchemaFormValues.data);
 
-      const ajv = new Ajv({ allErrors: true });
-      addFormats(ajv);
-      const validate = ajv.compile({
-        properties,
-        required,
-        type,
-      });
-      const valid = validate(parsedSchemaFormValues.data);
-
-      if (valid) {
-        setInputErrors(undefined);
-        return true;
-      } else if (validate.errors) {
-        setInputErrors(
-          validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
-            const errorMsg = curr.message
-              ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
-              : "Unknown validation error";
-            const path = curr.instancePath
-              .split("/")
-              .filter((segment) => segment !== "/" && segment !== "");
-            return addErrorToPath(acc, path, errorMsg);
-          }, {})
-        );
+        if (valid) {
+          setInputErrors(undefined);
+          return true;
+        } else if (validate.errors) {
+          setInputErrors(
+            validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
+              if (curr.keyword === "required") {
+                // filtering out required errors since we manage these from the antd form
+                return acc;
+              } else {
+                const errorMsg = curr.message
+                  ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
+                  : "Unknown validation error";
+                const path = curr.instancePath
+                  .split("/")
+                  .filter((segment) => segment !== "/" && segment !== "");
+                return addErrorToPath(acc, path, errorMsg);
+              }
+            }, {})
+          );
+        }
+      } catch (error) {
+        notifyError(buildAppError(error));
+        return false;
       }
     } else {
       notifyParseError(parsedSchemaFormValues.error);

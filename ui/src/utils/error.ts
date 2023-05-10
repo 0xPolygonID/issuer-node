@@ -29,6 +29,14 @@ function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   }, init);
 }
 
+export function notifyError(error: AppError, compact = false): void {
+  if (!compact && error.type === "parse-error") {
+    notifyParseError(error.error);
+  } else {
+    void message.error(error.message);
+  }
+}
+
 export function notifyParseError(error: z.ZodError): void {
   processZodError(error).forEach((error) => void message.error(error));
 }
