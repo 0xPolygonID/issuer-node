@@ -66,6 +66,16 @@ func buildPartialQueryDidLikes(field string, words []string, cond string) string
 	return strings.Join(conditions, " "+cond+" ")
 }
 
+func buildPartialQueryLikes(field string, cond string, first int, n int) string {
+	conditions := make([]string, 0, n)
+	current := first
+	for i := 0; i < n; i++ {
+		conditions = append(conditions, fmt.Sprintf("%s ILIKE '%%' || $%d || '%%'", field, current))
+		current++
+	}
+	return strings.Join(conditions, " "+cond+" ")
+}
+
 func escapeDID(s string) string {
 	return didCharacters.ReplaceAllString(s, "")
 }

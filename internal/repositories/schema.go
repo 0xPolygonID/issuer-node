@@ -51,43 +51,40 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.IssuerDID.String(),
 		s.URL,
 		s.Type,
-		s.Attributes.String(),
-		string(hash),
 		r.toFullTextSearchDocument(s.Type, s.Attributes),
+		string(hash),
+		r.toFullTextSearchDocument(s.Type, s.Attributes), // TODO: To remove
 		s.CreatedAt)
 	return err
 }
 
 func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaAttrs) string {
-	var sb strings.Builder
-	sb.WriteString(sType + " ")
-	sb.WriteString(" ")
-	for _, attr := range attrs {
-		sb.WriteString(attr + " ")
-	}
-	return sb.String()
+	out := make([]string, 0, len(attrs)+1)
+	out = append(out, sType)
+	out = append(out, attrs...)
+	return strings.Join(out, ", ")
 }
 
 // GetAll returns all the schemas that match any of the words that are included in the query string.
 // For each word, it will search for attributes that start with it or include it following postgres full text search tokenization
 func (r *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
-	const all = `SELECT id, issuer_id, url, type, attributes, hash, created_at
-	FROM schemas
-	WHERE issuer_id=$1
-	ORDER BY created_at DESC`
-	const allFTS = `
-SELECT id, issuer_id, url, type, attributes, hash, created_at 
-FROM schemas 
-WHERE issuer_id=$1 AND ts_words @@ to_tsquery($2)
-ORDER BY created_at DESC`
 	var err error
 	var rows pgx.Rows
-
+	sqlArgs := make([]interface{}, 0)
+	sqlQuery := `SELECT id, issuer_id, url, type, attributes, hash, created_at
+	FROM schemas
+	WHERE issuer_id=$1`
+	sqlArgs = append(sqlArgs, issuerDID.String())
 	if query != nil && *query != "" {
-		rows, err = r.conn.Pgx.Query(ctx, allFTS, issuerDID.String(), fullTextSearchQuery(*query, " | "))
-	} else {
-		rows, err = r.conn.Pgx.Query(ctx, all, issuerDID.String())
+		terms := tokenizeQuery(*query)
+		sqlQuery += " AND (" + buildPartialQueryLikes("schemas.Attributes", "OR", 1+len(sqlArgs), len(terms)) + ")"
+		for _, term := range terms {
+			sqlArgs = append(sqlArgs, term)
+		}
 	}
+	sqlQuery += " ORDER BY created_at DESC"
+
+	rows, err = r.conn.Pgx.Query(ctx, sqlQuery, sqlArgs...)
 	if err != nil {
 		return nil, err
 	}

@@ -49,7 +49,7 @@ func TestGetSchema(t *testing.T) {
 	assert.Equal(t, schema1.URL, schema2.URL)
 	assert.Equal(t, schema1.Type, schema2.Type)
 	assert.Equal(t, schema1.Hash, schema2.Hash)
-	assert.Equal(t, schema1.Attributes, schema2.Attributes)
+	assert.Equal(t, domain.SchemaAttrs{"schemaType", "field1", "field2", "fieldn"}, schema2.Attributes)
 	assert.InDelta(t, schema1.CreatedAt.UnixMilli(), schema2.CreatedAt.UnixMilli(), 10)
 }
 
@@ -85,10 +85,10 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"},
+					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}, {
 					Type:       "age",
-					Attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"},
+					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -98,10 +98,10 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"},
+					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}, {
 					Type:       "age",
-					Attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"},
+					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -111,7 +111,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"},
+					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
 			},
 		},
@@ -121,7 +121,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"},
+					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
 			},
 		},
@@ -131,7 +131,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"},
+					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
 			},
 		},
@@ -141,7 +141,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "age",
-					Attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"},
+					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -151,17 +151,17 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "age",
-					Attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"},
+					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
 		{
 			name:  "partial match attributes, middle of the word",
-			query: common.ToPointer("eight"),
+			query: common.ToPointer("eighte"),
 			expected: expected{
 				collection: []domain.Schema{{
 					Type:       "age",
-					Attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"},
+					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -172,20 +172,29 @@ func TestGetAllFullTextSearch(t *testing.T) {
 				collection: []domain.Schema{
 					{
 						Type:       "nicePeopleAtWork",
-						Attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"},
+						Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 					},
 					{
 						Type:       "age",
-						Attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"},
+						Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
 					},
 				},
 			},
 		},
 		{
-			name:  "stop word. It will be removed",
-			query: common.ToPointer("than"),
+			name:  "2 attributes from different records, partial match",
+			query: common.ToPointer("young people"),
 			expected: expected{
-				collection: []domain.Schema{},
+				collection: []domain.Schema{
+					{
+						Type:       "nicePeopleAtWork",
+						Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+					},
+					{
+						Type:       "age",
+						Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+					},
+				},
 			},
 		},
 		{
@@ -195,14 +204,15 @@ func TestGetAllFullTextSearch(t *testing.T) {
 				collection: []domain.Schema{},
 			},
 		},
+
+		// TODO: Add partial like tests
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			collection, err := store.GetAll(ctx, did, tc.query)
 			require.NoError(t, err)
 			require.Len(t, collection, len(tc.expected.collection))
 			for i := range collection {
-				assert.Equal(t, collection[i].Type, tc.expected.collection[i].Type)
-				assert.Equal(t, collection[i].Attributes, tc.expected.collection[i].Attributes)
+				assert.Equal(t, tc.expected.collection[i].Attributes, collection[i].Attributes)
 			}
 		})
 	}

@@ -43,7 +43,10 @@ func SchemaAttrsFromString(commaAttrs string) SchemaAttrs {
 	attrs := strings.Split(commaAttrs, ",")
 	schemaAttrs := make(SchemaAttrs, len(attrs))
 	for i, attr := range attrs {
-		schemaAttrs[i] = strings.TrimSpace(attr)
+		w := strings.TrimSpace(attr)
+		if w != "" {
+			schemaAttrs[i] = w
+		}
 	}
 	return schemaAttrs
 }
