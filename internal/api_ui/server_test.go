@@ -1550,6 +1550,24 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
+			name:  "Search by attributes in query params",
+			auth:  authOk,
+			query: common.ToPointer("birthday"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
+			name:  "Search by attributes in query params, partial word",
+			auth:  authOk,
+			query: common.ToPointer("rthd"),
+			expected: expected{
+				httpCode: http.StatusOK,
+				count:    4,
+			},
+		},
+		{
 			name:  "Search by partial did in query params:",
 			auth:  authOk,
 			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
@@ -1561,7 +1579,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		{
 			name:  "FTS is doing and OR when no did passed:",
 			auth:  authOk,
-			query: common.ToPointer("birthday  schema attribute  not the rest of words  this sentence"),
+			query: common.ToPointer("birthday schema attribute not the rest of words this sentence"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    4,
@@ -1571,7 +1589,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			name:  "FTS is doing and AND when did passed:",
 			auth:  authOk,
 			did:   &claim.OtherIdentifier,
-			query: common.ToPointer("birthday is an schema attribute but not the rest of words"),
+			query: common.ToPointer("not existing words"),
 			expected: expected{
 				httpCode: http.StatusOK,
 				count:    0,

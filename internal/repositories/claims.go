@@ -752,14 +752,17 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		}
 	}
 	if filter.FTSQuery != "" {
-		cond := " | "
+		cond := "OR"
 		if filter.FTSAndCond {
-			cond = " & "
+			cond = "AND"
 		}
-		filters = append(filters, fullTextSearchQuery(filter.FTSQuery, cond))
-		ftsConds := fmt.Sprintf("schemas.ts_words @@ to_tsquery($%d)", len(filters))
+		terms := tokenizeQuery(filter.FTSQuery)
+		ftsConds := buildPartialQueryLikes("schemas.Attributes", cond, 1+len(filters), len(terms))
+		for _, term := range terms {
+			filters = append(filters, term)
+		}
 		if filter.Subject == "" {
-			ftsConds += fmt.Sprintf("OR %s", buildPartialQueryDidLikes("claims.other_identifier", tokenizeQuery(filter.FTSQuery), "OR"))
+			ftsConds += fmt.Sprintf(" %s %s", cond, buildPartialQueryDidLikes("claims.other_identifier", tokenizeQuery(filter.FTSQuery), cond))
 		}
 		query = fmt.Sprintf("%s AND (%s) ", query, ftsConds)
 	}
