@@ -5,8 +5,8 @@
             "@protected": true,
             "id": "@id",
             "type": "@type",
-            "ComplexTypeNotNested": {
-                "@id": "http://localhost:5173/test-schema.jsonld#ComplexTypeNotNested",
+            "Employee": {
+                "@id": "http://localhost:5173/test-schemas/employee.jsonld#Employee",
                 "@context": {
                     "@version": 1.1,
                     "@protected": true,
@@ -35,8 +35,8 @@
                                 "@id": "kyc-vocab:name",
                                 "@type": "xsd:string"
                             },
-                            "nestedPassportInfo": {
-                                "@id": "kyc-vocab:nestedPassportInfo",
+                            "parents": {
+                                "@id": "kyc-vocab:parents",
                                 "@context": {
                                     "@version": 1.1,
                                     "@protected": true,
@@ -44,17 +44,13 @@
                                     "xsd": "http://www.w3.org/2001/XMLSchema#",
                                     "id": "@id",
                                     "type": "@type",
-                                    "birthyear": {
+                                    "fatherBirthyear": {
                                         "@type": "xsd:integer",
-                                        "@id": "kyc-vocab:birthyear"
+                                        "@id": "kyc-vocab:fatherBirthyear"
                                     },
-                                    "numberOfBrothers": {
+                                    "motherBirthyear": {
                                         "@type": "xsd:integer",
-                                        "@id": "kyc-vocab:numberOfBrothers"
-                                    },
-                                    "name": {
-                                        "@id": "kyc-vocab:name",
-                                        "@type": "xsd:string"
+                                        "@id": "kyc-vocab:motherBirthyear"
                                     }
                                 }
                             }
@@ -71,6 +67,10 @@
                     "salary": {
                         "@id": "kyc-vocab:salary",
                         "@type": "xsd:double"
+                    },
+                    "vegan": {
+                        "@type": "xsd:boolean",
+                        "@id": "kyc-vocab:vegan"
                     }
                 }
             }

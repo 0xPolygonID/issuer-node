@@ -3,8 +3,8 @@
     "type": "object",
     "$metadata": {
         "uris": {
-            "jsonLdContext": "http://localhost:5173/test-schema.jsonld",
-            "jsonSchema": "http://localhost:5173/test-schema.json"
+            "jsonLdContext": "http://localhost:5173/test-schemas/employee.jsonld",
+            "jsonSchema": "http://localhost:5173/test-schemas/employee.json"
         }
     },
     "required": [
@@ -109,7 +109,8 @@
                 "passportInfo",
                 "hireDate",
                 "position",
-                "salary"
+                "salary",
+                "vegan"
             ],
             "properties": {
                 "id": {
@@ -119,39 +120,40 @@
                 },
                 "passportInfo": {
                     "type": "object",
+                    "title": "Passport info",
                     "properties": {
                         "birthyear": {
+                            "title": "Birthyear",
                             "type": "integer",
                             "minimum": 1950,
                             "maximum": 2010
                         },
                         "numberOfBrothers": {
+                            "title": "Number of brothers",
                             "type": "integer",
                             "minimum": 0
                         },
                         "name": {
+                            "title": "Name",
                             "type": "string"
                         },
-                        "nestedPassportInfo": {
+                        "parents": {
                             "type": "object",
                             "properties": {
-                                "birthyear": {
+                                "fatherBirthyear": {
                                     "type": "integer",
-                                    "minimum": 1950,
-                                    "maximum": 2010
+                                    "minimum": 1850,
+                                    "maximum": 2000
                                 },
-                                "numberOfBrothers": {
+                                "motherBirthyear": {
                                     "type": "integer",
-                                    "minimum": 0
-                                },
-                                "name": {
-                                    "type": "string"
+                                    "minimum": 1850,
+                                    "maximum": 2000
                                 }
                             },
                             "required": [
-                                "birthyear",
-                                "numberOfBrothers",
-                                "name"
+                                "fatherBirthyear",
+                                "motherBirthyear"
                             ]
                         }
                     },
@@ -159,12 +161,12 @@
                         "birthyear",
                         "numberOfBrothers",
                         "name",
-                        "nestedPassportInfo"
+                        "parents"
                     ]
                 },
                 "hireDate": {
                     "type": "string",
-                    "format": "date-time"
+                    "format": "date"
                 },
                 "position": {
                     "type": "string",
@@ -194,6 +196,9 @@
                     "type": "number",
                     "minimum": 0,
                     "maximum": 1000000
+                },
+                "vegan": {
+                    "type": "boolean"
                 }
             }
         }
