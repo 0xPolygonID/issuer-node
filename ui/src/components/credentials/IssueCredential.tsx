@@ -36,6 +36,10 @@ import {
   SCHEMA_SEARCH_PARAM,
 } from "src/utils/constants";
 import { jsonSchemaErrorToString, notifyParseError } from "src/utils/error";
+import {
+  extractCredentialSubjectAttribute,
+  extractCredentialSubjectAttributeWithoutId,
+} from "src/utils/jsonSchemas";
 
 type Step = "issuanceMethod" | "issueCredential" | "summary";
 
@@ -115,10 +119,15 @@ export function IssueCredential() {
   );
 
   const createCredentialLink = async (credentialLinkIssuance: CredentialLinkIssuance) => {
-    if (schemaID) {
+    const credentialSubjectAttributeWithoutId = isAsyncTaskDataAvailable(jsonSchema)
+      ? extractCredentialSubjectAttributeWithoutId(jsonSchema.data)
+      : undefined;
+
+    if (schemaID && credentialSubjectAttributeWithoutId) {
       setLinkID({ status: "loading" });
       setIsLoading(true);
       const serializedCredentialForm = serializeCredentialLinkIssuance({
+        attribute: credentialSubjectAttributeWithoutId,
         issueCredential: credentialLinkIssuance,
         schemaID,
       });
@@ -146,9 +155,14 @@ export function IssueCredential() {
   };
 
   const issueCredential = async (credentialIssuance: CredentialDirectIssuance) => {
-    if (schema) {
+    const credentialSubjectAttribute = isAsyncTaskDataAvailable(jsonSchema)
+      ? extractCredentialSubjectAttribute(jsonSchema.data)
+      : undefined;
+
+    if (schema && credentialSubjectAttribute) {
       setIsLoading(true);
       const serializedCredentialForm = serializeCredentialIssuance({
+        attribute: credentialSubjectAttribute,
         credentialSchema: schema.url,
         issueCredential: credentialIssuance,
         type: schema.type,

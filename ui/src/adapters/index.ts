@@ -1,6 +1,9 @@
 import { AppError } from "src/domain";
 import { buildAppError } from "src/utils/error";
 
+type PayloadLiteralValue = string | number | boolean | null;
+export type PayloadValue = { [key: string]: PayloadLiteralValue | PayloadValue };
+
 interface SuccessResponse<D> {
   data: D;
   success: true;

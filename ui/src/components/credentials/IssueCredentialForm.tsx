@@ -3,7 +3,7 @@ import addFormats from "ajv-formats";
 import { Button, Checkbox, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
 import { useState } from "react";
 
-import { IssueCredentialFormData, schemaFormValuesParser } from "src/adapters/parsers/forms";
+import { IssueCredentialFormData, serializeSchemaForm } from "src/adapters/parsers/forms";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
@@ -13,6 +13,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
 import { buildAppError, notifyError, notifyParseError } from "src/utils/error";
+import { extractCredentialSubjectAttributeWithoutId } from "src/utils/jsonSchemas";
 
 function addErrorToPath(inputErrors: InputErrors, path: string[], error: string): InputErrors {
   const key = path[0];
@@ -52,9 +53,13 @@ export function IssueCredentialForm({
 }) {
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
-  function isFormValid(values: unknown, objectAttribute: ObjectAttribute): boolean {
-    const parsedSchemaFormValues = schemaFormValuesParser.safeParse(values);
-    if (parsedSchemaFormValues.success) {
+  function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
+    const serializedSchemaForm = serializeSchemaForm({
+      attribute: objectAttribute,
+      ignoreRequired: true,
+      value,
+    });
+    if (serializedSchemaForm.success) {
       const { properties, required, type } = objectAttribute.schema;
       try {
         const ajv = new Ajv({ allErrors: true });
@@ -64,7 +69,7 @@ export function IssueCredentialForm({
           required,
           type,
         });
-        const valid = validate(parsedSchemaFormValues.data);
+        const valid = validate(serializedSchemaForm.data);
 
         if (valid) {
           setInputErrors(undefined);
@@ -92,43 +97,29 @@ export function IssueCredentialForm({
         return false;
       }
     } else {
-      notifyParseError(parsedSchemaFormValues.error);
+      notifyParseError(serializedSchemaForm.error);
     }
     return false;
   }
 
-  const credentialSubjectAttribute =
-    jsonSchema.type === "object"
-      ? jsonSchema.schema.attributes
-          ?.filter((child): child is ObjectAttribute => child.type === "object")
-          .find((child) => child.name === "credentialSubject")
-      : undefined;
-
-  const credentialSubjectAttributeWithoutId: ObjectAttribute | undefined =
-    credentialSubjectAttribute && {
-      ...credentialSubjectAttribute,
-      schema: {
-        ...credentialSubjectAttribute.schema,
-        attributes: credentialSubjectAttribute.schema.attributes?.filter(
-          (attribute) => attribute.name !== "id"
-        ),
-        required:
-          credentialSubjectAttribute.schema.required &&
-          credentialSubjectAttribute.schema.required.filter((name) => name !== "id"),
-      },
-    };
+  const credentialSubjectAttributeWithoutId =
+    extractCredentialSubjectAttributeWithoutId(jsonSchema);
 
   return credentialSubjectAttributeWithoutId?.schema.attributes ? (
     <Form
       initialValues={initialValues}
       layout="vertical"
       onFinish={(values: IssueCredentialFormData) => {
-        if (isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId)) {
+        if (
+          values.credentialSubject &&
+          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId)
+        ) {
           onSubmit(values);
         }
       }}
       onValuesChange={(_, values: IssueCredentialFormData) => {
-        isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
+        values.credentialSubject &&
+          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
       }}
       requiredMark={false}
     >

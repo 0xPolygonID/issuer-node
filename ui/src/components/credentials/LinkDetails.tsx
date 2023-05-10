@@ -13,7 +13,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Link, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { AppError, Link, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -25,6 +25,7 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE } from "src/utils/constants";
 import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
+import { extractCredentialSubjectAttributeWithoutId } from "src/utils/jsonSchemas";
 
 export function LinkDetails() {
   const navigate = useNavigate();
@@ -50,27 +51,12 @@ export function LinkDetails() {
       if (response.success) {
         const [jsonSchema] = response.data;
 
-        const credentialSubjectSchema =
-          (jsonSchema.type === "object" &&
-            jsonSchema.schema.attributes
-              ?.filter((child): child is ObjectAttribute => child.type === "object")
-              .find((child) => child.name === "credentialSubject")) ||
-          null;
+        const credentialSubjectAttributeWithoutId =
+          extractCredentialSubjectAttributeWithoutId(jsonSchema);
 
-        const credentialSubjectSchemaWithoutId: ObjectAttribute | null =
-          credentialSubjectSchema && {
-            ...credentialSubjectSchema,
-            schema: {
-              ...credentialSubjectSchema.schema,
-              attributes: credentialSubjectSchema.schema.attributes?.filter(
-                (attribute) => attribute.name !== "id"
-              ),
-            },
-          };
-
-        if (credentialSubjectSchemaWithoutId) {
+        if (credentialSubjectAttributeWithoutId) {
           const parsedCredentialSubject = getAttributeValueParser(
-            credentialSubjectSchemaWithoutId
+            credentialSubjectAttributeWithoutId
           ).safeParse(link.credentialSubject);
 
           if (parsedCredentialSubject.success) {
