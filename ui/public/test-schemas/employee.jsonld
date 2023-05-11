@@ -6,7 +6,7 @@
             "id": "@id",
             "type": "@type",
             "Employee": {
-                "@id": "https://8496-79-153-192-236.ngrok-free.app/test-schemas/employee.jsonld#Employee",
+                "@id": "http://localhost:5173/test-schemas/employee.jsonld#Employee",
                 "@context": {
                     "@version": 1.1,
                     "@protected": true,
