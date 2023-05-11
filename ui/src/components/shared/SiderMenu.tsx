@@ -9,6 +9,7 @@ import { ReactComponent as IconIssuerState } from "src/assets/icons/switch-horiz
 import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
+import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
@@ -28,6 +29,7 @@ export function SiderMenu({
   isBreakpoint?: boolean;
   onClick: () => void;
 }) {
+  const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -161,6 +163,8 @@ export function SiderMenu({
         {isBreakpoint && (
           <Space>
             <LogoLink />
+
+            {buildTag && <Tag>{buildTag}</Tag>}
           </Space>
         )}
       </Space>

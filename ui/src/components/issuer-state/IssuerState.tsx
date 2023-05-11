@@ -184,6 +184,7 @@ export function IssuerState() {
       title={ISSUER_STATE}
     >
       <Divider />
+
       <Space direction="vertical" size="large">
         <Card>
           <Row gutter={[0, 16]} justify="space-between">
