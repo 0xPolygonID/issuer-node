@@ -34,7 +34,7 @@ services:
       timeout: 5s
       retries: 5
 
-  test_local_assets:
+  test_local_files:
     image: halverneus/static-file-server:latest
     volumes:
       - ./test_data/schema:/web
