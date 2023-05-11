@@ -13,7 +13,10 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
 import { buildAppError, notifyError } from "src/utils/error";
-import { extractCredentialSubjectAttributeWithoutId } from "src/utils/jsonSchemas";
+import {
+  extractCredentialSubjectAttributeWithoutId,
+  makeAttributeOptional,
+} from "src/utils/jsonSchemas";
 
 function addErrorToPath(inputErrors: InputErrors, path: string[], error: string): InputErrors {
   const key = path[0];
@@ -55,7 +58,7 @@ export function IssueCredentialForm({
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     const serializedSchemaForm = serializeSchemaForm({
-      attribute: objectAttribute,
+      attribute: makeAttributeOptional(objectAttribute),
       value,
     });
     if (serializedSchemaForm.success) {
