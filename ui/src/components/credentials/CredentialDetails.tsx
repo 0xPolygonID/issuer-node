@@ -230,6 +230,7 @@ export function CredentialDetails() {
                     />
                   </Space>
                 </Card>
+
                 <Card className="background-grey">
                   <Space direction="vertical" size="middle">
                     <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>

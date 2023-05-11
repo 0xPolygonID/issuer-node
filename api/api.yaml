@@ -3,7 +3,7 @@ info:
   title: Polygon ID - Issuer
   description: |
     Documentation for the Issuer
-  version: 0.1.0
+  version: "1"
 
 servers:
   - description: Local
