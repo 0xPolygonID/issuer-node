@@ -1,12 +1,22 @@
 import axios from "axios";
 import { z } from "zod";
 
-import { PayloadValue, Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, IssuedQRCode, Link, LinkStatus, ProofType } from "src/domain";
+import {
+  Credential,
+  Env,
+  IssuedQRCode,
+  JsonLiteral,
+  Link,
+  LinkStatus,
+  ProofType,
+} from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
+
+export type ObjectAttributePayload = { [key: string]: JsonLiteral | ObjectAttributePayload };
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 
@@ -125,7 +135,7 @@ export async function getCredentials({
 
 export interface CreateCredential {
   credentialSchema: string;
-  credentialSubject: PayloadValue[string];
+  credentialSubject: ObjectAttributePayload[string];
   expiration: string | null;
   mtProof: boolean;
   signatureProof: boolean;
@@ -342,7 +352,7 @@ export async function deleteLink({
 
 export interface CreateLink {
   credentialExpiration: string | null;
-  credentialSubject: PayloadValue[string];
+  credentialSubject: ObjectAttributePayload[string];
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
