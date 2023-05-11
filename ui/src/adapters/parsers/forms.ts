@@ -306,7 +306,7 @@ export function serializeCredentialLinkIssuance({
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
   const serializedSchemaForm = serializeSchemaForm({
     attribute,
-    value: credentialSubject || {},
+    value: credentialSubject === undefined ? {} : credentialSubject,
   });
   if (serializedSchemaForm.success) {
     return {
@@ -314,7 +314,7 @@ export function serializeCredentialLinkIssuance({
         credentialExpiration: credentialExpiration
           ? serializeDate(credentialExpiration, "date")
           : null,
-        credentialSubject: serializedSchemaForm.data || {},
+        credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
@@ -342,7 +342,7 @@ export function serializeCredentialIssuance({
   const serializedSchemaForm = serializeSchemaForm({
     attribute,
     value: {
-      ...(credentialSubject || {}),
+      ...(credentialSubject === undefined ? {} : credentialSubject),
       id: did,
     },
   });
@@ -350,7 +350,7 @@ export function serializeCredentialIssuance({
     return {
       data: {
         credentialSchema,
-        credentialSubject: serializedSchemaForm.data || {},
+        credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,
         signatureProof,
