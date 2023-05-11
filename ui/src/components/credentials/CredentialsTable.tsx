@@ -251,7 +251,7 @@ export function CredentialsTable() {
   }, [fetchCredentials]);
 
   return (
-    <Space direction="vertical">
+    <>
       <TableCard
         defaultContents={
           <>
@@ -336,6 +336,6 @@ export function CredentialsTable() {
           onRevoke={() => void fetchCredentials()}
         />
       )}
-    </Space>
+    </>
   );
 }
