@@ -66,9 +66,11 @@ export function CredentialDeleteModal({
       footer={
         <Row gutter={[8, 8]} justify="end">
           <Button onClick={onClose}>{CLOSE}</Button>
+
           <Button danger loading={isLoading} onClick={handleDeleteCredential} type="primary">
             {DELETE}
           </Button>
+
           {!revoked && (
             <Button danger loading={isLoading} onClick={handleRevokeCredential} type="primary">
               Delete & Revoke

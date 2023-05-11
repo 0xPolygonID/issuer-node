@@ -69,7 +69,7 @@ export function SiderLayoutContent({
         justify="space-between"
         style={{ height: "auto", padding: 32, paddingBottom: showDivider ? 0 : 12 }}
       >
-        <Row align="top" gutter={[24, 16]}>
+        <Row gutter={[24, 16]}>
           {showBackButton && (
             <Col>
               <Button

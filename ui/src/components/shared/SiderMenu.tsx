@@ -142,7 +142,7 @@ export function SiderMenu({
         />
       </Col>
 
-      <Space direction="vertical" size="large">
+      <Space direction="vertical" size={40}>
         <Menu
           items={[
             {
