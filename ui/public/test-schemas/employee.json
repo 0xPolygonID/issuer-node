@@ -3,8 +3,8 @@
     "type": "object",
     "$metadata": {
         "uris": {
-            "jsonLdContext": "http://localhost:5173/test-schemas/employee.jsonld",
-            "jsonSchema": "http://localhost:5173/test-schemas/employee.json"
+            "jsonLdContext": "https://8496-79-153-192-236.ngrok-free.app/test-schemas/employee.jsonld",
+            "jsonSchema": "https://8496-79-153-192-236.ngrok-free.app/test-schemas/employee.json"
         }
     },
     "required": [

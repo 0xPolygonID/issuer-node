@@ -52,7 +52,7 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteralValue>()(
   ])
 );
 
-export const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<
+const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<
   FormInput,
   Json
 >()(
@@ -195,7 +195,7 @@ export const credentialFormParser = getStrictParser<
 
 // Serializers
 
-export function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-time" | "time") {
+function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-time" | "time") {
   const template =
     format === "date"
       ? "YYYY-MM-DD"
@@ -206,7 +206,7 @@ export function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-t
   return dayjs(date).format(template);
 }
 
-export function serializeAtrributeValue({
+function serializeAtrributeValue({
   attributeValue,
   init = {},
 }: {
