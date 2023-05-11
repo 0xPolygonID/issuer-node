@@ -10,8 +10,8 @@ import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
 
-type FormLiteralValue = string | number | boolean | null | undefined;
-type FormLiteralInput = FormLiteralValue | dayjs.Dayjs;
+type FormLiteral = string | number | boolean | null | undefined;
+type FormLiteralInput = FormLiteral | dayjs.Dayjs;
 type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
@@ -40,7 +40,7 @@ const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
   })
 );
 
-const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteralValue>()(
+const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
   z.union([
     z.string(),
     z.number(),
