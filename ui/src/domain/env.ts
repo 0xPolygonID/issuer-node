@@ -1,4 +1,4 @@
-export interface Env {
+export type Env = {
   api: {
     password: string;
     url: string;
@@ -11,4 +11,4 @@ export interface Env {
     name: string;
   };
   warningMessage?: string;
-}
+};
