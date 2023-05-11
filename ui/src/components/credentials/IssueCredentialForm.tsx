@@ -56,7 +56,6 @@ export function IssueCredentialForm({
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     const serializedSchemaForm = serializeSchemaForm({
       attribute: objectAttribute,
-      ignoreRequired: true,
       value,
     });
     if (serializedSchemaForm.success) {

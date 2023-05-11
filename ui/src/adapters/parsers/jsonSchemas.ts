@@ -556,11 +556,8 @@ export function getJsonLdTypeParser(jsonSchema: JsonSchema) {
 
 // Values
 
-function getBooleanAttributeValueParser(
-  { name, required, schema, type }: BooleanAttribute,
-  ignoreRequired = false
-) {
-  return required && !ignoreRequired
+function getBooleanAttributeValueParser({ name, required, schema, type }: BooleanAttribute) {
+  return required
     ? getStrictParser<boolean, BooleanAttributeValue>()(
         z.boolean().transform(
           (value): BooleanAttributeValue => ({
@@ -579,7 +576,7 @@ function getBooleanAttributeValueParser(
           .transform(
             (value): BooleanAttributeValue => ({
               name,
-              required: false,
+              required,
               schema,
               type,
               value,
@@ -588,11 +585,8 @@ function getBooleanAttributeValueParser(
       );
 }
 
-function getIntegerAttributeValueParser(
-  { name, required, schema, type }: IntegerAttribute,
-  ignoreRequired = false
-) {
-  return required && !ignoreRequired
+function getIntegerAttributeValueParser({ name, required, schema, type }: IntegerAttribute) {
+  return required
     ? getStrictParser<number, IntegerAttributeValue>()(
         z.number().transform(
           (value): IntegerAttributeValue => ({
@@ -611,7 +605,7 @@ function getIntegerAttributeValueParser(
           .transform(
             (value): IntegerAttributeValue => ({
               name,
-              required: false,
+              required,
               schema,
               type,
               value,
@@ -620,11 +614,8 @@ function getIntegerAttributeValueParser(
       );
 }
 
-function getNullAttributeValueParser(
-  { name, required, schema, type }: NullAttribute,
-  ignoreRequired = false
-) {
-  return required && !ignoreRequired
+function getNullAttributeValueParser({ name, required, schema, type }: NullAttribute) {
+  return required
     ? getStrictParser<null, NullAttributeValue>()(
         z.null().transform(
           (value): NullAttributeValue => ({
@@ -643,7 +634,7 @@ function getNullAttributeValueParser(
           .transform(
             (value): NullAttributeValue => ({
               name,
-              required: false,
+              required,
               schema,
               type,
               value,
@@ -652,11 +643,8 @@ function getNullAttributeValueParser(
       );
 }
 
-function getNumberAttributeValueParser(
-  { name, required, schema, type }: NumberAttribute,
-  ignoreRequired = false
-) {
-  return required && !ignoreRequired
+function getNumberAttributeValueParser({ name, required, schema, type }: NumberAttribute) {
+  return required
     ? getStrictParser<number, NumberAttributeValue>()(
         z.number().transform(
           (value): NumberAttributeValue => ({
@@ -675,7 +663,7 @@ function getNumberAttributeValueParser(
           .transform(
             (value): NumberAttributeValue => ({
               name,
-              required: false,
+              required,
               schema,
               type,
               value,
@@ -684,11 +672,8 @@ function getNumberAttributeValueParser(
       );
 }
 
-function getStringAttributeValueParser(
-  { name, required, schema, type }: StringAttribute,
-  ignoreRequired = false
-) {
-  return required && !ignoreRequired
+function getStringAttributeValueParser({ name, required, schema, type }: StringAttribute) {
+  return required
     ? getStrictParser<string, StringAttributeValue>()(
         z.string().transform(
           (value): StringAttributeValue => ({
@@ -707,7 +692,7 @@ function getStringAttributeValueParser(
           .transform(
             (value): StringAttributeValue => ({
               name,
-              required: false,
+              required,
               schema,
               type,
               value,
@@ -716,12 +701,9 @@ function getStringAttributeValueParser(
       );
 }
 
-function getArrayAttributeValueParser(
-  { name, required, schema, type }: ArrayAttribute,
-  ignoreRequired = false
-) {
+function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAttribute) {
   const attribute = schema.items;
-  return required && !ignoreRequired
+  return required
     ? getStrictParser<unknown[], ArrayAttributeValue>()(
         z.array(z.unknown()).transform(
           (unknowns, context): ArrayAttributeValue => ({
@@ -750,7 +732,7 @@ function getArrayAttributeValueParser(
           .transform(
             (unknowns, context): ArrayAttributeValue => ({
               name,
-              required: false,
+              required,
               schema,
               type,
               value: attribute
@@ -772,30 +754,26 @@ function getArrayAttributeValueParser(
 
 function objectToObjectAttributeValue({
   context,
-  ignoreRequired = false,
   object,
   objectAttribute,
 }: {
   context: z.RefinementCtx;
-  ignoreRequired?: boolean;
   object: Record<string, unknown>;
   objectAttribute: ObjectAttribute;
 }): ObjectAttributeValue {
   const { name, required, schema, type } = objectAttribute;
 
-  if (!ignoreRequired) {
-    // make sure all required properties of the objectAttribute are present in the object
-    objectAttribute.schema.attributes?.forEach((attribute) => {
-      const missing = attribute.required && Object.keys(object).includes(attribute.name) === false;
-      if (missing) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          fatal: true,
-          message: `Could not find the schema's required property "${attribute.name}" in the attribute "${name}".`,
-        });
-      }
-    });
-  }
+  // make sure all required properties of the objectAttribute are present in the object
+  objectAttribute.schema.attributes?.forEach((attribute) => {
+    const missing = attribute.required && Object.keys(object).includes(attribute.name) === false;
+    if (missing) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        fatal: true,
+        message: `Could not find the schema's required property "${attribute.name}" in the attribute "${name}".`,
+      });
+    }
+  });
 
   return {
     name,
@@ -806,9 +784,7 @@ function objectToObjectAttributeValue({
       .reduce((acc: AttributeValue[], [name, unknown]) => {
         const attribute = schema.attributes?.find((attribute) => attribute.name === name);
         if (attribute) {
-          const parsedAttributeValue = getAttributeValueParser(attribute, ignoreRequired).safeParse(
-            unknown
-          );
+          const parsedAttributeValue = getAttributeValueParser(attribute).safeParse(unknown);
           if (parsedAttributeValue.success) {
             return [...acc, parsedAttributeValue.data];
           } else {
@@ -825,15 +801,15 @@ function objectToObjectAttributeValue({
   };
 }
 
-function getObjectAttributeValueParser(objectAttribute: ObjectAttribute, ignoreRequired = false) {
+function getObjectAttributeValueParser(objectAttribute: ObjectAttribute) {
   const { name, required, schema, type } = objectAttribute;
-  return required && !ignoreRequired
+  return required
     ? getStrictParser<Record<string, unknown>, ObjectAttributeValue>()(
         z
           .record(z.unknown())
           .transform(
             (object, context): ObjectAttributeValue =>
-              objectToObjectAttributeValue({ context, ignoreRequired, object, objectAttribute })
+              objectToObjectAttributeValue({ context, object, objectAttribute })
           )
       )
     : getStrictParser<Record<string, unknown> | undefined, ObjectAttributeValue>()(
@@ -843,10 +819,10 @@ function getObjectAttributeValueParser(objectAttribute: ObjectAttribute, ignoreR
           .transform(
             (object, context): ObjectAttributeValue =>
               object
-                ? objectToObjectAttributeValue({ context, ignoreRequired, object, objectAttribute })
+                ? objectToObjectAttributeValue({ context, object, objectAttribute })
                 : {
                     name,
-                    required: false,
+                    required,
                     schema,
                     type,
                     value: undefined,
@@ -855,107 +831,80 @@ function getObjectAttributeValueParser(objectAttribute: ObjectAttribute, ignoreR
       );
 }
 
-function parseMultiValue(
-  {
-    name,
-    required,
-    schema,
-    unknown,
-  }: {
-    name: string;
-    required: boolean;
-    schema: MultiSchema;
-    unknown: unknown;
-  },
-  ignoreRequired = false
-) {
+function parseMultiValue({
+  name,
+  required,
+  schema,
+  unknown,
+}: {
+  name: string;
+  required: boolean;
+  schema: MultiSchema;
+  unknown: unknown;
+}) {
   switch (schema.type) {
     case "boolean": {
-      return getBooleanAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "boolean",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getBooleanAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "boolean",
+      }).safeParse(unknown);
     }
     case "integer": {
-      return getIntegerAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "integer",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getIntegerAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "integer",
+      }).safeParse(unknown);
     }
     case "null": {
-      return getNullAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "null",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getNullAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "null",
+      }).safeParse(unknown);
     }
     case "number": {
-      return getNumberAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "number",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getNumberAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "number",
+      }).safeParse(unknown);
     }
     case "string": {
-      return getStringAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "string",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getStringAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "string",
+      }).safeParse(unknown);
     }
     case "array": {
-      return getArrayAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "array",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getArrayAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "array",
+      }).safeParse(unknown);
     }
     case "object": {
-      return getObjectAttributeValueParser(
-        {
-          name,
-          required,
-          schema: schema,
-          type: "object",
-        },
-        ignoreRequired
-      ).safeParse(unknown);
+      return getObjectAttributeValueParser({
+        name,
+        required,
+        schema: schema,
+        type: "object",
+      }).safeParse(unknown);
     }
   }
 }
 
 type MultiAttributeValueParseResult = { data: MultiValue; success: true } | { success: false };
 
-function getMultiAttributeValueParser(
-  { name, required, schemas, type }: MultiAttribute,
-  ignoreRequired = false
-) {
+function getMultiAttributeValueParser({ name, required, schemas, type }: MultiAttribute) {
   return getStrictParser<unknown, MultiAttributeValue>()(
     z.unknown().transform((unknown, context): MultiAttributeValue => {
       const value: MultiAttributeValueParseResult = schemas.reduce(
@@ -966,15 +915,12 @@ function getMultiAttributeValueParser(
           if (acc.success) {
             return acc;
           } else {
-            const result = parseMultiValue(
-              {
-                name,
-                required,
-                schema,
-                unknown,
-              },
-              ignoreRequired
-            );
+            const result = parseMultiValue({
+              name,
+              required,
+              schema,
+              unknown,
+            });
             return result.success ? result : acc;
           }
         },
@@ -1003,14 +949,12 @@ function getMultiAttributeValueParser(
   );
 }
 
-export function getAttributeValueParser(attribute: Attribute, ignoreRequired = false) {
+export function getAttributeValueParser(attribute: Attribute) {
   return getStrictParser<unknown, AttributeValue>()(
     z.unknown().transform((unknown, context) => {
       switch (attribute.type) {
         case "boolean": {
-          const parsed = getBooleanAttributeValueParser(attribute, ignoreRequired).safeParse(
-            unknown
-          );
+          const parsed = getBooleanAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1019,9 +963,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "integer": {
-          const parsed = getIntegerAttributeValueParser(attribute, ignoreRequired).safeParse(
-            unknown
-          );
+          const parsed = getIntegerAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1030,7 +972,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "null": {
-          const parsed = getNullAttributeValueParser(attribute, ignoreRequired).safeParse(unknown);
+          const parsed = getNullAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1039,9 +981,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "number": {
-          const parsed = getNumberAttributeValueParser(attribute, ignoreRequired).safeParse(
-            unknown
-          );
+          const parsed = getNumberAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1050,9 +990,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "string": {
-          const parsed = getStringAttributeValueParser(attribute, ignoreRequired).safeParse(
-            unknown
-          );
+          const parsed = getStringAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1061,7 +999,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "array": {
-          const parsed = getArrayAttributeValueParser(attribute, ignoreRequired).safeParse(unknown);
+          const parsed = getArrayAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1070,9 +1008,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "object": {
-          const parsed = getObjectAttributeValueParser(attribute, ignoreRequired).safeParse(
-            unknown
-          );
+          const parsed = getObjectAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {
@@ -1081,7 +1017,7 @@ export function getAttributeValueParser(attribute: Attribute, ignoreRequired = f
           }
         }
         case "multi": {
-          const parsed = getMultiAttributeValueParser(attribute, ignoreRequired).safeParse(unknown);
+          const parsed = getMultiAttributeValueParser(attribute).safeParse(unknown);
           if (parsed.success) {
             return parsed.data;
           } else {

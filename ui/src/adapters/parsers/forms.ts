@@ -261,18 +261,16 @@ function serializeAtrributeValue({
 
 export function serializeSchemaForm({
   attribute,
-  ignoreRequired = false,
   value,
 }: {
   attribute: Attribute;
-  ignoreRequired?: boolean;
   value: Record<string, unknown>;
 }):
   | { data: JsonLiteral | ObjectAttributePayload | undefined; success: true }
   | { error: z.ZodError; success: false } {
   const parsedSchemaFormValues = schemaFormValuesParser.safeParse(value);
   if (parsedSchemaFormValues.success) {
-    const parsedAttributeValue = getAttributeValueParser(attribute, ignoreRequired).safeParse(
+    const parsedAttributeValue = getAttributeValueParser(attribute).safeParse(
       parsedSchemaFormValues.data
     );
     if (parsedAttributeValue.success) {
