@@ -5,7 +5,14 @@ import { CreateCredential, CreateLink, ObjectAttributePayload } from "src/adapte
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
-import { Attribute, AttributeValue, Json, ObjectAttribute, ProofType } from "src/domain";
+import {
+  Attribute,
+  AttributeValue,
+  Json,
+  JsonLiteral,
+  ObjectAttribute,
+  ProofType,
+} from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
@@ -207,35 +214,28 @@ function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-time" | 
 
 function serializeAtrributeValue({
   attributeValue,
-  init = {},
 }: {
   attributeValue: AttributeValue;
-  init?: ObjectAttributePayload;
-}): ObjectAttributePayload[string] {
+}): JsonLiteral | ObjectAttributePayload | undefined {
   switch (attributeValue.type) {
     case "integer":
     case "number":
     case "null":
     case "boolean": {
-      return attributeValue.value === undefined ? init : attributeValue.value;
+      return attributeValue.value;
     }
     case "string": {
-      const value = attributeValue.value;
-      if (value === undefined) {
-        return init;
-      } else {
-        const parsedDate = z.coerce.date(z.string().datetime()).safeParse(value);
-        switch (attributeValue.schema.format) {
-          case "date":
-          case "date-time":
-          case "time": {
-            return parsedDate.success
-              ? serializeDate(parsedDate.data, attributeValue.schema.format)
-              : value;
-          }
-          default: {
-            return value;
-          }
+      switch (attributeValue.schema.format) {
+        case "date":
+        case "date-time":
+        case "time": {
+          const parsedDate = z.coerce.date(z.string().datetime()).safeParse(attributeValue.value);
+          return parsedDate.success
+            ? serializeDate(parsedDate.data, attributeValue.schema.format)
+            : attributeValue.value;
+        }
+        default: {
+          return attributeValue.value;
         }
       }
     }
@@ -248,13 +248,13 @@ function serializeAtrributeValue({
             }),
             {}
           )
-        : init;
+        : undefined;
     }
     case "array": {
-      return init;
+      return undefined;
     }
     case "multi": {
-      return init;
+      return undefined;
     }
   }
 }
@@ -268,7 +268,7 @@ export function serializeSchemaForm({
   ignoreRequired?: boolean;
   value: Record<string, unknown>;
 }):
-  | { data: ObjectAttributePayload[string]; success: true }
+  | { data: JsonLiteral | ObjectAttributePayload | undefined; success: true }
   | { error: z.ZodError; success: false } {
   const parsedSchemaFormValues = schemaFormValuesParser.safeParse(value);
   if (parsedSchemaFormValues.success) {
@@ -314,7 +314,7 @@ export function serializeCredentialLinkIssuance({
         credentialExpiration: credentialExpiration
           ? serializeDate(credentialExpiration, "date")
           : null,
-        credentialSubject: serializedSchemaForm.data,
+        credentialSubject: serializedSchemaForm.data || {},
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
@@ -350,7 +350,7 @@ export function serializeCredentialIssuance({
     return {
       data: {
         credentialSchema,
-        credentialSubject: serializedSchemaForm.data,
+        credentialSubject: serializedSchemaForm.data || {},
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,
         signatureProof,

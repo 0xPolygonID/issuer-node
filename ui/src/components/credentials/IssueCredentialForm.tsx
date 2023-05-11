@@ -12,7 +12,7 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
-import { buildAppError, notifyError, notifyParseError } from "src/utils/error";
+import { buildAppError, notifyError } from "src/utils/error";
 import { extractCredentialSubjectAttributeWithoutId } from "src/utils/jsonSchemas";
 
 function addErrorToPath(inputErrors: InputErrors, path: string[], error: string): InputErrors {
@@ -94,10 +94,7 @@ export function IssueCredentialForm({
         }
       } catch (error) {
         notifyError(buildAppError(error));
-        return false;
       }
-    } else {
-      notifyParseError(serializedSchemaForm.error);
     }
     return false;
   }

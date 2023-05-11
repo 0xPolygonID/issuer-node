@@ -813,7 +813,7 @@ function objectToObjectAttributeValue({
             return [...acc, parsedAttributeValue.data];
           } else {
             parsedAttributeValue.error.issues.map((issue) => {
-              context.addIssue({ ...issue, path: [...issue.path, attribute.name] });
+              context.addIssue({ ...issue, path: [attribute.name, ...issue.path] });
             });
           }
         }

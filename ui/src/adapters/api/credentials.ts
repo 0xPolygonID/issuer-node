@@ -135,7 +135,7 @@ export async function getCredentials({
 
 export interface CreateCredential {
   credentialSchema: string;
-  credentialSubject: ObjectAttributePayload[string];
+  credentialSubject: JsonLiteral | ObjectAttributePayload;
   expiration: string | null;
   mtProof: boolean;
   signatureProof: boolean;
@@ -352,7 +352,7 @@ export async function deleteLink({
 
 export interface CreateLink {
   credentialExpiration: string | null;
-  credentialSubject: ObjectAttributePayload[string];
+  credentialSubject: JsonLiteral | ObjectAttributePayload;
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
