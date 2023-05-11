@@ -82,7 +82,7 @@ export function ObjectAttributeValueTreeNode({
           </Space>
         </Col>
 
-        <Col style={{ marginLeft: 28 }}>
+        <Col>
           <Typography.Text
             ellipsis={
               stringValue && ellipsisPosition

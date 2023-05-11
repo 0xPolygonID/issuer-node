@@ -7,6 +7,7 @@ import { ObjectAttribute } from "src/domain";
 export function AttributeBreadcrumb({ parents }: { parents: ObjectAttribute[] }) {
   const last = parents.length > 0 ? parents[parents.length - 1] : undefined;
   const rest = parents.slice(0, -1);
+
   return last && rest.length ? (
     <Row align="bottom">
       <Tooltip
@@ -26,7 +27,9 @@ export function AttributeBreadcrumb({ parents }: { parents: ObjectAttribute[] })
       >
         <Typography.Text style={{ cursor: "help" }}>...</Typography.Text>
       </Tooltip>
+
       <ChevronRightIcon width={16} />
+
       <Typography.Text>{last.schema.title || last.name}</Typography.Text>
     </Row>
   ) : null;

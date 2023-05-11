@@ -1,7 +1,7 @@
-import { Button, Row, Space, Typography, message } from "antd";
+import { Button, Space, Typography } from "antd";
 
-import { downloadJsonFromUrl } from "src/adapters/json";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
+import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
 import { JsonLdType, JsonSchema } from "src/domain";
@@ -49,38 +49,18 @@ export function ImportSchemaPreview({
           <Detail
             copyable={bigint !== null}
             label="BigInt"
-            text={bigint || "An error occurred while calculating BigInt"}
+            text={bigint || "An error occurred while calculating BigInt."}
           />
 
           <Detail
             copyable={schemaHash !== null}
             label="Hash"
-            text={schemaHash || "An error occurred while calculating Hash"}
+            text={schemaHash || "An error occurred while calculating Hash."}
           />
 
           <Detail copyable label="URL" text={url} />
 
-          <Row justify="space-between">
-            <Typography.Text type="secondary">Download</Typography.Text>
-
-            <Button
-              onClick={() => {
-                downloadJsonFromUrl({ fileName: jsonSchema.name, url })
-                  .then(() => {
-                    void message.success("Schema successfully downloaded");
-                  })
-                  .catch(() => {
-                    void message.error(
-                      "An error occurred while downloading the schema. Please try again"
-                    );
-                  });
-              }}
-              style={{ height: 24, padding: 0 }}
-              type="link"
-            >
-              JSON Schema
-            </Button>
-          </Row>
+          <DownloadSchema fileName={jsonSchema.name} url={url} />
         </Space>
       }
       jsonLdContextObject={jsonLdContextObject}
