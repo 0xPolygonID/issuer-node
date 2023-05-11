@@ -328,7 +328,7 @@ export function LinksTable() {
   );
 
   return (
-    <>
+    <Space direction="vertical">
       <TableCard
         defaultContents={
           <>
@@ -411,6 +411,6 @@ export function LinksTable() {
           onDelete={() => void fetchLinks()}
         />
       )}
-    </>
+    </Space>
   );
 }

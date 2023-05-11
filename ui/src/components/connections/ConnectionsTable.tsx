@@ -181,61 +181,64 @@ export function ConnectionsTable() {
       title={CONNECTIONS}
     >
       <Divider />
+      <Space direction="vertical">
+        <TableCard
+          defaultContents={
+            <>
+              <Avatar className="avatar-color-cyan" icon={<IconUsers />} size={48} />
 
-      <TableCard
-        defaultContents={
-          <>
-            <Avatar className="avatar-color-cyan" icon={<IconUsers />} size={48} />
+              <Typography.Text strong>No connections</Typography.Text>
 
-            <Typography.Text strong>No connections</Typography.Text>
-
-            <Typography.Text type="secondary">
-              Your connections will be listed here.
-            </Typography.Text>
-          </>
-        }
-        isLoading={isAsyncTaskStarting(connections)}
-        onSearch={onSearch}
-        query={queryParam}
-        searchPlaceholder="Search connections, credentials..."
-        showDefaultContents={
-          connections.status === "successful" && connectionsList.length === 0 && queryParam === null
-        }
-        table={
-          <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
-            dataSource={connectionsList}
-            locale={{
-              emptyText:
-                connections.status === "failed" ? (
-                  <ErrorResult error={connections.error.message} />
-                ) : (
-                  <NoResults searchQuery={queryParam} />
+              <Typography.Text type="secondary">
+                Your connections will be listed here.
+              </Typography.Text>
+            </>
+          }
+          isLoading={isAsyncTaskStarting(connections)}
+          onSearch={onSearch}
+          query={queryParam}
+          searchPlaceholder="Search connections, credentials..."
+          showDefaultContents={
+            connections.status === "successful" &&
+            connectionsList.length === 0 &&
+            queryParam === null
+          }
+          table={
+            <Table
+              columns={tableColumns.map(({ title, ...column }) => ({
+                title: (
+                  <Typography.Text type="secondary">
+                    <>{title}</>
+                  </Typography.Text>
                 ),
-            }}
-            pagination={false}
-            rowKey="id"
-            showSorterTooltip
-            sortDirections={["ascend", "descend"]}
-          />
-        }
-        title={
-          <Row justify="space-between">
-            <Space size="middle">
-              <Card.Meta title={CONNECTIONS} />
+                ...column,
+              }))}
+              dataSource={connectionsList}
+              locale={{
+                emptyText:
+                  connections.status === "failed" ? (
+                    <ErrorResult error={connections.error.message} />
+                  ) : (
+                    <NoResults searchQuery={queryParam} />
+                  ),
+              }}
+              pagination={false}
+              rowKey="id"
+              showSorterTooltip
+              sortDirections={["ascend", "descend"]}
+            />
+          }
+          title={
+            <Row justify="space-between">
+              <Space size="middle">
+                <Card.Meta title={CONNECTIONS} />
 
-              <Tag color="blue">{connectionsList.length}</Tag>
-            </Space>
-          </Row>
-        }
-      />
+                <Tag color="blue">{connectionsList.length}</Tag>
+              </Space>
+            </Row>
+          }
+        />
+      </Space>
       {connectionToDelete && (
         <ConnectionDeleteModal
           id={connectionToDelete}

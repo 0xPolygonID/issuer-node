@@ -227,7 +227,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
     credentials.status === "successful" && credentialsList.length === 0 && query === null;
 
   return (
-    <>
+    <Space direction="vertical">
       <TableCard
         defaultContents={
           <>
@@ -310,6 +310,6 @@ export function CredentialsTable({ userID }: { userID: string }) {
           onRevoke={() => void fetchCredentials()}
         />
       )}
-    </>
+    </Space>
   );
 }
