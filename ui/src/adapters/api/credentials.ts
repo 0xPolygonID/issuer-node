@@ -8,6 +8,7 @@ import {
   Credential,
   Env,
   IssuedQRCode,
+  Json,
   JsonLiteral,
   Link,
   LinkStatus,
@@ -135,7 +136,7 @@ export async function getCredentials({
 
 export type CreateCredential = {
   credentialSchema: string;
-  credentialSubject: JsonLiteral | ObjectAttributePayload;
+  credentialSubject: Json;
   expiration: string | null;
   mtProof: boolean;
   signatureProof: boolean;
@@ -352,7 +353,7 @@ export async function deleteLink({
 
 export type CreateLink = {
   credentialExpiration: string | null;
-  credentialSubject: JsonLiteral | ObjectAttributePayload;
+  credentialSubject: Json;
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
