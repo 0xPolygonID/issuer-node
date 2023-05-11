@@ -33,7 +33,7 @@ export function SchemaTreeNode({
           </Space>
         </Col>
 
-        <Col style={{ marginLeft: 28 }}>
+        <Col>
           {attribute.type !== "object" && (
             <Typography.Text type="secondary">
               {attribute.type === "string" && attribute.schema.format
@@ -46,7 +46,7 @@ export function SchemaTreeNode({
 
       <Row>
         {description && (
-          <Col style={{ marginLeft: 28 }}>
+          <Col>
             <Typography.Text
               ellipsis={{ tooltip: true }}
               style={{

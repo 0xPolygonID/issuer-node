@@ -119,13 +119,10 @@ export function MySchemas() {
 
         if (query === "") {
           params.delete(QUERY_SEARCH_PARAM);
-
-          return params;
         } else if (previousQuery !== query) {
           params.set(QUERY_SEARCH_PARAM, query);
-
-          return params;
         }
+
         return params;
       });
     },

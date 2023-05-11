@@ -1,5 +1,6 @@
 import { Avatar, Card, Col, Grid, Image, Row, Space, Typography } from "antd";
 import { QRCodeSVG } from "qrcode.react";
+import { ReactNode } from "react";
 
 import { useEnvContext } from "src/contexts/Env";
 import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
@@ -11,7 +12,7 @@ export function CredentialQR({
 }: {
   qrCode: unknown;
   schemaType: string;
-  subTitle: string;
+  subTitle: ReactNode;
 }) {
   const env = useEnvContext();
 

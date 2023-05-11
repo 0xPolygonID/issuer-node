@@ -13,14 +13,14 @@ COPY ./go.sum ./
 
 RUN apt-get update
 RUN apt-get install -y wget build-essential ca-certificates
-RUN wget https://go.dev/dl/go1.19.linux-arm64.tar.gz
+RUN wget https://go.dev/dl/go1.20.3.linux-arm64.tar.gz
 
 ENV GOROOT /usr/local/go
 ENV GOPATH /go
 ENV PATH /usr/local/go/bin:/go/bin:$PATH
 ENV GOBIN /service/bin
 
-RUN tar -xvf go1.19.linux-arm64.tar.gz
+RUN tar -xvf go1.20.3.linux-arm64.tar.gz
 RUN mv go /usr/local
 
 RUN go mod download
