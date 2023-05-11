@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-circuits"
@@ -41,8 +42,9 @@ type Claim struct {
 	CredentialStatus pgtype.JSONB    `json:"credential_status"`
 	HIndex           string          `json:"-"`
 
-	MtProof bool       `json:"mt_poof"`
-	LinkID  *uuid.UUID `json:"-"`
+	MtProof   bool       `json:"mt_poof"`
+	LinkID    *uuid.UUID `json:"-"`
+	CreatedAt time.Time  `json:"-"`
 }
 
 // Credentials is the type of array of credential

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
@@ -53,6 +54,7 @@ type dbClaim struct {
 	Status           sql.NullString
 	CredentialStatus *pgtype.JSONB
 	HIndex           sql.NullString
+	CreatedAt        *time.Time
 
 	MtProof sql.NullBool
 }
@@ -99,8 +101,9 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     core_claim,
                     index_hash,
 					mtp, 
-					link_id)
-		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+					link_id,
+                    created_at)
+		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,$21)
 		RETURNING id`
 
 		err = conn.QueryRow(ctx, s,
@@ -123,7 +126,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.CoreClaim,
 			claim.HIndex,
 			claim.MtProof,
-			claim.LinkID).Scan(&id)
+			claim.LinkID,
+			claim.CreatedAt).Scan(&id)
 	} else {
 		s := `INSERT INTO claims (
 					id,
@@ -146,18 +150,19 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     core_claim,
                     index_hash,
 					mtp,
-					link_id
+					link_id,
+                    created_at
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
 		)
 		ON CONFLICT ON CONSTRAINT claims_pkey 
 		DO UPDATE SET 
 			( expiration, updatable, version, rev_nonce, signature_proof, mtp_proof, data, identity_state, 
-			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp, link_id)
+			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp, link_id, created_at)
 			= (EXCLUDED.expiration, EXCLUDED.updatable, EXCLUDED.version, EXCLUDED.rev_nonce, EXCLUDED.signature_proof,
 		EXCLUDED.mtp_proof, EXCLUDED.data, EXCLUDED.identity_state, EXCLUDED.other_identifier, EXCLUDED.schema_hash, 
-		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp, EXCLUDED.link_id)
+		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp, EXCLUDED.link_id, EXCLUDED.created_at)
 			RETURNING id`
 		err = conn.QueryRow(ctx, s,
 			claim.ID,
@@ -180,7 +185,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.CoreClaim,
 			claim.HIndex,
 			claim.MtProof,
-			claim.LinkID).Scan(&id)
+			claim.LinkID,
+			claim.CreatedAt).Scan(&id)
 	}
 
 	if err == nil {
@@ -763,6 +769,9 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 		}
 		query = fmt.Sprintf("%s AND (%s) ", query, ftsConds)
 	}
+
+	query += " ORDER BY claims.created_at DESC"
+
 	return query, filters
 }
 

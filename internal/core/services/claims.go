@@ -219,6 +219,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 
 	claim.MtProof = req.MTProof
 	claim.LinkID = req.LinkID
+	claim.CreatedAt = *vc.IssuanceDate
 	return claim, nil
 }
 
