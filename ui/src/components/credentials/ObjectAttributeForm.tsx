@@ -19,18 +19,18 @@ function AnyAttribute({
   parents: ObjectAttribute[];
 }): JSX.Element {
   const attributeError = inputErrors && inputErrors[attribute.name];
-  const currentError = typeof attributeError === "string" ? attributeError : undefined;
-  const nestedInputErrors = typeof attributeError !== "string" ? attributeError : undefined;
+  const literalError = typeof attributeError === "string" ? attributeError : undefined;
+  const objectError = typeof attributeError !== "string" ? attributeError : undefined;
   switch (attribute.type) {
     case "boolean": {
-      return <Boolean attribute={attribute} error={currentError} parents={parents} />;
+      return <Boolean attribute={attribute} error={literalError} parents={parents} />;
     }
     case "number":
     case "integer": {
-      return <Number attribute={attribute} error={currentError} parents={parents} />;
+      return <Number attribute={attribute} error={literalError} parents={parents} />;
     }
     case "string": {
-      return <String attribute={attribute} error={currentError} parents={parents} />;
+      return <String attribute={attribute} error={literalError} parents={parents} />;
     }
     case "null": {
       return (
@@ -54,7 +54,7 @@ function AnyAttribute({
       return (
         <ObjectAttributeForm
           attributes={attribute.schema.attributes || []}
-          inputErrors={nestedInputErrors}
+          inputErrors={objectError}
           parents={[...parents, attribute]}
         />
       );
