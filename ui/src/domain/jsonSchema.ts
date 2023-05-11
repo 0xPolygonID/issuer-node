@@ -1,13 +1,13 @@
-export interface CommonProps {
+export type CommonProps = {
   description?: string;
   title?: string;
-}
+};
 
 // Primitives
 
-export interface BooleanProps {
+export type BooleanProps = {
   enum?: boolean[];
-}
+};
 
 export type BooleanSchema = CommonProps & BooleanProps & { type: "boolean" };
 
@@ -18,9 +18,9 @@ export type BooleanAttribute = {
   type: "boolean";
 };
 
-export interface IntegerProps {
+export type IntegerProps = {
   enum?: number[];
-}
+};
 
 export type IntegerSchema = CommonProps & IntegerProps & { type: "integer" };
 
@@ -40,9 +40,9 @@ export type NullAttribute = {
   type: "null";
 };
 
-export interface NumberProps {
+export type NumberProps = {
   enum?: number[];
-}
+};
 
 export type NumberSchema = CommonProps & NumberProps & { type: "number" };
 
@@ -53,10 +53,10 @@ export type NumberAttribute = {
   type: "number";
 };
 
-export interface StringProps {
+export type StringProps = {
   enum?: string[];
   format?: string;
-}
+};
 
 export type StringSchema = CommonProps & StringProps & { type: "string" };
 

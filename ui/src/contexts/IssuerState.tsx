@@ -17,11 +17,11 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 type EventType = "credential" | "revoke";
 
-interface IssuerState {
+type IssuerState = {
   notifyChange: (event: EventType) => Promise<void>;
   refreshStatus: () => Promise<void>;
   status: AsyncTask<boolean, AppError>;
-}
+};
 
 const CONTEXT_NOT_READY_MESSAGE = "The issuer state context is not yet ready";
 

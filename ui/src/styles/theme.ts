@@ -4,7 +4,7 @@ import z from "zod";
 import { getStrictParser } from "src/adapters/parsers";
 import variables from "src/styles/variables.module.scss";
 
-interface StyleVariables {
+type StyleVariables = {
   avatarBg: string;
   bgLight: string;
   borderColor: string;
@@ -21,7 +21,7 @@ interface StyleVariables {
   textColor: string;
   textColorSecondary: string;
   textColorWarning: string;
-}
+};
 
 const parsedStyleVariables = getStrictParser<StyleVariables>()(
   z.object({

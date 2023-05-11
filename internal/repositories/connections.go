@@ -193,7 +193,8 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 				   identity_states.status,
 				   claims.credential_status,
 				   claims.core_claim,
-				   claims.mtp
+				   claims.mtp,
+				   claims.created_at
 	FROM connections 
 	LEFT JOIN claims
 	ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
@@ -217,13 +218,14 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 		sqlQuery += fmt.Sprintf(" AND (%s) ", ftsConds)
 	}
 
-	sqlQuery += " ORDER BY connections.id DESC"
+	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST, connections.created_at DESC"
 
 	return sqlQuery, filters
 }
 
 func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {
-	dbConns := make([]*domain.Connection, 0)
+	orderedConns := make([]uuid.UUID, 0)
+	dbConns := make(map[uuid.UUID]*domain.Connection, 0)
 
 	for rows.Next() {
 		var dbConn dbConnectionWithCredentials
@@ -233,7 +235,7 @@ func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {
 			&dbConn.UserDID,
 			&dbConn.IssuerDoc,
 			&dbConn.UserDoc,
-			&dbConn.CreatedAt,
+			&dbConn.dbConnection.CreatedAt,
 			&dbConn.ModifiedAt,
 			&dbConn.dbClaim.ID,
 			&dbConn.Issuer,
@@ -253,24 +255,31 @@ func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {
 			&dbConn.Status,
 			&dbConn.CredentialStatus,
 			&dbConn.CoreClaim,
-			&dbConn.MtProof)
+			&dbConn.MtProof,
+			&dbConn.dbClaim.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
 
-		switch {
-		case len(dbConns) > 0 && dbConns[len(dbConns)-1].UserDID.String() == dbConn.dbConnection.UserDID:
-			*dbConns[len(dbConns)-1].Credentials = append(*dbConns[len(dbConns)-1].Credentials, toCredentialDomain(&dbConn.dbClaim))
-		default:
+		if conn, ok := dbConns[dbConn.dbConnection.ID]; !ok {
+			orderedConns = append(orderedConns, dbConn.dbConnection.ID)
 			domainConn, err := toConnectionWithCredentialsDomain(dbConn)
 			if err != nil {
 				return nil, err
 			}
-			dbConns = append(dbConns, domainConn)
+			dbConns[dbConn.dbConnection.ID] = domainConn
+		} else {
+			*conn.Credentials = append(*conn.Credentials, toCredentialDomain(&dbConn.dbClaim))
+			dbConns[dbConn.dbConnection.ID] = conn
 		}
 	}
 
-	return dbConns, nil
+	resp := make([]*domain.Connection, len(orderedConns))
+	for i, conn := range orderedConns {
+		resp[i] = dbConns[conn]
+	}
+
+	return resp, nil
 }
 
 func toConnectionWithCredentialsDomain(dbConn dbConnectionWithCredentials) (*domain.Connection, error) {

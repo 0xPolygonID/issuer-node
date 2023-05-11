@@ -33,7 +33,7 @@ func Migrate(databaseURL string) error {
 		return fmt.Errorf("error setting dialect: %w", err)
 	}
 
-	if err := goose.Up(db, "migrations"); err != nil {
+	if err := goose.Up(db, "migrations", goose.WithAllowMissing()); err != nil {
 		return fmt.Errorf("error trying to run migrations: %w", err)
 	}
 

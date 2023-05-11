@@ -75,10 +75,10 @@ const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStri
     })
 );
 
-interface LinkExpiration {
+type LinkExpiration = {
   linkExpirationDate?: dayjs.Dayjs | null;
   linkExpirationTime?: dayjs.Dayjs | null;
-}
+};
 
 const linkExpirationParser = getStrictParser<LinkExpiration>()(
   z.object({
@@ -128,10 +128,10 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
   })
 );
 
-export interface CredentialFormInput {
+export type CredentialFormInput = {
   issuanceMethod: IssuanceMethodFormData;
   issueCredential: IssueCredentialFormData;
-}
+};
 
 export const credentialFormParser = getStrictParser<
   CredentialFormInput,
