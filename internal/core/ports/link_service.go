@@ -3,6 +3,7 @@ package ports
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +33,7 @@ const (
 
 // LinkTypeReqFromString constructs a LinkStatus from a string
 func LinkTypeReqFromString(s string) (LinkStatus, error) {
+	s = strings.ToLower(s)
 	if s != "all" && s != "active" && s != "inactive" && s != "exceeded" {
 		return "", fmt.Errorf("unknown linkTypeReq: %s", s)
 	}

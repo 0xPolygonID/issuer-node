@@ -153,6 +153,9 @@ LEFT JOIN schemas ON schemas.id = links.schema_id
 LEFT JOIN claims ON claims.link_id = links.id AND claims.identifier = links.issuer_id
 WHERE links.issuer_id = $1
 `
+	sqlArgs := make([]interface{}, 0)
+	sqlArgs = append(sqlArgs, issuerDID.String(), time.Now())
+
 	switch status {
 	case ports.LinkActive:
 		sql += " AND links.active AND coalesce(links.valid_until > $2, true) AND coalesce(links.max_issuance>(SELECT count(claims.id) FROM claims where claims.link_id = links.id), true)"
@@ -164,18 +167,19 @@ WHERE links.issuer_id = $1
 			"OR " +
 			"(links.max_issuance IS NOT NULL AND links.max_issuance <= (SELECT count(claims.id) FROM claims where claims.link_id = links.id))"
 	}
-	if query != nil {
-		sql += " AND schemas.ts_words @@ to_tsquery($3)"
+	if query != nil && *query != "" {
+		terms := tokenizeQuery(*query)
+		sql += " AND (" + buildPartialQueryLikes("schemas.Attributes", "OR", 1+len(sqlArgs), len(terms)) + ")"
+		for _, term := range terms {
+			sqlArgs = append(sqlArgs, term)
+		}
 	}
-	// Dummy condition to include all placeholders in query
-	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl OR $3::text IS NULL)"
+	// Dummy condition to include time in the query although not always used
+	sql += " AND (true OR $1::text IS NULL OR $2::text IS NULl)"
 	sql += " GROUP BY links.id, schemas.id"
 	sql += " ORDER BY links.created_at DESC"
-	q := ""
-	if query != nil {
-		q = fullTextSearchQuery(*query, " | ")
-	}
-	rows, err := l.conn.Pgx.Query(ctx, sql, issuerDID.String(), time.Now(), q)
+
+	rows, err := l.conn.Pgx.Query(ctx, sql, sqlArgs...)
 	if err != nil {
 		return nil, err
 	}

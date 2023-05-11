@@ -291,6 +291,15 @@ func TestGetAll(t *testing.T) {
 			},
 		},
 		{
+			name:   "active, with query that should match because in the middle of a term",
+			filter: ports.LinkActive,
+			query:  common.ToPointer("thday"),
+			expected: expected{
+				count:  20,
+				active: common.ToPointer(string(ports.LinkActive)),
+			},
+		},
+		{
 			name:   "inactive, with query that should match",
 			filter: ports.LinkInactive,
 			query:  common.ToPointer("birthday"),

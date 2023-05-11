@@ -3172,6 +3172,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 				httpCode: http.StatusBadRequest,
 			},
 		},
+
 		{
 			name: "Happy path. All schemas",
 			auth: authOk,
