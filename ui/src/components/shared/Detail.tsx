@@ -43,7 +43,7 @@ export function Detail({
     <Row justify="space-between">
       <Typography.Text type="secondary">{label}</Typography.Text>
       {isUrl ? (
-        <Typography.Link href={text} target="_blank">
+        <Typography.Link ellipsis href={text} target="_blank">
           {element}
         </Typography.Link>
       ) : (

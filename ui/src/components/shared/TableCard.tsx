@@ -28,7 +28,7 @@ export function TableCard({
   return (
     <Card bodyStyle={{ padding: 0 }} title={title}>
       {!showDefaultContents && onSearch && searchPlaceholder && query !== undefined && (
-        <Row gutter={16} style={{ padding: "16px 12px" }}>
+        <Row gutter={[16, 8]} style={{ padding: "16px 12px" }}>
           <Col flex={extraButton ? 1 : 0.6}>
             <SearchBox onSearch={onSearch} placeholder={searchPlaceholder} query={query} />
           </Col>

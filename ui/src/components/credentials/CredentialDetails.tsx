@@ -1,4 +1,4 @@
-import { Button, Card, Space, Typography } from "antd";
+import { Button, Card, Col, Grid, Row, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
@@ -31,6 +31,8 @@ import { formatDate } from "src/utils/forms";
 export function CredentialDetails() {
   const navigate = useNavigate();
   const { credentialID } = useParams();
+
+  const { sm } = Grid.useBreakpoint();
 
   const env = useEnvContext();
 
@@ -175,25 +177,30 @@ export function CredentialDetails() {
             <Card
               className="centered"
               extra={
-                <Space>
-                  <Button
-                    danger
-                    disabled={revoked}
-                    icon={<IconClose />}
-                    onClick={() => setShowRevokeModal(true)}
-                    type="text"
-                  >
-                    {REVOKE}
-                  </Button>
-                  <Button
-                    danger
-                    icon={<IconTrash />}
-                    onClick={() => setShowDeleteModal(true)}
-                    type="text"
-                  >
-                    {DELETE}
-                  </Button>
-                </Space>
+                <Row gutter={[0, 8]} justify="end" style={{ width: sm ? "auto" : 100 }}>
+                  <Col>
+                    <Button
+                      danger
+                      disabled={revoked}
+                      icon={<IconClose />}
+                      onClick={() => setShowRevokeModal(true)}
+                      type="text"
+                    >
+                      {REVOKE}
+                    </Button>
+                  </Col>
+
+                  <Col>
+                    <Button
+                      danger
+                      icon={<IconTrash />}
+                      onClick={() => setShowDeleteModal(true)}
+                      type="text"
+                    >
+                      {DELETE}
+                    </Button>
+                  </Col>
+                </Row>
               }
               title={schemaType}
             >

@@ -1,4 +1,4 @@
-import { Avatar, Button, Card, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { Avatar, Button, Card, Grid, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
@@ -24,11 +24,13 @@ import {
 import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
-export function MySchemas() {
+export function SchemasTable() {
   const env = useEnvContext();
   const [schemas, setSchemas] = useState<AsyncTask<Schema[], AppError>>({
     status: "pending",
   });
+
+  const { sm } = Grid.useBreakpoint();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -49,7 +51,6 @@ export function MySchemas() {
     },
     {
       dataIndex: "createdAt",
-      ellipsis: { showTitle: false },
       key: "createdAt",
       render: (createdAt: Schema["createdAt"]) => (
         <Typography.Text>{formatDate(createdAt)}</Typography.Text>
@@ -70,14 +71,16 @@ export function MySchemas() {
             >
               Details
             </Link>
-            <Link
-              to={{
-                pathname: generatePath(ROUTES.issueCredential.path),
-                search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
-              }}
-            >
-              Issue
-            </Link>
+            {sm && (
+              <Link
+                to={{
+                  pathname: generatePath(ROUTES.issueCredential.path),
+                  search: `${SCHEMA_SEARCH_PARAM}=${schemaID}`,
+                }}
+              >
+                Issue
+              </Link>
+            )}
           </Space>
         </Row>
       ),
@@ -141,67 +144,63 @@ export function MySchemas() {
   const schemaList = isAsyncTaskDataAvailable(schemas) ? schemas.data : [];
 
   return (
-    <>
-      <TableCard
-        defaultContents={
-          <>
-            <Avatar className="avatar-color-cyan" icon={<IconSchema />} size={48} />
+    <TableCard
+      defaultContents={
+        <>
+          <Avatar className="avatar-color-cyan" icon={<IconSchema />} size={48} />
 
-            <Typography.Text strong>No schemas</Typography.Text>
+          <Typography.Text strong>No schemas</Typography.Text>
 
-            <Typography.Text type="secondary">
-              Imported schemas will be listed here.
-            </Typography.Text>
+          <Typography.Text type="secondary">Imported schemas will be listed here.</Typography.Text>
 
-            <Link to={ROUTES.importSchema.path}>
-              <Button icon={<IconUpload />} type="primary">
-                {IMPORT_SCHEMA}
-              </Button>
-            </Link>
-          </>
-        }
-        isLoading={isAsyncTaskStarting(schemas)}
-        onSearch={onSearch}
-        query={queryParam}
-        searchPlaceholder="Search schemas, attributes..."
-        showDefaultContents={
-          schemas.status === "successful" && schemaList.length === 0 && queryParam === null
-        }
-        table={
-          <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
+          <Link to={ROUTES.importSchema.path}>
+            <Button icon={<IconUpload />} type="primary">
+              {IMPORT_SCHEMA}
+            </Button>
+          </Link>
+        </>
+      }
+      isLoading={isAsyncTaskStarting(schemas)}
+      onSearch={onSearch}
+      query={queryParam}
+      searchPlaceholder="Search schemas, attributes..."
+      showDefaultContents={
+        schemas.status === "successful" && schemaList.length === 0 && queryParam === null
+      }
+      table={
+        <Table
+          columns={tableColumns.map(({ title, ...column }) => ({
+            title: (
+              <Typography.Text type="secondary">
+                <>{title}</>
+              </Typography.Text>
+            ),
+            ...column,
+          }))}
+          dataSource={schemaList}
+          locale={{
+            emptyText:
+              schemas.status === "failed" ? (
+                <ErrorResult error={schemas.error.message} />
+              ) : (
+                <NoResults searchQuery={queryParam} />
               ),
-              ...column,
-            }))}
-            dataSource={schemaList}
-            locale={{
-              emptyText:
-                schemas.status === "failed" ? (
-                  <ErrorResult error={schemas.error.message} />
-                ) : (
-                  <NoResults searchQuery={queryParam} />
-                ),
-            }}
-            pagination={false}
-            rowKey="id"
-            showSorterTooltip
-            sortDirections={["ascend", "descend"]}
-          />
-        }
-        title={
-          <Row justify="space-between">
-            <Space align="end" size="middle">
-              <Card.Meta title={SCHEMAS} />
+          }}
+          pagination={false}
+          rowKey="id"
+          showSorterTooltip
+          sortDirections={["ascend", "descend"]}
+        />
+      }
+      title={
+        <Row justify="space-between">
+          <Space size="middle">
+            <Card.Meta title={SCHEMAS} />
 
-              <Tag color="blue">{schemaList.length}</Tag>
-            </Space>
-          </Row>
-        }
-      />
-    </>
+            <Tag color="blue">{schemaList.length}</Tag>
+          </Space>
+        </Row>
+      }
+    />
   );
 }

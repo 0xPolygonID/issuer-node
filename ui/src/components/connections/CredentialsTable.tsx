@@ -103,6 +103,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         ) : (
           "-"
         ),
+      responsive: ["sm"],
       sorter: ({ expiresAt: a }, { expiresAt: b }) => {
         if (a && b) {
           return dayjs(a).unix() - dayjs(b).unix();
@@ -120,6 +121,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       render: (revoked: Credential["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
+      responsive: ["md"],
       title: REVOCATION,
     },
     {
@@ -272,8 +274,8 @@ export function CredentialsTable({ userID }: { userID: string }) {
           />
         }
         title={
-          <Row align="middle" justify="space-between">
-            <Space align="end" size="middle">
+          <Row gutter={[0, 8]} justify="space-between">
+            <Space size="middle">
               <Card.Meta title={ISSUED_CREDENTIALS} />
 
               <Tag color="blue">{credentialsList.length}</Tag>

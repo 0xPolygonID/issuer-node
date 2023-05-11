@@ -228,7 +228,7 @@ export function ConnectionsTable() {
         }
         title={
           <Row justify="space-between">
-            <Space align="end" size="middle">
+            <Space size="middle">
               <Card.Meta title={CONNECTIONS} />
 
               <Tag color="blue">{connectionsList.length}</Tag>

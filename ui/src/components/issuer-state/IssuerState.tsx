@@ -122,6 +122,7 @@ export function IssuerState() {
       render: (publishDate: Transaction["publishDate"]) => (
         <Typography.Text>{formatDate(publishDate)}</Typography.Text>
       ),
+      responsive: ["sm"],
       sorter: ({ publishDate: a }, { publishDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
       title: "Publish date",
     },
@@ -185,7 +186,7 @@ export function IssuerState() {
       <Divider />
       <Space direction="vertical" size="large">
         <Card>
-          <Row align="middle" justify="space-between">
+          <Row gutter={[0, 16]} justify="space-between">
             {disablePublishState ? (
               <Card.Meta title="No pending actions" />
             ) : (

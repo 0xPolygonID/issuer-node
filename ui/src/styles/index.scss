@@ -31,13 +31,20 @@
 }
 
 .ant-card {
+  .ant-card-head-title {
+    .ant-row-space-between {
+      padding: 8px 0;
+    }
+  }
+
   .ant-card-meta-description {
     font-size: 16px;
   }
 
   &.centered {
     margin: auto;
-    width: 720px;
+    max-width: 720px;
+    width: 100%;
   }
 
   &.disabled {
@@ -292,6 +299,7 @@
 .issue-credential-card {
   margin: auto;
   max-width: 720px;
+  width: 100%;
 }
 
 .menu-sider-layout {
@@ -305,6 +313,10 @@
 
 .pointer {
   cursor: pointer;
+}
+
+.tab-responsive .ant-tabs-nav-wrap {
+  padding-left: 24px;
 }
 
 a .ant-typography {
