@@ -66,8 +66,9 @@ export function SiderLayoutContent({
   return (
     <Layout className="bg-light" style={{ minHeight: "100vh" }}>
       <Row
+        gutter={[0, 16]}
         justify="space-between"
-        style={{ height: "auto", padding: 32, paddingBottom: showDivider ? 0 : 12 }}
+        style={{ height: "auto", padding: md ? 32 : 16, paddingBottom: showDivider ? 0 : 12 }}
       >
         <Row gutter={[24, 16]}>
           {showBackButton && (

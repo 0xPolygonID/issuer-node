@@ -1,4 +1,4 @@
-import { Grid, Layout, Row } from "antd";
+import { Button, Grid, Layout, Row } from "antd";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 
@@ -11,7 +11,7 @@ import { SIDER_WIDTH } from "src/utils/constants";
 export function SiderLayout() {
   const [collapsed, setCollapsed] = useState(true);
 
-  const { lg } = Grid.useBreakpoint();
+  const { lg, md } = Grid.useBreakpoint();
 
   return (
     <Layout>
@@ -20,16 +20,20 @@ export function SiderLayout() {
           style={{
             borderBottom: "1px solid #EAECF0",
             height: 64,
-            padding: "20px 20px",
+            paddingLeft: md ? 32 : 16,
+            paddingRight: 16,
             position: "fixed",
             top: 0,
             width: "100%",
             zIndex: 3,
           }}
         >
-          <Row justify="space-between">
+          <Row align="middle" justify="space-between" style={{ height: "100%" }}>
             <LogoLink />
-            <IconMenu onClick={() => setCollapsed(!collapsed)} />
+
+            <Button onClick={() => setCollapsed(!collapsed)} type="text">
+              <IconMenu />
+            </Button>
           </Row>
         </Layout.Header>
       )}

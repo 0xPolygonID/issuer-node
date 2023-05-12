@@ -1,4 +1,4 @@
-import { Card, Col, Row, Space } from "antd";
+import { Card, Col, Grid, Row, Space } from "antd";
 import { ReactNode } from "react";
 
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -25,8 +25,10 @@ export function TableCard({
   table: ReactNode;
   title: ReactNode;
 }) {
+  const { md } = Grid.useBreakpoint();
+
   return (
-    <Card bodyStyle={{ padding: 0 }} title={title}>
+    <Card bodyStyle={{ padding: 0 }} headStyle={{ paddingLeft: md ? 24 : 16 }} title={title}>
       {!showDefaultContents && onSearch && searchPlaceholder && query !== undefined && (
         <Row gutter={[16, 8]} style={{ padding: "16px 12px" }}>
           <Col flex={extraButton ? 1 : 0.6}>
