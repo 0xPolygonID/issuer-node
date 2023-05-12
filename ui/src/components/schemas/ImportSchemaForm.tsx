@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { AppError, JsonLdType, JsonSchema } from "src/domain";
+import { AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import {
   buildAppError,
@@ -14,11 +14,11 @@ import {
 } from "src/utils/error";
 
 export type FormData = {
-  jsonLdContextObject: Record<string, unknown>;
+  jsonLdContextObject: Json;
   jsonLdType: JsonLdType;
   jsonLdTypes: AsyncTask<JsonLdType[], AppError>;
   jsonSchema: JsonSchema;
-  jsonSchemaObject: Record<string, unknown>;
+  jsonSchemaObject: Json;
   schemaUrl: string;
   schemaUrlInput: string;
 };
@@ -37,10 +37,10 @@ export function ImportSchemaForm({
   const [jsonLdTypeInput, setJsonLdTypeInput] = useState<JsonLdType | undefined>(
     initialFormData?.jsonLdType
   );
-  const [jsonLdContextObject, setJsonLdContextObject] = useState<
-    Record<string, unknown> | undefined
-  >(initialFormData?.jsonLdContextObject);
-  const [jsonSchemaObject, setJsonSchemaObject] = useState<Record<string, unknown> | undefined>(
+  const [jsonLdContextObject, setJsonLdContextObject] = useState<Json | undefined>(
+    initialFormData?.jsonLdContextObject
+  );
+  const [jsonSchemaObject, setJsonSchemaObject] = useState<Json | undefined>(
     initialFormData?.jsonSchemaObject
   );
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>(

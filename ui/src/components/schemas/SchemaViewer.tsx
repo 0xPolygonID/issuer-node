@@ -4,7 +4,7 @@ import { ReactNode, useState } from "react";
 import { ReactComponent as ChevronDownIcon } from "src/assets/icons/chevron-down.svg";
 import { JSONHighlighter } from "src/components/schemas/JSONHighlighter";
 import { SchemaTree } from "src/components/schemas/SchemaTree";
-import { JsonLdType, JsonSchema } from "src/domain";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 
 type JsonView = "formatted" | "jsonLdContext" | "jsonSchema";
 
@@ -24,10 +24,10 @@ export function SchemaViewer({
 }: {
   actions: ReactNode;
   contents: ReactNode;
-  jsonLdContextObject: Record<string, unknown>;
+  jsonLdContextObject: Json;
   jsonLdType: JsonLdType;
   jsonSchema: JsonSchema;
-  jsonSchemaObject: Record<string, unknown>;
+  jsonSchemaObject: Json;
 }) {
   const [jsonView, setJsonView] = useState<JsonView>("formatted");
 

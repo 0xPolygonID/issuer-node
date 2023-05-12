@@ -12,7 +12,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, JsonLdType, JsonSchema, Schema } from "src/domain";
+import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -30,17 +30,13 @@ export function SchemaDetails() {
 
   const env = useEnvContext();
 
-  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<
-    AsyncTask<[JsonSchema, Record<string, unknown>], AppError>
-  >({
+  const [jsonSchemaTuple, setJsonSchemaTuple] = useState<AsyncTask<[JsonSchema, Json], AppError>>({
     status: "pending",
   });
   const [schema, setSchema] = useState<AsyncTask<Schema, AppError>>({
     status: "pending",
   });
-  const [contextTuple, setContextTuple] = useState<
-    AsyncTask<[JsonLdType, Record<string, unknown>], AppError>
-  >({
+  const [contextTuple, setContextTuple] = useState<AsyncTask<[JsonLdType, Json], AppError>>({
     status: "pending",
   });
 

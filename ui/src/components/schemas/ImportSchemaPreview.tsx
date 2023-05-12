@@ -4,7 +4,7 @@ import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.s
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
-import { JsonLdType, JsonSchema } from "src/domain";
+import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({
@@ -16,10 +16,10 @@ export function ImportSchemaPreview({
   onImport,
   url,
 }: {
-  jsonLdContextObject: Record<string, unknown>;
+  jsonLdContextObject: Json;
   jsonLdType: JsonLdType;
   jsonSchema: JsonSchema;
-  jsonSchemaObject: Record<string, unknown>;
+  jsonSchemaObject: Json;
   onBack: () => void;
   onImport: () => void;
   url: string;
