@@ -15,7 +15,7 @@ export type { Env } from "src/domain/env";
 
 export type { IssuerStatus, Transaction, TransactionStatus } from "src/domain/issuer-state";
 
-export type { Json, JsonLiteral } from "src/domain/json";
+export type { Json, JsonObject, JsonLiteral } from "src/domain/json";
 
 export type {
   ArrayAttribute,

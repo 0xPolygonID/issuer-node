@@ -4,20 +4,9 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import {
-  Credential,
-  Env,
-  IssuedQRCode,
-  Json,
-  JsonLiteral,
-  Link,
-  LinkStatus,
-  ProofType,
-} from "src/domain";
+import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
-
-export type ObjectAttributePayload = { [key: string]: JsonLiteral | ObjectAttributePayload };
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 

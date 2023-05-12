@@ -1,7 +1,7 @@
 import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
-import { CreateCredential, CreateLink, ObjectAttributePayload } from "src/adapters/api/credentials";
+import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
@@ -10,6 +10,7 @@ import {
   AttributeValue,
   Json,
   JsonLiteral,
+  JsonObject,
   ObjectAttribute,
   ProofType,
 } from "src/domain";
@@ -216,7 +217,7 @@ function serializeAtrributeValue({
   attributeValue,
 }: {
   attributeValue: AttributeValue;
-}): JsonLiteral | ObjectAttributePayload | undefined {
+}): JsonLiteral | JsonObject | undefined {
   switch (attributeValue.type) {
     case "integer":
     case "number":
@@ -266,7 +267,7 @@ export function serializeSchemaForm({
   attribute: Attribute;
   value: Record<string, unknown>;
 }):
-  | { data: JsonLiteral | ObjectAttributePayload | undefined; success: true }
+  | { data: JsonLiteral | JsonObject | undefined; success: true }
   | { error: z.ZodError; success: false } {
   const parsedSchemaFormValues = schemaFormValuesParser.safeParse(value);
   if (parsedSchemaFormValues.success) {
