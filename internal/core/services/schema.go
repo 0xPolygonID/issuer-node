@@ -63,13 +63,13 @@ func (s *schema) ImportSchema(ctx context.Context, did core.DID, url string, sTy
 	}
 
 	schema := &domain.Schema{
-		ID:         uuid.New(),
-		IssuerDID:  did,
-		URL:        url,
-		Type:       sType,
-		Hash:       hash,
-		Attributes: attributeNames.SchemaAttrs(),
-		CreatedAt:  time.Now(),
+		ID:        uuid.New(),
+		IssuerDID: did,
+		URL:       url,
+		Type:      sType,
+		Hash:      hash,
+		Words:     attributeNames.SchemaAttrs(),
+		CreatedAt: time.Now(),
 	}
 
 	if err := s.repo.Save(ctx, schema); err != nil {

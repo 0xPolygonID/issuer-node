@@ -76,7 +76,7 @@ SELECT links.id,
        schemas.url,
        schemas.type,
        schemas.hash,
-       schemas.attributes, 
+       schemas.words, 
        schemas.created_at
 FROM links
 LEFT JOIN schemas ON schemas.id = links.schema_id AND schemas.issuer_id = links.issuer_id
@@ -105,7 +105,7 @@ GROUP BY links.id, schemas.id
 		&s.URL,
 		&s.Type,
 		&s.Hash,
-		&s.Attributes,
+		&s.Words,
 		&s.CreatedAt,
 	)
 	if err == pgx.ErrNoRows {
@@ -146,7 +146,7 @@ SELECT links.id,
        schemas.url,
        schemas.type,
        schemas.hash,
-       schemas.attributes, 
+       schemas.words, 
        schemas.created_at
 FROM links
 LEFT JOIN schemas ON schemas.id = links.schema_id
@@ -169,7 +169,7 @@ WHERE links.issuer_id = $1
 	}
 	if query != nil && *query != "" {
 		terms := tokenizeQuery(*query)
-		sql += " AND (" + buildPartialQueryLikes("schemas.Attributes", "OR", 1+len(sqlArgs), len(terms)) + ")"
+		sql += " AND (" + buildPartialQueryLikes("schemas.words", "OR", 1+len(sqlArgs), len(terms)) + ")"
 		for _, term := range terms {
 			sqlArgs = append(sqlArgs, term)
 		}
@@ -207,7 +207,7 @@ WHERE links.issuer_id = $1
 			&schema.URL,
 			&schema.Type,
 			&schema.Hash,
-			&schema.Attributes,
+			&schema.Words,
 			&schema.CreatedAt,
 		); err != nil {
 			return nil, err

@@ -32,13 +32,13 @@ func TestGetSchema(t *testing.T) {
 
 	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
 	schema1 := &domain.Schema{
-		ID:         uuid.New(),
-		IssuerDID:  did,
-		URL:        "https://an.url.org/index.html",
-		Type:       "schemaType",
-		Hash:       core.NewSchemaHashFromInt(i),
-		Attributes: domain.SchemaAttrs{"field1", "field2", "fieldn"},
-		CreatedAt:  time.Now(),
+		ID:        uuid.New(),
+		IssuerDID: did,
+		URL:       "https://an.url.org/index.html",
+		Type:      "schemaType",
+		Hash:      core.NewSchemaHashFromInt(i),
+		Words:     domain.SchemaWords{"field1", "field2", "fieldn"},
+		CreatedAt: time.Now(),
 	}
 	require.NoError(t, store.Save(ctx, schema1))
 
@@ -49,7 +49,7 @@ func TestGetSchema(t *testing.T) {
 	assert.Equal(t, schema1.URL, schema2.URL)
 	assert.Equal(t, schema1.Type, schema2.Type)
 	assert.Equal(t, schema1.Hash, schema2.Hash)
-	assert.Equal(t, domain.SchemaAttrs{"schemaType", "field1", "field2", "fieldn"}, schema2.Attributes)
+	assert.Equal(t, domain.SchemaWords{"schemaType", "field1", "field2", "fieldn"}, schema2.Words)
 	assert.InDelta(t, schema1.CreatedAt.UnixMilli(), schema2.CreatedAt.UnixMilli(), 10)
 }
 
@@ -84,11 +84,11 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: nil,
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+					Type:  "nicePeopleAtWork",
+					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}, {
-					Type:       "age",
-					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+					Type:  "age",
+					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -97,11 +97,11 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer(""),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+					Type:  "nicePeopleAtWork",
+					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}, {
-					Type:       "age",
-					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+					Type:  "age",
+					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -110,8 +110,8 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer("nicePeopleAtWork"),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+					Type:  "nicePeopleAtWork",
+					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
 			},
 		},
@@ -120,8 +120,8 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer("nicepeopleatwork"),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+					Type:  "nicePeopleAtWork",
+					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
 			},
 		},
@@ -130,8 +130,8 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer("nicepeoplea"),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "nicePeopleAtWork",
-					Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+					Type:  "nicePeopleAtWork",
+					Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 				}},
 			},
 		},
@@ -140,8 +140,8 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer("younger than eighteen"),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "age",
-					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+					Type:  "age",
+					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -150,8 +150,8 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer("eighteen"),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "age",
-					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+					Type:  "age",
+					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -160,8 +160,8 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			query: common.ToPointer("eighte"),
 			expected: expected{
 				collection: []domain.Schema{{
-					Type:       "age",
-					Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+					Type:  "age",
+					Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 				}},
 			},
 		},
@@ -171,12 +171,12 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{
 					{
-						Type:       "nicePeopleAtWork",
-						Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+						Type:  "nicePeopleAtWork",
+						Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 					},
 					{
-						Type:       "age",
-						Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+						Type:  "age",
+						Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 					},
 				},
 			},
@@ -187,12 +187,12 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			expected: expected{
 				collection: []domain.Schema{
 					{
-						Type:       "nicePeopleAtWork",
-						Attributes: domain.SchemaAttrs{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
+						Type:  "nicePeopleAtWork",
+						Words: domain.SchemaWords{"nicePeopleAtWork", "friendly", "helper", "empathic", "smart"},
 					},
 					{
-						Type:       "age",
-						Attributes: domain.SchemaAttrs{"age", "younger than eighteen", "older than eighteen"},
+						Type:  "age",
+						Words: domain.SchemaWords{"age", "younger than eighteen", "older than eighteen"},
 					},
 				},
 			},
@@ -212,7 +212,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, collection, len(tc.expected.collection))
 			for i := range collection {
-				assert.Equal(t, tc.expected.collection[i].Attributes, collection[i].Attributes)
+				assert.Equal(t, tc.expected.collection[i].Words, collection[i].Words)
 			}
 		})
 	}
@@ -222,20 +222,20 @@ func insertSchemaGetAllData(t *testing.T, ctx context.Context, did core.DID, sto
 	t.Helper()
 	data := []struct {
 		typ        string
-		attributes domain.SchemaAttrs
+		attributes domain.SchemaWords
 	}{
-		{typ: "age", attributes: domain.SchemaAttrs{"younger than eighteen", "older than eighteen"}},
-		{typ: "nicePeopleAtWork", attributes: domain.SchemaAttrs{"friendly", "helper", "empathic", "smart"}},
+		{typ: "age", attributes: domain.SchemaWords{"younger than eighteen", "older than eighteen"}},
+		{typ: "nicePeopleAtWork", attributes: domain.SchemaWords{"friendly", "helper", "empathic", "smart"}},
 	}
 
 	for i, d := range data {
 		s := &domain.Schema{
-			ID:         uuid.New(),
-			IssuerDID:  did,
-			URL:        fmt.Sprintf("url is not important in this test but need to be unique %d", i),
-			Type:       d.typ,
-			Attributes: d.attributes,
-			CreatedAt:  time.Now(),
+			ID:        uuid.New(),
+			IssuerDID: did,
+			URL:       fmt.Sprintf("url is not important in this test but need to be unique %d", i),
+			Type:      d.typ,
+			Words:     d.attributes,
+			CreatedAt: time.Now(),
 		}
 		require.NoError(t, store.Save(ctx, s))
 		time.Sleep(2 * time.Millisecond)

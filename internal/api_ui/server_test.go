@@ -204,12 +204,12 @@ func TestServer_GetSchema(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 
 	s := &domain.Schema{
-		ID:         uuid.New(),
-		IssuerDID:  *issuerDID,
-		URL:        "https://domain.org/this/is/an/url",
-		Type:       "schemaType",
-		Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
-		CreatedAt:  time.Now(),
+		ID:        uuid.New(),
+		IssuerDID: *issuerDID,
+		URL:       "https://domain.org/this/is/an/url",
+		Type:      "schemaType",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
 	}
 	s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
 	fixture.CreateSchema(t, ctx, s)
@@ -325,23 +325,23 @@ func TestServer_GetSchemas(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		s := &domain.Schema{
-			ID:         uuid.New(),
-			IssuerDID:  *issuerDID,
-			URL:        fmt.Sprintf("https://domain.org/this/is/an/url/%d", i),
-			Type:       fmt.Sprintf("schemaType-%d", i),
-			Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
-			CreatedAt:  time.Now(),
+			ID:        uuid.New(),
+			IssuerDID: *issuerDID,
+			URL:       fmt.Sprintf("https://domain.org/this/is/an/url/%d", i),
+			Type:      fmt.Sprintf("schemaType-%d", i),
+			Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+			CreatedAt: time.Now(),
 		}
 		s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
 		fixture.CreateSchema(t, ctx, s)
 	}
 	s := &domain.Schema{
-		ID:         uuid.New(),
-		IssuerDID:  *issuerDID,
-		URL:        "https://domain.org/this/is/an/url/ubiprogram",
-		Type:       "UbiProgram",
-		Attributes: domain.SchemaAttrsFromString("attr1, attr2, attr3"),
-		CreatedAt:  time.Now(),
+		ID:        uuid.New(),
+		IssuerDID: *issuerDID,
+		URL:       "https://domain.org/this/is/an/url/ubiprogram",
+		Type:      "UbiProgram",
+		Words:     domain.SchemaWordsFromString("attr1, attr2, attr3"),
+		CreatedAt: time.Now(),
 	}
 	s.Hash = utils.CreateSchemaHash([]byte(s.URL + "#" + s.Type))
 	fixture.CreateSchema(t, ctx, s)
@@ -1972,13 +1972,13 @@ func TestServer_GetConnections(t *testing.T) {
 	schemaContext := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"
 	schemaType := "KYCAgeCredential"
 	s := &domain.Schema{
-		ID:         uuid.New(),
-		IssuerDID:  *did,
-		URL:        schemaURL,
-		Type:       schemaType,
-		Attributes: []string{"birthday", "id", "hello"},
-		CreatedAt:  time.Now(),
-		Hash:       utils.CreateSchemaHash([]byte(schemaContext + "#" + schemaType)),
+		ID:        uuid.New(),
+		IssuerDID: *did,
+		URL:       schemaURL,
+		Type:      schemaType,
+		Words:     []string{"birthday", "id", "hello"},
+		CreatedAt: time.Now(),
+		Hash:      utils.CreateSchemaHash([]byte(schemaContext + "#" + schemaType)),
 	}
 	fixture.CreateSchema(t, ctx, s)
 

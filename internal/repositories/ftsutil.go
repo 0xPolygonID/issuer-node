@@ -7,26 +7,8 @@ import (
 )
 
 var (
-	onlyLettersAndNumbers = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
-	didCharacters         = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
+	didCharacters = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
 )
-
-// fullTextSearchQuery accepts a query with a list of words and returns a tsquery that includes words that
-// begin or contains that words. operator is used to pass an operator between words.
-// https://www.postgresql.org/docs/current/datatype-textsearch.html#DATATYPE-TSQUERY
-func fullTextSearchQuery(query string, operator string) string {
-	query = onlyLettersAndNumbers.ReplaceAllString(query, " ")
-	words := strings.Split(query, " ")
-	terms := make([]string, 0, len(words))
-	for _, word := range words {
-		word = strings.TrimSpace(word)
-		if word == "" {
-			continue
-		}
-		terms = append(terms, "("+word+":* | "+word+")")
-	}
-	return strings.Join(terms, operator)
-}
 
 func tokenizeQuery(query string) []string {
 	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")

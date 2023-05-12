@@ -757,7 +757,7 @@ func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (
 			cond = "AND"
 		}
 		terms := tokenizeQuery(filter.FTSQuery)
-		ftsConds := buildPartialQueryLikes("schemas.Attributes", cond, 1+len(filters), len(terms))
+		ftsConds := buildPartialQueryLikes("schemas.words", cond, 1+len(filters), len(terms))
 		for _, term := range terms {
 			filters = append(filters, term)
 		}
