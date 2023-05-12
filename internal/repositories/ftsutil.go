@@ -6,9 +6,7 @@ import (
 	"strings"
 )
 
-var (
-	didCharacters = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
-)
+var didCharacters = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
 
 func tokenizeQuery(query string) []string {
 	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
