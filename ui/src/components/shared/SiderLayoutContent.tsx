@@ -68,7 +68,12 @@ export function SiderLayoutContent({
       <Row
         gutter={[0, 16]}
         justify="space-between"
-        style={{ height: "auto", padding: md ? 32 : 16, paddingBottom: showDivider ? 0 : 12 }}
+        style={{
+          height: "auto",
+          padding: md
+            ? `32px 32px ${showDivider ? 0 : "12px"} `
+            : `16px 16px ${showDivider ? 0 : "12px"} `,
+        }}
       >
         <Row gutter={[24, 16]}>
           {showBackButton && (
