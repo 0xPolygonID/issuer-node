@@ -21,7 +21,7 @@ export function SiderLayout() {
             borderBottom: "1px solid #EAECF0",
             height: 64,
             paddingLeft: md ? 32 : 16,
-            paddingRight: 16,
+            paddingRight: md ? 16 : 8,
             position: "fixed",
             top: 0,
             width: "100%",

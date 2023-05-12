@@ -28,7 +28,11 @@ export function TableCard({
   const { md } = Grid.useBreakpoint();
 
   return (
-    <Card bodyStyle={{ padding: 0 }} headStyle={{ paddingLeft: md ? 24 : 16 }} title={title}>
+    <Card
+      bodyStyle={{ padding: 0 }}
+      headStyle={{ padding: md ? "0 24px" : "0 16px" }}
+      title={title}
+    >
       {!showDefaultContents && onSearch && searchPlaceholder && query !== undefined && (
         <Row gutter={[16, 8]} style={{ padding: "16px 12px" }}>
           <Col flex={extraButton ? 1 : 0.6}>
