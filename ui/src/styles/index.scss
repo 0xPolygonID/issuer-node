@@ -185,8 +185,23 @@
   margin-right: 16px;
 }
 
-.ant-layout .ant-layout-header {
-  line-height: inherit;
+.ant-layout {
+  .responsive-header {
+    line-height: inherit;
+    border-bottom: 1px solid #eaecf0;
+    height: 64px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 3;
+  }
+
+  .ant-layout-sider {
+    border-right: 1px solid #eaecf0;
+    height: 100vh;
+    position: fixed;
+    z-index: 2;
+  }
 }
 
 .ant-layout .bg-light,
@@ -263,6 +278,15 @@
 
 .background-grey {
   background-color: $tag-bg !important;
+}
+
+.background-sider {
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  height: 100vh;
+  position: fixed;
+  width: 100%;
+  z-index: 1;
 }
 
 .check-items {

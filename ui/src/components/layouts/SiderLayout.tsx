@@ -17,15 +17,10 @@ export function SiderLayout() {
     <Layout>
       {!lg && (
         <Layout.Header
+          className="responsive-header"
           style={{
-            borderBottom: "1px solid #EAECF0",
-            height: 64,
             paddingLeft: md ? 32 : 16,
             paddingRight: md ? 16 : 8,
-            position: "fixed",
-            top: 0,
-            width: "100%",
-            zIndex: 3,
           }}
         >
           <Row align="middle" justify="space-between" style={{ height: "100%" }}>
@@ -39,15 +34,10 @@ export function SiderLayout() {
       )}
 
       <Layout.Sider
+        className="sider-layout"
         collapsed={collapsed && !lg}
         collapsedWidth={0}
         collapsible
-        style={{
-          borderRight: "1px solid #EAECF0",
-          height: "100vh",
-          position: "fixed",
-          zIndex: 2,
-        }}
         trigger={null}
         width={SIDER_WIDTH}
       >
@@ -60,18 +50,7 @@ export function SiderLayout() {
 
       <FeedbackLink />
 
-      {!collapsed && !lg && (
-        <Row
-          onClick={() => setCollapsed(true)}
-          style={{
-            background: "rgba(0,0,0,0.5)",
-            cursor: "pointer",
-            height: "100vh",
-            position: "fixed",
-            width: "100%",
-          }}
-        />
-      )}
+      {!collapsed && !lg && <Row className="background-sider" onClick={() => setCollapsed(true)} />}
     </Layout>
   );
 }

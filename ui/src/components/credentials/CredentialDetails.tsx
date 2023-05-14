@@ -177,7 +177,7 @@ export function CredentialDetails() {
             <Card
               className="centered"
               extra={
-                <Row gutter={[0, 8]} justify="end" style={{ width: sm ? "auto" : 100 }}>
+                <Row gutter={[0, 8]} justify="end">
                   <Col>
                     <Button
                       danger
@@ -186,7 +186,7 @@ export function CredentialDetails() {
                       onClick={() => setShowRevokeModal(true)}
                       type="text"
                     >
-                      {REVOKE}
+                      {sm && REVOKE}
                     </Button>
                   </Col>
 
@@ -197,7 +197,7 @@ export function CredentialDetails() {
                       onClick={() => setShowDeleteModal(true)}
                       type="text"
                     >
-                      {DELETE}
+                      {sm && DELETE}
                     </Button>
                   </Col>
                 </Row>
