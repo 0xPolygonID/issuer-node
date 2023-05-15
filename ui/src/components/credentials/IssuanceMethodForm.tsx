@@ -44,8 +44,6 @@ export function IssuanceMethodForm({
   const isLinkIssue = issuanceMethod.type === "credentialLink";
   const isDirectIssue = issuanceMethod.type === "directIssue";
 
-  const isNextButtonDisabled = isDirectIssue && !issuanceMethod.did;
-
   const isConnectedSuffixVisible =
     isDirectIssue &&
     isAsyncTaskDataAvailable(connections) &&
@@ -98,11 +96,9 @@ export function IssuanceMethodForm({
             }
           }
         }}
-        requiredMark={false}
-        validateTrigger="onBlur"
       >
-        <Form.Item name="type" rules={[{ message: VALUE_REQUIRED, required: true }]}>
-          <Radio.Group className="full-width" name="type">
+        <Form.Item name="type">
+          <Radio.Group className="full-width">
             <Space direction="vertical">
               <Card className={`${isDirectIssue ? "selected" : ""}`}>
                 <Radio value="directIssue">
@@ -117,9 +113,10 @@ export function IssuanceMethodForm({
                 </Radio>
 
                 <Form.Item
+                  dependencies={["type"]}
                   label="Select connection/Paste identifier"
                   name="did"
-                  required
+                  rules={[{ message: VALUE_REQUIRED, required: isDirectIssue }]}
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
                   <AutoComplete
@@ -246,7 +243,7 @@ export function IssuanceMethodForm({
         </Form.Item>
 
         <Row gutter={8} justify="end">
-          <Button disabled={isNextButtonDisabled} htmlType="submit" type="primary">
+          <Button htmlType="submit" type="primary">
             Next step <IconRight />
           </Button>
         </Row>
