@@ -38,6 +38,7 @@ import {
   StringSchema,
 } from "src/domain";
 import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
+import { Nullable } from "src/utils/types";
 
 const commonPropsParser = getStrictParser<CommonProps>()(
   z.object({
@@ -569,19 +570,19 @@ function getBooleanAttributeValueParser({ name, required, schema, type }: Boolea
           })
         )
       )
-    : getStrictParser<boolean | undefined, BooleanAttributeValue>()(
+    : getStrictParser<Nullable<boolean>, BooleanAttributeValue>()(
         z
           .boolean()
-          .optional()
-          .transform(
-            (value): BooleanAttributeValue => ({
+          .nullish()
+          .transform((value): BooleanAttributeValue => {
+            return {
               name,
               required,
               schema,
               type,
-              value,
-            })
-          )
+              value: value === null ? undefined : value,
+            };
+          })
       );
 }
 
@@ -598,17 +599,17 @@ function getIntegerAttributeValueParser({ name, required, schema, type }: Intege
           })
         )
       )
-    : getStrictParser<number | undefined, IntegerAttributeValue>()(
+    : getStrictParser<Nullable<number>, IntegerAttributeValue>()(
         z
           .number()
-          .optional()
+          .nullish()
           .transform(
             (value): IntegerAttributeValue => ({
               name,
               required,
               schema,
               type,
-              value,
+              value: value === null ? undefined : value,
             })
           )
       );
@@ -656,17 +657,17 @@ function getNumberAttributeValueParser({ name, required, schema, type }: NumberA
           })
         )
       )
-    : getStrictParser<number | undefined, NumberAttributeValue>()(
+    : getStrictParser<Nullable<number>, NumberAttributeValue>()(
         z
           .number()
-          .optional()
+          .nullish()
           .transform(
             (value): NumberAttributeValue => ({
               name,
               required,
               schema,
               type,
-              value,
+              value: value === null ? undefined : value,
             })
           )
       );
@@ -685,17 +686,17 @@ function getStringAttributeValueParser({ name, required, schema, type }: StringA
           })
         )
       )
-    : getStrictParser<string | undefined, StringAttributeValue>()(
+    : getStrictParser<Nullable<string>, StringAttributeValue>()(
         z
           .string()
-          .optional()
+          .nullish()
           .transform(
             (value): StringAttributeValue => ({
               name,
               required,
               schema,
               type,
-              value,
+              value: value === null ? undefined : value,
             })
           )
       );
@@ -725,10 +726,10 @@ function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAtt
           })
         )
       )
-    : getStrictParser<unknown[] | undefined, ArrayAttributeValue>()(
+    : getStrictParser<Nullable<unknown[]>, ArrayAttributeValue>()(
         z
           .array(z.unknown())
-          .optional()
+          .nullish()
           .transform(
             (unknowns, context): ArrayAttributeValue => ({
               name,
@@ -736,16 +737,18 @@ function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAtt
               schema,
               type,
               value: attribute
-                ? unknowns &&
-                  unknowns.map((unknown) => {
-                    const parsed = getAttributeValueParser(attribute).safeParse(unknown);
-                    if (parsed.success) {
-                      return parsed.data;
-                    } else {
-                      parsed.error.issues.map(context.addIssue);
-                      return z.NEVER;
-                    }
-                  })
+                ? unknowns === null
+                  ? undefined
+                  : unknowns &&
+                    unknowns.map((unknown) => {
+                      const parsed = getAttributeValueParser(attribute).safeParse(unknown);
+                      if (parsed.success) {
+                        return parsed.data;
+                      } else {
+                        parsed.error.issues.map(context.addIssue);
+                        return z.NEVER;
+                      }
+                    })
                 : [],
             })
           )
@@ -812,10 +815,10 @@ function getObjectAttributeValueParser(objectAttribute: ObjectAttribute) {
               objectToObjectAttributeValue({ context, object, objectAttribute })
           )
       )
-    : getStrictParser<Record<string, unknown> | undefined, ObjectAttributeValue>()(
+    : getStrictParser<Nullable<Record<string, unknown>>, ObjectAttributeValue>()(
         z
           .record(z.unknown())
-          .optional()
+          .nullish()
           .transform(
             (object, context): ObjectAttributeValue =>
               object
