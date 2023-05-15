@@ -11,7 +11,12 @@ import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { InputErrors, ObjectAttributeForm } from "src/components/credentials/ObjectAttributeForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
-import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
+import {
+  ISSUE_CREDENTIAL_DIRECT,
+  ISSUE_CREDENTIAL_LINK,
+  SCHEMA_HASH,
+  VALUE_REQUIRED,
+} from "src/utils/constants";
 import { buildAppError, notifyError } from "src/utils/error";
 import {
   extractCredentialSubjectAttributeWithoutId,
@@ -120,7 +125,6 @@ export function IssueCredentialForm({
         values.credentialSubject &&
           isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
       }}
-      requiredMark={false}
     >
       <Form.Item>
         <Space direction="vertical">
@@ -150,7 +154,11 @@ export function IssueCredentialForm({
           inputErrors={inputErrors}
         />
 
-        <Form.Item label="Proof type" name="proofTypes" required>
+        <Form.Item
+          label="Proof type"
+          name="proofTypes"
+          rules={[{ message: VALUE_REQUIRED, required: true }]}
+        >
           <Checkbox.Group>
             <Space direction="vertical">
               <Checkbox value="SIG">
