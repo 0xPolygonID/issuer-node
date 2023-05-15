@@ -1,0 +1,206 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "$metadata": {
+        "uris": {
+            "jsonLdContext": "http://localhost:8080/json-ld/exampleMultidepth.jsonld",
+            "jsonSchema": "http://localhost:8080/json/exampleMultidepth.json"
+        }
+    },
+    "required": [
+        "@context",
+        "id",
+        "type",
+        "issuanceDate",
+        "credentialSubject",
+        "credentialSchema",
+        "credentialStatus",
+        "issuer"
+    ],
+    "properties": {
+        "@context": {
+            "type": [
+                "string",
+                "array",
+                "object"
+            ]
+        },
+        "id": {
+            "type": "string"
+        },
+        "type": {
+            "type": [
+                "string",
+                "array"
+            ],
+            "items": {
+                "type": "string"
+            }
+        },
+        "issuer": {
+            "type": [
+                "string",
+                "object"
+            ],
+            "format": "uri",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            }
+        },
+        "issuanceDate": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "expirationDate": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "credentialSchema": {
+            "type": "object",
+            "required": [
+                "id",
+                "type"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "subjectPosition": {
+            "type": "string",
+            "enum": [
+                "none",
+                "index",
+                "value"
+            ]
+        },
+        "merklizationRootPosition": {
+            "type": "string",
+            "enum": [
+                "none",
+                "index",
+                "value"
+            ]
+        },
+        "revNonce": {
+            "type": "integer"
+        },
+        "version": {
+            "type": "integer"
+        },
+        "updatable": {
+            "type": "boolean"
+        },
+        "credentialSubject": {
+            "type": "object",
+            "required": [
+                "id",
+                "passportInfo",
+                "hireDate",
+                "position",
+                "salary",
+                "vegan"
+            ],
+            "properties": {
+                "id": {
+                    "title": "Credential Subject ID",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "passportInfo": {
+                    "type": "object",
+                    "title": "Passport info",
+                    "properties": {
+                        "birthyear": {
+                            "title": "Birthyear",
+                            "type": "integer",
+                            "minimum": 1950,
+                            "maximum": 2010
+                        },
+                        "numberOfBrothers": {
+                            "title": "Number of brothers",
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "name": {
+                            "title": "Name",
+                            "type": "string"
+                        },
+                        "parents": {
+                            "type": "object",
+                            "properties": {
+                                "fatherBirthyear": {
+                                    "type": "integer",
+                                    "minimum": 1850,
+                                    "maximum": 2000
+                                },
+                                "motherBirthyear": {
+                                    "type": "integer",
+                                    "minimum": 1850,
+                                    "maximum": 2000
+                                }
+                            },
+                            "required": [
+                                "fatherBirthyear",
+                                "motherBirthyear"
+                            ]
+                        }
+                    },
+                    "required": [
+                        "birthyear",
+                        "numberOfBrothers",
+                        "name",
+                        "parents"
+                    ]
+                },
+                "hireDate": {
+                    "type": "string",
+                    "format": "date"
+                },
+                "position": {
+                    "type": "string",
+                    "enum": [
+                        "Account Executive",
+                        "Account Manager",
+                        "Administrative assistant",
+                        "Chief Executive Officer",
+                        "Chief Financial Officer",
+                        "Chief Information Officer",
+                        "Chief Marketing Officer",
+                        "Chief Operating Officer",
+                        "Chief Technology Officer",
+                        "Customer service representative",
+                        "Executive Director",
+                        "General Manager",
+                        "Human resource management",
+                        "Marketing management",
+                        "Operations management",
+                        "Product Manager",
+                        "Project manager",
+                        "Sales Management",
+                        "Sales Representative"
+                    ]
+                },
+                "salary": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                },
+                "vegan": {
+                    "type": "boolean"
+                }
+            }
+        }
+    }
+}

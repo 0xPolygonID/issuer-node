@@ -112,7 +112,7 @@ stop:
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files
 
 .PHONY: clean-vault
 clean-vault:
