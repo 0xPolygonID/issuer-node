@@ -165,7 +165,7 @@
       label.ant-form-item-required::after {
         display: inline-block;
         margin-inline-start: 4px;
-        color: #b20808;
+        color: $error-color;
         font-size: 14px;
         font-family: SimSun, sans-serif;
         line-height: 1;
@@ -188,7 +188,7 @@
 .ant-layout {
   .responsive-header {
     line-height: inherit;
-    border-bottom: 1px solid #eaecf0;
+    border-bottom: 1px solid $divider-color;
     height: 64px;
     position: fixed;
     top: 0;
@@ -197,7 +197,7 @@
   }
 
   .ant-layout-sider {
-    border-right: 1px solid #eaecf0;
+    border-right: 1px solid $divider-color;
     height: 100vh;
     position: fixed;
     z-index: 2;
