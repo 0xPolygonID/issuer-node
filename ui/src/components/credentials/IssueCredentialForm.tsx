@@ -102,6 +102,8 @@ export function IssueCredentialForm({
       } catch (error) {
         notifyError(buildAppError(error));
       }
+    } else {
+      notifyError(buildAppError(serializedSchemaForm.error));
     }
     return false;
   }
