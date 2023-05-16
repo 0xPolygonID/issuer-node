@@ -1,8 +1,21 @@
 import Ajv, { ErrorObject } from "ajv";
 import addFormats from "ajv-formats";
-import { Button, Checkbox, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
-import { useState } from "react";
+import {
+  Button,
+  Checkbox,
+  DatePicker,
+  Divider,
+  Form,
+  Row,
+  Select,
+  Space,
+  Typography,
+  message,
+} from "antd";
+import { useCallback, useEffect, useState } from "react";
 
+import { getSchemas } from "src/adapters/api/schemas";
+import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { IssueCredentialFormData, serializeSchemaForm } from "src/adapters/parsers/forms";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
@@ -10,14 +23,19 @@ import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
 import { InputErrors, ObjectAttributeForm } from "src/components/credentials/ObjectAttributeForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
-import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
+import { LoadingResult } from "src/components/shared/LoadingResult";
+import { useEnvContext } from "src/contexts/Env";
+import { AppError, JsonSchema, ObjectAttribute, Schema } from "src/domain";
+import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
+import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   ISSUE_CREDENTIAL_DIRECT,
   ISSUE_CREDENTIAL_LINK,
   SCHEMA_HASH,
+  SCHEMA_TYPE,
   VALUE_REQUIRED,
 } from "src/utils/constants";
-import { buildAppError, notifyError } from "src/utils/error";
+import { buildAppError, jsonSchemaErrorToString, notifyError } from "src/utils/error";
 import {
   extractCredentialSubjectAttributeWithoutId,
   makeAttributeOptional,
@@ -44,21 +62,34 @@ function addErrorToPath(inputErrors: InputErrors, path: string[], error: string)
 
 export function IssueCredentialForm({
   initialValues,
-  jsonSchema,
-  loading,
+  isLoading,
   onBack,
+  onSelectSchema,
   onSubmit,
-  schema,
   type,
 }: {
   initialValues: IssueCredentialFormData;
-  jsonSchema: JsonSchema;
-  loading: boolean;
+  isLoading: boolean;
   onBack: () => void;
-  onSubmit: (values: IssueCredentialFormData) => void;
-  schema: Schema;
+  onSelectSchema: (schema: Schema) => void;
+  onSubmit: (params: {
+    jsonSchema: JsonSchema;
+    schema: Schema;
+    values: IssueCredentialFormData;
+  }) => void;
   type: "directIssue" | "credentialLink";
 }) {
+  const env = useEnvContext();
+
+  const [schema, setSchema] = useState<Schema>();
+  const [schemas, setSchemas] = useState<AsyncTask<Schema[], undefined>>({
+    status: "pending",
+  });
+
+  const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>({
+    status: "pending",
+  });
+
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
@@ -108,102 +139,228 @@ export function IssueCredentialForm({
     return false;
   }
 
-  const credentialSubjectAttributeWithoutId =
-    extractCredentialSubjectAttributeWithoutId(jsonSchema);
+  const fetchJsonSchema = (schema: Schema) => {
+    setJsonSchema({ status: "loading" });
+    void getJsonSchemaFromUrl({
+      url: schema.url,
+    }).then((response) => {
+      if (response.success) {
+        const [jsonSchema] = response.data;
+        setJsonSchema({
+          data: jsonSchema,
+          status: "successful",
+        });
+      } else {
+        if (!isAbortedError(response.error)) {
+          setJsonSchema({ error: response.error, status: "failed" });
+        }
+      }
+    });
+  };
 
-  return credentialSubjectAttributeWithoutId?.schema.attributes ? (
+  const fetchSchemas = useCallback(
+    async (signal: AbortSignal) => {
+      setSchemas((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getSchemas({
+        env,
+        params: {},
+        signal,
+      });
+
+      if (response.success) {
+        setSchemas({ data: response.data.successful, status: "successful" });
+        const selectedSchema =
+          initialValues.schemaID !== undefined
+            ? response.data.successful.find((schema) => schema.id === initialValues.schemaID)
+            : undefined;
+        if (selectedSchema) {
+          setSchema(selectedSchema);
+          fetchJsonSchema(selectedSchema);
+        }
+      } else {
+        if (!isAbortedError(response.error)) {
+          setSchemas({ error: undefined, status: "failed" });
+          void message.error(response.error.message);
+        }
+      }
+    },
+    [env, initialValues.schemaID]
+  );
+
+  useEffect(() => {
+    const { aborter } = makeRequestAbortable(fetchSchemas);
+
+    return aborter;
+  }, [fetchSchemas]);
+
+  return (
     <Form
       initialValues={initialValues}
       layout="vertical"
       onFinish={(values: IssueCredentialFormData) => {
+        const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
+        const credentialSubjectAttributeWithoutId =
+          jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
+
         if (
+          jsonSchemaData &&
+          credentialSubjectAttributeWithoutId &&
           values.credentialSubject &&
-          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId)
+          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId) &&
+          schema
         ) {
-          onSubmit(values);
+          onSubmit({ jsonSchema: jsonSchemaData, schema, values });
         }
       }}
       onValuesChange={(_, values: IssueCredentialFormData) => {
+        const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
+        const credentialSubjectAttributeWithoutId =
+          jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
         values.credentialSubject &&
+          credentialSubjectAttributeWithoutId &&
           isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
       }}
     >
-      <Form.Item>
-        <Space direction="vertical">
-          <Row justify="space-between">
-            <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
-
-            <Typography.Text copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}>
-              {schema.hash}
-            </Typography.Text>
-          </Row>
-        </Space>
+      <Form.Item
+        label="Select schema type"
+        name="schemaID"
+        rules={[{ message: VALUE_REQUIRED, required: true }]}
+      >
+        <Select
+          className="full-width"
+          loading={isAsyncTaskStarting(schemas)}
+          onChange={(id: string) => {
+            const schema =
+              isAsyncTaskDataAvailable(schemas) && schemas.data.find((schema) => schema.id === id);
+            if (schema) {
+              onSelectSchema(schema);
+              setSchema(schema);
+              fetchJsonSchema(schema);
+            }
+          }}
+          placeholder={SCHEMA_TYPE}
+        >
+          {isAsyncTaskDataAvailable(schemas) &&
+            schemas.data.map(({ id, type }) => (
+              <Select.Option key={id} value={id}>
+                {type}
+              </Select.Option>
+            ))}
+        </Select>
       </Form.Item>
 
-      <Divider />
+      {schema && (
+        <>
+          <Form.Item>
+            <Space direction="vertical">
+              <Row justify="space-between">
+                <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
 
-      <Typography.Paragraph>{schema.type}</Typography.Paragraph>
+                <Typography.Text
+                  copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
+                >
+                  {schema.hash}
+                </Typography.Text>
+              </Row>
+            </Space>
+          </Form.Item>
 
-      {jsonSchema.type !== "multi" && jsonSchema.schema.description && (
-        <Typography.Paragraph type="secondary">
-          {jsonSchema.schema.description}
-        </Typography.Paragraph>
+          <Divider />
+
+          <Typography.Paragraph>{schema.type}</Typography.Paragraph>
+
+          {(() => {
+            switch (jsonSchema.status) {
+              case "pending":
+              case "loading":
+              case "reloading": {
+                return <LoadingResult />;
+              }
+
+              case "failed": {
+                return <ErrorResult error={jsonSchemaErrorToString(jsonSchema.error)} />;
+              }
+
+              case "successful": {
+                const credentialSubjectAttributeWithoutId =
+                  extractCredentialSubjectAttributeWithoutId(jsonSchema.data);
+                return credentialSubjectAttributeWithoutId?.schema.attributes ? (
+                  <>
+                    {jsonSchema.data.type !== "multi" && jsonSchema.data.schema.description && (
+                      <Typography.Paragraph type="secondary">
+                        {jsonSchema.data.schema.description}
+                      </Typography.Paragraph>
+                    )}
+
+                    <Space direction="vertical" size="large">
+                      <ObjectAttributeForm
+                        attributes={credentialSubjectAttributeWithoutId.schema.attributes}
+                        inputErrors={inputErrors}
+                      />
+
+                      <Form.Item
+                        label="Proof type"
+                        name="proofTypes"
+                        rules={[{ message: VALUE_REQUIRED, required: true }]}
+                      >
+                        <Checkbox.Group>
+                          <Space direction="vertical">
+                            <Checkbox value="SIG">
+                              <Typography.Text>Signature-based (SIG)</Typography.Text>
+
+                              <Typography.Text type="secondary">
+                                Credential signed by the issuer using a BJJ private key.
+                              </Typography.Text>
+                            </Checkbox>
+
+                            <Checkbox value="MTP">
+                              <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
+
+                              <Typography.Text type="secondary">
+                                Credential will be added to the issuer&apos;s state tree. The state
+                                transition involves an on-chain transaction and gas fees.
+                              </Typography.Text>
+                            </Checkbox>
+                          </Space>
+                        </Checkbox.Group>
+                      </Form.Item>
+                    </Space>
+
+                    <Form.Item label="Credential expiration date" name="credentialExpiration">
+                      <DatePicker />
+                    </Form.Item>
+                  </>
+                ) : (
+                  <ErrorResult error="An error occurred while getting the credentialSubject attributes of the json schema" />
+                );
+              }
+            }
+          })()}
+        </>
       )}
 
-      <Space direction="vertical" size="large">
-        <ObjectAttributeForm
-          attributes={credentialSubjectAttributeWithoutId.schema.attributes}
-          inputErrors={inputErrors}
-        />
+      {jsonSchema.status !== "failed" && (
+        <>
+          <Divider />
+          <Row justify="end">
+            <Space size="middle">
+              <Button icon={<IconBack />} onClick={onBack} type="default">
+                Previous step
+              </Button>
 
-        <Form.Item
-          label="Proof type"
-          name="proofTypes"
-          rules={[{ message: VALUE_REQUIRED, required: true }]}
-        >
-          <Checkbox.Group>
-            <Space direction="vertical">
-              <Checkbox value="SIG">
-                <Typography.Text>Signature-based (SIG)</Typography.Text>
-
-                <Typography.Text type="secondary">
-                  Credential signed by the issuer using a BJJ private key.
-                </Typography.Text>
-              </Checkbox>
-
-              <Checkbox value="MTP">
-                <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
-
-                <Typography.Text type="secondary">
-                  Credential will be added to the issuer&apos;s state tree. The state transition
-                  involves an on-chain transaction and gas fees.
-                </Typography.Text>
-              </Checkbox>
+              <Button htmlType="submit" loading={isLoading} type="primary">
+                {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
+                {type === "credentialLink" && <IconRight />}
+              </Button>
             </Space>
-          </Checkbox.Group>
-        </Form.Item>
-      </Space>
-
-      <Form.Item label="Credential expiration date" name="credentialExpiration">
-        <DatePicker />
-      </Form.Item>
-
-      <Divider />
-
-      <Row justify="end">
-        <Space size="middle">
-          <Button icon={<IconBack />} onClick={onBack} type="default">
-            Previous step
-          </Button>
-
-          <Button disabled={!schema} htmlType="submit" loading={loading} type="primary">
-            {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
-            {type === "credentialLink" && <IconRight />}
-          </Button>
-        </Space>
-      </Row>
+          </Row>
+        </>
+      )}
     </Form>
-  ) : (
-    <ErrorResult error="An error occurred while getting the credentialSubject attributes of the json schema" />
   );
 }
