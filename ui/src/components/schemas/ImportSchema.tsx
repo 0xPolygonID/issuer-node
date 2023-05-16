@@ -56,16 +56,16 @@ export function ImportSchema() {
         />
       ) : (
         <ImportSchemaPreview
+          jsonLdContextObject={step.formData.jsonLdContextObject}
           jsonLdType={step.formData.jsonLdType}
           jsonSchema={step.formData.jsonSchema}
+          jsonSchemaObject={step.formData.jsonSchemaObject}
           onBack={() => {
             setStep({ formData: step.formData, type: "form" });
           }}
           onImport={() => {
             onSchemaImport(step.formData);
           }}
-          rawJsonLdContext={step.formData.rawJsonLdContext}
-          rawJsonSchema={step.formData.rawJsonSchema}
           url={step.formData.schemaUrl}
         />
       )}

@@ -17,17 +17,17 @@ const JSON_VIEW_LABELS: Record<JsonView, string> = {
 export function SchemaViewer({
   actions,
   contents,
+  jsonLdContextObject,
   jsonLdType,
   jsonSchema,
-  rawJsonLdContext,
-  rawJsonSchema,
+  jsonSchemaObject,
 }: {
   actions: ReactNode;
   contents: ReactNode;
+  jsonLdContextObject: Json;
   jsonLdType: JsonLdType;
   jsonSchema: JsonSchema;
-  rawJsonLdContext: Json;
-  rawJsonSchema: Json;
+  jsonSchemaObject: Json;
 }) {
   const [jsonView, setJsonView] = useState<JsonView>("formatted");
 
@@ -86,10 +86,10 @@ export function SchemaViewer({
               );
             }
             case "jsonLdContext": {
-              return <JSONHighlighter json={rawJsonLdContext} />;
+              return <JSONHighlighter json={jsonLdContextObject} />;
             }
             case "jsonSchema": {
-              return <JSONHighlighter json={rawJsonSchema} />;
+              return <JSONHighlighter json={jsonSchemaObject} />;
             }
           }
         })()}

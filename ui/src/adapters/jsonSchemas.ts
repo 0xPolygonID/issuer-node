@@ -19,10 +19,10 @@ export async function getJsonSchemaFromUrl({
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
-      const json = jsonResponse.data;
-      const jsonSchema = jsonSchemaParser.parse(json);
+      const jsonSchemaObject = jsonResponse.data;
+      const jsonSchema = jsonSchemaParser.parse(jsonSchemaObject);
       return {
-        data: [jsonSchema, json],
+        data: [jsonSchema, jsonSchemaObject],
         success: true,
       };
     }
@@ -46,10 +46,10 @@ export async function getSchemaJsonLdTypes({
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
-      const json = jsonResponse.data;
-      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(json);
+      const jsonLdContextObject = jsonResponse.data;
+      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
       return {
-        data: [jsonLdTypes, json],
+        data: [jsonLdTypes, jsonLdContextObject],
         success: true,
       };
     }

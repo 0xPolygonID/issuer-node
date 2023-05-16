@@ -4,7 +4,16 @@ import { z } from "zod";
 import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
-import { Json, ProofType } from "src/domain";
+import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
+import {
+  Attribute,
+  AttributeValue,
+  Json,
+  JsonLiteral,
+  JsonObject,
+  ObjectAttribute,
+  ProofType,
+} from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
@@ -50,9 +59,12 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
   ])
 );
 
-const formParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<FormInput, Json>()(
+const schemaFormValuesParser: z.ZodType<Json, z.ZodTypeDef, FormInput> = getStrictParser<
+  FormInput,
+  Json
+>()(
   z
-    .lazy(() => z.record(z.union([formLiteralParser, formParser])))
+    .lazy(() => z.record(z.union([formLiteralParser, schemaFormValuesParser])))
     .transform((data, context) => {
       const parsedJson = jsonParser.safeParse(data);
       if (parsedJson.success) {
@@ -190,7 +202,93 @@ export const credentialFormParser = getStrictParser<
 
 // Serializers
 
+function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-time" | "time") {
+  const template =
+    format === "date"
+      ? "YYYY-MM-DD"
+      : format === "date-time"
+      ? "YYYY-MM-DDTHH:mm:ss.SSSZ"
+      : "HH:mm:ss.SSSZ";
+
+  return dayjs(date).format(template);
+}
+
+function serializeAtrributeValue({
+  attributeValue,
+}: {
+  attributeValue: AttributeValue;
+}): JsonLiteral | JsonObject | undefined {
+  switch (attributeValue.type) {
+    case "integer":
+    case "number":
+    case "null":
+    case "boolean": {
+      return attributeValue.value;
+    }
+    case "string": {
+      switch (attributeValue.schema.format) {
+        case "date":
+        case "date-time":
+        case "time": {
+          const parsedDate = z.coerce.date(z.string().datetime()).safeParse(attributeValue.value);
+          return parsedDate.success
+            ? serializeDate(parsedDate.data, attributeValue.schema.format)
+            : attributeValue.value;
+        }
+        default: {
+          return attributeValue.value;
+        }
+      }
+    }
+    case "object": {
+      return attributeValue.value !== undefined
+        ? attributeValue.value.reduce(
+            (acc, curr) => ({
+              ...acc,
+              [curr.name]: serializeAtrributeValue({ attributeValue: curr }),
+            }),
+            {}
+          )
+        : undefined;
+    }
+    case "array": {
+      return undefined;
+    }
+    case "multi": {
+      return undefined;
+    }
+  }
+}
+
+export function serializeSchemaForm({
+  attribute,
+  value,
+}: {
+  attribute: Attribute;
+  value: Record<string, unknown>;
+}):
+  | { data: JsonLiteral | JsonObject | undefined; success: true }
+  | { error: z.ZodError; success: false } {
+  const parsedSchemaFormValues = schemaFormValuesParser.safeParse(value);
+  if (parsedSchemaFormValues.success) {
+    const parsedAttributeValue = getAttributeValueParser(attribute).safeParse(
+      parsedSchemaFormValues.data
+    );
+    if (parsedAttributeValue.success) {
+      return {
+        data: serializeAtrributeValue({ attributeValue: parsedAttributeValue.data }),
+        success: true,
+      };
+    } else {
+      return parsedAttributeValue;
+    }
+  } else {
+    return parsedSchemaFormValues;
+  }
+}
+
 export function serializeCredentialLinkIssuance({
+  attribute,
   issueCredential: {
     credentialExpiration,
     credentialSubject,
@@ -201,17 +299,21 @@ export function serializeCredentialLinkIssuance({
   },
   schemaID,
 }: {
+  attribute: ObjectAttribute;
   issueCredential: CredentialLinkIssuance;
   schemaID: string;
 }): { data: CreateLink; success: true } | { error: z.ZodError<FormInput>; success: false } {
-  const parsedCredentialSubject = formParser.safeParse(credentialSubject);
-  if (parsedCredentialSubject.success) {
+  const serializedSchemaForm = serializeSchemaForm({
+    attribute,
+    value: credentialSubject === undefined ? {} : credentialSubject,
+  });
+  if (serializedSchemaForm.success) {
     return {
       data: {
         credentialExpiration: credentialExpiration
-          ? dayjs(credentialExpiration).format("YYYY-MM-DD")
+          ? serializeDate(credentialExpiration, "date")
           : null,
-        credentialSubject: parsedCredentialSubject.data,
+        credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
@@ -221,25 +323,33 @@ export function serializeCredentialLinkIssuance({
       success: true,
     };
   } else {
-    return parsedCredentialSubject;
+    return serializedSchemaForm;
   }
 }
 
 export function serializeCredentialIssuance({
+  attribute,
   credentialSchema,
   issueCredential: { credentialExpiration, credentialSubject, did, mtProof, signatureProof },
   type,
 }: {
+  attribute: ObjectAttribute;
   credentialSchema: string;
   issueCredential: CredentialDirectIssuance;
   type: string;
 }): { data: CreateCredential; success: true } | { error: z.ZodError<FormInput>; success: false } {
-  const parsedCredentialSubject = formParser.safeParse({ ...credentialSubject, id: did });
-  if (parsedCredentialSubject.success) {
+  const serializedSchemaForm = serializeSchemaForm({
+    attribute,
+    value: {
+      ...(credentialSubject === undefined ? {} : credentialSubject),
+      id: did,
+    },
+  });
+  if (serializedSchemaForm.success) {
     return {
       data: {
         credentialSchema,
-        credentialSubject: parsedCredentialSubject.data,
+        credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,
         signatureProof,
@@ -248,7 +358,7 @@ export function serializeCredentialIssuance({
       success: true,
     };
   } else {
-    return parsedCredentialSubject;
+    return serializedSchemaForm;
   }
 }
 

@@ -15,7 +15,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Credential, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { AppError, Credential, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -27,6 +27,7 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
 import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
+import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
 
 export function CredentialDetails() {
   const navigate = useNavigate();
@@ -53,16 +54,10 @@ export function CredentialDetails() {
     void getJsonSchemaFromUrl({ url: credential.schemaUrl }).then((response) => {
       if (response.success) {
         const [jsonSchema] = response.data;
-        const credentialSubjectSchema =
-          (jsonSchema.type === "object" &&
-            jsonSchema.schema.properties
-              ?.filter((child): child is ObjectAttribute => child.type === "object")
-              .find((child) => child.name === "credentialSubject")) ||
-          null;
-
-        if (credentialSubjectSchema) {
+        const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
+        if (credentialSubjectAttribute) {
           const parsedCredentialSubject = getAttributeValueParser(
-            credentialSubjectSchema
+            credentialSubjectAttribute
           ).safeParse(credential.credentialSubject);
 
           if (parsedCredentialSubject.success) {

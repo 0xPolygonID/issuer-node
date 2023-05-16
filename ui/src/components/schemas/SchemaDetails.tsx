@@ -47,18 +47,18 @@ export function SchemaDetails() {
       url: schema.url,
     }).then((jsonSchemaResponse) => {
       if (jsonSchemaResponse.success) {
-        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
-        setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
+        const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
+        setJsonSchemaTuple({ data: [jsonSchema, jsonSchemaObject], status: "successful" });
         setContextTuple({ status: "loading" });
         void getSchemaJsonLdTypes({
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
           if (jsonLdTypesResponse.success) {
-            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
+            const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
             const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
             if (jsonLdType) {
-              setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
+              setContextTuple({ data: [jsonLdType, jsonLdContextObject], status: "successful" });
             } else {
               setContextTuple({
                 error: buildAppError(
@@ -163,8 +163,8 @@ export function SchemaDetails() {
           );
         } else {
           const { bigInt, createdAt, hash, url } = schema.data;
-          const [jsonSchema, rawJsonSchema] = jsonSchemaTuple.data;
-          const [jsonLdType, rawJsonLdContext] = contextTuple.data;
+          const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
+          const [jsonLdType, jsonLdContextObject] = contextTuple.data;
 
           return (
             <SchemaViewer
@@ -199,10 +199,10 @@ export function SchemaDetails() {
                   <DownloadSchema fileName={jsonSchema.name} url={url} />
                 </Space>
               }
+              jsonLdContextObject={jsonLdContextObject}
               jsonLdType={jsonLdType}
               jsonSchema={jsonSchema}
-              rawJsonLdContext={rawJsonLdContext}
-              rawJsonSchema={rawJsonSchema}
+              jsonSchemaObject={jsonSchemaObject}
             />
           );
         }

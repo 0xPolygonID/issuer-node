@@ -26,10 +26,10 @@ function extractValue(attributeValue: AttributeValue): JsonLiteral | undefined {
             const parsedDate = z.coerce.date(z.string().datetime()).safeParse(value);
             return parsedDate.success
               ? formatDate(parsedDate.data, attributeValue.schema.format)
-              : attributeValue.value;
+              : value;
           }
           default: {
-            return attributeValue.value === undefined ? "-" : attributeValue.value;
+            return value;
           }
         }
       }

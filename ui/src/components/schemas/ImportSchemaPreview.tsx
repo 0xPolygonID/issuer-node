@@ -8,20 +8,20 @@ import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
 export function ImportSchemaPreview({
+  jsonLdContextObject,
   jsonLdType,
   jsonSchema,
+  jsonSchemaObject,
   onBack,
   onImport,
-  rawJsonLdContext,
-  rawJsonSchema,
   url,
 }: {
+  jsonLdContextObject: Json;
   jsonLdType: JsonLdType;
   jsonSchema: JsonSchema;
+  jsonSchemaObject: Json;
   onBack: () => void;
   onImport: () => void;
-  rawJsonLdContext: Json;
-  rawJsonSchema: Json;
   url: string;
 }) {
   const bigintResult = getBigint(jsonLdType);
@@ -63,10 +63,10 @@ export function ImportSchemaPreview({
           <DownloadSchema fileName={jsonSchema.name} url={url} />
         </Space>
       }
+      jsonLdContextObject={jsonLdContextObject}
       jsonLdType={jsonLdType}
       jsonSchema={jsonSchema}
-      rawJsonLdContext={rawJsonLdContext}
-      rawJsonSchema={rawJsonSchema}
+      jsonSchemaObject={jsonSchemaObject}
     />
   );
 }

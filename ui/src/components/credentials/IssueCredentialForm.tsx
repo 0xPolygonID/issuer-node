@@ -1,14 +1,41 @@
+import Ajv, { ErrorObject } from "ajv";
+import addFormats from "ajv-formats";
 import { Button, Checkbox, Col, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
-import { IssueCredentialFormData } from "src/adapters/parsers/forms";
+import { useState } from "react";
 
+import { IssueCredentialFormData, serializeSchemaForm } from "src/adapters/parsers/forms";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
 import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
 import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
 import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
-import { CredentialSubjectForm } from "src/components/credentials/CredentialSubjectForm";
+import { InputErrors, ObjectAttributeForm } from "src/components/credentials/ObjectAttributeForm";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { JsonSchema, ObjectAttribute, Schema } from "src/domain";
 import { ISSUE_CREDENTIAL_DIRECT, ISSUE_CREDENTIAL_LINK, SCHEMA_HASH } from "src/utils/constants";
+import { buildAppError, notifyError } from "src/utils/error";
+import {
+  extractCredentialSubjectAttributeWithoutId,
+  makeAttributeOptional,
+} from "src/utils/jsonSchemas";
+
+function addErrorToPath(inputErrors: InputErrors, path: string[], error: string): InputErrors {
+  const key = path[0];
+  if (path.length > 1) {
+    const value = (key && inputErrors[key]) || {};
+    return key
+      ? {
+          ...inputErrors,
+          [key]: addErrorToPath(
+            typeof value === "string" ? {} : value,
+            path.slice(1, path.length),
+            error
+          ),
+        }
+      : inputErrors;
+  } else {
+    return key ? { ...inputErrors, [key]: error } : inputErrors;
+  }
+}
 
 export function IssueCredentialForm({
   initialValues,
@@ -27,24 +54,75 @@ export function IssueCredentialForm({
   schema: Schema;
   type: "directIssue" | "credentialLink";
 }) {
-  const rawCredentialSubjectAttributes =
-    (jsonSchema.type === "object" &&
-      jsonSchema.schema.properties
-        ?.filter((child): child is ObjectAttribute => child.type === "object")
-        .find((child) => child.name === "credentialSubject")?.schema.properties) ||
-    null;
+  const [inputErrors, setInputErrors] = useState<InputErrors>();
 
-  const credentialSubjectAttributes =
-    rawCredentialSubjectAttributes &&
-    rawCredentialSubjectAttributes.filter((attribute) => attribute.name !== "id");
+  function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
+    const serializedSchemaForm = serializeSchemaForm({
+      attribute: makeAttributeOptional(objectAttribute),
+      value,
+    });
+    if (serializedSchemaForm.success) {
+      const { properties, required, type } = objectAttribute.schema;
+      try {
+        const ajv = new Ajv({ allErrors: true });
+        addFormats(ajv);
+        const validate = ajv.compile({
+          properties,
+          required,
+          type,
+        });
+        const valid = validate(serializedSchemaForm.data);
 
-  return credentialSubjectAttributes ? (
+        if (valid) {
+          setInputErrors(undefined);
+          return true;
+        } else if (validate.errors) {
+          setInputErrors(
+            validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
+              if (curr.keyword === "required") {
+                // filtering out required errors since we manage these from the antd form
+                return acc;
+              } else {
+                const errorMsg = curr.message
+                  ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
+                  : "Unknown validation error";
+                const path = curr.instancePath
+                  .split("/")
+                  .filter((segment) => segment !== "/" && segment !== "");
+                return addErrorToPath(acc, path, errorMsg);
+              }
+            }, {})
+          );
+        }
+      } catch (error) {
+        notifyError(buildAppError(error));
+      }
+    } else {
+      notifyError(buildAppError(serializedSchemaForm.error));
+    }
+    return false;
+  }
+
+  const credentialSubjectAttributeWithoutId =
+    extractCredentialSubjectAttributeWithoutId(jsonSchema);
+
+  return credentialSubjectAttributeWithoutId?.schema.attributes ? (
     <Form
       initialValues={initialValues}
       layout="vertical"
-      onFinish={onSubmit}
+      onFinish={(values: IssueCredentialFormData) => {
+        if (
+          values.credentialSubject &&
+          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId)
+        ) {
+          onSubmit(values);
+        }
+      }}
+      onValuesChange={(_, values: IssueCredentialFormData) => {
+        values.credentialSubject &&
+          isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
+      }}
       requiredMark={false}
-      validateTrigger="onBlur"
     >
       <Form.Item>
         <Space direction="vertical">
@@ -69,7 +147,10 @@ export function IssueCredentialForm({
       )}
 
       <Space direction="vertical" size="large">
-        <CredentialSubjectForm attributes={credentialSubjectAttributes} />
+        <ObjectAttributeForm
+          attributes={credentialSubjectAttributeWithoutId.schema.attributes}
+          inputErrors={inputErrors}
+        />
 
         <Form.Item label="Proof type" name="proofTypes" required>
           <Checkbox.Group>
