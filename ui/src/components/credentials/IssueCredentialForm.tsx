@@ -3,6 +3,7 @@ import addFormats from "ajv-formats";
 import {
   Button,
   Checkbox,
+  Col,
   DatePicker,
   Divider,
   Form,
@@ -347,17 +348,19 @@ export function IssueCredentialForm({
       {jsonSchema.status !== "failed" && (
         <>
           <Divider />
-          <Row justify="end">
-            <Space size="middle">
+          <Row gutter={[8, 8]} justify="end">
+            <Col>
               <Button icon={<IconBack />} onClick={onBack} type="default">
                 Previous step
               </Button>
+            </Col>
 
+            <Col>
               <Button htmlType="submit" loading={isLoading} type="primary">
                 {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
                 {type === "credentialLink" && <IconRight />}
               </Button>
-            </Space>
+            </Col>
           </Row>
         </>
       )}
