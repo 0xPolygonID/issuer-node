@@ -52,7 +52,7 @@ services:
       retries: 5
 
   vault:
-    image: vault:latest
+    image: vault:1.13.2
     volumes:
       - ./.vault/config:/vault/config
       - ./.vault/policies:/vault/policies
