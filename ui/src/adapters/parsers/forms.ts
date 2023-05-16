@@ -117,6 +117,7 @@ export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
   proofTypes: ProofType[];
+  schemaID?: string;
 };
 
 const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()(
@@ -126,6 +127,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     proofTypes: z
       .array(z.union([z.literal("MTP"), z.literal("SIG")]))
       .min(1, "At least one proof type is required"),
+    schemaID: z.string().optional(),
   })
 );
 

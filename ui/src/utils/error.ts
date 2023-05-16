@@ -105,8 +105,8 @@ export const credentialSubjectValueErrorToString = (error: AppError) =>
 export const jsonSchemaErrorToString = (error: AppError) =>
   [
     error.type === "parse-error" || error.type === "custom-error"
-      ? "An error occurred while parsing the json schema:"
-      : "An error occurred while downloading the json schema:",
+      ? "An error occurred while parsing the JSON Schema:"
+      : "An error occurred while downloading the JSON Schema:",
     error.message,
     "Please try again.",
   ].join("\n");
