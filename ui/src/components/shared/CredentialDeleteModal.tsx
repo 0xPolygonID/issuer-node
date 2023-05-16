@@ -1,4 +1,4 @@
-import { Alert, Button, Modal, Space, Typography, message } from "antd";
+import { Alert, Button, Modal, Row, Space, Typography, message } from "antd";
 import { useState } from "react";
 
 import { deleteCredential, revokeCredential } from "src/adapters/api/credentials";
@@ -63,31 +63,21 @@ export function CredentialDeleteModal({
       centered
       closable
       closeIcon={<IconClose />}
-      footer={[
-        <Button key="close" onClick={onClose}>
-          {CLOSE}
-        </Button>,
-        <Button
-          danger
-          key="delete"
-          loading={isLoading}
-          onClick={handleDeleteCredential}
-          type="primary"
-        >
-          {DELETE}
-        </Button>,
-        !revoked && (
-          <Button
-            danger
-            key="deleteRevoke"
-            loading={isLoading}
-            onClick={handleRevokeCredential}
-            type="primary"
-          >
-            Delete & Revoke
+      footer={
+        <Row gutter={[8, 8]} justify="end">
+          <Button onClick={onClose}>{CLOSE}</Button>
+
+          <Button danger loading={isLoading} onClick={handleDeleteCredential} type="primary">
+            {DELETE}
           </Button>
-        ),
-      ]}
+
+          {!revoked && (
+            <Button danger loading={isLoading} onClick={handleRevokeCredential} type="primary">
+              Delete & Revoke
+            </Button>
+          )}
+        </Row>
+      }
       maskClosable
       onCancel={onClose}
       open

@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Dropdown,
+  Grid,
   Radio,
   RadioChangeEvent,
   Row,
@@ -51,6 +52,8 @@ export function LinksTable() {
 
   const navigate = useNavigate();
 
+  const { md, sm } = Grid.useBreakpoint();
+
   const [links, setLinks] = useState<AsyncTask<Link[], AppError>>({
     status: "pending",
   });
@@ -86,7 +89,7 @@ export function LinksTable() {
       ),
       sorter: ({ active: a }, { active: b }) => (a === b ? 0 : a ? 1 : -1),
       title: "Active",
-      width: 100,
+      width: md ? 100 : 60,
     },
     {
       dataIndex: "schemaType",
@@ -107,6 +110,7 @@ export function LinksTable() {
       render: (expiration: Link["expiration"]) => (
         <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
+      responsive: ["sm"],
       sorter: ({ expiration: a }, { expiration: b }) => {
         if (a && b) {
           return dayjs(a).unix() - dayjs(b).unix();
@@ -127,6 +131,7 @@ export function LinksTable() {
 
         return <Typography.Text>{value}</Typography.Text>;
       },
+      responsive: ["md"],
       sorter: ({ issuedClaims: a }, { issuedClaims: b }) => (a === b ? 0 : a ? 1 : -1),
       title: "Credentials issued",
     },
@@ -139,6 +144,7 @@ export function LinksTable() {
 
         return <Typography.Text>{value}</Typography.Text>;
       },
+      responsive: ["md"],
       sorter: ({ maxIssuance: a }, { maxIssuance: b }) => {
         if (a && b) {
           return a - b;
@@ -376,7 +382,7 @@ export function LinksTable() {
           />
         }
         title={
-          <Row justify="space-between">
+          <Row gutter={[0, 8]} justify="space-between">
             <Space size="middle">
               <Card.Meta title={LINKS} />
 
@@ -389,7 +395,8 @@ export function LinksTable() {
 
                 <Radio.Button value="active">Active</Radio.Button>
 
-                <Radio.Button value="inactive">Inactive</Radio.Button>
+                {/* //TODO PID-702 Merge in one button */}
+                {sm && <Radio.Button value="inactive">Inactive</Radio.Button>}
 
                 <Radio.Button value="exceeded">Exceeded</Radio.Button>
               </Radio.Group>

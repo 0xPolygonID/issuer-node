@@ -1,4 +1,4 @@
-import { Button, Tabs } from "antd";
+import { Button, Grid, Space, Tabs } from "antd";
 import { ComponentType } from "react";
 import { Navigate, generatePath, useNavigate, useParams } from "react-router-dom";
 
@@ -19,6 +19,8 @@ export function Credentials() {
   const navigate = useNavigate();
   const { tabID } = useParams();
   const { path } = ROUTES.credentials;
+
+  const { md } = Grid.useBreakpoint();
 
   const goToTab = (key: string): void => {
     if (key !== tabID) {
@@ -54,20 +56,23 @@ export function Credentials() {
       }
       title={CREDENTIALS}
     >
-      <Tabs
-        activeKey={tabID}
-        destroyInactiveTabPane
-        items={CREDENTIALS_TABS.map(({ id, tabID, title }) => {
-          const Component = tabComponents[id];
+      <Space direction="vertical">
+        <Tabs
+          activeKey={tabID}
+          className={md ? undefined : "tab-responsive"}
+          destroyInactiveTabPane
+          items={CREDENTIALS_TABS.map(({ id, tabID, title }) => {
+            const Component = tabComponents[id];
 
-          return {
-            children: <Component />,
-            key: tabID,
-            label: title,
-          };
-        })}
-        onTabClick={goToTab}
-      />
+            return {
+              children: <Component />,
+              key: tabID,
+              label: title,
+            };
+          })}
+          onTabClick={goToTab}
+        />
+      </Space>
     </SiderLayoutContent>
   );
 }

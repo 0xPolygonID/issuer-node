@@ -156,7 +156,28 @@ func ValidateCredentialSubject(ctx context.Context, loader loader.Loader, schema
 		return err
 	}
 
-	return validateDummyVC(dummyVC)
+	err = validateDummyVCAgainstSchema(dummyVC, schema)
+	if err != nil {
+		return err
+	}
+
+	return validateDummyVCEntries(dummyVC)
+}
+
+func validateDummyVCAgainstSchema(dummyVC map[string]interface{}, schema *JSONSchema) error {
+	schemaBytes, err := json.Marshal(schema.content)
+	if err != nil {
+		return err
+	}
+
+	dummyVCBytes, err := json.Marshal(dummyVC)
+	if err != nil {
+		return err
+	}
+
+	validator := jsonSuite.Validator{}
+
+	return validator.ValidateData(dummyVCBytes, schemaBytes)
 }
 
 func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaContext string) (map[string]interface{}, error) {
@@ -166,14 +187,14 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 	vc := map[string]interface{}{
 		"@context": []interface{}{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", schemaContext},
 		"credentialSchema": map[string]interface{}{
-			"id":   schemaType,
+			"id":   "https://www.w3.org/2018/credentials/v1",
 			"type": "JsonSchemaValidator2018",
 		},
 		"credentialStatus": map[string]interface{}{
 			"id": "testStatus",
 		},
 		"credentialSubject": cSubject,
-		"id":                "testID",
+		"id":                "https://someURL/someschemaContext.jsonld",
 		"issuanceDate":      "2023-04-27T23:45:29.498555+02:00",
 		"issuer":            fakeIssuerDID,
 		"type": []interface{}{
@@ -181,7 +202,7 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 		},
 	}
 
-	mBytes, err := json.Marshal(vc) // this marshal and unmarshal needs to be done for the validateDummyVC function
+	mBytes, err := json.Marshal(vc) // this marshal and unmarshal needs to be done for the validateDummyVCEntries function
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +213,7 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 	return resp, err
 }
 
-func validateDummyVC(vc map[string]interface{}) error {
+func validateDummyVCEntries(vc map[string]interface{}) error {
 	proc := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
 	options.Algorithm = ld.AlgorithmURDNA2015

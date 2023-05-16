@@ -1,4 +1,4 @@
-import { Button, Card, Row, Space, message } from "antd";
+import { Button, Card, Col, Row, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -317,19 +317,21 @@ export function IssueCredential() {
                       }
                     })()
                   ) : (
-                    <Row justify="end">
-                      <Space size="middle">
+                    <Row gutter={[16, 16]} justify="end">
+                      <Col>
                         <Button icon={<IconBack />} onClick={onBack} type="default">
                           Previous step
                         </Button>
+                      </Col>
 
+                      <Col>
                         <Button disabled htmlType="submit" type="primary">
                           {credentialFormInput.issuanceMethod.type === "directIssue"
                             ? ISSUE_CREDENTIAL_DIRECT
                             : ISSUE_CREDENTIAL_LINK}
                           <IconRight />
                         </Button>
-                      </Space>
+                      </Col>
                     </Row>
                   )}
                 </Space>

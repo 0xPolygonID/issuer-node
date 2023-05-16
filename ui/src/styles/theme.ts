@@ -10,6 +10,7 @@ type StyleVariables = {
   borderColor: string;
   cyanBg: string;
   cyanColor: string;
+  dividerColor: string;
   errorBg: string;
   errorColor: string;
   primaryBg: string;
@@ -30,6 +31,7 @@ const parsedStyleVariables = getStrictParser<StyleVariables>()(
     borderColor: z.string(),
     cyanBg: z.string(),
     cyanColor: z.string(),
+    dividerColor: z.string(),
     errorBg: z.string(),
     errorColor: z.string(),
     primaryBg: z.string(),

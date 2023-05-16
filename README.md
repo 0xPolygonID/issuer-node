@@ -29,8 +29,9 @@ These steps can be followed to get up and running with all features as quickly a
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
 1. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
 1. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose frontend can be accessed via the browser (default <http://localhost:3001>).
-1. Follow the [steps](#import-wallet-private-key-to-vault) for adding an Ethereum private key to the Vault.
-1. Follow the [steps](#create-issuer-did) for creating an identity as your issuer DID.
+1. [Add](#import-wallet-private-key-to-vault) your Ethereum private key to the Vault.
+1. [Add](#add-vault-to-configuration-file) the Vault to the config.
+1. [Create](#create-issuer-did) your issuer DID.
 1. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#development-ui) section for more details.
 1. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
 
@@ -412,8 +413,9 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 1. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
 1. Run `./bin/platform` command to start the issuer.
 1. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
-1. Follow the [steps](#import-wallet-private-key-to-vault) for adding an Ethereum private key to the Vault.
-1. Follow the [steps](#create-issuer-did) for creating an identity as your issuer DID.
+1. [Add](#import-wallet-private-key-to-vault) your Ethereum private key to the Vault.
+1. [Add](#add-vault-to-configuration-file) the Vault to the config.
+1. [Create](#create-issuer-did) your issuer DID.
 1. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
 1. _Documentation pending: standalone UI setup._
 
