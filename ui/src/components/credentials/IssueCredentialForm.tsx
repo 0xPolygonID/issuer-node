@@ -1,4 +1,4 @@
-import { Button, Checkbox, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
+import { Button, Checkbox, Col, DatePicker, Divider, Form, Row, Space, Typography } from "antd";
 import { IssueCredentialFormData } from "src/adapters/parsers/forms";
 
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
@@ -101,17 +101,19 @@ export function IssueCredentialForm({
 
       <Divider />
 
-      <Row justify="end">
-        <Space size="middle">
+      <Row gutter={[8, 8]} justify="end">
+        <Col>
           <Button icon={<IconBack />} onClick={onBack} type="default">
             Previous step
           </Button>
+        </Col>
 
+        <Col>
           <Button disabled={!schema} htmlType="submit" loading={loading} type="primary">
             {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
             {type === "credentialLink" && <IconRight />}
           </Button>
-        </Space>
+        </Col>
       </Row>
     </Form>
   ) : (

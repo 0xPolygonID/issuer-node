@@ -1,9 +1,9 @@
-import { Button, Divider, Space } from "antd";
+import { Button, Col, Divider, Row, Space } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
-import { MySchemas } from "src/components/schemas/SchemasTable";
+import { SchemasTable } from "src/components/schemas/SchemasTable";
 import { Explainer } from "src/components/shared/Explainer";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { ROUTES } from "src/routes";
@@ -16,23 +16,27 @@ export function Schemas() {
     <SiderLayoutContent
       description="Verifiable credential schemas help to ensure the structure and data formatting across different services."
       extra={
-        <Space align="start" size="middle">
-          <Button
-            icon={<IconCreditCardPlus />}
-            onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
-            type="default"
-          >
-            {ISSUE_CREDENTIAL}
-          </Button>
+        <Row gutter={[8, 8]}>
+          <Col>
+            <Button
+              icon={<IconCreditCardPlus />}
+              onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
+              type="default"
+            >
+              {ISSUE_CREDENTIAL}
+            </Button>
+          </Col>
 
-          <Button
-            icon={<IconUpload />}
-            onClick={() => navigate(ROUTES.importSchema.path)}
-            type="primary"
-          >
-            {IMPORT_SCHEMA}
-          </Button>
-        </Space>
+          <Col>
+            <Button
+              icon={<IconUpload />}
+              onClick={() => navigate(ROUTES.importSchema.path)}
+              type="primary"
+            >
+              {IMPORT_SCHEMA}
+            </Button>
+          </Col>
+        </Row>
       }
       title={SCHEMAS}
     >
@@ -47,7 +51,7 @@ export function Schemas() {
           title="Credential schemas explained"
         />
 
-        <MySchemas />
+        <SchemasTable />
       </Space>
     </SiderLayoutContent>
   );

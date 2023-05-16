@@ -22,7 +22,13 @@ import {
   TUTORIALS_URL,
 } from "src/utils/constants";
 
-export function SiderMenu() {
+export function SiderMenu({
+  isBreakpoint,
+  onClick,
+}: {
+  isBreakpoint?: boolean;
+  onClick: () => void;
+}) {
   const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
   const { pathname } = useLocation();
@@ -68,8 +74,19 @@ export function SiderMenu() {
     return [];
   };
 
+  const onMenuClick = (path: string) => {
+    onClick();
+    navigate(path);
+  };
+
   return (
-    <Row className="menu-sider-layout" justify="space-between">
+    <Row
+      className="menu-sider-layout"
+      justify="space-between"
+      style={{
+        padding: isBreakpoint ? "32px 24px" : "96px 24px 32px",
+      }}
+    >
       <Col>
         <UserDisplay />
 
@@ -81,24 +98,27 @@ export function SiderMenu() {
               icon: <IconSchema />,
               key: schemasPath,
               label: SCHEMAS,
-              onClick: () => navigate(schemasPath),
+              onClick: () => onMenuClick(schemasPath),
+              title: "",
             },
             {
               icon: <IconCredentials />,
               key: credentialsPath,
               label: CREDENTIALS,
               onClick: () =>
-                navigate(
+                onMenuClick(
                   generatePath(credentialsPath, {
                     tabID: CREDENTIALS_TABS[0].tabID,
                   })
                 ),
+              title: "",
             },
             {
               icon: <IconConnections />,
               key: connectionsPath,
               label: CONNECTIONS,
-              onClick: () => navigate(connectionsPath),
+              onClick: () => onMenuClick(connectionsPath),
+              title: "",
             },
             {
               icon: <IconIssuerState />,
@@ -114,14 +134,15 @@ export function SiderMenu() {
                 ) : (
                   ISSUER_STATE
                 ),
-              onClick: () => navigate(issuerStatePath),
+              onClick: () => onMenuClick(issuerStatePath),
+              title: "",
             },
           ]}
           selectedKeys={getSelectedKey()}
         />
       </Col>
 
-      <Col>
+      <Space direction="vertical" size={40}>
         <Menu
           items={[
             {
@@ -139,13 +160,14 @@ export function SiderMenu() {
             },
           ]}
         />
+        {isBreakpoint && (
+          <Space>
+            <LogoLink />
 
-        <Space style={{ marginTop: 40 }}>
-          <LogoLink />
-
-          {buildTag && <Tag>{buildTag}</Tag>}
-        </Space>
-      </Col>
+            {buildTag && <Tag>{buildTag}</Tag>}
+          </Space>
+        )}
+      </Space>
     </Row>
   );
 }
