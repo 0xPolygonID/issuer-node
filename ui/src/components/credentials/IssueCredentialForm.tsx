@@ -337,7 +337,7 @@ export function IssueCredentialForm({
                     </Form.Item>
                   </>
                 ) : (
-                  <ErrorResult error="An error occurred while getting the credentialSubject attributes of the json schema" />
+                  <ErrorResult error="An error occurred while getting the credentialSubject attributes of the JSON Schema" />
                 );
               }
             }
