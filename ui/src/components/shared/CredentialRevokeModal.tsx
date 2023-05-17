@@ -19,6 +19,9 @@ export function CredentialRevokeModal({
 }) {
   const env = useEnvContext();
   const { notifyChange } = useIssuerStateContext();
+
+  const [messageAPI, messageContext] = message.useMessage();
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const { revNonce: nonce } = credential;
@@ -32,35 +35,39 @@ export function CredentialRevokeModal({
         onRevoke();
 
         void notifyChange("revoke");
-        void message.success(response.data.message);
+        void messageAPI.success(response.data.message);
       } else {
         setIsLoading(false);
 
-        void message.error(response.error.message);
+        void messageAPI.error(response.error.message);
       }
     });
   };
 
   return (
-    <Modal
-      cancelText={CLOSE}
-      centered
-      closable
-      closeIcon={<IconClose />}
-      maskClosable
-      okButtonProps={{ danger: true, loading: isLoading }}
-      okText={REVOKE}
-      onCancel={onClose}
-      onOk={handleRevokeCredential}
-      open
-      title="Are you sure you want to revoke this credential?"
-    >
-      <Space direction="vertical">
-        <Typography.Text type="secondary">
-          Revoking of a credential must be accompanied by publishing of issuer state in order for
-          the action to be effective. This action cannot be undone.
-        </Typography.Text>
-      </Space>
-    </Modal>
+    <>
+      {messageContext}
+
+      <Modal
+        cancelText={CLOSE}
+        centered
+        closable
+        closeIcon={<IconClose />}
+        maskClosable
+        okButtonProps={{ danger: true, loading: isLoading }}
+        okText={REVOKE}
+        onCancel={onClose}
+        onOk={handleRevokeCredential}
+        open
+        title="Are you sure you want to revoke this credential?"
+      >
+        <Space direction="vertical">
+          <Typography.Text type="secondary">
+            Revoking of a credential must be accompanied by publishing of issuer state in order for
+            the action to be effective. This action cannot be undone.
+          </Typography.Text>
+        </Space>
+      </Modal>
+    </>
   );
 }

@@ -8,6 +8,7 @@ import { ROUTES } from "src/routes";
 import { CREDENTIALS_TABS, CREDENTIAL_LINK } from "src/utils/constants";
 
 export function Summary({ linkID }: { linkID: string }) {
+  const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
 
   const linkURL = `${window.location.origin}${generatePath(ROUTES.credentialLinkQR.path, {
@@ -28,44 +29,48 @@ export function Summary({ linkID }: { linkID: string }) {
     });
 
     if (hasCopied) {
-      void message.success("Credential link copied to clipboard.");
+      void messageAPI.success("Credential link copied to clipboard.");
     } else {
-      void message.error("Couldn't copy credential link. Please try again.");
+      void messageAPI.error("Couldn't copy credential link. Please try again.");
     }
   };
 
   return (
-    <Card
-      className="issue-credential-card"
-      extra={
-        <Button
-          href={generatePath(ROUTES.credentialLinkQR.path, { linkID })}
-          icon={<ExternalLinkIcon />}
-          target="_blank"
-          type="link"
-        >
-          View link
-        </Button>
-      }
-      title={CREDENTIAL_LINK}
-    >
-      <Form layout="vertical">
-        <Form.Item>
-          <Space.Compact className="full-width">
-            <Input allowClear disabled value={linkURL} />
+    <>
+      {messageContext}
 
-            <Button icon={<IconCopy style={{ marginRight: 0 }} />} onClick={onCopyToClipboard} />
-          </Space.Compact>
-        </Form.Item>
-      </Form>
+      <Card
+        className="issue-credential-card"
+        extra={
+          <Button
+            href={generatePath(ROUTES.credentialLinkQR.path, { linkID })}
+            icon={<ExternalLinkIcon />}
+            target="_blank"
+            type="link"
+          >
+            View link
+          </Button>
+        }
+        title={CREDENTIAL_LINK}
+      >
+        <Form layout="vertical">
+          <Form.Item>
+            <Space.Compact className="full-width">
+              <Input allowClear disabled value={linkURL} />
 
-      <Divider />
+              <Button icon={<IconCopy style={{ marginRight: 0 }} />} onClick={onCopyToClipboard} />
+            </Space.Compact>
+          </Form.Item>
+        </Form>
 
-      <Row justify="end">
-        <Button onClick={navigateToLinks} type="primary">
-          Done
-        </Button>
-      </Row>
-    </Card>
+        <Divider />
+
+        <Row justify="end">
+          <Button onClick={navigateToLinks} type="primary">
+            Done
+          </Button>
+        </Row>
+      </Card>
+    </>
   );
 }

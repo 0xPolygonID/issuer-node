@@ -50,17 +50,16 @@ import { formatDate } from "src/utils/forms";
 export function LinksTable() {
   const env = useEnvContext();
 
-  const navigate = useNavigate();
-
   const { md, sm } = Grid.useBreakpoint();
+  const [messageAPI] = message.useMessage();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [links, setLinks] = useState<AsyncTask<Link[], AppError>>({
     status: "pending",
   });
   const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
   const [linkToDelete, setLinkToDelete] = useState<string>();
-
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const linksList = isAsyncTaskDataAvailable(links) ? links.data : [];
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
@@ -291,9 +290,9 @@ export function LinksTable() {
       if (response.success) {
         updateCredentialInState(active, id);
 
-        void message.success(response.data.message);
+        void messageAPI.success(response.data.message);
       } else {
-        void message.error(response.error.message);
+        void messageAPI.error(response.error.message);
       }
 
       setLinkUpdating((currentLinksUpdating) => {
