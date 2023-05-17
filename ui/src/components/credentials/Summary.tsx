@@ -1,4 +1,4 @@
-import { Button, Card, Divider, Form, Input, Row, message } from "antd";
+import { Button, Card, Divider, Form, Input, Row, Space, message } from "antd";
 import copy from "copy-to-clipboard";
 import { generatePath, useNavigate } from "react-router-dom";
 
@@ -51,11 +51,11 @@ export function Summary({ linkID }: { linkID: string }) {
     >
       <Form layout="vertical">
         <Form.Item>
-          <Input.Group className="input-copy-group" compact>
-            <Input disabled value={linkURL} />
+          <Space.Compact className="full-width">
+            <Input allowClear disabled value={linkURL} />
 
             <Button icon={<IconCopy style={{ marginRight: 0 }} />} onClick={onCopyToClipboard} />
-          </Input.Group>
+          </Space.Compact>
         </Form.Item>
       </Form>
 
