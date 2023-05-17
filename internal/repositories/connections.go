@@ -204,23 +204,23 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string)
 		sqlQuery = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash=schemas.hash AND claims.issuer=schemas.issuer_id ", sqlQuery)
 	}
 
-	filters := []interface{}{issuerDID.String()}
+	sqlArgs := []interface{}{issuerDID.String()}
 
-	sqlQuery = fmt.Sprintf("%s WHERE connections.issuer_id = $%d", sqlQuery, len(filters))
+	sqlQuery = fmt.Sprintf("%s WHERE connections.issuer_id = $%d", sqlQuery, len(sqlArgs))
 	if query != "" {
-		filters = append(filters, fullTextSearchQuery(query, " | "))
-		ftsConds := fmt.Sprintf("(schemas.ts_words @@ to_tsquery($%d))", len(filters))
-
-		dids := tokenizeQuery(query)
-		if len(dids) > 0 {
-			ftsConds += " OR " + buildPartialQueryDidLikes("connections.user_id", dids, "OR")
+		terms := tokenizeQuery(query)
+		if len(terms) > 0 {
+			ftsConds := buildPartialQueryLikes("schemas.words", "OR", len(sqlArgs)+1, len(terms)) + " OR " + buildPartialQueryDidLikes("connections.user_id", terms, "OR")
+			sqlQuery += fmt.Sprintf(" AND (%s) ", ftsConds)
+			for _, term := range terms {
+				sqlArgs = append(sqlArgs, term)
+			}
 		}
-		sqlQuery += fmt.Sprintf(" AND (%s) ", ftsConds)
 	}
 
 	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST, connections.created_at DESC"
 
-	return sqlQuery, filters
+	return sqlQuery, sqlArgs
 }
 
 func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {

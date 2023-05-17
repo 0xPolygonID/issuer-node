@@ -6,35 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFullTextSearchQuery(t *testing.T) {
-	type testConfig struct {
-		input    string
-		operator string
-		expect   string
-	}
-	for _, tc := range []testConfig{
-		{
-			input:    "",
-			operator: "&",
-			expect:   "",
-		},
-		{
-			input:    "word",
-			operator: "&",
-			expect:   "(word:* | word)",
-		},
-		{
-			input:    "two words",
-			operator: "&",
-			expect:   "(two:* | two)&(words:* | words)",
-		},
-	} {
-		t.Run(tc.input, func(t *testing.T) {
-			assert.Equal(t, tc.expect, fullTextSearchQuery(tc.input, tc.operator))
-		})
-	}
-}
-
 func TestGetDIDFromQuery(t *testing.T) {
 	type testConfig struct {
 		input  string
@@ -181,6 +152,55 @@ func TestBuildPartialQueryDidLikes(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			assert.Equal(t, tc.expect, buildPartialQueryDidLikes(tc.field, tc.input, tc.cond))
+		})
+	}
+}
+
+func TestBuildPartialQueryLikes(t *testing.T) {
+	type testConfig struct {
+		name   string
+		field  string
+		cond   string
+		first  int
+		n      int
+		expect string
+	}
+	for _, tc := range []testConfig{
+		{
+			name:   "empty",
+			field:  "field",
+			cond:   "OR",
+			first:  1,
+			n:      0,
+			expect: "",
+		},
+		{
+			name:   "one field",
+			field:  "field",
+			cond:   "OR",
+			first:  1,
+			n:      1,
+			expect: "field ILIKE '%' || $1 || '%'",
+		},
+		{
+			name:   "2 fields",
+			field:  "field",
+			cond:   "OR",
+			first:  1,
+			n:      2,
+			expect: "field ILIKE '%' || $1 || '%' OR field ILIKE '%' || $2 || '%'",
+		},
+		{
+			name:   "2 fields, starting at 3",
+			field:  "field",
+			cond:   "OR",
+			first:  3,
+			n:      2,
+			expect: "field ILIKE '%' || $3 || '%' OR field ILIKE '%' || $4 || '%'",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expect, buildPartialQueryLikes(tc.field, tc.cond, tc.first, tc.n))
 		})
 	}
 }

@@ -504,7 +504,7 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 	var err error
 	status := ports.LinkAll
 	if request.Params.Status != nil {
-		if status, err = ports.LinkTypeReqFromString(strings.ToLower(string(*request.Params.Status))); err != nil {
+		if status, err = ports.LinkTypeReqFromString(string(*request.Params.Status)); err != nil {
 			log.Warn(ctx, "unknown request type getting links", "err", err, "type", request.Params.Status)
 			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}

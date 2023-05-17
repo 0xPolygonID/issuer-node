@@ -38,6 +38,6 @@ func TestSchema_ImportSchema(t *testing.T) {
 	assert.Equal(t, schemaType, got.Type)
 	assert.Equal(t, did, got.IssuerDID.String())
 	assert.Equal(t, expectHash, got.Hash)
-	assert.Len(t, got.Attributes, 3)
+	assert.Len(t, got.Words, 3)
 	assert.InDelta(t, time.Now().UnixMilli(), got.CreatedAt.UnixMilli(), 1)
 }
