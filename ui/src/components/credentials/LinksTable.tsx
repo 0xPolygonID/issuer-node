@@ -51,7 +51,7 @@ export function LinksTable() {
   const env = useEnvContext();
 
   const { md, sm } = Grid.useBreakpoint();
-  const [messageAPI] = message.useMessage();
+  const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -328,6 +328,8 @@ export function LinksTable() {
 
   return (
     <>
+      {messageContext}
+
       <TableCard
         defaultContents={
           <>
@@ -403,6 +405,7 @@ export function LinksTable() {
           </Row>
         }
       />
+
       {linkToDelete && (
         <LinkDeleteModal
           id={linkToDelete}
