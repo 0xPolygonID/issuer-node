@@ -49,8 +49,9 @@ export function IssueCredential() {
   const { notifyChange } = useIssuerStateContext();
 
   const navigate = useNavigate();
-
+  const [messageAPI, messageContext] = message.useMessage();
   const [searchParams] = useSearchParams();
+
   const schemaID = searchParams.get(SCHEMA_SEARCH_PARAM) || undefined;
   const did = searchParams.get(DID_SEARCH_PARAM) || undefined;
 
@@ -136,11 +137,11 @@ export function IssueCredential() {
           setLinkID({ data: response.data.id, status: "successful" });
           setStep("summary");
 
-          void message.success("Credential link created");
+          void messageAPI.success("Credential link created");
         } else {
           setLinkID({ error: null, status: "failed" });
 
-          void message.error(response.error.message);
+          void messageAPI.error(response.error.message);
         }
       } else {
         notifyParseError(serializedCredentialForm.error);
@@ -185,9 +186,9 @@ export function IssueCredential() {
             void notifyChange("credential");
           }
 
-          void message.success("Credential issued");
+          void messageAPI.success("Credential issued");
         } else {
-          void message.error(response.error.message);
+          void messageAPI.error(response.error.message);
         }
       } else {
         notifyParseError(serializedCredentialForm.error);
@@ -207,85 +208,89 @@ export function IssueCredential() {
   }, [schemaID]);
 
   return (
-    <SiderLayoutContent
-      description="A credential is issued with assigned attribute values and can be issued directly to identifier or as a credential link containing a QR code."
-      showBackButton
-      showDivider
-      title={ISSUE_CREDENTIAL}
-    >
-      {(() => {
-        switch (step) {
-          case "issuanceMethod": {
-            return (
-              <IssuanceMethodForm
-                initialValues={credentialFormInput.issuanceMethod}
-                onChangeDid={onChangeDid}
-                onSubmit={(values) => {
-                  setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
-                  setStep("issueCredential");
-                }}
-              />
-            );
-          }
+    <>
+      {messageContext}
 
-          case "issueCredential": {
-            return (
-              <Card className="issue-credential-card" title="Credential details">
-                <Space direction="vertical">
-                  <IssueCredentialForm
-                    initialValues={credentialFormInput.issueCredential}
-                    isLoading={isLoading}
-                    onBack={() => {
-                      setStep("issuanceMethod");
-                    }}
-                    onSelectSchema={onSelectSchema}
-                    onSubmit={({
-                      jsonSchema,
-                      schema,
-                      values,
-                    }: {
-                      jsonSchema: JsonSchema;
-                      schema: Schema;
-                      values: IssueCredentialFormData;
-                    }) => {
-                      const newCredentialFormInput: CredentialFormInput = {
-                        ...credentialFormInput,
-                        issueCredential: values,
-                      };
+      <SiderLayoutContent
+        description="A credential is issued with assigned attribute values and can be issued directly to identifier or as a credential link containing a QR code."
+        showBackButton
+        showDivider
+        title={ISSUE_CREDENTIAL}
+      >
+        {(() => {
+          switch (step) {
+            case "issuanceMethod": {
+              return (
+                <IssuanceMethodForm
+                  initialValues={credentialFormInput.issuanceMethod}
+                  onChangeDid={onChangeDid}
+                  onSubmit={(values) => {
+                    setCredentialFormInput({ ...credentialFormInput, issuanceMethod: values });
+                    setStep("issueCredential");
+                  }}
+                />
+              );
+            }
 
-                      setCredentialFormInput(newCredentialFormInput);
+            case "issueCredential": {
+              return (
+                <Card className="issue-credential-card" title="Credential details">
+                  <Space direction="vertical">
+                    <IssueCredentialForm
+                      initialValues={credentialFormInput.issueCredential}
+                      isLoading={isLoading}
+                      onBack={() => {
+                        setStep("issuanceMethod");
+                      }}
+                      onSelectSchema={onSelectSchema}
+                      onSubmit={({
+                        jsonSchema,
+                        schema,
+                        values,
+                      }: {
+                        jsonSchema: JsonSchema;
+                        schema: Schema;
+                        values: IssueCredentialFormData;
+                      }) => {
+                        const newCredentialFormInput: CredentialFormInput = {
+                          ...credentialFormInput,
+                          issueCredential: values,
+                        };
 
-                      const parsedForm = credentialFormParser.safeParse(newCredentialFormInput);
+                        setCredentialFormInput(newCredentialFormInput);
 
-                      if (parsedForm.success) {
-                        if (parsedForm.data.type === "credentialLink") {
-                          void createCredentialLink({
-                            credentialLinkIssuance: parsedForm.data,
-                            jsonSchema,
-                          });
+                        const parsedForm = credentialFormParser.safeParse(newCredentialFormInput);
+
+                        if (parsedForm.success) {
+                          if (parsedForm.data.type === "credentialLink") {
+                            void createCredentialLink({
+                              credentialLinkIssuance: parsedForm.data,
+                              jsonSchema,
+                            });
+                          } else {
+                            void issueCredential({
+                              credentialIssuance: parsedForm.data,
+                              jsonSchema,
+                              schema,
+                            });
+                          }
                         } else {
-                          void issueCredential({
-                            credentialIssuance: parsedForm.data,
-                            jsonSchema,
-                            schema,
-                          });
+                          notifyParseError(parsedForm.error);
                         }
-                      } else {
-                        notifyParseError(parsedForm.error);
-                      }
-                    }}
-                    type={credentialFormInput.issuanceMethod.type}
-                  />
-                </Space>
-              </Card>
-            );
-          }
+                      }}
+                      type={credentialFormInput.issuanceMethod.type}
+                    />
+                  </Space>
+                </Card>
+              );
+            }
 
-          case "summary": {
-            return isAsyncTaskDataAvailable(linkID) && <Summary linkID={linkID.data} />;
+            case "summary": {
+              return isAsyncTaskDataAvailable(linkID) && <Summary linkID={linkID.data} />;
+            }
           }
-        }
-      })()}
-    </SiderLayoutContent>
+        })()}
+      </SiderLayoutContent>
+    </>
   );
 }
