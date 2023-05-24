@@ -1,33 +1,161 @@
-name: Deploy
+name: "Deploy"
 
 on:
-  workflow_dispatch
-
-env:
-  BRANCH: ${GITHUB_REF##*/}
+  workflow_call:
+    inputs:
+      AWS_REGION:
+        required: true
+        type: string
+      ENVIRONMENT:
+        required: true
+        type: string
+      PRODUCT:
+        required: true
+        type: string
+      PROJECT:
+        required: true
+        type: string
+      SENTRY_ORG:
+        required: true
+        type: string
+      cache_key:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      SLACK_BOT_TOKEN:
+        required: true
+      SENTRY_AUTH_TOKEN:
+        required: true
 
 jobs:
-  Deploy:
+  deploy:
+    name: "Deploy"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: executing remote ssh commands using ssh key on testing env
-        if: ${{ env.BRANCH == 'develop' }}
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.HOST_DEVELOP }}
-          username: ${{ secrets.USERNAME_DEVELOP }}
-          key: ${{ secrets.KEY_DEVELOP }}
-          passphrase: ${{ secrets.PASSPHRASE_DEVELOP }}
-          port: ${{ secrets.PORT_DEVELOP }}
-          script: sh update.sh
+      - uses: actions/checkout@v3
 
-      - name: executing remote ssh commands using ssh key on main env
-        if: ${{ env.BRANCH == 'main' }}
-        uses: appleboy/ssh-action@master
+      - name: Notify slack deployment start
+        uses: trustfractal/github-action-slack-notify-build@v1.5.1
+        id: slack
+        env:
+          SLACK_BOT_TOKEN: "${{secrets.SLACK_BOT_TOKEN}}"
         with:
-          host: ${{ secrets.HOST_MAIN }}
-          username: ${{ secrets.USERNAME_MAIN }}
-          key: ${{ secrets.KEY_MAIN }}
-          passphrase: ${{ secrets.PASSPHRASE_MAIN }}
-          port: ${{ secrets.PORT_MAIN }}
-          script: sh update.sh
+          channel: id-deployments
+          status: STARTING
+          color: warning
+          custom_attachments: |
+            [{ "title": "Environment", "value": "${{inputs.ENVIRONMENT}}", "short": true }]
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          mask-aws-account-id: false
+          aws-region: ${{inputs.AWS_REGION}}
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # In this step, this action saves a list of existing images,
+      # the cache is created without them in the post run.
+      # It also restores the cache if it exists.
+      - uses: ZimbiX/action-docker-layer-caching@fix-error-cannot-use-import-statement-outside-a-module-release
+        # Ignore the failure of a step and avoid terminating the job.
+        continue-on-error: true
+        with:
+          key: ${{inputs.cache_key}}
+          restore-keys: ${{inputs.cache_key}}
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{steps.login-ecr.outputs.registry}}
+          ECR_REPOSITORY: ${{inputs.ENVIRONMENT}}-${{inputs.PRODUCT}}-${{inputs.PROJECT}}
+          IMAGE_TAG: "${{steps.login-ecr.outputs.registry}}/${{inputs.ENVIRONMENT}}-${{inputs.PRODUCT}}-${{inputs.PROJECT}}:${{github.sha}}"
+
+        run: |
+          docker build . \
+            --build-arg SENTRY_RELEASE="${{inputs.PROJECT}}@${{github.sha}}" \
+            --file Dockerfile \
+            --tag ${{env.IMAGE_TAG}} \
+            --platform linux/amd64
+
+          docker tag "${{env.IMAGE_TAG}}" "${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:latest"
+          docker push "${{env.IMAGE_TAG}}"
+          docker push "${{env.ECR_REGISTRY}}/${{env.ECR_REPOSITORY}}:latest"
+          echo "::set-output name=image_tag::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Run release command
+        uses: trustfractal/aws-ecs-run-task@v1.1
+        timeout-minutes: 5
+        with:
+          cluster: ${{inputs.ENVIRONMENT}}-${{inputs.PRODUCT}}
+          service: ${{inputs.PROJECT}}-interactive
+          override-container: ssh
+          override-container-command: |
+              sh
+              -c
+              bin/release
+
+      - name: Force new deployment
+        uses: trustfractal/aws-ecs-force-deployment@v1.0
+        with:
+          cluster: ${{inputs.ENVIRONMENT}}-${{inputs.PRODUCT}}
+          tag_filters: |
+            { "Environment": ["${{inputs.ENVIRONMENT}}"], "Project": ["${{inputs.PROJECT}}"], "Product": ["${{inputs.PRODUCT}}"] }
+
+      - name: Notify sentry
+        id: sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{secrets.SENTRY_AUTH_TOKEN}}
+        run: |
+          curl -sL https://sentry.io/get-cli/ | bash
+
+          # Create new Sentry release
+          export SENTRY_RELEASE="${{inputs.PROJECT}}@$(sentry-cli releases propose-version)"
+          echo "sentry-cli releases -o \"${{inputs.SENTRY_ORG}}\" new -p \"${{inputs.PROJECT}}\" \"$SENTRY_RELEASE\""
+          sentry-cli releases -o "${{inputs.SENTRY_ORG}}" new -p "${{inputs.PROJECT}}" "$SENTRY_RELEASE"
+
+          sentry-cli releases -o "${{inputs.SENTRY_ORG}}" set-commits --auto "$SENTRY_RELEASE"
+          sentry-cli releases -o "${{inputs.SENTRY_ORG}}" finalize "$SENTRY_RELEASE"
+
+          # Create new deploy for this Sentry release
+          sentry-cli releases -o "${{inputs.SENTRY_ORG}}" deploys "$SENTRY_RELEASE" new -e "${{inputs.ENVIRONMENT}}"
+
+          echo "::set-output name=release::$SENTRY_RELEASE"
+
+      - name: Move deployment branch
+        run: |
+          git push -f origin HEAD:${{inputs.ENVIRONMENT}}-${{inputs.PRODUCT}}-${{inputs.PROJECT}}-latest
+
+      - name: Notify slack success
+        if: success()
+        uses: trustfractal/github-action-slack-notify-build@v1.5.1
+        env:
+          SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}}
+        with:
+          message_id: ${{steps.slack.outputs.message_id}}
+          channel: id-deployments
+          status: SUCCESS
+          color: good
+          custom_attachments: |
+            [{ "title": "Environment", "value": "${{inputs.ENVIRONMENT}}", "short": true }]
+
+      - name: Notify slack fail
+        if: failure()
+        uses: trustfractal/github-action-slack-notify-build@v1.5.1
+        env:
+          SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}}
+        with:
+          message_id: ${{steps.slack.outputs.message_id}}
+          channel: id-deployments
+          status: FAILED
+          color: danger
+          custom_attachments: |
+            [{ "title": "Environment", "value": "${{inputs.ENVIRONMENT}}", "short": true }]

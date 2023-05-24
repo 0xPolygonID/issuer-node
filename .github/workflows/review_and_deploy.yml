@@ -1,0 +1,114 @@
+name: "Review and deploy"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - deploy_to_staging
+      - deploy_to_clients
+      - deploy_to_production
+
+concurrency:
+  group: ${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  target_name:
+    runs-on: ubuntu-latest
+
+    outputs:
+      name: ${{steps.branch_name.outputs.current_branch}}
+      cache_key: ${{steps.cache_key.outputs.key}}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get branch name
+        id: branch_name
+        uses: tj-actions/branch-names@v5.4
+
+      - name: Get cache key
+        id: cache_key
+        shell: bash
+        run: |
+          echo "::set-output name=key::docker-pid-issuer-cache-$(md5sum Gemfile.lock | awk '{ print $1 }')-$(md5sum Dockerfile | awk '{ print $1 }')"
+
+  check:
+    uses: ./.github/workflows/review.yml
+    needs: target_name
+    with:
+      continue_on_error: ${{needs.target_name.outputs.name == 'deploy_to_staging' || needs.target_name.outputs.name == 'deploy_to_clients' || needs.target_name.outputs.name == 'deploy_to_production'}}
+      continue_on_error_security_audit: ${{needs.target_name.outputs.name == 'master'}}
+      cache_key: ${{needs.target_name.outputs.cache_key}}
+
+  staging:
+    uses: ./.github/workflows/deploy.yml
+    needs:
+      - check
+      - target_name
+    #if: ${{needs.target_name.outputs.name == 'master' || needs.target_name.outputs.name == 'deploy_to_staging'}}
+    if: ${{needs.target_name.outputs.name == 'deploy_to_staging'}}
+    with:
+      cache_key: ${{needs.target_name.outputs.cache_key}}
+
+      AWS_REGION: eu-west-1
+      ENVIRONMENT: "frctls-staging"
+      PRODUCT: "id"
+      PROJECT: "pid-issuer"
+      SENTRY_ORG: "trustfractal"
+
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{secrets.STAGING_AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.STAGING_AWS_SECRET_ACCESS_KEY}}
+
+      SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}}
+
+      SENTRY_AUTH_TOKEN: ${{secrets.SENTRY_AUTH_TOKEN}}
+
+  clients:
+    uses: ./.github/workflows/deploy.yml
+    needs:
+      - check
+      - target_name
+    if: ${{needs.target_name.outputs.name == 'master' || needs.target_name.outputs.name == 'deploy_to_clients'}}
+    with:
+      cache_key: ${{needs.target_name.outputs.cache_key}}
+
+      AWS_REGION: eu-west-1
+      ENVIRONMENT: "frctls-clients"
+      PRODUCT: "id"
+      PROJECT: "pid-issuer"
+      SENTRY_ORG: "trustfractal"
+
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{secrets.STAGING_AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.STAGING_AWS_SECRET_ACCESS_KEY}}
+
+      SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}}
+
+      SENTRY_AUTH_TOKEN: ${{secrets.SENTRY_AUTH_TOKEN}}
+
+  production:
+    uses: ./.github/workflows/deploy.yml
+    needs:
+      - check
+      - target_name
+    #if: ${{needs.target_name.outputs.name == 'master' || needs.target_name.outputs.name == 'deploy_to_production'}}
+    if: ${{needs.target_name.outputs.name == 'deploy_to_production'}}
+    with:
+      cache_key: ${{needs.target_name.outputs.cache_key}}
+
+      AWS_REGION: eu-west-1
+      ENVIRONMENT: "frctls-production"
+      PRODUCT: "id"
+      PROJECT: "pid-issuer"
+      SENTRY_ORG: "trustfractal"
+
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{secrets.PRODUCTION_AWS_ACCESS_KEY_ID}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.PRODUCTION_AWS_SECRET_ACCESS_KEY}}
+
+      SLACK_BOT_TOKEN: ${{secrets.SLACK_BOT_TOKEN}}
+
+      SENTRY_AUTH_TOKEN: ${{secrets.SENTRY_AUTH_TOKEN}}
