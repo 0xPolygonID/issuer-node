@@ -110,6 +110,29 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+
+  /v1/{identifier}/state/retry:
+    post:
+      summary: Retry Publish Identity State
+      operationId: RetryPublishState
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      tags:
+        - Identity
+      responses:
+        '202':
+          description: Publish state successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/{identifier}/state/publish:
     post:
       summary: Publish Identity State
