@@ -1,5 +1,7 @@
 package common
 
+import "strings"
+
 // ToPointer is a helper function to create a pointer to a value.
 // x := &5 doesn't compile
 // x := ToPointer(5) good.
@@ -20,4 +22,15 @@ func CopyMap(m map[string]interface{}) map[string]interface{} {
 	}
 
 	return cp
+}
+
+func ReplaceCharacters(input string) string {
+	length := len(input)
+	if length <= 3 {
+		return input
+	}
+
+	replacePart := strings.Repeat("*", length-3)
+	lastThree := input[length-3:]
+	return replacePart + lastThree
 }
