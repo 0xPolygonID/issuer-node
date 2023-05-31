@@ -2,9 +2,11 @@ package api_ui
 
 import (
 	"context"
+
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
 
+// GetConfig - Get configuration
 func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConfigResponseObject, error) {
 	token := common.ReplaceCharacters(s.cfg.KeyStore.Token)
 	variables := GetConfig200JSONResponse{
