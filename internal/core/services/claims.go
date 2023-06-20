@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
+	"github.com/iden3/go-schema-processor/merklize"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm/packers"
@@ -140,12 +141,20 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, req.Type)
-	mtRootPostion := common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition)
+	jsonLDCtxBytes, _, err := c.loaderFactory(jsonLdContext).Load(ctx)
+	if err != nil {
+		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
+		return nil, err
+	}
+	credentialType, err := merklize.TypeIDFromContext(jsonLDCtxBytes, req.Type)
+	if err != nil {
+		log.Error(ctx, "getting credential type", "err", err)
+		return nil, err
+	}
 
 	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, &processor.CoreClaimOptions{
 		RevNonce:              nonce,
-		MerklizedRootPosition: mtRootPostion,
+		MerklizedRootPosition: common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition),
 		Version:               req.Version,
 		SubjectPosition:       req.SubjectPos,
 		Updatable:             false,
