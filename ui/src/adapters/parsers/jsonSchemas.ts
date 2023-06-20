@@ -37,7 +37,7 @@ import {
   StringProps,
   StringSchema,
 } from "src/domain";
-import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
+import { extractCredentialSubjectAttributeWithoutId } from "src/utils/jsonSchemas";
 import { Nullable } from "src/utils/types";
 
 const commonPropsParser = getStrictParser<CommonProps>()(
@@ -472,7 +472,7 @@ export const jsonSchemaParser = getStrictParser<SchemaInput, JsonSchema>()(
 
 // JSON LD Type
 
-function getIden3JsonLdTypeParser(jsonSchema: JsonSchema) {
+export function getJsonLdTypeParser(jsonSchema: JsonSchema) {
   return getStrictParser<
     {
       "@context": [Record<string, unknown>];
@@ -484,7 +484,7 @@ function getIden3JsonLdTypeParser(jsonSchema: JsonSchema) {
         "@context": z.tuple([z.record(z.unknown())]),
       })
       .transform((ldContext, zodContext): JsonLdType[] => {
-        const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
+        const credentialSubjectAttribute = extractCredentialSubjectAttributeWithoutId(jsonSchema);
 
         if (!credentialSubjectAttribute) {
           zodContext.addIssue({
@@ -500,7 +500,7 @@ function getIden3JsonLdTypeParser(jsonSchema: JsonSchema) {
             const parsedValue = z
               .object({
                 "@context": z.record(z.unknown()),
-                "@id": z.string().url("Property @id of the type is not a valid URL"),
+                "@id": z.string().url("Property @id of the type is not valid"),
               })
               .safeParse(value);
 
@@ -544,15 +544,6 @@ function getIden3JsonLdTypeParser(jsonSchema: JsonSchema) {
         }
       })
   );
-}
-
-export function getJsonLdTypeParser(jsonSchema: JsonSchema) {
-  return getStrictParser<
-    {
-      "@context": [Record<string, unknown>];
-    },
-    JsonLdType[]
-  >()(getIden3JsonLdTypeParser(jsonSchema));
 }
 
 // Values
