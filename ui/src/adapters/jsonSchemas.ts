@@ -1,7 +1,8 @@
 import { Response } from "src/adapters";
+import { getIPFSGatewayUrl } from "src/adapters/api/schemas";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
-import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { Env, Json, JsonLdType, JsonSchema } from "src/domain";
 import { buildAppError } from "src/utils/error";
 
 export async function getJsonSchemaFromUrl({
@@ -35,28 +36,38 @@ export async function getJsonSchemaFromUrl({
 }
 
 export async function getSchemaJsonLdTypes({
+  env,
   jsonSchema,
 }: {
+  env: Env;
   jsonSchema: JsonSchema;
 }): Promise<Response<[JsonLdType[], Json]>> {
-  try {
-    const jsonResponse = await getJsonFromUrl({
-      url: jsonSchema.$metadata.uris.jsonLdContext,
-    });
-    if (!jsonResponse.success) {
-      return jsonResponse;
-    } else {
-      const jsonLdContextObject = jsonResponse.data;
-      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
+  const contextIPFSGatewayUrlResponse = getIPFSGatewayUrl(
+    env,
+    jsonSchema.$metadata.uris.jsonLdContext
+  );
+  if (contextIPFSGatewayUrlResponse.success) {
+    try {
+      const jsonResponse = await getJsonFromUrl({
+        url: contextIPFSGatewayUrlResponse.data,
+      });
+      if (!jsonResponse.success) {
+        return jsonResponse;
+      } else {
+        const jsonLdContextObject = jsonResponse.data;
+        const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
+        return {
+          data: [jsonLdTypes, jsonLdContextObject],
+          success: true,
+        };
+      }
+    } catch (error) {
       return {
-        data: [jsonLdTypes, jsonLdContextObject],
-        success: true,
+        error: buildAppError(error),
+        success: false,
       };
     }
-  } catch (error) {
-    return {
-      error: buildAppError(error),
-      success: false,
-    };
+  } else {
+    return contextIPFSGatewayUrlResponse;
   }
 }

@@ -108,3 +108,11 @@ export async function getSchemas({
     return buildErrorResponse(error);
   }
 }
+
+export const getIPFSGatewayUrl = (env: Env, ipfsUrl: string): Response<string> => {
+  const cid = ipfsUrl.split("ipfs://")[1];
+
+  return cid !== undefined
+    ? buildSuccessResponse(`${env.ipfsGatewayUrl}/ipfs/${cid}`)
+    : buildErrorResponse("Invalid IPFS URL");
+};
