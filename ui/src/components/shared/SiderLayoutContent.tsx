@@ -85,7 +85,7 @@ export function SiderLayoutContent({
             </Col>
           )}
 
-          <Col style={{ lineHeight: "1rem", maxWidth: 585 }}>
+          <Col style={{ lineHeight: "1rem", maxWidth: 600 }}>
             <Typography.Title level={3}>{title}</Typography.Title>
 
             {description && <Typography.Text type="secondary">{description}</Typography.Text>}
