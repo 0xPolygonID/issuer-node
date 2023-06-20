@@ -21,7 +21,7 @@ export function SiderLayoutContent({
   title,
 }: {
   children: ReactNode;
-  description?: string;
+  description?: ReactNode;
   extra?: ReactNode;
   showBackButton?: boolean;
   showDivider?: boolean;
