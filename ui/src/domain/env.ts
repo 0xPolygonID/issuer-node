@@ -12,5 +12,6 @@ export type Env = {
     logo: string;
     name: string;
   };
+  schemaExplorerAndBuilderUrl?: string;
   warningMessage?: string;
 };

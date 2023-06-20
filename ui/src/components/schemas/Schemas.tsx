@@ -1,4 +1,4 @@
-import { Button, Col, Divider, Row, Space } from "antd";
+import { Button, Col, Divider, Row, Space, Typography } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
@@ -6,15 +6,34 @@ import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
 import { SchemasTable } from "src/components/schemas/SchemasTable";
 import { Explainer } from "src/components/shared/Explainer";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
+import { useEnvContext } from "src/contexts/Env";
 import { ROUTES } from "src/routes";
 import { IMPORT_SCHEMA, ISSUE_CREDENTIAL, SCHEMAS, TUTORIALS_URL } from "src/utils/constants";
 
 export function Schemas() {
   const navigate = useNavigate();
-
+  const env = useEnvContext();
   return (
     <SiderLayoutContent
-      description="Verifiable credential schemas help to ensure the structure and data formatting across different services."
+      description={
+        <>
+          <Typography.Text type="secondary">
+            Verifiable credential schemas help to ensure the structure and data formatting across
+            different services.
+          </Typography.Text>
+          {env.schemaExplorerAndBuilderUrl && (
+            <>
+              {" "}
+              <Typography.Text type="secondary">
+                Explore a wide range of existing schemas or make custom ones by utilizing
+              </Typography.Text>{" "}
+              <Typography.Link href={env.schemaExplorerAndBuilderUrl} target="_blank">
+                our schema repository and builder.
+              </Typography.Link>
+            </>
+          )}
+        </>
+      }
       extra={
         <Row gutter={[8, 8]}>
           <Col>
