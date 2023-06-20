@@ -17,9 +17,9 @@ import {
   IntegerSchema,
   JsonLdType,
   JsonSchema,
+  JsonSchemaProps,
   MultiAttribute,
   MultiAttributeValue,
-  MultiSchema,
   MultiValue,
   NullAttribute,
   NullAttributeValue,
@@ -30,8 +30,7 @@ import {
   NumberSchema,
   ObjectAttribute,
   ObjectAttributeValue,
-  ObjectProps,
-  SchemaProps,
+  Schema,
   StringAttribute,
   StringAttributeValue,
   StringProps,
@@ -42,7 +41,10 @@ import { Nullable } from "src/utils/types";
 
 const commonPropsParser = getStrictParser<CommonProps>()(
   z.object({
+    const: z.unknown().optional(),
+    default: z.unknown().optional(),
     description: z.string().optional(),
+    examples: z.unknown().array().optional(),
     title: z.string().optional(),
   })
 );
@@ -209,7 +211,7 @@ function getArrayAttributeParser(name: string, required: boolean) {
         required,
         schema: {
           ...schema,
-          items: schema.items
+          attribute: schema.items
             ? (() => {
                 const parsed = getAttributeParser("items", required).safeParse(schema.items);
                 if (parsed.success) {
@@ -227,7 +229,10 @@ function getArrayAttributeParser(name: string, required: boolean) {
   );
 }
 
-type ObjectPropsInput = Omit<ObjectProps, "attributes">;
+type ObjectPropsInput = {
+  properties?: Record<string, unknown>;
+  required?: string[];
+};
 
 type ObjectSchemaInput = CommonProps & ObjectPropsInput & { type: "object" };
 
@@ -337,7 +342,7 @@ function getMultiAttributeParser(name: string, required: boolean) {
         (schema, context): MultiAttribute => ({
           name,
           required,
-          schemas: schema.type.map((type): MultiSchema => {
+          schemas: schema.type.map((type): Schema => {
             switch (type) {
               case "boolean": {
                 const parsed = getBooleanAttributeParser(name, required).safeParse({
@@ -433,7 +438,7 @@ function getMultiAttributeParser(name: string, required: boolean) {
 
 // Schema
 
-type AnySchema =
+type SchemaInput =
   | BooleanSchema
   | IntegerSchema
   | NullSchema
@@ -443,16 +448,8 @@ type AnySchema =
   | ObjectSchemaInput
   | MultiSchemaInput;
 
-type SchemaInput = AnySchema & SchemaProps;
-
-const schemaPropsParser = getStrictParser<SchemaProps>()(
-  z.object({
-    $metadata: z.object({ uris: z.object({ jsonLdContext: z.string() }) }),
-  })
-);
-
 function getAttributeParser(name: string, required: boolean) {
-  return getStrictParser<AnySchema, Attribute>()(
+  return getStrictParser<SchemaInput, Attribute>()(
     z.union([
       getBooleanAttributeParser(name, required),
       getIntegerAttributeParser(name, required),
@@ -466,10 +463,32 @@ function getAttributeParser(name: string, required: boolean) {
   );
 }
 
-export const jsonSchemaParser = getStrictParser<SchemaInput, JsonSchema>()(
-  schemaPropsParser.and(getAttributeParser("schema", false))
+// Schema
+
+const jsonSchemaPropsParser = getStrictParser<JsonSchemaProps>()(
+  z.object({
+    $metadata: z.object({
+      uris: z.object({
+        jsonLdContext: z.string(),
+      }),
+    }),
+    $schema: z.string(),
+  })
 );
 
+export const jsonSchemaParser = getStrictParser<JsonSchemaProps & ObjectSchemaInput, JsonSchema>()(
+  jsonSchemaPropsParser
+    .and(getObjectAttributeParser("schema", false))
+    .transform(({ $metadata, $schema, ...rest }) => {
+      const jsonSchemaProps: JsonSchemaProps = { $metadata, $schema };
+      const attribute: ObjectAttribute = rest;
+
+      return {
+        ...attribute,
+        jsonSchemaProps,
+      };
+    })
+);
 // JSON LD Type
 
 function getIden3JsonLdTypeParser(jsonSchema: JsonSchema) {
@@ -703,7 +722,7 @@ function getStringAttributeValueParser({ name, required, schema, type }: StringA
 }
 
 function getArrayAttributeValueParser({ name, required, schema, type }: ArrayAttribute) {
-  const attribute = schema.items;
+  const attribute = schema.attribute;
   return required
     ? getStrictParser<unknown[], ArrayAttributeValue>()(
         z.array(z.unknown()).transform(
@@ -842,7 +861,7 @@ function parseMultiValue({
 }: {
   name: string;
   required: boolean;
-  schema: MultiSchema;
+  schema: Schema;
   unknown: unknown;
 }) {
   switch (schema.type) {
@@ -911,10 +930,7 @@ function getMultiAttributeValueParser({ name, required, schemas, type }: MultiAt
   return getStrictParser<unknown, MultiAttributeValue>()(
     z.unknown().transform((unknown, context): MultiAttributeValue => {
       const value: MultiAttributeValueParseResult = schemas.reduce(
-        (
-          acc: MultiAttributeValueParseResult,
-          schema: MultiSchema
-        ): MultiAttributeValueParseResult => {
+        (acc: MultiAttributeValueParseResult, schema: Schema): MultiAttributeValueParseResult => {
           if (acc.success) {
             return acc;
           } else {

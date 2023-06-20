@@ -44,7 +44,7 @@ export async function getSchemaJsonLdTypes({
 }): Promise<Response<[JsonLdType[], Json]>> {
   const contextIPFSGatewayUrlResponse = getIPFSGatewayUrl(
     env,
-    jsonSchema.$metadata.uris.jsonLdContext
+    jsonSchema.jsonSchemaProps.$metadata.uris.jsonLdContext
   );
   if (contextIPFSGatewayUrlResponse.success) {
     try {

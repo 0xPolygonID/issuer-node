@@ -2,7 +2,7 @@ import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { getSchema } from "src/adapters/api/schemas";
+import { getApiSchema } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
@@ -12,7 +12,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
+import { ApiSchema, AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -33,7 +33,7 @@ export function SchemaDetails() {
   const [jsonSchemaTuple, setJsonSchemaTuple] = useState<AsyncTask<[JsonSchema, Json], AppError>>({
     status: "pending",
   });
-  const [schema, setSchema] = useState<AsyncTask<Schema, AppError>>({
+  const [schema, setSchema] = useState<AsyncTask<ApiSchema, AppError>>({
     status: "pending",
   });
   const [contextTuple, setContextTuple] = useState<AsyncTask<[JsonLdType, Json], AppError>>({
@@ -41,7 +41,7 @@ export function SchemaDetails() {
   });
 
   const fetchJsonSchemaFromUrl = useCallback(
-    (schema: Schema): void => {
+    (schema: ApiSchema): void => {
       setJsonSchemaTuple({ status: "loading" });
 
       void getJsonSchemaFromUrl({
@@ -92,7 +92,7 @@ export function SchemaDetails() {
       if (schemaID) {
         setSchema({ status: "loading" });
 
-        const response = await getSchema({
+        const response = await getApiSchema({
           env,
           schemaID,
           signal,

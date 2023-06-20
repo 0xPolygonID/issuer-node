@@ -3,14 +3,14 @@ import { ColumnsType } from "antd/es/table";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
-import { getSchemas } from "src/adapters/api/schemas";
+import { getApiSchemas } from "src/adapters/api/schemas";
 import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
 import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Schema } from "src/domain";
+import { ApiSchema, AppError } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -26,7 +26,7 @@ import { formatDate } from "src/utils/forms";
 
 export function SchemasTable() {
   const env = useEnvContext();
-  const [schemas, setSchemas] = useState<AsyncTask<Schema[], AppError>>({
+  const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], AppError>>({
     status: "pending",
   });
 
@@ -36,12 +36,12 @@ export function SchemasTable() {
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
-  const tableColumns: ColumnsType<Schema> = [
+  const tableColumns: ColumnsType<ApiSchema> = [
     {
       dataIndex: "type",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (type: Schema["type"]) => (
+      render: (type: ApiSchema["type"]) => (
         <Tooltip placement="topLeft" title={type}>
           <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
@@ -52,7 +52,7 @@ export function SchemasTable() {
     {
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt: Schema["createdAt"]) => (
+      render: (createdAt: ApiSchema["createdAt"]) => (
         <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
       sorter: ({ createdAt: a }, { createdAt: b }) => b.getTime() - a.getTime(),
@@ -61,7 +61,7 @@ export function SchemasTable() {
     {
       dataIndex: "id",
       key: "id",
-      render: (schemaID: Schema["id"]) => (
+      render: (schemaID: ApiSchema["id"]) => (
         <Row>
           <Space size="large">
             <Link
@@ -90,12 +90,12 @@ export function SchemasTable() {
 
   const onGetSchemas = useCallback(
     async (signal: AbortSignal) => {
-      setSchemas((previousState) =>
+      setApiSchemas((previousState) =>
         isAsyncTaskDataAvailable(previousState)
           ? { data: previousState.data, status: "reloading" }
           : { status: "loading" }
       );
-      const response = await getSchemas({
+      const response = await getApiSchemas({
         env,
         params: {
           query: queryParam || undefined,
@@ -103,11 +103,11 @@ export function SchemasTable() {
         signal,
       });
       if (response.success) {
-        setSchemas({ data: response.data.successful, status: "successful" });
+        setApiSchemas({ data: response.data.successful, status: "successful" });
         notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
-          setSchemas({ error: response.error, status: "failed" });
+          setApiSchemas({ error: response.error, status: "failed" });
         }
       }
     },
@@ -138,7 +138,7 @@ export function SchemasTable() {
     return aborter;
   }, [onGetSchemas]);
 
-  const schemaList = isAsyncTaskDataAvailable(schemas) ? schemas.data : [];
+  const schemaList = isAsyncTaskDataAvailable(apiSchemas) ? apiSchemas.data : [];
 
   return (
     <TableCard
@@ -157,12 +157,12 @@ export function SchemasTable() {
           </Link>
         </>
       }
-      isLoading={isAsyncTaskStarting(schemas)}
+      isLoading={isAsyncTaskStarting(apiSchemas)}
       onSearch={onSearch}
       query={queryParam}
       searchPlaceholder="Search schemas, attributes..."
       showDefaultContents={
-        schemas.status === "successful" && schemaList.length === 0 && queryParam === null
+        apiSchemas.status === "successful" && schemaList.length === 0 && queryParam === null
       }
       table={
         <Table
@@ -177,8 +177,8 @@ export function SchemasTable() {
           dataSource={schemaList}
           locale={{
             emptyText:
-              schemas.status === "failed" ? (
-                <ErrorResult error={schemas.error.message} />
+              apiSchemas.status === "failed" ? (
+                <ErrorResult error={apiSchemas.error.message} />
               ) : (
                 <NoResults searchQuery={queryParam} />
               ),
