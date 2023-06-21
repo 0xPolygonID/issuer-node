@@ -117,8 +117,11 @@ func main() {
 		},
 	}
 
-	// TODO: Maybe we need to use another constructor
-	verifier := auth.NewVerifier(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolvers)
+	verifier, err := auth.NewVerifierWithExplicitError(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: cfg.IFPS.GatewayURL}, resolvers)
+	if err != nil {
+		log.Error(ctx, "failed init verifier", "err", err)
+		return
+	}
 
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
 
