@@ -66,8 +66,7 @@ func main() {
 	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
 	var schemaLoader loader.Factory
-	// TODO: pass ipfs url from config
-	schemaLoader = loader.MultiProtocolFactory("https://gateway.ipfs.io")
+	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
 	if cfg.APIUI.SchemaCache != nil && !*cfg.APIUI.SchemaCache {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
@@ -129,7 +128,7 @@ func main() {
 			Host:       cfg.ServerUrl,
 		},
 		ps,
-		"https://gateway.ipfs.io/ipfs/", // TODO: Get from config
+		cfg.IFPS.GatewayURL,
 	)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))

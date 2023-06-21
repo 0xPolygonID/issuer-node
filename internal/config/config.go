@@ -39,6 +39,7 @@ type Configuration struct {
 	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
 	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
 	APIUI                        APIUI              `mapstructure:"APIUI"`
+	IFPS                         IPFS               `mapstructure:"IPFS"`
 }
 
 // Database has the database configuration
@@ -50,6 +51,11 @@ type Database struct {
 // Cache configurations
 type Cache struct {
 	RedisUrl string `mapstructure:"RedisUrl" tip:"The redis url to use as a cache"`
+}
+
+// IPFS configurations
+type IPFS struct {
+	GatewayURL string `mapstructure:"GatewayUrl" tip:"The IPFS gateway url. (e.g. https://ipfs.io)"`
 }
 
 // ReverseHashService contains the reverse hash service properties
@@ -295,6 +301,8 @@ func bindEnv() {
 
 	_ = viper.BindEnv("HTTPBasicAuth.User", "ISSUER_API_AUTH_USER")
 	_ = viper.BindEnv("HTTPBasicAuth.Password", "ISSUER_API_AUTH_PASSWORD")
+
+	_ = viper.BindEnv("IPFS.GatewayUrl", "ISSUER_IPFS_GATEWAY_URL")
 
 	_ = viper.BindEnv("KeyStore.Address", "ISSUER_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")

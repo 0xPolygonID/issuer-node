@@ -32,7 +32,7 @@ var (
 	cachex         cache.Cache
 )
 
-const ipfsGateway = "https://gateway.ipfs.io"
+const ipfsGateway = "https://ipfs.io"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()

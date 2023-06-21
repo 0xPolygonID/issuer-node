@@ -74,8 +74,7 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	var schemaLoader loader.Factory
-	// TODO: pass ipfs url from config
-	schemaLoader = loader.MultiProtocolFactory("https://gateway.ipfs.io")
+	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
 	if cfg.APIUI.SchemaCache != nil && !*cfg.APIUI.SchemaCache {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
@@ -153,7 +152,7 @@ func main() {
 			Host:       cfg.APIUI.ServerURL,
 		},
 		ps,
-		"https://gateway.ipfs.io/ipfs/", // TODO: Get from config
+		cfg.IFPS.GatewayURL,
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)

@@ -124,7 +124,7 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 			Host:       cfg.ServerUrl,
 		},
 		ps,
-		"https://gateway.ipfs.io/ipfs/", // TODO: Get from config
+		cfg.IFPS.GatewayURL,
 	)
 
 	return claimsService, nil
