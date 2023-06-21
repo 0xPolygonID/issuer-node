@@ -1,5 +1,5 @@
 import { Response } from "src/adapters";
-import { getIPFSGatewayUrl } from "src/adapters/api/schemas";
+import { processUrl } from "src/adapters/api/schemas";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
 import { Env, Json, JsonLdType, JsonSchema } from "src/domain";
@@ -42,14 +42,11 @@ export async function getSchemaJsonLdTypes({
   env: Env;
   jsonSchema: JsonSchema;
 }): Promise<Response<[JsonLdType[], Json]>> {
-  const contextIPFSGatewayUrlResponse = getIPFSGatewayUrl(
-    env,
-    jsonSchema.$metadata.uris.jsonLdContext
-  );
-  if (contextIPFSGatewayUrlResponse.success) {
+  const url = processUrl(jsonSchema.$metadata.uris.jsonLdContext, env);
+  if (url.success) {
     try {
       const jsonResponse = await getJsonFromUrl({
-        url: contextIPFSGatewayUrlResponse.data,
+        url: url.data,
       });
       if (!jsonResponse.success) {
         return jsonResponse;
@@ -68,6 +65,6 @@ export async function getSchemaJsonLdTypes({
       };
     }
   } else {
-    return contextIPFSGatewayUrlResponse;
+    return url;
   }
 }
