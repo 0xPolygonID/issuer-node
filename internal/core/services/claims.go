@@ -18,6 +18,7 @@ import (
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -61,6 +62,7 @@ type claim struct {
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
 	publisher               pubsub.Publisher
+	ipfsClient              *shell.Shell
 }
 
 // NewClaim creates a new claim service
@@ -78,6 +80,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		storage:                 storage,
 		loaderFactory:           ld,
 		publisher:               ps,
+		ipfsClient:              shell.NewShell("https://gateway.ipfs.io"),
 	}
 	return s
 }
@@ -151,7 +154,6 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		log.Error(ctx, "getting credential type", "err", err)
 		return nil, err
 	}
-
 	opts := &processor.CoreClaimOptions{
 		RevNonce:              nonce,
 		MerklizedRootPosition: common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition),
@@ -159,13 +161,9 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		SubjectPosition:       req.SubjectPos,
 		Updatable:             false,
 	}
-	/*
-		// TODO: Detect if the file is in IPFS and then add MerklizeOptions
-		if fileIsIPFS {
-			ipfsShell := shell.NewShell(ipfsURL)
-			opts.MerklizerOpts = schemaPkg.MerklizeOptions(ipfsShell)
-		}
-	*/
+	if c.ipfsClient != nil {
+		opts.MerklizerOpts = []merklize.MerklizeOption{merklize.WithIPFSClient(c.ipfsClient)}
+	}
 
 	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, opts)
 	if err != nil {
