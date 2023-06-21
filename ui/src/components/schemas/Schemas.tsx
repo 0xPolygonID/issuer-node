@@ -25,10 +25,10 @@ export function Schemas() {
             <>
               {" "}
               <Typography.Text type="secondary">
-                Explore a wide range of existing schemas or make custom ones by utilizing
+                Explore a wide range of existing schemas or create custom schemas using
               </Typography.Text>{" "}
               <Typography.Link href={env.schemaExplorerAndBuilderUrl} target="_blank">
-                our schema repository and builder.
+                Polygon ID&apos;s schema explorer and builder.
               </Typography.Link>
             </>
           )}
