@@ -8,8 +8,10 @@ import (
 
 	core "github.com/iden3/go-iden3-core"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
+	"github.com/iden3/go-schema-processor/merklize"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -118,4 +120,10 @@ func Process(ctx context.Context, ld loader.Loader, credentialType string, crede
 		return nil, ErrParseClaim
 	}
 	return claim, nil
+}
+
+// MerklizeOptions returns merklize options for ipfs schemas
+// TODO: Rename to something better
+func MerklizeOptions(ipfsCli *shell.Shell) []merklize.MerklizeOption {
+	return []merklize.MerklizeOption{merklize.WithIPFSClient(ipfsCli)}
 }

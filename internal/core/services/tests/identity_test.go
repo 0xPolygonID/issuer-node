@@ -35,7 +35,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,

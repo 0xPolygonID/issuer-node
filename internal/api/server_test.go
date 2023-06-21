@@ -49,7 +49,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -177,8 +177,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
-
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -329,7 +328,9 @@ func TestServer_CreateClaim(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -469,7 +470,7 @@ func TestServer_GetIdentities(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -543,7 +544,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -690,7 +691,7 @@ func TestServer_GetClaim(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
@@ -863,7 +864,7 @@ func TestServer_GetClaims(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -1190,8 +1191,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
-
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "https://host.com",

@@ -74,10 +74,10 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	var schemaLoader loader.Factory
-	if cfg.APIUI.SchemaCache == nil || !*cfg.APIUI.SchemaCache {
-		schemaLoader = loader.HTTPFactory
-	} else {
-		schemaLoader = loader.CachedFactory(loader.HTTPFactory, cachex)
+	// TODO: pass ipfs url from config
+	schemaLoader = loader.MultiProtocolFactory("https://gateway.ipfs.io")
+	if cfg.APIUI.SchemaCache != nil && !*cfg.APIUI.SchemaCache {
+		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
@@ -118,6 +118,7 @@ func main() {
 		},
 	}
 
+	// TODO: Maybe we need to use another constructor
 	verifier := auth.NewVerifier(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolvers)
 
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)

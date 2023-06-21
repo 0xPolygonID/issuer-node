@@ -152,13 +152,22 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, &processor.CoreClaimOptions{
+	opts := &processor.CoreClaimOptions{
 		RevNonce:              nonce,
 		MerklizedRootPosition: common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition),
 		Version:               req.Version,
 		SubjectPosition:       req.SubjectPos,
 		Updatable:             false,
-	})
+	}
+	/*
+		// TODO: Detect if the file is in IPFS and then add MerklizeOptions
+		if fileIsIPFS {
+			ipfsShell := shell.NewShell(ipfsURL)
+			opts.MerklizerOpts = schemaPkg.MerklizeOptions(ipfsShell)
+		}
+	*/
+
+	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, opts)
 	if err != nil {
 		log.Error(ctx, "credential subject attributes don't match the provided schema", "err", err)
 		if errors.Is(err, schemaPkg.ErrParseClaim) {
@@ -595,7 +604,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 		Issuer:            claimReq.DID.String(),
 		CredentialSchema: verifiable.CredentialSchema{
 			ID:   claimReq.Schema,
-			Type: verifiable.JSONSchemaValidator2018,
+			Type: verifiable.JSONSchema2023,
 		},
 		CredentialStatus: cs,
 	}, nil

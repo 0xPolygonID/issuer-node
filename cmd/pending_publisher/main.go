@@ -23,6 +23,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -45,6 +46,7 @@ func main() {
 	}
 	ps := pubsub.NewRedis(rdb)
 	ps.WithLogger(log.Error)
+	cachex := cache.NewRedisCache(rdb)
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -58,6 +60,13 @@ func main() {
 			log.Error(ctx, "error closing database connection", "err", err)
 		}
 	}(storage)
+
+	var schemaLoader loader.Factory
+	// TODO: pass ipfs url from config
+	schemaLoader = loader.MultiProtocolFactory("https://gateway.ipfs.io")
+	if cfg.APIUI.SchemaCache != nil && !*cfg.APIUI.SchemaCache {
+		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
+	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
@@ -105,7 +114,7 @@ func main() {
 		identityService,
 		mtService,
 		identityStateRepo,
-		loader.HTTPFactory,
+		schemaLoader,
 		storage,
 		services.ClaimCfg{
 			RHSEnabled: cfg.ReverseHashService.Enabled,
