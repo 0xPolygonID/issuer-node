@@ -491,6 +491,8 @@ github.com/iden3/go-rapidsnark/witness v0.0.6 h1:p+6QBymSV3XWm1kB2PL2vlXxKXJN8Gy
 github.com/iden3/go-rapidsnark/witness v0.0.6/go.mod h1:57IHQpnvx0CeS6cAT07oN/lqwT5LRc4zicYoZ1cnAPE=
 github.com/iden3/go-schema-processor v1.3.0 h1:pb2PGiexMryGype5tMWYkmiB1RiQe5o9F5CpoSVETXc=
 github.com/iden3/go-schema-processor v1.3.0/go.mod h1:NwJ1nuGdRlCFaN1/V6mS0AOAdvpLcGf4KKq0mluLG7U=
+github.com/iden3/go-schema-processor v1.3.1 h1:LJfFInfYGMOp0bTKKC17R8q4XI+VtqhFLPTEqnOIvlM=
+github.com/iden3/go-schema-processor v1.3.1/go.mod h1:NwJ1nuGdRlCFaN1/V6mS0AOAdvpLcGf4KKq0mluLG7U=
 github.com/iden3/iden3comm v1.0.0 h1:ZF796O5oftSFZDhPG5hTcBjY9Yw2faSajD47cjYdSJA=
 github.com/iden3/iden3comm v1.0.0/go.mod h1:2rEv35F6gE0XJjP89sCOR0Im4/r6uG2jo8Ui5p5bzE4=
 github.com/iden3/merkletree-proof v0.0.3 h1:01fSpjv2JIwVBYqV7ugLm0gjF+yo0aw41zDTWP5+81s=
