@@ -122,6 +122,7 @@ func main() {
 			Host:       cfg.ServerUrl,
 		},
 		ps,
+		"https://gateway.ipfs.io/ipfs/", // TODO: Get from config
 	)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)

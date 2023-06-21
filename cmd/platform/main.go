@@ -129,6 +129,7 @@ func main() {
 			Host:       cfg.ServerUrl,
 		},
 		ps,
+		"https://gateway.ipfs.io/ipfs/", // TODO: Get from config
 	)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))

@@ -153,6 +153,7 @@ func main() {
 			Host:       cfg.APIUI.ServerURL,
 		},
 		ps,
+		"https://gateway.ipfs.io/ipfs/", // TODO: Get from config
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)

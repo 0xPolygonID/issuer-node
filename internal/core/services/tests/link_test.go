@@ -48,7 +48,8 @@ func Test_link_issueClaim(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
-		pubsub.NewMock())
+		pubsub.NewMock(),
+		ipfsGateway)
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
