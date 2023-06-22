@@ -63,7 +63,7 @@ func main() {
 
 	var schemaLoader loader.Factory
 	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
-	if cfg.APIUI.SchemaCache != nil && !*cfg.APIUI.SchemaCache {
+	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
