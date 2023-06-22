@@ -18,8 +18,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
-// CIConfigPath variable contain the CI configuration path
-const CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/"
+const (
+	CIConfigPath      = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
+	k8sVaultTokenFile = "/vault/data/token.txt"                            // When running in k8s, the vault token is stored in this file
+	k8sDidFile        = "/did/data/did.txt"                                // When running in k8s, the did is stored in this file
+	k8NRetries        = 20                                                 // Retries to wait for the creation of the vault token
+	k8TBetweenRetries = 500 * time.Millisecond                             // Time between retries
+)
 
 // Configuration holds the project configuration
 type Configuration struct {
@@ -142,19 +147,25 @@ type APIUIAuth struct {
 
 // Sanitize perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
-func (c *Configuration) Sanitize() error {
+func (c *Configuration) Sanitize(ctx context.Context) error {
 	sUrl, err := c.validateServerUrl()
 	if err != nil {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
+	if c.KeyStore.Token == "" {
+		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
+		if err != nil {
+			return fmt.Errorf("a vault token must be provided")
+		}
+	}
 
 	return nil
 }
 
 // SanitizeAPIUI perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
-func (c *Configuration) SanitizeAPIUI() error {
+func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	if c.APIUI.ServerPort == 0 {
 		return fmt.Errorf("a port for the UI API server must be provided")
 	}
@@ -163,8 +174,18 @@ func (c *Configuration) SanitizeAPIUI() error {
 		return fmt.Errorf("the UI API server url must be provided")
 	}
 
+	if c.KeyStore.Token == "" {
+		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
+		if err != nil {
+			return fmt.Errorf("a vault token must be provided")
+		}
+	}
+
 	if c.APIUI.Issuer == "" {
-		return fmt.Errorf("an issuer DID must be provided")
+		c.APIUI.Issuer, err = loadValueFromFile(ctx, k8sDidFile, k8NRetries, k8TBetweenRetries)
+		if err != nil {
+			return fmt.Errorf("an issuer DID must be provided")
+		}
 	}
 
 	issuerDID, err := core.ParseDID(c.APIUI.Issuer)
@@ -234,6 +255,24 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
+// loadValueFromFile loads a value from a file. It will retry a number of times until the file is found.
+func loadValueFromFile(ctx context.Context, file string, retries int, between time.Duration) (string, error) {
+	for i := 0; i < retries; i++ {
+		if _, err := os.Stat(file); err != nil {
+			log.Warn(ctx, "loading file. Retries left", "err", err, "file", file, "retries", retries-i)
+		} else {
+			break
+		}
+		time.Sleep(between)
+	}
+	content, err := os.ReadFile(file)
+	if err != nil {
+		log.Error(ctx, "cannot read file", "err", err, "file", file)
+		return "", err
+	}
+	return string(content), nil
+}
+
 // VaultTest returns the vault configuration to be used in tests.
 // The vault token is obtained from environment vars.
 // If there is not env var, it will try to parse the init.out file
@@ -241,12 +280,12 @@ func Load(fileName string) (*Configuration, error) {
 func VaultTest() KeyStore {
 	return KeyStore{
 		Address:              "http://localhost:8200",
-		Token:                lookupVaultToken(),
+		Token:                lookupVaultTestToken(),
 		PluginIden3MountPath: "iden3",
 	}
 }
 
-func lookupVaultToken() string {
+func lookupVaultTestToken() string {
 	var err error
 	token, ok := os.LookupEnv("VAULT_TEST_TOKEN")
 	if !ok {
