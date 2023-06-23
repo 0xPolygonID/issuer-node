@@ -116,3 +116,11 @@ export const getIPFSGatewayUrl = (env: Env, ipfsUrl: string): Response<string> =
     ? buildSuccessResponse(`${env.ipfsGatewayUrl}/ipfs/${cid}`)
     : buildErrorResponse("Invalid IPFS URL");
 };
+
+export const processUrl = (url: string, env: Env): Response<string> => {
+  if (url.startsWith("ipfs://")) {
+    return getIPFSGatewayUrl(env, url);
+  } else {
+    return { data: url, success: true };
+  }
+};

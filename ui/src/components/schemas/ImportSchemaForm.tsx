@@ -2,8 +2,7 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { Response } from "src/adapters";
-import { getIPFSGatewayUrl } from "src/adapters/api/schemas";
+import { processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -63,16 +62,8 @@ export function ImportSchemaForm({
         }
   );
 
-  const processUrl = (url: string): Response<string> => {
-    if (url.startsWith("ipfs://")) {
-      return getIPFSGatewayUrl(env, url);
-    } else {
-      return { data: url, success: true };
-    }
-  };
-
   const fetchJsonSchemaFromUrl = (env: Env, url: string): void => {
-    const processedUrl = processUrl(url);
+    const processedUrl = processUrl(url, env);
     if (!processedUrl.success) {
       throw new Error(processedUrl.error.message);
     }
