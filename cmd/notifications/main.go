@@ -40,6 +40,11 @@ func main() {
 		return
 	}
 
+	if cfg.APIUI.Issuer == "" {
+		log.Error(ctx, "issuer DID is not set")
+		return
+	}
+
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)

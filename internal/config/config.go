@@ -177,13 +177,16 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		return fmt.Errorf("the UI API server url must be provided")
 	}
 
+	log.Info(ctx, "Checking vault token", "token", c.KeyStore.Token)
 	if c.KeyStore.Token == "" {
 		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
 		if err != nil {
 			return fmt.Errorf("a vault token must be provided")
 		}
+		log.Info(ctx, "Vault token loaded from file", "token", c.KeyStore.Token)
 	}
 
+	log.Info(ctx, "Checking issuer did value", "did", c.APIUI.Issuer)
 	if c.APIUI.Issuer == "" {
 		c.APIUI.Issuer, err = loadValueFromFile(ctx, K8sDidFile, k8NRetries, k8TBetweenRetries)
 		if err != nil {
@@ -191,8 +194,11 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		}
 	}
 
+	log.Info(ctx, "Issuer Did from file", "did", c.APIUI.Issuer)
+
 	issuerDID, err := core.ParseDID(c.APIUI.Issuer)
 	if err != nil {
+		log.Error(ctx, "invalid issuer did format", "error", err)
 		return fmt.Errorf("invalid issuer did format")
 	}
 
@@ -275,6 +281,7 @@ func loadValueFromFile(ctx context.Context, file string, retries int, between ti
 	}
 
 	contentAsString := strings.TrimSuffix(string(content), "\n")
+	log.Info(ctx, "file loaded", "file", contentAsString)
 	return contentAsString, nil
 }
 

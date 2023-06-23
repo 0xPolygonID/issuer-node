@@ -29,7 +29,13 @@ func main() {
 		return
 	}
 
-	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
+	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
+
+	if err := cfg.Sanitize(ctx); err != nil {
+		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
+		return
+	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
