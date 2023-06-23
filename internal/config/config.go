@@ -21,9 +21,10 @@ import (
 const (
 	CIConfigPath      = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
 	k8sVaultTokenFile = "/vault/data/token.txt"                            // When running in k8s, the vault token is stored in this file
-	k8sDidFile        = "/did/data/did.txt"                                // When running in k8s, the did is stored in this file
-	k8NRetries        = 20                                                 // Retries to wait for the creation of the vault token
-	k8TBetweenRetries = 500 * time.Millisecond                             // Time between retries
+	// K8sDidFile variable contain the k8s did file path
+	K8sDidFile        = "/did/data/did.txt"    // When running in k8s, the did is stored in this file
+	k8NRetries        = 20                     // Retries to wait for the creation of the vault token
+	k8TBetweenRetries = 500 * time.Millisecond // Time between retries
 )
 
 // Configuration holds the project configuration
@@ -158,6 +159,8 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("a vault token must be provided")
 		}
+
+		log.Info(ctx, "Vault token loaded from file", c.KeyStore.Token)
 	}
 
 	return nil
@@ -182,7 +185,7 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	if c.APIUI.Issuer == "" {
-		c.APIUI.Issuer, err = loadValueFromFile(ctx, k8sDidFile, k8NRetries, k8TBetweenRetries)
+		c.APIUI.Issuer, err = loadValueFromFile(ctx, K8sDidFile, k8NRetries, k8TBetweenRetries)
 		if err != nil {
 			return fmt.Errorf("an issuer DID must be provided")
 		}
@@ -270,7 +273,9 @@ func loadValueFromFile(ctx context.Context, file string, retries int, between ti
 		log.Error(ctx, "cannot read file", "err", err, "file", file)
 		return "", err
 	}
-	return string(content), nil
+
+	contentAsString := strings.TrimSuffix(string(content), "\n")
+	return contentAsString, nil
 }
 
 // VaultTest returns the vault configuration to be used in tests.

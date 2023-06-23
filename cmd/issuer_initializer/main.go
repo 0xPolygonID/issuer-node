@@ -15,7 +15,14 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
+const perm = 777
+
 func main() {
+	if _, err := os.Stat(config.K8sDidFile); err == nil {
+		log.Info(context.Background(), "identifier already created and stored in file. New identifier not created")
+		return
+	}
+
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", "err", err)
@@ -62,4 +69,9 @@ func main() {
 
 	//nolint:all
 	fmt.Printf(identity.Identifier)
+
+	if err := os.WriteFile(config.K8sDidFile, []byte(identity.Identifier), os.FileMode(perm)); err != nil {
+		log.Error(ctx, "error writing identifier to file", "error", err)
+		return
+	}
 }
