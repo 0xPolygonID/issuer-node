@@ -438,7 +438,100 @@ func TestServer_ImportSchema(t *testing.T) {
 	const url = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	const schemaType = "KYCCountryOfResidenceCredential"
 	ctx := context.Background()
-	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), schemaLoader)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
+	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+	server.cfg.APIUI.IssuerDID = *issuerDID
+	server.cfg.APIUI.ServerURL = "https://testing.env"
+
+	handler := getHandler(ctx, server)
+
+	type expected struct {
+		httpCode int
+		errorMsg string
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		request  *ImportSchemaJSONRequestBody
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name:    "Not authorized",
+			auth:    authWrong,
+			request: nil,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:    "Empty request",
+			auth:    authOk,
+			request: nil,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "bad request: empty url",
+			},
+		},
+		{
+			name: "Wrong url",
+			auth: authOk,
+			request: &ImportSchemaRequest{
+				SchemaType: "lala",
+				Url:        "wrong/url",
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
+			},
+		},
+		{
+			name: "Valid request",
+			auth: authOk,
+			request: &ImportSchemaRequest{
+				SchemaType: schemaType,
+				Url:        url,
+			},
+			expected: expected{
+				httpCode: http.StatusCreated,
+				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			req, err := http.NewRequest("POST", "/v1/schemas", tests.JSONBody(t, tc.request))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusCreated:
+				var response ImportSchema201JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				_, err := uuid.Parse(response.Id)
+				assert.NoError(t, err)
+			case http.StatusBadRequest:
+				var response ImportSchema400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
+			}
+		})
+	}
+}
+
+func TestServer_ImportSchemaIPFS(t *testing.T) {
+	// TIP: A copy of the files here internal/api_ui/testdata/ipfs-schema.json
+	const url = "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL"
+	const schemaType = "testNewType"
+	ctx := context.Background()
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
+	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), schemaLoader)
 	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), schemaSrv, NewConnectionsMock(), NewLinkMock(), NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
@@ -955,6 +1048,25 @@ func TestServer_CreateCredential(t *testing.T) {
 					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 					"birthday":     19960424,
 					"documentType": 2,
+				},
+				Expiration:     common.ToPointer(time.Now()),
+				SignatureProof: common.ToPointer(true),
+			},
+			expected: expected{
+				response:                    CreateCredential201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
+			name: "Happy path with IPFS schema",
+			auth: authOk,
+			body: CreateCredentialRequest{
+				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
+				Type:             "testNewType",
+				CredentialSubject: map[string]any{
+					"id":             "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"testNewTypeInt": 1,
 				},
 				Expiration:     common.ToPointer(time.Now()),
 				SignatureProof: common.ToPointer(true),

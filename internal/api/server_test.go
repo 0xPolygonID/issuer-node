@@ -388,6 +388,26 @@ func TestServer_CreateClaim(t *testing.T) {
 			},
 		},
 		{
+			name: "Happy path with ipfs schema",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				// TIP: A copy of the files here internal/api_ui/testdata/ipfs-schema.json
+				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
+				Type:             "testNewType",
+				CredentialSubject: map[string]any{
+					"id":             "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"testNewTypeInt": 1234,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
 			name: "Wrong credential url",
 			auth: authOk,
 			did:  did,
