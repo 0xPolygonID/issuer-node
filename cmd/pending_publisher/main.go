@@ -37,6 +37,17 @@ func main() {
 
 	// Context with log
 	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
+
+	if err := cfg.SanitizeAPIUI(ctx); err != nil {
+		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
+		return
+	}
+
+	if cfg.APIUI.Issuer == "" {
+		log.Error(ctx, "issuer DID is not set")
+		return
+	}
 
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {

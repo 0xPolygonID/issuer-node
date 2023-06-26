@@ -15,14 +15,27 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
+const perm = 777
+
 func main() {
+	if _, err := os.Stat(config.K8sDidFile); err == nil {
+		log.Info(context.Background(), "identifier already created and stored in file. New identifier not created")
+		return
+	}
+
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", "err", err)
 		return
 	}
 
-	ctx := log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout)
+	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
+
+	if err := cfg.Sanitize(ctx); err != nil {
+		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
+		return
+	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -62,4 +75,9 @@ func main() {
 
 	//nolint:all
 	fmt.Printf(identity.Identifier)
+
+	if err := os.WriteFile(config.K8sDidFile, []byte(identity.Identifier), os.FileMode(perm)); err != nil {
+		log.Error(ctx, "error writing identifier to file", "error", err)
+		return
+	}
 }
