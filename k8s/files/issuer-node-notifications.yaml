@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifications-issuer-node
+  labels:
+    app: notifications-issuer-node-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifications-issuer-node
+  template:
+    metadata:
+      labels:
+        app: notifications-issuer-node # Label for the pod and will be used in the service
+    spec:
+      containers:
+        - name: notifications
+          image: martinsaporiti/issuernode_alpine4
+          imagePullPolicy: "IfNotPresent"
+          envFrom:
+            - configMapRef:
+                name: issuer-node-api-configmap
+            - configMapRef:
+                name: issuer-node-api-ui-configmap
+          env:
+            - name: ISSUER_DATABASE_URL
+              value: "postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable"
+
+            - name: ISSUER_KEY_STORE_ADDRESS
+              value: "http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)" 
+            
+          command: ["sh", "-c"]
+          args: ["./notifications"]
+
+          volumeMounts:
+            - mountPath: /did/data
+              name: issuer-node-volume
+            - mountPath: /vault/data
+              name: vault-volume
+      volumes:
+      - name: issuer-node-volume
+        persistentVolumeClaim:
+          claimName: issuer-node-pvc
+      - name: vault-volume
+        persistentVolumeClaim:
+            claimName: vault-issuer-node-pvc
