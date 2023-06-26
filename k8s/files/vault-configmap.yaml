@@ -85,8 +85,6 @@ data:
     echo "===== ENABLED IDEN3 ====="
     export vault_token="token:${TOKEN}"
     echo $vault_token
-
-    vault write iden3/import/pbkey key_type=ethereum private_key=$PRIVATE_KEY
     
     rm /vault/data/token.txt
     echo $TOKEN > /vault/data/token.txt
