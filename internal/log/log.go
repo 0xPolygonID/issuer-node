@@ -30,9 +30,9 @@ func NewContext(ctx context.Context, level, format int, w io.Writer) context.Con
 		Level:     &l,
 	}
 	if format == OutputJSON {
-		return newContext(ctx, slog.New(opts.NewJSONHandler(w)))
+		return newContext(ctx, slog.New(slog.NewJSONHandler(w, &opts)))
 	}
-	return newContext(ctx, slog.New(opts.NewTextHandler(w)))
+	return newContext(ctx, slog.New(slog.NewTextHandler(w, &opts)))
 }
 
 // CopyFromContext is a helper function that extracts returns a new context from dest, adding
