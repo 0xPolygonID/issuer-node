@@ -1,5 +1,7 @@
 import Ajv, { ErrorObject } from "ajv";
+import Ajv2020 from "ajv/dist/2020";
 import addFormats from "ajv-formats";
+import applyDraft2019Formats from "ajv-formats-draft2019";
 import {
   Button,
   Checkbox,
@@ -96,50 +98,59 @@ export function IssueCredentialForm({
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
-    const serializedSchemaForm = serializeSchemaForm({
-      attribute: makeAttributeOptional(objectAttribute),
-      value,
-    });
+    if (isAsyncTaskDataAvailable(jsonSchema)) {
+      const serializedSchemaForm = serializeSchemaForm({
+        attribute: makeAttributeOptional(objectAttribute),
+        value,
+      });
 
-    if (serializedSchemaForm.success) {
-      const { properties, required, type } = objectAttribute.schema;
+      if (serializedSchemaForm.success) {
+        const { properties, required, type } = objectAttribute.schema;
 
-      try {
-        const ajv = new Ajv({ allErrors: true });
-        addFormats(ajv);
-        const validate = ajv.compile({
-          properties,
-          required,
-          type,
-        });
-        const valid = validate(serializedSchemaForm.data);
+        try {
+          const ajv =
+            jsonSchema.data.jsonSchemaProps.$schema ===
+            "https://json-schema.org/draft/2020-12/schema"
+              ? new Ajv2020({ allErrors: true })
+              : new Ajv({ allErrors: true });
+          addFormats(ajv);
+          ajv.addVocabulary(["$metadata"]);
+          applyDraft2019Formats(ajv);
 
-        if (valid) {
-          setInputErrors(undefined);
-          return true;
-        } else if (validate.errors) {
-          setInputErrors(
-            validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
-              if (curr.keyword === "required") {
-                // filtering out required errors since we manage these from the antd form
-                return acc;
-              } else {
-                const errorMsg = curr.message
-                  ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
-                  : "Unknown validation error";
-                const path = curr.instancePath
-                  .split("/")
-                  .filter((segment) => segment !== "/" && segment !== "");
-                return addErrorToPath(acc, path, errorMsg);
-              }
-            }, {})
-          );
+          const validate = ajv.compile({
+            properties,
+            required,
+            type,
+          });
+          const valid = validate(serializedSchemaForm.data);
+
+          if (valid) {
+            setInputErrors(undefined);
+            return true;
+          } else if (validate.errors) {
+            setInputErrors(
+              validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
+                if (curr.keyword === "required") {
+                  // filtering out required errors since we manage these from the antd form
+                  return acc;
+                } else {
+                  const errorMsg = curr.message
+                    ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
+                    : "Unknown validation error";
+                  const path = curr.instancePath
+                    .split("/")
+                    .filter((segment) => segment !== "/" && segment !== "");
+                  return addErrorToPath(acc, path, errorMsg);
+                }
+              }, {})
+            );
+          }
+        } catch (error) {
+          notifyError(buildAppError(error));
         }
-      } catch (error) {
-        notifyError(buildAppError(error));
+      } else {
+        notifyError(buildAppError(serializedSchemaForm.error));
       }
-    } else {
-      notifyError(buildAppError(serializedSchemaForm.error));
     }
     return false;
   }
