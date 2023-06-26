@@ -58,6 +58,21 @@ paths:
                 $ref: '#/components/schemas/Health'
         '500':
           $ref: '#/components/responses/500'
+  /config:
+    get:
+      summary: Get Config
+      operationId: GetConfig
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: Config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        '500':
+          $ref: '#/components/responses/500'
 #identity:
   /v1/identities:
     post:
@@ -391,6 +406,21 @@ components:
       scheme: basic
 
   schemas:
+    KeyValue:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    Config:
+      type: array
+      items:
+        $ref: '#/components/schemas/KeyValue'
     Health:
       type: object
       x-omitempty: false

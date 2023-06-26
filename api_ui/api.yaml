@@ -24,6 +24,22 @@ tags:
     description: Collection of endpoints related to Mobile
 
 paths:
+  /config:
+    get:
+      summary: Get Config
+      operationId: GetConfig
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: Config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        '500':
+          $ref: '#/components/responses/500'
+
   #authentication
   /v1/authentication/qrcode:
     get:
@@ -845,6 +861,23 @@ components:
       scheme: basic
 
   schemas:
+    KeyValue:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    Config:
+      type: array
+      items:
+        $ref: '#/components/schemas/KeyValue'
+
+
     ImportSchemaRequest:
       type: object
       required:
