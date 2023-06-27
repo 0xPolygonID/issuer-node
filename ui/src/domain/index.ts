@@ -35,7 +35,7 @@ export type {
   JsonSchema,
   MultiAttribute,
   MultiAttributeValue,
-  MultiSchema,
+  Schema,
   MultiValue,
   NullAttribute,
   NullAttributeValue,
@@ -47,11 +47,11 @@ export type {
   ObjectAttribute,
   ObjectAttributeValue,
   ObjectProps,
-  SchemaProps,
+  JsonSchemaProps,
   StringAttribute,
   StringAttributeValue,
   StringProps,
   StringSchema,
 } from "src/domain/jsonSchema";
 
-export type { Schema } from "src/domain/schema";
+export type { Schema as ApiSchema } from "src/domain/schema";

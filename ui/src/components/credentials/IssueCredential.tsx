@@ -18,7 +18,7 @@ import { Summary } from "src/components/credentials/Summary";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
-import { JsonSchema, Schema } from "src/domain";
+import { ApiSchema, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import {
@@ -92,8 +92,8 @@ export function IssueCredential() {
     );
   };
 
-  const onSelectSchema = useCallback(
-    (schema: Schema) => {
+  const onSelectApiSchema = useCallback(
+    (schema: ApiSchema) => {
       const search = new URLSearchParams(searchParams);
 
       search.set(SCHEMA_SEARCH_PARAM, schema.id);
@@ -151,13 +151,13 @@ export function IssueCredential() {
   };
 
   const issueCredential = async ({
+    apiSchema,
     credentialIssuance,
     jsonSchema,
-    schema,
   }: {
+    apiSchema: ApiSchema;
     credentialIssuance: CredentialDirectIssuance;
     jsonSchema: JsonSchema;
-    schema: Schema;
   }) => {
     const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
 
@@ -165,9 +165,9 @@ export function IssueCredential() {
       setIsLoading(true);
       const serializedCredentialForm = serializeCredentialIssuance({
         attribute: credentialSubjectAttribute,
-        credentialSchema: schema.url,
+        credentialSchema: apiSchema.url,
         issueCredential: credentialIssuance,
-        type: schema.type,
+        type: apiSchema.type,
       });
 
       if (serializedCredentialForm.success) {
@@ -242,14 +242,14 @@ export function IssueCredential() {
                       onBack={() => {
                         setStep("issuanceMethod");
                       }}
-                      onSelectSchema={onSelectSchema}
+                      onSelectApiSchema={onSelectApiSchema}
                       onSubmit={({
+                        apiSchema,
                         jsonSchema,
-                        schema,
                         values,
                       }: {
+                        apiSchema: ApiSchema;
                         jsonSchema: JsonSchema;
-                        schema: Schema;
                         values: IssueCredentialFormData;
                       }) => {
                         const newCredentialFormInput: CredentialFormInput = {
@@ -269,9 +269,9 @@ export function IssueCredential() {
                             });
                           } else {
                             void issueCredential({
+                              apiSchema,
                               credentialIssuance: parsedForm.data,
                               jsonSchema,
-                              schema,
                             });
                           }
                         } else {

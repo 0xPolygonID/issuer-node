@@ -59,7 +59,8 @@ export function makeAttributeOptional(attribute: Attribute): Attribute {
         required: false,
         schema: {
           ...attribute.schema,
-          items: attribute.schema.items && makeAttributeOptional(attribute.schema.items),
+          attribute:
+            attribute.schema.attribute && makeAttributeOptional(attribute.schema.attribute),
         },
         type,
       };
@@ -90,7 +91,7 @@ export function makeAttributeOptional(attribute: Attribute): Attribute {
             case "array": {
               return {
                 ...schema,
-                items: schema.items && makeAttributeOptional(schema.items),
+                attributes: schema.attribute && makeAttributeOptional(schema.attribute),
               };
             }
             default: {

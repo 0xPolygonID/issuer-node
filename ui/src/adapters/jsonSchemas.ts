@@ -42,7 +42,7 @@ export async function getSchemaJsonLdTypes({
   env: Env;
   jsonSchema: JsonSchema;
 }): Promise<Response<[JsonLdType[], Json]>> {
-  const url = processUrl(jsonSchema.$metadata.uris.jsonLdContext, env);
+  const url = processUrl(jsonSchema.jsonSchemaProps.$metadata.uris.jsonLdContext, env);
   if (url.success) {
     try {
       const jsonResponse = await getJsonFromUrl({

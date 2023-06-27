@@ -1,5 +1,8 @@
 export type CommonProps = {
+  const?: unknown;
+  default?: unknown;
   description?: string;
+  examples?: unknown[];
   title?: string;
 };
 
@@ -70,7 +73,7 @@ export type StringAttribute = {
 // Non-primitives
 
 type ArrayProps = {
-  items?: Attribute;
+  attribute?: Attribute;
 };
 
 type ArraySchema = CommonProps & ArrayProps & { type: "array" };
@@ -99,7 +102,7 @@ export type ObjectAttribute = {
 
 // Multi-type
 
-export type MultiSchema =
+export type Schema =
   | BooleanSchema
   | IntegerSchema
   | NullSchema
@@ -111,11 +114,11 @@ export type MultiSchema =
 export type MultiAttribute = {
   name: string;
   required: boolean;
-  schemas: MultiSchema[];
+  schemas: Schema[];
   type: "multi";
 };
 
-// Schema
+// JSON Schema
 
 export type Attribute =
   | BooleanAttribute
@@ -127,15 +130,16 @@ export type Attribute =
   | ObjectAttribute
   | MultiAttribute;
 
-export type SchemaProps = {
+export type JsonSchemaProps = {
   $metadata: {
     uris: {
       jsonLdContext: string;
     };
   };
+  $schema: string;
 };
 
-export type JsonSchema = Attribute & SchemaProps;
+export type JsonSchema = ObjectAttribute & { jsonSchemaProps: JsonSchemaProps };
 
 export type JsonLdType = { id: string; name: string };
 

@@ -1,5 +1,7 @@
 import Ajv, { ErrorObject } from "ajv";
+import Ajv2020 from "ajv/dist/2020";
 import addFormats from "ajv-formats";
+import applyDraft2019Formats from "ajv-formats-draft2019";
 import {
   Button,
   Checkbox,
@@ -15,7 +17,7 @@ import {
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 
-import { getSchemas } from "src/adapters/api/schemas";
+import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { IssueCredentialFormData, serializeSchemaForm } from "src/adapters/parsers/forms";
 import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
@@ -26,7 +28,7 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, JsonSchema, ObjectAttribute, Schema } from "src/domain";
+import { ApiSchema, AppError, JsonSchema, ObjectAttribute } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
@@ -65,17 +67,17 @@ export function IssueCredentialForm({
   initialValues,
   isLoading,
   onBack,
-  onSelectSchema,
+  onSelectApiSchema,
   onSubmit,
   type,
 }: {
   initialValues: IssueCredentialFormData;
   isLoading: boolean;
   onBack: () => void;
-  onSelectSchema: (schema: Schema) => void;
+  onSelectApiSchema: (apiSchema: ApiSchema) => void;
   onSubmit: (params: {
+    apiSchema: ApiSchema;
     jsonSchema: JsonSchema;
-    schema: Schema;
     values: IssueCredentialFormData;
   }) => void;
   type: "directIssue" | "credentialLink";
@@ -84,8 +86,8 @@ export function IssueCredentialForm({
 
   const [messageAPI, messageContext] = message.useMessage();
 
-  const [schema, setSchema] = useState<Schema>();
-  const [schemas, setSchemas] = useState<AsyncTask<Schema[], undefined>>({
+  const [apiSchema, setApiSchema] = useState<ApiSchema>();
+  const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], undefined>>({
     status: "pending",
   });
 
@@ -96,55 +98,64 @@ export function IssueCredentialForm({
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
-    const serializedSchemaForm = serializeSchemaForm({
-      attribute: makeAttributeOptional(objectAttribute),
-      value,
-    });
+    if (isAsyncTaskDataAvailable(jsonSchema)) {
+      const serializedSchemaForm = serializeSchemaForm({
+        attribute: makeAttributeOptional(objectAttribute),
+        value,
+      });
 
-    if (serializedSchemaForm.success) {
-      const { properties, required, type } = objectAttribute.schema;
+      if (serializedSchemaForm.success) {
+        const { properties, required, type } = objectAttribute.schema;
 
-      try {
-        const ajv = new Ajv({ allErrors: true });
-        addFormats(ajv);
-        const validate = ajv.compile({
-          properties,
-          required,
-          type,
-        });
-        const valid = validate(serializedSchemaForm.data);
+        try {
+          const ajv =
+            jsonSchema.data.jsonSchemaProps.$schema ===
+            "https://json-schema.org/draft/2020-12/schema"
+              ? new Ajv2020({ allErrors: true })
+              : new Ajv({ allErrors: true });
+          addFormats(ajv);
+          ajv.addVocabulary(["$metadata"]);
+          applyDraft2019Formats(ajv);
 
-        if (valid) {
-          setInputErrors(undefined);
-          return true;
-        } else if (validate.errors) {
-          setInputErrors(
-            validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
-              if (curr.keyword === "required") {
-                // filtering out required errors since we manage these from the antd form
-                return acc;
-              } else {
-                const errorMsg = curr.message
-                  ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
-                  : "Unknown validation error";
-                const path = curr.instancePath
-                  .split("/")
-                  .filter((segment) => segment !== "/" && segment !== "");
-                return addErrorToPath(acc, path, errorMsg);
-              }
-            }, {})
-          );
+          const validate = ajv.compile({
+            properties,
+            required,
+            type,
+          });
+          const valid = validate(serializedSchemaForm.data);
+
+          if (valid) {
+            setInputErrors(undefined);
+            return true;
+          } else if (validate.errors) {
+            setInputErrors(
+              validate.errors.reduce((acc: InputErrors, curr: ErrorObject): InputErrors => {
+                if (curr.keyword === "required") {
+                  // filtering out required errors since we manage these from the antd form
+                  return acc;
+                } else {
+                  const errorMsg = curr.message
+                    ? curr.message.charAt(0).toUpperCase() + curr.message.slice(1)
+                    : "Unknown validation error";
+                  const path = curr.instancePath
+                    .split("/")
+                    .filter((segment) => segment !== "/" && segment !== "");
+                  return addErrorToPath(acc, path, errorMsg);
+                }
+              }, {})
+            );
+          }
+        } catch (error) {
+          notifyError(buildAppError(error));
         }
-      } catch (error) {
-        notifyError(buildAppError(error));
+      } else {
+        notifyError(buildAppError(serializedSchemaForm.error));
       }
-    } else {
-      notifyError(buildAppError(serializedSchemaForm.error));
     }
     return false;
   }
 
-  const fetchJsonSchema = (schema: Schema) => {
+  const fetchJsonSchema = (schema: ApiSchema) => {
     setJsonSchema({ status: "loading" });
     void getJsonSchemaFromUrl({
       url: schema.url,
@@ -165,32 +176,32 @@ export function IssueCredentialForm({
 
   const fetchSchemas = useCallback(
     async (signal: AbortSignal) => {
-      setSchemas((previousState) =>
+      setApiSchemas((previousState) =>
         isAsyncTaskDataAvailable(previousState)
           ? { data: previousState.data, status: "reloading" }
           : { status: "loading" }
       );
 
-      const response = await getSchemas({
+      const response = await getApiSchemas({
         env,
         params: {},
         signal,
       });
 
       if (response.success) {
-        setSchemas({ data: response.data.successful, status: "successful" });
+        setApiSchemas({ data: response.data.successful, status: "successful" });
         const selectedSchema =
           initialValues.schemaID !== undefined
             ? response.data.successful.find((schema) => schema.id === initialValues.schemaID)
             : undefined;
 
         if (selectedSchema) {
-          setSchema(selectedSchema);
+          setApiSchema(selectedSchema);
           fetchJsonSchema(selectedSchema);
         }
       } else {
         if (!isAbortedError(response.error)) {
-          setSchemas({ error: undefined, status: "failed" });
+          setApiSchemas({ error: undefined, status: "failed" });
           void messageAPI.error(response.error.message);
         }
       }
@@ -221,9 +232,9 @@ export function IssueCredentialForm({
             credentialSubjectAttributeWithoutId &&
             values.credentialSubject &&
             isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId) &&
-            schema
+            apiSchema
           ) {
-            onSubmit({ jsonSchema: jsonSchemaData, schema, values });
+            onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
           }
         }}
         onValuesChange={(_, values: IssueCredentialFormData) => {
@@ -242,21 +253,21 @@ export function IssueCredentialForm({
         >
           <Select
             className="full-width"
-            loading={isAsyncTaskStarting(schemas)}
+            loading={isAsyncTaskStarting(apiSchemas)}
             onChange={(id: string) => {
               const schema =
-                isAsyncTaskDataAvailable(schemas) &&
-                schemas.data.find((schema) => schema.id === id);
+                isAsyncTaskDataAvailable(apiSchemas) &&
+                apiSchemas.data.find((schema) => schema.id === id);
               if (schema) {
-                onSelectSchema(schema);
-                setSchema(schema);
+                onSelectApiSchema(schema);
+                setApiSchema(schema);
                 fetchJsonSchema(schema);
               }
             }}
             placeholder={SCHEMA_TYPE}
           >
-            {isAsyncTaskDataAvailable(schemas) &&
-              schemas.data.map(({ id, type }) => (
+            {isAsyncTaskDataAvailable(apiSchemas) &&
+              apiSchemas.data.map(({ id, type }) => (
                 <Select.Option key={id} value={id}>
                   {type}
                 </Select.Option>
@@ -264,7 +275,7 @@ export function IssueCredentialForm({
           </Select>
         </Form.Item>
 
-        {schema && (
+        {apiSchema && (
           <>
             <Form.Item>
               <Space direction="vertical">
@@ -274,7 +285,7 @@ export function IssueCredentialForm({
                   <Typography.Text
                     copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
                   >
-                    {schema.hash}
+                    {apiSchema.hash}
                   </Typography.Text>
                 </Row>
               </Space>
@@ -282,7 +293,7 @@ export function IssueCredentialForm({
 
             <Divider />
 
-            <Typography.Paragraph>{schema.type}</Typography.Paragraph>
+            <Typography.Paragraph>{apiSchema.type}</Typography.Paragraph>
 
             {(() => {
               switch (jsonSchema.status) {
@@ -301,7 +312,7 @@ export function IssueCredentialForm({
                     extractCredentialSubjectAttributeWithoutId(jsonSchema.data);
                   return credentialSubjectAttributeWithoutId?.schema.attributes ? (
                     <>
-                      {jsonSchema.data.type !== "multi" && jsonSchema.data.schema.description && (
+                      {jsonSchema.data.schema.description && (
                         <Typography.Paragraph type="secondary">
                           {jsonSchema.data.schema.description}
                         </Typography.Paragraph>
