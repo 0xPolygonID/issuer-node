@@ -2,10 +2,12 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
+import { processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { AppError, Json, JsonLdType, JsonSchema } from "src/domain";
+import { useEnvContext } from "src/contexts/Env";
+import { AppError, Env, Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import {
   buildAppError,
@@ -30,6 +32,8 @@ export function ImportSchemaForm({
   initialFormData?: FormData;
   onFinish: (formData: FormData) => void;
 }) {
+  const env = useEnvContext();
+
   const [schemaUrlInput, setSchemaUrlInput] = useState<string>(
     initialFormData?.schemaUrlInput || ""
   );
@@ -58,11 +62,16 @@ export function ImportSchemaForm({
         }
   );
 
-  const fetchJsonSchemaFromUrl = (url: string): void => {
+  const fetchJsonSchemaFromUrl = (env: Env, url: string): void => {
+    const processedUrl = processUrl(url, env);
+    if (!processedUrl.success) {
+      throw new Error(processedUrl.error.message);
+    }
+
     setJsonSchema({ status: "loading" });
 
     void getJsonSchemaFromUrl({
-      url,
+      url: processedUrl.data,
     }).then((jsonSchemaResponse) => {
       if (jsonSchemaResponse.success) {
         const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
@@ -72,6 +81,7 @@ export function ImportSchemaForm({
         setJsonLdTypes({ status: "loading" });
 
         void getSchemaJsonLdTypes({
+          env,
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
           if (jsonLdTypesResponse.success) {
@@ -99,7 +109,7 @@ export function ImportSchemaForm({
       setJsonSchema({ status: "pending" });
       setJsonLdTypes({ status: "pending" });
       setJsonLdTypeInput(undefined);
-      fetchJsonSchemaFromUrl(parsedUrl.data);
+      fetchJsonSchemaFromUrl(env, parsedUrl.data);
     } else {
       setJsonSchema({
         error: buildAppError(`"${schemaUrlInput}" is not a valid URL`),

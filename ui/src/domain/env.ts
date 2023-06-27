@@ -6,10 +6,12 @@ export type Env = {
   };
   blockExplorerUrl: string;
   buildTag?: string;
+  ipfsGatewayUrl: string;
   issuer: {
     did: string;
     logo: string;
     name: string;
   };
+  schemaExplorerAndBuilderUrl?: string;
   warningMessage?: string;
 };

@@ -40,48 +40,52 @@ export function SchemaDetails() {
     status: "pending",
   });
 
-  const fetchJsonSchemaFromUrl = useCallback((schema: Schema): void => {
-    setJsonSchemaTuple({ status: "loading" });
+  const fetchJsonSchemaFromUrl = useCallback(
+    (schema: Schema): void => {
+      setJsonSchemaTuple({ status: "loading" });
 
-    void getJsonSchemaFromUrl({
-      url: schema.url,
-    }).then((jsonSchemaResponse) => {
-      if (jsonSchemaResponse.success) {
-        const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
-        setJsonSchemaTuple({ data: [jsonSchema, jsonSchemaObject], status: "successful" });
-        setContextTuple({ status: "loading" });
-        void getSchemaJsonLdTypes({
-          jsonSchema,
-        }).then((jsonLdTypesResponse) => {
-          if (jsonLdTypesResponse.success) {
-            const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
-            const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
+      void getJsonSchemaFromUrl({
+        url: schema.url,
+      }).then((jsonSchemaResponse) => {
+        if (jsonSchemaResponse.success) {
+          const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
+          setJsonSchemaTuple({ data: [jsonSchema, jsonSchemaObject], status: "successful" });
+          setContextTuple({ status: "loading" });
+          void getSchemaJsonLdTypes({
+            env,
+            jsonSchema,
+          }).then((jsonLdTypesResponse) => {
+            if (jsonLdTypesResponse.success) {
+              const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
+              const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
-            if (jsonLdType) {
-              setContextTuple({ data: [jsonLdType, jsonLdContextObject], status: "successful" });
+              if (jsonLdType) {
+                setContextTuple({ data: [jsonLdType, jsonLdContextObject], status: "successful" });
+              } else {
+                setContextTuple({
+                  error: buildAppError(
+                    "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL"
+                  ),
+                  status: "failed",
+                });
+              }
             } else {
               setContextTuple({
-                error: buildAppError(
-                  "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL"
-                ),
+                error: jsonLdTypesResponse.error,
                 status: "failed",
               });
             }
-          } else {
-            setContextTuple({
-              error: jsonLdTypesResponse.error,
-              status: "failed",
-            });
-          }
-        });
-      } else {
-        setJsonSchemaTuple({
-          error: jsonSchemaResponse.error,
-          status: "failed",
-        });
-      }
-    });
-  }, []);
+          });
+        } else {
+          setJsonSchemaTuple({
+            error: jsonSchemaResponse.error,
+            status: "failed",
+          });
+        }
+      });
+    },
+    [env]
+  );
 
   const fetchApiSchema = useCallback(
     async (signal: AbortSignal) => {

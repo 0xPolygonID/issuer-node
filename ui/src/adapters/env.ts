@@ -10,9 +10,11 @@ export type EnvInput = {
   VITE_API_USERNAME: string;
   VITE_BLOCK_EXPLORER_URL: string;
   VITE_BUILD_TAG?: string;
+  VITE_IPFS_GATEWAY_URL: string;
   VITE_ISSUER_DID: string;
   VITE_ISSUER_LOGO?: string;
   VITE_ISSUER_NAME: string;
+  VITE_SCHEMA_EXPLORER_AND_BUILDER_URL?: string;
   VITE_WARNING_MESSAGE?: string;
 };
 
@@ -24,9 +26,14 @@ export const envParser = getStrictParser<EnvInput, Env>()(
       VITE_API_USERNAME: z.string().min(1),
       VITE_BLOCK_EXPLORER_URL: z.string().url(),
       VITE_BUILD_TAG: z.string().optional(),
+      VITE_IPFS_GATEWAY_URL: z.string().url(),
       VITE_ISSUER_DID: z.string(),
       VITE_ISSUER_LOGO: z.string().optional(),
       VITE_ISSUER_NAME: z.string().min(1),
+      VITE_SCHEMA_EXPLORER_AND_BUILDER_URL: z
+        .union([z.string().url(), z.literal("")])
+        .transform((value) => value || undefined)
+        .optional(),
       VITE_WARNING_MESSAGE: z.string().optional(),
     })
     .transform(
@@ -36,9 +43,11 @@ export const envParser = getStrictParser<EnvInput, Env>()(
         VITE_API_USERNAME,
         VITE_BLOCK_EXPLORER_URL,
         VITE_BUILD_TAG,
+        VITE_IPFS_GATEWAY_URL,
         VITE_ISSUER_DID,
         VITE_ISSUER_LOGO,
         VITE_ISSUER_NAME,
+        VITE_SCHEMA_EXPLORER_AND_BUILDER_URL,
         VITE_WARNING_MESSAGE,
       }): Env => ({
         api: {
@@ -48,11 +57,13 @@ export const envParser = getStrictParser<EnvInput, Env>()(
         },
         blockExplorerUrl: VITE_BLOCK_EXPLORER_URL,
         buildTag: VITE_BUILD_TAG,
+        ipfsGatewayUrl: VITE_IPFS_GATEWAY_URL,
         issuer: {
           did: VITE_ISSUER_DID,
           logo: VITE_ISSUER_LOGO || IMAGE_PLACEHOLDER_PATH,
           name: VITE_ISSUER_NAME,
         },
+        schemaExplorerAndBuilderUrl: VITE_SCHEMA_EXPLORER_AND_BUILDER_URL,
         warningMessage: VITE_WARNING_MESSAGE,
       })
     )

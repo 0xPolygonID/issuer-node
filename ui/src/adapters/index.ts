@@ -5,6 +5,7 @@ type SuccessResponse<D> = {
   data: D;
   success: true;
 };
+
 type ErrorResponse = {
   error: AppError;
   success: false;
