@@ -25,6 +25,7 @@ const (
 	K8sDidFile        = "/did/data/did.txt"    // When running in k8s, the did is stored in this file
 	k8NRetries        = 20                     // Retries to wait for the creation of the vault token
 	k8TBetweenRetries = 500 * time.Millisecond // Time between retries
+	ipfsGateway       = "https://ipfs.io"
 )
 
 // Configuration holds the project configuration
@@ -400,6 +401,11 @@ func bindEnv() {
 
 // nolint:gocyclo
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
+	if cfg.IFPS.GatewayURL == "" {
+		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
+		cfg.IFPS.GatewayURL = ipfsGateway
+	}
+
 	if cfg.ServerUrl == "" {
 		log.Info(ctx, "ISSUER_SERVER_URL value is missing")
 	}
