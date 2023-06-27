@@ -1,4 +1,4 @@
-import { Button, Col, Divider, Layout, Row, Space, Typography, notification } from "antd";
+import { Button, Col, Divider, Grid, Layout, Row, Typography, notification } from "antd";
 import { keccak256 } from "js-sha3";
 import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,7 @@ export function SiderLayoutContent({
   title,
 }: {
   children: ReactNode;
-  description?: string;
+  description?: ReactNode;
   extra?: ReactNode;
   showBackButton?: boolean;
   showDivider?: boolean;
@@ -35,6 +35,8 @@ export function SiderLayoutContent({
   const [isShowingWarning, setShowWarning] = useState(
     !!warningKey && getStorageByKey({ defaultValue: true, key: warningKey, parser: z.boolean() })
   );
+
+  const { md } = Grid.useBreakpoint();
 
   const navigate = useNavigate();
 
@@ -62,36 +64,40 @@ export function SiderLayoutContent({
   }, [warningMessage, isShowingWarning, warningKey]);
 
   return (
-    <>
-      <Layout.Header
-        className="bg-light"
-        style={{ height: "auto", padding: 32, paddingBottom: showDivider ? 0 : 12 }}
+    <Layout className="bg-light" style={{ minHeight: "100vh" }}>
+      <Row
+        gutter={[0, 16]}
+        justify="space-between"
+        style={{
+          height: "auto",
+          padding: md
+            ? `32px 32px ${showDivider ? 0 : "12px"} `
+            : `16px 16px ${showDivider ? 0 : "12px"} `,
+        }}
       >
-        <Row justify="space-between">
-          <Space align="start" size="large">
-            {showBackButton && (
+        <Row gutter={[24, 16]}>
+          {showBackButton && (
+            <Col>
               <Button
                 icon={<IconArrowLeft style={{ marginRight: 0 }} />}
                 onClick={() => navigate(-1)}
               />
-            )}
-
-            <Col style={{ lineHeight: "1rem", maxWidth: 585 }}>
-              <Typography.Title level={3}>{title}</Typography.Title>
-
-              {description && <Typography.Text type="secondary">{description}</Typography.Text>}
             </Col>
-          </Space>
+          )}
 
-          {extra}
+          <Col style={{ lineHeight: "1rem", maxWidth: 600 }}>
+            <Typography.Title level={3}>{title}</Typography.Title>
+
+            {description && <Typography.Text type="secondary">{description}</Typography.Text>}
+          </Col>
         </Row>
-      </Layout.Header>
+
+        {extra}
+      </Row>
 
       {showDivider && <Divider />}
 
-      <Layout.Content style={{ padding: 32, paddingBottom: 64, paddingTop: 0 }}>
-        {children}
-      </Layout.Content>
-    </>
+      <Row style={{ padding: `0 ${md ? "32px" : 0} 64px` }}>{children}</Row>
+    </Layout>
   );
 }

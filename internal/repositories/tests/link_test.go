@@ -41,7 +41,7 @@ func TestSaveLink(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
 	linkFetched, err := linkStore.GetByID(ctx, did, *linkID)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, linkToSave.Active, linkFetched.Active)
 	assert.Equal(t, linkToSave.MaxIssuance, linkFetched.MaxIssuance)
 	assert.InDelta(t, linkToSave.ValidUntil.Unix(), linkFetched.ValidUntil.Unix(), 500)
@@ -98,16 +98,16 @@ func insertSchemaForLink(ctx context.Context, didStr string, store ports.SchemaR
 
 	data := struct {
 		typ        string
-		attributes domain.SchemaAttrs
-	}{typ: "age", attributes: domain.SchemaAttrs{"birthday", "documentType"}}
+		attributes domain.SchemaWords
+	}{typ: "age", attributes: domain.SchemaWords{"birthday", "documentType"}}
 
 	s := &domain.Schema{
-		ID:         uuid.New(),
-		IssuerDID:  did,
-		URL:        "url is not important in this test but need to be unique",
-		Type:       data.typ,
-		Attributes: data.attributes,
-		CreatedAt:  time.Now(),
+		ID:        uuid.New(),
+		IssuerDID: did,
+		URL:       "url is not important in this test but need to be unique",
+		Type:      data.typ,
+		Words:     data.attributes,
+		CreatedAt: time.Now(),
 	}
 	require.NoError(t, store.Save(ctx, s))
 	return s.ID
@@ -285,6 +285,15 @@ func TestGetAll(t *testing.T) {
 			name:   "active, with query that should match because of the beginning of a term",
 			filter: ports.LinkActive,
 			query:  common.ToPointer("birth"),
+			expected: expected{
+				count:  20,
+				active: common.ToPointer(string(ports.LinkActive)),
+			},
+		},
+		{
+			name:   "active, with query that should match because in the middle of a term",
+			filter: ports.LinkActive,
+			query:  common.ToPointer("thday"),
 			expected: expected{
 				count:  20,
 				active: common.ToPointer(string(ports.LinkActive)),

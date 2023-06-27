@@ -1,18 +1,18 @@
-import { Button, Card, Row, Space, Typography, message } from "antd";
+import { Button, Card, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { getSchema } from "src/adapters/api/schemas";
-import { downloadJsonFromUrl } from "src/adapters/json";
+import { getApiSchema } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
+import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Json, JsonLdType, JsonSchema, Schema } from "src/domain";
+import { ApiSchema, AppError, Json, JsonLdType, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -33,62 +33,66 @@ export function SchemaDetails() {
   const [jsonSchemaTuple, setJsonSchemaTuple] = useState<AsyncTask<[JsonSchema, Json], AppError>>({
     status: "pending",
   });
-  const [schema, setSchema] = useState<AsyncTask<Schema, AppError>>({
+  const [schema, setSchema] = useState<AsyncTask<ApiSchema, AppError>>({
     status: "pending",
   });
   const [contextTuple, setContextTuple] = useState<AsyncTask<[JsonLdType, Json], AppError>>({
     status: "pending",
   });
 
-  const fetchJsonSchemaFromUrl = useCallback((schema: Schema): void => {
-    setJsonSchemaTuple({ status: "loading" });
+  const fetchJsonSchemaFromUrl = useCallback(
+    (schema: ApiSchema): void => {
+      setJsonSchemaTuple({ status: "loading" });
 
-    void getJsonSchemaFromUrl({
-      url: schema.url,
-    }).then((jsonSchemaResponse) => {
-      if (jsonSchemaResponse.success) {
-        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
-        setJsonSchemaTuple({ data: [jsonSchema, rawJsonSchema], status: "successful" });
-        setContextTuple({ status: "loading" });
-        void getSchemaJsonLdTypes({
-          jsonSchema,
-        }).then((jsonLdTypesResponse) => {
-          if (jsonLdTypesResponse.success) {
-            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
-            const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
+      void getJsonSchemaFromUrl({
+        url: schema.url,
+      }).then((jsonSchemaResponse) => {
+        if (jsonSchemaResponse.success) {
+          const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
+          setJsonSchemaTuple({ data: [jsonSchema, jsonSchemaObject], status: "successful" });
+          setContextTuple({ status: "loading" });
+          void getSchemaJsonLdTypes({
+            env,
+            jsonSchema,
+          }).then((jsonLdTypesResponse) => {
+            if (jsonLdTypesResponse.success) {
+              const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
+              const jsonLdType = jsonLdTypes.find((type) => type.name === schema.type);
 
-            if (jsonLdType) {
-              setContextTuple({ data: [jsonLdType, rawJsonLdContext], status: "successful" });
+              if (jsonLdType) {
+                setContextTuple({ data: [jsonLdType, jsonLdContextObject], status: "successful" });
+              } else {
+                setContextTuple({
+                  error: buildAppError(
+                    "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL"
+                  ),
+                  status: "failed",
+                });
+              }
             } else {
               setContextTuple({
-                error: buildAppError(
-                  "Couldn't find the type specified by the schemas API in the context of the schema obtained from the URL"
-                ),
+                error: jsonLdTypesResponse.error,
                 status: "failed",
               });
             }
-          } else {
-            setContextTuple({
-              error: jsonLdTypesResponse.error,
-              status: "failed",
-            });
-          }
-        });
-      } else {
-        setJsonSchemaTuple({
-          error: jsonSchemaResponse.error,
-          status: "failed",
-        });
-      }
-    });
-  }, []);
+          });
+        } else {
+          setJsonSchemaTuple({
+            error: jsonSchemaResponse.error,
+            status: "failed",
+          });
+        }
+      });
+    },
+    [env]
+  );
 
   const fetchApiSchema = useCallback(
     async (signal: AbortSignal) => {
       if (schemaID) {
         setSchema({ status: "loading" });
 
-        const response = await getSchema({
+        const response = await getApiSchema({
           env,
           schemaID,
           signal,
@@ -163,8 +167,8 @@ export function SchemaDetails() {
           );
         } else {
           const { bigInt, createdAt, hash, url } = schema.data;
-          const [jsonSchema, rawJsonSchema] = jsonSchemaTuple.data;
-          const [jsonLdType, rawJsonLdContext] = contextTuple.data;
+          const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
+          const [jsonLdType, jsonLdContextObject] = contextTuple.data;
 
           return (
             <SchemaViewer
@@ -196,36 +200,13 @@ export function SchemaDetails() {
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 
-                  <Row justify="space-between">
-                    <Typography.Text type="secondary">Download</Typography.Text>
-
-                    <Button
-                      onClick={() => {
-                        downloadJsonFromUrl({
-                          fileName: jsonSchema.name,
-                          url: url,
-                        })
-                          .then(() => {
-                            void message.success("Schema downloaded successfully.");
-                          })
-                          .catch(() => {
-                            void message.error(
-                              "An error occurred while downloading the schema. Please try again."
-                            );
-                          });
-                      }}
-                      style={{ height: 24, padding: 0 }}
-                      type="link"
-                    >
-                      JSON Schema
-                    </Button>
-                  </Row>
+                  <DownloadSchema fileName={jsonSchema.name} url={url} />
                 </Space>
               }
+              jsonLdContextObject={jsonLdContextObject}
               jsonLdType={jsonLdType}
               jsonSchema={jsonSchema}
-              rawJsonLdContext={rawJsonLdContext}
-              rawJsonSchema={rawJsonSchema}
+              jsonSchemaObject={jsonSchemaObject}
             />
           );
         }

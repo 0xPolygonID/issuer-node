@@ -4,11 +4,11 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import { Env, JsonLdType, Schema } from "src/domain";
+import { ApiSchema, Env, JsonLdType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
-const schemaParser = getStrictParser<Schema>()(
+const apiSchemaParser = getStrictParser<ApiSchema>()(
   z.object({
     bigInt: z.string(),
     createdAt: z.coerce.date(z.string().datetime()),
@@ -47,7 +47,7 @@ export async function importSchema({
   }
 }
 
-export async function getSchema({
+export async function getApiSchema({
   env,
   schemaID,
   signal,
@@ -55,7 +55,7 @@ export async function getSchema({
   env: Env;
   schemaID: string;
   signal: AbortSignal;
-}): Promise<Response<Schema>> {
+}): Promise<Response<ApiSchema>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -66,13 +66,13 @@ export async function getSchema({
       signal,
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
-    return buildSuccessResponse(schemaParser.parse(response.data));
+    return buildSuccessResponse(apiSchemaParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
 }
 
-export async function getSchemas({
+export async function getApiSchemas({
   env,
   params: { query },
   signal,
@@ -82,7 +82,7 @@ export async function getSchemas({
     query?: string;
   };
   signal: AbortSignal;
-}): Promise<Response<List<Schema>>> {
+}): Promise<Response<List<ApiSchema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -97,7 +97,7 @@ export async function getSchemas({
       url: `${API_VERSION}/schemas`,
     });
     return buildSuccessResponse(
-      getListParser(schemaParser)
+      getListParser(apiSchemaParser)
         .transform(({ failed, successful }) => ({
           failed,
           successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
@@ -108,3 +108,19 @@ export async function getSchemas({
     return buildErrorResponse(error);
   }
 }
+
+export const getIPFSGatewayUrl = (env: Env, ipfsUrl: string): Response<string> => {
+  const cid = ipfsUrl.split("ipfs://")[1];
+
+  return cid !== undefined
+    ? buildSuccessResponse(`${env.ipfsGatewayUrl}/ipfs/${cid}`)
+    : buildErrorResponse("Invalid IPFS URL");
+};
+
+export const processUrl = (url: string, env: Env): Response<string> => {
+  if (url.startsWith("ipfs://")) {
+    return getIPFSGatewayUrl(env, url);
+  } else {
+    return { data: url, success: true };
+  }
+};

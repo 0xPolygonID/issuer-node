@@ -29,6 +29,14 @@ function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   }, init);
 }
 
+export function notifyError(error: AppError, compact = false): void {
+  if (!compact && error.type === "parse-error") {
+    notifyParseError(error.error);
+  } else {
+    void message.error(error.message);
+  }
+}
+
 export function notifyParseError(error: z.ZodError): void {
   processZodError(error).forEach((error) => void message.error(error));
 }
@@ -97,8 +105,8 @@ export const credentialSubjectValueErrorToString = (error: AppError) =>
 export const jsonSchemaErrorToString = (error: AppError) =>
   [
     error.type === "parse-error" || error.type === "custom-error"
-      ? "An error occurred while parsing the json schema:"
-      : "An error occurred while downloading the json schema:",
+      ? "An error occurred while parsing the JSON Schema:"
+      : "An error occurred while downloading the JSON Schema:",
     error.message,
     "Please try again.",
   ].join("\n");

@@ -33,7 +33,7 @@ func Test_link_issueClaim(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.HTTPFactory
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	claimsConf := services.ClaimCfg{
@@ -48,7 +48,8 @@ func Test_link_issueClaim(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
-		pubsub.NewMock())
+		pubsub.NewMock(),
+		ipfsGateway)
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)

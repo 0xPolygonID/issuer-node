@@ -40,7 +40,7 @@ IDEN3_PLUGIN_PATH="/vault/plugins/vault-plugin-secrets-iden3"
 if [ ! -e "$IDEN3_PLUGIN_PATH" ]; then
 	echo "===== IDEN3 Plugin not found: downloading... ====="
     IDEN3_PLUGIN_ARCH=amd64
-    IDEN3_PLUGIN_VERSION=0.0.6
+    IDEN3_PLUGIN_VERSION=0.0.7
     if [ `uname -m` == "aarch64" ]; then
         IDEN3_PLUGIN_ARCH=arm64
     fi

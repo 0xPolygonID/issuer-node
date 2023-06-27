@@ -2,6 +2,7 @@ import {
   AutoComplete,
   Button,
   Card,
+  Col,
   DatePicker,
   Form,
   Input,
@@ -43,8 +44,6 @@ export function IssuanceMethodForm({
 
   const isLinkIssue = issuanceMethod.type === "credentialLink";
   const isDirectIssue = issuanceMethod.type === "directIssue";
-
-  const isNextButtonDisabled = isDirectIssue && !issuanceMethod.did;
 
   const isConnectedSuffixVisible =
     isDirectIssue &&
@@ -98,11 +97,9 @@ export function IssuanceMethodForm({
             }
           }
         }}
-        requiredMark={false}
-        validateTrigger="onBlur"
       >
-        <Form.Item name="type" rules={[{ message: VALUE_REQUIRED, required: true }]}>
-          <Radio.Group className="full-width" name="type">
+        <Form.Item name="type">
+          <Radio.Group className="full-width">
             <Space direction="vertical">
               <Card className={`${isDirectIssue ? "selected" : ""}`}>
                 <Radio value="directIssue">
@@ -117,9 +114,10 @@ export function IssuanceMethodForm({
                 </Radio>
 
                 <Form.Item
+                  dependencies={["type"]}
                   label="Select connection/Paste identifier"
                   name="did"
-                  required
+                  rules={[{ message: VALUE_REQUIRED, required: isDirectIssue }]}
                   style={{ paddingLeft: 28, paddingTop: 16 }}
                 >
                   <AutoComplete
@@ -169,76 +167,84 @@ export function IssuanceMethodForm({
                     </Space>
                   </Radio>
 
-                  <Space direction="horizontal" size="large" style={{ paddingLeft: 28 }}>
-                    <Space align="end" direction="horizontal">
-                      <Form.Item help="Optional" label={ACCESSIBLE_UNTIL} name="linkExpirationDate">
-                        <DatePicker
-                          disabled={isDirectIssue}
-                          disabledDate={(current) => current < dayjs().startOf("day")}
-                        />
-                      </Form.Item>
+                  <Row gutter={8} style={{ paddingLeft: 28 }}>
+                    <Col md={16}>
+                      <Space align="end" direction="horizontal">
+                        <Form.Item
+                          help="Optional"
+                          label={ACCESSIBLE_UNTIL}
+                          name="linkExpirationDate"
+                        >
+                          <DatePicker
+                            disabled={isDirectIssue}
+                            disabledDate={(current) => current < dayjs().startOf("day")}
+                          />
+                        </Form.Item>
 
-                      <Form.Item
-                        getValueProps={() => {
-                          return {
-                            linkExpirationTime:
-                              issuanceMethod.type === "credentialLink" &&
-                              issuanceMethod.linkExpirationTime,
-                          };
-                        }}
-                        name="linkExpirationTime"
-                      >
-                        <TimePicker
-                          disabled={isDirectIssue}
-                          disabledTime={() => {
-                            const now = dayjs();
-
-                            if (
-                              issuanceMethod.type === "credentialLink" &&
-                              now.isSame(issuanceMethod.linkExpirationDate, "day")
-                            ) {
-                              return {
-                                disabledHours: () => [...Array(now.hour()).keys()],
-                                disabledMinutes: (hour) => {
-                                  return now.hour() === hour
-                                    ? [...Array(now.minute() + 1).keys()]
-                                    : hour < 0
-                                    ? [...Array(60).keys()]
-                                    : [];
-                                },
-                              };
-                            } else {
-                              return {};
-                            }
+                        <Form.Item
+                          getValueProps={() => {
+                            return {
+                              linkExpirationTime:
+                                issuanceMethod.type === "credentialLink" &&
+                                issuanceMethod.linkExpirationTime,
+                            };
                           }}
-                          format="HH:mm"
-                          hideDisabledOptions
-                          minuteStep={5}
-                          showNow={false}
-                          value={
-                            issuanceMethod.type === "credentialLink"
-                              ? issuanceMethod.linkExpirationTime
-                              : undefined
-                          }
+                          name="linkExpirationTime"
+                        >
+                          <TimePicker
+                            disabled={isDirectIssue}
+                            disabledTime={() => {
+                              const now = dayjs();
+
+                              if (
+                                issuanceMethod.type === "credentialLink" &&
+                                now.isSame(issuanceMethod.linkExpirationDate, "day")
+                              ) {
+                                return {
+                                  disabledHours: () => [...Array(now.hour()).keys()],
+                                  disabledMinutes: (hour) => {
+                                    return now.hour() === hour
+                                      ? [...Array(now.minute() + 1).keys()]
+                                      : hour < 0
+                                      ? [...Array(60).keys()]
+                                      : [];
+                                  },
+                                };
+                              } else {
+                                return {};
+                              }
+                            }}
+                            format="HH:mm"
+                            hideDisabledOptions
+                            minuteStep={5}
+                            showNow={false}
+                            value={
+                              issuanceMethod.type === "credentialLink"
+                                ? issuanceMethod.linkExpirationTime
+                                : undefined
+                            }
+                          />
+                        </Form.Item>
+                      </Space>
+                    </Col>
+
+                    <Col md={8}>
+                      <Form.Item
+                        help="Optional"
+                        label="Set maximum issuance"
+                        name="linkMaximumIssuance"
+                      >
+                        <InputNumber
+                          className="full-width"
+                          disabled={isDirectIssue}
+                          min={1}
+                          placeholder="e.g 1000"
+                          size="large"
+                          type="number"
                         />
                       </Form.Item>
-                    </Space>
-
-                    <Form.Item
-                      help="Optional"
-                      label="Set maximum issuance"
-                      name="linkMaximumIssuance"
-                    >
-                      <InputNumber
-                        className="full-width"
-                        disabled={isDirectIssue}
-                        min={1}
-                        placeholder="e.g 1000"
-                        size="large"
-                        type="number"
-                      />
-                    </Form.Item>
-                  </Space>
+                    </Col>
+                  </Row>
                 </Space>
               </Card>
             </Space>
@@ -246,7 +252,7 @@ export function IssuanceMethodForm({
         </Form.Item>
 
         <Row gutter={8} justify="end">
-          <Button disabled={isNextButtonDisabled} htmlType="submit" type="primary">
+          <Button htmlType="submit" type="primary">
             Next step <IconRight />
           </Button>
         </Row>

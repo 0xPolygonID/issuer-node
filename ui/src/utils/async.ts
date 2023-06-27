@@ -5,28 +5,28 @@ export type AsyncTask<Data, Error> =
   | AsyncTaskReloading<Data>
   | AsyncTaskSuccessful<Data>;
 
-interface AsyncTaskFailed<Error> {
+type AsyncTaskFailed<Error> = {
   error: Error;
   status: "failed";
-}
+};
 
-interface AsyncTaskLoading {
+type AsyncTaskLoading = {
   status: "loading";
-}
+};
 
-interface AsyncTaskPending {
+type AsyncTaskPending = {
   status: "pending";
-}
+};
 
-interface AsyncTaskReloading<Data> {
+type AsyncTaskReloading<Data> = {
   data: Data;
   status: "reloading";
-}
+};
 
-interface AsyncTaskSuccessful<Data> {
+type AsyncTaskSuccessful<Data> = {
   data: Data;
   status: "successful";
-}
+};
 
 export function isAsyncTaskDataAvailable<Data, Error>(
   task: AsyncTask<Data, Error>

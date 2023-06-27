@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Dropdown,
+  Grid,
   Radio,
   RadioChangeEvent,
   Row,
@@ -49,15 +50,16 @@ import { formatDate } from "src/utils/forms";
 export function LinksTable() {
   const env = useEnvContext();
 
+  const { md, sm } = Grid.useBreakpoint();
+  const [messageAPI, messageContext] = message.useMessage();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [links, setLinks] = useState<AsyncTask<Link[], AppError>>({
     status: "pending",
   });
   const [isLinkUpdating, setLinkUpdating] = useState<Record<string, boolean>>({});
   const [linkToDelete, setLinkToDelete] = useState<string>();
-
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const linksList = isAsyncTaskDataAvailable(links) ? links.data : [];
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
@@ -86,7 +88,7 @@ export function LinksTable() {
       ),
       sorter: ({ active: a }, { active: b }) => (a === b ? 0 : a ? 1 : -1),
       title: "Active",
-      width: 100,
+      width: md ? 100 : 60,
     },
     {
       dataIndex: "schemaType",
@@ -107,6 +109,7 @@ export function LinksTable() {
       render: (expiration: Link["expiration"]) => (
         <Typography.Text>{expiration ? formatDate(expiration) : "Unlimited"}</Typography.Text>
       ),
+      responsive: ["sm"],
       sorter: ({ expiration: a }, { expiration: b }) => {
         if (a && b) {
           return dayjs(a).unix() - dayjs(b).unix();
@@ -127,6 +130,7 @@ export function LinksTable() {
 
         return <Typography.Text>{value}</Typography.Text>;
       },
+      responsive: ["md"],
       sorter: ({ issuedClaims: a }, { issuedClaims: b }) => (a === b ? 0 : a ? 1 : -1),
       title: "Credentials issued",
     },
@@ -139,6 +143,7 @@ export function LinksTable() {
 
         return <Typography.Text>{value}</Typography.Text>;
       },
+      responsive: ["md"],
       sorter: ({ maxIssuance: a }, { maxIssuance: b }) => {
         if (a && b) {
           return a - b;
@@ -285,9 +290,9 @@ export function LinksTable() {
       if (response.success) {
         updateCredentialInState(active, id);
 
-        void message.success(response.data.message);
+        void messageAPI.success(response.data.message);
       } else {
-        void message.error(response.error.message);
+        void messageAPI.error(response.error.message);
       }
 
       setLinkUpdating((currentLinksUpdating) => {
@@ -323,6 +328,8 @@ export function LinksTable() {
 
   return (
     <>
+      {messageContext}
+
       <TableCard
         defaultContents={
           <>
@@ -376,7 +383,7 @@ export function LinksTable() {
           />
         }
         title={
-          <Row justify="space-between">
+          <Row gutter={[0, 8]} justify="space-between">
             <Space size="middle">
               <Card.Meta title={LINKS} />
 
@@ -389,7 +396,8 @@ export function LinksTable() {
 
                 <Radio.Button value="active">Active</Radio.Button>
 
-                <Radio.Button value="inactive">Inactive</Radio.Button>
+                {/* //TODO PID-702 Merge in one button */}
+                {sm && <Radio.Button value="inactive">Inactive</Radio.Button>}
 
                 <Radio.Button value="exceeded">Exceeded</Radio.Button>
               </Radio.Group>
@@ -397,6 +405,7 @@ export function LinksTable() {
           </Row>
         }
       />
+
       {linkToDelete && (
         <LinkDeleteModal
           id={linkToDelete}

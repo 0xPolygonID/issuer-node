@@ -19,13 +19,13 @@ import (
 var ErrSchemaDoesNotExist = errors.New("schema does not exist")
 
 type dbSchema struct {
-	ID         uuid.UUID
-	IssuerID   string
-	URL        string
-	Type       string
-	Hash       string
-	Attributes string
-	CreatedAt  time.Time
+	ID        uuid.UUID
+	IssuerID  string
+	URL       string
+	Type      string
+	Hash      string
+	Words     string
+	CreatedAt time.Time
 }
 
 type schema struct {
@@ -39,7 +39,7 @@ func NewSchema(conn db.Storage) *schema {
 
 // Save stores a new entry in schemas table
 func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
-	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type, attributes, hash, ts_words, created_at) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, to_tsvector($7::text), $8);`
+	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  hash,  words, created_at) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7);`
 	hash, err := s.Hash.MarshalText()
 	if err != nil {
 		return err
@@ -51,43 +51,39 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.IssuerDID.String(),
 		s.URL,
 		s.Type,
-		s.Attributes.String(),
 		string(hash),
-		r.toFullTextSearchDocument(s.Type, s.Attributes),
+		r.toFullTextSearchDocument(s.Type, s.Words),
 		s.CreatedAt)
 	return err
 }
 
-func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaAttrs) string {
-	var sb strings.Builder
-	sb.WriteString(sType + " ")
-	sb.WriteString(" ")
-	for _, attr := range attrs {
-		sb.WriteString(attr + " ")
-	}
-	return sb.String()
+func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaWords) string {
+	out := make([]string, 0, len(attrs)+1)
+	out = append(out, sType)
+	out = append(out, attrs...)
+	return strings.Join(out, ", ")
 }
 
 // GetAll returns all the schemas that match any of the words that are included in the query string.
 // For each word, it will search for attributes that start with it or include it following postgres full text search tokenization
 func (r *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
-	const all = `SELECT id, issuer_id, url, type, attributes, hash, created_at
-	FROM schemas
-	WHERE issuer_id=$1
-	ORDER BY created_at DESC`
-	const allFTS = `
-SELECT id, issuer_id, url, type, attributes, hash, created_at 
-FROM schemas 
-WHERE issuer_id=$1 AND ts_words @@ to_tsquery($2)
-ORDER BY created_at DESC`
 	var err error
 	var rows pgx.Rows
-
+	sqlArgs := make([]interface{}, 0)
+	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at
+	FROM schemas
+	WHERE issuer_id=$1`
+	sqlArgs = append(sqlArgs, issuerDID.String())
 	if query != nil && *query != "" {
-		rows, err = r.conn.Pgx.Query(ctx, allFTS, issuerDID.String(), fullTextSearchQuery(*query, " | "))
-	} else {
-		rows, err = r.conn.Pgx.Query(ctx, all, issuerDID.String())
+		terms := tokenizeQuery(*query)
+		sqlQuery += " AND (" + buildPartialQueryLikes("schemas.words", "OR", 1+len(sqlArgs), len(terms)) + ")"
+		for _, term := range terms {
+			sqlArgs = append(sqlArgs, term)
+		}
 	}
+	sqlQuery += " ORDER BY created_at DESC"
+
+	rows, err = r.conn.Pgx.Query(ctx, sqlQuery, sqlArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +91,7 @@ ORDER BY created_at DESC`
 	schemaCol := make([]domain.Schema, 0)
 	s := dbSchema{}
 	for rows.Next() {
-		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt); err != nil {
 			return nil, err
 		}
 		item, err := toSchemaDomain(&s)
@@ -109,13 +105,13 @@ ORDER BY created_at DESC`
 
 // GetByID searches and returns an schema by id
 func (r *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
-	const byID = `SELECT id, issuer_id, url, type, attributes, hash, created_at 
+	const byID = `SELECT id, issuer_id, url, type, words, hash, created_at 
 		FROM schemas 
 		WHERE issuer_id = $1 AND id=$2`
 
 	s := dbSchema{}
 	row := r.conn.Pgx.QueryRow(ctx, byID, issuerDID.String(), id)
-	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Attributes, &s.Hash, &s.CreatedAt)
+	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, ErrSchemaDoesNotExist
 	}
@@ -135,12 +131,12 @@ func toSchemaDomain(s *dbSchema) (*domain.Schema, error) {
 		return nil, fmt.Errorf("parsing hash from schema: %w", err)
 	}
 	return &domain.Schema{
-		ID:         s.ID,
-		IssuerDID:  *issuerDID,
-		URL:        s.URL,
-		Type:       s.Type,
-		Hash:       schemaHash,
-		Attributes: domain.SchemaAttrsFromString(s.Attributes),
-		CreatedAt:  s.CreatedAt,
+		ID:        s.ID,
+		IssuerDID: *issuerDID,
+		URL:       s.URL,
+		Type:      s.Type,
+		Hash:      schemaHash,
+		Words:     domain.SchemaWordsFromString(s.Words),
+		CreatedAt: s.CreatedAt,
 	}, nil
 }

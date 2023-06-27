@@ -23,6 +23,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -37,6 +38,17 @@ func main() {
 
 	// Context with log
 	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
+	defer cancel()
+
+	if err := cfg.SanitizeAPIUI(ctx); err != nil {
+		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
+		return
+	}
+
+	if cfg.APIUI.Issuer == "" {
+		log.Error(ctx, "issuer DID is not set")
+		return
+	}
 
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
@@ -45,6 +57,7 @@ func main() {
 	}
 	ps := pubsub.NewRedis(rdb)
 	ps.WithLogger(log.Error)
+	cachex := cache.NewRedisCache(rdb)
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -58,6 +71,12 @@ func main() {
 			log.Error(ctx, "error closing database connection", "err", err)
 		}
 	}(storage)
+
+	var schemaLoader loader.Factory
+	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
+	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
+		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
+	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 	if err != nil {
@@ -105,7 +124,7 @@ func main() {
 		identityService,
 		mtService,
 		identityStateRepo,
-		loader.HTTPFactory,
+		schemaLoader,
 		storage,
 		services.ClaimCfg{
 			RHSEnabled: cfg.ReverseHashService.Enabled,
@@ -113,6 +132,7 @@ func main() {
 			Host:       cfg.ServerUrl,
 		},
 		ps,
+		cfg.IFPS.GatewayURL,
 	)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)

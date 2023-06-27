@@ -123,14 +123,14 @@ export async function getCredentials({
   }
 }
 
-export interface CreateCredential {
+export type CreateCredential = {
   credentialSchema: string;
   credentialSubject: Json;
   expiration: string | null;
   mtProof: boolean;
   signatureProof: boolean;
   type: string;
-}
+};
 
 export async function createCredential({
   env,
@@ -340,7 +340,7 @@ export async function deleteLink({
   }
 }
 
-export interface CreateLink {
+export type CreateLink = {
   credentialExpiration: string | null;
   credentialSubject: Json;
   expiration: string | null;
@@ -348,7 +348,7 @@ export interface CreateLink {
   mtProof: boolean;
   schemaID: string;
   signatureProof: boolean;
-}
+};
 
 export async function createLink({
   env,
@@ -377,11 +377,11 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
   linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
 };
 
-export interface AuthQRCode {
+export type AuthQRCode = {
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
-}
+};
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
@@ -468,10 +468,10 @@ export async function getIssuedQRCode({
   }
 }
 
-export interface ImportQRCode {
+export type ImportQRCode = {
   qrCode?: unknown;
   status: "done" | "pending" | "pendingPublish";
-}
+};
 
 const importQRCodeParser = getStrictParser<ImportQRCode>()(
   z.object({

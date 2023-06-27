@@ -1,0 +1,79 @@
+{
+    "@context": [
+        {
+            "@version": 1.1,
+            "@protected": true,
+            "id": "@id",
+            "type": "@type",
+            "Employee": {
+                "@id": "http://localhost:5173/test-schemas/employee.jsonld#Employee",
+                "@context": {
+                    "@version": 1.1,
+                    "@protected": true,
+                    "id": "@id",
+                    "type": "@type",
+                    "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
+                    "xsd": "http://www.w3.org/2001/XMLSchema#",
+                    "passportInfo": {
+                        "@id": "kyc-vocab:passportInfo",
+                        "@context": {
+                            "@version": 1.1,
+                            "@protected": true,
+                            "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
+                            "xsd": "http://www.w3.org/2001/XMLSchema#",
+                            "id": "@id",
+                            "type": "@type",
+                            "birthyear": {
+                                "@type": "xsd:integer",
+                                "@id": "kyc-vocab:birthyear"
+                            },
+                            "numberOfBrothers": {
+                                "@type": "xsd:integer",
+                                "@id": "kyc-vocab:numberOfBrothers"
+                            },
+                            "name": {
+                                "@id": "kyc-vocab:name",
+                                "@type": "xsd:string"
+                            },
+                            "parents": {
+                                "@id": "kyc-vocab:parents",
+                                "@context": {
+                                    "@version": 1.1,
+                                    "@protected": true,
+                                    "kyc-vocab": "https://github.com/iden3/claim-schema-vocab/blob/main/credentials/kyc.md#",
+                                    "xsd": "http://www.w3.org/2001/XMLSchema#",
+                                    "id": "@id",
+                                    "type": "@type",
+                                    "fatherBirthyear": {
+                                        "@type": "xsd:integer",
+                                        "@id": "kyc-vocab:fatherBirthyear"
+                                    },
+                                    "motherBirthyear": {
+                                        "@type": "xsd:integer",
+                                        "@id": "kyc-vocab:motherBirthyear"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "hireDate": {
+                        "@id": "kyc-vocab:hireDate",
+                        "@type": "xsd:dateTime"
+                    },
+                    "position": {
+                        "@id": "kyc-vocab:position",
+                        "@type": "xsd:string"
+                    },
+                    "salary": {
+                        "@id": "kyc-vocab:salary",
+                        "@type": "xsd:double"
+                    },
+                    "vegan": {
+                        "@type": "xsd:boolean",
+                        "@id": "kyc-vocab:vegan"
+                    }
+                }
+            }
+        }
+    ]
+}

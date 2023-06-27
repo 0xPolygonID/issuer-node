@@ -1,4 +1,4 @@
-import { Button, Card, Space, Typography } from "antd";
+import { Button, Card, Col, Grid, Row, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
@@ -15,7 +15,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Credential, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { AppError, Credential, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -27,10 +27,13 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
 import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
+import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
 
 export function CredentialDetails() {
   const navigate = useNavigate();
   const { credentialID } = useParams();
+
+  const { sm } = Grid.useBreakpoint();
 
   const env = useEnvContext();
 
@@ -51,16 +54,10 @@ export function CredentialDetails() {
     void getJsonSchemaFromUrl({ url: credential.schemaUrl }).then((response) => {
       if (response.success) {
         const [jsonSchema] = response.data;
-        const credentialSubjectSchema =
-          (jsonSchema.type === "object" &&
-            jsonSchema.schema.properties
-              ?.filter((child): child is ObjectAttribute => child.type === "object")
-              .find((child) => child.name === "credentialSubject")) ||
-          null;
-
-        if (credentialSubjectSchema) {
+        const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
+        if (credentialSubjectAttribute) {
           const parsedCredentialSubject = getAttributeValueParser(
-            credentialSubjectSchema
+            credentialSubjectAttribute
           ).safeParse(credential.credentialSubject);
 
           if (parsedCredentialSubject.success) {
@@ -175,25 +172,30 @@ export function CredentialDetails() {
             <Card
               className="centered"
               extra={
-                <Space>
-                  <Button
-                    danger
-                    disabled={revoked}
-                    icon={<IconClose />}
-                    onClick={() => setShowRevokeModal(true)}
-                    type="text"
-                  >
-                    {REVOKE}
-                  </Button>
-                  <Button
-                    danger
-                    icon={<IconTrash />}
-                    onClick={() => setShowDeleteModal(true)}
-                    type="text"
-                  >
-                    {DELETE}
-                  </Button>
-                </Space>
+                <Row gutter={[0, 8]} justify="end">
+                  <Col>
+                    <Button
+                      danger
+                      disabled={revoked}
+                      icon={<IconClose />}
+                      onClick={() => setShowRevokeModal(true)}
+                      type="text"
+                    >
+                      {sm && REVOKE}
+                    </Button>
+                  </Col>
+
+                  <Col>
+                    <Button
+                      danger
+                      icon={<IconTrash />}
+                      onClick={() => setShowDeleteModal(true)}
+                      type="text"
+                    >
+                      {sm && DELETE}
+                    </Button>
+                  </Col>
+                </Row>
               }
               title={schemaType}
             >
@@ -230,6 +232,7 @@ export function CredentialDetails() {
                     />
                   </Space>
                 </Card>
+
                 <Card className="background-grey">
                   <Space direction="vertical" size="middle">
                     <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>

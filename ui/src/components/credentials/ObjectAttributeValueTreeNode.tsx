@@ -26,10 +26,10 @@ function extractValue(attributeValue: AttributeValue): JsonLiteral | undefined {
             const parsedDate = z.coerce.date(z.string().datetime()).safeParse(value);
             return parsedDate.success
               ? formatDate(parsedDate.data, attributeValue.schema.format)
-              : attributeValue.value;
+              : value;
           }
           default: {
-            return attributeValue.value === undefined ? "-" : attributeValue.value;
+            return value;
           }
         }
       }
@@ -82,7 +82,7 @@ export function ObjectAttributeValueTreeNode({
           </Space>
         </Col>
 
-        <Col style={{ marginLeft: 28 }}>
+        <Col>
           <Typography.Text
             ellipsis={
               stringValue && ellipsisPosition
@@ -90,7 +90,11 @@ export function ObjectAttributeValueTreeNode({
                 : { tooltip: { title: stringValue } }
             }
             style={{
-              maxWidth: treeWidth - name.length * 12 - nestingLevel * 20,
+              maxWidth:
+                slicedValue &&
+                treeWidth - name.length * 12 - nestingLevel * 24 >= slicedValue.length * 3
+                  ? treeWidth - name.length * 12 - nestingLevel * 24
+                  : treeWidth - nestingLevel * 24 - 32,
             }}
             type="secondary"
           >

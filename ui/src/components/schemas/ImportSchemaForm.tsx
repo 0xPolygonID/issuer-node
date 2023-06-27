@@ -2,10 +2,12 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
+import { processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
-import { AppError, Json, JsonLdType, JsonSchema } from "src/domain";
+import { useEnvContext } from "src/contexts/Env";
+import { AppError, Env, Json, JsonLdType, JsonSchema } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import {
   buildAppError,
@@ -14,11 +16,11 @@ import {
 } from "src/utils/error";
 
 export type FormData = {
+  jsonLdContextObject: Json;
   jsonLdType: JsonLdType;
   jsonLdTypes: AsyncTask<JsonLdType[], AppError>;
   jsonSchema: JsonSchema;
-  rawJsonLdContext: Json;
-  rawJsonSchema: Json;
+  jsonSchemaObject: Json;
   schemaUrl: string;
   schemaUrlInput: string;
 };
@@ -30,6 +32,8 @@ export function ImportSchemaForm({
   initialFormData?: FormData;
   onFinish: (formData: FormData) => void;
 }) {
+  const env = useEnvContext();
+
   const [schemaUrlInput, setSchemaUrlInput] = useState<string>(
     initialFormData?.schemaUrlInput || ""
   );
@@ -37,11 +41,11 @@ export function ImportSchemaForm({
   const [jsonLdTypeInput, setJsonLdTypeInput] = useState<JsonLdType | undefined>(
     initialFormData?.jsonLdType
   );
-  const [rawJsonLdContext, setRawJsonLdContext] = useState<Json | undefined>(
-    initialFormData?.rawJsonLdContext
+  const [jsonLdContextObject, setJsonLdContextObject] = useState<Json | undefined>(
+    initialFormData?.jsonLdContextObject
   );
-  const [rawJsonSchema, setRawJsonSchema] = useState<Json | undefined>(
-    initialFormData?.rawJsonSchema
+  const [jsonSchemaObject, setJsonSchemaObject] = useState<Json | undefined>(
+    initialFormData?.jsonSchemaObject
   );
   const [jsonSchema, setJsonSchema] = useState<AsyncTask<JsonSchema, AppError>>(
     initialFormData
@@ -58,26 +62,32 @@ export function ImportSchemaForm({
         }
   );
 
-  const fetchJsonSchemaFromUrl = (url: string): void => {
+  const fetchJsonSchemaFromUrl = (env: Env, url: string): void => {
+    const processedUrl = processUrl(url, env);
+    if (!processedUrl.success) {
+      throw new Error(processedUrl.error.message);
+    }
+
     setJsonSchema({ status: "loading" });
 
     void getJsonSchemaFromUrl({
-      url,
+      url: processedUrl.data,
     }).then((jsonSchemaResponse) => {
       if (jsonSchemaResponse.success) {
-        const [jsonSchema, rawJsonSchema] = jsonSchemaResponse.data;
+        const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
         setSchemaUrl(url);
         setJsonSchema({ data: jsonSchema, status: "successful" });
-        setRawJsonSchema(rawJsonSchema);
+        setJsonSchemaObject(jsonSchemaObject);
         setJsonLdTypes({ status: "loading" });
 
         void getSchemaJsonLdTypes({
+          env,
           jsonSchema,
         }).then((jsonLdTypesResponse) => {
           if (jsonLdTypesResponse.success) {
-            const [jsonLdTypes, rawJsonLdContext] = jsonLdTypesResponse.data;
+            const [jsonLdTypes, jsonLdContextObject] = jsonLdTypesResponse.data;
             setJsonLdTypes({ data: jsonLdTypes, status: "successful" });
-            setRawJsonLdContext(rawJsonLdContext);
+            setJsonLdContextObject(jsonLdContextObject);
 
             if (jsonLdTypes.length === 1) {
               setJsonLdTypeInput(jsonLdTypes[0]);
@@ -99,7 +109,7 @@ export function ImportSchemaForm({
       setJsonSchema({ status: "pending" });
       setJsonLdTypes({ status: "pending" });
       setJsonLdTypeInput(undefined);
-      fetchJsonSchemaFromUrl(parsedUrl.data);
+      fetchJsonSchemaFromUrl(env, parsedUrl.data);
     } else {
       setJsonSchema({
         error: buildAppError(`"${schemaUrlInput}" is not a valid URL`),
@@ -123,15 +133,15 @@ export function ImportSchemaForm({
               schemaUrl &&
               isAsyncTaskDataAvailable(jsonSchema) &&
               jsonLdTypeInput &&
-              rawJsonSchema &&
-              rawJsonLdContext
+              jsonSchemaObject &&
+              jsonLdContextObject
             ) {
               onFinish({
+                jsonLdContextObject: jsonLdContextObject,
                 jsonLdType: jsonLdTypeInput,
                 jsonLdTypes: jsonLdTypes,
                 jsonSchema: jsonSchema.data,
-                rawJsonLdContext,
-                rawJsonSchema,
+                jsonSchemaObject: jsonSchemaObject,
                 schemaUrl: schemaUrl,
                 schemaUrlInput: schemaUrlInput,
               });

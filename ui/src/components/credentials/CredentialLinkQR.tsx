@@ -22,6 +22,9 @@ import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/uti
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { POLLING_INTERVAL } from "src/utils/constants";
 
+const PUSH_NOTIFICATIONS_REMINDER =
+  "Please ensure that you have enabled push notifications on your wallet app.";
+
 export function CredentialLinkQR() {
   const env = useEnvContext();
 
@@ -33,6 +36,7 @@ export function CredentialLinkQR() {
     status: "pending",
   });
 
+  const [messageAPI, messageContext] = message.useMessage();
   const { linkID } = useParams();
 
   const createCredentialQR = useCallback(
@@ -76,17 +80,17 @@ export function CredentialLinkQR() {
             const { proofTypes } = authQRCode.data.linkDetail;
 
             if (proofTypes.includes("MTP")) {
-              void message.info("Issuance process started");
+              void messageAPI.info("Issuance process started");
             }
 
             if (proofTypes.includes("SIG")) {
-              void message.success("Credential sent");
+              void messageAPI.success("Credential sent");
             }
           }
         } else {
           setImportQRCheck({ error: response.error, status: "failed" });
 
-          void message.error(response.error.message);
+          void messageAPI.error(response.error.message);
         }
       }
     };
@@ -103,7 +107,7 @@ export function CredentialLinkQR() {
     }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [authQRCode, linkID, importQRCheck, env]);
+  }, [authQRCode, env, importQRCheck, linkID, messageAPI]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
@@ -116,120 +120,138 @@ export function CredentialLinkQR() {
     ? importQRCheck.error
     : undefined;
 
-  if (appError) {
-    if (appError.type === "request-error" && appError.error.response?.status === 404) {
-      return (
-        <Space align="center" direction="vertical" size="large">
-          <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
-
-          <Typography.Title level={2}>Credential link is invalid</Typography.Title>
-
-          <Typography.Text type="secondary">
-            In case you think this is an error, please contact the issuer of this claim.
-          </Typography.Text>
-        </Space>
-      );
-    } else if (appError.type === "request-error" && appError.error.response?.status === 400) {
-      return (
-        <Space align="center" direction="vertical" size="large">
-          <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />
-
-          <Typography.Title level={2}>
-            The credential link has expired, please start again
-          </Typography.Title>
-
-          <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
-            Start again
-          </Button>
-        </Space>
-      );
-    }
-    return <ErrorResult error={appError.message} labelRetry="Start again" onRetry={onStartAgain} />;
-  }
-
-  if (!isAsyncTaskDataAvailable(authQRCode)) {
-    return <LoadingResult />;
-  }
-
-  if (isAsyncTaskDataAvailable(importQRCheck) && importQRCheck.data.status !== "pending") {
-    const { proofTypes } = authQRCode.data.linkDetail;
-    if (proofTypes.length > 1) {
-      return (
-        <>
-          <Space align="center" direction="vertical" size="large">
-            <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
-
-            <Typography.Title level={2}>
-              Credential sent via notification. On-chain capabilities are pending.
-            </Typography.Title>
-
-            <Typography.Text style={{ fontSize: 18 }} type="secondary">
-              You will receive an additional version of the credential containing an MTP proof.
-              <Typography.Paragraph style={{ fontSize: 18, textAlign: "center" }} type="secondary">
-                Please ensure that you have enabled push notifications on the application.
-              </Typography.Paragraph>
-            </Typography.Text>
-
-            <Button onClick={() => setIsModalOpen(true)} type="link">
-              Missed the notification?
-            </Button>
-
-            {isModalOpen && (
-              <ClaimCredentialModal
-                onClose={() => setIsModalOpen(false)}
-                qrCode={importQRCheck.data.qrCode}
-              />
-            )}
-          </Space>
-        </>
-      );
-    }
-
-    return proofTypes[0] === "SIG" ? (
-      <>
-        <Space align="center" direction="vertical" size="large">
-          <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
-
-          <Typography.Title level={2}>Credential sent via notification</Typography.Title>
-
-          <Button onClick={() => setIsModalOpen(true)} type="link">
-            Missed the notification?
-          </Button>
-
-          {isModalOpen && (
-            <ClaimCredentialModal
-              onClose={() => setIsModalOpen(false)}
-              qrCode={importQRCheck.data.qrCode}
-            />
-          )}
-        </Space>
-      </>
-    ) : (
-      <>
-        <Space align="center" direction="vertical" size="large">
-          <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
-
-          <Typography.Title level={2}>
-            You will receive your credential via a notification
-          </Typography.Title>
-
-          <Typography.Text style={{ fontSize: 18 }} type="secondary">
-            Please ensure that you have enabled push notifications on the application.
-          </Typography.Text>
-
-          <Button icon={<IconRefresh />} onClick={onStartAgain}>
-            Start again
-          </Button>
-        </Space>
-      </>
-    );
-  }
-
   return (
-    <CredentialQR
-      qrCode={authQRCode.data.qrCode}
-      schemaType={authQRCode.data.linkDetail.schemaType}
-      subTitle="Scan the QR code with your Polygon ID wallet to accept it. Make sure push notifications are enabled."
-    />
+    <>
+      {messageContext}
+
+      {(() => {
+        if (appError) {
+          if (appError.type === "request-error" && appError.error.response?.status === 404) {
+            return (
+              <Space align="center" direction="vertical" size="large">
+                <Avatar className="avatar-color-error" icon={<QRIcon />} size={56} />
+
+                <Typography.Title level={2}>Credential link is invalid</Typography.Title>
+
+                <Typography.Text type="secondary">
+                  If you think this is an error, please contact the issuer of this credential.
+                </Typography.Text>
+              </Space>
+            );
+          } else if (appError.type === "request-error" && appError.error.response?.status === 400) {
+            return (
+              <Space align="center" direction="vertical" size="large">
+                <Avatar className="avatar-color-error" icon={<AlertIcon />} size={56} />
+
+                <Typography.Title level={2}>
+                  The credential link has expired, please start again
+                </Typography.Title>
+
+                <Button icon={<IconRefresh />} onClick={onStartAgain} type="link">
+                  Start again
+                </Button>
+              </Space>
+            );
+          }
+
+          return (
+            <ErrorResult error={appError.message} labelRetry="Start again" onRetry={onStartAgain} />
+          );
+        }
+
+        if (!isAsyncTaskDataAvailable(authQRCode)) {
+          return <LoadingResult />;
+        } else {
+          if (isAsyncTaskDataAvailable(importQRCheck) && importQRCheck.data.status !== "pending") {
+            const { proofTypes } = authQRCode.data.linkDetail;
+
+            if (proofTypes.length > 1) {
+              return (
+                <>
+                  <Space align="center" direction="vertical" size="large">
+                    <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
+
+                    <Typography.Title level={2}>
+                      Credential sent via notification. On-chain capabilities are pending.
+                    </Typography.Title>
+
+                    <Typography.Text style={{ fontSize: 18 }} type="secondary">
+                      You will receive an additional version of the credential containing an MTP
+                      proof.
+                      <br />
+                      {PUSH_NOTIFICATIONS_REMINDER}
+                    </Typography.Text>
+
+                    <Button onClick={() => setIsModalOpen(true)} type="link">
+                      Missed the notification?
+                    </Button>
+
+                    {isModalOpen && (
+                      <ClaimCredentialModal
+                        onClose={() => setIsModalOpen(false)}
+                        qrCode={importQRCheck.data.qrCode}
+                      />
+                    )}
+                  </Space>
+                </>
+              );
+            }
+
+            return proofTypes[0] === "SIG" ? (
+              <>
+                <Space align="center" direction="vertical" size="large">
+                  <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
+
+                  <Typography.Title level={2}>Credential sent via notification</Typography.Title>
+
+                  <Button onClick={() => setIsModalOpen(true)} type="link">
+                    Missed the notification?
+                  </Button>
+
+                  {isModalOpen && (
+                    <ClaimCredentialModal
+                      onClose={() => setIsModalOpen(false)}
+                      qrCode={importQRCheck.data.qrCode}
+                    />
+                  )}
+                </Space>
+              </>
+            ) : (
+              <>
+                <Space align="center" direction="vertical" size="large">
+                  <Avatar className="avatar-color-success" icon={<CheckIcon />} size={56} />
+
+                  <Typography.Title level={2}>
+                    You will receive your credential via a notification
+                  </Typography.Title>
+
+                  <Typography.Text style={{ fontSize: 18 }} type="secondary">
+                    {PUSH_NOTIFICATIONS_REMINDER}
+                  </Typography.Text>
+
+                  <Button icon={<IconRefresh />} onClick={onStartAgain}>
+                    Start again
+                  </Button>
+                </Space>
+              </>
+            );
+          }
+
+          return (
+            <CredentialQR
+              qrCode={authQRCode.data.qrCode}
+              schemaType={authQRCode.data.linkDetail.schemaType}
+              subTitle={
+                <>
+                  Scan the QR code with your Polygon ID wallet to accept it.
+                  <br />
+                  {PUSH_NOTIFICATIONS_REMINDER}
+                </>
+              }
+            />
+          );
+        }
+      })()}
+    </>
   );
 }

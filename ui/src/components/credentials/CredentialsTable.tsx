@@ -106,6 +106,7 @@ export function CredentialsTable() {
         ) : (
           "-"
         ),
+      responsive: ["md"],
       sorter: ({ expiresAt: a }, { expiresAt: b }) => {
         if (a && b) {
           return a.getTime() - b.getTime();
@@ -123,6 +124,7 @@ export function CredentialsTable() {
       render: (revoked: Credential["revoked"]) => (
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
+      responsive: ["sm"],
       sorter: ({ revoked: a }, { revoked: b }) => (a === b ? 0 : a ? 1 : -1),
       title: REVOCATION,
     },
@@ -301,7 +303,7 @@ export function CredentialsTable() {
           />
         }
         title={
-          <Row justify="space-between">
+          <Row gutter={[0, 8]} justify="space-between">
             <Space size="middle">
               <Card.Meta title={ISSUED} />
 

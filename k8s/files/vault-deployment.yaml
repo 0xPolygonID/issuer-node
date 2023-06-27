@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment # Create a deployment
+metadata:
+  name: vault-issuer-node
+  labels:
+    app: vault-issuer-node-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-issuer-node
+  template:
+    metadata:
+      labels:
+        app: vault-issuer-node # Label for the pod and will be used in the service
+    spec:
+      containers:
+        - name: vault
+          securityContext: 
+            capabilities:
+              add:
+                - IPC_LOCK
+          image: vault:latest
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: VAULT_ADDR
+              value: http://127.0.0.1:8200
+            - name: PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: private-key-secret
+                  key: private-key
+
+          ports:
+            - containerPort: 8200
+          command: ["sh", "-c", "/vault/config/init.sh"]
+
+          volumeMounts:
+          - mountPath: /vault/plugins
+            name: vault-volume
+          - mountPath: /vault/data
+            name: vault-volume
+          - mountPath: /vault/file
+            name: vault-volume
+          - mountPath: /vault/config
+            name: vault-config  
+
+      volumes:
+      - name: vault-volume
+        persistentVolumeClaim:
+            claimName: vault-issuer-node-pvc
+
+      - name: vault-config
+        configMap:
+          name: vault-config
+          defaultMode: 0500
+          items:
+          - key: vault.json
+            path: vault.json
+          - key: init.sh
+            path: init.sh  

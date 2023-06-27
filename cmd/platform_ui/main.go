@@ -52,7 +52,7 @@ func main() {
 	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
 	defer cancel()
 
-	if err := cfg.SanitizeAPIUI(); err != nil {
+	if err := cfg.SanitizeAPIUI(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
 		return
 	}
@@ -74,10 +74,9 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	var schemaLoader loader.Factory
-	if cfg.APIUI.SchemaCache == nil || !*cfg.APIUI.SchemaCache {
-		schemaLoader = loader.HTTPFactory
-	} else {
-		schemaLoader = loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
+	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
+		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
 	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
@@ -118,7 +117,11 @@ func main() {
 		},
 	}
 
-	verifier := auth.NewVerifier(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: "ipfs.io"}, resolvers)
+	verifier, err := auth.NewVerifierWithExplicitError(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: cfg.IFPS.GatewayURL}, resolvers)
+	if err != nil {
+		log.Error(ctx, "failed init verifier", "err", err)
+		return
+	}
 
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
 
@@ -152,6 +155,7 @@ func main() {
 			Host:       cfg.APIUI.ServerURL,
 		},
 		ps,
+		cfg.IFPS.GatewayURL,
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)

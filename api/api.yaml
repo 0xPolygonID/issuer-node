@@ -58,6 +58,21 @@ paths:
                 $ref: '#/components/schemas/Health'
         '500':
           $ref: '#/components/responses/500'
+  /config:
+    get:
+      summary: Get Config
+      operationId: GetConfig
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: Config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        '500':
+          $ref: '#/components/responses/500'
 #identity:
   /v1/identities:
     post:
@@ -107,6 +122,29 @@ paths:
                   type: string
         '401':
           $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+
+  /v1/{identifier}/state/retry:
+    post:
+      summary: Retry Publish Identity State
+      operationId: RetryPublishState
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      tags:
+        - Identity
+      responses:
+        '202':
+          description: Publish state successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublishIdentityStateResponse'
+        '400':
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
@@ -368,6 +406,21 @@ components:
       scheme: basic
 
   schemas:
+    KeyValue:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    Config:
+      type: array
+      items:
+        $ref: '#/components/schemas/KeyValue'
     Health:
       type: object
       x-omitempty: false

@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: issuer-node-ingress
+  labels:
+    app: issuer-node
+
+  annotations:
+spec:
+  rules:
+    - host: "issuer-node.info"
+      http:
+        paths:
+        - path: /v1/
+          pathType: Prefix
+          backend:
+            service:
+              name: api-ui-issuer-node-svc
+              port:
+                number: 3002
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: api-ui-issuer-node-svc
+              port:
+                number: 3002
+
+    - host: "issuer-ui.info"
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: ui-issuer-node-svc
+              port:
+                number: 8080
+
+            
