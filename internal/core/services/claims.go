@@ -13,10 +13,12 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-merkletree-sql/v2"
+	"github.com/iden3/go-schema-processor/merklize"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -60,10 +62,11 @@ type claim struct {
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
 	publisher               pubsub.Publisher
+	ipfsClient              *shell.Shell
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -77,6 +80,9 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		storage:                 storage,
 		loaderFactory:           ld,
 		publisher:               ps,
+	}
+	if ipfsGatewayURL != "" {
+		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
 	}
 	return s
 }
@@ -140,16 +146,28 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, req.Type)
-	mtRootPostion := common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition)
-
-	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, &processor.CoreClaimOptions{
+	jsonLDCtxBytes, _, err := c.loaderFactory(jsonLdContext).Load(ctx)
+	if err != nil {
+		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
+		return nil, err
+	}
+	credentialType, err := merklize.TypeIDFromContext(jsonLDCtxBytes, req.Type)
+	if err != nil {
+		log.Error(ctx, "getting credential type", "err", err)
+		return nil, err
+	}
+	opts := &processor.CoreClaimOptions{
 		RevNonce:              nonce,
-		MerklizedRootPosition: mtRootPostion,
+		MerklizedRootPosition: common.DefineMerklizedRootPosition(schema.Metadata, req.MerklizedRootPosition),
 		Version:               req.Version,
 		SubjectPosition:       req.SubjectPos,
 		Updatable:             false,
-	})
+	}
+	if c.ipfsClient != nil {
+		opts.MerklizerOpts = []merklize.MerklizeOption{merklize.WithIPFSClient(c.ipfsClient)}
+	}
+
+	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, opts)
 	if err != nil {
 		log.Error(ctx, "credential subject attributes don't match the provided schema", "err", err)
 		if errors.Is(err, schemaPkg.ErrParseClaim) {
@@ -586,7 +604,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 		Issuer:            claimReq.DID.String(),
 		CredentialSchema: verifiable.CredentialSchema{
 			ID:   claimReq.Schema,
-			Type: verifiable.JSONSchemaValidator2018,
+			Type: verifiable.JSONSchema2023,
 		},
 		CredentialStatus: cs,
 	}, nil

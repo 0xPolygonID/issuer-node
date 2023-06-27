@@ -129,6 +129,7 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 			Host:       cfg.ServerUrl,
 		},
 		ps,
+		cfg.IFPS.GatewayURL,
 	)
 
 	return claimsService, nil

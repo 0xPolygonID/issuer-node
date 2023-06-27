@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/vault/api v1.9.0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.0-beta.3
 	github.com/iden3/go-circuits v1.0.3
-	github.com/iden3/go-iden3-auth v1.0.1
+	github.com/iden3/go-iden3-auth v1.2.0
 	github.com/iden3/go-iden3-core v1.0.2
 	github.com/iden3/go-iden3-crypto v0.0.15
 	github.com/iden3/go-jwz v1.0.0
@@ -25,8 +25,8 @@ require (
 	github.com/iden3/go-merkletree-sql/v2 v2.0.5
 	github.com/iden3/go-rapidsnark/prover v0.0.10
 	github.com/iden3/go-rapidsnark/witness v0.0.6
-	github.com/iden3/go-schema-processor v1.1.5
-	github.com/iden3/iden3comm v1.0.0
+	github.com/iden3/go-schema-processor v1.3.1
+	github.com/iden3/iden3comm v1.0.1-0.20230609100900-191d60f4f566
 	github.com/iden3/merkletree-proof v0.0.3
 	github.com/jackc/pgconn v1.14.0
 	github.com/jackc/pgtype v1.14.0
@@ -88,9 +88,10 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/blake512 v1.0.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.3.0 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/dustinxie/ecc v0.0.0-20210511000915-959544187564 // indirect
 	github.com/esimonov/ifshort v1.0.4 // indirect
 	github.com/ettle/strcase v0.1.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
@@ -114,6 +115,7 @@ require (
 	github.com/go-toolsmith/typep v1.1.0 // indirect
 	github.com/go-xmlfmt/xmlfmt v1.1.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
+	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -152,10 +154,9 @@ require (
 	github.com/iden3/wasmer-go v0.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
-	github.com/ipfs/go-cid v0.3.2 // indirect
-	github.com/ipfs/go-ipfs-api v0.4.0 // indirect
-	github.com/ipfs/go-ipfs-files v0.3.0 // indirect
-	github.com/ipfs/go-libipfs v0.6.1 // indirect
+	github.com/ipfs/boxo v0.8.0 // indirect
+	github.com/ipfs/go-cid v0.4.0 // indirect
+	github.com/ipfs/go-ipfs-api v0.6.0 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -182,9 +183,15 @@ require (
 	github.com/ldez/gomoddirectives v0.2.3 // indirect
 	github.com/ldez/tagliatelle v0.4.0 // indirect
 	github.com/leonklingele/grouper v1.1.1 // indirect
+	github.com/lestrrat-go/blackmagic v1.0.1 // indirect
+	github.com/lestrrat-go/httpcc v1.0.1 // indirect
+	github.com/lestrrat-go/httprc v1.0.4 // indirect
+	github.com/lestrrat-go/iter v1.0.2 // indirect
+	github.com/lestrrat-go/jwx/v2 v2.0.9-0.20230429214153-5090ec1bd2cd // indirect
+	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
-	github.com/libp2p/go-libp2p v0.26.2 // indirect
+	github.com/libp2p/go-libp2p v0.26.3 // indirect
 	github.com/lufeee/execinquery v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -204,7 +211,7 @@ require (
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
 	github.com/multiformats/go-multiaddr v0.8.0 // indirect
-	github.com/multiformats/go-multibase v0.1.1 // indirect
+	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.8.1 // indirect
 	github.com/multiformats/go-multihash v0.2.1 // indirect
 	github.com/multiformats/go-multistream v0.4.1 // indirect
@@ -223,8 +230,6 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
-	github.com/qri-io/jsonpointer v0.1.1 // indirect
-	github.com/qri-io/jsonschema v0.2.2-0.20210831022256-780655b2ba0e // indirect
 	github.com/quasilyte/go-ruleguard v0.3.19 // indirect
 	github.com/quasilyte/gogrep v0.5.0 // indirect
 	github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727 // indirect
@@ -235,6 +240,7 @@ require (
 	github.com/ryanrolds/sqlclosecheck v0.4.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.0.7 // indirect
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0 // indirect
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect
 	github.com/sashamelentyev/usestdlibvars v1.23.0 // indirect
 	github.com/securego/gosec/v2 v2.15.0 // indirect
@@ -292,7 +298,8 @@ require (
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
-	google.golang.org/protobuf v1.29.0 // indirect
+	google.golang.org/protobuf v1.29.1 // indirect
+	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect

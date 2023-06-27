@@ -71,7 +71,7 @@ func CreateCredential(issuer *core.DID, req CredentialRequest, schema jsonSuite.
 		Issuer:            issuer.String(),
 		CredentialSchema: verifiable.CredentialSchema{
 			ID:   req.CredentialSchema,
-			Type: verifiable.JSONSchemaValidator2018,
+			Type: verifiable.JSONSchema2023,
 		},
 	}
 	if req.Expiration != 0 {
