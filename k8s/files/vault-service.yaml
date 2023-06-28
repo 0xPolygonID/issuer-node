@@ -5,7 +5,6 @@ metadata:
   labels:
     app: issuer-node
 spec:
-  type: NodePort
   ports:
     - port: 8200
       targetPort: 8200
