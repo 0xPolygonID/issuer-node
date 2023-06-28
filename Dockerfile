@@ -1,7 +1,7 @@
-FROM ubuntu:22.04 as builder
-
+FROM golang:1.20 as base
 ARG VERSION
 WORKDIR /service
+ENV GOBIN /service/bin
 COPY ./api ./api
 COPY ./api_ui ./api_ui
 COPY ./cmd ./cmd
@@ -9,23 +9,20 @@ COPY ./internal ./internal
 COPY ./pkg ./pkg
 COPY ./go.mod ./
 COPY ./go.sum ./
-
-RUN apt-get update
-RUN apt-get install -y wget build-essential ca-certificates
-RUN wget https://go.dev/dl/go1.20.3.linux-amd64.tar.gz
-
-# Configure Go
-ENV GOROOT /usr/local/go
-ENV GOPATH /go
-ENV PATH /usr/local/go/bin:/go/bin:$PATH
-ENV GOBIN /service/bin
-
-RUN tar -xvf go1.20.3.linux-amd64.tar.gz
-RUN mv go /usr/local
-
-RUN go mod download
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
-RUN mv /service/bin/* /service/
-RUN rm -R /usr/local/go
-RUN rm -R /service/bin
-RUN rm go1.20.3.linux-amd64.tar.gz
+
+FROM alpine:latest
+RUN apk add --no-cache libstdc++ gcompat libgomp
+RUN ln -sfv ld-linux-x86-64.so.2 /lib/libresolv.so.2
+
+RUN apk add doas; \
+    adduser -S issuer -D -G wheel; \
+    echo 'permit nopass :wheel as root' >> /etc/doas.d/doas.conf;
+RUN chmod g+rx,o+rx /
+
+COPY --from=base ./service/api ./api
+COPY --from=base ./service/api_ui ./api_ui
+COPY --from=base ./service/bin/* ./
+COPY --from=base ./service/pkg/credentials ./pkg/credentials
+COPY --from=base "/go/pkg/mod/github.com/iden3/wasmer-go@v0.0.1/wasmer/packaged/" \
+ "/go/pkg/mod/github.com/iden3/wasmer-go@v0.0.1/wasmer/packaged/"
