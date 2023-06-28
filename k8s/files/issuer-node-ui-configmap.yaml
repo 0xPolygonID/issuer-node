@@ -13,3 +13,4 @@ data:
   ISSUER_API_UI_AUTH_USER: user-api
   ISSUER_API_UI_AUTH_PASSWORD: password-api
   ISSUER_API_UI_ISSUER_NAME: my issuer k8s
+  ISSUER_UI_IPFS_GATEWAY_URL: https://ipfs.io
