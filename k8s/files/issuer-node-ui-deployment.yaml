@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: ui
-          image: martinsaporiti/issuernode_ui
+          image: 0xpolygon/issuernode-ui
           imagePullPolicy: "Always"
           ports:
             - containerPort: 80

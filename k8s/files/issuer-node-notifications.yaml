@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: notifications
-          image: martinsaporiti/issuernode_alpine4
+          image: 0xpolygon/issuernode
           imagePullPolicy: "IfNotPresent"
           envFrom:
             - configMapRef:

@@ -16,7 +16,7 @@ spec:
     spec:
       initContainers:
         - name: i 
-          image: martinsaporiti/issuernode_alpine4
+          image: 0xpolygon/issuernode
           imagePullPolicy: "Always"
           envFrom:
             - configMapRef:
