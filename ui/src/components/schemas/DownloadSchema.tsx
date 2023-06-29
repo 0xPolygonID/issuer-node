@@ -1,12 +1,22 @@
 import { Row, Typography, message } from "antd";
 
 import { downloadJsonFromUrl } from "src/adapters/json";
+import { Env } from "src/domain";
 
-export function DownloadSchema({ fileName, url }: { fileName: string; url: string }) {
+export function DownloadSchema({
+  env,
+  fileName,
+  url,
+}: {
+  env: Env;
+  fileName: string;
+  url: string;
+}) {
   const [messageAPI, messageContext] = message.useMessage();
 
   const handleDownload = () => {
     downloadJsonFromUrl({
+      env,
       fileName,
       url,
     })

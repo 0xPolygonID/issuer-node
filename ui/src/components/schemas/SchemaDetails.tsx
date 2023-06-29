@@ -45,6 +45,7 @@ export function SchemaDetails() {
       setJsonSchemaTuple({ status: "loading" });
 
       void getJsonSchemaFromUrl({
+        env,
         url: schema.url,
       }).then((jsonSchemaResponse) => {
         if (jsonSchemaResponse.success) {
@@ -200,7 +201,7 @@ export function SchemaDetails() {
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 
-                  <DownloadSchema fileName={jsonSchema.name} url={url} />
+                  <DownloadSchema env={env} fileName={jsonSchema.name} url={url} />
                 </Space>
               }
               jsonLdContextObject={jsonLdContextObject}

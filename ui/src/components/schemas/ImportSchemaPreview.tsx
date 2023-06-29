@@ -4,6 +4,7 @@ import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.s
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";
+import { useEnvContext } from "src/contexts/Env";
 import { Json, JsonLdType, JsonSchema } from "src/domain";
 import { getBigint, getSchemaHash } from "src/utils/iden3";
 
@@ -24,6 +25,7 @@ export function ImportSchemaPreview({
   onImport: () => void;
   url: string;
 }) {
+  const env = useEnvContext();
   const bigintResult = getBigint(jsonLdType);
   const bigint = bigintResult && bigintResult.success ? bigintResult.data : null;
   const schemaHashResult = getSchemaHash(jsonLdType);
@@ -60,7 +62,7 @@ export function ImportSchemaPreview({
 
           <Detail copyable label="URL" text={url} />
 
-          <DownloadSchema fileName={jsonSchema.name} url={url} />
+          <DownloadSchema env={env} fileName={jsonSchema.name} url={url} />
         </Space>
       }
       jsonLdContextObject={jsonLdContextObject}
