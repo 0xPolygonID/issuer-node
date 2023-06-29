@@ -41,7 +41,6 @@ export type CredentialLinkIssuance = CredentialIssuance & {
 };
 
 // Parsers
-
 const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
   z.custom<dayjs.Dayjs>(isDayjs, {
     message: "The provided input is not a valid Dayjs instance",
@@ -55,7 +54,7 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
     z.boolean(),
     z.null(),
     z.undefined(),
-    dayjsInstanceParser.transform((dayjs) => dayjs.toISOString()),
+    dayjsInstanceParser.transform((value) => (value.isValid() ? value.toISOString() : undefined)),
   ])
 );
 
@@ -222,23 +221,31 @@ function serializeAtrributeValue({
 }): JsonLiteral | JsonObject | undefined {
   switch (attributeValue.type) {
     case "integer":
-    case "number":
-    case "null":
+    case "number": {
+      const parsedConst = z.number().safeParse(attributeValue.schema.const);
+      return parsedConst.success ? parsedConst.data : attributeValue.value;
+    }
     case "boolean": {
-      return attributeValue.value;
+      const parsedConst = z.boolean().safeParse(attributeValue.schema.const);
+      return parsedConst.success ? parsedConst.data : attributeValue.value;
     }
     case "string": {
-      switch (attributeValue.schema.format) {
-        case "date":
-        case "date-time":
-        case "time": {
-          const parsedDate = z.coerce.date(z.string().datetime()).safeParse(attributeValue.value);
-          return parsedDate.success
-            ? serializeDate(parsedDate.data, attributeValue.schema.format)
-            : attributeValue.value;
-        }
-        default: {
-          return attributeValue.value;
+      const parsedConst = z.string().safeParse(attributeValue.schema.const);
+      if (parsedConst.success) {
+        return parsedConst.data;
+      } else {
+        switch (attributeValue.schema.format) {
+          case "date":
+          case "date-time":
+          case "time": {
+            const parsedDate = z.coerce.date(z.string().datetime()).safeParse(attributeValue.value);
+            return parsedDate.success
+              ? serializeDate(parsedDate.data, attributeValue.schema.format)
+              : attributeValue.value;
+          }
+          default: {
+            return attributeValue.value;
+          }
         }
       }
     }
@@ -252,6 +259,9 @@ function serializeAtrributeValue({
             {}
           )
         : undefined;
+    }
+    case "null": {
+      return attributeValue.value;
     }
     case "array": {
       return undefined;

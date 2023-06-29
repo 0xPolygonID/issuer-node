@@ -1,5 +1,6 @@
 import { Card, Space, Typography } from "antd";
 import { Fragment } from "react";
+import { z } from "zod";
 
 import { AttributeBreadcrumb } from "src/components/credentials/AttributeBreadcrumb";
 import { Boolean } from "src/components/credentials/attributes/Boolean";
@@ -23,14 +24,38 @@ function AnyAttribute({
   const objectError = typeof attributeError !== "string" ? attributeError : undefined;
   switch (attribute.type) {
     case "boolean": {
-      return <Boolean attribute={attribute} error={literalError} parents={parents} />;
+      const parsedConst = z.boolean().safeParse(attribute.schema.const);
+      return (
+        <Boolean
+          attribute={attribute}
+          disabled={parsedConst.success}
+          error={literalError}
+          parents={parents}
+        />
+      );
     }
     case "number":
     case "integer": {
-      return <Number attribute={attribute} error={literalError} parents={parents} />;
+      const parsedConst = z.number().safeParse(attribute.schema.const);
+      return (
+        <Number
+          attribute={attribute}
+          disabled={parsedConst.success}
+          error={literalError}
+          parents={parents}
+        />
+      );
     }
     case "string": {
-      return <String attribute={attribute} error={literalError} parents={parents} />;
+      const parsedConst = z.string().safeParse(attribute.schema.const);
+      return (
+        <String
+          attribute={attribute}
+          disabled={parsedConst.success}
+          error={literalError}
+          parents={parents}
+        />
+      );
     }
     case "null": {
       return (
