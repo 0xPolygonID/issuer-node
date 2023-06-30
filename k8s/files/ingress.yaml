@@ -4,8 +4,6 @@ metadata:
   name: issuer-node-ingress
   labels:
     app: issuer-node
-
-  annotations:
 spec:
   rules:
     - host: "issuer-node.info"

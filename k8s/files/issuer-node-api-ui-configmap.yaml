@@ -5,7 +5,7 @@ metadata:
   labels:
     app: issuer-node
 data:
-  ISSUER_API_UI_SERVER_URL: https://5eaa-190-191-21-57.ngrok-free.app/issuer-admin
+  ISSUER_API_UI_SERVER_URL: http://52.49.135.174:30002
   ISSUER_API_UI_SERVER_PORT: "3002"
   ISSUER_API_UI_AUTH_USER: user-api
   ISSUER_API_UI_AUTH_PASSWORD: password-api

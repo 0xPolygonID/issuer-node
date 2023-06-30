@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: martinsaporiti/issuernode_alpine4
+          image: x1m3/issuer-node
           imagePullPolicy: "Always"
           ports:
             - containerPort: 3001

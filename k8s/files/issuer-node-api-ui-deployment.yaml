@@ -16,7 +16,7 @@ spec:
     spec:
       initContainers:
         - name: i 
-          image: martinsaporiti/issuernode_alpine4
+          image: x1m3/issuer-node
           imagePullPolicy: "Always"
           envFrom:
             - configMapRef:
@@ -41,7 +41,7 @@ spec:
 
       containers:
         - name: api-ui
-          image: martinsaporiti/issuernode_alpine4
+          image: x1m3/issuer-node
           imagePullPolicy: "Always"
           ports:
             - containerPort: 3002

@@ -10,5 +10,7 @@ spec:
     - port: 3001
       targetPort: 3001
       protocol: TCP
+      nodePort: 30001
+
   selector:
     app: api-issuer-node

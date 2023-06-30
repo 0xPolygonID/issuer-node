@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: notifications
-          image: martinsaporiti/issuernode_alpine4
+          image: x1m3/issuer-node
           imagePullPolicy: "IfNotPresent"
           envFrom:
             - configMapRef:
@@ -38,6 +38,7 @@ spec:
               name: issuer-node-volume
             - mountPath: /vault/data
               name: vault-volume
+
       volumes:
       - name: issuer-node-volume
         persistentVolumeClaim:

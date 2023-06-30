@@ -86,6 +86,7 @@ data:
     export vault_token="token:${TOKEN}"
     echo $vault_token
     
-    rm /vault/data/token.txt
+    #rm /vault/data/token.txt
     echo $TOKEN > /vault/data/token.txt
+    cat /vault/data/token.txt
     tail -f /dev/null  

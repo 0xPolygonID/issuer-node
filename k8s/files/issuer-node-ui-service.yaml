@@ -10,5 +10,6 @@ spec:
     - port: 8080
       targetPort: 80
       protocol: TCP
+      nodePort: 30003
   selector:
     app: ui-issuer-node

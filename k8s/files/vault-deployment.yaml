@@ -20,7 +20,7 @@ spec:
             capabilities:
               add:
                 - IPC_LOCK
-          image: vault:latest
+          image: vault:1.13.2
           imagePullPolicy: "IfNotPresent"
           env:
             - name: VAULT_ADDR
