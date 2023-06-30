@@ -33,6 +33,11 @@ jobs:
           push: true
           tags: 0xpolygon/issuernode:test
 
+      - name: Rename Docker Arm File
+        run: |
+            mv Dockerfile Dockerfile-amd
+            mv Dockerfile-arm Dockerfile
+
       - name: Build and push arm64 image
         uses: docker/build-push-action@v4
         with:
