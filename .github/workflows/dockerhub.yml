@@ -1,9 +1,11 @@
 name: Build a Push Docker Image to Docker Hub
 
 on:
-  push:
-    branches:
-      - develop
+  workflow_run:
+    workflows: ["Checks"]
+    branches:  ["develop"]
+    types:
+      - completed
 jobs:
   docker:
     name: Build and deploy latest image Docker Hub
@@ -26,13 +28,25 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+      - name: Build and push ui
+        uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
+        with:
+          context: ./ui
+          platforms: linux/arm64, linux/amd64
+          push: true
+          tags: 0xpolygon/issuernode-ui:${{ env.IMAGE_TAG }}
+
       - name: Build and push amd64 image
         uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: 0xpolygon/issuernode:test
+          tags: 0xpolygon/issuernode:${{ env.IMAGE_TAG }}
 
       - name: Rename Docker Arm File
         run: |
@@ -41,8 +55,11 @@ jobs:
 
       - name: Build and push arm64 image
         uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
         with:
           context: .
           platforms: linux/arm64
           push: true
-          tags: 0xpolygon/issuernode:test
+          tags: 0xpolygon/issuernode-arm:${{ env.IMAGE_TAG }}
+
