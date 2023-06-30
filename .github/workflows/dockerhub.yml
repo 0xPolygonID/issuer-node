@@ -1,11 +1,9 @@
 name: Build a Push Docker Image to Docker Hub
 
 on:
-  workflow_run:
-    workflows: ["Checks"]
-    branches:  ["develop"]
-    types:
-      - completed
+  push:
+    branches:
+      - develop
 jobs:
   docker:
     name: Build and deploy latest image Docker Hub
