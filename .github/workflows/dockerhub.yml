@@ -28,7 +28,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile
           platforms: linux/amd64
           push: true
           tags: 0xpolygon/issuernode:test
@@ -42,7 +41,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile-arm
           platforms: linux/arm64
           push: true
           tags: 0xpolygon/issuernode:test
