@@ -158,7 +158,7 @@ func main() {
 		cfg.IFPS.GatewayURL,
 	)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)
+	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)

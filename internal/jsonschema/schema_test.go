@@ -5,13 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/polygonid/sh-id-platform/internal/loader"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 func TestValidateCredentialSubject(t *testing.T) {
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cache.NewMemoryCache())
+	const ipfsGatewayURL = "https://ipfs.io"
 	ctx := context.Background()
 
 	type config struct {
@@ -167,9 +164,31 @@ func TestValidateCredentialSubject(t *testing.T) {
 			},
 			expectedError: false,
 		},
+		{
+			name:       "ipfs file",
+			schemaURL:  "ipfs://QmcoHYA1K1xiFPHTUbDtVkV6HoKRCentZetfv4yLbrjwfY",
+			schemaType: "TestDefaultValues",
+			credentialSubject: map[string]interface{}{
+				"id":      "did:polygonid:polygon:mumbai:2qLPX9XnujT2xhuiPMHrqXTUD96UCV87CtThRUZFQm",
+				"integer": 100,
+				"boolean": false,
+				"string":  "foo",
+				"number":  99.99,
+				"object": map[string]interface{}{
+					"string":    "bar",
+					"date":      "2023-06-29",
+					"time":      "16:55:34.769+02:00",
+					"boolean":   true,
+					"number":    100.99,
+					"date-time": "2023-06-29T16:54:23.920+02:00",
+					"integer":   101,
+				},
+			},
+			expectedError: false,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			err := ValidateCredentialSubject(ctx, schemaLoader(tc.schemaURL), tc.schemaType, tc.credentialSubject)
+			err := ValidateCredentialSubject(ctx, ipfsGatewayURL, tc.schemaURL, tc.schemaType, tc.credentialSubject)
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {
