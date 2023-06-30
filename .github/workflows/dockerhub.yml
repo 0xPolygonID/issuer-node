@@ -34,6 +34,10 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
+      - name: Get version
+        run: echo "::set-output name=VERSION::$(git rev-parse --short HEAD)"
+        id: version
+
       - name: Build and push ui
         uses: docker/build-push-action@v4
         env:
