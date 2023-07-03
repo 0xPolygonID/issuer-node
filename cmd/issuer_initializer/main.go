@@ -73,11 +73,10 @@ func main() {
 
 	log.Info(ctx, "identifier crated successfully")
 
-	//nolint:all
-	fmt.Printf(identity.Identifier)
-
 	if err := os.WriteFile(config.K8sDidFile, []byte(identity.Identifier), os.FileMode(perm)); err != nil {
 		log.Error(ctx, "error writing identifier to file", "error", err)
-		return
 	}
+
+	//nolint:all
+	fmt.Printf(identity.Identifier)
 }
