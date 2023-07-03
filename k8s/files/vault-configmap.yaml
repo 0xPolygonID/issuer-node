@@ -86,6 +86,10 @@ data:
     export vault_token="token:${TOKEN}"
     echo $vault_token
     
+    if [ -f "$File" ]; then
+    echo "$File exist and will be deleted"
     rm /vault/data/token.txt
+    fi
+    
     echo $TOKEN > /vault/data/token.txt
     tail -f /dev/null  
