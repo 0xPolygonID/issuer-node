@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: pending-publisher
-          image: martinsaporiti/issuernode_alpine4
+          image: 0xpolygon/issuernode
           imagePullPolicy: "Always"
           envFrom:
             - configMapRef:
