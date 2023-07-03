@@ -3,15 +3,19 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
-import { getListParser, getStrictParser } from "src/adapters/parsers";
+import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, JsonLdType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
-const apiSchemaParser = getStrictParser<ApiSchema>()(
+type ApiSchemaInput = Omit<ApiSchema, "createdAt"> & {
+  createdAt: string;
+};
+
+const apiSchemaParser = getStrictParser<ApiSchemaInput, ApiSchema>()(
   z.object({
     bigInt: z.string(),
-    createdAt: z.coerce.date(z.string().datetime()),
+    createdAt: datetimeParser,
     hash: z.string(),
     id: z.string(),
     type: z.string(),

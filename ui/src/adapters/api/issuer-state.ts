@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { buildAuthorizationHeader } from "src/adapters/api";
-import { getListParser, getStrictParser } from "src/adapters/parsers";
+import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -18,10 +18,14 @@ const transactionStatusParser = getStrictParser<TransactionStatus>()(
   ])
 );
 
-const transactionParser = getStrictParser<Transaction>()(
+type TransactionInput = Omit<Transaction, "publishDate"> & {
+  publishDate: string;
+};
+
+const transactionParser = getStrictParser<TransactionInput, Transaction>()(
   z.object({
     id: z.number(),
-    publishDate: z.coerce.date(z.string().datetime()),
+    publishDate: datetimeParser,
     state: z.string(),
     status: transactionStatusParser,
     txID: z.string(),
