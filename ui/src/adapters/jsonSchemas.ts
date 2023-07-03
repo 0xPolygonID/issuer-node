@@ -1,22 +1,20 @@
 import { Response } from "src/adapters";
-import { processUrl } from "src/adapters/api/schemas";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
 import { Env, Json, JsonLdType, JsonSchema } from "src/domain";
 import { buildAppError } from "src/utils/error";
 
 export async function getJsonSchemaFromUrl({
+  env,
   signal,
   url,
 }: {
+  env: Env;
   signal?: AbortSignal;
   url: string;
 }): Promise<Response<[JsonSchema, Json]>> {
   try {
-    const jsonResponse = await getJsonFromUrl({
-      signal,
-      url,
-    });
+    const jsonResponse = await getJsonFromUrl({ env, signal, url });
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
@@ -42,29 +40,23 @@ export async function getSchemaJsonLdTypes({
   env: Env;
   jsonSchema: JsonSchema;
 }): Promise<Response<[JsonLdType[], Json]>> {
-  const url = processUrl(jsonSchema.jsonSchemaProps.$metadata.uris.jsonLdContext, env);
-  if (url.success) {
-    try {
-      const jsonResponse = await getJsonFromUrl({
-        url: url.data,
-      });
-      if (!jsonResponse.success) {
-        return jsonResponse;
-      } else {
-        const jsonLdContextObject = jsonResponse.data;
-        const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
-        return {
-          data: [jsonLdTypes, jsonLdContextObject],
-          success: true,
-        };
-      }
-    } catch (error) {
+  const url = jsonSchema.jsonSchemaProps.$metadata.uris.jsonLdContext;
+  try {
+    const jsonResponse = await getJsonFromUrl({ env, url });
+    if (!jsonResponse.success) {
+      return jsonResponse;
+    } else {
+      const jsonLdContextObject = jsonResponse.data;
+      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
       return {
-        error: buildAppError(error),
-        success: false,
+        data: [jsonLdTypes, jsonLdContextObject],
+        success: true,
       };
     }
-  } else {
-    return url;
+  } catch (error) {
+    return {
+      error: buildAppError(error),
+      success: false,
+    };
   }
 }

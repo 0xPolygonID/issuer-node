@@ -48,54 +48,57 @@ export function CredentialDetails() {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [showRevokeModal, setShowRevokeModal] = useState<boolean>(false);
 
-  const fetchJsonSchemaFromUrl = useCallback(({ credential }: { credential: Credential }): void => {
-    setCredentialSubjectValue({ status: "loading" });
+  const fetchJsonSchemaFromUrl = useCallback(
+    ({ credential }: { credential: Credential }): void => {
+      setCredentialSubjectValue({ status: "loading" });
 
-    void getJsonSchemaFromUrl({ url: credential.schemaUrl }).then((response) => {
-      if (response.success) {
-        const [jsonSchema] = response.data;
-        const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
-        if (credentialSubjectAttribute) {
-          const parsedCredentialSubject = getAttributeValueParser(
-            credentialSubjectAttribute
-          ).safeParse(credential.credentialSubject);
+      void getJsonSchemaFromUrl({ env, url: credential.schemaUrl }).then((response) => {
+        if (response.success) {
+          const [jsonSchema] = response.data;
+          const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
+          if (credentialSubjectAttribute) {
+            const parsedCredentialSubject = getAttributeValueParser(
+              credentialSubjectAttribute
+            ).safeParse(credential.credentialSubject);
 
-          if (parsedCredentialSubject.success) {
-            if (parsedCredentialSubject.data.type === "object") {
-              setCredentialSubjectValue({
-                data: parsedCredentialSubject.data,
-                status: "successful",
-              });
+            if (parsedCredentialSubject.success) {
+              if (parsedCredentialSubject.data.type === "object") {
+                setCredentialSubjectValue({
+                  data: parsedCredentialSubject.data,
+                  status: "successful",
+                });
+              } else {
+                setCredentialSubjectValue({
+                  error: buildAppError(
+                    `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`
+                  ),
+                  status: "failed",
+                });
+              }
             } else {
               setCredentialSubjectValue({
-                error: buildAppError(
-                  `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`
-                ),
+                error: buildAppError(parsedCredentialSubject.error),
                 status: "failed",
               });
             }
           } else {
             setCredentialSubjectValue({
-              error: buildAppError(parsedCredentialSubject.error),
+              error: buildAppError(
+                `Could not find the attribute "credentialSubject" in the object's schema.`
+              ),
               status: "failed",
             });
           }
         } else {
           setCredentialSubjectValue({
-            error: buildAppError(
-              `Could not find the attribute "credentialSubject" in the object's schema.`
-            ),
+            error: response.error,
             status: "failed",
           });
         }
-      } else {
-        setCredentialSubjectValue({
-          error: response.error,
-          status: "failed",
-        });
-      }
-    });
-  }, []);
+      });
+    },
+    [env]
+  );
 
   const fetchCredential = useCallback(
     async (signal?: AbortSignal) => {

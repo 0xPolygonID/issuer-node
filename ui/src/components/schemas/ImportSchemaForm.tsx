@@ -2,7 +2,6 @@ import { Button, Card, Divider, Form, Input, Radio, Row, Space } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
-import { processUrl } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -63,16 +62,9 @@ export function ImportSchemaForm({
   );
 
   const fetchJsonSchemaFromUrl = (env: Env, url: string): void => {
-    const processedUrl = processUrl(url, env);
-    if (!processedUrl.success) {
-      throw new Error(processedUrl.error.message);
-    }
-
     setJsonSchema({ status: "loading" });
 
-    void getJsonSchemaFromUrl({
-      url: processedUrl.data,
-    }).then((jsonSchemaResponse) => {
+    void getJsonSchemaFromUrl({ env, url }).then((jsonSchemaResponse) => {
       if (jsonSchemaResponse.success) {
         const [jsonSchema, jsonSchemaObject] = jsonSchemaResponse.data;
         setSchemaUrl(url);

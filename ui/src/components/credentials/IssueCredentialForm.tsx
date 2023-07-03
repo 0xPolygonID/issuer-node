@@ -155,24 +155,28 @@ export function IssueCredentialForm({
     return false;
   }
 
-  const fetchJsonSchema = (schema: ApiSchema) => {
-    setJsonSchema({ status: "loading" });
-    void getJsonSchemaFromUrl({
-      url: schema.url,
-    }).then((response) => {
-      if (response.success) {
-        const [jsonSchema] = response.data;
-        setJsonSchema({
-          data: jsonSchema,
-          status: "successful",
-        });
-      } else {
-        if (!isAbortedError(response.error)) {
-          setJsonSchema({ error: response.error, status: "failed" });
+  const fetchJsonSchema = useCallback(
+    (schema: ApiSchema) => {
+      setJsonSchema({ status: "loading" });
+      void getJsonSchemaFromUrl({
+        env,
+        url: schema.url,
+      }).then((response) => {
+        if (response.success) {
+          const [jsonSchema] = response.data;
+          setJsonSchema({
+            data: jsonSchema,
+            status: "successful",
+          });
+        } else {
+          if (!isAbortedError(response.error)) {
+            setJsonSchema({ error: response.error, status: "failed" });
+          }
         }
-      }
-    });
-  };
+      });
+    },
+    [env]
+  );
 
   const fetchSchemas = useCallback(
     async (signal: AbortSignal) => {
@@ -206,7 +210,7 @@ export function IssueCredentialForm({
         }
       }
     },
-    [env, initialValues.schemaID, messageAPI]
+    [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
   );
 
   useEffect(() => {
