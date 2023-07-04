@@ -13,7 +13,7 @@ function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
           ...issue.unionErrors.reduce(
             (innerAcc: string[], current: z.ZodError<T>): string[] => [
               ...innerAcc,
-              ...processZodError(current, mainAcc),
+              ...processZodError(current),
             ],
             []
           ),
