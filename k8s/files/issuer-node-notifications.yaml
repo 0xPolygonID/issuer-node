@@ -14,6 +14,43 @@ spec:
       labels:
         app: notifications-issuer-node # Label for the pod and will be used in the service
     spec:
+      initContainers:
+        - name: init-vault-check
+          image: 0xpolygon/issuernode
+          imagePullPolicy: "Always"
+          envFrom:
+            - configMapRef:
+                name: issuer-node-api-configmap
+          env:
+            - name: ISSUER_DATABASE_URL
+              value: "postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable"
+            - name: ISSUER_KEY_STORE_ADDRESS
+              value: "http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)"
+
+          command: ["sh", "-c", "while true; do if cat /vault/data/token.txt; then break; fi; sleep 5; done"]
+
+          volumeMounts:
+            - mountPath: /vault/data
+              name: vault-volume
+
+        - name: init-did-check
+          image: 0xpolygon/issuernode
+          imagePullPolicy: "Always"
+          envFrom:
+            - configMapRef:
+                name: issuer-node-api-configmap
+          env:
+            - name: ISSUER_DATABASE_URL
+              value: "postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable"
+            - name: ISSUER_KEY_STORE_ADDRESS
+              value: "http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)"
+
+          command: ["sh", "-c", "while true; do if cat /did/data/did.txt; then break; fi; sleep 5; done"]
+
+          volumeMounts:
+            - mountPath: /did/data
+              name: issuer-node-volume
+
       containers:
         - name: notifications
           image: 0xpolygon/issuernode

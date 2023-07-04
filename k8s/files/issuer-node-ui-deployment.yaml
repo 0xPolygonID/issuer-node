@@ -24,13 +24,13 @@ spec:
             - configMapRef:
                 name: issuer-node-ui-configmap
           
-          # livenessProbe:
-          #   httpGet:
-          #     path: /status
-          #     port: 3001
-          #     httpHeaders:
-          #     - name: Custom-Header
-          #       value: Awesome
-          #   initialDelaySeconds: 3
-          #   periodSeconds: 60
+          livenessProbe:
+           httpGet:
+             path: /health
+             port: 80
+             httpHeaders:
+             - name: Custom-Header
+               value: Awesome
+           initialDelaySeconds: 60
+           periodSeconds: 300
       
