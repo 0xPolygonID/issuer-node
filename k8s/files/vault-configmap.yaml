@@ -81,6 +81,8 @@ data:
     vault secrets enable -path=iden3 vault-plugin-secrets-iden3
 
     chmod 755 /vault/file -R
+    
+    vault write iden3/import/pbkey key_type=ethereum private_key=$PRIVATE_KEY
 
     echo "===== ENABLED IDEN3 ====="
     export vault_token="token:${TOKEN}"
