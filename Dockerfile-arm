@@ -13,14 +13,14 @@ COPY ./go.sum ./
 
 RUN apt-get update
 RUN apt-get install -y wget build-essential ca-certificates
-RUN wget https://go.dev/dl/go1.20.3.linux-arm64.tar.gz
+RUN wget https://go.dev/dl/go1.20.5.linux-arm64.tar.gz
 
 ENV GOROOT /usr/local/go
 ENV GOPATH /go
 ENV PATH /usr/local/go/bin:/go/bin:$PATH
 ENV GOBIN /service/bin
 
-RUN tar -xvf go1.20.3.linux-arm64.tar.gz
+RUN tar -xvf go1.20.5.linux-arm64.tar.gz
 RUN mv go /usr/local
 
 RUN go mod download
@@ -30,9 +30,6 @@ RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 FROM alpine:latest
 RUN apk add --no-cache libstdc++ gcompat libgomp
 RUN ln -sfv ld-linux-x86-64.so.2 /lib/libresolv.so.2
-
-#RUN adduser --disabled-password -S --gecos "" --no-create-home app
-#USER app
 
 RUN apk add doas; \
     adduser -S issuer -D -G wheel; \
