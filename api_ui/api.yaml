@@ -883,6 +883,9 @@ components:
       required:
         - url
         - schemaType
+        - title
+        - description
+        - version
       properties:
         url:
           type: string
@@ -890,6 +893,15 @@ components:
         schemaType:
           type: string
           example: "vaccinationCertificate"
+        title:
+          type: string
+          example: "KYC Age Credential"
+        description:
+          type: string
+          example: "KYC Age Credential description"
+        version:
+          type: string
+          example: "1.0.0"
 
     Health:
       type: object
@@ -1358,6 +1370,9 @@ components:
         - url
         - type
         - createdAt
+        - title
+        - version
+        - description
       properties:
         id:
           type: string
@@ -1384,6 +1399,18 @@ components:
           format: date-time
           x-omitempty: false
           example: 2023-03-20T17:01:33.564119+01:00
+        title:
+          type: string
+          x-omitempty: false
+          example: "KYC Age Credential"
+        description:
+          type: string
+          x-omitempty: false
+          example: "KYC Age Credential description"
+        version:
+          type: string
+          x-omitempty: false
+          example: "1.0.0"
 
     RevokeCredentialResponse:
       type: object

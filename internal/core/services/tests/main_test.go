@@ -24,7 +24,7 @@ var (
 	cachex         cache.Cache
 )
 
-const ipfsGateway = "https://gateway.ipfs.io"
+const ipfsGateway = "http://localhost:8080"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()

@@ -53,11 +53,14 @@ func SchemaWordsFromString(commaAttrs string) SchemaWords {
 
 // Schema defines a domain.Schema entity
 type Schema struct {
-	ID        uuid.UUID
-	IssuerDID core.DID
-	URL       string
-	Type      string
-	Hash      core.SchemaHash
-	Words     SchemaWords
-	CreatedAt time.Time
+	ID          uuid.UUID
+	IssuerDID   core.DID
+	URL         string
+	Type        string
+	Title       string
+	Description string
+	Version     string
+	Hash        core.SchemaHash
+	Words       SchemaWords
+	CreatedAt   time.Time
 }

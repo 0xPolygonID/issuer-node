@@ -47,7 +47,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	schemaService := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
 
 	claimsConf := services.ClaimCfg{
@@ -480,8 +480,11 @@ func TestServer_ImportSchema(t *testing.T) {
 			name: "Wrong url",
 			auth: authOk,
 			request: &ImportSchemaRequest{
-				SchemaType: "lala",
-				Url:        "wrong/url",
+				SchemaType:  "lala",
+				Url:         "wrong/url",
+				Title:       "some Title",
+				Description: "some Description",
+				Version:     uuid.NewString(),
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
@@ -492,8 +495,11 @@ func TestServer_ImportSchema(t *testing.T) {
 			name: "Valid request",
 			auth: authOk,
 			request: &ImportSchemaRequest{
-				SchemaType: schemaType,
-				Url:        url,
+				SchemaType:  schemaType,
+				Url:         url,
+				Title:       "some Title",
+				Description: "some Description",
+				Version:     uuid.NewString(),
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
@@ -572,8 +578,11 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 			name: "Wrong url",
 			auth: authOk,
 			request: &ImportSchemaRequest{
-				SchemaType: "lala",
-				Url:        "wrong/url",
+				SchemaType:  "lala",
+				Url:         "wrong/url",
+				Title:       "title",
+				Description: "description",
+				Version:     "1.0.0",
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
@@ -584,12 +593,14 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 			name: "Valid request",
 			auth: authOk,
 			request: &ImportSchemaRequest{
-				SchemaType: schemaType,
-				Url:        url,
+				SchemaType:  schemaType,
+				Url:         url,
+				Title:       "title",
+				Description: "description",
+				Version:     "1.0.0",
 			},
 			expected: expected{
 				httpCode: http.StatusCreated,
-				errorMsg: "bad request: parsing url: parse \"wrong/url\": invalid URI for request",
 			},
 		},
 	} {
@@ -633,7 +644,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -885,7 +896,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -999,7 +1010,7 @@ func TestServer_CreateCredential(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -1179,7 +1190,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -1285,7 +1296,7 @@ func TestServer_GetCredential(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -1480,7 +1491,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -1506,7 +1517,8 @@ func TestServer_GetCredentials(t *testing.T) {
 	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	future := time.Now().Add(1000 * time.Hour)
 	past := time.Now().Add(-1000 * time.Hour)
-	_, err = schemaService.ImportSchema(ctx, *did, schemaURL, typeC)
+	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, "someTitle", uuid.NewString(), "someDescription")
+	_, err = schemaService.ImportSchema(ctx, *did, iReq)
 	require.NoError(t, err)
 	// Never expires
 	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
@@ -1759,7 +1771,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -1874,7 +1886,7 @@ func TestServer_GetConnection(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -2062,7 +2074,7 @@ func TestServer_GetConnections(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -2518,7 +2530,7 @@ func TestServer_RevokeCredential(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -2661,7 +2673,7 @@ func TestServer_CreateLink(t *testing.T) {
 	schemaRespository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -2677,7 +2689,8 @@ func TestServer_CreateLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -2889,7 +2902,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -2904,7 +2917,8 @@ func TestServer_ActivateLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -3040,7 +3054,7 @@ func TestServer_GetLink(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -3055,7 +3069,8 @@ func TestServer_GetLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -3211,7 +3226,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -3226,7 +3241,8 @@ func TestServer_GetAllLinks(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, sUrl, schemaType)
+	iReq := ports.NewImportSchemaRequest(sUrl, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -3426,7 +3442,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -3441,7 +3457,8 @@ func TestServer_DeleteLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -3543,7 +3560,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -3561,7 +3578,8 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	did2, err := core.ParseDID(iden2.Identifier)
@@ -3657,7 +3675,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -3672,7 +3690,8 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -3807,7 +3826,8 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, url, schemaType)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
 	cfg.APIUI.IssuerDID = *did
@@ -3963,7 +3983,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -4070,7 +4090,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
@@ -4159,7 +4179,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory("https://gateway.ipfs.io"), cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",

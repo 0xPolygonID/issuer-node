@@ -44,32 +44,35 @@ func (s *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) 
 }
 
 // ImportSchema process an schema url and imports into the system
-func (s *schema) ImportSchema(ctx context.Context, did core.DID, url string, sType string) (*domain.Schema, error) {
-	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(url))
+func (s *schema) ImportSchema(ctx context.Context, did core.DID, req *ports.ImportSchemaRequest) (*domain.Schema, error) {
+	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(req.URL))
 	if err != nil {
-		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", url)
+		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", req.URL)
 		return nil, ErrLoadingSchema
 	}
 	attributeNames, err := remoteSchema.Attributes()
 	if err != nil {
-		log.Error(ctx, "processing jsonschema", "err", err, "jsonschema", url)
+		log.Error(ctx, "processing jsonschema", "err", err, "jsonschema", req.URL)
 		return nil, ErrProcessSchema
 	}
 
-	hash, err := remoteSchema.SchemaHash(sType)
+	hash, err := remoteSchema.SchemaHash(req.SType)
 	if err != nil {
-		log.Error(ctx, "hashing schema", "err", err, "jsonschema", url)
+		log.Error(ctx, "hashing schema", "err", err, "jsonschema", req.URL)
 		return nil, ErrProcessSchema
 	}
 
 	schema := &domain.Schema{
-		ID:        uuid.New(),
-		IssuerDID: did,
-		URL:       url,
-		Type:      sType,
-		Hash:      hash,
-		Words:     attributeNames.SchemaAttrs(),
-		CreatedAt: time.Now(),
+		ID:          uuid.New(),
+		IssuerDID:   did,
+		URL:         req.URL,
+		Type:        req.SType,
+		Version:     req.Version,
+		Title:       req.Title,
+		Description: req.Description,
+		Hash:        hash,
+		Words:       attributeNames.SchemaAttrs(),
+		CreatedAt:   time.Now(),
 	}
 
 	if err := s.repo.Save(ctx, schema); err != nil {

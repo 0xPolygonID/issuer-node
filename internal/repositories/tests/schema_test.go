@@ -32,13 +32,16 @@ func TestGetSchema(t *testing.T) {
 
 	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
 	schema1 := &domain.Schema{
-		ID:        uuid.New(),
-		IssuerDID: did,
-		URL:       "https://an.url.org/index.html",
-		Type:      "schemaType",
-		Hash:      core.NewSchemaHashFromInt(i),
-		Words:     domain.SchemaWords{"field1", "field2", "fieldn"},
-		CreatedAt: time.Now(),
+		ID:          uuid.New(),
+		IssuerDID:   did,
+		URL:         "https://an.url.org/index.html",
+		Type:        "schemaType",
+		Hash:        core.NewSchemaHashFromInt(i),
+		Words:       domain.SchemaWords{"field1", "field2", "fieldn"},
+		CreatedAt:   time.Now(),
+		Title:       "some title",
+		Description: "some description",
+		Version:     "1.0.0",
 	}
 	require.NoError(t, store.Save(ctx, schema1))
 
@@ -51,6 +54,41 @@ func TestGetSchema(t *testing.T) {
 	assert.Equal(t, schema1.Hash, schema2.Hash)
 	assert.Equal(t, domain.SchemaWords{"schemaType", "field1", "field2", "fieldn"}, schema2.Words)
 	assert.InDelta(t, schema1.CreatedAt.UnixMilli(), schema2.CreatedAt.UnixMilli(), 10)
+	assert.Equal(t, schema1.Title, schema2.Title)
+	assert.Equal(t, schema1.Description, schema2.Description)
+	assert.Equal(t, schema1.Version, schema2.Version)
+}
+
+func TestCreateSchema(t *testing.T) {
+	rand.NewSource(time.Now().Unix())
+	ctx := context.Background()
+	store := repositories.NewSchema(*storage)
+	did := core.DID{}
+	// Create a schemaHash
+	i := &big.Int{}
+	i.SetInt64(rand.Int63())
+
+	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
+	schema1 := &domain.Schema{
+		ID:          uuid.New(),
+		IssuerDID:   did,
+		URL:         "https://an.url.org/index.html",
+		Type:        "schemaType",
+		Hash:        core.NewSchemaHashFromInt(i),
+		Words:       domain.SchemaWords{"field1", "field2", "fieldn"},
+		CreatedAt:   time.Now(),
+		Title:       "some title",
+		Description: "some description",
+		Version:     uuid.NewString(),
+	}
+
+	require.NoError(t, store.Save(ctx, schema1))
+	assert.Error(t, store.Save(ctx, schema1), "cannot have duplicated schemas with the same version for the same issuer and type")
+
+	schema2 := schema1
+	schema2.Version = uuid.NewString()
+	schema2.ID = uuid.New()
+	assert.NoError(t, store.Save(ctx, schema2))
 }
 
 func TestGetAllFullTextSearch(t *testing.T) {
