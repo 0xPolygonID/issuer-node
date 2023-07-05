@@ -34,13 +34,13 @@ services:
       timeout: 5s
       retries: 5
 
-  test_local_files:
-    image: halverneus/static-file-server:latest
-    volumes:
-      - ./test_data/schema:/web
+  test_local_files_apache:
+    image: httpd:2.4-alpine
     ports:
-      - "8080:8080"
-
+      - '8080:80'
+    volumes:
+      - ./httpd-test/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ./test_data/schema:/usr/local/apache2/htdocs:ro
   redis:
     image: redis:6-alpine
     ports:

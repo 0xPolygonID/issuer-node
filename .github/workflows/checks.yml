@@ -20,7 +20,7 @@ jobs:
           services: |
              postgres
              vault
-             test_local_files
+             test_local_files_apache
 
       - name: Set up Go
         uses: actions/setup-go@v3
