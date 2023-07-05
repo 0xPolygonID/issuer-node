@@ -16,28 +16,40 @@ const apiSchemaParser = getStrictParser<ApiSchemaInput, ApiSchema>()(
   z.object({
     bigInt: z.string(),
     createdAt: datetimeParser,
+    description: z.string().nullable(),
     hash: z.string(),
     id: z.string(),
+    title: z.string().nullable(),
     type: z.string(),
     url: z.string(),
+    version: z.string().nullable(),
   })
 );
 
 export async function importSchema({
+  description,
   env,
   jsonLdType,
   schemaUrl,
+  title,
+  version,
 }: {
+  description?: string;
   env: Env;
   jsonLdType: JsonLdType;
   schemaUrl: string;
+  title?: string;
+  version?: string;
 }): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
       data: {
+        description: description !== undefined ? description : null,
         schemaType: jsonLdType.name,
+        title: title !== undefined ? title : null,
         url: schemaUrl,
+        version: version !== undefined ? version : null,
       },
       headers: {
         Authorization: buildAuthorizationHeader(env),

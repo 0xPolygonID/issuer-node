@@ -167,7 +167,7 @@ export function SchemaDetails() {
             </Card>
           );
         } else {
-          const { bigInt, createdAt, hash, url } = schema.data;
+          const { bigInt, createdAt, hash, url, version } = schema.data;
           const [jsonSchema, jsonSchemaObject] = jsonSchemaTuple.data;
           const [jsonLdType, jsonLdContextObject] = contextTuple.data;
 
@@ -192,6 +192,10 @@ export function SchemaDetails() {
               contents={
                 <Space direction="vertical">
                   <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
+
+                  <Detail copyable label="Schema type" text={jsonLdType.name} />
+
+                  {version && <Detail label="Schema version" text={version} />}
 
                   <Detail copyable label="BigInt" text={bigInt} />
 

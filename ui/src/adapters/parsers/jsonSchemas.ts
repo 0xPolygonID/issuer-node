@@ -468,9 +468,11 @@ function getAttributeParser(name: string, required: boolean) {
 const jsonSchemaPropsParser = getStrictParser<JsonSchemaProps>()(
   z.object({
     $metadata: z.object({
+      type: z.string().optional(),
       uris: z.object({
         jsonLdContext: z.string(),
       }),
+      version: z.string().optional(),
     }),
     $schema: z.string(),
   })

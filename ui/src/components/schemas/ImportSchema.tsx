@@ -28,16 +28,27 @@ export function ImportSchema() {
 
   const [step, setStep] = useState<Step>({ type: "form" });
 
-  const onSchemaImport = ({ jsonLdType, schemaUrl }: FormData) =>
-    void importSchema({ env, jsonLdType, schemaUrl }).then((response) => {
-      if (response.success) {
-        navigate(ROUTES.schemas.path);
+  const onSchemaImport = ({
+    jsonLdType,
+    jsonSchema: {
+      jsonSchemaProps: {
+        $metadata: { version },
+      },
+      schema: { description, title },
+    },
+    schemaUrl,
+  }: FormData) =>
+    void importSchema({ description, env, jsonLdType, schemaUrl, title, version }).then(
+      (response) => {
+        if (response.success) {
+          navigate(ROUTES.schemas.path);
 
-        void messageAPI.success("Schema successfully imported");
-      } else {
-        void messageAPI.error(response.error.message);
+          void messageAPI.success("Schema successfully imported");
+        } else {
+          void messageAPI.error(response.error.message);
+        }
       }
-    });
+    );
 
   return (
     <>

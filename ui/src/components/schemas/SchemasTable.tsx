@@ -41,13 +41,31 @@ export function SchemasTable() {
       dataIndex: "type",
       ellipsis: { showTitle: false },
       key: "type",
-      render: (type: ApiSchema["type"]) => (
-        <Tooltip placement="topLeft" title={type}>
+      render: (type: ApiSchema["type"], { description, title }: ApiSchema) => (
+        <Tooltip
+          placement="topLeft"
+          title={title && description ? `${title}: ${description}` : title || description}
+        >
           <Typography.Text strong>{type}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ type: a }, { type: b }) => a.localeCompare(b),
+      sorter: {
+        compare: ({ type: a }, { type: b }) => a.localeCompare(b),
+        multiple: 2,
+      },
       title: SCHEMA_TYPE,
+    },
+    {
+      dataIndex: "version",
+      key: "version",
+      render: (version: ApiSchema["version"]) => (
+        <Typography.Text strong>{version || "-"}</Typography.Text>
+      ),
+      sorter: {
+        compare: ({ version: a }, { version: b }) => (a && b ? a.localeCompare(b) : 0),
+        multiple: 1,
+      },
+      title: "Schema version",
     },
     {
       dataIndex: "createdAt",
