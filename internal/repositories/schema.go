@@ -19,13 +19,16 @@ import (
 var ErrSchemaDoesNotExist = errors.New("schema does not exist")
 
 type dbSchema struct {
-	ID        uuid.UUID
-	IssuerID  string
-	URL       string
-	Type      string
-	Hash      string
-	Words     string
-	CreatedAt time.Time
+	ID          uuid.UUID
+	IssuerID    string
+	URL         string
+	Type        string
+	Version     string
+	Title       string
+	Description string
+	Hash        string
+	Words       string
+	CreatedAt   time.Time
 }
 
 type schema struct {
@@ -39,7 +42,7 @@ func NewSchema(conn db.Storage) *schema {
 
 // Save stores a new entry in schemas table
 func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
-	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  hash,  words, created_at) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7);`
+	const insertSchema = `INSERT INTO schemas (id, issuer_id, url, type,  hash,  words, created_at,version,title,description) VALUES($1, $2::text, $3::text, $4::text, $5::text, $6::text, $7, $8::text,$9::text,$10::text);`
 	hash, err := s.Hash.MarshalText()
 	if err != nil {
 		return err
@@ -53,7 +56,10 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.Type,
 		string(hash),
 		r.toFullTextSearchDocument(s.Type, s.Words),
-		s.CreatedAt)
+		s.CreatedAt,
+		s.Version,
+		s.Title,
+		s.Description)
 	return err
 }
 
@@ -70,7 +76,7 @@ func (r *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) 
 	var err error
 	var rows pgx.Rows
 	sqlArgs := make([]interface{}, 0)
-	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at
+	sqlQuery := `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
 	FROM schemas
 	WHERE issuer_id=$1`
 	sqlArgs = append(sqlArgs, issuerDID.String())
@@ -91,7 +97,7 @@ func (r *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) 
 	schemaCol := make([]domain.Schema, 0)
 	s := dbSchema{}
 	for rows.Next() {
-		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt); err != nil {
+		if err := rows.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description); err != nil {
 			return nil, err
 		}
 		item, err := toSchemaDomain(&s)
@@ -105,13 +111,13 @@ func (r *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) 
 
 // GetByID searches and returns an schema by id
 func (r *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
-	const byID = `SELECT id, issuer_id, url, type, words, hash, created_at 
+	const byID = `SELECT id, issuer_id, url, type, words, hash, created_at,version,title,description
 		FROM schemas 
 		WHERE issuer_id = $1 AND id=$2`
 
 	s := dbSchema{}
 	row := r.conn.Pgx.QueryRow(ctx, byID, issuerDID.String(), id)
-	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt)
+	err := row.Scan(&s.ID, &s.IssuerID, &s.URL, &s.Type, &s.Words, &s.Hash, &s.CreatedAt, &s.Version, &s.Title, &s.Description)
 	if err == pgx.ErrNoRows {
 		return nil, ErrSchemaDoesNotExist
 	}
@@ -131,12 +137,15 @@ func toSchemaDomain(s *dbSchema) (*domain.Schema, error) {
 		return nil, fmt.Errorf("parsing hash from schema: %w", err)
 	}
 	return &domain.Schema{
-		ID:        s.ID,
-		IssuerDID: *issuerDID,
-		URL:       s.URL,
-		Type:      s.Type,
-		Hash:      schemaHash,
-		Words:     domain.SchemaWordsFromString(s.Words),
-		CreatedAt: s.CreatedAt,
+		ID:          s.ID,
+		IssuerDID:   *issuerDID,
+		URL:         s.URL,
+		Type:        s.Type,
+		Hash:        schemaHash,
+		Words:       domain.SchemaWordsFromString(s.Words),
+		CreatedAt:   s.CreatedAt,
+		Version:     s.Version,
+		Title:       s.Title,
+		Description: s.Description,
 	}, nil
 }
