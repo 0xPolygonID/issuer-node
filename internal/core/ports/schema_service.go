@@ -16,6 +16,7 @@ type SchemaService interface {
 	GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error)
 }
 
+// ImportSchemaRequest defines the request for importing a schema
 type ImportSchemaRequest struct {
 	URL         string
 	SType       string
@@ -24,6 +25,7 @@ type ImportSchemaRequest struct {
 	Version     string
 }
 
+// NewImportSchemaRequest creates a new ImportSchemaRequest
 func NewImportSchemaRequest(url string, stype string, title string, version string, description string) *ImportSchemaRequest {
 	return &ImportSchemaRequest{
 		URL:         url,

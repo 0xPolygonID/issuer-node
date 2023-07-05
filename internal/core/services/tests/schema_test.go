@@ -2,7 +2,6 @@ package services_tests
 
 import (
 	"context"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"testing"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -49,5 +49,4 @@ func TestSchema_ImportSchema(t *testing.T) {
 	assert.Equal(t, title, got.Title)
 	assert.Equal(t, description, got.Description)
 	assert.Equal(t, version, got.Version)
-
 }
