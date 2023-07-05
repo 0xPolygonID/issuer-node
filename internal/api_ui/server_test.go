@@ -526,7 +526,7 @@ func TestServer_ImportSchema(t *testing.T) {
 }
 
 func TestServer_ImportSchemaIPFS(t *testing.T) {
-	// TIP: A copy of the files here internal/api_ui/testdata/ipfs-schema.json
+	// TIP: A copy of the files here internal/api_ui/testdata/ipfs-schema-1.json
 	const url = "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL"
 	const schemaType = "testNewType"
 	ctx := context.Background()

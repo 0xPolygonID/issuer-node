@@ -8,7 +8,7 @@ import (
 )
 
 func TestValidateCredentialSubject(t *testing.T) {
-	const ipfsGatewayURL = "https://ipfs.io"
+	const ipfsGatewayURL = "http://127.0.0.1:8080"
 	ctx := context.Background()
 
 	type config struct {

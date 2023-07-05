@@ -392,7 +392,6 @@ func TestServer_CreateClaim(t *testing.T) {
 			auth: authOk,
 			did:  did,
 			body: CreateClaimRequest{
-				// TIP: A copy of the files here internal/api_ui/testdata/ipfs-schema.json
 				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
 				Type:             "testNewType",
 				CredentialSubject: map[string]any{
