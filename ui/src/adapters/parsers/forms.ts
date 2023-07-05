@@ -238,7 +238,7 @@ function serializeAtrributeValue({
           case "date":
           case "date-time":
           case "time": {
-            const parsedDate = z.coerce.date(z.string().datetime()).safeParse(attributeValue.value);
+            const parsedDate = z.coerce.date().safeParse(attributeValue.value);
             return parsedDate.success
               ? serializeDate(parsedDate.data, attributeValue.schema.format)
               : attributeValue.value;

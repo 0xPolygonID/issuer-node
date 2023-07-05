@@ -1,0 +1,172 @@
+{
+  "$metadata": {
+    "uris": {
+      "jsonLdContext": "ipfs://QmTCpe3i3i5753DRyEnEw9jDSt6HhuFr43HwkKzQHRfsX9"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Test Default Values",
+  "title": "Test Default Values",
+  "properties": {
+    "credentialSubject": {
+      "description": "Stores the data of the credential",
+      "title": "Credential subject",
+      "properties": {
+        "integer": {
+          "default": 100,
+          "description": "integer",
+          "title": "integer",
+          "type": "integer"
+        },
+        "boolean": {
+          "default": false,
+          "description": "boolean",
+          "title": "boolean",
+          "type": "boolean"
+        },
+        "string": {
+          "default": "foo",
+          "description": "string",
+          "title": "string",
+          "type": "string"
+        },
+        "number": {
+          "default": 99.99,
+          "description": "number",
+          "title": "number",
+          "type": "number"
+        },
+        "object": {
+          "description": "object",
+          "title": "object",
+          "properties": {
+            "string": {
+              "default": "bar",
+              "description": "string",
+              "title": "string",
+              "type": "string"
+            },
+            "date": {
+              "default": "2023-06-29",
+              "description": "date",
+              "title": "date",
+              "format": "date",
+              "type": "string"
+            },
+            "time": {
+              "default": "14:55:34.769Z",
+              "description": "time",
+              "title": "time",
+              "format": "time",
+              "type": "string"
+            },
+            "boolean": {
+              "default": true,
+              "description": "boolean",
+              "title": "boolean",
+              "type": "boolean"
+            },
+            "number": {
+              "default": 100.99,
+              "description": "number",
+              "title": "number",
+              "type": "number"
+            },
+            "date-time": {
+              "default": "2023-06-29T14:54:23.920Z",
+              "description": "date-time",
+              "title": "date-time",
+              "format": "date-time",
+              "type": "string"
+            },
+            "integer": {
+              "default": 101,
+              "description": "integer",
+              "title": "integer",
+              "type": "integer"
+            }
+          },
+          "required": [],
+          "type": "object"
+        },
+        "id": {
+          "description": "Stores the DID of the subject that owns the credential",
+          "title": "Credential subject ID",
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "@context": {
+      "type": [
+        "string",
+        "array",
+        "object"
+      ]
+    },
+    "expirationDate": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "issuanceDate": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "issuer": {
+      "type": [
+        "string",
+        "object"
+      ],
+      "format": "uri",
+      "properties": {
+        "id": {
+          "format": "uri",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "type": {
+      "type": [
+        "string",
+        "array"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "credentialSchema": {
+      "properties": {
+        "id": {
+          "format": "uri",
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "credentialSubject",
+    "@context",
+    "id",
+    "issuanceDate",
+    "issuer",
+    "type",
+    "credentialSchema"
+  ],
+  "type": "object"
+}

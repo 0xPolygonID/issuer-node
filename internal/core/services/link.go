@@ -50,10 +50,11 @@ type Link struct {
 	loaderFactory    loader.Factory
 	sessionManager   ports.SessionRepository
 	publisher        pubsub.Publisher
+	ipfsGateway      string
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -63,6 +64,7 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, clai
 		loaderFactory:    loaderFactory,
 		sessionManager:   sessionManager,
 		publisher:        publisher,
+		ipfsGateway:      ipfsGatewayURL,
 	}
 }
 
@@ -337,5 +339,5 @@ func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
 }
 
 func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaDB *domain.Schema) error {
-	return jsonschema.ValidateCredentialSubject(ctx, ls.loaderFactory(schemaDB.URL), schemaDB.Type, cSubject)
+	return jsonschema.ValidateCredentialSubject(ctx, ls.ipfsGateway, schemaDB.URL, schemaDB.Type, cSubject)
 }

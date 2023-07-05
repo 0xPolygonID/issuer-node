@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { isAxiosError, isCancel } from "axios";
 import z from "zod";
+import { getStrictParser } from "src/adapters/parsers";
 import { AppError } from "src/domain";
 
 function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
@@ -12,7 +13,7 @@ function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
           ...issue.unionErrors.reduce(
             (innerAcc: string[], current: z.ZodError<T>): string[] => [
               ...innerAcc,
-              ...processZodError(current, mainAcc),
+              ...processZodError(current),
             ],
             []
           ),
@@ -45,6 +46,8 @@ export function notifyParseErrors(errors: z.ZodError[]): void {
   errors.forEach(notifyParseError);
 }
 
+const messageParser = getStrictParser<{ message: string }>()(z.object({ message: z.string() }));
+
 export function buildAppError(error: unknown): AppError {
   if (typeof error === "string") {
     return {
@@ -60,9 +63,13 @@ export function buildAppError(error: unknown): AppError {
       type: "cancel-error",
     };
   } else if (isAxiosError(error)) {
+    const parsedMessage = messageParser.safeParse(error.response?.data);
+
     return {
       error,
-      message: error.message,
+      message: parsedMessage.success
+        ? `${error.message}: ${parsedMessage.data.message}`
+        : error.message,
       type: "request-error",
     };
   } else if (error instanceof z.ZodError) {

@@ -11,10 +11,12 @@ import (
 	"github.com/iden3/go-schema-processor/merklize"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/mitchellh/mapstructure"
 	"github.com/piprate/json-gold/ld"
 
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 const (
@@ -140,8 +142,10 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 }
 
 // ValidateCredentialSubject validates that the given credential subject matches the given schema
-func ValidateCredentialSubject(ctx context.Context, loader loader.Loader, schemaType string, cSubject map[string]interface{}) error {
-	schema, err := Load(ctx, loader)
+func ValidateCredentialSubject(ctx context.Context, ipfsGateway string, schemaURL string, schemaType string, cSubject map[string]interface{}) error {
+	documentLoader := merklize.NewDocumentLoader(shell.NewShell(ipfsGateway), ipfsGateway)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cache.NewMemoryCache()) // nolint: contextcheck
+	schema, err := Load(ctx, schemaLoader(schemaURL))
 	if err != nil {
 		return err
 	}
@@ -161,7 +165,7 @@ func ValidateCredentialSubject(ctx context.Context, loader loader.Loader, schema
 		return err
 	}
 
-	return validateDummyVCEntries(dummyVC)
+	return validateDummyVCEntries(dummyVC, documentLoader)
 }
 
 func validateDummyVCAgainstSchema(dummyVC map[string]interface{}, schema *JSONSchema) error {
@@ -213,11 +217,12 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 	return resp, err
 }
 
-func validateDummyVCEntries(vc map[string]interface{}) error {
+func validateDummyVCEntries(vc map[string]interface{}, loader ld.DocumentLoader) error {
 	proc := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
 	options.Algorithm = ld.AlgorithmURDNA2015
 	options.SafeMode = true
+	options.DocumentLoader = loader
 
 	normDoc, err := proc.Normalize(vc, options)
 	if err != nil {

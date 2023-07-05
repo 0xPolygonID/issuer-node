@@ -1,6 +1,6 @@
 import { Col, Row, Space, Typography } from "antd";
-
 import { z } from "zod";
+
 import { ReactComponent as IconTreeLeaf } from "src/assets/icons/file-04.svg";
 import { ReactComponent as IconTreeNode } from "src/assets/icons/folder.svg";
 import { AttributeValue, JsonLiteral } from "src/domain";
@@ -23,7 +23,7 @@ function extractValue(attributeValue: AttributeValue): JsonLiteral | undefined {
           case "date":
           case "date-time":
           case "time": {
-            const parsedDate = z.coerce.date(z.string().datetime()).safeParse(value);
+            const parsedDate = z.coerce.date().safeParse(value);
             return parsedDate.success
               ? formatDate(parsedDate.data, attributeValue.schema.format)
               : value;
