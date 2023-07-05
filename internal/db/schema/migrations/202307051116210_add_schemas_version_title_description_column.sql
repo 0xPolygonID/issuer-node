@@ -17,5 +17,6 @@ ALTER TABLE schemas
     DROP COLUMN title,
     DROP COLUMN description;
 
+ALTER TABLE schemas DROP CONSTRAINT schemas_issuer_id_url_version_key;
 ALTER TABLE schemas ADD CONSTRAINT schemas_issuer_id_url_key UNIQUE (issuer_id, url);
 -- +goose StatementEnd
