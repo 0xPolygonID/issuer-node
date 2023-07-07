@@ -30,7 +30,9 @@ export function SchemaViewer({
   jsonSchemaObject: Json;
 }) {
   const [jsonView, setJsonView] = useState<JsonView>("formatted");
-
+  const {
+    schema: { description, title },
+  } = jsonSchema;
   return (
     <Card
       className="centered"
@@ -67,9 +69,10 @@ export function SchemaViewer({
           </Button>
         </Dropdown>
       }
-      title={jsonLdType.name}
+      title={title || jsonLdType.name}
     >
       <Space direction="vertical" size="large">
+        <Card.Meta description={description} />
         <Card className="background-grey">{contents}</Card>
 
         {(() => {
