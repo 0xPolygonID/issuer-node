@@ -404,12 +404,13 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 #### Standalone Mode Setup
 
 1. Copy `.env-api.sample` as `.env-api` and `.env-issuer.sample` as `.env-issuer`. Please see the [configuration](#configuration) section for more details.
-1. Run `make build`. This will generate a binary for each of the following commands:
+1. Run `make build-local`. This will generate a binary for each of the following commands:
    - `platform`
    - `platform_ui`
    - `migrate`
    - `pending_publisher`
    - `notifications`
+   - `issuer_initializer`
 1. Run `make db/migrate`. This checks the database structure and applies any changes to the database schema.
 1. Run `./bin/platform` command to start the issuer.
 1. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.

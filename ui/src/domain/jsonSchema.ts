@@ -132,9 +132,11 @@ export type Attribute =
 
 export type JsonSchemaProps = {
   $metadata: {
+    type?: string;
     uris: {
       jsonLdContext: string;
     };
+    version?: string;
   };
   $schema: string;
 };

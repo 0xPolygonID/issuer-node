@@ -30,6 +30,7 @@ export function ImportSchemaPreview({
   const bigint = bigintResult && bigintResult.success ? bigintResult.data : null;
   const schemaHashResult = getSchemaHash(jsonLdType);
   const schemaHash = schemaHashResult && schemaHashResult.success ? schemaHashResult.data : null;
+  const version = jsonSchema.jsonSchemaProps.$metadata.version;
 
   return (
     <SchemaViewer
@@ -47,6 +48,10 @@ export function ImportSchemaPreview({
       contents={
         <Space direction="vertical">
           <Typography.Text type="secondary">SCHEMA DETAILS</Typography.Text>
+
+          <Detail copyable label="Schema type" text={jsonLdType.name} />
+
+          {version && <Detail label="Schema version" text={version} />}
 
           <Detail
             copyable={bigint !== null}
