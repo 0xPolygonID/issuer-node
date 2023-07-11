@@ -2,6 +2,7 @@ package services_tests
 
 import (
 	"context"
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"testing"
 	"time"
 
@@ -35,7 +36,7 @@ func TestSchema_ImportSchema(t *testing.T) {
 	expectHash := utils.CreateSchemaHash([]byte(urlLD + "#" + schemaType))
 
 	s := services.NewSchema(repo, loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, title, version, description)
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer(title), version, common.ToPointer(description))
 	got, err := s.ImportSchema(ctx, issuerDID, iReq)
 	require.NoError(t, err)
 	_, err = uuid.Parse(got.ID.String())
@@ -46,7 +47,7 @@ func TestSchema_ImportSchema(t *testing.T) {
 	assert.Equal(t, expectHash, got.Hash)
 	assert.Len(t, got.Words, 3)
 	assert.InDelta(t, time.Now().UnixMilli(), got.CreatedAt.UnixMilli(), 1)
-	assert.Equal(t, title, got.Title)
-	assert.Equal(t, description, got.Description)
+	assert.Equal(t, title, *got.Title)
+	assert.Equal(t, description, *got.Description)
 	assert.Equal(t, version, got.Version)
 }

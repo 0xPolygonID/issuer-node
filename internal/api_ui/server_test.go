@@ -482,8 +482,8 @@ func TestServer_ImportSchema(t *testing.T) {
 			request: &ImportSchemaRequest{
 				SchemaType:  "lala",
 				Url:         "wrong/url",
-				Title:       "some Title",
-				Description: "some Description",
+				Title:       common.ToPointer("some Title"),
+				Description: common.ToPointer("some Description"),
 				Version:     uuid.NewString(),
 			},
 			expected: expected{
@@ -497,8 +497,8 @@ func TestServer_ImportSchema(t *testing.T) {
 			request: &ImportSchemaRequest{
 				SchemaType:  schemaType,
 				Url:         url,
-				Title:       "some Title",
-				Description: "some Description",
+				Title:       common.ToPointer("some Title"),
+				Description: common.ToPointer("some Description"),
 				Version:     uuid.NewString(),
 			},
 			expected: expected{
@@ -580,8 +580,8 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 			request: &ImportSchemaRequest{
 				SchemaType:  "lala",
 				Url:         "wrong/url",
-				Title:       "title",
-				Description: "description",
+				Title:       common.ToPointer("title"),
+				Description: common.ToPointer("description"),
 				Version:     "1.0.0",
 			},
 			expected: expected{
@@ -595,8 +595,8 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 			request: &ImportSchemaRequest{
 				SchemaType:  schemaType,
 				Url:         url,
-				Title:       "title",
-				Description: "description",
+				Title:       common.ToPointer("title"),
+				Description: common.ToPointer("description"),
 				Version:     "1.0.0",
 			},
 			expected: expected{
@@ -1517,7 +1517,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	future := time.Now().Add(1000 * time.Hour)
 	past := time.Now().Add(-1000 * time.Hour)
-	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	_, err = schemaService.ImportSchema(ctx, *did, iReq)
 	require.NoError(t, err)
 	// Never expires
@@ -2689,7 +2689,7 @@ func TestServer_CreateLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -2917,7 +2917,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -3069,7 +3069,7 @@ func TestServer_GetLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -3241,7 +3241,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(sUrl, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(sUrl, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -3457,7 +3457,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -3578,7 +3578,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -3690,7 +3690,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 
@@ -3826,7 +3826,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	require.NoError(t, err)
 
 	schemaSrv := services.NewSchema(repositories.NewSchema(*storage), loader.HTTPFactory)
-	iReq := ports.NewImportSchemaRequest(url, schemaType, "someTitle", uuid.NewString(), "someDescription")
+	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
 	importedSchema, err := schemaSrv.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 

@@ -39,8 +39,8 @@ func TestGetSchema(t *testing.T) {
 		Hash:        core.NewSchemaHashFromInt(i),
 		Words:       domain.SchemaWords{"field1", "field2", "fieldn"},
 		CreatedAt:   time.Now(),
-		Title:       "some title",
-		Description: "some description",
+		Title:       common.ToPointer("some title"),
+		Description: common.ToPointer("some description"),
 		Version:     "1.0.0",
 	}
 	require.NoError(t, store.Save(ctx, schema1))
@@ -77,8 +77,8 @@ func TestCreateSchema(t *testing.T) {
 		Hash:        core.NewSchemaHashFromInt(i),
 		Words:       domain.SchemaWords{"field1", "field2", "fieldn"},
 		CreatedAt:   time.Now(),
-		Title:       "some title",
-		Description: "some description",
+		Title:       common.ToPointer("some title"),
+		Description: common.ToPointer("some description"),
 		Version:     uuid.NewString(),
 	}
 
@@ -89,6 +89,37 @@ func TestCreateSchema(t *testing.T) {
 	schema2.Version = uuid.NewString()
 	schema2.ID = uuid.New()
 	assert.NoError(t, store.Save(ctx, schema2))
+}
+
+func TestGetSchemaWithNullAttributes(t *testing.T) {
+	rand.NewSource(time.Now().Unix())
+	ctx := context.Background()
+	store := repositories.NewSchema(*storage)
+	did := core.DID{}
+	// Create a schemaHash
+	i := &big.Int{}
+	i.SetInt64(rand.Int63())
+
+	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
+	schema1 := &domain.Schema{ //  no description
+		ID:          uuid.New(),
+		IssuerDID:   did,
+		URL:         "https://an.url.org/index.html",
+		Type:        "schemaType",
+		Hash:        core.NewSchemaHashFromInt(i),
+		Words:       domain.SchemaWords{"field1", "field2", "fieldn"},
+		CreatedAt:   time.Now(),
+		Description: common.ToPointer("some description"),
+		Version:     uuid.NewString(),
+	}
+
+	require.NoError(t, store.Save(ctx, schema1))
+
+	bdSchema, err := store.GetByID(ctx, did, schema1.ID)
+	require.NoError(t, err)
+	assert.Nil(t, bdSchema.Title)
+	require.NotNil(t, bdSchema.Description)
+	assert.Equal(t, schema1.Description, bdSchema.Description)
 }
 
 func TestGetAllFullTextSearch(t *testing.T) {
