@@ -883,8 +883,6 @@ components:
       required:
         - url
         - schemaType
-        - title
-        - description
         - version
       properties:
         url:
@@ -1370,9 +1368,7 @@ components:
         - url
         - type
         - createdAt
-        - title
         - version
-        - description
       properties:
         id:
           type: string

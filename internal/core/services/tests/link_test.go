@@ -61,7 +61,7 @@ func Test_link_issueClaim(t *testing.T) {
 	did, err := core.ParseDID(identity.Identifier)
 	assert.NoError(t, err)
 
-	iReq := ports.NewImportSchemaRequest(schemaUrl, "KYCAgeCredential", "some title", uuid.NewString(), "some description")
+	iReq := ports.NewImportSchemaRequest(schemaUrl, "KYCAgeCredential", common.ToPointer("some title"), uuid.NewString(), common.ToPointer("some description"))
 	schema, err := schemaService.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 	did2, err := core.ParseDID(identity2.Identifier)

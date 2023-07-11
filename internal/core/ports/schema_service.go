@@ -20,13 +20,13 @@ type SchemaService interface {
 type ImportSchemaRequest struct {
 	URL         string
 	SType       string
-	Title       string
-	Description string
+	Title       *string
+	Description *string
 	Version     string
 }
 
 // NewImportSchemaRequest creates a new ImportSchemaRequest
-func NewImportSchemaRequest(url string, stype string, title string, version string, description string) *ImportSchemaRequest {
+func NewImportSchemaRequest(url string, stype string, title *string, version string, description *string) *ImportSchemaRequest {
 	return &ImportSchemaRequest{
 		URL:         url,
 		SType:       stype,
