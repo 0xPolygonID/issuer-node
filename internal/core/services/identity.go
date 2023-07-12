@@ -392,6 +392,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
+	bytesIssuerDoc = sanitizeIssuerDoc(bytesIssuerDoc)
 	userDID, err := core.ParseDID(arm.From)
 	if err != nil {
 		log.Error(ctx, "failed to parse userDID", "err", err)
@@ -828,4 +829,9 @@ func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument
 			},
 		},
 	}
+}
+
+func sanitizeIssuerDoc(issDoc []byte) []byte {
+	str := strings.Replace(string(issDoc), "\\u0000", "", -1)
+	return []byte(str)
 }

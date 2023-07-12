@@ -16,36 +16,43 @@ export function LinkDeleteModal({
 }) {
   const env = useEnvContext();
 
+  const [messageAPI, messageContext] = message.useMessage();
+
   const handleDeleteLink = () => {
     void deleteLink({ env, id }).then((response) => {
       if (response.success) {
         onClose();
         onDelete();
 
-        void message.success(response.data.message);
+        void messageAPI.success(response.data.message);
       } else {
-        void message.error(response.error.message);
+        void messageAPI.error(response.error.message);
       }
     });
   };
 
   return (
-    <Modal
-      cancelText={CLOSE}
-      centered
-      closable
-      closeIcon={<IconClose />}
-      maskClosable
-      okButtonProps={{ danger: true }}
-      okText={DELETE}
-      onCancel={onClose}
-      onOk={handleDeleteLink}
-      open
-      title="Are you sure you want to delete this credential link?"
-    >
-      <Typography.Text type="secondary">
-        Users will not be able to receive this credential any longer. This action cannot be undone.
-      </Typography.Text>
-    </Modal>
+    <>
+      {messageContext}
+
+      <Modal
+        cancelText={CLOSE}
+        centered
+        closable
+        closeIcon={<IconClose />}
+        maskClosable
+        okButtonProps={{ danger: true }}
+        okText={DELETE}
+        onCancel={onClose}
+        onOk={handleDeleteLink}
+        open
+        title="Are you sure you want to delete this credential link?"
+      >
+        <Typography.Text type="secondary">
+          Users will not be able to receive this credential any longer. This action cannot be
+          undone.
+        </Typography.Text>
+      </Modal>
+    </>
   );
 }

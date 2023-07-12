@@ -6,27 +6,7 @@ import (
 	"strings"
 )
 
-var (
-	onlyLettersAndNumbers = regexp.MustCompile(`[^a-zA-Z0-9 ]+`)
-	didCharacters         = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
-)
-
-// fullTextSearchQuery accepts a query with a list of words and returns a tsquery that includes words that
-// begin or contains that words. operator is used to pass an operator between words.
-// https://www.postgresql.org/docs/current/datatype-textsearch.html#DATATYPE-TSQUERY
-func fullTextSearchQuery(query string, operator string) string {
-	query = onlyLettersAndNumbers.ReplaceAllString(query, " ")
-	words := strings.Split(query, " ")
-	terms := make([]string, 0, len(words))
-	for _, word := range words {
-		word = strings.TrimSpace(word)
-		if word == "" {
-			continue
-		}
-		terms = append(terms, "("+word+":* | "+word+")")
-	}
-	return strings.Join(terms, operator)
-}
+var didCharacters = regexp.MustCompile(`[^a-zA-Z0-9:]+`)
 
 func tokenizeQuery(query string) []string {
 	words := strings.Split(strings.ReplaceAll(query, ",", " "), " ")
@@ -62,6 +42,16 @@ func buildPartialQueryDidLikes(field string, words []string, cond string) string
 		if word != "" {
 			conditions = append(conditions, fmt.Sprintf("%s ILIKE '%%%s%%'", field, escapeDID(word)))
 		}
+	}
+	return strings.Join(conditions, " "+cond+" ")
+}
+
+func buildPartialQueryLikes(field string, cond string, first int, n int) string {
+	conditions := make([]string, 0, n)
+	current := first
+	for i := 0; i < n; i++ {
+		conditions = append(conditions, fmt.Sprintf("%s ILIKE '%%' || $%d || '%%'", field, current))
+		current++
 	}
 	return strings.Join(conditions, " "+cond+" ")
 }

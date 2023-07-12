@@ -180,6 +180,119 @@ func TestConnectionsGetAllByIssuerID(t *testing.T) {
 	})
 }
 
+func TestGetAllWithCredentialsByIssuerID(t *testing.T) {
+	ctx := context.Background()
+	connectionsRepo := repositories.NewConnections()
+
+	fixture := tests.NewFixture(storage)
+	idStr := "did:polygonid:polygon:mumbai:2qEinAT1jt9vfDfEwdjdD4B3vGJxMAVjgK2yvvKij4"
+	identity := &domain.Identity{
+		Identifier: idStr,
+	}
+	fixture.CreateIdentity(t, identity)
+	issuerDID, err := core.ParseDID(idStr)
+	require.NoError(t, err)
+
+	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qNtJm8v3c8b7XjQtAtSvAbudnUAfzsjHFqRnyYDq7")
+	require.NoError(t, err)
+	userDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qFjTM4kX3J6AYzHBY1Q3ztnxv1UfNaaNUGw8TKo4N")
+	require.NoError(t, err)
+	userDID3, err := core.ParseDID("did:polygonid:polygon:mumbai:2qMTdi9CkqE8ihMn7qtp61QCdiKvfo2Ttx9a5TMDSt")
+	require.NoError(t, err)
+
+	connNoCredentials := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	connWithCredentials := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID2,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+
+	connLatestIssuedCredentials := fixture.CreateConnection(t, &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID3,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+	orderIDs := []uuid.UUID{connLatestIssuedCredentials, connWithCredentials, connNoCredentials}
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246562",
+		OtherIdentifier: userDID2.String(),
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        1234,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		CreatedAt:       time.Now(),
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246563",
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: userDID3.String(),
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        1234,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		CreatedAt:       time.Now().Add(time.Hour),
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(issuerDID.String()),
+		Issuer:          issuerDID.String(),
+		HIndex:          "20060639968773997271173557722944342103398298534714534718204282267207714246566",
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: userDID3.String(),
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        1234,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		CreatedAt:       time.Now().Add(-24 * time.Hour),
+	})
+
+	t.Run("should get 3 connections for the given issuerDID", func(t *testing.T) {
+		conns, err := connectionsRepo.GetAllWithCredentialsByIssuerID(ctx, storage.Pgx, *issuerDID, "")
+		require.NoError(t, err)
+		require.Equal(t, len(orderIDs), len(conns))
+
+		for i := range conns {
+			assert.Equal(t, orderIDs[i].String(), conns[i].ID.String())
+		}
+	})
+}
+
 func TestDeleteConnectionCredentials(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)

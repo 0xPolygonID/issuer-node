@@ -35,6 +35,21 @@ export function getListParser<Input, Output = Input>(
   );
 }
 
+export const datetimeParser = getStrictParser<string, Date>()(
+  z
+    .string()
+    .datetime()
+    .transform((datetime, context) => {
+      const parsedDate = z.coerce.date().safeParse(datetime);
+      if (parsedDate.success) {
+        return parsedDate.data;
+      } else {
+        parsedDate.error.issues.map(context.addIssue);
+        return z.NEVER;
+      }
+    })
+);
+
 // The following was implemented due to a perceived limitation of Zod:
 // https://github.com/colinhacks/zod/issues/652
 

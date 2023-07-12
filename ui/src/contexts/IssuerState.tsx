@@ -17,11 +17,11 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 type EventType = "credential" | "revoke";
 
-interface IssuerState {
+type IssuerState = {
   notifyChange: (event: EventType) => Promise<void>;
   refreshStatus: () => Promise<void>;
   status: AsyncTask<boolean, AppError>;
-}
+};
 
 const CONTEXT_NOT_READY_MESSAGE = "The issuer state context is not yet ready";
 
@@ -33,6 +33,9 @@ const IssuerStateContext = createContext<IssuerState>({
 
 export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
+
+  const [messageAPI, messageContext] = message.useMessage();
+
   const [status, setStatus] = useState<AsyncTask<boolean, AppError>>({ status: "pending" });
 
   const refreshStatus = useCallback(
@@ -43,11 +46,11 @@ export function IssuerStateProvider(props: PropsWithChildren) {
         setStatus({ data: response.data.pendingActions, status: "successful" });
       } else {
         if (!isAbortedError(response.error)) {
-          void message.error(response.error.message);
+          void messageAPI.error(response.error.message);
         }
       }
     },
-    [env]
+    [env, messageAPI]
   );
 
   const notifyChange = useCallback(
@@ -57,7 +60,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
         revoke: "Revocation",
       };
 
-      void message.info({
+      void messageAPI.info({
         content: (
           <Space align="start" direction="vertical" style={{ width: "auto" }}>
             <Typography.Text strong>
@@ -72,7 +75,7 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
       return refreshStatus();
     },
-    [refreshStatus]
+    [messageAPI, refreshStatus]
   );
 
   useEffect(() => {
@@ -85,7 +88,13 @@ export function IssuerStateProvider(props: PropsWithChildren) {
     return { notifyChange, refreshStatus, status };
   }, [notifyChange, refreshStatus, status]);
 
-  return <IssuerStateContext.Provider value={value} {...props} />;
+  return (
+    <>
+      {messageContext}
+
+      <IssuerStateContext.Provider value={value} {...props} />
+    </>
+  );
 }
 
 export function useIssuerStateContext() {

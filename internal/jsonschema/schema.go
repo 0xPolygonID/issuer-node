@@ -11,10 +11,12 @@ import (
 	"github.com/iden3/go-schema-processor/merklize"
 	"github.com/iden3/go-schema-processor/processor"
 	"github.com/iden3/go-schema-processor/utils"
+	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/mitchellh/mapstructure"
 	"github.com/piprate/json-gold/ld"
 
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 const (
@@ -140,8 +142,10 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 }
 
 // ValidateCredentialSubject validates that the given credential subject matches the given schema
-func ValidateCredentialSubject(ctx context.Context, loader loader.Loader, schemaType string, cSubject map[string]interface{}) error {
-	schema, err := Load(ctx, loader)
+func ValidateCredentialSubject(ctx context.Context, ipfsGateway string, schemaURL string, schemaType string, cSubject map[string]interface{}) error {
+	documentLoader := merklize.NewDocumentLoader(shell.NewShell(ipfsGateway), ipfsGateway)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cache.NewMemoryCache()) // nolint: contextcheck
+	schema, err := Load(ctx, schemaLoader(schemaURL))
 	if err != nil {
 		return err
 	}
@@ -156,7 +160,28 @@ func ValidateCredentialSubject(ctx context.Context, loader loader.Loader, schema
 		return err
 	}
 
-	return validateDummyVC(dummyVC)
+	err = validateDummyVCAgainstSchema(dummyVC, schema)
+	if err != nil {
+		return err
+	}
+
+	return validateDummyVCEntries(dummyVC, documentLoader)
+}
+
+func validateDummyVCAgainstSchema(dummyVC map[string]interface{}, schema *JSONSchema) error {
+	schemaBytes, err := json.Marshal(schema.content)
+	if err != nil {
+		return err
+	}
+
+	dummyVCBytes, err := json.Marshal(dummyVC)
+	if err != nil {
+		return err
+	}
+
+	validator := jsonSuite.Validator{}
+
+	return validator.ValidateData(dummyVCBytes, schemaBytes)
 }
 
 func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaContext string) (map[string]interface{}, error) {
@@ -166,14 +191,14 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 	vc := map[string]interface{}{
 		"@context": []interface{}{"https://www.w3.org/2018/credentials/v1", "https://schema.iden3.io/core/jsonld/iden3proofs.jsonld", schemaContext},
 		"credentialSchema": map[string]interface{}{
-			"id":   schemaType,
+			"id":   "https://www.w3.org/2018/credentials/v1",
 			"type": "JsonSchemaValidator2018",
 		},
 		"credentialStatus": map[string]interface{}{
 			"id": "testStatus",
 		},
 		"credentialSubject": cSubject,
-		"id":                "testID",
+		"id":                "https://someURL/someschemaContext.jsonld",
 		"issuanceDate":      "2023-04-27T23:45:29.498555+02:00",
 		"issuer":            fakeIssuerDID,
 		"type": []interface{}{
@@ -181,7 +206,7 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 		},
 	}
 
-	mBytes, err := json.Marshal(vc) // this marshal and unmarshal needs to be done for the validateDummyVC function
+	mBytes, err := json.Marshal(vc) // this marshal and unmarshal needs to be done for the validateDummyVCEntries function
 	if err != nil {
 		return nil, err
 	}
@@ -192,11 +217,12 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 	return resp, err
 }
 
-func validateDummyVC(vc map[string]interface{}) error {
+func validateDummyVCEntries(vc map[string]interface{}, loader ld.DocumentLoader) error {
 	proc := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
 	options.Algorithm = ld.AlgorithmURDNA2015
 	options.SafeMode = true
+	options.DocumentLoader = loader
 
 	normDoc, err := proc.Normalize(vc, options)
 	if err != nil {

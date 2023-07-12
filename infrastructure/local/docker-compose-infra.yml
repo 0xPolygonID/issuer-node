@@ -34,6 +34,13 @@ services:
       timeout: 5s
       retries: 5
 
+  test_local_files_apache:
+    image: httpd:2.4-alpine
+    ports:
+      - '8080:80'
+    volumes:
+      - ./httpd-test/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ./test_data/schema:/usr/local/apache2/htdocs:ro
   redis:
     image: redis:6-alpine
     ports:
@@ -45,7 +52,7 @@ services:
       retries: 5
 
   vault:
-    image: vault:latest
+    image: vault:1.13.2
     volumes:
       - ./.vault/config:/vault/config
       - ./.vault/policies:/vault/policies

@@ -33,7 +33,7 @@ func Test_link_issueClaim(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.HTTPFactory
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	claimsConf := services.ClaimCfg{
@@ -48,7 +48,8 @@ func Test_link_issueClaim(t *testing.T) {
 		schemaLoader,
 		storage,
 		claimsConf,
-		pubsub.NewMock())
+		pubsub.NewMock(),
+		ipfsGateway)
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
@@ -60,7 +61,8 @@ func Test_link_issueClaim(t *testing.T) {
 	did, err := core.ParseDID(identity.Identifier)
 	assert.NoError(t, err)
 
-	schema, err := schemaService.ImportSchema(ctx, *did, schemaUrl, "KYCAgeCredential")
+	iReq := ports.NewImportSchemaRequest(schemaUrl, "KYCAgeCredential", common.ToPointer("some title"), uuid.NewString(), common.ToPointer("some description"))
+	schema, err := schemaService.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
 	did2, err := core.ParseDID(identity2.Identifier)
 	assert.NoError(t, err)
@@ -82,7 +84,7 @@ func Test_link_issueClaim(t *testing.T) {
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock())
+	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGateway)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)

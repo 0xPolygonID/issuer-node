@@ -112,7 +112,7 @@ stop:
 
 .PHONY: up-test
 up-test:
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
 
 .PHONY: clean-vault
 clean-vault:
@@ -172,6 +172,7 @@ generate-issuer-did: run-initializer
 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
 	mv .env-api.tmp .env-api
+	docker logs issuer-initializer-1
 	docker rm issuer-initializer-1
 
 .PHONY: run-initializer-arm
@@ -186,6 +187,7 @@ generate-issuer-did-arm: run-initializer-arm
 	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
 	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
 	mv .env-api.tmp .env-api
+	docker logs issuer-initializer-1
 	docker rm issuer-initializer-1
 
 .PHONY: add-host-url-swagger

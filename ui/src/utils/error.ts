@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { isAxiosError, isCancel } from "axios";
 import z from "zod";
+import { getStrictParser } from "src/adapters/parsers";
 import { AppError } from "src/domain";
 
 function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
@@ -12,7 +13,7 @@ function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
           ...issue.unionErrors.reduce(
             (innerAcc: string[], current: z.ZodError<T>): string[] => [
               ...innerAcc,
-              ...processZodError(current, mainAcc),
+              ...processZodError(current),
             ],
             []
           ),
@@ -29,6 +30,14 @@ function processZodError<T>(error: z.ZodError<T>, init: string[] = []) {
   }, init);
 }
 
+export function notifyError(error: AppError, compact = false): void {
+  if (!compact && error.type === "parse-error") {
+    notifyParseError(error.error);
+  } else {
+    void message.error(error.message);
+  }
+}
+
 export function notifyParseError(error: z.ZodError): void {
   processZodError(error).forEach((error) => void message.error(error));
 }
@@ -36,6 +45,8 @@ export function notifyParseError(error: z.ZodError): void {
 export function notifyParseErrors(errors: z.ZodError[]): void {
   errors.forEach(notifyParseError);
 }
+
+const messageParser = getStrictParser<{ message: string }>()(z.object({ message: z.string() }));
 
 export function buildAppError(error: unknown): AppError {
   if (typeof error === "string") {
@@ -52,9 +63,13 @@ export function buildAppError(error: unknown): AppError {
       type: "cancel-error",
     };
   } else if (isAxiosError(error)) {
+    const parsedMessage = messageParser.safeParse(error.response?.data);
+
     return {
       error,
-      message: error.message,
+      message: parsedMessage.success
+        ? `${error.message}: ${parsedMessage.data.message}`
+        : error.message,
       type: "request-error",
     };
   } else if (error instanceof z.ZodError) {
@@ -97,8 +112,8 @@ export const credentialSubjectValueErrorToString = (error: AppError) =>
 export const jsonSchemaErrorToString = (error: AppError) =>
   [
     error.type === "parse-error" || error.type === "custom-error"
-      ? "An error occurred while parsing the json schema:"
-      : "An error occurred while downloading the json schema:",
+      ? "An error occurred while parsing the JSON Schema:"
+      : "An error occurred while downloading the JSON Schema:",
     error.message,
     "Please try again.",
   ].join("\n");

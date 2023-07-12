@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
-import { getListParser, getStrictParser } from "src/adapters/parsers";
+import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -30,16 +30,18 @@ const proofTypeParser = getStrictParser<ProofTypeInput[], ProofType[]>()(
 
 // Credentials
 
-type CredentialInput = Omit<Credential, "proofTypes"> & {
+type CredentialInput = Omit<Credential, "proofTypes" | "createdAt" | "expiresAt"> & {
+  createdAt: string;
+  expiresAt: string | null;
   proofTypes: ProofTypeInput[];
 };
 
 export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z.object({
-    createdAt: z.coerce.date(z.string().datetime()),
+    createdAt: datetimeParser,
     credentialSubject: z.record(z.unknown()),
     expired: z.boolean(),
-    expiresAt: z.coerce.date(z.string().datetime()).nullable(),
+    expiresAt: datetimeParser.nullable(),
     id: z.string(),
     proofTypes: proofTypeParser,
     revNonce: z.number(),
@@ -123,14 +125,14 @@ export async function getCredentials({
   }
 }
 
-export interface CreateCredential {
+export type CreateCredential = {
   credentialSchema: string;
   credentialSubject: Json;
   expiration: string | null;
   mtProof: boolean;
   signatureProof: boolean;
   type: string;
-}
+};
 
 export async function createCredential({
   env,
@@ -205,17 +207,20 @@ export const linkStatusParser = getStrictParser<LinkStatus>()(
   z.union([z.literal("active"), z.literal("inactive"), z.literal("exceeded")])
 );
 
-type LinkInput = Omit<Link, "proofTypes"> & {
+type LinkInput = Omit<Link, "proofTypes" | "createdAt" | "credentialExpiration" | "expiration"> & {
+  createdAt: string;
+  credentialExpiration: string | null;
+  expiration: string | null;
   proofTypes: ProofTypeInput[];
 };
 
 const linkParser = getStrictParser<LinkInput, Link>()(
   z.object({
     active: z.boolean(),
-    createdAt: z.coerce.date(z.string().datetime()),
-    credentialExpiration: z.coerce.date(z.string().datetime()).nullable(),
+    createdAt: datetimeParser,
+    credentialExpiration: datetimeParser.nullable(),
     credentialSubject: z.record(z.unknown()),
-    expiration: z.coerce.date(z.string().datetime()).nullable(),
+    expiration: datetimeParser.nullable(),
     id: z.string(),
     issuedClaims: z.number(),
     maxIssuance: z.number().nullable(),
@@ -340,7 +345,7 @@ export async function deleteLink({
   }
 }
 
-export interface CreateLink {
+export type CreateLink = {
   credentialExpiration: string | null;
   credentialSubject: Json;
   expiration: string | null;
@@ -348,7 +353,7 @@ export interface CreateLink {
   mtProof: boolean;
   schemaID: string;
   signatureProof: boolean;
-}
+};
 
 export async function createLink({
   env,
@@ -377,11 +382,11 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
   linkDetail: { proofTypes: ProofTypeInput[]; schemaType: string };
 };
 
-export interface AuthQRCode {
+export type AuthQRCode = {
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
   qrCode?: unknown;
   sessionID: string;
-}
+};
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
@@ -468,10 +473,10 @@ export async function getIssuedQRCode({
   }
 }
 
-export interface ImportQRCode {
+export type ImportQRCode = {
   qrCode?: unknown;
   status: "done" | "pending" | "pendingPublish";
-}
+};
 
 const importQRCodeParser = getStrictParser<ImportQRCode>()(
   z.object({

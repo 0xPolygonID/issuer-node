@@ -1,28 +1,27 @@
 import { Response } from "src/adapters";
 import { getJsonFromUrl } from "src/adapters/json";
 import { getJsonLdTypeParser, jsonSchemaParser } from "src/adapters/parsers/jsonSchemas";
-import { Json, JsonLdType, JsonSchema } from "src/domain";
+import { Env, Json, JsonLdType, JsonSchema } from "src/domain";
 import { buildAppError } from "src/utils/error";
 
 export async function getJsonSchemaFromUrl({
+  env,
   signal,
   url,
 }: {
+  env: Env;
   signal?: AbortSignal;
   url: string;
 }): Promise<Response<[JsonSchema, Json]>> {
   try {
-    const jsonResponse = await getJsonFromUrl({
-      signal,
-      url,
-    });
+    const jsonResponse = await getJsonFromUrl({ env, signal, url });
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
-      const json = jsonResponse.data;
-      const jsonSchema = jsonSchemaParser.parse(json);
+      const jsonSchemaObject = jsonResponse.data;
+      const jsonSchema = jsonSchemaParser.parse(jsonSchemaObject);
       return {
-        data: [jsonSchema, json],
+        data: [jsonSchema, jsonSchemaObject],
         success: true,
       };
     }
@@ -35,21 +34,22 @@ export async function getJsonSchemaFromUrl({
 }
 
 export async function getSchemaJsonLdTypes({
+  env,
   jsonSchema,
 }: {
+  env: Env;
   jsonSchema: JsonSchema;
 }): Promise<Response<[JsonLdType[], Json]>> {
+  const url = jsonSchema.jsonSchemaProps.$metadata.uris.jsonLdContext;
   try {
-    const jsonResponse = await getJsonFromUrl({
-      url: jsonSchema.$metadata.uris.jsonLdContext,
-    });
+    const jsonResponse = await getJsonFromUrl({ env, url });
     if (!jsonResponse.success) {
       return jsonResponse;
     } else {
-      const json = jsonResponse.data;
-      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(json);
+      const jsonLdContextObject = jsonResponse.data;
+      const jsonLdTypes = getJsonLdTypeParser(jsonSchema).parse(jsonLdContextObject);
       return {
-        data: [jsonLdTypes, json],
+        data: [jsonLdTypes, jsonLdContextObject],
         success: true,
       };
     }

@@ -2,7 +2,7 @@ export type CredentialsTabIDs = "issued" | "links";
 
 export type ProofType = "MTP" | "SIG";
 
-export interface Credential {
+export type Credential = {
   createdAt: Date;
   credentialSubject: Record<string, unknown>;
   expired: boolean;
@@ -15,16 +15,16 @@ export interface Credential {
   schemaType: string;
   schemaUrl: string;
   userID: string;
-}
+};
 
-export interface IssuedQRCode {
+export type IssuedQRCode = {
   qrCode: unknown;
   schemaType: string;
-}
+};
 
 export type LinkStatus = "active" | "inactive" | "exceeded";
 
-export interface Link {
+export type Link = {
   active: boolean;
   createdAt: Date;
   credentialExpiration: Date | null;
@@ -38,4 +38,4 @@ export interface Link {
   schemaType: string;
   schemaUrl: string;
   status: LinkStatus;
-}
+};

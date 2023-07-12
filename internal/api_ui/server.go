@@ -93,7 +93,8 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 		log.Debug(ctx, "Importing schema bad request", "err", err, "req", req)
 		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("bad request: %s", err.Error())}}, nil
 	}
-	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, req.Url, req.SchemaType)
+	iReq := ports.NewImportSchemaRequest(req.Url, req.SchemaType, req.Title, req.Version, req.Description)
+	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, iReq)
 	if err != nil {
 		log.Error(ctx, "Importing schema", "err", err, "req", req)
 		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -110,6 +111,9 @@ func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
 	}
 	if strings.TrimSpace(req.SchemaType) == "" {
 		return errors.New("empty type")
+	}
+	if strings.TrimSpace(req.Version) == "" {
+		return errors.New("empty version")
 	}
 	if _, err := url.ParseRequestURI(req.Url); err != nil {
 		return fmt.Errorf("parsing url: %w", err)
@@ -504,7 +508,7 @@ func (s *Server) GetLinks(ctx context.Context, request GetLinksRequestObject) (G
 	var err error
 	status := ports.LinkAll
 	if request.Params.Status != nil {
-		if status, err = ports.LinkTypeReqFromString(strings.ToLower(string(*request.Params.Status))); err != nil {
+		if status, err = ports.LinkTypeReqFromString(string(*request.Params.Status)); err != nil {
 			log.Warn(ctx, "unknown request type getting links", "err", err, "type", request.Params.Status)
 			return GetLinks400JSONResponse{N400JSONResponse{Message: "unknown request type. Allowed: all|active|inactive|exceed"}}, nil
 		}

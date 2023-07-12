@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-issuer-node-svc
+  labels:
+    app: issuer-node
+spec:
+  ports:
+    - port: 8200
+      targetPort: 8200
+      protocol: TCP
+  selector:
+    app: vault-issuer-node

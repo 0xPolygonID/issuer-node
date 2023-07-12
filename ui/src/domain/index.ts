@@ -15,7 +15,7 @@ export type { Env } from "src/domain/env";
 
 export type { IssuerStatus, Transaction, TransactionStatus } from "src/domain/issuer-state";
 
-export type { Json, JsonLiteral } from "src/domain/json";
+export type { Json, JsonObject, JsonLiteral } from "src/domain/json";
 
 export type {
   ArrayAttribute,
@@ -35,7 +35,7 @@ export type {
   JsonSchema,
   MultiAttribute,
   MultiAttributeValue,
-  MultiSchema,
+  Schema,
   MultiValue,
   NullAttribute,
   NullAttributeValue,
@@ -47,11 +47,11 @@ export type {
   ObjectAttribute,
   ObjectAttributeValue,
   ObjectProps,
-  SchemaProps,
+  JsonSchemaProps,
   StringAttribute,
   StringAttributeValue,
   StringProps,
   StringSchema,
 } from "src/domain/jsonSchema";
 
-export type { Schema } from "src/domain/schema";
+export type { Schema as ApiSchema } from "src/domain/schema";

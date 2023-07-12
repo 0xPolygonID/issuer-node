@@ -1,13 +1,16 @@
-export interface CommonProps {
+export type CommonProps = {
+  const?: unknown;
+  default?: unknown;
   description?: string;
+  examples?: unknown[];
   title?: string;
-}
+};
 
 // Primitives
 
-export interface BooleanProps {
+export type BooleanProps = {
   enum?: boolean[];
-}
+};
 
 export type BooleanSchema = CommonProps & BooleanProps & { type: "boolean" };
 
@@ -18,9 +21,9 @@ export type BooleanAttribute = {
   type: "boolean";
 };
 
-export interface IntegerProps {
+export type IntegerProps = {
   enum?: number[];
-}
+};
 
 export type IntegerSchema = CommonProps & IntegerProps & { type: "integer" };
 
@@ -40,9 +43,9 @@ export type NullAttribute = {
   type: "null";
 };
 
-export interface NumberProps {
+export type NumberProps = {
   enum?: number[];
-}
+};
 
 export type NumberSchema = CommonProps & NumberProps & { type: "number" };
 
@@ -53,10 +56,10 @@ export type NumberAttribute = {
   type: "number";
 };
 
-export interface StringProps {
+export type StringProps = {
   enum?: string[];
   format?: string;
-}
+};
 
 export type StringSchema = CommonProps & StringProps & { type: "string" };
 
@@ -70,7 +73,7 @@ export type StringAttribute = {
 // Non-primitives
 
 type ArrayProps = {
-  items?: Attribute;
+  attribute?: Attribute;
 };
 
 type ArraySchema = CommonProps & ArrayProps & { type: "array" };
@@ -83,7 +86,8 @@ export type ArrayAttribute = {
 };
 
 export type ObjectProps = {
-  properties?: Attribute[];
+  attributes?: Attribute[];
+  properties?: Record<string, unknown>;
   required?: string[];
 };
 
@@ -98,7 +102,7 @@ export type ObjectAttribute = {
 
 // Multi-type
 
-export type MultiSchema =
+export type Schema =
   | BooleanSchema
   | IntegerSchema
   | NullSchema
@@ -110,11 +114,11 @@ export type MultiSchema =
 export type MultiAttribute = {
   name: string;
   required: boolean;
-  schemas: MultiSchema[];
+  schemas: Schema[];
   type: "multi";
 };
 
-// Schema
+// JSON Schema
 
 export type Attribute =
   | BooleanAttribute
@@ -126,15 +130,18 @@ export type Attribute =
   | ObjectAttribute
   | MultiAttribute;
 
-export type SchemaProps = {
+export type JsonSchemaProps = {
   $metadata: {
+    type?: string;
     uris: {
       jsonLdContext: string;
     };
+    version?: string;
   };
+  $schema: string;
 };
 
-export type JsonSchema = Attribute & SchemaProps;
+export type JsonSchema = ObjectAttribute & { jsonSchemaProps: JsonSchemaProps };
 
 export type JsonLdType = { id: string; name: string };
 

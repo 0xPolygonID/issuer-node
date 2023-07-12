@@ -5,16 +5,20 @@ import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function String({
   attribute,
+  error,
   parents,
 }: {
   attribute: StringAttribute;
+  error?: string;
   parents: ObjectAttribute[];
 }) {
   const commonFormItemProps: FormItemProps = {
     extra: attribute.schema.description,
+    help: error,
     label: <Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>,
     name: ["credentialSubject", ...parents.map((parent) => parent.name), attribute.name],
     rules: [{ message: VALUE_REQUIRED, required: attribute.required }],
+    validateStatus: error ? "error" : undefined,
   };
 
   if (attribute.schema.enum) {

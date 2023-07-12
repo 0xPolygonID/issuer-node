@@ -1,4 +1,4 @@
-import { Button, Card, Space, Typography } from "antd";
+import { Button, Card, Col, Grid, Row, Space, Typography } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useParams } from "react-router-dom";
 
@@ -15,7 +15,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Credential, ObjectAttribute, ObjectAttributeValue } from "src/domain";
+import { AppError, Credential, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -27,10 +27,13 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { CREDENTIALS_TABS, DELETE, REVOKE } from "src/utils/constants";
 import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
+import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
 
 export function CredentialDetails() {
   const navigate = useNavigate();
   const { credentialID } = useParams();
+
+  const { sm } = Grid.useBreakpoint();
 
   const env = useEnvContext();
 
@@ -45,60 +48,57 @@ export function CredentialDetails() {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [showRevokeModal, setShowRevokeModal] = useState<boolean>(false);
 
-  const fetchJsonSchemaFromUrl = useCallback(({ credential }: { credential: Credential }): void => {
-    setCredentialSubjectValue({ status: "loading" });
+  const fetchJsonSchemaFromUrl = useCallback(
+    ({ credential }: { credential: Credential }): void => {
+      setCredentialSubjectValue({ status: "loading" });
 
-    void getJsonSchemaFromUrl({ url: credential.schemaUrl }).then((response) => {
-      if (response.success) {
-        const [jsonSchema] = response.data;
-        const credentialSubjectSchema =
-          (jsonSchema.type === "object" &&
-            jsonSchema.schema.properties
-              ?.filter((child): child is ObjectAttribute => child.type === "object")
-              .find((child) => child.name === "credentialSubject")) ||
-          null;
+      void getJsonSchemaFromUrl({ env, url: credential.schemaUrl }).then((response) => {
+        if (response.success) {
+          const [jsonSchema] = response.data;
+          const credentialSubjectAttribute = extractCredentialSubjectAttribute(jsonSchema);
+          if (credentialSubjectAttribute) {
+            const parsedCredentialSubject = getAttributeValueParser(
+              credentialSubjectAttribute
+            ).safeParse(credential.credentialSubject);
 
-        if (credentialSubjectSchema) {
-          const parsedCredentialSubject = getAttributeValueParser(
-            credentialSubjectSchema
-          ).safeParse(credential.credentialSubject);
-
-          if (parsedCredentialSubject.success) {
-            if (parsedCredentialSubject.data.type === "object") {
-              setCredentialSubjectValue({
-                data: parsedCredentialSubject.data,
-                status: "successful",
-              });
+            if (parsedCredentialSubject.success) {
+              if (parsedCredentialSubject.data.type === "object") {
+                setCredentialSubjectValue({
+                  data: parsedCredentialSubject.data,
+                  status: "successful",
+                });
+              } else {
+                setCredentialSubjectValue({
+                  error: buildAppError(
+                    `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`
+                  ),
+                  status: "failed",
+                });
+              }
             } else {
               setCredentialSubjectValue({
-                error: buildAppError(
-                  `The type "${parsedCredentialSubject.data.type}" is not a valid type for the attribute "credentialSubject".`
-                ),
+                error: buildAppError(parsedCredentialSubject.error),
                 status: "failed",
               });
             }
           } else {
             setCredentialSubjectValue({
-              error: buildAppError(parsedCredentialSubject.error),
+              error: buildAppError(
+                `Could not find the attribute "credentialSubject" in the object's schema.`
+              ),
               status: "failed",
             });
           }
         } else {
           setCredentialSubjectValue({
-            error: buildAppError(
-              `Could not find the attribute "credentialSubject" in the object's schema.`
-            ),
+            error: response.error,
             status: "failed",
           });
         }
-      } else {
-        setCredentialSubjectValue({
-          error: response.error,
-          status: "failed",
-        });
-      }
-    });
-  }, []);
+      });
+    },
+    [env]
+  );
 
   const fetchCredential = useCallback(
     async (signal?: AbortSignal) => {
@@ -175,25 +175,30 @@ export function CredentialDetails() {
             <Card
               className="centered"
               extra={
-                <Space>
-                  <Button
-                    danger
-                    disabled={revoked}
-                    icon={<IconClose />}
-                    onClick={() => setShowRevokeModal(true)}
-                    type="text"
-                  >
-                    {REVOKE}
-                  </Button>
-                  <Button
-                    danger
-                    icon={<IconTrash />}
-                    onClick={() => setShowDeleteModal(true)}
-                    type="text"
-                  >
-                    {DELETE}
-                  </Button>
-                </Space>
+                <Row gutter={[0, 8]} justify="end">
+                  <Col>
+                    <Button
+                      danger
+                      disabled={revoked}
+                      icon={<IconClose />}
+                      onClick={() => setShowRevokeModal(true)}
+                      type="text"
+                    >
+                      {sm && REVOKE}
+                    </Button>
+                  </Col>
+
+                  <Col>
+                    <Button
+                      danger
+                      icon={<IconTrash />}
+                      onClick={() => setShowDeleteModal(true)}
+                      type="text"
+                    >
+                      {sm && DELETE}
+                    </Button>
+                  </Col>
+                </Row>
               }
               title={schemaType}
             >
@@ -230,6 +235,7 @@ export function CredentialDetails() {
                     />
                   </Space>
                 </Card>
+
                 <Card className="background-grey">
                   <Space direction="vertical" size="middle">
                     <Typography.Text type="secondary">ATTRIBUTES</Typography.Text>

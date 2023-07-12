@@ -27,34 +27,40 @@ const (
 	JSON SchemaFormat = "json"
 )
 
-// SchemaAttrs is a collection of schema attributes
-type SchemaAttrs []string
+// SchemaWords is a collection of schema attributes
+type SchemaWords []string
 
-// String satisfies the Stringer interface for SchemaAttrs
-func (a SchemaAttrs) String() string {
+// String satisfies the Stringer interface for SchemaWords
+func (a SchemaWords) String() string {
 	if len(a) == 0 {
 		return ""
 	}
 	return strings.Join(a, ", ")
 }
 
-// SchemaAttrsFromString is an SchemaAttrs constructor from a string with  comma separated attributes
-func SchemaAttrsFromString(commaAttrs string) SchemaAttrs {
+// SchemaWordsFromString is an SchemaWords constructor from a string with  comma separated attributes
+func SchemaWordsFromString(commaAttrs string) SchemaWords {
 	attrs := strings.Split(commaAttrs, ",")
-	schemaAttrs := make(SchemaAttrs, len(attrs))
+	schemaAttrs := make(SchemaWords, len(attrs))
 	for i, attr := range attrs {
-		schemaAttrs[i] = strings.TrimSpace(attr)
+		w := strings.TrimSpace(attr)
+		if w != "" {
+			schemaAttrs[i] = w
+		}
 	}
 	return schemaAttrs
 }
 
 // Schema defines a domain.Schema entity
 type Schema struct {
-	ID         uuid.UUID
-	IssuerDID  core.DID
-	URL        string
-	Type       string
-	Hash       core.SchemaHash
-	Attributes SchemaAttrs
-	CreatedAt  time.Time
+	ID          uuid.UUID
+	IssuerDID   core.DID
+	URL         string
+	Type        string
+	Title       *string
+	Description *string
+	Version     string
+	Hash        core.SchemaHash
+	Words       SchemaWords
+	CreatedAt   time.Time
 }

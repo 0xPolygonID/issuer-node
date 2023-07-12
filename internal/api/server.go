@@ -395,6 +395,30 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 	}, nil
 }
 
+// RetryPublishState - retry to publish the current state if it failed previously.
+func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
+	did, err := core.ParseDID(request.Identifier)
+	if err != nil {
+		return RetryPublishState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+
+	publishedState, err := s.publisherGateway.RetryPublishState(ctx, did)
+	if err != nil {
+		log.Error(ctx, "error retrying the publishing the state", "err", err)
+		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoFailedStatesToProcess) {
+			return RetryPublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return RetryPublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return RetryPublishState202JSONResponse{
+		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
+		RevocationTreeRoot: publishedState.RevocationTreeRoot,
+		RootOfRoots:        publishedState.RootOfRoots,
+		State:              publishedState.State,
+		TxID:               publishedState.TxID,
+	}, nil
+}
+
 // RegisterStatic add method to the mux that are not documented in the API.
 func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/", documentation)

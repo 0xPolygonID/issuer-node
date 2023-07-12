@@ -1,0 +1,68 @@
+{
+  "@context": [
+    {
+      "@protected": true,
+      "@version": 1.1,
+      "id": "@id",
+      "type": "@type",
+      "TestDefaultValues": {
+        "@context": {
+          "@propagate": true,
+          "@protected": true,
+          "polygon-vocab": "urn:uuid:d9cc0292-5fb2-448a-87ac-c9812f30f4af#",
+          "xsd": "http://www.w3.org/2001/XMLSchema#",
+          "integer": {
+            "@id": "polygon-vocab:integer",
+            "@type": "xsd:integer"
+          },
+          "boolean": {
+            "@id": "polygon-vocab:boolean",
+            "@type": "xsd:boolean"
+          },
+          "string": {
+            "@id": "polygon-vocab:string",
+            "@type": "xsd:string"
+          },
+          "number": {
+            "@id": "polygon-vocab:number",
+            "@type": "xsd:double"
+          },
+          "object": {
+            "@context": {
+              "string": {
+                "@id": "polygon-vocab:string",
+                "@type": "xsd:string"
+              },
+              "date": {
+                "@id": "polygon-vocab:date",
+                "@type": "xsd:string"
+              },
+              "time": {
+                "@id": "polygon-vocab:time",
+                "@type": "xsd:string"
+              },
+              "boolean": {
+                "@id": "polygon-vocab:boolean",
+                "@type": "xsd:boolean"
+              },
+              "number": {
+                "@id": "polygon-vocab:number",
+                "@type": "xsd:double"
+              },
+              "date-time": {
+                "@id": "polygon-vocab:date-time",
+                "@type": "xsd:datetime"
+              },
+              "integer": {
+                "@id": "polygon-vocab:integer",
+                "@type": "xsd:integer"
+              }
+            },
+            "@id": "polygon-vocab:object"
+          }
+        },
+        "@id": "urn:uuid:e0c8843f-95f6-471a-afd3-9deb5a3d1389"
+      }
+    }
+  ]
+}

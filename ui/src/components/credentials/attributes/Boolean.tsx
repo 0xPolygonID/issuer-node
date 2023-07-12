@@ -5,17 +5,21 @@ import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function Boolean({
   attribute,
+  error,
   parents,
 }: {
   attribute: BooleanAttribute;
+  error?: string;
   parents: ObjectAttribute[];
 }) {
   return (
     <Form.Item
       extra={attribute.schema.description}
+      help={error}
       label={<Typography.Text>{attribute.schema.title || attribute.name}</Typography.Text>}
       name={["credentialSubject", ...parents.map((parent) => parent.name), attribute.name]}
       rules={[{ message: VALUE_REQUIRED, required: attribute.required }]}
+      validateStatus={error ? "error" : undefined}
     >
       {attribute.schema.enum ? (
         <Select placeholder="Select option">

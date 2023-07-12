@@ -1,14 +1,15 @@
 import { AppError } from "src/domain";
 import { buildAppError } from "src/utils/error";
 
-interface SuccessResponse<D> {
+type SuccessResponse<D> = {
   data: D;
   success: true;
-}
-interface ErrorResponse {
+};
+
+type ErrorResponse = {
   error: AppError;
   success: false;
-}
+};
 
 export type Response<D> = SuccessResponse<D> | ErrorResponse;
 

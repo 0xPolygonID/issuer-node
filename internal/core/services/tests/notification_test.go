@@ -40,12 +40,12 @@ func TestNotification_SendNotification(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.HTTPFactory, cachex)
+	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
-	credentialsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock())
+	credentialsService := services.NewClaim(claimsRepo, identityService, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
@@ -76,13 +76,6 @@ func TestNotification_SendNotification(t *testing.T) {
 
 	t.Run("should get an error, existing credential but not existing connection", func(t *testing.T) {
 		ev := event.CreateCredential{CredentialIDs: []string{credID.String()}, IssuerID: did.String()}
-		message, err := ev.Marshal()
-		require.NoError(t, err)
-		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, message))
-	})
-
-	t.Run("should get an error,wrong credential id", func(t *testing.T) {
-		ev := event.CreateCredential{CredentialIDs: []string{"wrong id"}, IssuerID: did.String()}
 		message, err := ev.Marshal()
 		require.NoError(t, err)
 		assert.Error(t, notificationService.SendCreateCredentialNotification(ctx, message))

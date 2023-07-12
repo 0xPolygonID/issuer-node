@@ -24,6 +24,22 @@ tags:
     description: Collection of endpoints related to Mobile
 
 paths:
+  /config:
+    get:
+      summary: Get Config
+      operationId: GetConfig
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: Config
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+        '500':
+          $ref: '#/components/responses/500'
+
   #authentication
   /v1/authentication/qrcode:
     get:
@@ -845,11 +861,29 @@ components:
       scheme: basic
 
   schemas:
+    KeyValue:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    Config:
+      type: array
+      items:
+        $ref: '#/components/schemas/KeyValue'
+
+
     ImportSchemaRequest:
       type: object
       required:
         - url
         - schemaType
+        - version
       properties:
         url:
           type: string
@@ -857,6 +891,15 @@ components:
         schemaType:
           type: string
           example: "vaccinationCertificate"
+        title:
+          type: string
+          example: "KYC Age Credential"
+        description:
+          type: string
+          example: "KYC Age Credential description"
+        version:
+          type: string
+          example: "1.0.0"
 
     Health:
       type: object
@@ -1325,6 +1368,7 @@ components:
         - url
         - type
         - createdAt
+        - version
       properties:
         id:
           type: string
@@ -1351,6 +1395,18 @@ components:
           format: date-time
           x-omitempty: false
           example: 2023-03-20T17:01:33.564119+01:00
+        title:
+          type: string
+          x-omitempty: false
+          example: "KYC Age Credential"
+        description:
+          type: string
+          x-omitempty: false
+          example: "KYC Age Credential description"
+        version:
+          type: string
+          x-omitempty: false
+          example: "1.0.0"
 
     RevokeCredentialResponse:
       type: object
