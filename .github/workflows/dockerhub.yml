@@ -48,10 +48,30 @@ jobs:
           push: true
           tags: 0xpolygon/issuernode-ui:${{ env.IMAGE_TAG }}
 
+      - name: Build and push ui as latest
+        uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: latest
+        with:
+          context: ./ui
+          platforms: linux/arm64, linux/amd64
+          push: true
+          tags: 0xpolygon/issuernode-ui:${{ env.IMAGE_TAG }}
+
       - name: Build and push amd64 image
         uses: docker/build-push-action@v4
         env:
           IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: 0xpolygon/issuernode:${{ env.IMAGE_TAG }}
+
+      - name: Build and push amd64 image latest
+        uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: latest
         with:
           context: .
           platforms: linux/amd64
@@ -67,6 +87,16 @@ jobs:
         uses: docker/build-push-action@v4
         env:
           IMAGE_TAG: ${{ steps.version.outputs.VERSION }}
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: 0xpolygon/issuernode-arm:${{ env.IMAGE_TAG }}
+
+      - name: Build and push arm64 image as latest
+        uses: docker/build-push-action@v4
+        env:
+          IMAGE_TAG: latest
         with:
           context: .
           platforms: linux/arm64
