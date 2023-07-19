@@ -199,8 +199,14 @@ func main() {
 }
 
 func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMiddlewareFunc {
-	return []api.StrictMiddlewareFunc{
-		api.LogMiddleware(ctx),
-		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
+	if auth == (config.HTTPBasicAuth{User: "", Password: ""}) {
+		return []api.StrictMiddlewareFunc{
+			api.LogMiddleware(ctx),
+		}
+	} else {
+		return []api.StrictMiddlewareFunc{
+			api.LogMiddleware(ctx),
+			api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
+		}
 	}
 }
