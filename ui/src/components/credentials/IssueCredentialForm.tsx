@@ -15,6 +15,7 @@ import {
   Typography,
   message,
 } from "antd";
+import { Store } from "antd/es/form/interface";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
@@ -85,6 +86,7 @@ export function IssueCredentialForm({
   type: "directIssue" | "credentialLink";
 }) {
   const env = useEnvContext();
+  const [form] = Form.useForm<IssueCredentialFormData>();
 
   const [messageAPI, messageContext] = message.useMessage();
 
@@ -215,69 +217,72 @@ export function IssueCredentialForm({
     [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
   );
 
-  const computeFormObjectInitialValues = (
-    objectAttribute: ObjectAttribute,
-    initialValues: Record<string, unknown>
-  ): Record<string, unknown> | undefined => {
-    return objectAttribute.schema.attributes?.reduce(
-      (acc: Record<string, unknown>, curr: Attribute): Record<string, unknown> => {
-        switch (curr.type) {
-          case "boolean": {
-            const parsedConst = z.boolean().safeParse(curr.schema.const);
-            const parsedDefault = z.boolean().safeParse(curr.schema.default);
-            const constValue = parsedConst.success ? parsedConst.data : undefined;
-            const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
-            const value = constValue !== undefined ? constValue : defaultValue;
-            return { ...acc, [curr.name]: value };
-          }
-          case "integer":
-          case "number": {
-            const parsedConst = z.number().safeParse(curr.schema.const);
-            const parsedDefault = z.number().safeParse(curr.schema.default);
-            const constValue = parsedConst.success ? parsedConst.data : undefined;
-            const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
-            const value = constValue !== undefined ? constValue : defaultValue;
-            return { ...acc, [curr.name]: value };
-          }
-          case "string": {
-            const parsedConst = z.string().safeParse(curr.schema.const);
-            const parsedDefault = z.string().safeParse(curr.schema.default);
-            const constValue = parsedConst.success ? parsedConst.data : undefined;
-            const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
-            const value = constValue !== undefined ? constValue : defaultValue;
-            if (value === undefined) {
+  const computeFormObjectInitialValues = useCallback(
+    (
+      objectAttribute: ObjectAttribute,
+      initialValues: Record<string, unknown>
+    ): Record<string, unknown> | undefined => {
+      return objectAttribute.schema.attributes?.reduce(
+        (acc: Record<string, unknown>, curr: Attribute): Record<string, unknown> => {
+          switch (curr.type) {
+            case "boolean": {
+              const parsedConst = z.boolean().safeParse(curr.schema.const);
+              const parsedDefault = z.boolean().safeParse(curr.schema.default);
+              const constValue = parsedConst.success ? parsedConst.data : undefined;
+              const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
+              const value = constValue !== undefined ? constValue : defaultValue;
+              return { ...acc, [curr.name]: value };
+            }
+            case "integer":
+            case "number": {
+              const parsedConst = z.number().safeParse(curr.schema.const);
+              const parsedDefault = z.number().safeParse(curr.schema.default);
+              const constValue = parsedConst.success ? parsedConst.data : undefined;
+              const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
+              const value = constValue !== undefined ? constValue : defaultValue;
+              return { ...acc, [curr.name]: value };
+            }
+            case "string": {
+              const parsedConst = z.string().safeParse(curr.schema.const);
+              const parsedDefault = z.string().safeParse(curr.schema.default);
+              const constValue = parsedConst.success ? parsedConst.data : undefined;
+              const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
+              const value = constValue !== undefined ? constValue : defaultValue;
+              if (value === undefined) {
+                return acc;
+              }
+              switch (curr.schema.format) {
+                case "date":
+                case "date-time": {
+                  return { ...acc, [curr.name]: dayjs(value) };
+                }
+                case "time": {
+                  return { ...acc, [curr.name]: dayjs(`1978-01-29T${value}`) };
+                }
+                default: {
+                  return { ...acc, [curr.name]: value };
+                }
+              }
+            }
+            case "object": {
+              const parsedRecord = z.record(z.unknown()).safeParse(initialValues[curr.name] || {});
+              return parsedRecord.success
+                ? {
+                    ...acc,
+                    [curr.name]: computeFormObjectInitialValues(curr, parsedRecord.data),
+                  }
+                : acc;
+            }
+            default: {
               return acc;
             }
-            switch (curr.schema.format) {
-              case "date":
-              case "date-time": {
-                return { ...acc, [curr.name]: dayjs(value) };
-              }
-              case "time": {
-                return { ...acc, [curr.name]: dayjs(`1978-01-29T${value}`) };
-              }
-              default: {
-                return { ...acc, [curr.name]: value };
-              }
-            }
           }
-          case "object": {
-            const parsedRecord = z.record(z.unknown()).safeParse(initialValues[curr.name] || {});
-            return parsedRecord.success
-              ? {
-                  ...acc,
-                  [curr.name]: computeFormObjectInitialValues(curr, parsedRecord.data),
-                }
-              : acc;
-          }
-          default: {
-            return acc;
-          }
-        }
-      },
-      initialValues
-    );
-  };
+        },
+        initialValues
+      );
+    },
+    []
+  );
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchSchemas);
@@ -289,192 +294,189 @@ export function IssueCredentialForm({
     ? extractCredentialSubjectAttributeWithoutId(jsonSchema.data)
     : undefined;
 
-  const initialValuesWithSchemaValues = credentialSubjectAttributeWithoutId && {
-    ...initialValues,
-    credentialSubject: computeFormObjectInitialValues(
-      credentialSubjectAttributeWithoutId,
-      initialValues.credentialSubject || {}
-    ),
-  };
+  useEffect(() => {
+    const initialValuesWithSchemaValues: Store = credentialSubjectAttributeWithoutId
+      ? {
+          ...initialValues,
+          credentialSubject: computeFormObjectInitialValues(
+            credentialSubjectAttributeWithoutId,
+            initialValues.credentialSubject || {}
+          ),
+        }
+      : initialValues;
+    form.setFieldsValue(initialValuesWithSchemaValues);
+  }, [computeFormObjectInitialValues, credentialSubjectAttributeWithoutId, form, initialValues]);
 
   return (
     <>
       {messageContext}
+      <Form
+        form={form}
+        initialValues={initialValues}
+        layout="vertical"
+        onFinish={(values: IssueCredentialFormData) => {
+          const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
+          const credentialSubjectAttributeWithoutId =
+            jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
 
-      {initialValuesWithSchemaValues ? (
-        <Form
-          initialValues={initialValuesWithSchemaValues}
-          layout="vertical"
-          onFinish={(values: IssueCredentialFormData) => {
-            const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema)
-              ? jsonSchema.data
-              : undefined;
-            const credentialSubjectAttributeWithoutId =
-              jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
-
-            if (
-              jsonSchemaData &&
-              credentialSubjectAttributeWithoutId &&
-              values.credentialSubject &&
-              isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId) &&
-              apiSchema
-            ) {
-              onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
-            }
-          }}
-          onValuesChange={(_, values: IssueCredentialFormData) => {
-            const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema)
-              ? jsonSchema.data
-              : undefined;
-            const credentialSubjectAttributeWithoutId =
-              jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
+          if (
+            jsonSchemaData &&
+            credentialSubjectAttributeWithoutId &&
             values.credentialSubject &&
-              credentialSubjectAttributeWithoutId &&
-              isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
-          }}
+            isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId) &&
+            apiSchema
+          ) {
+            onSubmit({ apiSchema, jsonSchema: jsonSchemaData, values });
+          }
+        }}
+        onValuesChange={(_, values: IssueCredentialFormData) => {
+          const jsonSchemaData = isAsyncTaskDataAvailable(jsonSchema) ? jsonSchema.data : undefined;
+          const credentialSubjectAttributeWithoutId =
+            jsonSchemaData && extractCredentialSubjectAttributeWithoutId(jsonSchemaData);
+          values.credentialSubject &&
+            credentialSubjectAttributeWithoutId &&
+            isFormValid(values.credentialSubject, credentialSubjectAttributeWithoutId);
+        }}
+      >
+        <Form.Item
+          label="Select schema type"
+          name="schemaID"
+          rules={[{ message: VALUE_REQUIRED, required: true }]}
         >
-          <Form.Item
-            label="Select schema type"
-            name="schemaID"
-            rules={[{ message: VALUE_REQUIRED, required: true }]}
+          <Select
+            className="full-width"
+            loading={isAsyncTaskStarting(apiSchemas)}
+            onChange={(id: string) => {
+              const schema =
+                isAsyncTaskDataAvailable(apiSchemas) &&
+                apiSchemas.data.find((schema) => schema.id === id);
+              if (schema) {
+                onSelectApiSchema(schema);
+                setApiSchema(schema);
+                fetchJsonSchema(schema);
+              }
+            }}
+            placeholder={SCHEMA_TYPE}
           >
-            <Select
-              className="full-width"
-              loading={isAsyncTaskStarting(apiSchemas)}
-              onChange={(id: string) => {
-                const schema =
-                  isAsyncTaskDataAvailable(apiSchemas) &&
-                  apiSchemas.data.find((schema) => schema.id === id);
-                if (schema) {
-                  onSelectApiSchema(schema);
-                  setApiSchema(schema);
-                  fetchJsonSchema(schema);
+            {isAsyncTaskDataAvailable(apiSchemas) &&
+              apiSchemas.data.map(({ id, type }) => (
+                <Select.Option key={id} value={id}>
+                  {type}
+                </Select.Option>
+              ))}
+          </Select>
+        </Form.Item>
+
+        {apiSchema && (
+          <>
+            <Form.Item>
+              <Space direction="vertical">
+                <Row justify="space-between">
+                  <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
+
+                  <Typography.Text
+                    copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
+                  >
+                    {apiSchema.hash}
+                  </Typography.Text>
+                </Row>
+              </Space>
+            </Form.Item>
+
+            <Divider />
+
+            <Typography.Paragraph>{apiSchema.type}</Typography.Paragraph>
+
+            {(() => {
+              switch (jsonSchema.status) {
+                case "pending":
+                case "loading":
+                case "reloading": {
+                  return <LoadingResult />;
                 }
-              }}
-              placeholder={SCHEMA_TYPE}
-            >
-              {isAsyncTaskDataAvailable(apiSchemas) &&
-                apiSchemas.data.map(({ id, type }) => (
-                  <Select.Option key={id} value={id}>
-                    {type}
-                  </Select.Option>
-                ))}
-            </Select>
-          </Form.Item>
 
-          {apiSchema && (
-            <>
-              <Form.Item>
-                <Space direction="vertical">
-                  <Row justify="space-between">
-                    <Typography.Text type="secondary">{SCHEMA_HASH}</Typography.Text>
+                case "failed": {
+                  return <ErrorResult error={jsonSchemaErrorToString(jsonSchema.error)} />;
+                }
 
-                    <Typography.Text
-                      copyable={{ icon: [<IconCopy key={0} />, <IconCheckMark key={1} />] }}
-                    >
-                      {apiSchema.hash}
-                    </Typography.Text>
-                  </Row>
-                </Space>
-              </Form.Item>
+                case "successful": {
+                  const credentialSubjectAttributeWithoutId =
+                    extractCredentialSubjectAttributeWithoutId(jsonSchema.data);
+                  return credentialSubjectAttributeWithoutId?.schema.attributes ? (
+                    <>
+                      {jsonSchema.data.schema.description && (
+                        <Typography.Paragraph type="secondary">
+                          {jsonSchema.data.schema.description}
+                        </Typography.Paragraph>
+                      )}
 
-              <Divider />
+                      <Space direction="vertical" size="large">
+                        <ObjectAttributeForm
+                          attributes={credentialSubjectAttributeWithoutId.schema.attributes}
+                          inputErrors={inputErrors}
+                        />
 
-              <Typography.Paragraph>{apiSchema.type}</Typography.Paragraph>
+                        <Form.Item
+                          label="Proof type"
+                          name="proofTypes"
+                          rules={[{ message: VALUE_REQUIRED, required: true }]}
+                        >
+                          <Checkbox.Group>
+                            <Space direction="vertical">
+                              <Checkbox value="SIG">
+                                <Typography.Text>Signature-based (SIG)</Typography.Text>
 
-              {(() => {
-                switch (jsonSchema.status) {
-                  case "pending":
-                  case "loading":
-                  case "reloading": {
-                    return <LoadingResult />;
-                  }
+                                <Typography.Text type="secondary">
+                                  Credential signed by the issuer using a BJJ private key.
+                                </Typography.Text>
+                              </Checkbox>
 
-                  case "failed": {
-                    return <ErrorResult error={jsonSchemaErrorToString(jsonSchema.error)} />;
-                  }
+                              <Checkbox value="MTP">
+                                <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
 
-                  case "successful": {
-                    const credentialSubjectAttributeWithoutId =
-                      extractCredentialSubjectAttributeWithoutId(jsonSchema.data);
-                    return credentialSubjectAttributeWithoutId?.schema.attributes ? (
-                      <>
-                        {jsonSchema.data.schema.description && (
-                          <Typography.Paragraph type="secondary">
-                            {jsonSchema.data.schema.description}
-                          </Typography.Paragraph>
-                        )}
-
-                        <Space direction="vertical" size="large">
-                          <ObjectAttributeForm
-                            attributes={credentialSubjectAttributeWithoutId.schema.attributes}
-                            inputErrors={inputErrors}
-                          />
-
-                          <Form.Item
-                            label="Proof type"
-                            name="proofTypes"
-                            rules={[{ message: VALUE_REQUIRED, required: true }]}
-                          >
-                            <Checkbox.Group>
-                              <Space direction="vertical">
-                                <Checkbox value="SIG">
-                                  <Typography.Text>Signature-based (SIG)</Typography.Text>
-
-                                  <Typography.Text type="secondary">
-                                    Credential signed by the issuer using a BJJ private key.
-                                  </Typography.Text>
-                                </Checkbox>
-
-                                <Checkbox value="MTP">
-                                  <Typography.Text>Merkle Tree Proof (MTP)</Typography.Text>
-
-                                  <Typography.Text type="secondary">
-                                    Credential will be added to the issuer&apos;s state tree. The
-                                    state transition involves an on-chain transaction and gas fees.
-                                  </Typography.Text>
-                                </Checkbox>
-                              </Space>
-                            </Checkbox.Group>
-                          </Form.Item>
-                        </Space>
-
-                        <Form.Item label="Credential expiration date" name="credentialExpiration">
-                          <DatePicker />
+                                <Typography.Text type="secondary">
+                                  Credential will be added to the issuer&apos;s state tree. The
+                                  state transition involves an on-chain transaction and gas fees.
+                                </Typography.Text>
+                              </Checkbox>
+                            </Space>
+                          </Checkbox.Group>
                         </Form.Item>
-                      </>
-                    ) : (
-                      <ErrorResult error="An error occurred while getting the credentialSubject attributes of the JSON Schema" />
-                    );
-                  }
+                      </Space>
+
+                      <Form.Item label="Credential expiration date" name="credentialExpiration">
+                        <DatePicker />
+                      </Form.Item>
+                    </>
+                  ) : (
+                    <ErrorResult error="An error occurred while getting the credentialSubject attributes of the JSON Schema" />
+                  );
                 }
-              })()}
-            </>
-          )}
+              }
+            })()}
+          </>
+        )}
 
-          {jsonSchema.status !== "failed" && (
-            <>
-              <Divider />
-              <Row gutter={[8, 8]} justify="end">
-                <Col>
-                  <Button icon={<IconBack />} onClick={onBack} type="default">
-                    Previous step
-                  </Button>
-                </Col>
+        {jsonSchema.status !== "failed" && (
+          <>
+            <Divider />
+            <Row gutter={[8, 8]} justify="end">
+              <Col>
+                <Button icon={<IconBack />} onClick={onBack} type="default">
+                  Previous step
+                </Button>
+              </Col>
 
-                <Col>
-                  <Button htmlType="submit" loading={isLoading} type="primary">
-                    {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
-                    {type === "credentialLink" && <IconRight />}
-                  </Button>
-                </Col>
-              </Row>
-            </>
-          )}
-        </Form>
-      ) : (
-        <LoadingResult />
-      )}
+              <Col>
+                <Button htmlType="submit" loading={isLoading} type="primary">
+                  {type === "directIssue" ? ISSUE_CREDENTIAL_DIRECT : ISSUE_CREDENTIAL_LINK}
+                  {type === "credentialLink" && <IconRight />}
+                </Button>
+              </Col>
+            </Row>
+          </>
+        )}
+      </Form>
     </>
   );
 }
