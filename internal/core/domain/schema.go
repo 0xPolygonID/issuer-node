@@ -57,8 +57,8 @@ type Schema struct {
 	IssuerDID   core.DID
 	URL         string
 	Type        string
-	Title       string
-	Description string
+	Title       *string
+	Description *string
 	Version     string
 	Hash        core.SchemaHash
 	Words       SchemaWords

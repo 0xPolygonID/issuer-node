@@ -161,11 +161,11 @@ type Health map[string]bool
 
 // ImportSchemaRequest defines model for ImportSchemaRequest.
 type ImportSchemaRequest struct {
-	Description string `json:"description"`
-	SchemaType  string `json:"schemaType"`
-	Title       string `json:"title"`
-	Url         string `json:"url"`
-	Version     string `json:"version"`
+	Description *string `json:"description,omitempty"`
+	SchemaType  string  `json:"schemaType"`
+	Title       *string `json:"title,omitempty"`
+	Url         string  `json:"url"`
+	Version     string  `json:"version"`
 }
 
 // IssuerDescription defines model for IssuerDescription.
@@ -268,10 +268,10 @@ type RevokeCredentialResponse struct {
 type Schema struct {
 	BigInt      string    `json:"bigInt"`
 	CreatedAt   time.Time `json:"createdAt"`
-	Description string    `json:"description"`
+	Description *string   `json:"description"`
 	Hash        string    `json:"hash"`
 	Id          string    `json:"id"`
-	Title       string    `json:"title"`
+	Title       *string   `json:"title"`
 	Type        string    `json:"type"`
 	Url         string    `json:"url"`
 	Version     string    `json:"version"`

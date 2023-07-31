@@ -24,8 +24,8 @@ type dbSchema struct {
 	URL         string
 	Type        string
 	Version     string
-	Title       string
-	Description string
+	Title       *string
+	Description *string
 	Hash        string
 	Words       string
 	CreatedAt   time.Time

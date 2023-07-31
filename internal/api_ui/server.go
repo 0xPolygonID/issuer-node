@@ -112,14 +112,8 @@ func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
 	if strings.TrimSpace(req.SchemaType) == "" {
 		return errors.New("empty type")
 	}
-	if strings.TrimSpace(req.Title) == "" {
-		return errors.New("empty title")
-	}
 	if strings.TrimSpace(req.Version) == "" {
 		return errors.New("empty version")
-	}
-	if strings.TrimSpace(req.Description) == "" {
-		return errors.New("empty description")
 	}
 	if _, err := url.ParseRequestURI(req.Url); err != nil {
 		return fmt.Errorf("parsing url: %w", err)
