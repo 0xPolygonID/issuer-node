@@ -257,7 +257,7 @@ export function IssueCredentialForm({
                   return { ...acc, [curr.name]: dayjs(value) };
                 }
                 case "time": {
-                  return { ...acc, [curr.name]: dayjs(`1978-01-29T${value}`) };
+                  return { ...acc, [curr.name]: dayjs(`1970-01-01T${value}`) };
                 }
                 default: {
                   return { ...acc, [curr.name]: value };
