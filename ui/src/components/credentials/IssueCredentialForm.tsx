@@ -15,7 +15,10 @@ import {
   Typography,
   message,
 } from "antd";
+import { Store } from "antd/es/form/interface";
+import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { z } from "zod";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
@@ -28,7 +31,7 @@ import { InputErrors, ObjectAttributeForm } from "src/components/credentials/Obj
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { ApiSchema, AppError, JsonSchema, ObjectAttribute } from "src/domain";
+import { ApiSchema, AppError, Attribute, JsonSchema, ObjectAttribute } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
@@ -83,6 +86,7 @@ export function IssueCredentialForm({
   type: "directIssue" | "credentialLink";
 }) {
   const env = useEnvContext();
+  const [form] = Form.useForm<IssueCredentialFormData>();
 
   const [messageAPI, messageContext] = message.useMessage();
 
@@ -213,17 +217,101 @@ export function IssueCredentialForm({
     [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
   );
 
+  const computeFormObjectInitialValues = useCallback(
+    (
+      objectAttribute: ObjectAttribute,
+      initialValues: Record<string, unknown>
+    ): Record<string, unknown> | undefined => {
+      return objectAttribute.schema.attributes?.reduce(
+        (acc: Record<string, unknown>, curr: Attribute): Record<string, unknown> => {
+          switch (curr.type) {
+            case "boolean": {
+              const parsedConst = z.boolean().safeParse(curr.schema.const);
+              const parsedDefault = z.boolean().safeParse(curr.schema.default);
+              const constValue = parsedConst.success ? parsedConst.data : undefined;
+              const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
+              const value = constValue !== undefined ? constValue : defaultValue;
+              return { ...acc, [curr.name]: value };
+            }
+            case "integer":
+            case "number": {
+              const parsedConst = z.number().safeParse(curr.schema.const);
+              const parsedDefault = z.number().safeParse(curr.schema.default);
+              const constValue = parsedConst.success ? parsedConst.data : undefined;
+              const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
+              const value = constValue !== undefined ? constValue : defaultValue;
+              return { ...acc, [curr.name]: value };
+            }
+            case "string": {
+              const parsedConst = z.string().safeParse(curr.schema.const);
+              const parsedDefault = z.string().safeParse(curr.schema.default);
+              const constValue = parsedConst.success ? parsedConst.data : undefined;
+              const defaultValue = parsedDefault.success ? parsedDefault.data : undefined;
+              const value = constValue !== undefined ? constValue : defaultValue;
+              if (value === undefined) {
+                return acc;
+              }
+              switch (curr.schema.format) {
+                case "date":
+                case "date-time": {
+                  return { ...acc, [curr.name]: dayjs(value) };
+                }
+                case "time": {
+                  return { ...acc, [curr.name]: dayjs(`1970-01-01T${value}`) };
+                }
+                default: {
+                  return { ...acc, [curr.name]: value };
+                }
+              }
+            }
+            case "object": {
+              const parsedRecord = z.record(z.unknown()).safeParse(initialValues[curr.name] || {});
+              return parsedRecord.success
+                ? {
+                    ...acc,
+                    [curr.name]: computeFormObjectInitialValues(curr, parsedRecord.data),
+                  }
+                : acc;
+            }
+            default: {
+              return acc;
+            }
+          }
+        },
+        initialValues
+      );
+    },
+    []
+  );
+
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchSchemas);
 
     return aborter;
   }, [fetchSchemas]);
 
+  const credentialSubjectAttributeWithoutId = isAsyncTaskDataAvailable(jsonSchema)
+    ? extractCredentialSubjectAttributeWithoutId(jsonSchema.data)
+    : undefined;
+
+  useEffect(() => {
+    const initialValuesWithSchemaValues: Store = credentialSubjectAttributeWithoutId
+      ? {
+          ...initialValues,
+          credentialSubject: computeFormObjectInitialValues(
+            credentialSubjectAttributeWithoutId,
+            initialValues.credentialSubject || {}
+          ),
+        }
+      : initialValues;
+    form.setFieldsValue(initialValuesWithSchemaValues);
+  }, [computeFormObjectInitialValues, credentialSubjectAttributeWithoutId, form, initialValues]);
+
   return (
     <>
       {messageContext}
-
       <Form
+        form={form}
         initialValues={initialValues}
         layout="vertical"
         onFinish={(values: IssueCredentialFormData) => {
