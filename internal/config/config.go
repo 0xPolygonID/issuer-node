@@ -21,10 +21,8 @@ import (
 const (
 	CIConfigPath      = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
 	k8sVaultTokenFile = "/vault/data/token.txt"                            // When running in k8s, the vault token is stored in this file
-	// K8sDidFile variable contain the k8s did file path
-	K8sDidFile        = "/did/data/did.txt"    // When running in k8s, the did is stored in this file
-	k8NRetries        = 20                     // Retries to wait for the creation of the vault token
-	k8TBetweenRetries = 500 * time.Millisecond // Time between retries
+	k8NRetries        = 20                                                 // Retries to wait for the creation of the vault token
+	k8TBetweenRetries = 500 * time.Millisecond                             // Time between retries
 	ipfsGateway       = "https://ipfs.io"
 )
 
@@ -192,24 +190,6 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		}
 		log.Info(ctx, "Vault token loaded from file", "token", c.KeyStore.Token)
 	}
-
-	log.Info(ctx, "Checking issuer did value", "did", c.APIUI.Issuer)
-	if c.APIUI.Issuer == "" {
-		c.APIUI.Issuer, err = loadValueFromFile(ctx, K8sDidFile, k8NRetries, k8TBetweenRetries)
-		if err != nil {
-			return fmt.Errorf("an issuer DID must be provided")
-		}
-	}
-
-	log.Info(ctx, "Issuer Did from file", "did", c.APIUI.Issuer)
-
-	issuerDID, err := core.ParseDID(c.APIUI.Issuer)
-	if err != nil {
-		log.Error(ctx, "invalid issuer did format", "error", err)
-		return fmt.Errorf("invalid issuer did format")
-	}
-
-	c.APIUI.IssuerDID = *issuerDID
 
 	return nil
 }

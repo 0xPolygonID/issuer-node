@@ -10,6 +10,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/hashicorp/vault/api"
+	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -109,6 +111,12 @@ func main() {
 		panic(err)
 	}
 
+	err = checkDID(ctx, cfg, vaultCli)
+	if err != nil {
+		log.Error(ctx, "cannot initialize did", "err", err)
+		return
+	}
+
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
@@ -202,4 +210,24 @@ func initProofService(ctx context.Context, config *config.Configuration, circuit
 		ResponseTimeout: config.Prover.ResponseTimeout,
 	}
 	return gateways.NewProverService(proverConfig)
+}
+
+func checkDID(ctx context.Context, cfg *config.Configuration, vaultCli *api.Client) error {
+	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
+	if cfg.APIUI.Issuer == "" {
+		var err error
+		cfg.APIUI.Issuer, err = providers.GetDID(ctx, vaultCli)
+		if err != nil {
+			log.Error(ctx, "cannot get issuer did from vault", "error", err)
+			return err
+		}
+		log.Info(ctx, "Issuer Did from vault", "did", cfg.APIUI.Issuer)
+		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
+		if err != nil {
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return err
+		}
+		cfg.APIUI.IssuerDID = *issuerDID
+	}
+	return nil
 }
