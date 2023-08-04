@@ -170,6 +170,7 @@ generate-issuer-did: run-initializer
 	docker logs issuer-initializer-1
 	docker stop issuer-initializer-1
 	docker rm issuer-initializer-1
+	docker rmi -f issuer-initializer-1 || true
 	make print-did
 
 .PHONY: run-initializer-arm

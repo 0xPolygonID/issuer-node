@@ -59,8 +59,6 @@ chmod 755 /vault/file -R
 
 echo "===== ENABLED IDEN3 ====="
 export vault_token="token:${TOKEN}"
-echo $vault_token
-
 
 echo "===== CREATE POLICIES ====="
 vault policy write issuernode /vault/config/policies.hcl
@@ -71,7 +69,6 @@ vault write auth/userpass/users/issuernode \
     password=initial-password.-change-it-by-running-make-change-vault-password \
     policies="admins,issuernode"
 
-echo "===== TEST LOGIN ====="
-vault login -method=userpass username=issuernode password=initial-password.-change-it-by-running-make-change-vault-password
+echo $vault_token
 
 tail -f /dev/null
