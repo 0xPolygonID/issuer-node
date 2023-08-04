@@ -45,7 +45,7 @@ func NewVaultClient(address, token string) (*api.Client, error) {
 
 // GetDID gets did from vault
 func GetDID(ctx context.Context, vaultCli *api.Client) (string, error) {
-	did, err := vaultCli.KVv1(didMountPath).Get(ctx, secretPath)
+	did, err := vaultCli.KVv2(didMountPath).Get(ctx, secretPath)
 	if err != nil {
 		log.Error(ctx, "error getting did from vault", "error", err)
 		return "", DidNotFound
@@ -66,7 +66,7 @@ func GetDID(ctx context.Context, vaultCli *api.Client) (string, error) {
 
 // SaveDID saves did to vault
 func SaveDID(ctx context.Context, vaultCli *api.Client, did string) error {
-	err := vaultCli.KVv1(didMountPath).Put(ctx, secretPath, map[string]interface{}{
+	_, err := vaultCli.KVv2(didMountPath).Put(ctx, secretPath, map[string]interface{}{
 		"did": did,
 	})
 	if err != nil {

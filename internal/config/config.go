@@ -191,6 +191,17 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Vault token loaded from file", "token", c.KeyStore.Token)
 	}
 
+	if c.APIUI.Issuer != "" {
+		issuerDID, err := core.ParseDID(c.APIUI.Issuer)
+		if err != nil {
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return fmt.Errorf("invalid issuer did format")
+		}
+		c.APIUI.IssuerDID = *issuerDID
+	} else {
+		log.Info(ctx, "Issuer DID not provided in configuration file")
+	}
+
 	return nil
 }
 
