@@ -10,7 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -80,10 +80,19 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
-		panic(err)
+	var vaultCli *vault.Client
+	if cfg.VaultUserPassAuthEnabled {
+		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
+		if err != nil {
+			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
+			return
+		}
+	} else {
+		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+		if err != nil {
+			log.Error(ctx, "cannot init vault client: ", "err", err)
+			return
+		}
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
@@ -212,7 +221,7 @@ func initProofService(ctx context.Context, config *config.Configuration, circuit
 	return gateways.NewProverService(proverConfig)
 }
 
-func checkDID(ctx context.Context, cfg *config.Configuration, vaultCli *api.Client) error {
+func checkDID(ctx context.Context, cfg *config.Configuration, vaultCli *vault.Client) error {
 	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
 	if cfg.APIUI.Issuer == "" {
 		var err error

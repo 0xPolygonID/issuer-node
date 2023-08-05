@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	vault "github.com/hashicorp/vault/api"
+
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -36,10 +38,19 @@ func main() {
 		return
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
-		return
+	var vaultCli *vault.Client
+	if cfg.VaultUserPassAuthEnabled {
+		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
+		if err != nil {
+			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
+			return
+		}
+	} else {
+		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+		if err != nil {
+			log.Error(ctx, "cannot init vault client: ", "err", err)
+			return
+		}
 	}
 
 	did, err := providers.GetDID(ctx, vaultCli)

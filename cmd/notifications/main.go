@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -66,10 +67,19 @@ func main() {
 
 	connectionsRepository := repositories.NewConnections()
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-	if err != nil {
-		log.Error(ctx, "cannot initialize vault client", "err", err)
-		return
+	var vaultCli *vault.Client
+	if cfg.VaultUserPassAuthEnabled {
+		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
+		if err != nil {
+			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
+			return
+		}
+	} else {
+		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+		if err != nil {
+			log.Error(ctx, "cannot init vault client: ", "err", err)
+			return
+		}
 	}
 
 	err = checkDID(ctx, cfg, vaultCli)

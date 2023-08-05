@@ -61,4 +61,17 @@ echo "===== ENABLED IDEN3 ====="
 export vault_token="token:${TOKEN}"
 echo $vault_token
 
+
+echo "===== CREATE POLICIES ====="
+vault policy write issuernode /vault/config/policies.hcl
+
+echo "===== CREATE USERS ====="
+vault auth enable userpass
+vault write auth/userpass/users/issuernode \
+    password=KSyo%A65N1IeGMUD7O1}t7mlzW{bC9vp \
+    policies="admins,issuernode"
+
+echo "===== TEST LOGIN ====="
+vault login -method=userpass username=issuernode password=KSyo%A65N1IeGMUD7O1}t7mlzW{bC9vp
+
 tail -f /dev/null
