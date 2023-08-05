@@ -44,11 +44,6 @@ func main() {
 		return
 	}
 
-	if cfg.APIUI.Issuer == "" {
-		log.Error(ctx, "issuer DID is not set")
-		return
-	}
-
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
@@ -69,12 +64,14 @@ func main() {
 
 	var vaultCli *vault.Client
 	if cfg.VaultUserPassAuthEnabled {
+		log.Info(ctx, "Vault userpass auth enabled")
 		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
 		if err != nil {
 			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
 			return
 		}
 	} else {
+		log.Info(ctx, "Vault userpass auth not enabled")
 		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
 		if err != nil {
 			log.Error(ctx, "cannot init vault client: ", "err", err)

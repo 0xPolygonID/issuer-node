@@ -19,11 +19,8 @@ import (
 )
 
 const (
-	CIConfigPath      = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
-	k8sVaultTokenFile = "/vault/data/token.txt"                            // When running in k8s, the vault token is stored in this file
-	k8NRetries        = 20                                                 // Retries to wait for the creation of the vault token
-	k8TBetweenRetries = 500 * time.Millisecond                             // Time between retries
-	ipfsGateway       = "https://ipfs.io"
+	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
+	ipfsGateway  = "https://ipfs.io"
 )
 
 // Configuration holds the project configuration
@@ -161,15 +158,10 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
-	if c.KeyStore.Token == "" {
-		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
-		if err != nil {
-			return fmt.Errorf("a vault token must be provided")
-		}
-
-		log.Info(ctx, "Vault token loaded from file", c.KeyStore.Token)
+	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
-
 	return nil
 }
 
@@ -185,12 +177,9 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	log.Info(ctx, "Checking vault token", "token", c.KeyStore.Token)
-	if c.KeyStore.Token == "" {
-		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
-		if err != nil {
-			return fmt.Errorf("a vault token must be provided")
-		}
-		log.Info(ctx, "Vault token loaded from file", "token", c.KeyStore.Token)
+	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
 
 	if c.APIUI.Issuer != "" {
@@ -262,27 +251,6 @@ func Load(fileName string) (*Configuration, error) {
 	}
 	checkEnvVars(ctx, config)
 	return config, nil
-}
-
-// loadValueFromFile loads a value from a file. It will retry a number of times until the file is found.
-func loadValueFromFile(ctx context.Context, file string, retries int, between time.Duration) (string, error) {
-	for i := 0; i < retries; i++ {
-		if _, err := os.Stat(file); err != nil {
-			log.Warn(ctx, "loading file. Retries left", "err", err, "file", file, "retries", retries-i)
-		} else {
-			break
-		}
-		time.Sleep(between)
-	}
-	content, err := os.ReadFile(file)
-	if err != nil {
-		log.Error(ctx, "cannot read file", "err", err, "file", file)
-		return "", err
-	}
-
-	contentAsString := strings.TrimSuffix(string(content), "\n")
-	log.Info(ctx, "file loaded", "file", contentAsString)
-	return contentAsString, nil
 }
 
 // VaultTest returns the vault configuration to be used in tests.
