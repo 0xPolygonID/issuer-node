@@ -209,6 +209,7 @@ with the code above, the vault will be initialized with the user and pass authen
 > **NOTE:** This can also be done via the [UI API](#using-the-ui-api).
 
 This will create a new issuer DID by creating a new Docker instance of the issuer, generating the DID of the issuer, storing it in the database, then deleting the instance.
+This command will not generate a new DID if one already exists stored in Vault. If you want to generate a new DID, you must first delete the DID from Vault. For that, run the following command: `make delete-did`
 
 **For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):**
 
@@ -225,6 +226,12 @@ make generate-issuer-did;
 # docker rm issuer-initializer-1
 # make print-did
 
+# ...
+# === Data ===
+# Key    Value
+# ---    -----
+# did    did:polygonid:polygon:mumbai:2qLr2BymdszjFRKpJM9NPXu3HMpSSwf4nh3ZsADtPv   <-- This is the DID of the issuer that was generated
+
 ```
 
 **For _Apple-M1/M2/Arm_:**
@@ -237,17 +244,16 @@ make generate-issuer-did-arm;
 # (Equivalent)
 #   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d initializer;
 # sleep 5;
-# sleep 5
 # docker logs issuer-initializer-1
 # docker stop issuer-initializer-1
 # docker rm issuer-initializer-1
 # make print-did
 
-
+# ...
 # === Data ===
 # Key    Value
 # ---    -----
-# did    did:polygonid:polygon:mumbai:2qLr2BymdszjFRKpJM9NPXu3HMpSSwf4nh3ZsADtPv
+# did    did:polygonid:polygon:mumbai:2qLr2BymdszjFRKpJM9NPXu3HMpSSwf4nh3ZsADtPv  <-- This is the DID of the issuer that was generated
 
 ```
 
