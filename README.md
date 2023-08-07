@@ -226,6 +226,7 @@ make generate-issuer-did;
 # docker rm issuer-initializer-1
 # make print-did
 
+# Expected Output:
 # ...
 # === Data ===
 # Key    Value
@@ -249,6 +250,7 @@ make generate-issuer-did-arm;
 # docker rm issuer-initializer-1
 # make print-did
 
+# Expected Output:
 # ...
 # === Data ===
 # Key    Value
