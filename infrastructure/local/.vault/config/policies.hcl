@@ -5,3 +5,10 @@ path "iden3/*" {
 path "kv/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
+
+path "auth/userpass/users/issuernode" {
+  capabilities = [ "update" ]
+  allowed_parameters = {
+   "password" = [ ]
+  }
+}

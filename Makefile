@@ -167,13 +167,10 @@ run-initializer:
 
 .PHONY: generate-issuer-did
 generate-issuer-did: run-initializer
-	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
-	@echo $(DID)
-	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-	mv .env-api.tmp .env-api
 	docker logs issuer-initializer-1
+	docker stop issuer-initializer-1
 	docker rm issuer-initializer-1
+	make print-did
 
 .PHONY: run-initializer-arm
 run-initializer-arm:
@@ -182,13 +179,10 @@ run-initializer-arm:
 
 .PHONY: generate-issuer-did-arm
 generate-issuer-did-arm: run-initializer-arm
-	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
-	@echo $(DID)
-	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-	mv .env-api.tmp .env-api
 	docker logs issuer-initializer-1
+	docker stop issuer-initializer-1
 	docker rm issuer-initializer-1
+	make print-did
 
 .PHONY: add-host-url-swagger
 add-host-url-swagger:
@@ -205,3 +199,21 @@ restart-ui: rm-issuer-imgs up run run-ui
 
 .PHONY: restart-ui-arm
 restart-ui-arm: rm-issuer-imgs up run-arm run-ui-arm
+
+
+# usage: make new_password=xxx change-vault-password
+.PHONY: change-vault-password
+change-vault-password:
+	docker exec issuer-vault-1 \
+	vault write auth/userpass/users/issuernode password=$(new_password)
+
+.PHONY: print-did
+print-did:
+	docker exec issuer-vault-1 \
+	vault kv get -mount=kv did
+
+# use this to delete the did from vault. It will not be deleted from the database
+.PHONY: delete-did
+delete-did:
+	docker exec issuer-vault-1 \
+	vault kv delete kv/did

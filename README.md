@@ -171,6 +171,7 @@ make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key;
 
 #### Add Vault To Configuration File
 
+##### Option 1: Using root vault token (not recommended)
 This will get the vault token from the Hashicorp vault docker instance and add it to our `./env-issuer` file.
 
 ```bash
@@ -188,13 +189,26 @@ make add-vault-token;
 #   mv .env-issuer.tmp .env-issuer
 ```
 
+##### Option 2: Using user and pass authentication method (recommended)
+In order to use the user and pass authentication method, we need to create a password in the vault.
+
+```bash
+make new_password=your_new_password change-vault-password
+```
+then modify the .env-issuer file with the new password, enable the user and pass authentication method and comment the root token line:
+
+```bash
+ISSUER_VAULT_USERPASS_AUTH_ENABLED=true
+ISSUER_VAULT_USERPASS_AUTH_PASSWORD=your_new_password
+#ISSUER_KEY_STORE_TOKEN=<Key Store Vault Token>
+```
+with the code above, the vault will be initialized with the user and pass authentication method and the root token will be disabled.
+
 #### Create Issuer DID
 
 > **NOTE:** This can also be done via the [UI API](#using-the-ui-api).
 
 This will create a new issuer DID by creating a new Docker instance of the issuer, generating the DID of the issuer, storing it in the database, then deleting the instance.
-
-It then copies the new DID to `.env-api`.
 
 **For _NON-Apple-M1/M2/Arm_ (ex: Intel/AMD):**
 
@@ -204,14 +218,13 @@ It then copies the new DID to `.env-api`.
 # NON-Apple-M1/M2/Arm Command:
 make generate-issuer-did;
 # (Equivalent)
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f ./infrastructure/local/docker-compose.yml up -d initializer
+#  COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" docker compose -p issuer -f ./infrastructure/local/docker-compose.yml up -d initializer
 # sleep 5
-#  $(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
-#  @echo $(DID)
-#  sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-#  @echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-#  mv .env-api.tmp .env-api
-#  docker rm issuer-initializer-1
+# docker logs issuer-initializer-1
+# docker stop issuer-initializer-1
+# docker rm issuer-initializer-1
+# make print-did
+
 ```
 
 **For _Apple-M1/M2/Arm_:**
@@ -224,24 +237,18 @@ make generate-issuer-did-arm;
 # (Equivalent)
 #   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d initializer;
 # sleep 5;
-#   DID=$(docker logs -f --tail 1 issuer-initializer-1 | grep "did");
-#   echo $DID;
-#   sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp;
-#   echo ISSUER_API_UI_ISSUER_DID=$DID >> .env-api.tmp;
-#   mv .env-api.tmp .env-api;
-#   docker rm issuer-initializer-1;
+# sleep 5
+# docker logs issuer-initializer-1
+# docker stop issuer-initializer-1
+# docker rm issuer-initializer-1
+# make print-did
 
-# Expected Output:
-#   COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" docker compose -p issuer -f /Users/username/path/to/sh-id-platform/infrastructure/local/docker-compose.yml up -d initializer
-#   WARN[0000] Found orphan containers ([issuer-vault-1 issuer-postgres-1 issuer-redis-1]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up. 
-#   [+] Running 1/1
-#   ⠿ Container issuer-initializer-1  Started                                                                                0.2s
-#   sleep 5
-#   did:polygonid:polygon:mumbai:uniqueAlphanumericKeyGenerated
-#   sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-#   mv .env-api.tmp .env-api
-#   docker rm issuer-initializer-1
-#   issuer-initializer-1
+
+# === Data ===
+# Key    Value
+# ---    -----
+# did    did:polygonid:polygon:mumbai:2qLr2BymdszjFRKpJM9NPXu3HMpSSwf4nh3ZsADtPv
+
 ```
 
 #### Start Issuer API
