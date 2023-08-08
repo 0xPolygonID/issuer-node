@@ -14,7 +14,7 @@
 # Add more issuer-node-api configuration here.
 
 # --- ------------------------------- ---
-# --- This values will not be changed ---
+# --- This values must not be changed ---
 # --- ------------------------------- ---
 - op: replace
   path: /data/ISSUER_ETHEREUM_RESOLVER_PREFIX

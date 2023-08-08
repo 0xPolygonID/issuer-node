@@ -9,7 +9,7 @@
 
 
 # --- ------------------------------- ---
-# --- This values will not be changed ---
+# --- This values must not be changed ---
 # --- ------------------------------- ---
 - op: replace
   path: /data/ISSUER_UI_BLOCK_EXPLORER_URL
