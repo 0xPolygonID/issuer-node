@@ -27,5 +27,5 @@ kubectl apply -k ./mumbai
 ### Install Issuer Node - Main network
 
 ```bash
-kubectl apply -k ./mainet
+kubectl apply -k ./mainnet
 ```
