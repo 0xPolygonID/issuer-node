@@ -68,10 +68,10 @@ vault policy write issuernode /vault/config/policies.hcl
 echo "===== CREATE USERS ====="
 vault auth enable userpass
 vault write auth/userpass/users/issuernode \
-    password=KSyo%A65N1IeGMUD7O1}t7mlzW{bC9vp \
+    password=initial-password.-change-it-by-running-make-change-vault-password \
     policies="admins,issuernode"
 
 echo "===== TEST LOGIN ====="
-vault login -method=userpass username=issuernode password=KSyo%A65N1IeGMUD7O1}t7mlzW{bC9vp
+vault login -method=userpass username=issuernode password=initial-password.-change-it-by-running-make-change-vault-password
 
 tail -f /dev/null
