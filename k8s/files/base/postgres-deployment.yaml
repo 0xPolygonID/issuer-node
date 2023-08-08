@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-issuer-node
+  name: issuer-node-postgres-deployment
   labels:
-    app: postgres-issuer-node-deployment
+    app: issuer-node
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-issuer-node
+      app: issuer-node-postgres
   template:
     metadata:
       labels:
-        app: postgres-issuer-node # Label for the pod and will be used in the service
+        app: issuer-node-postgres # Label for the pod and will be used in the service
     spec:
       containers:
         - name: postgres
@@ -22,7 +22,7 @@ spec:
             - containerPort: 5432
           envFrom:
             - configMapRef:
-                name: postgres-secret
+                name: issuer-node-postgres-configmap
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               name: postgresdata
@@ -32,10 +32,10 @@ spec:
       volumes:
         - name: postgresdata
           persistentVolumeClaim:
-            claimName: postgresql-issuer-node-pvc
+            claimName: issuer-node-postgresql-pvc
         - name: postgres-initdb
           configMap:
-            name: postgres-secret
+            name: issuer-node-postgres-configmap
             defaultMode: 0500
             items:
             - key: init.sql

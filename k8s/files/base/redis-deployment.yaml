@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: redis-issuer-node
+  name: issuer-node-redis-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: redis-issuer-node
+      app: issuer-node-redis
   template:
     metadata:
       labels:
-        app: redis-issuer-node
+        app: issuer-node-redis
     spec:
       containers:
       - name: redis

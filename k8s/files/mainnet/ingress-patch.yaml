@@ -1,0 +1,16 @@
+# This patch is applied to the ingress resource.
+
+# This entry specify the api ingress host
+- op: replace
+  path: /spec/rules/0/host
+  value: "issuer-node-api.mainnet.info"
+
+# This entry specify the api ui ingress host
+- op: replace
+  path: /spec/rules/1/host
+  value: "issuer-node-api-ui.mainnet.info"
+
+# This entry specify the ui ingress host
+- op: replace
+  path: /spec/rules/2/host
+  value: "issuer-ui.info.mainnet.info"

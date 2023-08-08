@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issuer-node-api-deployment
+  labels:
+    app: issuer-node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: issuer-node-api
+  template:
+    metadata:
+      labels:
+        app: issuer-node-api # Label for the pod and will be used in the service
+    spec:
+      containers:
+        - name: api
+          image: martinsaporiti/issuernode:1.0.0
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: issuer-node-api-configmap
+          env:
+            - name: ISSUER_DATABASE_URL
+              value: "postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@issuer-node-postgres-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable"
+            - name: ISSUER_KEY_STORE_ADDRESS
+              value: "http://issuer-node-vault-svc:$(ISSUER_KEY_STORE_PORT)"
+            - name: ISSUER_VAULT_USERPASS_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: private-key-secret
+                  key: vault-pwd
+          
+          command: ["sh", "-c"]
+          args: ["./migrate; ./platform"]
+
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 3001
+              httpHeaders:
+              - name: Custom-Header
+                value: Awesome
+            initialDelaySeconds: 3
+            periodSeconds: 60

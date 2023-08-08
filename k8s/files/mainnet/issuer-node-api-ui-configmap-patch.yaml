@@ -1,0 +1,16 @@
+# This patch file is used to override the default values in the issuer-node-api-ui-configmap.yaml file.
+
+# ISSUER_API_UI_SERVER_URL is the URL of the issuer-node-api-ui.
+- op: replace
+  path: /data/ISSUER_API_UI_SERVER_URL
+  value: "http://issuer-node-api-ui.mainnet.info"
+
+# Add more issuer-node-api configuration here.
+
+
+# --- ------------------------------- ---
+# --- This values will not be changed ---
+# --- ------------------------------- ---
+- op: replace
+  path: /data/ISSUER_API_IDENTITY_NETWORK
+  value: "main"
