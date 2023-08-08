@@ -171,7 +171,7 @@ make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key;
 
 #### Add Vault To Configuration File
 
-##### Option 1: Using root vault token (not recommended :thumbsup:)
+##### Option 1: Using root vault token (not recommended :thumbsdown:)
 This will get the vault token from the Hashicorp vault docker instance and add it to our `./env-issuer` file.
 
 ```bash
