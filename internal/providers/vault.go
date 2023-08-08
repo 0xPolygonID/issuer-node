@@ -52,7 +52,7 @@ func NewVaultClientWithUserPassAuth(ctx context.Context, address string, pass st
 
 	client, err := vault.NewClient(config)
 	if err != nil {
-		log.Error(ctx, "error creating vault client with Kubernetes Auth", "error", err)
+		log.Error(ctx, "error creating vault client with userpass auth", "error", err)
 		return nil, err
 	}
 
