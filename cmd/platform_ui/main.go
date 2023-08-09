@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
@@ -19,6 +20,7 @@ import (
 	"github.com/iden3/go-iden3-auth/pubsignals"
 	"github.com/iden3/go-iden3-auth/state"
 	core "github.com/iden3/go-iden3-core"
+	proof "github.com/iden3/merkletree-proof"
 
 	"github.com/polygonid/sh-id-platform/internal/api_ui"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -126,6 +128,12 @@ func main() {
 	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	if cfg.ReverseHashService.Enabled {
+		rhsp = reverse_hash.NewRhsPublisher(&proof.HTTPReverseHashCli{
+			URL:         cfg.ReverseHashService.URL,
+			HTTPTimeout: time.Second * reverse_hash.DefaultRHSTimeOut,
+		}, true)
+	}
 
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
