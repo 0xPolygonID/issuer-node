@@ -125,7 +125,10 @@ func randomDID(t *testing.T) core.DID {
 func setupPluginBJJProvider(t *testing.T) (vaultCli *api.Client, mountPath string) {
 	t.Helper()
 	var err error
-	vaultCli, err = providers.NewVaultClient(cfg.Address, cfg.Token)
+	vaultCli, err = providers.VaultClient(context.Background(), providers.Config{
+		Address: cfg.Address,
+		Token:   cfg.Token,
+	})
 	require.NoError(t, err)
 	mountPath = cfg.PluginIden3MountPath
 	return

@@ -195,7 +195,7 @@ the authentication method is recommended for production environments, and it is 
 the issuer node contributors team.** Please try to avoid using the root token authentication method.
 
 ```bash
-make new_password=your_new_password change-this-default-password
+make new_password=your_new_password change-vault-password
 ```
 then modify the .env-issuer file with the new password, enable the user and pass authentication method and comment the root token line:
 

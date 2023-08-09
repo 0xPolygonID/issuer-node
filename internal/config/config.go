@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"fmt"
-
 	"net/url"
 	"os"
 	"path/filepath"
@@ -12,10 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/spf13/viper"
 
-	"github.com/hashicorp/vault/api"
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"

@@ -13,6 +13,7 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
+
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -71,7 +72,7 @@ func main() {
 	}
 
 	vaultCli, err := providers.VaultClient(ctx, providers.Config{
-		UserPAssAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,

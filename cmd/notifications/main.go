@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/vault/api"
+
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -60,7 +61,7 @@ func main() {
 	connectionsRepository := repositories.NewConnections()
 
 	vaultCli, err := providers.VaultClient(ctx, providers.Config{
-		UserPAssAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,

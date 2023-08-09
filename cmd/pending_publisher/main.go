@@ -76,7 +76,7 @@ func main() {
 	}
 
 	vaultCli, err := providers.VaultClient(ctx, providers.Config{
-		UserPAssAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,

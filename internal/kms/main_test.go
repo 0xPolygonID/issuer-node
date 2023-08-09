@@ -1,6 +1,7 @@
 package kms
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -36,7 +37,10 @@ func testKMSSetup(t testing.TB) TestKMS {
 	k := TestKMS{t: t}
 	var err error
 
-	k.VaultCli, err = providers.NewVaultClient(cfg.Address, cfg.Token)
+	k.VaultCli, err = providers.VaultClient(context.Background(), providers.Config{
+		Address: cfg.Address,
+		Token:   cfg.Token,
+	})
 	require.NoError(t, err)
 
 	k.KMS = NewKMS()

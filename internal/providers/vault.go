@@ -22,9 +22,11 @@ var DidNotFound = errors.New("did not found in vault")
 // HTTPClientTimeout http client timeout TODO: move to config
 const HTTPClientTimeout = 10 * time.Second
 
+// Config vault configuration
+// If UserPassAuthEnabled is true, then vault client will be created with userpass auth and Pass must be provided
 type Config struct {
 	Address             string
-	UserPAssAuthEnabled bool
+	UserPassAuthEnabled bool
 	Token               string
 	Pass                string
 }
@@ -33,13 +35,13 @@ type Config struct {
 func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 	var vaultCli *vault.Client
 	var err error
-	if cfg.UserPAssAuthEnabled {
+	if cfg.UserPassAuthEnabled {
 		log.Info(ctx, "Vault userpass auth enabled")
 		if cfg.Pass == "" {
 			log.Error(ctx, "Vault userpass auth enabled but password not provided")
 			return nil, errors.New("Vault userpass auth enabled but password not provided")
 		}
-		vaultCli, err = NewVaultClientWithUserPassAuth(ctx, cfg.Address, cfg.Pass)
+		vaultCli, err = newVaultClientWithUserPassAuth(ctx, cfg.Address, cfg.Pass)
 		if err != nil {
 			log.Error(ctx, "cannot init vault client with userpass auth: ", "err", err)
 			return nil, err
@@ -50,7 +52,7 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 			log.Error(ctx, "Vault userpass auth not enabled but token not provided")
 			return nil, errors.New("Vault userpass auth not enabled but token not provided")
 		}
-		vaultCli, err = NewVaultClient(cfg.Address, cfg.Token)
+		vaultCli, err = newVaultClientWithToken(cfg.Address, cfg.Token)
 		if err != nil {
 			log.Error(ctx, "cannot init vault client: ", "err", err)
 			return nil, err
@@ -60,8 +62,8 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 	return vaultCli, nil
 }
 
-// NewVaultClient checks vault configuration and creates new vault client
-func NewVaultClient(address, token string) (*vault.Client, error) {
+// newVaultClientWithToken checks vault configuration and creates new vault client
+func newVaultClientWithToken(address, token string) (*vault.Client, error) {
 	if address == "" {
 		return nil, errors.New("vault address is not specified")
 	}
@@ -82,8 +84,8 @@ func NewVaultClient(address, token string) (*vault.Client, error) {
 	return client, nil
 }
 
-// NewVaultClientWithUserPassAuth checks vault configuration and creates new vault client with userpass auth
-func NewVaultClientWithUserPassAuth(ctx context.Context, address string, pass string) (*vault.Client, error) {
+// newVaultClientWithUserPassAuth checks vault configuration and creates new vault client with userpass auth
+func newVaultClientWithUserPassAuth(ctx context.Context, address string, pass string) (*vault.Client, error) {
 	config := vault.DefaultConfig()
 	config.Address = address
 	config.HttpClient.Timeout = HTTPClientTimeout
