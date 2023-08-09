@@ -14,7 +14,6 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
-	"github.com/hashicorp/vault/api"
 	auth "github.com/iden3/go-iden3-auth"
 	authLoaders "github.com/iden3/go-iden3-auth/loaders"
 	"github.com/iden3/go-iden3-auth/pubsignals"
@@ -97,7 +96,7 @@ func main() {
 		return
 	}
 
-	err = checkDID(ctx, cfg, vaultCli)
+	err = config.CheckDID(ctx, *cfg, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize did", "err", err)
 		return
@@ -269,24 +268,4 @@ func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
 	default:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-}
-
-func checkDID(ctx context.Context, cfg *config.Configuration, vaultCli *api.Client) error {
-	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
-	if cfg.APIUI.Issuer == "" {
-		var err error
-		cfg.APIUI.Issuer, err = providers.GetDID(ctx, vaultCli)
-		if err != nil {
-			log.Error(ctx, "cannot get issuer did from vault", "error", err)
-			return err
-		}
-		log.Info(ctx, "Issuer Did from vault", "did", cfg.APIUI.Issuer)
-		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
-		if err != nil {
-			log.Error(ctx, "invalid issuer did format", "error", err)
-			return err
-		}
-		cfg.APIUI.IssuerDID = *issuerDID
-	}
-	return nil
 }
