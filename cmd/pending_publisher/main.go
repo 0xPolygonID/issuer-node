@@ -75,21 +75,15 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	var vaultCli *vault.Client
-	if cfg.VaultUserPassAuthEnabled {
-		log.Info(ctx, "Vault userpass auth enabled")
-		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
-		if err != nil {
-			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
-			return
-		}
-	} else {
-		log.Info(ctx, "Vault userpass auth is not enabled")
-		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-		if err != nil {
-			log.Error(ctx, "cannot init vault client: ", "err", err)
-			return
-		}
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPAssAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot initialize vault client", "err", err)
+		return
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)

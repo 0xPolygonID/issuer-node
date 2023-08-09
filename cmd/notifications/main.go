@@ -8,9 +8,6 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/vault/api"
-	vault "github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
-
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -62,24 +59,18 @@ func main() {
 
 	connectionsRepository := repositories.NewConnections()
 
-	var vaultCli *vault.Client
-	if cfg.VaultUserPassAuthEnabled {
-		log.Info(ctx, "Vault userpass auth enabled")
-		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
-		if err != nil {
-			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
-			return
-		}
-	} else {
-		log.Info(ctx, "Vault userpass auth not enabled")
-		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-		if err != nil {
-			log.Error(ctx, "cannot init vault client: ", "err", err)
-			return
-		}
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPAssAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot initialize vault client", "err", err)
+		return
 	}
 
-	err = checkDID(ctx, cfg, vaultCli)
+	err = config.CheckDID(ctx, *cfg, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize did", "err", err)
 		return
@@ -150,24 +141,4 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 	)
 
 	return claimsService, nil
-}
-
-func checkDID(ctx context.Context, cfg *config.Configuration, vaultCli *api.Client) error {
-	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
-	if cfg.APIUI.Issuer == "" {
-		var err error
-		cfg.APIUI.Issuer, err = providers.GetDID(ctx, vaultCli)
-		if err != nil {
-			log.Error(ctx, "cannot get issuer did from vault", "error", err)
-			return err
-		}
-		log.Info(ctx, "Issuer Did from vault", "did", cfg.APIUI.Issuer)
-		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
-		if err != nil {
-			log.Error(ctx, "invalid issuer did format", "error", err)
-			return err
-		}
-		cfg.APIUI.IssuerDID = *issuerDID
-	}
-	return nil
 }

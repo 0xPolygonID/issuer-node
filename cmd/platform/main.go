@@ -13,8 +13,6 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
-	vault "github.com/hashicorp/vault/api"
-
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -72,19 +70,15 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	var vaultCli *vault.Client
-	if cfg.VaultUserPassAuthEnabled {
-		vaultCli, err = providers.NewVaultClientWithUserPassAuth(ctx, cfg.KeyStore.Address, cfg.VaultUserPassAuthPassword)
-		if err != nil {
-			log.Error(ctx, "cannot init vault client with Kubernetes Auth: ", "err", err)
-			return
-		}
-	} else {
-		vaultCli, err = providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-		if err != nil {
-			log.Error(ctx, "cannot init vault client: ", "err", err)
-			return
-		}
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPAssAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot initialize vault client", "err", err)
+		return
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)

@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,8 +15,10 @@ import (
 	core "github.com/iden3/go-iden3-core"
 	"github.com/spf13/viper"
 
+	"github.com/hashicorp/vault/api"
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/providers"
 )
 
 const (
@@ -193,6 +196,28 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
+	return nil
+}
+
+// CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
+func CheckDID(ctx context.Context, cfg Configuration, vaultCli *api.Client) error {
+	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
+	if cfg.APIUI.Issuer == "" {
+		log.Info(ctx, "Issuer DID not provided in configuration file. Getting it from vault")
+		var err error
+		cfg.APIUI.Issuer, err = providers.GetDID(ctx, vaultCli)
+		if err != nil {
+			log.Error(ctx, "cannot get issuer did from vault", "error", err)
+			return err
+		}
+		log.Info(ctx, "Issuer Did loaded from vault", "did", cfg.APIUI.Issuer)
+		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
+		if err != nil {
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return err
+		}
+		cfg.APIUI.IssuerDID = *issuerDID
+	}
 	return nil
 }
 
