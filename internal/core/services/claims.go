@@ -612,8 +612,8 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 
 func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer bool) interface{} {
 	if c.cfg.RHSEnabled {
-		return &verifiable.RHSCredentialStatus{
-			ID:              fmt.Sprintf("%s/node", strings.TrimSuffix(c.cfg.RHSUrl, "/")),
+		return &verifiable.CredentialStatus{
+			ID:              strings.TrimSuffix(c.cfg.RHSUrl, "/"),
 			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
 			RevocationNonce: nonce,
 			StatusIssuer: &verifiable.CredentialStatus{

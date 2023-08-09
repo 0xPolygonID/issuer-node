@@ -132,7 +132,7 @@ func getRevocationProofFromIssuer(ctx context.Context, url string) (*verifiable.
 
 func getNonRevocationProofFromRHS(ctx context.Context, rhsURL string, data, issuerRoot *merkletree.Hash) (*verifiable.RevocationStatus, error) {
 	rhsCli := proof.HTTPReverseHashCli{
-		URL:         strings.TrimSuffix(rhsURL, "/node"),
+		URL:         rhsURL,
 		HTTPTimeout: time.Second * defaultRevocationTime,
 	}
 
