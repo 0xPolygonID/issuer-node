@@ -3,6 +3,7 @@ package reverse_hash
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/iden3/go-merkletree-sql/v2"
 	proof "github.com/iden3/merkletree-proof"
@@ -12,7 +13,7 @@ import (
 )
 
 // DefaultRHSTimeOut - default timeout for reverse hash service requests.
-const DefaultRHSTimeOut = 30
+const DefaultRHSTimeOut = 30 * time.Second
 
 // stateHashes - handle hashes states.
 type stateHashes struct {

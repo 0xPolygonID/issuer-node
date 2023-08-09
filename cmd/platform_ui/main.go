@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
@@ -131,7 +130,7 @@ func main() {
 	if cfg.ReverseHashService.Enabled {
 		rhsp = reverse_hash.NewRhsPublisher(&proof.HTTPReverseHashCli{
 			URL:         cfg.ReverseHashService.URL,
-			HTTPTimeout: time.Second * reverse_hash.DefaultRHSTimeOut,
+			HTTPTimeout: reverse_hash.DefaultRHSTimeOut,
 		}, true)
 	}
 
