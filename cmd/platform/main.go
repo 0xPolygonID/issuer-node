@@ -72,9 +72,14 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
+		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
 	}
 

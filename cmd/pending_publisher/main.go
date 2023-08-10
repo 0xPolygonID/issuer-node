@@ -45,11 +45,6 @@ func main() {
 		return
 	}
 
-	if cfg.APIUI.Issuer == "" {
-		log.Error(ctx, "issuer DID is not set")
-		return
-	}
-
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
@@ -78,10 +73,15 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
-		panic(err)
+		log.Error(ctx, "cannot initialize vault client", "err", err)
+		return
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
@@ -107,6 +107,12 @@ func main() {
 	if err != nil {
 		log.Error(ctx, "cannot register Ethereum key provider", "err", err)
 		panic(err)
+	}
+
+	err = config.CheckDID(ctx, *cfg, vaultCli)
+	if err != nil {
+		log.Error(ctx, "cannot initialize did", "err", err)
+		return
 	}
 
 	identityRepo := repositories.NewIdentity()

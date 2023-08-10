@@ -11,21 +11,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/providers"
 )
 
 const (
-	CIConfigPath      = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
-	k8sVaultTokenFile = "/vault/data/token.txt"                            // When running in k8s, the vault token is stored in this file
-	// K8sDidFile variable contain the k8s did file path
-	K8sDidFile        = "/did/data/did.txt"    // When running in k8s, the did is stored in this file
-	k8NRetries        = 20                     // Retries to wait for the creation of the vault token
-	k8TBetweenRetries = 500 * time.Millisecond // Time between retries
-	ipfsGateway       = "https://ipfs.io"
+	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
+	ipfsGateway  = "https://ipfs.io"
 )
 
 // Configuration holds the project configuration
@@ -47,6 +44,8 @@ type Configuration struct {
 	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
 	APIUI                        APIUI              `mapstructure:"APIUI"`
 	IFPS                         IPFS               `mapstructure:"IPFS"`
+	VaultUserPassAuthEnabled     bool
+	VaultUserPassAuthPassword    string
 }
 
 // Database has the database configuration
@@ -161,15 +160,10 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
-	if c.KeyStore.Token == "" {
-		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
-		if err != nil {
-			return fmt.Errorf("a vault token must be provided")
-		}
-
-		log.Info(ctx, "Vault token loaded from file", c.KeyStore.Token)
+	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
-
 	return nil
 }
 
@@ -185,32 +179,44 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	log.Info(ctx, "Checking vault token", "token", c.KeyStore.Token)
-	if c.KeyStore.Token == "" {
-		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
+	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
+	}
+
+	if c.APIUI.Issuer != "" {
+		issuerDID, err := core.ParseDID(c.APIUI.Issuer)
 		if err != nil {
-			return fmt.Errorf("a vault token must be provided")
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return fmt.Errorf("invalid issuer did format")
 		}
-		log.Info(ctx, "Vault token loaded from file", "token", c.KeyStore.Token)
+		c.APIUI.IssuerDID = *issuerDID
+	} else {
+		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
-	log.Info(ctx, "Checking issuer did value", "did", c.APIUI.Issuer)
-	if c.APIUI.Issuer == "" {
-		c.APIUI.Issuer, err = loadValueFromFile(ctx, K8sDidFile, k8NRetries, k8TBetweenRetries)
+	return nil
+}
+
+// CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
+func CheckDID(ctx context.Context, cfg Configuration, vaultCli *api.Client) error {
+	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
+	if cfg.APIUI.Issuer == "" {
+		log.Info(ctx, "Issuer DID not provided in configuration file. Getting it from vault")
+		var err error
+		cfg.APIUI.Issuer, err = providers.GetDID(ctx, vaultCli)
 		if err != nil {
-			return fmt.Errorf("an issuer DID must be provided")
+			log.Error(ctx, "cannot get issuer did from vault", "error", err)
+			return err
 		}
+		log.Info(ctx, "Issuer Did loaded from vault", "did", cfg.APIUI.Issuer)
+		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
+		if err != nil {
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return err
+		}
+		cfg.APIUI.IssuerDID = *issuerDID
 	}
-
-	log.Info(ctx, "Issuer Did from file", "did", c.APIUI.Issuer)
-
-	issuerDID, err := core.ParseDID(c.APIUI.Issuer)
-	if err != nil {
-		log.Error(ctx, "invalid issuer did format", "error", err)
-		return fmt.Errorf("invalid issuer did format")
-	}
-
-	c.APIUI.IssuerDID = *issuerDID
-
 	return nil
 }
 
@@ -269,27 +275,6 @@ func Load(fileName string) (*Configuration, error) {
 	}
 	checkEnvVars(ctx, config)
 	return config, nil
-}
-
-// loadValueFromFile loads a value from a file. It will retry a number of times until the file is found.
-func loadValueFromFile(ctx context.Context, file string, retries int, between time.Duration) (string, error) {
-	for i := 0; i < retries; i++ {
-		if _, err := os.Stat(file); err != nil {
-			log.Warn(ctx, "loading file. Retries left", "err", err, "file", file, "retries", retries-i)
-		} else {
-			break
-		}
-		time.Sleep(between)
-	}
-	content, err := os.ReadFile(file)
-	if err != nil {
-		log.Error(ctx, "cannot read file", "err", err, "file", file)
-		return "", err
-	}
-
-	contentAsString := strings.TrimSuffix(string(content), "\n")
-	log.Info(ctx, "file loaded", "file", contentAsString)
-	return contentAsString, nil
 }
 
 // VaultTest returns the vault configuration to be used in tests.
@@ -395,6 +380,9 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
+
+	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
+	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 
 	viper.AutomaticEnv()
 }

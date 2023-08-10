@@ -80,15 +80,26 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
+		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize kms", "err", err)
+		return
+	}
+
+	err = config.CheckDID(ctx, *cfg, vaultCli)
+	if err != nil {
+		log.Error(ctx, "cannot initialize did", "err", err)
 		return
 	}
 

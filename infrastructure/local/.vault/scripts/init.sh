@@ -52,11 +52,23 @@ apk add -q openssl
 IDEN3_PLUGIN_SHA256=`openssl dgst -r -sha256 ${IDEN3_PLUGIN_PATH} | awk '{print $1}'`
 vault plugin register -sha256=$IDEN3_PLUGIN_SHA256 vault-plugin-secrets-iden3
 vault secrets enable -path=iden3 vault-plugin-secrets-iden3
+#vault secrets enable -path=kv kv
+vault secrets enable -path=kv kv-v2
 
 chmod 755 /vault/file -R
 
 echo "===== ENABLED IDEN3 ====="
 export vault_token="token:${TOKEN}"
+
+echo "===== CREATE POLICIES ====="
+vault policy write issuernode /vault/config/policies.hcl
+
+echo "===== CREATE USERS ====="
+vault auth enable userpass
+vault write auth/userpass/users/issuernode \
+    password=initial-password.-change-it-by-running-make-change-vault-password \
+    policies="admins,issuernode"
+
 echo $vault_token
 
 tail -f /dev/null

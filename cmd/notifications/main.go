@@ -7,6 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/hashicorp/vault/api"
+
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -40,11 +42,6 @@ func main() {
 		return
 	}
 
-	if cfg.APIUI.Issuer == "" {
-		log.Error(ctx, "issuer DID is not set")
-		return
-	}
-
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
@@ -63,8 +60,25 @@ func main() {
 
 	connectionsRepository := repositories.NewConnections()
 
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
+	if err != nil {
+		log.Error(ctx, "cannot initialize vault client", "err", err)
+		return
+	}
+
+	err = config.CheckDID(ctx, *cfg, vaultCli)
+	if err != nil {
+		log.Error(ctx, "cannot initialize did", "err", err)
+		return
+	}
+
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	credentialsService, err := newCredentialsService(cfg, storage, cachex, ps)
+	credentialsService, err := newCredentialsService(cfg, storage, cachex, ps, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)
 		return
@@ -90,12 +104,7 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client) (ports.ClaimsService, error) {
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-	if err != nil {
-		return nil, fmt.Errorf("cannot init vault client: err %s", err.Error())
-	}
-
+func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *api.Client) (ports.ClaimsService, error) {
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()

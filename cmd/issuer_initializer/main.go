@@ -15,14 +15,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
 
-const perm = 777
-
 func main() {
-	if _, err := os.Stat(config.K8sDidFile); err == nil {
-		log.Info(context.Background(), "identifier already created and stored in file. New identifier not created")
-		return
-	}
-
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", "err", err)
@@ -43,9 +36,24 @@ func main() {
 		return
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
+	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	})
 	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
+		log.Error(ctx, "cannot initialize vault client", "err", err)
+		return
+	}
+
+	did, err := providers.GetDID(ctx, vaultCli)
+	if err != nil {
+		log.Info(ctx, "did not found in vault, creating new one")
+	}
+
+	if did != "" {
+		log.Info(ctx, "did already created, skipping", "did", did)
 		return
 	}
 
@@ -73,10 +81,13 @@ func main() {
 
 	log.Info(ctx, "identifier crated successfully")
 
-	if err := os.WriteFile(config.K8sDidFile, []byte(identity.Identifier), os.FileMode(perm)); err != nil {
-		log.Error(ctx, "error writing identifier to file", "error", err)
+	if err := providers.SaveDID(ctx, vaultCli, identity.Identifier); err != nil {
+		log.Error(ctx, "error saving identifier to vault", err)
+		return
 	}
 
 	//nolint:all
 	fmt.Printf(identity.Identifier)
+	//nolint:all
+	fmt.Printf("\n")
 }
