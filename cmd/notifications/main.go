@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/vault/api"
 
+	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -27,7 +28,11 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
+var build = buildinfo.Revision()
+
 func main() {
+	log.Info(context.Background(), "starting issuer node...", "revision", build)
+
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", "err", err)
