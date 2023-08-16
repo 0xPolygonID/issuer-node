@@ -585,6 +585,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 }
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
+// TODO: Aquí
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
 	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
@@ -626,6 +627,8 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 }
 
 // GetLinkQRCode - returns te qr code for adding the credential
+//
+//	TODO: Aquí
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
 	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
