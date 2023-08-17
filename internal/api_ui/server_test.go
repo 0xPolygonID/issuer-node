@@ -162,7 +162,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 					}{
 						CallbackUrl: "https://testing.env/v1/authentication/callback?sessionID=",
 						Reason:      "authentication",
-						Scope:       []interface{}{},
+						Scope:       nil,
 					},
 					From: issuerDID.String(),
 					Typ:  "application/iden3comm-plain-json",
@@ -3683,7 +3683,8 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock(), ipfsGateway)
+	qrService := services.NewQrStoreService(cachex)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, loader.HTTPFactory, sessionRepository, pubsub.NewMock(), ipfsGateway)
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
 	require.NoError(t, err)
 

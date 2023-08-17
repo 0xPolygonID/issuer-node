@@ -29,7 +29,7 @@ type IdentityService interface {
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	GetStates(ctx context.Context, issuerDID core.DID) ([]domain.IdentityState, error)
-	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*domain.AuthenticationQrCodeResponse, error)
+	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error)
 	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) (*protocol.AuthorizationResponseMessage, error)
 	GetFailedState(ctx context.Context, identifier core.DID) (*domain.IdentityState, error)
 }

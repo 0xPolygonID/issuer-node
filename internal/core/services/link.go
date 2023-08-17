@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -181,6 +182,23 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 	if err != nil {
 		return nil, err
 	}
+
+	raw, err := json.Marshal(qrCode)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := ls.qrService.Store(ctx, raw, 365*24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO(QRCODE): remove this and return the id
+	raw, err = ls.qrService.Find(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(raw, qrCode)
 
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
