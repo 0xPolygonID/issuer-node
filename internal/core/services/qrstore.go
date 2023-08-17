@@ -7,17 +7,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
-// defaultTTL is the default time to live for a QR code.
-const defQRUrlShortenerTTL = 30 * 24 * time.Hour
-
+// ErrQRCodeLinkNotFound is the error returned when a QR code link is not found in the QR storage
 var ErrQRCodeLinkNotFound = errors.New("qr code link not found")
 
+// QrStoreService implements the ports.QrStoreService interface.
+// It provides methods to store and retrieve the body of QR codes and to provide support
+// to the QR url shortener functionality
 type QrStoreService struct {
 	mx    sync.Mutex
-	ttl   time.Duration
 	store cache.Cache
 }
 
@@ -25,23 +27,31 @@ type payload struct {
 	QrCode string `json:"qr_code"`
 }
 
+// NewQrStoreService creates a new QrStoreService instance.
 func NewQrStoreService(store cache.Cache) *QrStoreService {
 	return &QrStoreService{
 		store: store,
 	}
 }
 
+// Find retrieves the body of a QR code. Not finding an item is considered an error
 func (s *QrStoreService) Find(ctx context.Context, id uuid.UUID) ([]byte, error) {
 	var raw payload
 	if found := s.store.Get(ctx, s.key(id), &raw); !found {
+		log.Error(ctx, "qr code body not found. Tip: Recreate the Qr code again", "id", id.String())
 		return nil, ErrQRCodeLinkNotFound
 	}
 	return []byte(raw.QrCode), nil
 }
 
+// Store stores the body of a QR code, creating a new unique ID for it and returning it.
 func (s *QrStoreService) Store(ctx context.Context, qrCode []byte, ttl time.Duration) (uuid.UUID, error) {
 	id := s.newID(ctx)
-	return id, s.store.Set(ctx, s.key(id), &payload{QrCode: string(qrCode)}, ttl)
+	if err := s.store.Set(ctx, s.key(id), &payload{QrCode: string(qrCode)}, ttl); err != nil {
+		log.Error(ctx, "error storing qr code body", "id", id.String(), "error", err, "qrCode", string(qrCode))
+		return uuid.Nil, err
+	}
+	return id, nil
 }
 
 func (s *QrStoreService) key(id uuid.UUID) string {
