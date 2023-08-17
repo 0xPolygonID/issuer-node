@@ -47,7 +47,7 @@ func (s *QrStoreService) Find(ctx context.Context, id uuid.UUID) ([]byte, error)
 // Store stores the body of a QR code, creating a new unique ID for it and returning it.
 func (s *QrStoreService) Store(ctx context.Context, qrCode []byte, ttl time.Duration) (uuid.UUID, error) {
 	id := s.newID(ctx)
-	if err := s.store.Set(ctx, s.key(id), &payload{QrCode: string(qrCode)}, ttl); err != nil {
+	if err := s.store.Set(ctx, s.key(id), payload{QrCode: string(qrCode)}, ttl); err != nil {
 		log.Error(ctx, "error storing qr code body", "id", id.String(), "error", err, "qrCode", string(qrCode))
 		return uuid.Nil, err
 	}

@@ -153,23 +153,7 @@ func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (Aut
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
-
-	return AuthQRCode200JSONResponse{
-		Body: struct {
-			CallbackUrl string        `json:"callbackUrl"`
-			Reason      string        `json:"reason"`
-			Scope       []interface{} `json:"scope"`
-		}{
-			qrCode.Body.CallbackURL,
-			qrCode.Body.Reason,
-			[]interface{}{},
-		},
-		From: qrCode.From,
-		Id:   qrCode.ID,
-		Thid: qrCode.ThreadID,
-		Typ:  string(qrCode.Typ),
-		Type: string(qrCode.Type),
-	}, nil
+	return NewQrContentResponse(qrCode), nil
 }
 
 // GetConnection returns a connection with its related credentials
@@ -585,7 +569,6 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 }
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
-// TODO: Aquí
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
 	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {

@@ -425,7 +425,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*domain.AuthenticationQrCodeResponse, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 
@@ -440,10 +440,42 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 			Reason:      authReason,
 		},
 	}
+	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
+		return nil, err
+	}
 
-	err := i.sessionManager.Set(ctx, sessionID, *qrCode)
+	qrStore := &domain.AuthenticationQrCodeResponse{
+		Body: struct {
+			CallbackUrl string        `json:"callbackUrl"`
+			Reason      string        `json:"reason"`
+			Scope       []interface{} `json:"scope"`
+		}{
+			qrCode.Body.CallbackURL,
+			qrCode.Body.Reason,
+			[]interface{}{},
+		},
+		From: qrCode.From,
+		Id:   qrCode.ID,
+		Thid: qrCode.ThreadID,
+		Typ:  string(qrCode.Typ),
+		Type: string(qrCode.Type),
+	}
 
-	return qrCode, err
+	raw, err := json.Marshal(qrStore)
+	if err != nil {
+		return nil, err
+	}
+	id, err := i.qrService.Store(ctx, raw, 365*24*time.Hour)
+	if err != nil {
+		return nil, err
+	}
+	// TODO(QRCODE): remove this and return the id
+	raw, err = i.qrService.Find(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(raw, qrStore)
+	return qrStore, err
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {

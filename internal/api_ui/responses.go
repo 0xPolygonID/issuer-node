@@ -1,7 +1,9 @@
 package api_ui
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -19,6 +21,24 @@ import (
 const (
 	schemaParts = 2
 )
+
+// CustomQrContentResponse is a wrapper to return any content as an api response.
+// Just implement the Visit* method to satisfy the expected interface for that type of response.
+type CustomQrContentResponse struct {
+	content any
+}
+
+// NewQrContentResponse returns a new CustomQrContentResponse.
+func NewQrContentResponse(response any) *CustomQrContentResponse {
+	return &CustomQrContentResponse{content: response}
+}
+
+// VisitAuthQRCodeResponse satisfies the AuthQRCodeResponseObject interface.
+func (response CustomQrContentResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.NewEncoder(w).Encode(response.content)
+}
 
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
