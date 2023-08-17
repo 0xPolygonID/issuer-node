@@ -60,7 +60,7 @@ type identity struct {
 	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
-	qrStoreService          ports.QrStoreService
+	qrService               ports.QrStoreService
 	kms                     kms.KMSType
 	verifier                *auth.Verifier
 
@@ -70,7 +70,7 @@ type identity struct {
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, qrService ports.QrStoreService) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -81,7 +81,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		sessionManager:          sessionRepository,
 		storage:                 storage,
 		mtService:               mtservice,
-		qrStoreService:          qrService,
+		qrService:               qrService,
 		kms:                     kms,
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
