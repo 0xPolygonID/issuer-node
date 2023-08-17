@@ -75,7 +75,7 @@ func Test_link_issueClaim(t *testing.T) {
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGateway)
+	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGateway)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)

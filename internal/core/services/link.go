@@ -44,6 +44,7 @@ var (
 type Link struct {
 	storage          *db.Storage
 	claimsService    ports.ClaimsService
+	qrService        ports.QrStoreService
 	claimRepository  ports.ClaimsRepository
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
@@ -54,10 +55,11 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
+		qrService:        qrService,
 		claimRepository:  claimRepository,
 		linkRepository:   linkRepository,
 		schemaRepository: schemaRepository,
