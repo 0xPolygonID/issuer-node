@@ -70,20 +70,7 @@ type identity struct {
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(
-	kms kms.KMSType,
-	identityRepository ports.IndentityRepository,
-	imtRepository ports.IdentityMerkleTreeRepository,
-	identityStateRepository ports.IdentityStateRepository,
-	mtservice ports.MtService,
-	claimsRepository ports.ClaimsRepository,
-	revocationRepository ports.RevocationRepository,
-	connectionsRepository ports.ConnectionsRepository,
-	storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher,
-	verifier *auth.Verifier,
-	sessionRepository ports.SessionRepository,
-	ps pubsub.Client,
-	qrService ports.QrStoreService) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, qrService ports.QrStoreService) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,

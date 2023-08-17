@@ -166,21 +166,11 @@ func main() {
 	qrService := services.NewQrStoreService(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps, qrService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsService := services.NewClaim(
-		claimsRepository,
-		identityService,
-		mtService,
-		identityStateRepository,
-		schemaLoader,
-		storage,
-		services.ClaimCfg{
-			RHSEnabled: cfg.ReverseHashService.Enabled,
-			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.APIUI.ServerURL,
-		},
-		ps,
-		cfg.IFPS.GatewayURL,
-	)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+		RHSEnabled: cfg.ReverseHashService.Enabled,
+		RHSUrl:     cfg.ReverseHashService.URL,
+		Host:       cfg.APIUI.ServerURL,
+	}, ps, cfg.IFPS.GatewayURL)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)

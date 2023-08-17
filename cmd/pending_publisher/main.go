@@ -131,21 +131,11 @@ func main() {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), qrService)
-	claimsService := services.NewClaim(
-		claimsRepo,
-		identityService,
-		mtService,
-		identityStateRepo,
-		schemaLoader,
-		storage,
-		services.ClaimCfg{
-			RHSEnabled: cfg.ReverseHashService.Enabled,
-			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.ServerUrl,
-		},
-		ps,
-		cfg.IFPS.GatewayURL,
-	)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.ClaimCfg{
+		RHSEnabled: cfg.ReverseHashService.Enabled,
+		RHSUrl:     cfg.ReverseHashService.URL,
+		Host:       cfg.ServerUrl,
+	}, ps, cfg.IFPS.GatewayURL)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {

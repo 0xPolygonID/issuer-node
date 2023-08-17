@@ -41,17 +41,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		RHSEnabled: false,
 		Host:       "https://host.com",
 	}
-	claimsService := services.NewClaim(
-		claimsRepo,
-		identityService,
-		mtService,
-		identityStateRepo,
-		schemaLoader,
-		storage,
-		claimsConf,
-		pubsub.NewMock(),
-		ipfsGateway,
-	)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)

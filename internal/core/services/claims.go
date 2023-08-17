@@ -58,6 +58,7 @@ type claim struct {
 	icRepo                  ports.ClaimsRepository
 	identitySrv             ports.IdentityService
 	mtService               ports.MtService
+	qrService               ports.QrStoreService
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
@@ -66,7 +67,7 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -76,6 +77,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		icRepo:                  repo,
 		identitySrv:             idenSrv,
 		mtService:               mtService,
+		qrService:               qrService,
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
 		loaderFactory:           ld,

@@ -133,21 +133,11 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, qrService)
-	claimsService := services.NewClaim(
-		claimsRepository,
-		identityService,
-		mtService,
-		identityStateRepository,
-		schemaLoader,
-		storage,
-		services.ClaimCfg{
-			RHSEnabled: cfg.ReverseHashService.Enabled,
-			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.ServerUrl,
-		},
-		ps,
-		cfg.IFPS.GatewayURL,
-	)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+		RHSEnabled: cfg.ReverseHashService.Enabled,
+		RHSUrl:     cfg.ReverseHashService.URL,
+		Host:       cfg.ServerUrl,
+	}, ps, cfg.IFPS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
