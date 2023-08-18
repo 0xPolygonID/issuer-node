@@ -425,7 +425,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (string, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 
@@ -441,24 +441,18 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		},
 	}
 	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	id, err := i.qrService.Store(ctx, raw, 365*24*time.Hour)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	// TODO(QRCODE): remove this and return the id
-	raw, err = i.qrService.Find(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(raw, qrCode)
-	return qrCode, err
+	return i.qrService.ToURL(serverURL, id), nil
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {

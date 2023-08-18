@@ -193,16 +193,9 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		return nil, err
 	}
 
-	// TODO(QRCODE): remove this and return the id
-	raw, err = ls.qrService.Find(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(raw, qrCode)
-
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
-		QrCode:    qrCode,
+		QrCode:    ls.qrService.ToURL(serverURL, id),
 		Link:      link,
 	}, nil
 }

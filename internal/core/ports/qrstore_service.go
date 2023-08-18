@@ -12,4 +12,5 @@ import (
 type QrStoreService interface {
 	Find(ctx context.Context, id uuid.UUID) ([]byte, error)
 	Store(ctx context.Context, qrCode []byte, ttl time.Duration) (uuid.UUID, error)
+	ToURL(hostURL string, id uuid.UUID) string
 }

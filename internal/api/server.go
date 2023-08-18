@@ -294,6 +294,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 
 // GetClaimQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
 // scan it with polygon wallet to accept the claim
+// TODO: this should be converted to a QR link
 func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error) {
 	if request.Identifier == "" {
 		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil

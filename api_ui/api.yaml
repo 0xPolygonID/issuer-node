@@ -55,7 +55,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthenticationQrCodeResponse'
+                $ref: '#/components/schemas/QrCodeLinkShortResponse'
         '500':
           $ref: '#/components/responses/500'
 
@@ -269,12 +269,12 @@ paths:
           name: status
           schema:
             type: string
-            enum: [all, revoked, expired]
+            enum: [ all, revoked, expired ]
           description: >
-             Schema type:
-               * `all` - All Schemas. (default value)
-               * `revoked` - Only revoked schemas
-               * `expired` - Only expired schemas
+            Schema type:
+              * `all` - All Schemas. (default value)
+              * `revoked` - Only revoked schemas
+              * `expired` - Only expired schemas
         - in: query
           name: query
           schema:
@@ -403,7 +403,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QrCodeResponse'
+                $ref: '#/components/schemas/QrCodeLinkShortResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -515,7 +515,36 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
+  /v1/qr-store:
+    get:
+      summary: QrCode body
+      operationId: GetQrFromStore
+      description: Returns a previously generated QR code via url shortener method
+      tags:
+        - Agent
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            x-go-type: uuid.UUID
+            x-go-type-import:
+              name: uuid
+              path: github.com/google/uuid
+            example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+      responses:
+        '200':
+          description: A json to generate a QR code
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
 
   #state:
   /v1/state/publish:
@@ -632,7 +661,7 @@ paths:
         '400':
           $ref: '#/components/responses/400'
         '404':
-            $ref: '#/components/responses/404'
+          $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
 
@@ -1029,7 +1058,8 @@ components:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
         qrCode:
-          $ref: '#/components/schemas/AuthenticationQrCodeResponse'
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
@@ -1107,7 +1137,7 @@ components:
           type: array
           items:
             type: string
-          example: ["BJJSignature2021"]
+          example: [ "BJJSignature2021" ]
         createdAt:
           type: string
           format: date-time
@@ -1274,7 +1304,7 @@ components:
           example: 2023-03-17T10:18:01.400722+01:00
         status:
           type: string
-          enum: [created, pending, published, failed]
+          enum: [ created, pending, published, failed ]
           example: published
 
     StateStatusResponse:
@@ -1521,6 +1551,8 @@ components:
                 value:
                   type: string
 
+    Any:
+      type: null
 
     #Agent
     AgentResponse:
@@ -1554,7 +1586,7 @@ components:
       name: sessionID
       in: query
       required: true
-      description: | 
+      description: |
         Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
       schema:
         type: string
@@ -1580,7 +1612,7 @@ components:
       name: id
       in: path
       required: true
-      description: | 
+      description: |
         UUID parameter, e.g: 8edd8112-c415-11ed-b036-debe37e1cbd6
       schema:
         type: string
