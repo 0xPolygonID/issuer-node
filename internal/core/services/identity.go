@@ -448,7 +448,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 	if err != nil {
 		return "", err
 	}
-	id, err := i.qrService.Store(ctx, raw, 365*24*time.Hour)
+	id, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
 		return "", err
 	}

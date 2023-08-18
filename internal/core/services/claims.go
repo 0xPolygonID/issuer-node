@@ -327,7 +327,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uui
 	if err != nil {
 		return "", err
 	}
-	qrID, err := c.qrService.Store(ctx, raw, 365*24*time.Hour)
+	qrID, err := c.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
 		return "", err
 	}

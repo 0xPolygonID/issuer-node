@@ -13,6 +13,9 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
+// DefaultQRBodyTTL is the default time to live for a QRcode body
+const DefaultQRBodyTTL = 30 * 24 * time.Hour
+
 // ErrQRCodeLinkNotFound is the error returned when a QR code link is not found in the QR storage
 var ErrQRCodeLinkNotFound = errors.New("qr code link not found")
 

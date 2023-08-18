@@ -188,7 +188,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		return nil, err
 	}
 
-	id, err := ls.qrService.Store(ctx, raw, 365*24*time.Hour)
+	id, err := ls.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
 		return nil, err
 	}
