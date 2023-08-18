@@ -399,6 +399,37 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/qr-store:
+    get:
+      summary: QrCode body
+      operationId: GetQrFromStore
+      description: Returns a previously generated QR code via url shortener method
+      tags:
+        - Agent
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            x-go-type: uuid.UUID
+            x-go-type-import:
+              name: uuid
+              path: github.com/google/uuid
+            example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+      responses:
+        '200':
+          description: A json to generate a QR code
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:

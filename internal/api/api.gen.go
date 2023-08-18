@@ -13,6 +13,7 @@ import (
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	"github.com/go-chi/chi/v5"
+	uuid "github.com/google/uuid"
 )
 
 const (
@@ -202,6 +203,11 @@ type N500CreateIdentity struct {
 // AgentTextBody defines parameters for Agent.
 type AgentTextBody = string
 
+// GetQrFromStoreParams defines parameters for GetQrFromStore.
+type GetQrFromStoreParams struct {
+	Id *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
+}
+
 // GetClaimsParams defines parameters for GetClaims.
 type GetClaimsParams struct {
 	// SchemaType Filter per schema type. Example - KYCAgeCredential
@@ -261,6 +267,9 @@ type ServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
+	// QrCode body
+	// (GET /v1/qr-store)
+	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
 	// Get Claims
 	// (GET /v1/{identifier}/claims)
 	GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams)
@@ -336,6 +345,12 @@ func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
 // Create Identity
 // (POST /v1/identities)
 func (_ Unimplemented) CreateIdentity(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// QrCode body
+// (GET /v1/qr-store)
+func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -513,6 +528,34 @@ func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateIdentity(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetQrFromStore operation middleware
+func (siw *ServerInterfaceWrapper) GetQrFromStore(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetQrFromStoreParams
+
+	// ------------- Optional query parameter "id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "id", r.URL.Query(), &params.Id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetQrFromStore(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -977,6 +1020,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/claims", wrapper.GetClaims)
 	})
 	r.Group(func(r chi.Router) {
@@ -1222,6 +1268,50 @@ func (response CreateIdentity401JSONResponse) VisitCreateIdentityResponse(w http
 type CreateIdentity500JSONResponse struct{ N500CreateIdentityJSONResponse }
 
 func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStoreRequestObject struct {
+	Params GetQrFromStoreParams
+}
+
+type GetQrFromStoreResponseObject interface {
+	VisitGetQrFromStoreResponse(w http.ResponseWriter) error
+}
+
+type GetQrFromStore200JSONResponse map[string]interface{}
+
+func (response GetQrFromStore200JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStore400JSONResponse struct{ N400JSONResponse }
+
+func (response GetQrFromStore400JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStore404JSONResponse struct{ N404JSONResponse }
+
+func (response GetQrFromStore404JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetQrFromStore500JSONResponse struct{ N500JSONResponse }
+
+func (response GetQrFromStore500JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -1630,6 +1720,9 @@ type StrictServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
+	// QrCode body
+	// (GET /v1/qr-store)
+	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
 	// Get Claims
 	// (GET /v1/{identifier}/claims)
 	GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error)
@@ -1885,6 +1978,32 @@ func (sh *strictHandler) CreateIdentity(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateIdentityResponseObject); ok {
 		if err := validResponse.VisitCreateIdentityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// GetQrFromStore operation middleware
+func (sh *strictHandler) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
+	var request GetQrFromStoreRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetQrFromStore(ctx, request.(GetQrFromStoreRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetQrFromStore")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetQrFromStoreResponseObject); ok {
+		if err := validResponse.VisitGetQrFromStoreResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

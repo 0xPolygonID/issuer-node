@@ -56,7 +56,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -184,7 +184,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
@@ -339,7 +339,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	pubSub := pubsub.NewMock()
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub, ipfsGateway)
 
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(ctx, server)
 
 	iden, err := identityService.Create(ctx, method, blockchain, network, "polygon-test")
@@ -496,7 +496,7 @@ func TestServer_GetIdentities(t *testing.T) {
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
@@ -584,7 +584,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -719,7 +719,7 @@ func TestServer_GetClaim(t *testing.T) {
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -892,7 +892,7 @@ func TestServer_GetClaims(t *testing.T) {
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
 
 	fixture := tests.NewFixture(storage)
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	ctx := context.Background()
 	identityMultipleClaims, err := server.identityService.Create(ctx, method, blockchain, network, "https://localhost.com")
@@ -1220,7 +1220,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
-	server := NewServer(&cfg, identityService, claimsService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

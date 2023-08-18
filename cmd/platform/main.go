@@ -179,7 +179,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, publisher, packageManager, serverHealth),
+			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
