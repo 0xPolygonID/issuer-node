@@ -134,7 +134,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	sessionRepository := repositories.NewSessionCached(cachex)
 
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, sessionRepository, pubsub.NewMock())
-	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewConnectionsMock(), NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, identityService, NewClaimsMock(), NewSchemaMock(), NewConnectionsMock(), NewLinkMock(), qrService, NewPublisherMock(), NewPackageManagerMock(), nil)
 	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID
@@ -198,7 +198,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				assert.Equal(t, v.From, realQR.From)
 				assert.Equal(t, v.Body.Scope, realQR.Body.Scope)
 				assert.Equal(t, v.Body.Reason, realQR.Body.Reason)
-				assert.True(t, strings.Contains(v.Body.CallbackURL, realQR.Body.CallbackURL))
+				assert.True(t, strings.Contains(realQR.Body.CallbackURL, v.Body.CallbackURL))
 			}
 		})
 	}
