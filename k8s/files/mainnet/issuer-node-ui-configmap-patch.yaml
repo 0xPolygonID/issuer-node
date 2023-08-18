@@ -1,0 +1,16 @@
+# This patch file is used to override the default values in the issuer-node--ui-configmap.yaml file.
+
+# ISSUER_API_UI_SERVER_URL is the URL of the issuer-node-api-ui.
+- op: replace
+  path: /data/ISSUER_API_UI_SERVER_URL
+  value: "http://issuer-node-api-ui.mainnet.info"
+
+# Add more issuer-node-ui configuration here.
+
+
+# --- ------------------------------- ---
+# --- This values must not be changed ---
+# --- ------------------------------- ---
+- op: replace
+  path: /data/ISSUER_UI_BLOCK_EXPLORER_URL
+  value: "https://polygonscan.com"

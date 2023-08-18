@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: postgres-secret
+  name: issuer-node-postgres-configmap
   labels:
     app: issuer-node
 data:

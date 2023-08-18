@@ -5,8 +5,8 @@ metadata:
   labels:
     app: issuer-node
 data:
-  # Public API Server UI
-  ISSUER_SERVER_URL: "http://localhost:3001"
+  # Public API Server API or Ingress Entry Point
+  ISSUER_SERVER_URL: http://issuer-node-api.info
   ISSUER_SERVER_PORT: "3001"
   ISSUER_NATIVE_PROOF_GENERATION_ENABLED: "true"
   ISSUER_PUBLISH_KEY_PATH: pbkey
@@ -18,9 +18,18 @@ data:
   ISSUER_API_AUTH_PASSWORD: password
   ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH: iden3
   ISSUER_REVERSE_HASH_SERVICE_ENABLED: "false"
+
+  # Setup the RPC connection to the Ethereum node
   ISSUER_ETHEREUM_URL: https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
+
+  # Use this for mumbai:
   ISSUER_ETHEREUM_CONTRACT_ADDRESS: "0x134B1BE34911E39A8397ec6289782989729807a4"
   ISSUER_ETHEREUM_RESOLVER_PREFIX: polygon:mumbai
+
+  # Use this for mainnet:
+  #ISSUER_ETHEREUM_CONTRACT_ADDRESS=0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D
+  #ISSUER_ETHEREUM_RESOLVER_PREFIX=polygon:main
+
   ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT: "600000"
   ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT: 10s
   ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT: "10"
@@ -33,11 +42,11 @@ data:
   ISSUER_PROVER_SERVER_URL: http://localhost:8002
   ISSUER_PROVER_TIMEOUT: 600s
   ISSUER_CIRCUIT_PATH: "./pkg/credentials/circuits"
-  ISSUER_REDIS_URL: redis://@redis-issuer-node-svc:6379/1
-  # ISSUER_KEY_STORE_TOKEN:
+  ISSUER_REDIS_URL: redis://@issuer-node-redis-svc:6379/1
 
   ISSUER_DB_NAME: platformid
   ISSUER_DB_PORT: "5432"
   ISSUER_DB_USER: polygonid
   ISSUER_DB_PASSWORD: strongpasswordapp
   ISSUER_KEY_STORE_PORT: "8200"
+  ISSUER_VAULT_USERPASS_AUTH_ENABLED: "true"

@@ -1,14 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ui-issuer-node-svc
+  name: issuer-node-ui-svc
   labels:
     app: issuer-node
 spec:
-  type: NodePort
   ports:
     - port: 8080
       targetPort: 80
       protocol: TCP
   selector:
-    app: ui-issuer-node
+    app: issuer-node-ui

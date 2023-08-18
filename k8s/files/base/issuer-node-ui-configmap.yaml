@@ -6,7 +6,7 @@ metadata:
     app: issuer-node
 data:
   # This is the URL of the issuer-node-api-ui service
-  ISSUER_API_UI_SERVER_URL: http://issuer-node.info
+  ISSUER_API_UI_SERVER_URL: http://issuer-node-api-ui.info
   ISSUER_UI_AUTH_USERNAME: user-ui
   ISSUER_UI_AUTH_PASSWORD: password-ui
   ISSUER_UI_BLOCK_EXPLORER_URL: https://mumbai.polygonscan.com
