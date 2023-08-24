@@ -57,6 +57,18 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 	}
 }
 
+
+func(s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (AuthResponse, error){
+	var resp Auth200Response = "Auth request accepted";
+	return resp,nil;
+}
+
+
+func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error){
+	var resp VC200Response = "Request Successfully";
+	return resp,nil;
+}
+
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
 func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
 	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
@@ -69,6 +81,7 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 	}
 	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
+
 
 // GetSchemas returns the list of schemas that match the request.Params.Query filter. If param query is nil it will return all
 func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error) {

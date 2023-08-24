@@ -291,6 +291,21 @@ type StateTransaction struct {
 	TxID        string                 `json:"txID"`
 }
 
+
+
+type AuthenticationRequest struct {
+	UserDID string `json:"key"`
+	Type	string `json:"type"`
+	Id		string `json:"id"`
+	Issuer  string `json:"issuer"`
+}
+
+
+type VCRequest struct {
+	SchemaID string `json:"schemaID"`
+	UserDID uuid.UUID `json:"userDID"`
+}
+
 // StateTransactionStatus defines model for StateTransaction.Status.
 type StateTransactionStatus string
 
@@ -549,6 +564,47 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request)
+	// Request Issuer to verify the DOCs 
+	// (POST /v1/connections/auth)
+	AuthRequest(w http.ResponseWriter, r *http.Request)
+	// Request Issuer to generate the VC for schema.
+	// (POST /v1/requestToVC)
+	RequestForVC(w http.ResponseWriter, r *http.Request)
+}
+
+// Requesting to Issuer to verify there DOC
+func (siw *ServerInterfaceWrapper) AuthRequest(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthRequest(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+
+// Requesting to Issuer to generate the VC for scheema
+func (siw *ServerInterfaceWrapper) RequestForVC(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RequestForVC(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -1689,6 +1745,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/state/transactions", wrapper.GetStateTransactions)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/connections/auth", wrapper.AuthRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/requestForVC", wrapper.RequestForVC)
 	})
 
 	return r
@@ -2901,6 +2963,37 @@ func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsRes
 	return json.NewEncoder(w).Encode(response)
 }
 
+
+type AuthRequestObject struct {AuthenticationRequest}
+
+type AuthResponse interface {
+	VisitAuthResponse(w http.ResponseWriter) error
+}
+
+type Auth200Response string
+func (response Auth200Response) VisitAuthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+
+type VCRequestObject struct {VCRequest}
+
+type VCResponse interface{
+	VistiVCResponse(w http.ResponseWriter) error
+}
+
+type VC200Response string
+
+func (response VC200Response) VistiVCResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -3008,6 +3101,10 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
+	// Authenticate User by PAN or ADHAR
+	AuthRequest(ctx context.Context, request AuthRequestObject) (AuthResponse,error)
+	// Request for Issuer to generate the VC
+	RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse,error)	
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3038,6 +3135,52 @@ type strictHandler struct {
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
 }
+
+func (sh *strictHandler) AuthRequest(w http.ResponseWriter, r *http.Request){
+	var request AuthRequestObject
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthRequest(ctx, request.(AuthRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthResponse); ok {
+		if err := validResponse.VisitAuthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+
+func (sh *strictHandler) RequestForVC(w http.ResponseWriter, r *http.Request){
+	var request VCRequestObject
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RequestForVC(ctx, request.(VCRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RequestForVC")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VCResponse); ok {
+		if err := validResponse.VistiVCResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 
 // GetDocumentation operation middleware
 func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request) {
