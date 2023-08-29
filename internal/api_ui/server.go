@@ -140,13 +140,63 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	_, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Debug(ctx, "error authenticating", err.Error())
 		return AuthCallback500JSONResponse{}, nil
 	}
 
+	created, err := s.createCampaignClaim(ctx, s.cfg.APIUI.IssuerDID, arm.From)
+	if err != nil {
+		log.Error(ctx, "error creating campaign claim", err.Error())
+		return AuthCallback500JSONResponse{}, nil
+	}
+
+	if !created {
+		log.Info(ctx, "claim already exists")
+		return AuthCallback409JSONResponse{N409JSONResponse{"claim already issued"}}, nil
+	}
+
 	return AuthCallback200Response{}, nil
+}
+
+func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string) (bool, error) {
+	credentialSchema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	credentialType := "KYCAgeCredential"
+	//nolint:all
+	credentialSubject := map[string]interface{}{
+		"id":           userDID,
+		"birthday":     19960426,
+		"documentType": 11,
+	}
+	//nolint:all
+	credentialExpiration := time.Now().Add(time.Hour * 24 * 365 * 10)
+
+	claims, err := s.claimService.GetAll(ctx, issuerDID, &ports.ClaimsFilter{
+		Subject:    userDID,
+		SchemaType: credentialType,
+	})
+	if err != nil {
+		log.Error(ctx, "error getting claims", "err", err)
+		return false, err
+	}
+
+	if len(claims) > 0 {
+		log.Info(ctx, "claim already exists")
+		return false, nil
+	}
+
+	credentialRequest := ports.NewCreateClaimRequest(&issuerDID, credentialSchema, credentialSubject, &credentialExpiration, credentialType,
+		nil, nil, nil, common.ToPointer(true), common.ToPointer(false),
+		nil, true)
+
+	_, err = s.claimService.Save(ctx, credentialRequest)
+	if err != nil {
+		log.Error(ctx, "error saving claim", "err", err)
+		return false, err
+	}
+
+	return true, nil
 }
 
 // AuthQRCode returns the qr code for authenticating a user

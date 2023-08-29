@@ -80,6 +80,8 @@ paths:
           description: ok
         '400':
           $ref: '#/components/responses/400'
+        '409':
+          $ref: '#/components/responses/409'
         '500':
           $ref: '#/components/responses/500'
 
@@ -1645,6 +1647,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '404':
       description: 'Entity not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '409':
+      description: 'Conflict'
       content:
         application/json:
           schema:
