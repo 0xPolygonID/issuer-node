@@ -37,13 +37,14 @@ type Server struct {
 	schemaService      ports.SchemaService
 	connectionsService ports.ConnectionsService
 	linkService        ports.LinkService
+	qrService          ports.QrStoreService
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -51,6 +52,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		schemaService:      schemaService,
 		connectionsService: connectionsService,
 		linkService:        linkService,
+		qrService:          qrService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
@@ -153,23 +155,7 @@ func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (Aut
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
-
-	return AuthQRCode200JSONResponse{
-		Body: struct {
-			CallbackUrl string        `json:"callbackUrl"`
-			Reason      string        `json:"reason"`
-			Scope       []interface{} `json:"scope"`
-		}{
-			qrCode.Body.CallbackURL,
-			qrCode.Body.Reason,
-			[]interface{}{},
-		},
-		From: qrCode.From,
-		Id:   qrCode.ID,
-		Thid: qrCode.ThreadID,
-		Typ:  string(qrCode.Typ),
-		Type: string(qrCode.Type),
-	}, nil
+	return NewQrContentResponse([]byte(qrCode)), nil
 }
 
 // GetConnection returns a connection with its related credentials
@@ -563,22 +549,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 			DisplayName: s.cfg.APIUI.IssuerName,
 			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode: AuthenticationQrCodeResponse{
-			Body: struct {
-				CallbackUrl string        `json:"callbackUrl"`
-				Reason      string        `json:"reason"`
-				Scope       []interface{} `json:"scope"`
-			}{
-				CallbackUrl: createLinkQrCodeResponse.QrCode.Body.CallbackURL,
-				Reason:      createLinkQrCodeResponse.QrCode.Body.Reason,
-				Scope:       []interface{}{},
-			},
-			From: createLinkQrCodeResponse.QrCode.From,
-			Id:   createLinkQrCodeResponse.QrCode.ID,
-			Thid: createLinkQrCodeResponse.QrCode.ThreadID,
-			Typ:  string(createLinkQrCodeResponse.QrCode.Typ),
-			Type: string(createLinkQrCodeResponse.QrCode.Type),
-		},
+		QrCode:     createLinkQrCodeResponse.QrCode,
 		SessionID:  createLinkQrCodeResponse.SessionID,
 		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
@@ -586,15 +557,14 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
+	qrLink, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
-
-	return GetCredentialQrCode200JSONResponse(getCredentialQrCodeResponse(credential, s.cfg.APIUI.ServerURL)), nil
+	return NewQrContentResponse([]byte(qrLink)), nil
 }
 
 // CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
@@ -626,6 +596,8 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 }
 
 // GetLinkQRCode - returns te qr code for adding the credential
+//
+//	TODO: Aquí
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
 	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
@@ -681,6 +653,20 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		Typ:      string(agent.Typ),
 		Type:     string(agent.Type),
 	}, nil
+}
+
+// GetQrFromStore is the controller to get qr bodies
+func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error) {
+	if request.Params.Id == nil {
+		log.Warn(ctx, "qr store. Missing id parameter")
+		return GetQrFromStore400JSONResponse{N400JSONResponse{"id is required"}}, nil
+	}
+	body, err := s.qrService.Find(ctx, *request.Params.Id)
+	if err != nil {
+		log.Error(ctx, "qr store. Finding qr", "err", err, "id", *request.Params.Id)
+		return GetQrFromStore500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+	}
+	return NewQrContentResponse(body), nil
 }
 
 func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -44,6 +45,7 @@ var (
 type Link struct {
 	storage          *db.Storage
 	claimsService    ports.ClaimsService
+	qrService        ports.QrStoreService
 	claimRepository  ports.ClaimsRepository
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
@@ -54,10 +56,11 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
+		qrService:        qrService,
 		claimRepository:  claimRepository,
 		linkRepository:   linkRepository,
 		schemaRepository: schemaRepository,
@@ -180,9 +183,19 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		return nil, err
 	}
 
+	raw, err := json.Marshal(qrCode)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := ls.qrService.Store(ctx, raw, DefaultQRBodyTTL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
-		QrCode:    qrCode,
+		QrCode:    ls.qrService.ToURL(serverURL, id),
 		Link:      link,
 	}, nil
 }

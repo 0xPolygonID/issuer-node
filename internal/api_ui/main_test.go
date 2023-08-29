@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 
@@ -11,6 +12,8 @@ import (
 	vaultApi "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -127,6 +130,20 @@ func authOk() (string, string) {
 
 func authWrong() (string, string) {
 	return "", ""
+}
+
+func checkQRfetchURL(t *testing.T, qrLink string) string {
+	t.Helper()
+	qrURL, err := url.Parse(qrLink)
+	require.NoError(t, err)
+	assert.Equal(t, "iden3comm", qrURL.Scheme)
+	vals, err := url.ParseQuery(qrURL.RawQuery)
+	require.NoError(t, err)
+	val, found := vals["request_uri"]
+	require.True(t, found)
+	fetchURL, err := url.QueryUnescape(val[0])
+	require.NoError(t, err)
+	return fetchURL
 }
 
 func lookupPostgresURL() string {

@@ -60,6 +60,7 @@ type identity struct {
 	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
+	qrService               ports.QrStoreService
 	kms                     kms.KMSType
 	verifier                *auth.Verifier
 
@@ -69,7 +70,7 @@ type identity struct {
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -80,6 +81,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		sessionManager:          sessionRepository,
 		storage:                 storage,
 		mtService:               mtservice,
+		qrService:               qrService,
 		kms:                     kms,
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
@@ -423,7 +425,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (string, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 
@@ -438,10 +440,19 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 			Reason:      authReason,
 		},
 	}
+	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
+		return "", err
+	}
 
-	err := i.sessionManager.Set(ctx, sessionID, *qrCode)
-
-	return qrCode, err
+	raw, err := json.Marshal(qrCode)
+	if err != nil {
+		return "", err
+	}
+	id, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
+	if err != nil {
+		return "", err
+	}
+	return i.qrService.ToURL(serverURL, id), nil
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {

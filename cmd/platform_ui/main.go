@@ -102,7 +102,7 @@ func main() {
 		return
 	}
 
-	err = config.CheckDID(ctx, *cfg, vaultCli)
+	err = config.CheckDID(ctx, cfg, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize did", "err", err)
 		return
@@ -163,25 +163,16 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps)
+	qrService := services.NewQrStoreService(cachex)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsService := services.NewClaim(
-		claimsRepository,
-		identityService,
-		mtService,
-		identityStateRepository,
-		schemaLoader,
-		storage,
-		services.ClaimCfg{
-			RHSEnabled: cfg.ReverseHashService.Enabled,
-			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.APIUI.ServerURL,
-		},
-		ps,
-		cfg.IFPS.GatewayURL,
-	)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+		RHSEnabled: cfg.ReverseHashService.Enabled,
+		RHSUrl:     cfg.ReverseHashService.URL,
+		Host:       cfg.APIUI.ServerURL,
+	}, ps, cfg.IFPS.GatewayURL)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
@@ -228,7 +219,7 @@ func main() {
 	)
 	api_ui.HandlerWithOptions(
 		api_ui.NewStrictHandlerWithOptions(
-			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, publisher, packageManager, serverHealth),
+			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, qrService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_ui.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
