@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"errors"
-	"net/url"
+	"fmt"
 	"sync"
 	"time"
 
@@ -60,7 +60,7 @@ func (s *QrStoreService) Store(ctx context.Context, qrCode []byte, ttl time.Dura
 
 // ToURL constructs the url that will be used to get the body of a QR code.
 func (s *QrStoreService) ToURL(hostURL string, id uuid.UUID) string {
-	return "iden3comm://?request_uri=" + url.QueryEscape(hostURL+"/v1/qr-store?id="+id.String())
+	return fmt.Sprintf("iden3comm://?request_uri=%s/v1/qr-store?id=%s", hostURL, id.String())
 }
 
 func (s *QrStoreService) key(id uuid.UUID) string {

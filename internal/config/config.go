@@ -199,7 +199,7 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 }
 
 // CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
-func CheckDID(ctx context.Context, cfg Configuration, vaultCli *api.Client) error {
+func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) error {
 	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
 	if cfg.APIUI.Issuer == "" {
 		log.Info(ctx, "Issuer DID not provided in configuration file. Getting it from vault")

@@ -114,7 +114,7 @@ func main() {
 		panic(err)
 	}
 
-	err = config.CheckDID(ctx, *cfg, vaultCli)
+	err = config.CheckDID(ctx, cfg, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize did", "err", err)
 		return
