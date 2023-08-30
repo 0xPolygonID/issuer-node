@@ -425,8 +425,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (string, error) {
-	sessionID := uuid.New().String()
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, callbackURL string, issuerDID core.DID, sessionID uuid.UUID) (string, error) {
 	reqID := uuid.New().String()
 
 	qrCode := &protocol.AuthorizationRequestMessage{
@@ -436,11 +435,11 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
+			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", callbackURL, sessionID.String()),
 			Reason:      authReason,
 		},
 	}
-	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
+	if err := i.sessionManager.Set(ctx, sessionID.String(), *qrCode); err != nil {
 		return "", err
 	}
 

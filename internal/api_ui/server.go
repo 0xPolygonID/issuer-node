@@ -148,19 +148,18 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 
 	created, err := s.createCampaignClaim(ctx, s.cfg.APIUI.IssuerDID, arm.From)
 	if err != nil {
+		if errors.Is(err, domain.ErrClaimDuplicated) {
+			log.Info(ctx, "claim already exists")
+			return AuthCallback409JSONResponse{N409JSONResponse{"claim already issued"}}, nil
+		}
 		log.Error(ctx, "error creating campaign claim", err.Error())
 		return AuthCallback500JSONResponse{}, nil
 	}
 
-	if !created {
-		log.Info(ctx, "claim already exists")
-		return AuthCallback409JSONResponse{N409JSONResponse{"claim already issued"}}, nil
-	}
-
-	return AuthCallback200Response{}, nil
+	return AuthCallback200JSONResponse{Id: created.ID.String()}, nil
 }
 
-func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string) (bool, error) {
+func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string) (*domain.Claim, error) {
 	credentialSchema := "ipfs://QmVc8YwFxE3vQLmUbuCc9Vjqi6YzdpyqeEwFqSjBinJy9G"
 	credentialType := "PolygonIDEarlyAdopter"
 	//nolint:all
@@ -175,30 +174,30 @@ func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, us
 	})
 	if err != nil {
 		log.Error(ctx, "error getting claims", "err", err)
-		return false, err
+		return nil, err
 	}
 
 	if len(claims) > 0 {
 		log.Info(ctx, "claim already exists")
-		return false, nil
+		return nil, domain.ErrClaimDuplicated
 	}
 
 	credentialRequest := ports.NewCreateClaimRequest(&issuerDID, credentialSchema, credentialSubject, nil, credentialType,
 		nil, nil, nil, common.ToPointer(true), common.ToPointer(false),
 		nil, true)
 
-	_, err = s.claimService.Save(ctx, credentialRequest)
+	cred, err := s.claimService.Save(ctx, credentialRequest)
 	if err != nil {
 		log.Error(ctx, "error saving claim", "err", err)
-		return false, err
+		return nil, err
 	}
 
-	return true, nil
+	return cred, nil
 }
 
 // AuthQRCode returns the qr code for authenticating a user
-func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	qrCode, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
+	qrCode, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.CallbackURL, s.cfg.APIUI.IssuerDID, req.Params.SessionID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}

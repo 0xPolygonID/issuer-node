@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
+
+var ErrClaimDuplicated = errors.New("claim already exists") // ErrClaimDuplicated is the error returned when a claim already exists
 
 // CoreClaim is an alias for the core.Claim struct
 type CoreClaim core.Claim

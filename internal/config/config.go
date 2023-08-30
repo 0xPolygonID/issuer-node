@@ -143,6 +143,7 @@ type APIUI struct {
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
 	IdentityNetwork    string    `mapstructure:"IdentityNetwork" tip:"Server UI API backend Identity Network"`
+	CallbackURL        string    `mapstructure:"CallbackURL" tip:"Server UI API backend callback url"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -172,6 +173,10 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	if c.APIUI.ServerPort == 0 {
 		return fmt.Errorf("a port for the UI API server must be provided")
+	}
+
+	if c.APIUI.CallbackURL == "" {
+		return fmt.Errorf("the UI API callback url must be provided")
 	}
 
 	if c.APIUI.ServerURL == "" {
@@ -380,6 +385,7 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
+	_ = viper.BindEnv("APIUI.CallbackURL", "ISSUER_API_CALLBACK_URL")
 
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
