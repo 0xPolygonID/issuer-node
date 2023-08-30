@@ -46,6 +46,8 @@ paths:
       summary: Get Connection QRCode
       operationId: authQRCode
       description: Authentication qrcode
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
       tags:
         - Auth
         - Connection
@@ -77,7 +79,11 @@ paths:
               example: jwz-token
       responses:
         '200':
-          description: ok
+          description: Authentication callback with Credential ID response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
         '400':
           $ref: '#/components/responses/400'
         '409':
