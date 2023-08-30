@@ -161,20 +161,17 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 }
 
 func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string) (bool, error) {
-	credentialSchema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	credentialType := "KYCAgeCredential"
+	credentialSchema := "ipfs://QmVc8YwFxE3vQLmUbuCc9Vjqi6YzdpyqeEwFqSjBinJy9G"
+	credentialType := "PolygonIDEarlyAdopter"
 	//nolint:all
 	credentialSubject := map[string]interface{}{
-		"id":           userDID,
-		"birthday":     19960426,
-		"documentType": 11,
+		"id":       userDID,
+		"isActive": true,
 	}
-	//nolint:all
-	credentialExpiration := time.Now().Add(time.Hour * 24 * 365 * 10)
 
 	claims, err := s.claimService.GetAll(ctx, issuerDID, &ports.ClaimsFilter{
 		Subject:    userDID,
-		SchemaType: credentialType,
+		SchemaType: "urn:uuid:bf1a9bd5-32fd-4757-95d2-96c97e93cb00",
 	})
 	if err != nil {
 		log.Error(ctx, "error getting claims", "err", err)
@@ -186,7 +183,7 @@ func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, us
 		return false, nil
 	}
 
-	credentialRequest := ports.NewCreateClaimRequest(&issuerDID, credentialSchema, credentialSubject, &credentialExpiration, credentialType,
+	credentialRequest := ports.NewCreateClaimRequest(&issuerDID, credentialSchema, credentialSubject, nil, credentialType,
 		nil, nil, nil, common.ToPointer(true), common.ToPointer(false),
 		nil, true)
 
