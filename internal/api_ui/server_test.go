@@ -140,6 +140,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	server.cfg.APIUI.IssuerDID = *issuerDID
 	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
+	sessionID := uuid.NewString()
 
 	type expected struct {
 		httpCode int
@@ -157,7 +158,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				httpCode: http.StatusOK,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=" + sessionID,
 						Reason:      "authentication",
 						Scope:       nil,
 					},
@@ -170,7 +171,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", "/v1/authentication/qrcode", nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("/v1/authentication/qrcode?sessionID=%s", sessionID), nil)
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -198,7 +199,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				assert.Equal(t, v.From, realQR.From)
 				assert.Equal(t, v.Body.Scope, realQR.Body.Scope)
 				assert.Equal(t, v.Body.Reason, realQR.Body.Reason)
-				assert.True(t, strings.Contains(realQR.Body.CallbackURL, v.Body.CallbackURL))
+				assert.True(t, strings.Contains(v.Body.CallbackURL, realQR.Body.CallbackURL))
 			}
 		})
 	}
