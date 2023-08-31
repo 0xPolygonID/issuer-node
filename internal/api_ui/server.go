@@ -150,7 +150,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 	if err != nil {
 		if errors.Is(err, domain.ErrClaimDuplicated) {
 			log.Info(ctx, "claim already exists")
-			return AuthCallback409JSONResponse{N409JSONResponse{"claim already issued"}}, nil
+			return AuthCallback409JSONResponse{Id: created.ID.String()}, nil
 		}
 		log.Error(ctx, "error creating campaign claim", err.Error())
 		return AuthCallback500JSONResponse{}, nil
@@ -181,7 +181,7 @@ func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, us
 
 	if len(claims) > 0 {
 		log.Info(ctx, "claim already exists")
-		return nil, domain.ErrClaimDuplicated
+		return claims[0], domain.ErrClaimDuplicated
 	}
 
 	credentialRequest := ports.NewCreateClaimRequest(&issuerDID, credentialSchema, credentialSubject, nil, credentialType,
