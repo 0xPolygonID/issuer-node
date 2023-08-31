@@ -131,6 +131,11 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, ErrLoadingSchema
 	}
 
+	if schema.Metadata == nil {
+		log.Error(ctx, "schema metadata is nil", "err", ErrProcessSchema)
+		return nil, ErrProcessSchema
+	}
+
 	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
 	if !ok {
 		log.Error(ctx, "invalid jsonLdContext", "err", ErrJSONLdContext)
