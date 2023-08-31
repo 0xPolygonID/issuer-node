@@ -160,17 +160,19 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 }
 
 func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string) (*domain.Claim, error) {
-	credentialSchema := "ipfs://QmVc8YwFxE3vQLmUbuCc9Vjqi6YzdpyqeEwFqSjBinJy9G"
-	credentialType := "PolygonIDEarlyAdopter"
+	credentialSchema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	credentialType := "KYCAgeCredential"
+
 	//nolint:all
 	credentialSubject := map[string]interface{}{
-		"id":       userDID,
-		"isActive": true,
+		"id":           userDID,
+		"birthday":     19960426,
+		"documentType": 11,
 	}
 
 	claims, err := s.claimService.GetAll(ctx, issuerDID, &ports.ClaimsFilter{
 		Subject:    userDID,
-		SchemaType: "urn:uuid:bf1a9bd5-32fd-4757-95d2-96c97e93cb00",
+		SchemaType: "KYCAgeCredential",
 	})
 	if err != nil {
 		log.Error(ctx, "error getting claims", "err", err)
