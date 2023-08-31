@@ -87,7 +87,11 @@ paths:
         '400':
           $ref: '#/components/responses/400'
         '409':
-          $ref: '#/components/responses/409'
+          description: Authentication callback with Credential ID response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
         '500':
           $ref: '#/components/responses/500'
 
