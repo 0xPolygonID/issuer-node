@@ -39,7 +39,7 @@ func (n *notification) SendCreateCredentialNotification(ctx context.Context, e p
 		return errors.New("sendCredentialNotification unexpected data type")
 	}
 
-	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialIDs)
+	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialIDs, cEvent.CallbackURL)
 }
 
 func (n *notification) SendCreateConnectionNotification(ctx context.Context, e pubsub.Message) error {
@@ -51,7 +51,7 @@ func (n *notification) SendCreateConnectionNotification(ctx context.Context, e p
 	return n.sendCreateConnectionNotification(ctx, cEvent.IssuerID, cEvent.ConnectionID)
 }
 
-func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credIDs []string) error {
+func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credIDs []string, callBackURL string) error {
 	issuerDID, err := core.ParseDID(issuerID)
 	if err != nil {
 		log.Error(ctx, "sendCreateCredentialNotification: failed to parse issuerID", "err", err.Error(), "issuerID", issuerID)
@@ -91,7 +91,7 @@ func (n *notification) sendCreateCredentialNotification(ctx context.Context, iss
 		credentials[i] = credential
 	}
 
-	credOfferBytes, subjectDIDDoc, err := getCredentialOfferData(connection, credentials...)
+	credOfferBytes, subjectDIDDoc, err := getCredentialOfferData(connection, callBackURL, credentials...)
 	if err != nil {
 		log.Error(ctx, "sendCreateCredentialNotification: getCredentialOfferData", "err", err.Error(), "issuerID", issuerID)
 		return err
@@ -133,7 +133,7 @@ func (n *notification) sendCreateConnectionNotification(ctx context.Context, iss
 		return err
 	}
 
-	credOfferBytes, subjectDIDDoc, err := getCredentialOfferData(conn, credentials...)
+	credOfferBytes, subjectDIDDoc, err := getCredentialOfferData(conn, "", credentials...)
 	if err != nil {
 		log.Error(ctx, "sendCreateConnectionNotification: getCredentialOfferData", "err", err.Error(), "issuerID", issuerID, "connID", connID)
 		return err
@@ -159,7 +159,7 @@ func (n *notification) send(ctx context.Context, credOfferBytes []byte, subjectD
 	return nil
 }
 
-func getCredentialOfferData(conn *domain.Connection, credentials ...*domain.Claim) (credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument, err error) {
+func getCredentialOfferData(conn *domain.Connection, callBackURL string, credentials ...*domain.Claim) (credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument, err error) {
 	var managedDIDDoc verifiable.DIDDocument
 	err = json.Unmarshal(conn.IssuerDoc, &managedDIDDoc)
 	if err != nil {
@@ -171,7 +171,11 @@ func getCredentialOfferData(conn *domain.Connection, credentials ...*domain.Clai
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal managedService, err: %v", err.Error())
 	}
 
-	credOfferBytes, err = notifications.NewOfferMsg(managedService.ServiceEndpoint, credentials...)
+	if callBackURL == "" {
+		callBackURL = managedService.ServiceEndpoint
+	}
+
+	credOfferBytes, err = notifications.NewOfferMsg(callBackURL, credentials...)
 	if err != nil {
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("newOfferMsg, err: %v", err.Error())
 	}

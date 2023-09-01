@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/iden3/go-schema-processor/verifiable"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"

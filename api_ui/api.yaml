@@ -409,6 +409,7 @@ paths:
         - Credential
       parameters:
         - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/sessionID'
       responses:
         '200':
           description: ok

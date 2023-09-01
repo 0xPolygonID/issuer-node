@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
@@ -146,7 +147,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 		return AuthCallback500JSONResponse{}, nil
 	}
 
-	created, err := s.createCampaignClaim(ctx, s.cfg.APIUI.IssuerDID, arm.From)
+	created, err := s.createCampaignClaim(ctx, s.cfg.APIUI.IssuerDID, arm.From, request.Params.SessionID)
 	if err != nil {
 		if errors.Is(err, domain.ErrClaimDuplicated) {
 			log.Info(ctx, "claim already exists")
@@ -159,18 +160,19 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 	return AuthCallback200JSONResponse{Id: created.ID.String()}, nil
 }
 
-func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string) (*domain.Claim, error) {
-	credentialSchema := "ipfs://QmVc8YwFxE3vQLmUbuCc9Vjqi6YzdpyqeEwFqSjBinJy9G"
-	credentialType := "PolygonIDEarlyAdopter"
+func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string, sessionID uuid.UUID) (*domain.Claim, error) {
+	credentialSchema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	credentialType := "KYCAgeCredential"
 	//nolint:all
 	credentialSubject := map[string]interface{}{
-		"id":       userDID,
-		"isActive": true,
+		"id":           userDID,
+		"birthday":     19960424,
+		"documentType": 100330,
 	}
 
 	claims, err := s.claimService.GetAll(ctx, issuerDID, &ports.ClaimsFilter{
 		Subject:    userDID,
-		SchemaType: "urn:uuid:bf1a9bd5-32fd-4757-95d2-96c97e93cb00",
+		SchemaType: "KYCAgeCredential",
 	})
 	if err != nil {
 		log.Error(ctx, "error getting claims", "err", err)
@@ -185,6 +187,7 @@ func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, us
 	credentialRequest := ports.NewCreateClaimRequest(&issuerDID, credentialSchema, credentialSubject, nil, credentialType,
 		nil, nil, nil, common.ToPointer(true), common.ToPointer(false),
 		nil, true)
+	credentialRequest.CallbackURL = fmt.Sprintf("%s/v1/agent?sessionID=%s", s.cfg.APIUI.CallbackURL, sessionID.String())
 
 	cred, err := s.claimService.Save(ctx, credentialRequest)
 	if err != nil {
@@ -603,8 +606,9 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	qrLink, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+	qrLink, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL, s.cfg.APIUI.CallbackURL, request.Params.SessionID)
 	if err != nil {
+		log.Error(ctx, "error getting credential qr code", "err", err, "id", request.Id)
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}

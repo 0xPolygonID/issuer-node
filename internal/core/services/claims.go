@@ -103,7 +103,7 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 		return nil, err
 	}
 	if req.SignatureProof {
-		err = c.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{claim.ID.String()}, IssuerID: req.DID.String()})
+		err = c.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{claim.ID.String()}, IssuerID: req.DID.String(), CallbackURL: req.CallbackURL})
 		if err != nil {
 			log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", claim.ID.String())
 		}
@@ -290,7 +290,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 }
 
 // GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
-func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string) (string, error) {
+func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string, callbackURL string, sessionID uuid.UUID) (string, error) {
 	getCredentialType := func(credentialType string) string {
 		const schemaParts = 2
 		parse := strings.Split(credentialType, "#")
@@ -313,7 +313,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uui
 					ID:          claim.ID.String(),
 				},
 			},
-			URL: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
+			URL: fmt.Sprintf("%s/v1/agent?sessionID=%s", strings.TrimSuffix(callbackURL, "/"), sessionID.String()),
 		},
 		From:     claim.Issuer,
 		ID:       credID.String(),

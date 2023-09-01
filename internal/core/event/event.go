@@ -15,6 +15,7 @@ const (
 type CreateCredential struct {
 	CredentialIDs []string `json:"credentialsID"`
 	IssuerID      string   `json:"issuerID"`
+	CallbackURL   string   `json:"callbackURL"`
 }
 
 // Marshal marshals the event into a pubsub.Message

@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/go-schema-processor/utils"
 	"github.com/iden3/iden3comm/protocol"
 	"github.com/mitchellh/mapstructure"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -1858,7 +1858,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v1/credentials/%s/qrcode", tc.request.Id.String())
+			apiURL := fmt.Sprintf("/v1/credentials/%s/qrcode?sessionID=%s", tc.request.Id.String(), uuid.NewString())
 
 			req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 			require.NoError(t, err)
@@ -2748,7 +2748,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: &openapi_types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
@@ -2765,7 +2765,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: &openapi_types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              false,
@@ -2782,7 +2782,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: &openapi_types.Date{Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)},
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
@@ -2833,7 +2833,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: &openapi_types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{},
 				MtProof:              true,
@@ -2850,7 +2850,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: &openapi_types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": true},
 				MtProof:              true,
@@ -2867,7 +2867,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             uuid.New(),
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: &openapi_types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
