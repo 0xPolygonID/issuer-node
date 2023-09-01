@@ -30,6 +30,9 @@ type CreateClaimRequest struct {
 	MTProof               bool
 	LinkID                *uuid.UUID
 	SingleIssuer          bool
+
+	// campaign variables
+	CallbackURL string
 }
 
 // AgentRequest struct
@@ -184,7 +187,7 @@ type ClaimsService interface {
 	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID core.DID) error
 	GetRevocationStatus(ctx context.Context, issuerDID core.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error)
-	GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string) (string, error)
+	GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string, callbackURL string, sessionID uuid.UUID) (string, error)
 	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error)
 	GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error)
