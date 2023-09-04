@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
@@ -17,7 +16,7 @@ import (
 // CreateQRCodeResponse - is the result of creating a link QRcode.
 type CreateQRCodeResponse struct {
 	Link      *domain.Link
-	QrCode    *protocol.AuthorizationRequestMessage
+	QrCode    string
 	SessionID string
 }
 

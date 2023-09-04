@@ -58,6 +58,7 @@ type claim struct {
 	icRepo                  ports.ClaimsRepository
 	identitySrv             ports.IdentityService
 	mtService               ports.MtService
+	qrService               ports.QrStoreService
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
 	loaderFactory           loader.Factory
@@ -66,7 +67,7 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -76,6 +77,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, mtServ
 		icRepo:                  repo,
 		identitySrv:             idenSrv,
 		mtService:               mtService,
+		qrService:               qrService,
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
 		loaderFactory:           ld,
@@ -285,6 +287,51 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 	}
 
 	return claim, nil
+}
+
+// GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
+func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string) (string, error) {
+	getCredentialType := func(credentialType string) string {
+		const schemaParts = 2
+		parse := strings.Split(credentialType, "#")
+		if len(parse) != schemaParts {
+			return credentialType
+		}
+		return parse[1]
+	}
+
+	claim, err := c.GetByID(ctx, issID, id)
+	if err != nil {
+		return "", err
+	}
+	credID := uuid.New()
+	qrCode := protocol.CredentialsOfferMessage{
+		Body: protocol.CredentialsOfferMessageBody{
+			Credentials: []protocol.CredentialOffer{
+				{
+					Description: getCredentialType(claim.SchemaType),
+					ID:          claim.ID.String(),
+				},
+			},
+			URL: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
+		},
+		From:     claim.Issuer,
+		ID:       credID.String(),
+		ThreadID: credID.String(),
+		To:       claim.OtherIdentifier,
+		Typ:      packers.MediaTypePlainMessage,
+		Type:     protocol.CredentialOfferMessageType,
+	}
+
+	raw, err := json.Marshal(qrCode)
+	if err != nil {
+		return "", err
+	}
+	qrID, err := c.qrService.Store(ctx, raw, DefaultQRBodyTTL)
+	if err != nil {
+		return "", err
+	}
+	return c.qrService.ToURL(hostURL, qrID), nil
 }
 
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
