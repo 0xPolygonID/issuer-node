@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.apiUiIssuerNode.configMap.issuerApiName }}
+  labels:
+    {{- include "polygon-id-issuer.staticLabel" . | nindent 4}}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+data:
+  {{- if eq .Values.ingressEnabled true }}
+  ISSUER_API_UI_SERVER_URL: http://{{ .Values.appdomain }}
+  {{- else }}
+  ISSUER_API_UI_SERVER_URL: "http://{{ .Values.publicIP }}:{{ .Values.apiUiIssuerNode.service.nodePort }}"
+  {{- end }}
+  ISSUER_API_UI_SERVER_PORT: {{ .Values.apiUiIssuerNode.configMap.issuerApiUiServerPort | quote }}
+  ISSUER_API_UI_AUTH_PASSWORD: {{ .Values.apiUiIssuerNode.configMap.issuerApiUiAuthPassword }}
+  ISSUER_API_UI_AUTH_USER: {{ .Values.apiUiIssuerNode.configMap.issuerApiUiAuthUser }}
+  ISSUER_API_UI_ISSUER_NAME: {{ .Values.issuerName }}
+  ISSUER_API_UI_SCHEMA_CACHE: {{ .Values.apiUiIssuerNode.configMap.issuerApiUiSchemaCache | quote }}
+  ISSUER_API_IDENTITY_BLOCKCHAIN: {{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityBlockchain }}
+  ISSUER_API_IDENTITY_METHOD: {{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityMethod }}  
+  {{- if eq .Values.mainnet true }}
+  ISSUER_API_IDENTITY_NETWORK: {{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMain }}   
+  {{- else }}
+  ISSUER_API_IDENTITY_NETWORK: {{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMumbai }}   
+  {{- end }}
+  ISSUER_API_ENVIRONMENT: {{ .Values.apiUiIssuerNode.configMap.issuerApiEnvironment }}

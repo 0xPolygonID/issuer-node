@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.apiIssuerNode.deployment.name }}
+  labels:
+    {{- include "polygon-id-issuer.apiIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.apiIssuerNode.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+      {{- include "polygon-id-issuer.apiIssuerNode.Labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "polygon-id-issuer.apiIssuerNode.Labels" . | nindent 8 }}
+        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: issuer-node-service-account
+      containers:
+        - name: {{ .Values.apiIssuerNode.deployment.containerName }}
+          image: {{ .Values.apiIssuerNode.deployment.image.repository }}:{{ .Values.apiIssuerNode.deployment.image.tag }}
+          imagePullPolicy: {{ .Values.apiIssuerNode.deployment.imagePullPolicy | quote }}
+          ports:
+          - containerPort: {{ .Values.apiIssuerNode.deployment.containerPort }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.apiIssuerNode.deployment.apiconfigMapRef }}
+          args: {{ .Values.apiIssuerNode.deployment.args }}
+          command: {{ .Values.apiIssuerNode.deployment.command }}
+          env:
+          - name: {{ include "helpers.issuer-db-url" .}}
+            value: {{ quote .Values.apiIssuerNode.deployment.env.issuerDatabaseUrl }}
+          - name: {{ include "helpers.issuer-key-store-addr" .}}
+            value: {{ quote .Values.apiIssuerNode.deployment.env.issuerKeyStoreAddress }}          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.apiIssuerNode.deployment.livenessProbe.path }}
+              port: {{ .Values.apiIssuerNode.deployment.livenessProbe.port }}
+              httpHeaders:
+              - name: {{ .Values.apiIssuerNode.deployment.livenessProbe.name }}
+                value: {{ .Values.apiIssuerNode.deployment.livenessProbe.value }}
+            initialDelaySeconds: {{ .Values.apiIssuerNode.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.apiIssuerNode.deployment.livenessProbe.periodSeconds }}

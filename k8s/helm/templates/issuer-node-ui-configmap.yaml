@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.uiIssuerNode.configMap.issuerApiUiName  }}
+  labels:
+    {{- include "polygon-id-issuer.staticLabel" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+data:
+  {{- if eq .Values.ingressEnabled true }}
+  ISSUER_API_UI_SERVER_URL: http://{{ .Values.appdomain }}
+  {{- else }}
+  ISSUER_API_UI_SERVER_URL: "http://{{ .Values.publicIP }}:{{ .Values.apiUiIssuerNode.service.nodePort }}"
+  {{- end }}
+  ISSUER_UI_AUTH_PASSWORD: {{ .Values.uiPassword }}
+  ISSUER_UI_AUTH_USERNAME: {{ .Values.uiIssuerNode.configMap.issuerUiAuthUsername }}
+  {{- if eq .Values.mainnet true }}
+  ISSUER_UI_BLOCK_EXPLORER_URL: {{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlMain }}   
+  {{- else }}
+  ISSUER_UI_BLOCK_EXPLORER_URL: {{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlMumbai }}   
+  {{- end }}
+  ISSUER_API_UI_AUTH_USER: {{ .Values.uiIssuerNode.configMap.issuerApiUiAuthUser }}
+  ISSUER_API_UI_AUTH_PASSWORD: {{ .Values.uiIssuerNode.configMap.issuerApiUiAuthPassword }}
+  ISSUER_API_UI_ISSUER_NAME: {{ .Values.issuerName }}
+  ISSUER_UI_IPFS_GATEWAY_URL: {{ .Values.uiIssuerNode.configMap.issuerUiIpfsGatewayUrl }}
+  ISSUER_UI_SCHEMA_EXPLORER_AND_BUILDER_URL: {{ .Values.uiIssuerNode.configMap.issuerUiSchemaExplorerAndBuilderUrl }}

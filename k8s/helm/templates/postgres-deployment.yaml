@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.postgresIssuerNode.deployment.name }}
+  labels:
+    {{- include "polygon-id-issuer.postgresIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.postgresIssuerNode.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "polygon-id-issuer.postgresIssuerNode.Labels" . | nindent 6 }}
+      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "polygon-id-issuer.postgresIssuerNode.Labels" . | nindent 8 }}
+        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: issuer-node-service-account
+      containers:
+        - name: {{ .Values.postgresIssuerNode.deployment.containerName }}
+          image: {{ .Values.postgresIssuerNode.deployment.image.repository }}:{{ .Values.postgresIssuerNode.deployment.image.tag }}
+          imagePullPolicy: {{ .Values.postgresIssuerNode.deployment.imagePullPolicy | quote}}
+          ports:
+          - containerPort: {{ .Values.postgresIssuerNode.deployment.containerPort }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.postgresIssuerNode.deployment.postgresconfigMapRef }}
+          volumeMounts: {{- toYaml .Values.postgresIssuerNode.deployment.volumeMounts | nindent 10 }}
+      volumes:
+      - name: {{ .Values.postgresIssuerNode.pvc.volumeName }}
+        persistentVolumeClaim:
+            claimName: {{ .Values.postgresIssuerNode.pvc.postgres }}
+      - name: {{ .Values.postgresIssuerNode.deployment.volumeName }}
+        configMap:
+          defaultMode: 0644
+          items:
+          - key: {{ .Values.postgresIssuerNode.deployment.items }}
+            path: {{ .Values.postgresIssuerNode.deployment.items }}
+          name: {{ .Values.postgresIssuerNode.deployment.postgresconfigMapRef }}
+        

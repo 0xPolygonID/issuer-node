@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.uiIssuerNode.deployment.name}}
+  labels:
+    {{- include "polygon-id-issuer.uiIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.uiIssuerNode.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "polygon-id-issuer.uiIssuerNode.Labels" . | nindent 6 }}
+      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "polygon-id-issuer.uiIssuerNode.Labels" . | nindent 8 }}
+        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.uiIssuerNode.deployment.containerName }}
+          image: {{ .Values.uiIssuerNode.deployment.image.repository }}:{{ .Values.uiIssuerNode.deployment.image.tag }}
+          imagePullPolicy: {{ .Values.uiIssuerNode.deployment.imagePullPolicy | quote }}
+          ports:
+          - containerPort: {{ .Values.uiIssuerNode.deployment.containerPort }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.uiIssuerNode.deployment.uiconfigMapRef }}

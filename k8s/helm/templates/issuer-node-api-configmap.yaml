@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.apiIssuerNode.configMap.issuerName }}
+  labels:
+    {{- include "polygon-id-issuer.staticLabel" . | nindent 4}}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+data:
+  {{- if eq .Values.ingressEnabled true }}
+  ISSUER_SERVER_URL: http://{{ .Values.apidomain }}
+  {{- else }}
+  ISSUER_SERVER_URL: "http://{{ .Values.publicIP }}:{{ .Values.apiIssuerNode.service.nodePort }}"
+  {{- end }}
+
+  ISSUER_SERVER_PORT: {{ .Values.apiIssuerNode.configMap.issuerServerPort | quote }}
+  ISSUER_NATIVE_PROOF_GENERATION_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerNativeProofGenerationEnabled | quote }}
+  ISSUER_PUBLISH_KEY_PATH: {{ .Values.apiIssuerNode.configMap.issuerPublishKeyPath }}
+  ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY: {{ .Values.apiIssuerNode.configMap.issuerOnchainCheckStatusFrequency }}
+  ISSUER_ONCHAIN_PUBLISH_STATE_FREQUENCY: {{ .Values.apiIssuerNode.configMap.issuerOnchainPublishStateFrequency }}
+  ISSUER_LOG_LEVEL: {{ .Values.apiIssuerNode.configMap.issuerLogLevel | quote }}
+  ISSUER_LOG_MODE: {{ .Values.apiIssuerNode.configMap.issuerLogMode | quote }}
+  ISSUER_API_AUTH_PASSWORD: {{ .Values.apiIssuerNode.configMap.issuerApiAuthPassword }}
+  ISSUER_API_AUTH_USER: {{ .Values.apiIssuerNode.configMap.issuerApiAuthUser }}
+  ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH: {{ .Values.apiIssuerNode.configMap.issuerKeyStorePluginIden3MountPath }}
+  ISSUER_REVERSE_HASH_SERVICE_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerReverseHashServiceEnabled
+    | quote }}
+  ISSUER_ETHEREUM_URL: {{ .Values.issuerEthereumUrl  }}
+  
+  {{- if eq .Values.mainnet true }}
+  ISSUER_ETHEREUM_CONTRACT_ADDRESS: {{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMain }}
+  ISSUER_ETHEREUM_RESOLVER_PREFIX: {{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMain }}
+  {{- else }}
+  ISSUER_ETHEREUM_CONTRACT_ADDRESS: {{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMumbai }}
+  ISSUER_ETHEREUM_RESOLVER_PREFIX: {{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMumbai }}
+  {{- end }}
+
+  ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT: {{ .Values.apiIssuerNode.configMap.issuerEthereumDefaultGasLimit
+    | quote }}
+  ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT: {{ .Values.apiIssuerNode.configMap.issuerEthereumConfirmationTimeOut }}
+  ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT: {{ .Values.apiIssuerNode.configMap.issuerEthereumConfirmationBlockCount
+    | quote }}
+  ISSUER_ETHEREUM_MAX_GAS_PRICE: {{ .Values.apiIssuerNode.configMap.issuerEthereumMaxGasPrice
+    | quote }}
+  ISSUER_ETHEREUM_MIN_GAS_PRICE: {{ .Values.apiIssuerNode.configMap.issuerEthereumMinGasPrice
+    | quote }}
+  ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT: {{ .Values.apiIssuerNode.configMap.issuerEthereumRpcResponseTimeout }}
+  ISSUER_ETHEREUM_RECEIPT_TIMEOUT: {{ .Values.apiIssuerNode.configMap.issuerEthereumReceiptTimeout }}
+  ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME: {{ .Values.apiIssuerNode.configMap.issuerEthereumWaitBlockCycleTime }}
+  ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME: {{ .Values.apiIssuerNode.configMap.issuerEthereumWaitReceiptCycleTime }}
+  ISSUER_PROVER_SERVER_URL: {{ .Values.apiIssuerNode.configMap.issuerProverServerUrl }}
+  ISSUER_PROVER_TIMEOUT: {{ .Values.apiIssuerNode.configMap.issuerProverTimeout  }}
+  ISSUER_CIRCUIT_PATH: {{ .Values.apiIssuerNode.configMap.issuerCircuitPath | quote
+    }}
+  ISSUER_REDIS_URL: {{ .Values.apiIssuerNode.configMap.issuerRedisUrl }}
+  ISSUER_DB_NAME: {{ .Values.apiIssuerNode.configMap.issuerDbName  }}
+  ISSUER_DB_PASSWORD: {{ .Values.apiIssuerNode.configMap.issuerDbPassword }}
+  ISSUER_DB_PORT: {{ .Values.apiIssuerNode.configMap.issuerDbPort | quote }}
+  ISSUER_DB_USER: {{ .Values.apiIssuerNode.configMap.issuerDbUser }}
+  ISSUER_KEY_STORE_PORT: {{ .Values.apiIssuerNode.configMap.issuerKeyStorePort | quote }}
+  
+  ISSUER_VAULT_USERPASS_AUTH_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerVaultUserpassAuthEnabled | quote }}
+  ISSUER_VAULT_USERPASS_AUTH_PASSWORD: {{ .Values.vaultpwd | quote }}
+
+  
+  
