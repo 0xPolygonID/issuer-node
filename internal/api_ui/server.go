@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	// "github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
@@ -40,10 +41,11 @@ type Server struct {
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
+	requestServer	   ports.RequestService
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, requestServer ports.RequestService) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -54,6 +56,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
+		requestServer:		requestServer,
 	}
 }
 
@@ -65,8 +68,31 @@ func(s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (Aut
 
 
 func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error){
-	var resp VC200Response = "Request Successfully";
+	var resp VC200Response = "Requested Successfully";
+	if (request.SchemaID == " "){
+		log.Debug(ctx, "empty request body auth-callback request")
+		return (VCResponse(VC200Response("Request is empty"))),nil
+	}
+	err := s.requestServer.CreateRequest(ctx,request.UserDID,request.SchemaID)
+	if err != nil{
+		return nil,err;
+	}
 	return resp,nil;
+}
+
+
+
+func(s *Server) GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse, error){
+	var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+
+
+
+	if (request.Id.String() == " "){
+		log.Debug(ctx, "empty request body auth-callback request")
+		return (GetRequestResponse(GetRequest200Response("Request print at log"))),nil
+	}
+	s.requestServer.GetRequest(ctx,request.Id)
+	return resp ,nil;
 }
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.

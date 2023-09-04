@@ -570,6 +570,9 @@ type ServerInterface interface {
 	// Request Issuer to generate the VC for schema.
 	// (POST /v1/requestToVC)
 	RequestForVC(w http.ResponseWriter, r *http.Request)
+	// Request Issuer to generate the VC for schema.
+	// (POST /v1/requests/{rID})
+	GetRequest(w http.ResponseWriter, r *http.Request,id Id)
 }
 
 // Requesting to Issuer to verify there DOC
@@ -598,6 +601,30 @@ func (siw *ServerInterfaceWrapper) RequestForVC(w http.ResponseWriter, r *http.R
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RequestForVC(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Requesting to Issuer to generate the VC for scheema
+func (siw *ServerInterfaceWrapper) GetRequest(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+	var id Id
+
+	err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRequest(w, r,id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1751,6 +1778,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/requestForVC", wrapper.RequestForVC)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/request/{id}", wrapper.GetRequest)
 	})
 
 	return r
@@ -2979,6 +3009,7 @@ func (response Auth200Response) VisitAuthResponse(w http.ResponseWriter) error {
 }
 
 
+
 type VCRequestObject struct {VCRequest}
 
 type VCResponse interface{
@@ -2992,6 +3023,25 @@ func (response VC200Response) VistiVCResponse(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	return json.NewEncoder(w).Encode(response)
 }
+
+
+type GetRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetRequestResponse interface {
+	VisitGetRequestRespose(w http.ResponseWriter) error
+}
+
+type GetRequest200Response string
+
+func (response GetRequest200Response) VisitGetRequestRespose(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 
 
 // StrictServerInterface represents all server handlers.
@@ -3105,6 +3155,8 @@ type StrictServerInterface interface {
 	AuthRequest(ctx context.Context, request AuthRequestObject) (AuthResponse,error)
 	// Request for Issuer to generate the VC
 	RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse,error)	
+	// Request for Issuer to generate the VC
+	GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse,error)	
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3181,6 +3233,30 @@ func (sh *strictHandler) RequestForVC(w http.ResponseWriter, r *http.Request){
 	}
 }
 
+
+func (sh *strictHandler) GetRequest(w http.ResponseWriter, r *http.Request, id Id){
+	var request GetRequestObject
+
+	request.Id =id;
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRequest(ctx, request.(GetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRequestResponse); ok {
+		if err := validResponse.VisitGetRequestRespose(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
 
 // GetDocumentation operation middleware
 func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request) {
