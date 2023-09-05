@@ -13,7 +13,7 @@ import (
 // IndentityRepository is the interface implemented by the identity service
 type RequestService interface {
 
-	CreateRequest(ctx context.Context,userId uuid.UUID , schemaId string) error
+	CreateRequest(ctx context.Context,userId uuid.UUID , schemaId string)(uuid.UUID,error)
 	GetRequest(ctx context.Context,userId uuid.UUID) error
 	// Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	// GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)

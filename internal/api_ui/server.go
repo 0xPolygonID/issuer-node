@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
+	// "github.com/docker/distribution/uuid"
 	"github.com/go-chi/chi/v5"
-	// "github.com/google/uuid"
+
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
@@ -68,16 +69,17 @@ func(s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (Aut
 
 
 func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error){
-	var resp VC200Response = "Requested Successfully";
+
 	if (request.SchemaID == " "){
 		log.Debug(ctx, "empty request body auth-callback request")
-		return (VCResponse(VC200Response("Request is empty"))),nil
+		return VC500Response{"Request failed: SchemaId was Empty"},nil
 	}
-	err := s.requestServer.CreateRequest(ctx,request.UserDID,request.SchemaID)
+	// var id uuid.UUID;
+	id,err := s.requestServer.CreateRequest(ctx,request.UserDID,request.SchemaID)
 	if err != nil{
 		return nil,err;
 	}
-	return resp,nil;
+	return VC200Response{"Requested Successfully",id},nil;
 }
 
 

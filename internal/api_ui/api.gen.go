@@ -302,7 +302,7 @@ type AuthenticationRequest struct {
 
 
 type VCRequest struct {
-	SchemaID string `json:"schemaID"`
+	SchemaID string `json:"schemaID"` 
 	UserDID uuid.UUID `json:"userDID"`
 }
 
@@ -3016,11 +3016,24 @@ type VCResponse interface{
 	VistiVCResponse(w http.ResponseWriter) error
 }
 
-type VC200Response string
+type VC200Response struct{
+	Msg  string `json:"msg"`
+	Id uuid.UUID `json:"id"`
+}
+
+type VC500Response struct{
+	Msg  string `json:"msg"`
+}
 
 func (response VC200Response) VistiVCResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+func (response VC500Response) VistiVCResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 	return json.NewEncoder(w).Encode(response)
 }
 
