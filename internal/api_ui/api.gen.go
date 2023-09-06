@@ -89,6 +89,18 @@ type CreateCredentialRequest struct {
 	Type              string                 `json:"type"`
 }
 
+type GenerateVCRequest struct {
+	RequestId		uuid.UUID		`json:"requestId"`
+	CredentialSchema  string                 `json:"credentialSchema"`
+	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	Expiration        *time.Time             `json:"expiration,omitempty"`
+	MtProof           *bool                  `json:"mtProof,omitempty"`
+	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
+	Type              string                 `json:"type"`
+}
+
+
+
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
 	CredentialExpiration *openapi_types.Date `json:"credentialExpiration,omitempty"`
@@ -303,7 +315,7 @@ type AuthenticationRequest struct {
 
 type VCRequest struct {
 	SchemaID string `json:"schemaID"` 
-	UserDID uuid.UUID `json:"userDID"`
+	UserDID string `json:"userDID"`
 }
 
 // StateTransactionStatus defines model for StateTransaction.Status.
@@ -445,6 +457,10 @@ type AuthCallbackTextRequestBody = AuthCallbackTextBody
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
 type CreateCredentialJSONRequestBody = CreateCredentialRequest
 
+type GenerateVCJSONRequestBody =GenerateVCRequest
+
+type RequestForVCRequestBody =VCRequest
+
 // CreateLinkJSONRequestBody defines body for CreateLink for application/json ContentType.
 type CreateLinkJSONRequestBody = CreateLinkRequest
 
@@ -573,6 +589,9 @@ type ServerInterface interface {
 	// Request Issuer to generate the VC for schema.
 	// (POST /v1/requests/{rID})
 	GetRequest(w http.ResponseWriter, r *http.Request,id Id)
+	// Generate The VC for request Id 
+	// (POST /v1/generateVC)
+	GenerateVC(w http.ResponseWriter, r *http.Request)
 }
 
 // Requesting to Issuer to verify there DOC
@@ -625,6 +644,28 @@ func (siw *ServerInterfaceWrapper) GetRequest(w http.ResponseWriter, r *http.Req
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRequest(w, r,id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+// Requesting to Issuer to generate the VC for scheema
+func (siw *ServerInterfaceWrapper) GenerateVC(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	// var id Id
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	// err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	// if err != nil {
+	// 	siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+	// 	return
+	// }
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GenerateVC(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1780,7 +1821,10 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/requestForVC", wrapper.RequestForVC)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/request/{id}", wrapper.GetRequest)
+		r.Get(options.BaseURL+"/v1/request/{id}", wrapper.GetRequest)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/generateVC", wrapper.GenerateVC)
 	})
 
 	return r
@@ -2199,6 +2243,10 @@ func (response GetCredentials500JSONResponse) VisitGetCredentialsResponse(w http
 
 type CreateCredentialRequestObject struct {
 	Body *CreateCredentialJSONRequestBody
+}
+
+type GenerateVCRequestObject struct {
+	Body *GenerateVCJSONRequestBody
 }
 
 type CreateCredentialResponseObject interface {
@@ -3010,7 +3058,11 @@ func (response Auth200Response) VisitAuthResponse(w http.ResponseWriter) error {
 
 
 
-type VCRequestObject struct {VCRequest}
+// type VCRequestObject struct {VCRequest}
+
+type VCRequestObject struct {
+	Body *RequestForVCRequestBody
+}
 
 type VCResponse interface{
 	VistiVCResponse(w http.ResponseWriter) error
@@ -3046,7 +3098,13 @@ type GetRequestResponse interface {
 	VisitGetRequestRespose(w http.ResponseWriter) error
 }
 
-type GetRequest200Response string
+type GetRequest200Response struct{
+	Id 	uuid.UUID 	`json:"id"`
+	SchemaID string `json:"schemaID"` 
+	UserDID string `json:"userDID"`
+	IssuerId string	`json:"IssuerId"`
+	Active bool	`json:"Active"`
+}
 
 func (response GetRequest200Response) VisitGetRequestRespose(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -3169,7 +3227,9 @@ type StrictServerInterface interface {
 	// Request for Issuer to generate the VC
 	RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse,error)	
 	// Request for Issuer to generate the VC
-	GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse,error)	
+	GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse,error)
+	
+	GenerateVC(ctx context.Context, request GenerateVCRequestObject)(CreateCredentialResponseObject,error)
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3226,6 +3286,14 @@ func (sh *strictHandler) AuthRequest(w http.ResponseWriter, r *http.Request){
 
 func (sh *strictHandler) RequestForVC(w http.ResponseWriter, r *http.Request){
 	var request VCRequestObject
+
+	var body RequestForVCRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.RequestForVC(ctx, request.(VCRequestObject))
 	}
@@ -3264,6 +3332,37 @@ func (sh *strictHandler) GetRequest(w http.ResponseWriter, r *http.Request, id I
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRequestResponse); ok {
 		if err := validResponse.VisitGetRequestRespose(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+// Generate the VC for requests 
+func (sh *strictHandler) GenerateVC(w http.ResponseWriter, r *http.Request) {
+	var request GenerateVCRequestObject
+
+	var body GenerateVCJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GenerateVC(ctx, request.(GenerateVCRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCredentialResponseObject); ok {
+		if err := validResponse.VisitCreateCredentialResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

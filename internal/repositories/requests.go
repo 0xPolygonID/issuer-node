@@ -19,6 +19,14 @@ import (
 
 type requests struct{}
 
+type Requestresponse struct {
+	id        uuid.UUID
+	schema_id string
+	user_id   string
+	issuer_id string
+	active    bool
+}
+
 func NewRequests() ports.RequestRepository {
 	return &requests{}
 }
@@ -29,12 +37,21 @@ func (i *requests) Save(ctx context.Context, conn db.Querier, request *domain.Re
 	return err
 }
 
-func (i *requests) GetByID(ctx context.Context, conn db.Querier, id uuid.UUID) {
+func (i *requests) GetByID(ctx context.Context, conn db.Querier, id uuid.UUID) domain.Responce {
 	fmt.Println("Getting Dat from id ...", id)
-	err := conn.QueryRow(ctx, `SELECT id,user_id,issuer_id,schema_id,active from requests_for_vc WHERE id = $1`, id)
-
-	fmt.Println("res", err)
+	response := Requestresponse{}
+	res := conn.QueryRow(ctx, `SELECT id, user_id ,issuer_id, schema_id, active from requests_for_vc WHERE id = $1`, id).Scan(
+		&response.id,
+		&response.user_id,
+		&response.issuer_id,
+		&response.schema_id,
+		&response.active,
+	)
+	fmt.Println("response", response)
+	fmt.Println("res", res)
+	// si := res.Scan("schema_id")
 	// return err;
+	return domain.Responce{Id: response.id, SchemaID: response.schema_id, UserDID: response.issuer_id, Issuer_id: response.user_id, Active: response.active}
 }
 
 // func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) error {

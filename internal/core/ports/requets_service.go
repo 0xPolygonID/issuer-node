@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	// // core "github.com/iden3/go-iden3-core"
 	// "github.com/google/uuid"
 	// "github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -13,8 +14,8 @@ import (
 // IndentityRepository is the interface implemented by the identity service
 type RequestService interface {
 
-	CreateRequest(ctx context.Context,userId uuid.UUID , schemaId string)(uuid.UUID,error)
-	GetRequest(ctx context.Context,userId uuid.UUID) error
+	CreateRequest(ctx context.Context,userId string , schemaId string)(uuid.UUID,error)
+	GetRequest(ctx context.Context,Id uuid.UUID)(domain.Responce,error)
 	// Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	// GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)
 	// GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error)

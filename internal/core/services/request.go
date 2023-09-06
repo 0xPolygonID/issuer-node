@@ -24,7 +24,7 @@ func NewRequests(reqRepo ports.RequestRepository, storage *db.Storage) ports.Req
 
 
 
-func ( r *requests) CreateRequest(ctx context.Context,userId uuid.UUID , schemaId string) (uuid.UUID,error){
+func ( r *requests) CreateRequest(ctx context.Context,userId string , schemaId string) (uuid.UUID,error){
 
 	req := &domain.Request{
 		ID: uuid.New(),
@@ -42,8 +42,8 @@ func ( r *requests) CreateRequest(ctx context.Context,userId uuid.UUID , schemaI
 return req.ID, err;
 }
 
-func ( r *requests) GetRequest(ctx context.Context,userId uuid.UUID) error{
+func ( r *requests) GetRequest(ctx context.Context,Id uuid.UUID) (domain.Responce,error){
 
-	r.reqRepo.GetByID(ctx,r.storage.Pgx,userId)
-	return nil;
+	res := r.reqRepo.GetByID(ctx,r.storage.Pgx,Id)
+	return res,nil;
 }
