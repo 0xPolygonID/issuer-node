@@ -6,12 +6,7 @@ metadata:
     {{- include "polygon-id-issuer.staticLabel" . | nindent 4}}
     {{- include "polygon-id-issuer.labels" . | nindent 4 }}
 data:
-  {{- if eq .Values.ingressEnabled true }}
-  ISSUER_SERVER_URL: http://{{ .Values.apidomain }}
-  {{- else }}
-  ISSUER_SERVER_URL: "http://{{ .Values.publicIP }}:{{ .Values.apiIssuerNode.service.nodePort }}"
-  {{- end }}
-
+  ISSUER_SERVER_URL: {{ include "helpers.api-server-url" . | nindent 4}}
   ISSUER_SERVER_PORT: {{ .Values.apiIssuerNode.configMap.issuerServerPort | quote }}
   ISSUER_NATIVE_PROOF_GENERATION_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerNativeProofGenerationEnabled | quote }}
   ISSUER_PUBLISH_KEY_PATH: {{ .Values.apiIssuerNode.configMap.issuerPublishKeyPath }}
@@ -25,14 +20,9 @@ data:
   ISSUER_REVERSE_HASH_SERVICE_ENABLED: {{ .Values.apiIssuerNode.configMap.issuerReverseHashServiceEnabled
     | quote }}
   ISSUER_ETHEREUM_URL: {{ .Values.issuerEthereumUrl  }}
-  
-  {{- if eq .Values.mainnet true }}
-  ISSUER_ETHEREUM_CONTRACT_ADDRESS: {{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMain }}
-  ISSUER_ETHEREUM_RESOLVER_PREFIX: {{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMain }}
-  {{- else }}
-  ISSUER_ETHEREUM_CONTRACT_ADDRESS: {{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMumbai }}
-  ISSUER_ETHEREUM_RESOLVER_PREFIX: {{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMumbai }}
-  {{- end }}
+
+  ISSUER_ETHEREUM_CONTRACT_ADDRESS: {{ include "helpers.issuer-contract-address" . | nindent 4 }}
+  ISSUER_ETHEREUM_RESOLVER_PREFIX: {{ include "helpers.issuer-ethereum-resolver-prefix" . | nindent 4 }}
 
   ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT: {{ .Values.apiIssuerNode.configMap.issuerEthereumDefaultGasLimit
     | quote }}

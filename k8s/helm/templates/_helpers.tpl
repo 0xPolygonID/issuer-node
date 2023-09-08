@@ -24,6 +24,12 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 {{- end }}
 
+
+
+{{/*
+{{- end }}
+{{- end }}
+
 {{/*
 Create chart name and version as used by the chart label.
 */}}
@@ -51,12 +57,79 @@ app.kubernetes.io/name: {{ .Release.Name }}
 {{- end }}
 
 
-
 {{/*
 Define a static label 
 */}}
 {{- define "polygon-id-issuer.staticLabel" -}}
 app: {{ .Values.apiIssuerNode.service.labels.app }}
+{{- end }}
+
+
+{{/*
+Define contract address
+*/}}
+{{- define "helpers.issuer-contract-address" -}}
+{{- if eq .Values.mainnet true }}
+{{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMain }}
+{{- else }}
+{{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMumbai }}
+{{- end }}
+{{- end }}
+
+{{/*
+Define ethereum resolver prefix
+*/}}
+{{- define "helpers.issuer-ethereum-resolver-prefix" -}}
+{{- if eq .Values.mainnet true }}
+{{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMain }}
+{{- else }}
+{{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMumbai }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Define network
+*/}}
+{{- define "helpers.issuer-network" -}}
+{{- if eq .Values.mainnet true }}
+{{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMain }}
+{{- else }}
+{{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMumbai }}
+{{- end }}
+{{- end }}
+
+{{/*
+Define api ui server url
+*/}}
+{{- define "helpers.api-ui-server-url" -}}
+{{- if eq .Values.ingressEnabled true }}
+http://{{ .Values.appdomain }}
+{{- else }}
+http://{{ .Values.publicIP }}:{{ .Values.apiUiIssuerNode.service.nodePort }}
+{{- end }}
+{{- end }}
+
+{{/*
+Define api server url
+*/}}
+{{- define "helpers.api-server-url" -}}
+{{- if eq .Values.ingressEnabled true }}
+http://{{ .Values.apidomain }}
+{{- else }}
+http://{{ .Values.publicIP }}:{{ .Values.apiIssuerNode.service.nodePort }}
+{{- end }}
+{{- end }}
+
+{{/*
+Define block explorer
+*/}}
+{{- define "helpers.issuer-block-explorer" -}}
+{{- if eq .Values.mainnet true }}
+{{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlMain }}
+{{- else }}
+{{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlMumbai }}
+{{- end }}
 {{- end }}
 
 
