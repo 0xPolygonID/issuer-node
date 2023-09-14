@@ -48,9 +48,12 @@ var (
 
 // ClaimCfg claim service configuration
 type ClaimCfg struct {
-	RHSEnabled bool // ReverseHash Enabled
-	RHSUrl     string
-	Host       string
+	RHSEnabled               bool // ReverseHash Enabled
+	OnChainRevocationEnabled bool // OnChainRevocation Enabled
+	ChainID                  uint64
+	RHSUrl                   string
+	Host                     string
+	SCAddress                string
 }
 
 type claim struct {
@@ -658,7 +661,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 }
 
 func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer bool) interface{} {
-	if c.cfg.OnchainRevocationEnabled {
+	if c.cfg.OnChainRevocationEnabled {
 		return &verifiable.CredentialStatus{
 			ID: fmt.Sprintf(
 				"%s/credentialStatus?revocationNonce=%d&contractAddress=%d:%s", issuerDID, nonce, c.cfg.ChainID, c.cfg.SCAddress,

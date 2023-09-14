@@ -30,20 +30,21 @@ type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
-	Database                     Database           `mapstructure:"Database"`
-	Cache                        Cache              `mapstructure:"Cache"`
-	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
-	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
-	Log                          Log                `mapstructure:"Log"`
-	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
-	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
-	Prover                       Prover             `mapstructure:"Prover"`
-	Circuit                      Circuit            `mapstructure:"Circuit"`
-	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
-	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
-	APIUI                        APIUI              `mapstructure:"APIUI"`
-	IFPS                         IPFS               `mapstructure:"IPFS"`
+	Database                     Database                 `mapstructure:"Database"`
+	Cache                        Cache                    `mapstructure:"Cache"`
+	HTTPBasicAuth                HTTPBasicAuth            `mapstructure:"HTTPBasicAuth"`
+	KeyStore                     KeyStore                 `mapstructure:"KeyStore"`
+	Log                          Log                      `mapstructure:"Log"`
+	ReverseHashService           ReverseHashService       `mapstructure:"ReverseHashService"`
+	OnChainRevocationService     OnChainRevocationService `mapstructure:"OnChainRevocation"`
+	Ethereum                     Ethereum                 `mapstructure:"Ethereum"`
+	Prover                       Prover                   `mapstructure:"Prover"`
+	Circuit                      Circuit                  `mapstructure:"Circuit"`
+	PublishingKeyPath            string                   `mapstructure:"PublishingKeyPath"`
+	OnChainCheckStatusFrequency  time.Duration            `mapstructure:"OnChainCheckStatusFrequency"`
+	SchemaCache                  *bool                    `mapstructure:"SchemaCache"`
+	APIUI                        APIUI                    `mapstructure:"APIUI"`
+	IFPS                         IPFS                     `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
 }
@@ -68,6 +69,12 @@ type IPFS struct {
 type ReverseHashService struct {
 	URL     string `mapstructure:"Url" tip:"Reverse Hash Service address"`
 	Enabled bool   `tip:"Reverse hash service enabled"`
+}
+
+type OnChainRevocationService struct {
+	Enabled   bool   `tip:"activate to enable on chain revocation service"`
+	ChainID   uint64 `mapstructure:"ChainID" tip:"ChainID"`
+	SCAddress string `mapstructure:"SCAddress" tip:"Smart contract address"`
 }
 
 // Ethereum struct
@@ -165,7 +172,13 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
-	return nil
+
+	if c.ReverseHashService.Enabled && c.OnChainRevocationService.Enabled {
+		log.Error(ctx, "ISSUER_REVERSE_HASH_SERVICE_ENABLED and ISSUER_ON_CHAIN_REVOCATION_ENABLED cannot be enabled at the same time")
+		return fmt.Errorf("ISSUER_REVERSE_HASH_SERVICE_ENABLED and ISSUER_ON_CHAIN_REVOCATION_ENABLED cannot be enabled at the same time")
+	}
+
+	return c.validateOnChainRevocationService()
 }
 
 // SanitizeAPIUI perform some basic checks and sanitizations in the configuration.
@@ -200,7 +213,12 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
-	return nil
+	if c.ReverseHashService.Enabled && c.OnChainRevocationService.Enabled {
+		log.Error(ctx, "ISSUER_REVERSE_HASH_SERVICE_ENABLED and ISSUER_ON_CHAIN_REVOCATION_ENABLED cannot be enabled at the same time")
+		return fmt.Errorf("ISSUER_REVERSE_HASH_SERVICE_ENABLED and ISSUER_ON_CHAIN_REVOCATION_ENABLED cannot be enabled at the same time")
+	}
+
+	return c.validateOnChainRevocationService()
 }
 
 // CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
@@ -235,6 +253,18 @@ func (c *Configuration) validateServerUrl() (string, error) {
 	}
 	sUrl.RawQuery = ""
 	return strings.Trim(strings.Trim(sUrl.String(), "/"), "?"), nil
+}
+
+func (c *Configuration) validateOnChainRevocationService() error {
+	if c.OnChainRevocationService.Enabled {
+		if c.OnChainRevocationService.ChainID <= 0 {
+			return fmt.Errorf("chainID must be provided")
+		}
+		if c.OnChainRevocationService.SCAddress == "" {
+			return fmt.Errorf("smart contract address must be provided")
+		}
+	}
+	return nil
 }
 
 // Load loads the configuration from a file
@@ -389,6 +419,10 @@ func bindEnv() {
 
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+
+	_ = viper.BindEnv("OnChainRevocationService.Enabled", "ISSUER_ON_CHAIN_REVOCATION_ENABLED")
+	_ = viper.BindEnv("OnChainRevocationService.ChainID", "ISSUER_ON_CHAIN_REVOCATION_CHAIN_ID")
+	_ = viper.BindEnv("OnChainRevocationService.SCAddress", "ISSUER_ON_CHAIN_REVOCATION_SC_ADDRESS")
 
 	viper.AutomaticEnv()
 }
