@@ -658,6 +658,16 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 }
 
 func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer bool) interface{} {
+	if c.cfg.OnchainRevocationEnabled {
+		return &verifiable.CredentialStatus{
+			ID: fmt.Sprintf(
+				"%s/credentialStatus?revocationNonce=%d&contractAddress=%d:%s", issuerDID, nonce, c.cfg.ChainID, c.cfg.SCAddress,
+			),
+			RevocationNonce: nonce,
+			Type:            verifiable.Iden3OnchainSparseMerkleTreeProof2023,
+		}
+	}
+
 	if c.cfg.RHSEnabled {
 		return &verifiable.CredentialStatus{
 			ID:              strings.TrimSuffix(c.cfg.RHSUrl, "/"),
@@ -670,6 +680,7 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer
 			},
 		}
 	}
+
 	return &verifiable.CredentialStatus{
 		ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce, singleIssuer),
 		Type:            verifiable.SparseMerkleTreeProof,
