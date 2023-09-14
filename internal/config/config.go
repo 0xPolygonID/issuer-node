@@ -71,6 +71,7 @@ type ReverseHashService struct {
 	Enabled bool   `tip:"Reverse hash service enabled"`
 }
 
+// OnChainRevocationService contains the on chain revocation service properties
 type OnChainRevocationService struct {
 	Enabled   bool   `tip:"activate to enable on chain revocation service"`
 	ChainID   uint64 `mapstructure:"ChainID" tip:"ChainID"`
