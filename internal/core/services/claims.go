@@ -73,9 +73,12 @@ type claim struct {
 func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
-			RHSEnabled: cfg.RHSEnabled,
-			RHSUrl:     cfg.RHSUrl,
-			Host:       cfg.Host,
+			RHSEnabled:               cfg.RHSEnabled,
+			RHSUrl:                   cfg.RHSUrl,
+			Host:                     cfg.Host,
+			SCAddress:                cfg.SCAddress,
+			OnChainRevocationEnabled: cfg.OnChainRevocationEnabled,
+			ChainID:                  cfg.ChainID,
 		},
 		icRepo:                  repo,
 		identitySrv:             idenSrv,

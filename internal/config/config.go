@@ -36,7 +36,7 @@ type Configuration struct {
 	KeyStore                     KeyStore                 `mapstructure:"KeyStore"`
 	Log                          Log                      `mapstructure:"Log"`
 	ReverseHashService           ReverseHashService       `mapstructure:"ReverseHashService"`
-	OnChainRevocationService     OnChainRevocationService `mapstructure:"OnChainRevocation"`
+	OnChainRevocationService     OnChainRevocationService `mapstructure:"OnChainRevocationService"`
 	Ethereum                     Ethereum                 `mapstructure:"Ethereum"`
 	Prover                       Prover                   `mapstructure:"Prover"`
 	Circuit                      Circuit                  `mapstructure:"Circuit"`
@@ -421,9 +421,9 @@ func bindEnv() {
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 
-	_ = viper.BindEnv("OnChainRevocationService.Enabled", "ISSUER_ON_CHAIN_REVOCATION_ENABLED")
-	_ = viper.BindEnv("OnChainRevocationService.ChainID", "ISSUER_ON_CHAIN_REVOCATION_CHAIN_ID")
-	_ = viper.BindEnv("OnChainRevocationService.SCAddress", "ISSUER_ON_CHAIN_REVOCATION_SC_ADDRESS")
+	_ = viper.BindEnv("OnChainRevocationService.Enabled", "ISSUER_ON_CHAIN_REVOCATION_SERVICE_ENABLED")
+	_ = viper.BindEnv("OnChainRevocationService.ChainID", "ISSUER_ON_CHAIN_REVOCATION_SERVICE_CHAIN_ID")
+	_ = viper.BindEnv("OnChainRevocationService.SCAddress", "ISSUER_ON_CHAIN_REVOCATION_SERVICE_SC_ADDRESS")
 
 	viper.AutomaticEnv()
 }

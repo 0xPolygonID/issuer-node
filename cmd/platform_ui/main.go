@@ -167,9 +167,12 @@ func main() {
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
-		RHSEnabled: cfg.ReverseHashService.Enabled,
-		RHSUrl:     cfg.ReverseHashService.URL,
-		Host:       cfg.APIUI.ServerURL,
+		RHSEnabled:               cfg.ReverseHashService.Enabled,
+		RHSUrl:                   cfg.ReverseHashService.URL,
+		Host:                     cfg.APIUI.ServerURL,
+		SCAddress:                cfg.OnChainRevocationService.SCAddress,
+		OnChainRevocationEnabled: cfg.OnChainRevocationService.Enabled,
+		ChainID:                  cfg.OnChainRevocationService.ChainID,
 	}, ps, cfg.IFPS.GatewayURL)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)

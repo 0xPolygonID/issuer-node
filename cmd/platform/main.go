@@ -134,9 +134,12 @@ func main() {
 	qrService := services.NewQrStoreService(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
-		RHSEnabled: cfg.ReverseHashService.Enabled,
-		RHSUrl:     cfg.ReverseHashService.URL,
-		Host:       cfg.ServerUrl,
+		RHSEnabled:               cfg.ReverseHashService.Enabled,
+		RHSUrl:                   cfg.ReverseHashService.URL,
+		Host:                     cfg.ServerUrl,
+		SCAddress:                cfg.OnChainRevocationService.SCAddress,
+		OnChainRevocationEnabled: cfg.OnChainRevocationService.Enabled,
+		ChainID:                  cfg.OnChainRevocationService.ChainID,
 	}, ps, cfg.IFPS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
