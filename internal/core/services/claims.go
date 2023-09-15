@@ -48,9 +48,12 @@ var (
 
 // ClaimCfg claim service configuration
 type ClaimCfg struct {
-	RHSEnabled bool // ReverseHash Enabled
-	RHSUrl     string
-	Host       string
+	RHSEnabled               bool // ReverseHash Enabled
+	OnChainRevocationEnabled bool // OnChainRevocation Enabled
+	ChainID                  uint64
+	RHSUrl                   string
+	Host                     string
+	SCAddress                string
 }
 
 type claim struct {
@@ -70,9 +73,12 @@ type claim struct {
 func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
-			RHSEnabled: cfg.RHSEnabled,
-			RHSUrl:     cfg.RHSUrl,
-			Host:       cfg.Host,
+			RHSEnabled:               cfg.RHSEnabled,
+			RHSUrl:                   cfg.RHSUrl,
+			Host:                     cfg.Host,
+			SCAddress:                cfg.SCAddress,
+			OnChainRevocationEnabled: cfg.OnChainRevocationEnabled,
+			ChainID:                  cfg.ChainID,
 		},
 		icRepo:                  repo,
 		identitySrv:             idenSrv,
@@ -658,6 +664,16 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 }
 
 func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer bool) interface{} {
+	if c.cfg.OnChainRevocationEnabled {
+		return &verifiable.CredentialStatus{
+			ID: fmt.Sprintf(
+				"%s/credentialStatus?revocationNonce=%d&contractAddress=%d:%s", issuerDID, nonce, c.cfg.ChainID, c.cfg.SCAddress,
+			),
+			RevocationNonce: nonce,
+			Type:            verifiable.Iden3OnchainSparseMerkleTreeProof2023,
+		}
+	}
+
 	if c.cfg.RHSEnabled {
 		return &verifiable.CredentialStatus{
 			ID:              strings.TrimSuffix(c.cfg.RHSUrl, "/"),
@@ -670,6 +686,7 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer
 			},
 		}
 	}
+
 	return &verifiable.CredentialStatus{
 		ID:              buildRevocationURL(c.cfg.Host, issuerDID, nonce, singleIssuer),
 		Type:            verifiable.SparseMerkleTreeProof,

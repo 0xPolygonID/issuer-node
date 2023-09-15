@@ -132,9 +132,12 @@ func main() {
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.ClaimCfg{
-		RHSEnabled: cfg.ReverseHashService.Enabled,
-		RHSUrl:     cfg.ReverseHashService.URL,
-		Host:       cfg.ServerUrl,
+		RHSEnabled:               cfg.ReverseHashService.Enabled,
+		RHSUrl:                   cfg.ReverseHashService.URL,
+		Host:                     cfg.ServerUrl,
+		SCAddress:                cfg.OnChainRevocationService.SCAddress,
+		OnChainRevocationEnabled: cfg.OnChainRevocationService.Enabled,
+		ChainID:                  cfg.OnChainRevocationService.ChainID,
 	}, ps, cfg.IFPS.GatewayURL)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
