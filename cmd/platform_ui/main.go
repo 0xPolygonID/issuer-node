@@ -14,12 +14,14 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
-	auth "github.com/iden3/go-iden3-auth"
-	authLoaders "github.com/iden3/go-iden3-auth/loaders"
-	"github.com/iden3/go-iden3-auth/pubsignals"
-	"github.com/iden3/go-iden3-auth/state"
-	core "github.com/iden3/go-iden3-core"
+	auth "github.com/iden3/go-iden3-auth/v2"
+	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
+	"github.com/iden3/go-iden3-auth/v2/pubsignals"
+	"github.com/iden3/go-iden3-auth/v2/state"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/loaders"
 	proof "github.com/iden3/merkletree-proof"
+	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/api_ui"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -31,14 +33,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -79,11 +80,8 @@ func main() {
 	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
 
-	var schemaLoader loader.Factory
-	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
-	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
-		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
-	}
+	// TODO: Cache only if cfg.APIUI.SchemaCache == true
+	schemaLoader := loaders.NewDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
 
 	vaultCli, err := providers.VaultClient(ctx, providers.Config{
 		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
@@ -134,13 +132,14 @@ func main() {
 		},
 	}
 
-	verifier, err := auth.NewVerifierWithExplicitError(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: cfg.IFPS.GatewayURL}, resolvers)
+	verifier, err := auth.NewVerifier(verificationKeyLoader, resolvers)
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return
 	}
 
-	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
+	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
+	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	if cfg.ReverseHashService.Enabled {
@@ -170,10 +169,10 @@ func main() {
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.APIUI.ServerURL,
-	}, ps, cfg.IFPS.GatewayURL)
+	}, ps, cfg.IPFS.GatewayURL)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)
-	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
+
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
@@ -250,7 +249,7 @@ func main() {
 	log.Info(ctx, "Shutting down")
 }
 
-func identifierExists(ctx context.Context, did *core.DID, service ports.IdentityService) bool {
+func identifierExists(ctx context.Context, did *w3c.DID, service ports.IdentityService) bool {
 	_, err := service.GetByDID(ctx, *did)
 	return err == nil
 }

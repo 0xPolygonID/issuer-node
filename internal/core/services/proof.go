@@ -11,20 +11,23 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/google/uuid"
 	"github.com/iden3/contracts-abi/state/go/abi"
-	"github.com/iden3/go-circuits"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-circuits/v2"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql/v2"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/merklize"
-	"github.com/iden3/go-schema-processor/processor"
-	"github.com/iden3/go-schema-processor/verifiable"
+	jsonSuite "github.com/iden3/go-schema-processor/v2/json"
+	"github.com/iden3/go-schema-processor/v2/merklize"
+	"github.com/iden3/go-schema-processor/v2/processor"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgx/v4"
+	"github.com/piprate/json-gold/ld"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -52,11 +55,11 @@ type Proof struct {
 	keyProvider      *kms.KMS
 	storage          *db.Storage
 	stateContract    *abi.State
-	schemaLoader     loader.Factory
+	schemaLoader     loader.DocumentLoader
 }
 
 // NewProofService init proof service
-func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *abi.State, ld loader.Factory) ports.ProofService {
+func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *abi.State, ld ld.DocumentLoader) ports.ProofService {
 	return &Proof{
 		claimSrv:         claimSrv,
 		revocationSrv:    revocationSrv,
@@ -73,7 +76,7 @@ func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.Revocatio
 // PrepareInputs prepare inputs for circuit.
 //
 //nolint:gocyclo // refactor later to avoid big PR.
-func (p *Proof) PrepareInputs(ctx context.Context, identifier *core.DID, query ports.Query) ([]byte, []*domain.Claim, error) {
+func (p *Proof) PrepareInputs(ctx context.Context, identifier *w3c.DID, query ports.Query) ([]byte, []*domain.Claim, error) {
 	var claims []*domain.Claim
 	var err error
 	var claim *domain.Claim
@@ -114,7 +117,7 @@ func (p *Proof) PrepareInputs(ctx context.Context, identifier *core.DID, query p
 	return inputs, claims, nil
 }
 
-func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *core.DID, query ports.Query) (circuits.InputsMarshaller, *domain.Claim, error) {
+func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *w3c.DID, query ports.Query) (circuits.InputsMarshaller, *domain.Claim, error) {
 	claim, claimNonRevProof, err := p.getClaimDataForAtomicQueryCircuit(ctx, did, query)
 	if err != nil {
 		return nil, nil, err
@@ -130,7 +133,7 @@ func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *core.DI
 		return nil, nil, err
 	}
 
-	issuerDID, err := core.ParseDID(claim.Issuer)
+	issuerDID, err := w3c.ParseDID(claim.Issuer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -166,13 +169,18 @@ func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *core.DI
 		IssuerAuthNonRevProof: issuerAuthNonRevProof,
 	}
 
+	id, err := core.IDFromDID(*did)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	inputs := circuits.AtomicQuerySigV2Inputs{
 		RequestID:                big.NewInt(defaultAtomicCircuitsID),
-		ID:                       &did.ID,
+		ID:                       &id,
 		ProfileNonce:             big.NewInt(0),
 		ClaimSubjectProfileNonce: big.NewInt(0),
 		Claim: circuits.ClaimWithSigProof{
-			IssuerID:       &issuerDID.ID,
+			IssuerID:       &id,
 			Claim:          claim.CoreClaim.Get(),
 			NonRevProof:    *claimNonRevProof,
 			SignatureProof: sig1,
@@ -185,7 +193,7 @@ func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *core.DI
 	return inputs, claim, nil
 }
 
-func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *core.DID, query ports.Query) (circuits.InputsMarshaller, *domain.Claim, error) {
+func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *w3c.DID, query ports.Query) (circuits.InputsMarshaller, *domain.Claim, error) {
 	claim, claimNonRevProof, err := p.getClaimDataForAtomicQueryCircuit(ctx, did, query)
 	if err != nil {
 		return nil, nil, err
@@ -201,13 +209,18 @@ func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *core.DI
 		return nil, nil, err
 	}
 
+	id, err := core.IDFromDID(*did)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	inputs := circuits.AtomicQueryMTPV2Inputs{
 		RequestID:                big.NewInt(defaultAtomicCircuitsID),
-		ID:                       &did.ID,
+		ID:                       &id,
 		ProfileNonce:             big.NewInt(0),
 		ClaimSubjectProfileNonce: big.NewInt(0),
 		Claim: circuits.ClaimWithMTPProof{
-			IssuerID:    &did.ID, // claim.Issuer,
+			IssuerID:    &id, // claim.Issuer,
 			Claim:       claim.CoreClaim.Get(),
 			NonRevProof: *claimNonRevProof,
 			IncProof:    claimInc,
@@ -220,7 +233,7 @@ func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *core.DI
 	return inputs, claim, nil
 }
 
-func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifier *core.DID, query ports.Query) (claim *domain.Claim, revStatus *circuits.MTProof, err error) {
+func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifier *w3c.DID, query ports.Query) (claim *domain.Claim, revStatus *circuits.MTProof, err error) {
 	var claims []*domain.Claim
 
 	if query.ClaimID != "" {
@@ -264,7 +277,7 @@ func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifie
 	return claim, &claimRs, nil
 }
 
-func (p *Proof) findClaimForQuery(ctx context.Context, identifier *core.DID, query ports.Query) ([]*domain.Claim, error) {
+func (p *Proof) findClaimForQuery(ctx context.Context, identifier *w3c.DID, query ports.Query) ([]*domain.Claim, error) {
 	var err error
 
 	// TODO "query_value":    value,
@@ -292,7 +305,7 @@ func (p *Proof) checkRevocationStatus(ctx context.Context, claim *domain.Claim) 
 	if err = json.Unmarshal(claim.CredentialStatus.Bytes, &cs); err != nil {
 		return nil, fmt.Errorf("failed unmasrshal credentialStatus: %s", err)
 	}
-	issuerDID, err := core.ParseDID(claim.Issuer)
+	issuerDID, err := w3c.ParseDID(claim.Issuer)
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +418,7 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 		return circuits.Query{}, err
 	}
 
-	schema, _, err := p.schemaLoader(query.Context).Load(ctx)
+	schema, err := jsonschema.Load(ctx, query.Context, p.schemaLoader)
 	if err != nil {
 		return circuits.Query{}, err
 	}
@@ -413,7 +426,7 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 	fieldPath := merklize.Path{}
 
 	if field != "" {
-		fieldPath, err = merklize.NewFieldPathFromContext(schema, query.Type, field)
+		fieldPath, err = merklize.NewFieldPathFromContext(schema.BytesNoErr(), query.Type, field)
 		if err != nil {
 			return circuits.Query{}, err
 		}
@@ -452,9 +465,9 @@ func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL stri
 	parser := jsonSuite.Parser{}
 	pr := processor.InitProcessorOptions(&processor.Processor{},
 		processor.WithParser(parser),
-		processor.WithSchemaLoader(p.schemaLoader(jsonSchemaURL)))
+		processor.WithDocumentLoader(p.schemaLoader))
 
-	schema, _, err := pr.Load(ctx)
+	schema, err := jsonschema.Load(ctx, jsonSchemaURL, p.schemaLoader)
 	if err != nil {
 		return circuits.Query{}, err
 	}
@@ -468,7 +481,7 @@ func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL stri
 		return circuits.Query{}, err
 	}
 
-	circuitQuery.SlotIndex, err = pr.GetFieldSlotIndex(field, schema)
+	circuitQuery.SlotIndex, err = pr.GetFieldSlotIndex(field, query.Type, schema.BytesNoErr())
 	if err != nil {
 		return circuits.Query{}, err
 	}
@@ -476,7 +489,7 @@ func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL stri
 	return circuitQuery, nil
 }
 
-func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.IssuerData, issuerDID *core.DID) (circuits.MTProof, error) {
+func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.IssuerData, issuerDID *w3c.DID) (circuits.MTProof, error) {
 	nonRevProof, err := p.revocationSrv.Status(ctx, issuerData.CredentialStatus, issuerDID)
 
 	if err != nil && errors.Is(err, protocol.ErrStateNotFound) {
@@ -515,7 +528,7 @@ func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.Issue
 	}, nil
 }
 
-func (p *Proof) prepareAuthV2Circuit(ctx context.Context, identifier *core.DID, challenge *big.Int) (circuits.AuthV2Inputs, error) {
+func (p *Proof) prepareAuthV2Circuit(ctx context.Context, identifier *w3c.DID, challenge *big.Int) (circuits.AuthV2Inputs, error) {
 	authClaim, err := p.claimSrv.GetAuthClaim(ctx, identifier)
 	if err != nil {
 		return circuits.AuthV2Inputs{}, err
@@ -529,11 +542,15 @@ func (p *Proof) prepareAuthV2Circuit(ctx context.Context, identifier *core.DID, 
 	if err != nil {
 		return circuits.AuthV2Inputs{}, err
 	}
-	globalTree, err := populateGlobalTree(ctx, identifier, p.stateContract)
+	globalTree, err := populateGlobalTree(ctx, *identifier, p.stateContract)
 	if err != nil {
 		return circuits.AuthV2Inputs{}, err
 	}
-	circuitInputs := prepareAuthV2CircuitInputs(identifier, authClaimData, challenge, signature, globalTree)
+	id, err := core.IDFromDID(*identifier)
+	if err != nil {
+		return circuits.AuthV2Inputs{}, err
+	}
+	circuitInputs := prepareAuthV2CircuitInputs(id, authClaimData, challenge, signature, globalTree)
 	return circuitInputs, nil
 }
 
@@ -554,7 +571,7 @@ func (p *Proof) signChallange(ctx context.Context, authClaim *domain.Claim, chal
 	return kms.DecodeBJJSignature(sigBytes)
 }
 
-func (p *Proof) fillAuthClaimData(ctx context.Context, identifier *core.DID, authClaim *domain.Claim) (circuits.ClaimWithMTPProof, error) {
+func (p *Proof) fillAuthClaimData(ctx context.Context, identifier *w3c.DID, authClaim *domain.Claim) (circuits.ClaimWithMTPProof, error) {
 	var authClaimData circuits.ClaimWithMTPProof
 
 	err := p.storage.Pgx.BeginFunc(
@@ -613,9 +630,9 @@ func (p *Proof) fillAuthClaimData(ctx context.Context, identifier *core.DID, aut
 	return authClaimData, nil
 }
 
-func prepareAuthV2CircuitInputs(did *core.DID, authClaim circuits.ClaimWithMTPProof, challenge *big.Int, signature *babyjub.Signature, globalMTP circuits.GISTProof) circuits.AuthV2Inputs {
+func prepareAuthV2CircuitInputs(id core.ID, authClaim circuits.ClaimWithMTPProof, challenge *big.Int, signature *babyjub.Signature, globalMTP circuits.GISTProof) circuits.AuthV2Inputs {
 	return circuits.AuthV2Inputs{
-		GenesisID:          &did.ID,
+		GenesisID:          &id,
 		ProfileNonce:       big.NewInt(0),
 		AuthClaim:          authClaim.Claim,
 		AuthClaimIncMtp:    authClaim.IncProof.Proof,
@@ -627,9 +644,13 @@ func prepareAuthV2CircuitInputs(did *core.DID, authClaim circuits.ClaimWithMTPPr
 	}
 }
 
-func populateGlobalTree(ctx context.Context, did *core.DID, contract *abi.State) (circuits.GISTProof, error) {
+func populateGlobalTree(ctx context.Context, did w3c.DID, contract *abi.State) (circuits.GISTProof, error) {
 	// get global root
-	globalProof, err := contract.GetGISTProof(&bind.CallOpts{Context: ctx}, did.ID.BigInt())
+	id, err := core.IDFromDID(did)
+	if err != nil {
+		return circuits.GISTProof{}, err
+	}
+	globalProof, err := contract.GetGISTProof(&bind.CallOpts{Context: ctx}, id.BigInt())
 	if err != nil {
 		return circuits.GISTProof{}, err
 	}

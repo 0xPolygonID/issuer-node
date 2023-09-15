@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iden3/go-schema-processor/verifiable"
-	openapi_types "github.com/oapi-codegen/runtime/types"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	openapitypes "github.com/oapi-codegen/runtime/types"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	link_state "github.com/polygonid/sh-id-platform/pkg/link"
+	linkstate "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -217,9 +217,9 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 func getLinkResponse(link domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
-	var date *openapi_types.Date
+	var date *openapitypes.Date
 	if link.CredentialExpiration != nil {
-		date = &openapi_types.Date{Time: *link.CredentialExpiration}
+		date = &openapitypes.Date{Time: *link.CredentialExpiration}
 	}
 
 	return Link{
@@ -271,7 +271,7 @@ func getLinkResponses(links []domain.Link) []Link {
 	return res
 }
 
-func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *QrCodeResponse {
+func getLinkQrCodeResponse(linkQrCode *linkstate.QRCodeMessage) *QrCodeResponse {
 	if linkQrCode == nil {
 		return nil
 	}
