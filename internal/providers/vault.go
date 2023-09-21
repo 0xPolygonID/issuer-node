@@ -15,7 +15,7 @@ import (
 const (
 	didMountPath = "kv"
 	secretPath   = "did"
-	increment    = 40
+	increment    = 1440
 	user         = "issuernode"
 )
 
