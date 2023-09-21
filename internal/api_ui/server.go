@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	// "github.com/docker/distribution/uuid"
 	"github.com/go-chi/chi/v5"
+
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
 	"github.com/iden3/iden3comm/packers"
@@ -40,10 +42,11 @@ type Server struct {
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
+	requestServer	   ports.RequestService
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, requestServer ports.RequestService) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -54,7 +57,76 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
+		requestServer:		requestServer,
 	}
+}
+
+
+func(s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (AuthResponse, error){
+	var resp Auth200Response = "Auth request accepted";
+	return resp,nil;
+}
+
+
+func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error){
+
+	if (request.Body.SchemaID == " "){
+		log.Debug(ctx, "empty request body auth-callback request")
+		return VC500Response{"Request failed: SchemaId was Empty"},nil
+	}
+	// var id uuid.UUID;
+	id,err := s.requestServer.CreateRequest(ctx,request.Body.UserDID,request.Body.SchemaID)
+	if err != nil{
+		return nil,err;
+	}
+	return VC200Response{"Requested Successfully",id},nil;
+}
+
+func(s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject) (CreateCredentialResponseObject, error){
+	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
+	}
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true)
+	resp, err := s.claimService.Save(ctx, req)
+	if err != nil {
+		if errors.Is(err, services.ErrJSONLdContext) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrProcessSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrParseClaim) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrInvalidCredentialSubject) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrLoadingSchema) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
+
+}
+
+
+func(s *Server) GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse, error){
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+
+	fmt.Println("getting Info By Request Id :",request.Id)
+	res,err := s.requestServer.GetRequest(ctx,request.Id)
+
+	if(err != nil){
+		return nil,err;
+	}
+	return GetRequest200Response{res.Id,res.UserDID,res.Issuer_id,res.SchemaID,res.Active} ,nil;
 }
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
@@ -69,6 +141,7 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 	}
 	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
+
 
 // GetSchemas returns the list of schemas that match the request.Params.Query filter. If param query is nil it will return all
 func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error) {
