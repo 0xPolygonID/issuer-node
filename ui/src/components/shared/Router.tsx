@@ -1,6 +1,6 @@
 import { ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-
+import { Notification } from "../notifications/Notification";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
@@ -12,9 +12,6 @@ import { LinkDetails } from "src/components/credentials/LinkDetails";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
-import { ImportSchema } from "src/components/schemas/ImportSchema";
-import { SchemaDetails } from "src/components/schemas/SchemaDetails";
-import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
 import { Layout, ROUTES, RouteID } from "src/routes";
 import { ROOT_PATH } from "src/utils/constants";
@@ -26,13 +23,11 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   credentialIssuedQR: CredentialIssuedQR,
   credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
-  importSchema: ImportSchema,
   issueCredential: IssueCredential,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   notFound: NotFound,
-  schemaDetails: SchemaDetails,
-  schemas: Schemas,
+  notification: Notification,
 };
 
 export function Router() {
@@ -50,14 +45,11 @@ export function Router() {
 
   return (
     <Routes>
-      <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
-
+      <Route element={<Navigate to={ROUTES.credentials.path} />} path={ROOT_PATH} />
       <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
-
       <Route element={<FullWidthLayout background="bg-light" />}>
         {getLayoutRoutes("fullWidthGrey")}
       </Route>
-
       <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
     </Routes>
   );

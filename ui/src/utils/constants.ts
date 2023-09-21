@@ -25,6 +25,7 @@ export const REVOKE = "Revoke";
 export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
+export const NOTIFICATION = "Notifications";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
 
@@ -38,16 +39,11 @@ export const API_VERSION = "v1";
 
 type CredentialsTab = { id: CredentialsTabIDs; tabID: string; title: string };
 
-export const CREDENTIALS_TABS: [CredentialsTab, CredentialsTab] = [
+export const CREDENTIALS_TABS: CredentialsTab[] = [
   {
     id: "issued",
     tabID: "issued",
     title: ISSUED,
-  },
-  {
-    id: "links",
-    tabID: "links",
-    title: LINKS,
   },
 ];
 
