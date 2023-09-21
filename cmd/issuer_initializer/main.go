@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
+
+	vault "github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -17,6 +20,10 @@ import (
 )
 
 var build = buildinfo.Revision()
+
+const (
+	timeToWaitForVault = 5 * time.Second
+)
 
 func main() {
 	log.Info(context.Background(), "starting issuer node...", "revision", build)
@@ -40,13 +47,28 @@ func main() {
 		return
 	}
 
-	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+	var vaultCli *vault.Client
+	var vaultErr error
+	vaultAttempts := 10
+	connected := false
+
+	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,
-	})
-	if err != nil {
+	}
+	for i := 0; i < vaultAttempts; i++ {
+		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+		if vaultErr == nil {
+			connected = true
+			break
+		}
+		log.Error(ctx, "cannot connect to vault, retrying", "err", vaultErr)
+		time.Sleep(timeToWaitForVault)
+	}
+
+	if !connected {
 		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
 	}
