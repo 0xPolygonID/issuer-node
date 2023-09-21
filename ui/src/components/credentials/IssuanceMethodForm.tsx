@@ -1,18 +1,4 @@
-import {
-  AutoComplete,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Row,
-  Space,
-  TimePicker,
-  Typography,
-} from "antd";
+import { AutoComplete, Button, Card, Form, Input, Radio, Row, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
@@ -154,7 +140,7 @@ export function IssuanceMethodForm({
                 </Form.Item>
               </Card>
 
-              <Card className={issuanceMethod.type === "credentialLink" ? "selected" : ""}>
+              {/* <Card className={issuanceMethod.type === "credentialLink" ? "selected" : ""}>
                 <Space direction="vertical" size="large">
                   <Radio value="credentialLink">
                     <Space direction="vertical">
@@ -246,7 +232,7 @@ export function IssuanceMethodForm({
                     </Col>
                   </Row>
                 </Space>
-              </Card>
+              </Card> */}
             </Space>
           </Radio.Group>
         </Form.Item>

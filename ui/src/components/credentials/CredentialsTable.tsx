@@ -34,6 +34,8 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  APPROVE1,
+  APPROVE2,
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
@@ -129,6 +131,26 @@ export function CredentialsTable() {
       title: REVOCATION,
     },
     {
+      dataIndex: "issuedBy",
+      key: "issuedBy",
+      render: (issuedBy: Credential["issuedBy"]) => (
+        <Tooltip placement="topLeft" title={issuedBy}>
+          <Typography.Text strong>{issuedBy}</Typography.Text>
+        </Tooltip>
+      ),
+      title: "Issued By",
+    },
+    {
+      dataIndex: "userDID",
+      key: "userDID",
+      render: (userDID: Credential["userDID"]) => (
+        <Tooltip placement="topLeft" title={userDID}>
+          <Typography.Text strong>{userDID}</Typography.Text>
+        </Tooltip>
+      ),
+      title: "User DID",
+    },
+    {
       dataIndex: "id",
       key: "id",
       render: (id: Credential["id"], credential: Credential) => (
@@ -145,6 +167,16 @@ export function CredentialsTable() {
               {
                 key: "divider1",
                 type: "divider",
+              },
+              {
+                icon: <IconInfoCircle />,
+                key: "details",
+                label: APPROVE1,
+              },
+              {
+                icon: <IconInfoCircle />,
+                key: "details",
+                label: APPROVE2,
               },
               {
                 danger: true,

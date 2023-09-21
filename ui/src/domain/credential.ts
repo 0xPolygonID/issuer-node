@@ -8,12 +8,14 @@ export type Credential = {
   expired: boolean;
   expiresAt: Date | null;
   id: string;
+  issuedBy: string;
   proofTypes: ProofType[];
   revNonce: number;
   revoked: boolean;
   schemaHash: string;
   schemaType: string;
   schemaUrl: string;
+  userDID: string;
   userID: string;
 };
 
