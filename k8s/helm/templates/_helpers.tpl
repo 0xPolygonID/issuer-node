@@ -87,7 +87,6 @@ Define ethereum resolver prefix
 {{- end }}
 {{- end }}
 
-
 {{/*
 Define network
 */}}

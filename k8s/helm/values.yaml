@@ -11,7 +11,7 @@ apiIssuerNode:
     image:
       repository: martinsaporiti/issuernode
       tag: '1.0.0'
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     labels:
       app: api-issuer-node-deployment
     livenessProbe:
@@ -91,7 +91,7 @@ apiUiIssuerNode:
       image:
         repository: martinsaporiti/issuernode
         tag: '1.0.0'
-      imagePullPolicy: IfNotPresent 
+      imagePullPolicy: Always
       args: 
         - '"./migrate; ./platform_ui"'
       command:  
@@ -113,7 +113,7 @@ apiUiIssuerNode:
       image:
         repository: martinsaporiti/issuernode
         tag: '1.0.0'
-      imagePullPolicy: IfNotPresent
+      imagePullPolicy: Always
       args: 
         - '"sleep 30; ./migrate; ./issuer_initializer;"'
       command:  
@@ -154,7 +154,7 @@ notificationsIssuerNode:
     image:
       repository: martinsaporiti/issuernode
       tag: '1.0.0'
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     labels: 
       app: notifications-issuer-node-deployment
     containerName: notifications
@@ -173,7 +173,7 @@ pendingPublisherIssuerNode:
     image:
       repository: martinsaporiti/issuernode
       tag: '1.0.0'
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     labels: 
       app: pending-publisher-issuer-node-deployment
     containerName: pending-publisher
