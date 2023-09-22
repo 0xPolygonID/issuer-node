@@ -80,7 +80,9 @@ func main() {
 		return
 	}
 
-	go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	}
 
 	err = config.CheckDID(ctx, cfg, vaultCli)
 	if err != nil {

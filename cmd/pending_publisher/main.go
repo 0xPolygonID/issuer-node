@@ -94,7 +94,9 @@ func main() {
 		return
 	}
 
-	go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
 	if err != nil {

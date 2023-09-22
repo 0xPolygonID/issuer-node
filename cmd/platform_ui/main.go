@@ -101,7 +101,9 @@ func main() {
 		return
 	}
 
-	go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
 	if err != nil {
