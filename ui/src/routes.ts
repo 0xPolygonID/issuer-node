@@ -11,7 +11,8 @@ export type RouteID =
   | "linkDetails"
   | "notFound"
   | "schemaDetails"
-  | "notification";
+  | "notification"
+  | "request";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -70,8 +71,11 @@ export const ROUTES: Routes = {
   },
   notification: {
     layout: "sider",
-
     path: "/notification",
+  },
+  request: {
+    layout: "sider",
+    path: "/request",
   },
   schemaDetails: {
     layout: "sider",

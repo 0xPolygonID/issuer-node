@@ -15,6 +15,7 @@ import {
   CREDENTIALS_TABS,
   ISSUER_STATE,
   NOTIFICATION,
+  REQUEST,
 } from "src/utils/constants";
 
 export function SiderMenu({
@@ -33,6 +34,7 @@ export function SiderMenu({
   const credentialsPath = ROUTES.credentials.path;
   const issuerStatePath = ROUTES.issuerState.path;
   const notificationPath = ROUTES.notification.path;
+  const requestPath = ROUTES.request.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -55,6 +57,8 @@ export function SiderMenu({
       return [issuerStatePath];
     } else if (matchRoutes([{ path: notificationPath }], pathname)) {
       return [notificationPath];
+    } else if (matchRoutes([{ path: requestPath }], pathname)) {
+      return [requestPath];
     }
 
     return [];
@@ -123,6 +127,13 @@ export function SiderMenu({
               key: notificationPath,
               label: NOTIFICATION,
               onClick: () => onMenuClick(notificationPath),
+              title: "",
+            },
+            {
+              icon: <IconNotification />,
+              key: requestPath,
+              label: REQUEST,
+              onClick: () => onMenuClick(requestPath),
               title: "",
             },
           ]}

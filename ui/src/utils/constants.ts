@@ -1,4 +1,5 @@
 import { CredentialsTabIDs } from "src/domain";
+import { RequestsTabIDs } from "src/domain/request";
 
 // Literals used more than once
 export const ACCESSIBLE_UNTIL = "Accessible until";
@@ -15,6 +16,7 @@ export const EXPIRATION = "Expiration";
 export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
+export const ISSUE_REQUEST = "Issue request";
 export const ISSUE_CREDENTIAL_DIRECT = "Issue credential directly";
 export const ISSUE_CREDENTIAL_LINK = "Create credential link";
 export const ISSUE_DATE = "Issue date";
@@ -28,6 +30,7 @@ export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 export const NOTIFICATION = "Notifications";
+export const REQUEST = "Request";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
 
@@ -46,6 +49,15 @@ export const CREDENTIALS_TABS: CredentialsTab[] = [
     id: "issued",
     tabID: "issued",
     title: ISSUED,
+  },
+];
+
+type RequestsTab = { id: RequestsTabIDs; tabID: string; title: string };
+export const REQUEST_TABS: RequestsTab[] = [
+  {
+    id: "Request",
+    tabID: "Request",
+    title: REQUEST,
   },
 ];
 
