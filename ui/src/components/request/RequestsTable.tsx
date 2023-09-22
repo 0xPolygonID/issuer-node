@@ -30,6 +30,7 @@ import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Credential } from "src/domain";
+import { Request } from "src/domain/request";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -39,12 +40,10 @@ import {
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
-  EXPIRATION,
   ISSUED,
-  ISSUE_CREDENTIAL,
-  ISSUE_DATE,
+  ISSUE_REQUEST,
   QUERY_SEARCH_PARAM,
-  REVOCATION,
+  REQUEST_DATE,
   REVOKE,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
@@ -73,82 +72,45 @@ export function RequestsTable() {
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
-  const tableColumns: ColumnsType<Credential> = [
+  const tableColumns: ColumnsType<Request> = [
     {
-      dataIndex: "schemaType",
-      ellipsis: { showTitle: false },
-      key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
+      dataIndex: "requestId",
+      key: "requestId",
+      render: (requestId: Request["requestId"]) => (
+        <Tooltip placement="topLeft" title={requestId}>
+          <Typography.Text strong>{requestId}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
-      title: "Credential",
+      title: "Request Id",
     },
     {
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+      dataIndex: "requestDate",
+      key: "requestDate",
+      render: (requestDate: Request["requestDate"]) => (
+        <Typography.Text>{formatDate(requestDate)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
-      title: ISSUE_DATE,
+      sorter: ({ requestDate: a }, { requestDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
+      title: REQUEST_DATE,
     },
     {
-      dataIndex: "expiresAt",
-      key: "expiresAt",
-      render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
-        expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
-            <Typography.Text>
-              {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
-            </Typography.Text>
-          </Tooltip>
-        ) : (
-          "-"
-        ),
-      responsive: ["md"],
-      sorter: ({ expiresAt: a }, { expiresAt: b }) => {
-        if (a && b) {
-          return a.getTime() - b.getTime();
-        } else if (a) {
-          return -1;
-        } else {
-          return 1;
-        }
-      },
-      title: EXPIRATION,
-    },
-    {
-      dataIndex: "revoked",
-      key: "revoked",
-      render: (revoked: Credential["revoked"]) => (
-        <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
-      ),
-      responsive: ["sm"],
-      sorter: ({ revoked: a }, { revoked: b }) => (a === b ? 0 : a ? 1 : -1),
-      title: REVOCATION,
-    },
-    {
-      dataIndex: "issuedBy",
-      key: "issuedBy",
-      render: (issuedBy: Credential["issuedBy"]) => (
-        <Tooltip placement="topLeft" title={issuedBy}>
-          <Typography.Text strong>{issuedBy}</Typography.Text>
+      dataIndex: "requestType",
+      key: "requestType",
+      render: (requestType: Request["requestType"]) => (
+        <Tooltip placement="topLeft" title={requestType}>
+          <Typography.Text strong>{requestType}</Typography.Text>
         </Tooltip>
       ),
-      title: "Issued By",
+      title: "Request Type",
     },
     {
-      dataIndex: "userDID",
-      key: "userDID",
-      render: (userDID: Credential["userDID"]) => (
-        <Tooltip placement="topLeft" title={userDID}>
-          <Typography.Text strong>{userDID}</Typography.Text>
+      dataIndex: "status",
+      key: "status",
+      render: (status: Request["status"]) => (
+        <Tooltip placement="topLeft" title={status}>
+          <Typography.Text strong>{status}</Typography.Text>
         </Tooltip>
       ),
-      title: "User DID",
+      title: "Status",
     },
     {
       dataIndex: "id",
@@ -289,16 +251,14 @@ export function RequestsTable() {
           <>
             <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
 
-            <Typography.Text strong>No credentials</Typography.Text>
+            <Typography.Text strong>No Requests</Typography.Text>
 
-            <Typography.Text type="secondary">
-              Issued credentials will be listed here.
-            </Typography.Text>
+            <Typography.Text type="secondary">Issued Request will be listed here.</Typography.Text>
 
             {credentialStatus === "all" && (
               <Link to={generatePath(ROUTES.issueCredential.path)}>
                 <Button icon={<IconCreditCardPlus />} type="primary">
-                  {ISSUE_CREDENTIAL}
+                  {ISSUE_REQUEST}
                 </Button>
               </Link>
             )}

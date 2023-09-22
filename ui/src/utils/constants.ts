@@ -33,6 +33,7 @@ export const NOTIFICATION = "Notifications";
 export const REQUEST = "Request";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
+export const REQUEST_DATE = "Request date";
 
 // URL params
 export const DID_SEARCH_PARAM = "did";
