@@ -1,5 +1,6 @@
 export type RouteID =
   | "connectionDetails"
+  | "login"
   | "connections"
   | "credentialDetails"
   | "credentialIssuedQR"
@@ -64,6 +65,10 @@ export const ROUTES: Routes = {
   linkDetails: {
     layout: "sider",
     path: "/credentials/links/:linkID",
+  },
+  login: {
+    layout: "fullWidth",
+    path: "/login",
   },
   notFound: {
     layout: "fullWidth",

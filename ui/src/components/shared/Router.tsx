@@ -1,5 +1,6 @@
 import { ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { Login } from "../Login/login";
 import { Notification } from "../notifications/Notification";
 import { Request } from "../request/Request";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
@@ -27,6 +28,7 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   issueCredential: IssueCredential,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
+  login: Login,
   notFound: NotFound,
   notification: Notification,
   request: Request,
