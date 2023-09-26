@@ -9,7 +9,7 @@ apiIssuerNode:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
     image:
-      repository: martinsaporiti/issuernode
+      repository: gcr.io/polygon-public/polygon-id/issuernode
       tag: '1.0.0'
     imagePullPolicy: Always
     labels:
@@ -89,7 +89,7 @@ apiUiIssuerNode:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
       image:
-        repository: martinsaporiti/issuernode
+        repository: gcr.io/polygon-public/polygon-id/issuernode
         tag: '1.0.0'
       imagePullPolicy: Always
       args: 
@@ -106,12 +106,12 @@ apiUiIssuerNode:
       containerPort: 3002
       apiconfigMapRef: issuer-node-api-configmap
     init:
-      containerName: i
+      containerName: create-did
       env:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
       image:
-        repository: martinsaporiti/issuernode
+        repository: gcr.io/polygon-public/polygon-id/issuernode
         tag: '1.0.0'
       imagePullPolicy: Always
       args: 
@@ -152,7 +152,7 @@ notificationsIssuerNode:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
     image:
-      repository: martinsaporiti/issuernode
+      repository: gcr.io/polygon-public/polygon-id/issuernode
       tag: '1.0.0'
     imagePullPolicy: Always
     labels: 
@@ -171,7 +171,7 @@ pendingPublisherIssuerNode:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
     image:
-      repository: martinsaporiti/issuernode
+      repository: gcr.io/polygon-public/polygon-id/issuernode
       tag: '1.0.0'
     imagePullPolicy: Always
     labels: 
