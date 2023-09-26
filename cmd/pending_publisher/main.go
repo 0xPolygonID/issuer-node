@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	vault "github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -78,15 +79,23 @@ func main() {
 		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
 	}
 
-	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+	var vaultCli *vault.Client
+	var vaultErr error
+	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,
-	})
-	if err != nil {
+	}
+
+	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+	if vaultErr != nil {
 		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
+	}
+
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
 	}
 
 	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
