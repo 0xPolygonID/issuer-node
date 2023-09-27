@@ -40,12 +40,14 @@ import {
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
   EXPIRATION,
+  EXPIRED,
   ISSUED,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
   QUERY_SEARCH_PARAM,
   REVOCATION,
   REVOKE,
+  REVOKE_DATE,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { notifyParseError, notifyParseErrors } from "src/utils/error";
@@ -55,6 +57,8 @@ export function CredentialsTable() {
   const env = useEnvContext();
 
   const navigate = useNavigate();
+
+  const User = localStorage.getItem("user");
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
@@ -73,141 +77,380 @@ export function CredentialsTable() {
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
-  const tableColumns: ColumnsType<Credential> = [
-    {
-      dataIndex: "schemaType",
-      ellipsis: { showTitle: false },
-      key: "schemaType",
-      render: (schemaType: Credential["schemaType"]) => (
-        <Tooltip placement="topLeft" title={schemaType}>
-          <Typography.Text strong>{schemaType}</Typography.Text>
-        </Tooltip>
-      ),
-      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
-      title: "Credential",
-    },
-    {
-      dataIndex: "createdAt",
-      key: "createdAt",
-      render: (createdAt: Credential["createdAt"]) => (
-        <Typography.Text>{formatDate(createdAt)}</Typography.Text>
-      ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
-      title: ISSUE_DATE,
-    },
-    {
-      dataIndex: "expiresAt",
-      key: "expiresAt",
-      render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
-        expiresAt ? (
-          <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
-            <Typography.Text>
-              {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
-            </Typography.Text>
+  let tableColumns: ColumnsType<Credential>;
+  if (User === "verifier") {
+    tableColumns = [
+      {
+        dataIndex: "schemaType",
+        ellipsis: { showTitle: false },
+        key: "schemaType",
+        render: (schemaType: Credential["schemaType"]) => (
+          <Tooltip placement="topLeft" title={schemaType}>
+            <Typography.Text strong>{schemaType}</Typography.Text>
           </Tooltip>
-        ) : (
-          "-"
         ),
-      responsive: ["md"],
-      sorter: ({ expiresAt: a }, { expiresAt: b }) => {
-        if (a && b) {
-          return a.getTime() - b.getTime();
-        } else if (a) {
-          return -1;
-        } else {
-          return 1;
-        }
+        sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+        title: "Credential",
       },
-      title: EXPIRATION,
-    },
-    {
-      dataIndex: "revoked",
-      key: "revoked",
-      render: (revoked: Credential["revoked"]) => (
-        <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
-      ),
-      responsive: ["sm"],
-      sorter: ({ revoked: a }, { revoked: b }) => (a === b ? 0 : a ? 1 : -1),
-      title: REVOCATION,
-    },
-    {
-      dataIndex: "issuedBy",
-      key: "issuedBy",
-      render: (issuedBy: Credential["issuedBy"]) => (
-        <Tooltip placement="topLeft" title={issuedBy}>
-          <Typography.Text strong>{issuedBy}</Typography.Text>
-        </Tooltip>
-      ),
-      title: "Issued By",
-    },
-    {
-      dataIndex: "userDID",
-      key: "userDID",
-      render: (userDID: Credential["userDID"]) => (
-        <Tooltip placement="topLeft" title={userDID}>
-          <Typography.Text strong>{userDID}</Typography.Text>
-        </Tooltip>
-      ),
-      title: "User DID",
-    },
-    {
-      dataIndex: "id",
-      key: "id",
-      render: (id: Credential["id"], credential: Credential) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                icon: <IconInfoCircle />,
-                key: "details",
-                label: DETAILS,
-                onClick: () =>
-                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-              },
-              {
-                key: "divider1",
-                type: "divider",
-              },
-              {
-                icon: <IconInfoCircle />,
-                key: "details",
-                label: APPROVE1,
-              },
-              {
-                icon: <IconInfoCircle />,
-                key: "details",
-                label: APPROVE2,
-              },
-              {
-                danger: true,
-                disabled: credential.revoked,
-                icon: <IconClose />,
-                key: "revoke",
-                label: REVOKE,
-                onClick: () => setCredentialToRevoke(credential),
-              },
-              {
-                key: "divider2",
-                type: "divider",
-              },
-              {
-                danger: true,
-                icon: <IconTrash />,
-                key: "delete",
-                label: DELETE,
-                onClick: () => setCredentialToDelete(credential),
-              },
-            ],
-          }}
-        >
-          <Row>
-            <IconDots className="icon-secondary" />
-          </Row>
-        </Dropdown>
-      ),
-      width: DOTS_DROPDOWN_WIDTH,
-    },
-  ];
+      {
+        dataIndex: "createdAt",
+        key: "createdAt",
+        render: (createdAt: Credential["createdAt"]) => (
+          <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+        ),
+        sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
+        title: ISSUE_DATE,
+      },
+      {
+        dataIndex: "expiresAt",
+        key: "expiresAt",
+        render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
+          expiresAt ? (
+            <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
+              <Typography.Text>
+                {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+              </Typography.Text>
+            </Tooltip>
+          ) : (
+            "-"
+          ),
+        responsive: ["sm"],
+        sorter: ({ expiresAt: a }, { expiresAt: b }) => {
+          if (a && b) {
+            return dayjs(a).unix() - dayjs(b).unix();
+          } else if (a) {
+            return -1;
+          } else {
+            return 1;
+          }
+        },
+        title: EXPIRATION,
+      },
+      {
+        dataIndex: "revoked",
+        key: "revoked",
+        render: (revoked: Credential["revoked"]) => (
+          <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: REVOCATION,
+      },
+      {
+        dataIndex: "id",
+        key: "id",
+        render: (id: Credential["id"], credential: Credential) => (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: DETAILS,
+                  onClick: () =>
+                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                },
+                {
+                  key: "divider1",
+                  type: "divider",
+                },
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: APPROVE1,
+                },
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: APPROVE2,
+                },
+                {
+                  danger: true,
+                  disabled: credential.revoked,
+                  icon: <IconClose />,
+                  key: "revoke",
+                  label: REVOKE,
+                  onClick: () => setCredentialToRevoke(credential),
+                },
+                {
+                  key: "divider2",
+                  type: "divider",
+                },
+                {
+                  danger: true,
+                  icon: <IconTrash />,
+                  key: "delete",
+                  label: DELETE,
+                  onClick: () => setCredentialToDelete(credential),
+                },
+              ],
+            }}
+          >
+            <Row>
+              <IconDots className="icon-secondary" />
+            </Row>
+          </Dropdown>
+        ),
+        width: DOTS_DROPDOWN_WIDTH,
+      },
+    ];
+  } else if (User === "issuer") {
+    tableColumns = [
+      {
+        dataIndex: "schemaType",
+        ellipsis: { showTitle: false },
+        key: "schemaType",
+        render: (schemaType: Credential["schemaType"]) => (
+          <Tooltip placement="topLeft" title={schemaType}>
+            <Typography.Text strong>{schemaType}</Typography.Text>
+          </Tooltip>
+        ),
+        sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+        title: "Credential",
+      },
+      {
+        dataIndex: "createdAt",
+        key: "createdAt",
+        render: (createdAt: Credential["createdAt"]) => (
+          <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+        ),
+        sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
+        title: ISSUE_DATE,
+      },
+      {
+        dataIndex: "expiresAt",
+        key: "expiresAt",
+        render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
+          expiresAt ? (
+            <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
+              <Typography.Text>
+                {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+              </Typography.Text>
+            </Tooltip>
+          ) : (
+            "-"
+          ),
+        responsive: ["sm"],
+        sorter: ({ expiresAt: a }, { expiresAt: b }) => {
+          if (a && b) {
+            return dayjs(a).unix() - dayjs(b).unix();
+          } else if (a) {
+            return -1;
+          } else {
+            return 1;
+          }
+        },
+        title: EXPIRATION,
+      },
+      {
+        dataIndex: "revokeDate",
+        key: "revokeDate",
+        render: (revokeDate: Credential["revokeDate"]) => (
+          <Typography.Text>{formatDate(revokeDate)}</Typography.Text>
+        ),
+        sorter: ({ revokeDate: a }, { revokeDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
+        title: REVOKE_DATE,
+      },
+      {
+        dataIndex: "expired",
+        key: "expired",
+        render: (expired: Credential["expired"]) => (
+          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: EXPIRED,
+      },
+      {
+        dataIndex: "revoked",
+        key: "revoked",
+        render: (revoked: Credential["revoked"]) => (
+          <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: REVOCATION,
+      },
+      {
+        dataIndex: "id",
+        key: "id",
+        render: (id: Credential["id"], credential: Credential) => (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: DETAILS,
+                  onClick: () =>
+                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                },
+                {
+                  key: "divider1",
+                  type: "divider",
+                },
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: APPROVE1,
+                },
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: APPROVE2,
+                },
+                {
+                  danger: true,
+                  disabled: credential.revoked,
+                  icon: <IconClose />,
+                  key: "revoke",
+                  label: REVOKE,
+                  onClick: () => setCredentialToRevoke(credential),
+                },
+                {
+                  key: "divider2",
+                  type: "divider",
+                },
+                {
+                  danger: true,
+                  icon: <IconTrash />,
+                  key: "delete",
+                  label: DELETE,
+                  onClick: () => setCredentialToDelete(credential),
+                },
+              ],
+            }}
+          >
+            <Row>
+              <IconDots className="icon-secondary" />
+            </Row>
+          </Dropdown>
+        ),
+        width: DOTS_DROPDOWN_WIDTH,
+      },
+    ];
+  } else {
+    tableColumns = [
+      {
+        dataIndex: "schemaType",
+        ellipsis: { showTitle: false },
+        key: "schemaType",
+        render: (schemaType: Credential["schemaType"]) => (
+          <Tooltip placement="topLeft" title={schemaType}>
+            <Typography.Text strong>{schemaType}</Typography.Text>
+          </Tooltip>
+        ),
+        sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+        title: "Credential",
+      },
+      {
+        dataIndex: "createdAt",
+        key: "createdAt",
+        render: (createdAt: Credential["createdAt"]) => (
+          <Typography.Text>{formatDate(createdAt)}</Typography.Text>
+        ),
+        sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
+        title: ISSUE_DATE,
+      },
+      {
+        dataIndex: "expiresAt",
+        key: "expiresAt",
+        render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
+          expiresAt ? (
+            <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
+              <Typography.Text>
+                {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
+              </Typography.Text>
+            </Tooltip>
+          ) : (
+            "-"
+          ),
+        responsive: ["sm"],
+        sorter: ({ expiresAt: a }, { expiresAt: b }) => {
+          if (a && b) {
+            return dayjs(a).unix() - dayjs(b).unix();
+          } else if (a) {
+            return -1;
+          } else {
+            return 1;
+          }
+        },
+        title: EXPIRATION,
+      },
+      {
+        dataIndex: "revoked",
+        key: "revoked",
+        render: (revoked: Credential["revoked"]) => (
+          <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: REVOCATION,
+      },
+      {
+        dataIndex: "expired",
+        key: "expired",
+        render: (expired: Credential["expired"]) => (
+          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: EXPIRED,
+      },
+      {
+        dataIndex: "id",
+        key: "id",
+        render: (id: Credential["id"], credential: Credential) => (
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: DETAILS,
+                  onClick: () =>
+                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                },
+                {
+                  key: "divider1",
+                  type: "divider",
+                },
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: APPROVE1,
+                },
+                {
+                  icon: <IconInfoCircle />,
+                  key: "details",
+                  label: APPROVE2,
+                },
+                {
+                  danger: true,
+                  disabled: credential.revoked,
+                  icon: <IconClose />,
+                  key: "revoke",
+                  label: REVOKE,
+                  onClick: () => setCredentialToRevoke(credential),
+                },
+                {
+                  key: "divider2",
+                  type: "divider",
+                },
+                {
+                  danger: true,
+                  icon: <IconTrash />,
+                  key: "delete",
+                  label: DELETE,
+                  onClick: () => setCredentialToDelete(credential),
+                },
+              ],
+            }}
+          >
+            <Row>
+              <IconDots className="icon-secondary" />
+            </Row>
+          </Dropdown>
+        ),
+        width: DOTS_DROPDOWN_WIDTH,
+      },
+    ];
+  }
 
   const fetchCredentials = useCallback(
     async (signal?: AbortSignal) => {

@@ -1,34 +1,20 @@
-import { Button, Grid, Space, Tabs } from "antd";
-import { ComponentType } from "react";
-import { generatePath, useNavigate, useParams } from "react-router-dom";
+import { Button, Space } from "antd";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { RequestsTable } from "./RequestsTable";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
-import { RequestsTabIDs } from "src/domain/request";
 import { ROUTES } from "src/routes";
-import { ISSUE_REQUEST, REQUEST, REQUEST_TABS } from "src/utils/constants";
-
-const tabComponents: Record<RequestsTabIDs, ComponentType> = {
-  Request: RequestsTable,
-};
+import {
+  ISSUED_CREDENTIALS,
+  REQUESTS,
+  REQUEST_FOR_VC,
+  REQUEST_FOR_VC_CREDS,
+} from "src/utils/constants";
 
 export function Request() {
   const navigate = useNavigate();
-  const { tabID } = useParams();
-  const { path } = ROUTES.request;
-
-  const { md } = Grid.useBreakpoint();
-
-  const goToTab = (key: string): void => {
-    if (key !== tabID) {
-      navigate(
-        generatePath(path, {
-          tabID: key,
-        })
-      );
-    }
-  };
+  const User = localStorage.getItem("user");
 
   return (
     <SiderLayoutContent
@@ -39,27 +25,17 @@ export function Request() {
           onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
           type="primary"
         >
-          {ISSUE_REQUEST}
+          {User === "verifier"
+            ? REQUEST_FOR_VC_CREDS
+            : User === "issuer"
+            ? ISSUED_CREDENTIALS
+            : REQUEST_FOR_VC}
         </Button>
       }
-      title={REQUEST}
+      title={REQUESTS}
     >
       <Space direction="vertical">
-        <Tabs
-          activeKey={tabID}
-          className={md ? undefined : "tab-responsive"}
-          destroyInactiveTabPane
-          items={REQUEST_TABS.map(({ id, tabID, title }) => {
-            const Component = tabComponents[id];
-
-            return {
-              children: <Component />,
-              key: tabID,
-              label: title,
-            };
-          })}
-          onTabClick={goToTab}
-        />
+        <RequestsTable />
       </Space>
     </SiderLayoutContent>
   );

@@ -11,6 +11,7 @@ export type Credential = {
   issuedBy: string;
   proofTypes: ProofType[];
   revNonce: number;
+  revokeDate: Date;
   revoked: boolean;
   schemaHash: string;
   schemaType: string;

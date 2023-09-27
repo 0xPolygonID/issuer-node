@@ -1,21 +1,18 @@
-import { Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
+import { Col, Divider, Menu, Row, Space, Typography } from "antd";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 import { ReactComponent as IconNotification } from "src/assets/icons/bell-notification.svg";
 import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconLogout } from "src/assets/icons/logout-user.svg";
-import { ReactComponent as IconIssuerState } from "src/assets/icons/switch-horizontal.svg";
+import { ReactComponent as IconRequest } from "src/assets/icons/switch-horizontal.svg";
 import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
 import { UserDisplay } from "src/components/shared/UserDisplay";
-import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ROUTES } from "src/routes";
-import { isAsyncTaskDataAvailable } from "src/utils/async";
 import {
   CONNECTIONS,
   CREDENTIALS,
   CREDENTIALS_TABS,
-  ISSUER_STATE,
   NOTIFICATION,
-  REQUEST,
+  REQUESTS,
 } from "src/utils/constants";
 
 export function SiderMenu({
@@ -25,8 +22,6 @@ export function SiderMenu({
   isBreakpoint?: boolean;
   onClick: () => void;
 }) {
-  // const { buildTag } = useEnvContext();
-  const { status } = useIssuerStateContext();
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
@@ -34,6 +29,7 @@ export function SiderMenu({
   const credentialsPath = ROUTES.credentials.path;
   const issuerStatePath = ROUTES.issuerState.path;
   const notificationPath = ROUTES.notification.path;
+  const loginPath = ROUTES.login.path;
   const requestPath = ROUTES.request.path;
 
   const getSelectedKey = (): string[] => {
@@ -66,6 +62,10 @@ export function SiderMenu({
 
   const onMenuClick = (path: string) => {
     onClick();
+    navigate(path);
+  };
+  const onLogout = (path: string) => {
+    localStorage.removeItem("user");
     navigate(path);
   };
 
@@ -104,25 +104,6 @@ export function SiderMenu({
               title: "",
             },
             {
-              icon: <IconIssuerState />,
-
-              key: issuerStatePath,
-
-              label:
-                isAsyncTaskDataAvailable(status) && status.data ? (
-                  <Space>
-                    {ISSUER_STATE}
-                    <Tag color="purple" style={{ fontSize: 12 }}>
-                      Pending actions
-                    </Tag>
-                  </Space>
-                ) : (
-                  ISSUER_STATE
-                ),
-              onClick: () => onMenuClick(issuerStatePath),
-              title: "",
-            },
-            {
               icon: <IconNotification />,
               key: notificationPath,
               label: NOTIFICATION,
@@ -130,9 +111,9 @@ export function SiderMenu({
               title: "",
             },
             {
-              icon: <IconNotification />,
+              icon: <IconRequest />,
               key: requestPath,
-              label: REQUEST,
+              label: REQUESTS,
               onClick: () => onMenuClick(requestPath),
               title: "",
             },
@@ -154,6 +135,7 @@ export function SiderMenu({
                   </Row>
                 </Typography.Link>
               ),
+              onClick: () => onLogout(loginPath),
             },
           ]}
         />

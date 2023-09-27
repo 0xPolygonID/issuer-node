@@ -10,6 +10,7 @@ export const Login = () => {
   const navigate = useNavigate();
   const onFinish = (values: LoginLabel) => {
     console.log("Received values of form: ", values);
+    localStorage.setItem("user", values.username);
     navigate(generatePath(ROUTES.connections.path));
   };
 
