@@ -5,6 +5,7 @@ import { RequestsTabIDs } from "src/domain/request";
 export const ACCESSIBLE_UNTIL = "Accessible until";
 export const CLOSE = "Close";
 export const CONNECTIONS = "Connections";
+export const PROFILE = "Profile";
 export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
 export const DELETE = "Delete";

@@ -1,4 +1,5 @@
 export type RouteID =
+  | "profile"
   | "connectionDetails"
   | "login"
   | "connections"
@@ -65,6 +66,10 @@ export const ROUTES: Routes = {
   linkDetails: {
     layout: "sider",
     path: "/credentials/links/:linkID",
+  },
+  profile: {
+    layout: "sider",
+    path: "/profile",
   },
   login: {
     layout: "fullWidth",

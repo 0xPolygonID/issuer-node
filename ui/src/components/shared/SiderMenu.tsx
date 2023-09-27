@@ -3,6 +3,7 @@ import { generatePath, matchRoutes, useLocation, useNavigate } from "react-route
 import { ReactComponent as IconNotification } from "src/assets/icons/bell-notification.svg";
 import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconLogout } from "src/assets/icons/logout-user.svg";
+import { ReactComponent as IconProfile } from "src/assets/icons/profile.svg";
 import { ReactComponent as IconRequest } from "src/assets/icons/switch-horizontal.svg";
 import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
 import { UserDisplay } from "src/components/shared/UserDisplay";
@@ -12,6 +13,7 @@ import {
   CREDENTIALS,
   CREDENTIALS_TABS,
   NOTIFICATION,
+  PROFILE,
   REQUESTS,
 } from "src/utils/constants";
 
@@ -27,6 +29,7 @@ export function SiderMenu({
 
   const connectionsPath = ROUTES.connections.path;
   const credentialsPath = ROUTES.credentials.path;
+  const profilepath = ROUTES.profile.path;
   const issuerStatePath = ROUTES.issuerState.path;
   const notificationPath = ROUTES.notification.path;
   const loginPath = ROUTES.login.path;
@@ -53,6 +56,8 @@ export function SiderMenu({
       return [issuerStatePath];
     } else if (matchRoutes([{ path: notificationPath }], pathname)) {
       return [notificationPath];
+    } else if (matchRoutes([{ path: profilepath }], pathname)) {
+      return [profilepath];
     } else if (matchRoutes([{ path: requestPath }], pathname)) {
       return [requestPath];
     }
@@ -84,6 +89,13 @@ export function SiderMenu({
 
         <Menu
           items={[
+            {
+              icon: <IconProfile />,
+              key: profilepath,
+              label: PROFILE,
+              onClick: () => onMenuClick(profilepath),
+              title: "",
+            },
             {
               icon: <IconCredentials />,
               key: credentialsPath,

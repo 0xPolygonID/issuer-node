@@ -212,7 +212,7 @@ export function IssueCredential() {
       {messageContext}
 
       <SiderLayoutContent
-        description="A credential is issued with assigned attribute values and can be issued directly to identifier or as a credential link containing a QR code."
+        description="A credential is issued with assigned attribute values and can be issued directly to identifier."
         showBackButton
         showDivider
         title={ISSUE_CREDENTIAL}
