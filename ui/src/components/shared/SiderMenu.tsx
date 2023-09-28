@@ -9,12 +9,12 @@ import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { ROUTES } from "src/routes";
 import {
+  ALL_REQUEST,
   CONNECTIONS,
   CREDENTIALS,
   CREDENTIALS_TABS,
   NOTIFICATION,
   PROFILE,
-  REQUESTS,
 } from "src/utils/constants";
 
 export function SiderMenu({
@@ -125,7 +125,7 @@ export function SiderMenu({
             {
               icon: <IconRequest />,
               key: requestPath,
-              label: REQUESTS,
+              label: ALL_REQUEST,
               onClick: () => onMenuClick(requestPath),
               title: "",
             },
