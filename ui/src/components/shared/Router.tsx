@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Login } from "../Login/login";
 import { Notification } from "../notifications/Notification";
 import { Profile } from "../profile/Profile";
+import { CreateRequest } from "../request/CreateRequest";
 import { Request } from "../request/Request";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
@@ -24,6 +25,7 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   connections: ConnectionsTable,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
+  createRequest: CreateRequest,
   credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   issueCredential: IssueCredential,

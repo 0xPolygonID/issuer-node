@@ -38,6 +38,7 @@ export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
 export const NOTIFICATION = "Notifications";
 export const REQUEST = "Request";
+export const CREATE_REQUEST = "Create Request";
 export const REQUESTS = "Requests";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";

@@ -22,7 +22,7 @@ export function Request() {
       extra={
         <Button
           icon={<IconCreditCardPlus />}
-          onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
+          onClick={() => navigate(generatePath(ROUTES.createRequest.path))}
           type="primary"
         >
           {User === "verifier"

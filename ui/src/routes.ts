@@ -14,7 +14,8 @@ export type RouteID =
   | "notFound"
   | "schemaDetails"
   | "notification"
-  | "request";
+  | "request"
+  | "createRequest";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -46,6 +47,10 @@ export const ROUTES: Routes = {
   credentialLinkQR: {
     layout: "fullWidthGrey",
     path: "/credentials/scan-link/:linkID",
+  },
+  createRequest: {
+    layout: "sider",
+    path: "/request/create",
   },
   credentials: {
     layout: "sider",
