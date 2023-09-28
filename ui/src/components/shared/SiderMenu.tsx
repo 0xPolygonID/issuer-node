@@ -34,6 +34,7 @@ export function SiderMenu({
   const notificationPath = ROUTES.notification.path;
   const loginPath = ROUTES.login.path;
   const requestPath = ROUTES.request.path;
+  const User = localStorage.getItem("user");
 
   const getSelectedKey = (): string[] => {
     if (
@@ -87,51 +88,92 @@ export function SiderMenu({
 
         <Divider />
 
-        <Menu
-          items={[
-            {
-              icon: <IconProfile />,
-              key: profilepath,
-              label: PROFILE,
-              onClick: () => onMenuClick(profilepath),
-              title: "",
-            },
-            {
-              icon: <IconCredentials />,
-              key: credentialsPath,
-              label: CREDENTIALS,
-              onClick: () =>
-                onMenuClick(
-                  generatePath(credentialsPath, {
-                    tabID: CREDENTIALS_TABS[0]?.tabID,
-                  })
-                ),
-              title: "",
-            },
-            {
-              icon: <IconConnections />,
-              key: connectionsPath,
-              label: CONNECTIONS,
-              onClick: () => onMenuClick(connectionsPath),
-              title: "",
-            },
-            {
-              icon: <IconNotification />,
-              key: notificationPath,
-              label: NOTIFICATION,
-              onClick: () => onMenuClick(notificationPath),
-              title: "",
-            },
-            {
-              icon: <IconRequest />,
-              key: requestPath,
-              label: ALL_REQUEST,
-              onClick: () => onMenuClick(requestPath),
-              title: "",
-            },
-          ]}
-          selectedKeys={getSelectedKey()}
-        />
+        {User !== "verifier" && User !== "issuer" ? (
+          <Menu
+            items={[
+              {
+                icon: <IconProfile />,
+                key: profilepath,
+                label: PROFILE,
+                onClick: () => onMenuClick(profilepath),
+                title: "",
+              },
+              {
+                icon: <IconCredentials />,
+                key: credentialsPath,
+                label: CREDENTIALS,
+                onClick: () =>
+                  onMenuClick(
+                    generatePath(credentialsPath, {
+                      tabID: CREDENTIALS_TABS[0]?.tabID,
+                    })
+                  ),
+                title: "",
+              },
+              {
+                icon: <IconConnections />,
+                key: connectionsPath,
+                label: CONNECTIONS,
+                onClick: () => onMenuClick(connectionsPath),
+                title: "",
+              },
+              {
+                icon: <IconNotification />,
+                key: notificationPath,
+                label: NOTIFICATION,
+                onClick: () => onMenuClick(notificationPath),
+                title: "",
+              },
+              {
+                icon: <IconRequest />,
+                key: requestPath,
+                label: ALL_REQUEST,
+                onClick: () => onMenuClick(requestPath),
+                title: "",
+              },
+            ]}
+            selectedKeys={getSelectedKey()}
+          />
+        ) : (
+          <Menu
+            items={[
+              {
+                icon: <IconCredentials />,
+                key: credentialsPath,
+                label: CREDENTIALS,
+                onClick: () =>
+                  onMenuClick(
+                    generatePath(credentialsPath, {
+                      tabID: CREDENTIALS_TABS[0]?.tabID,
+                    })
+                  ),
+                title: "",
+              },
+              {
+                icon: <IconConnections />,
+                key: connectionsPath,
+                label: CONNECTIONS,
+                onClick: () => onMenuClick(connectionsPath),
+                title: "",
+              },
+              {
+                icon: <IconNotification />,
+                key: notificationPath,
+                label: NOTIFICATION,
+                onClick: () => onMenuClick(notificationPath),
+                title: "",
+              },
+              {
+                icon: <IconRequest />,
+                key: requestPath,
+                label: ALL_REQUEST,
+                onClick: () => onMenuClick(requestPath),
+                title: "",
+              },
+            ]}
+            selectedKeys={getSelectedKey()}
+          />
+        )}
       </Col>
 
       <Space direction="vertical" size={10}>
@@ -151,13 +193,6 @@ export function SiderMenu({
             },
           ]}
         />
-        {/* {isBreakpoint && (
-
-          <Space>
-            <LogoLink />
-            {buildTag && <Tag>{buildTag}</Tag>}
-          </Space>
-        )} */}
       </Space>
     </Row>
   );
