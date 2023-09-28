@@ -33,11 +33,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
-	"github.com/polygonid/sh-id-platform/pkg/protocol"
-)
-
-const (
-	defaultAtomicCircuitsID = 10
 )
 
 // ErrAllClaimsRevoked all claims are revoked.
@@ -76,26 +71,29 @@ func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.Revocatio
 // PrepareInputs prepare inputs for circuit.
 //
 //nolint:gocyclo // refactor later to avoid big PR.
-func (p *Proof) PrepareInputs(ctx context.Context, identifier *w3c.DID, query ports.Query) ([]byte, []*domain.Claim, error) {
-	var claims []*domain.Claim
-	var err error
-	var claim *domain.Claim
-
+func (p *Proof) PrepareInputs(ctx context.Context, identifier *w3c.DID, query ports.Query) (inputs []byte, vp map[string]any, err error) {
 	var circuitInputs circuits.InputsMarshaller
 	switch circuits.CircuitID(query.CircuitID) {
 	case circuits.AtomicQuerySigV2CircuitID:
-		circuitInputs, claim, err = p.prepareAtomicQuerySigV2Circuit(ctx, identifier, query)
+		circuitInputs, vp, err = p.prepareAtomicQuerySigV2Circuit(ctx,
+			identifier, query)
 		if err != nil {
 			return nil, nil, err
 		}
-		claims = append(claims, claim)
 
 	case circuits.AtomicQueryMTPV2CircuitID:
-		circuitInputs, claim, err = p.prepareAtomicQueryMTPV2Circuit(ctx, identifier, query)
+		circuitInputs, vp, err = p.prepareAtomicQueryMTPV2Circuit(ctx,
+			identifier, query)
 		if err != nil {
 			return nil, nil, err
 		}
-		claims = append(claims, claim)
+	//nolint:all
+	//case circuits.AtomicQueryV3CircuitID:
+	//	circuitInputs, vp, err = p.prepareAtomicQueryV3Circuit(ctx,
+	//		identifier, query)
+	//	if err != nil {
+	//		return nil, nil, err
+	//	}
 
 	case circuits.AuthV2CircuitID:
 		circuitInputs, err = p.prepareAuthV2Circuit(ctx, identifier, query.Challenge)
@@ -104,57 +102,177 @@ func (p *Proof) PrepareInputs(ctx context.Context, identifier *w3c.DID, query po
 		}
 
 	default:
+		log.Error(ctx, "circuit with id is not supported", "circuitID", query.CircuitID)
 		return nil, nil, fmt.Errorf("circuit with id %s is not supported", query.CircuitID)
 	}
 
-	inputs, err := circuitInputs.InputsMarshal()
+	inputs, err = circuitInputs.InputsMarshal()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Debug(ctx, "Circuit inputs", "inputs", string(inputs))
-
-	return inputs, claims, nil
+	return inputs, vp, nil
 }
 
-func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *w3c.DID, query ports.Query) (circuits.InputsMarshaller, *domain.Claim, error) {
-	claim, claimNonRevProof, err := p.getClaimDataForAtomicQueryCircuit(ctx, did, query)
+func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *w3c.DID, query ports.Query) (circuits.InputsMarshaller, map[string]any, error) {
+	claim, claimNonRevProof, err := p.getClaimDataForAtomicQueryCircuit(ctx,
+		did, query)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sigProof, err := claim.GetBJJSignatureProof2021()
+	signatureProof, err := p.prepareBJJSignatureProof(ctx, claim)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sig, err := signer.BJJSignatureFromHexString(sigProof.Signature)
+	circuitQuery, vp, err := p.toCircuitsQuery(ctx, *claim, query)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	issuerDID, err := w3c.ParseDID(claim.Issuer)
 	if err != nil {
+		log.Error(ctx, "failed to parse issuer did", "err", err)
 		return nil, nil, err
 	}
 
-	issuerAuthNonRevProof, err := p.callNonRevProof(ctx, sigProof.IssuerData, issuerDID)
+	issuerID, err := core.IDFromDID(*issuerDID)
 	if err != nil {
+		log.Error(ctx, "failed to get issuer id", "err", err)
 		return nil, nil, err
 	}
 
-	circuitQuery, err := p.toCircuitsQuery(ctx, *claim, query)
+	id, err := core.IDFromDID(*did)
 	if err != nil {
+		log.Error(ctx, "failed to get id", "err", err)
 		return nil, nil, err
+	}
+
+	inputs := circuits.AtomicQuerySigV2Inputs{
+		RequestID:                query.Challenge,
+		ID:                       &id,
+		ProfileNonce:             big.NewInt(0),
+		ClaimSubjectProfileNonce: big.NewInt(0),
+		Claim: circuits.ClaimWithSigProof{
+			IssuerID:       &issuerID,
+			Claim:          claim.CoreClaim.Get(),
+			NonRevProof:    *claimNonRevProof,
+			SignatureProof: signatureProof,
+		},
+		Query:                    circuitQuery,
+		CurrentTimeStamp:         time.Now().Unix(),
+		SkipClaimRevocationCheck: query.SkipClaimRevocationCheck,
+	}
+
+	return inputs, vp, nil
+
+	//claim, claimNonRevProof, err := p.getClaimDataForAtomicQueryCircuit(ctx, did, query)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//sigProof, err := claim.GetBJJSignatureProof2021()
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//sig, err := signer.BJJSignatureFromHexString(sigProof.Signature)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//issuerDID, err := w3c.ParseDID(claim.Issuer)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//issuerAuthNonRevProof, err := p.callNonRevProof(ctx, sigProof.IssuerData, issuerDID)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//circuitQuery, err := p.toCircuitsQuery(ctx, *claim, query)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//authClaim := &core.Claim{}
+	//err = authClaim.FromHex(sigProof.IssuerData.AuthCoreClaim)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//sig1 := circuits.BJJSignatureProof{
+	//	Signature:       sig,
+	//	IssuerAuthClaim: authClaim,
+	//	IssuerAuthIncProof: circuits.MTProof{
+	//		Proof: sigProof.IssuerData.MTP,
+	//		TreeState: circuits.TreeState{
+	//			State:          common.StrMTHex(sigProof.IssuerData.State.Value),
+	//			ClaimsRoot:     common.StrMTHex(sigProof.IssuerData.State.ClaimsTreeRoot),
+	//			RevocationRoot: common.StrMTHex(sigProof.IssuerData.State.RevocationTreeRoot),
+	//			RootOfRoots:    common.StrMTHex(sigProof.IssuerData.State.RootOfRoots),
+	//		},
+	//	},
+	//	IssuerAuthNonRevProof: issuerAuthNonRevProof,
+	//}
+	//
+	//id, err := core.IDFromDID(*did)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//inputs := circuits.AtomicQuerySigV2Inputs{
+	//	RequestID:                big.NewInt(defaultAtomicCircuitsID),
+	//	ID:                       &id,
+	//	ProfileNonce:             big.NewInt(0),
+	//	ClaimSubjectProfileNonce: big.NewInt(0),
+	//	Claim: circuits.ClaimWithSigProof{
+	//		IssuerID:       &id,
+	//		Claim:          claim.CoreClaim.Get(),
+	//		NonRevProof:    *claimNonRevProof,
+	//		SignatureProof: sig1,
+	//	},
+	//	Query:                    circuitQuery,
+	//	CurrentTimeStamp:         time.Now().Unix(),
+	//	SkipClaimRevocationCheck: query.SkipClaimRevocationCheck,
+	//}
+	//
+	//return inputs, claim, nil
+}
+
+func (p Proof) prepareBJJSignatureProof(ctx context.Context, claim *domain.Claim) (circuits.BJJSignatureProof, error) {
+	sigProof, err := claim.GetBJJSignatureProof2021()
+	if err != nil {
+		return circuits.BJJSignatureProof{}, err
+	}
+	sig, err := signer.BJJSignatureFromHexString(sigProof.Signature)
+	if err != nil {
+		return circuits.BJJSignatureProof{}, err
+	}
+
+	issuerDID, err := w3c.ParseDID(claim.Issuer)
+	if err != nil {
+		return circuits.BJJSignatureProof{}, err
+	}
+	userDID, err := w3c.ParseDID(claim.OtherIdentifier)
+	if err != nil {
+		return circuits.BJJSignatureProof{}, err
+	}
+
+	issuerAuthNonRevProof, err := p.callNonRevProof(ctx, sigProof.IssuerData, issuerDID, userDID)
+	if err != nil {
+		return circuits.BJJSignatureProof{}, err
 	}
 
 	authClaim := &core.Claim{}
 	err = authClaim.FromHex(sigProof.IssuerData.AuthCoreClaim)
 	if err != nil {
-		return nil, nil, err
+		return circuits.BJJSignatureProof{}, err
 	}
 
-	sig1 := circuits.BJJSignatureProof{
+	return circuits.BJJSignatureProof{
 		Signature:       sig,
 		IssuerAuthClaim: authClaim,
 		IssuerAuthIncProof: circuits.MTProof{
@@ -167,33 +285,10 @@ func (p *Proof) prepareAtomicQuerySigV2Circuit(ctx context.Context, did *w3c.DID
 			},
 		},
 		IssuerAuthNonRevProof: issuerAuthNonRevProof,
-	}
-
-	id, err := core.IDFromDID(*did)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	inputs := circuits.AtomicQuerySigV2Inputs{
-		RequestID:                big.NewInt(defaultAtomicCircuitsID),
-		ID:                       &id,
-		ProfileNonce:             big.NewInt(0),
-		ClaimSubjectProfileNonce: big.NewInt(0),
-		Claim: circuits.ClaimWithSigProof{
-			IssuerID:       &id,
-			Claim:          claim.CoreClaim.Get(),
-			NonRevProof:    *claimNonRevProof,
-			SignatureProof: sig1,
-		},
-		Query:                    circuitQuery,
-		CurrentTimeStamp:         time.Now().Unix(),
-		SkipClaimRevocationCheck: query.SkipClaimRevocationCheck,
-	}
-
-	return inputs, claim, nil
+	}, nil
 }
 
-func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *w3c.DID, query ports.Query) (circuits.InputsMarshaller, *domain.Claim, error) {
+func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *w3c.DID, query ports.Query) (circuits.InputsMarshaller, map[string]any, error) {
 	claim, claimNonRevProof, err := p.getClaimDataForAtomicQueryCircuit(ctx, did, query)
 	if err != nil {
 		return nil, nil, err
@@ -204,7 +299,17 @@ func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *w3c.DID
 		return nil, nil, err
 	}
 
-	circuitQuery, err := p.toCircuitsQuery(ctx, *claim, query)
+	circuitQuery, vp, err := p.toCircuitsQuery(ctx, *claim, query)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	issuerDID, err := w3c.ParseDID(claim.Issuer)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	issueID, err := core.IDFromDID(*issuerDID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -215,12 +320,12 @@ func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *w3c.DID
 	}
 
 	inputs := circuits.AtomicQueryMTPV2Inputs{
-		RequestID:                big.NewInt(defaultAtomicCircuitsID),
+		RequestID:                query.Challenge,
 		ID:                       &id,
 		ProfileNonce:             big.NewInt(0),
 		ClaimSubjectProfileNonce: big.NewInt(0),
 		Claim: circuits.ClaimWithMTPProof{
-			IssuerID:    &id, // claim.Issuer,
+			IssuerID:    &issueID, // claim.Issuer,
 			Claim:       claim.CoreClaim.Get(),
 			NonRevProof: *claimNonRevProof,
 			IncProof:    claimInc,
@@ -230,7 +335,7 @@ func (p *Proof) prepareAtomicQueryMTPV2Circuit(ctx context.Context, did *w3c.DID
 		SkipClaimRevocationCheck: query.SkipClaimRevocationCheck,
 	}
 
-	return inputs, claim, nil
+	return inputs, vp, nil
 }
 
 func (p *Proof) getClaimDataForAtomicQueryCircuit(ctx context.Context, identifier *w3c.DID, query ports.Query) (claim *domain.Claim, revStatus *circuits.MTProof, err error) {
@@ -310,36 +415,18 @@ func (p *Proof) checkRevocationStatus(ctx context.Context, claim *domain.Claim) 
 		return nil, err
 	}
 
-	claimRs, err = p.revocationSrv.Status(ctx, cs, issuerDID)
-	if err != nil && errors.Is(err, protocol.ErrStateNotFound) {
+	userDID, err := w3c.ParseDID(claim.OtherIdentifier)
+	if err != nil {
+		return nil, err
+	}
 
-		bjp := new(verifiable.BJJSignatureProof2021)
-		if err := json.Unmarshal(claim.SignatureProof.Bytes, bjp); err != nil {
-			return nil, fmt.Errorf("failed parse signature proof for get genesys state: %s", err)
-		}
-		state, errIn := merkletree.NewHashFromHex(*bjp.IssuerData.State.Value)
-		if errIn != nil {
-			return nil, err
-		}
-		if common.CheckGenesisStateDID(issuerDID, state.BigInt()) != nil {
-			return nil, errors.New("issuer identity is not genesis and not published")
-		}
+	sigProof, err := claim.GetBJJSignatureProof2021()
+	if err != nil {
+		return nil, err
+	}
 
-		return &verifiable.RevocationStatus{
-			Issuer: struct {
-				State              *string `json:"state,omitempty"`
-				RootOfRoots        *string `json:"rootOfRoots,omitempty"`
-				ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
-				RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
-			}{
-				State:              bjp.IssuerData.State.Value,
-				RootOfRoots:        bjp.IssuerData.State.RootOfRoots,
-				ClaimsTreeRoot:     bjp.IssuerData.State.ClaimsTreeRoot,
-				RevocationTreeRoot: bjp.IssuerData.State.RevocationTreeRoot,
-			},
-			MTP: merkletree.Proof{Existence: false},
-		}, nil
-	} else if err != nil {
+	claimRs, err = p.revocationSrv.Status(ctx, cs, userDID, issuerDID, &sigProof.IssuerData)
+	if err != nil {
 		return nil, err
 	}
 	if claimRs.MTP.Existence {
@@ -348,7 +435,7 @@ func (p *Proof) checkRevocationStatus(ctx context.Context, claim *domain.Claim) 
 			claim.Revoked = true
 			_, err = p.claimsRepository.Save(ctx, p.storage.Pgx, claim)
 			if err != nil {
-				return fmt.Errorf("can't save claim %v", err)
+				return errors.Join(err, errors.New("failed to save claim"))
 			}
 			return nil
 		})
@@ -383,73 +470,92 @@ func (p *Proof) findNonRevokedClaim(ctx context.Context, claims []*domain.Claim)
 	return nil, circuits.MTProof{}, ErrAllClaimsRevoked
 }
 
-func (p *Proof) toCircuitsQuery(ctx context.Context, claim domain.Claim, query ports.Query) (circuits.Query, error) {
+func (p *Proof) toCircuitsQuery(ctx context.Context, claim domain.Claim, query ports.Query) (circuits.Query, map[string]any, error) {
 	// check if merklized
 	coreClaim := claim.CoreClaim.Get()
 
 	merklizePosition, err := coreClaim.GetMerklizedPosition()
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, nil, err
 	}
 	if merklizePosition == core.MerklizedRootPositionNone {
-		credential, err := claim.GetVerifiableCredential()
+		merklizedQuery, err := p.prepareNonMerklizedQuery(ctx, claim.SchemaURL, query)
 		if err != nil {
-			return circuits.Query{}, err
+			return circuits.Query{}, nil, err
 		}
-		return p.prepareNonMerklizedQuery(ctx, credential.CredentialSchema.ID, query)
+		// for selective disclosure we need to add slot value to the query value to be able to prove it
+		if merklizedQuery.Values == nil {
+			merklizedQuery.Values = []*big.Int{coreClaim.RawSlotsAsInts()[merklizedQuery.SlotIndex]}
+		}
+		return merklizedQuery, nil, err
 	}
 
 	return p.prepareMerklizedQuery(ctx, claim, query)
 }
 
-func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, query ports.Query) (circuits.Query, error) {
+func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, query ports.Query) (circuits.Query, map[string]any, error) {
+	var verifiablePresentation map[string]any
 	vc, err := claim.GetVerifiableCredential()
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
+	// TODO: add merklize options to query
+	//nolint:all
+	//mk, err := vc.Merklize(ctx, p.schemaLoader.MerklizeOptions()...)
 	mk, err := vc.Merklize(ctx)
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
-	circuitQuery, field, err := parseQueryWithoutSlot(query.Req)
+	remoteDocument, err := p.schemaLoader.LoadDocument(query.Context)
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
-	schema, err := jsonschema.Load(ctx, query.Context, p.schemaLoader)
+	schema, err := json.Marshal(remoteDocument.Document)
 	if err != nil {
-		return circuits.Query{}, err
+		log.Error(ctx, "Failed to marshal schema", "err", err)
+		return circuits.Query{}, verifiablePresentation, err
+	}
+
+	circuitQuery, field, err := convertToCircuitQuery(
+		query.CredentialSubject,
+		query.Type,
+		schema,
+		true,
+	)
+	if err != nil {
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
 	fieldPath := merklize.Path{}
 
 	if field != "" {
-		fieldPath, err = merklize.NewFieldPathFromContext(schema.BytesNoErr(), query.Type, field)
+		fieldPath, err = merklize.NewFieldPathFromContext(schema, query.Type, field)
 		if err != nil {
-			return circuits.Query{}, err
+			return circuits.Query{}, verifiablePresentation, err
 		}
 	}
 
 	err = fieldPath.Prepend("https://www.w3.org/2018/credentials#credentialSubject")
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
 	jsonP, v, err := mk.Proof(ctx, fieldPath)
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
 	value, err := v.MtEntry()
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
 	path, err := fieldPath.MtEntry()
 	if err != nil {
-		return circuits.Query{}, err
+		return circuits.Query{}, verifiablePresentation, err
 	}
 
 	circuitQuery.ValueProof = &circuits.ValueProof{
@@ -458,7 +564,18 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 		MTP:   jsonP,
 	}
 
-	return circuitQuery, nil
+	// selective disclosure. For selective disclosure we need to add value to query
+	if circuitQuery.Values == nil {
+		circuitQuery.Values = []*big.Int{value}
+		val, err := mk.RawValue(fieldPath)
+		if err != nil {
+			return circuits.Query{}, verifiablePresentation, err
+		}
+		verifiablePresentation = fmtVerifiablePresentation(query.Context,
+			query.Type, field, val)
+	}
+
+	return circuitQuery, verifiablePresentation, nil
 }
 
 func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL string, query ports.Query) (circuits.Query, error) {
@@ -489,10 +606,10 @@ func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL stri
 	return circuitQuery, nil
 }
 
-func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.IssuerData, issuerDID *w3c.DID) (circuits.MTProof, error) {
-	nonRevProof, err := p.revocationSrv.Status(ctx, issuerData.CredentialStatus, issuerDID)
+func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.IssuerData, issuerDID, userDID *w3c.DID) (circuits.MTProof, error) {
+	nonRevProof, err := p.revocationSrv.Status(ctx, issuerData.CredentialStatus, userDID, issuerDID, &issuerData)
 
-	if err != nil && errors.Is(err, protocol.ErrStateNotFound) {
+	if err != nil && errors.Is(err, ErrStateNotFound) {
 		state, errIn := merkletree.NewHashFromHex(*issuerData.State.Value)
 		if errIn != nil {
 			return circuits.MTProof{}, err
@@ -761,4 +878,140 @@ func parseQueryWithoutSlot(req map[string]interface{}) (circuits.Query, string, 
 		Values:    []*big.Int{},
 		SlotIndex: 0,
 	}, "", nil
+}
+
+func convertToCircuitQuery(req map[string]interface{}, credentialType string, schema []byte, merklized bool) (circuits.Query, string, error) {
+	fieldName, op, values, err := parseCredentialSubject(req)
+	if err != nil {
+		return circuits.Query{}, "", err
+	}
+
+	var datatype string
+	if fieldName != "" {
+		datatype, err = merklize.TypeFromContext(
+			schema,
+			fmt.Sprintf("%s.%s", credentialType, fieldName),
+		)
+		if err != nil {
+			return circuits.Query{}, "", err
+		}
+	}
+
+	q, err := createQuery(op, values, datatype, merklized)
+	if err != nil {
+		return circuits.Query{}, "", err
+	}
+
+	return q, fieldName, nil
+}
+
+func parseCredentialSubject(req map[string]interface{}) (
+	field string,
+	intOp int,
+	values any,
+	err error,
+) {
+	for field, body := range req {
+		condition, ok := body.(map[string]interface{})
+		if !ok {
+			err := errors.New("failed cast type map[string]interface")
+			return "", 0, nil, err
+		}
+		if len(condition) > 1 {
+			err := errors.New("multiple predicates are currently not supported")
+			return "", 0, nil, err
+		}
+		if len(condition) == 0 {
+			return field, circuits.EQ, nil, nil
+		}
+
+		for op, v := range condition {
+			intOp, ok := circuits.QueryOperators[op]
+			if !ok {
+				err := errors.New("query operator is not supported")
+				return "", 0, nil, err
+			}
+
+			return field, intOp, v, nil
+		}
+	}
+	return "", 0, nil, nil
+}
+
+func createQuery(op int, values any, datatype string, merklized bool) (circuits.Query, error) {
+	if op == circuits.NOOP {
+		if merklized {
+			op = circuits.EQ
+		}
+		return circuits.Query{
+			Operator: op,
+			Values:   nil,
+		}, nil
+	}
+
+	v, err := getValuesAsArray(values, datatype)
+	if err != nil {
+		return circuits.Query{}, err
+	}
+
+	return circuits.Query{
+		Operator: op,
+		Values:   v,
+	}, nil
+}
+
+func getValuesAsArray(v interface{}, valueType string) ([]*big.Int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var values []*big.Int
+	listOfValues, ok := v.([]interface{})
+	if ok {
+		values = make([]*big.Int, len(listOfValues))
+		for i, item := range listOfValues {
+			hashedValue, err := merklize.HashValue(valueType, item)
+			if err != nil {
+				return nil, err
+			}
+			values[i] = hashedValue
+		}
+		return values, nil
+	}
+	hashedValue, err := merklize.HashValue(valueType, v)
+	if err != nil {
+		return nil, err
+	}
+	values = append(values, hashedValue)
+
+	return values, nil
+}
+
+func fmtVerifiablePresentation(tpContext string, tp string, field string, value any) map[string]any {
+	var ldContext any
+	baseContext := []any{"https://www.w3.org/2018/credentials/v1"}
+	if tpContext == baseContext[0] {
+		ldContext = baseContext
+	} else {
+		contexts := baseContext
+		contexts = append(contexts, tpContext)
+		ldContext = contexts
+	}
+
+	vcTypes := []any{"VerifiableCredential"}
+	if tp != "VerifiableCredential" {
+		vcTypes = append(vcTypes, tp)
+	}
+
+	return map[string]any{
+		"@context": baseContext,
+		"@type":    "VerifiablePresentation",
+		"verifiableCredential": map[string]any{
+			"@context": ldContext,
+			"@type":    vcTypes,
+			"credentialSubject": map[string]any{
+				"@type": tp,
+				field:   value,
+			},
+		},
+	}
 }

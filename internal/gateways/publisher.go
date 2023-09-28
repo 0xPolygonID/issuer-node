@@ -14,6 +14,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-merkletree-sql/v2"
+	rstypes "github.com/iden3/go-rapidsnark/types"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -45,7 +46,7 @@ const (
 
 // PublisherGateway - Define the interface for publishers.
 type PublisherGateway interface {
-	PublishState(ctx context.Context, identifier *w3c.DID, latestState *merkletree.Hash, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error)
+	PublishState(ctx context.Context, identifier *w3c.DID, latestState *merkletree.Hash, newState *merkletree.Hash, isOldStateGenesis bool, proof *rstypes.ProofData) (*string, error)
 }
 
 type publisher struct {
@@ -272,14 +273,14 @@ func (p *publisher) publishProof(ctx context.Context, identifier *w3c.DID, newSt
 	}
 
 	// TODO: Integrate when it's finished
-	fullProof, err := p.zkService.Generate(ctx, jsonInputs, string(circuits.StateTransitionCircuitID))
+	zkProof, err := p.zkService.Generate(ctx, jsonInputs, string(circuits.StateTransitionCircuitID))
 	if err != nil {
 		return nil, err
 	}
 
 	// 7. Publish state and receive txID
-
-	txID, err := p.publisherGateway.PublishState(ctx, did, latestStateHash, newStateHash, isLatestStateGenesis, fullProof.Proof)
+	zkProofData := zkProof.Proof
+	txID, err := p.publisherGateway.PublishState(ctx, did, latestStateHash, newStateHash, isLatestStateGenesis, zkProofData)
 	if err != nil {
 		return nil, err
 	}

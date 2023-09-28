@@ -15,9 +15,9 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
+	rstypes "github.com/iden3/go-rapidsnark/types"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
@@ -50,7 +50,7 @@ func NewPublisherEthGateway(_client *eth.Client, contract ethCommon.Address, key
 }
 
 // PublishState creates or updates state in the blockchain
-func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error) {
+func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *rstypes.ProofData) (*string, error) {
 	pb.rw.Lock()
 	defer pb.rw.Unlock()
 
@@ -63,7 +63,7 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c
 		return nil, err
 	}
 
-	payload, err := pb.getStatePayload(identifier, latestState, newState, isOldStateGenesis, proof)
+	payload, err := pb.getStatePayload(ctx, identifier, latestState, newState, isOldStateGenesis, proof)
 	if err != nil {
 		return nil, err
 	}
@@ -132,8 +132,16 @@ func (pb *PublisherEthGateway) getAddressForTxInitiator() (ethCommon.Address, er
 	return fromAddress, nil
 }
 
-func (pb *PublisherEthGateway) getStatePayload(identifier *w3c.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) ([]byte, error) {
-	a, b, c, err := proof.ProofToBigInts()
+func (pb *PublisherEthGateway) getStatePayload(ctx context.Context, identifier *w3c.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *rstypes.ProofData) ([]byte, error) {
+	a, err := common.ArrayStringToBigInt(proof.A)
+	if err != nil {
+		return nil, err
+	}
+	b, err := common.ArrayOfStringArraysToBigInt(proof.B)
+	if err != nil {
+		return nil, err
+	}
+	c, err := common.ArrayStringToBigInt(proof.C)
 	if err != nil {
 		return nil, err
 	}
@@ -146,17 +154,19 @@ func (pb *PublisherEthGateway) getStatePayload(identifier *w3c.DID, latestState,
 
 	ab, err := abi.StateMetaData.GetAbi()
 	if err != nil {
+		log.Error(ctx, "can't get abi", "error", err)
 		return nil, err
 	}
 
 	id, err := core.IDFromDID(*identifier)
 	if err != nil {
+		log.Error(ctx, "can't get id from did", "error", err)
 		return nil, err
 	}
 
-	payload, err := ab.Pack("transitState", id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis,
-		proofA, proofB, proofC)
+	payload, err := ab.Pack("transitState", id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis, proofA, proofB, proofC)
 	if err != nil {
+		log.Error(ctx, "can't pack payload", "error", err)
 		return nil, err
 	}
 

@@ -142,6 +142,19 @@ func ArrayStringToBigInt(s []string) ([]*big.Int, error) {
 	return o, nil
 }
 
+// ArrayOfStringArraysToBigInt converts array of string arrays to big int
+func ArrayOfStringArraysToBigInt(s [][]string) ([][]*big.Int, error) {
+	var o [][]*big.Int
+	for i := 0; i < len(s); i++ {
+		si, err := ArrayStringToBigInt(s[i])
+		if err != nil {
+			return o, nil
+		}
+		o = append(o, si)
+	}
+	return o, nil
+}
+
 func stringToBigInt(s string) (*big.Int, error) {
 	base := 10
 	if bytes.HasPrefix([]byte(s), []byte("0x")) {

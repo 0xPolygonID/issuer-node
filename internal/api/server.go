@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -39,6 +40,8 @@ type Server struct {
 	publisherGateway ports.Publisher
 	packageManager   *iden3comm.PackageManager
 	health           *health.Status
+	proofService     ports.ProofService
+	zkGenerator      ports.ZKGenerator
 }
 
 // NewServer is a Server constructor
@@ -250,12 +253,11 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	w3c, err := schema.FromClaimModelToW3CCredential(*claim)
+	vc, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		return GetClaim500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
-
-	return GetClaim200JSONResponse(toGetClaim200Response(w3c)), nil
+	return GetClaim200JSONResponse(toGetClaim200Response(vc)), nil
 }
 
 // GetClaims is the controller to get multiple claims of a determined identity
@@ -434,6 +436,60 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 		return GetQrFromStore500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 	}
 	return NewQrContentResponse(body), nil
+}
+
+// AddProofService adds the proof service to the server
+func (s *Server) AddProofService(proofService ports.ProofService, zkGenerator ports.ZKGenerator) {
+	s.proofService = proofService
+	s.zkGenerator = zkGenerator
+}
+
+// CreateZkProof is the controller to create a zk proof
+func (s *Server) CreateZkProof(ctx context.Context, request CreateZkProofRequestObject) (CreateZkProofResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Body.Query.IssuerDID)
+	if err != nil {
+		return CreateZkProof400JSONResponse{N400JSONResponse{"invalid issuer did"}}, nil
+	}
+
+	var claimID string
+	if request.Body.Query.ClaimID != nil {
+		claimID = request.Body.Query.ClaimID.String()
+	}
+
+	const challenge = 42
+	//nolint:all
+	inputs, _, err := s.proofService.PrepareInputs(ctx, issuerDID, ports.Query{
+		Challenge:                new(big.Int).SetInt64(challenge),
+		CircuitID:                request.Body.Query.CircuitID,
+		ClaimID:                  claimID,
+		AllowedIssuers:           request.Body.Query.AllowedIssuers,
+		Context:                  request.Body.Query.Context,
+		Type:                     request.Body.Query.Type,
+		SkipClaimRevocationCheck: request.Body.Query.SkipClaimRevocationCheck,
+		CredentialSubject: map[string]interface{}{
+			"birthday": map[string]interface{}{
+				"$lt": 20000101,
+			},
+		},
+	})
+	if err != nil {
+		return CreateZkProof500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+
+	proof, err := s.zkGenerator.Generate(ctx, inputs, request.Body.Query.CircuitID)
+	if err != nil {
+		return CreateZkProof500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+	log.Info(ctx, "proof generated", "proof", proof)
+	return nil, nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

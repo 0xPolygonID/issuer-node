@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
@@ -83,6 +84,20 @@ func TestMain(m *testing.M) {
 	}
 
 	cfg.ServerUrl = "https://testing.env/"
+	cfg.Ethereum = config.Ethereum{
+		URL:                    "https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89",
+		ContractAddress:        "0x134B1BE34911E39A8397ec6289782989729807a4",
+		DefaultGasLimit:        600000,
+		ConfirmationTimeout:    time.Duration(5) * time.Second,
+		ConfirmationBlockCount: 1,
+		ReceiptTimeout:         time.Duration(15) * time.Second,
+		MinGasPrice:            1000000000,
+		MaxGasPrice:            100000000000,
+		RPCResponseTimeout:     time.Duration(15) * time.Second,
+		WaitReceiptCycleTime:   time.Duration(1) * time.Second,
+		WaitBlockCycleTime:     time.Duration(1) * time.Second,
+		ResolverPrefix:         "polygon:mumbai",
+	}
 
 	schemaLoader = loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
 

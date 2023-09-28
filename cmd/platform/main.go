@@ -168,6 +168,10 @@ func main() {
 	})
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
+	proverConfig := &services.NativeProverConfig{
+		CircuitsLoader: circuitsLoaderService,
+	}
+
 	mux := chi.NewRouter()
 	mux.Use(
 		chiMiddleware.RequestID,
@@ -176,9 +180,12 @@ func main() {
 		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
 		chiMiddleware.NoCache,
 	)
+
+	apiServer := api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth)
+	apiServer.AddProofService(zkProofService, services.NewNativeProverService(proverConfig))
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth),
+			apiServer,
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
