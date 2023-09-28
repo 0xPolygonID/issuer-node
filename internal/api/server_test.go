@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
@@ -49,12 +48,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
@@ -177,12 +175,11 @@ func TestServer_RevokeClaim(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
@@ -330,14 +327,12 @@ func TestServer_CreateClaim(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
 
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
-
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
 	pubSub := pubsub.NewMock()
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub, ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub, ipfsGatewayURL)
 
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(ctx, server)
@@ -490,12 +485,11 @@ func TestServer_GetIdentities(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
@@ -564,7 +558,6 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
@@ -572,7 +565,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
 	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -711,13 +704,12 @@ func TestServer_GetClaim(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
@@ -884,12 +876,11 @@ func TestServer_GetClaims(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "host",
 	}
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 
 	fixture := tests.NewFixture(storage)
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
@@ -1211,7 +1202,6 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
 	claimsConf := services.ClaimCfg{
 		RHSEnabled: false,
 		Host:       "https://host.com",
@@ -1219,12 +1209,12 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 
 	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
 	assert.NoError(t, err)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	did, _ := core.ParseDID(identity.Identifier)
+	did, _ := w3c.ParseDID(identity.Identifier)
 	credentialSubject := map[string]any{
 		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
 		"birthday":     19960424,
@@ -1367,4 +1357,102 @@ func createGetClaimsURL(did string, schemaHash *string, schemaType *string, subj
 
 	tURL.RawQuery = q.Encode()
 	return tURL.String()
+}
+
+//nolint:all
+func TestProofs(t *testing.T) {
+	const (
+		didMethod     = "polygonid"
+		didBlockchain = "polygon"
+		didNetwork    = "mumbai"
+	)
+	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	identityStateRepo := repositories.NewIdentityState()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	qrService := services.NewQrStoreService(cachex)
+	revocationRepository := repositories.NewRevocation()
+
+	//ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
+	//require.NoError(t, err)
+
+	//stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
+
+	//revocationService := services.NewRevocationService(ethConn, commonblk.HexToAddress(cfg.Ethereum.ContractAddress))
+	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	connectionsRepository := repositories.NewConnections()
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
+
+	claimsConf := services.ClaimCfg{
+		RHSEnabled: false,
+		Host:       "http://host",
+	}
+	pubSub := pubsub.NewMock()
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubSub, ipfsGatewayURL)
+
+	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	handler := getHandler(ctx, server)
+
+	// Create Identity
+	iden, err := identityService.Create(ctx, didMethod, didBlockchain, didNetwork, "polygon-test")
+	require.NoError(t, err)
+	did := iden.Identifier
+
+	// Create claim
+	rr := httptest.NewRecorder()
+	url := fmt.Sprintf("/v1/%s/claims", did)
+
+	createClaimRequestBody := CreateClaimRequest{
+		CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+		Type:             "KYCAgeCredential",
+		CredentialSubject: map[string]any{
+			"id":           "did:polygonid:polygon:mumbai:2qMBhL18U8PZypkSVVCqomeAiJjngCXh81oLGBcmH6",
+			"birthday":     19960424,
+			"documentType": 2,
+		},
+		Expiration: common.ToPointer(time.Now().Unix()),
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, createClaimRequestBody))
+	req.SetBasicAuth(authOk())
+	require.NoError(t, err)
+	handler.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusCreated, rr.Code)
+	var createClaimResponse CreateClaimResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &createClaimResponse))
+	_, err = uuid.Parse(createClaimResponse.Id)
+	assert.NoError(t, err)
+
+	// Get Vc
+	rr = httptest.NewRecorder()
+	url = fmt.Sprintf("/v1/%s/claims/%s", did, createClaimResponse.Id)
+	req, err = http.NewRequest("GET", url, nil)
+	req.SetBasicAuth(authOk())
+	require.NoError(t, err)
+
+	handler.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	var getClaimResponse GetClaimResponse
+	assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &getClaimResponse))
+
+	//zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepo, keyStore, storage, stateContract, schemaLoader)
+
+	//issuerDID, err := w3c.ParseDID(getClaimResponse.Issuer)
+	//require.NoError(t, err)
+
+	//inputs, claim, err := zkProofService.PrepareInputs(ctx, issuerDID, ports.Query{
+	//	CircuitID:                string(circuits.AtomicQuerySigV2CircuitID),
+	//	AllowedIssuers:           "*",
+	//	Context:                  "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
+	//	Type:                     "KYCAgeCredential",
+	//	SkipClaimRevocationCheck: true,
+	//})
+
+	//require.NoError(t, err)
+	//fmt.Println("inputs", inputs)
+	//fmt.Println("claim", claim)
 }

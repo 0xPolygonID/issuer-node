@@ -6,11 +6,11 @@ import (
 	"math/big"
 
 	"github.com/iden3/contracts-abi/state/go/abi"
-	"github.com/iden3/go-circuits"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-jwz"
-	"github.com/iden3/iden3comm"
-	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/go-circuits/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-jwz/v2"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
@@ -53,7 +53,7 @@ func InitPackageManager(ctx context.Context, stateContract *abi.State, zkProofSe
 }
 
 func prepareAuthInputs(ctx context.Context, proofService ports.ProofService) packers.DataPreparerHandlerFunc {
-	return func(hash []byte, id *core.DID, circuitID circuits.CircuitID) ([]byte, error) {
+	return func(hash []byte, id *w3c.DID, circuitID circuits.CircuitID) ([]byte, error) {
 		q := ports.Query{}
 		q.CircuitID = string(circuitID)
 		q.Challenge = new(big.Int).SetBytes(hash)

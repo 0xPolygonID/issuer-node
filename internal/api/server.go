@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -11,11 +12,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -39,6 +40,8 @@ type Server struct {
 	publisherGateway ports.Publisher
 	packageManager   *iden3comm.PackageManager
 	health           *health.Status
+	proofService     ports.ProofService
+	zkGenerator      ports.ZKGenerator
 }
 
 // NewServer is a Server constructor
@@ -114,7 +117,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 // CreateClaim is claim creation controller
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
@@ -155,7 +158,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 // RevokeClaim is the revocation claim controller
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		log.Warn(ctx, "revoke claim invalid did", "err", err, "req", request)
 		return RevokeClaim400JSONResponse{N400JSONResponse{err.Error()}}, nil
@@ -177,7 +180,7 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 
 // GetRevocationStatus is the controller to get revocation status
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
-	issuerDID, err := core.ParseDID(request.Identifier)
+	issuerDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetRevocationStatus500JSONResponse{N500JSONResponse{
 			Message: err.Error(),
@@ -228,7 +231,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetClaim400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -250,12 +253,11 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
-	w3c, err := schema.FromClaimModelToW3CCredential(*claim)
+	vc, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
 		return GetClaim500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
-
-	return GetClaim200JSONResponse(toGetClaim200Response(w3c)), nil
+	return GetClaim200JSONResponse(toGetClaim200Response(vc)), nil
 }
 
 // GetClaims is the controller to get multiple claims of a determined identity
@@ -264,7 +266,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -302,7 +304,7 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -376,7 +378,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 // PublishIdentityState - publish identity state on chain
 func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return PublishIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -400,7 +402,7 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 
 // RetryPublishState - retry to publish the current state if it failed previously.
 func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return RetryPublishState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -434,6 +436,60 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 		return GetQrFromStore500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 	}
 	return NewQrContentResponse(body), nil
+}
+
+// AddProofService adds the proof service to the server
+func (s *Server) AddProofService(proofService ports.ProofService, zkGenerator ports.ZKGenerator) {
+	s.proofService = proofService
+	s.zkGenerator = zkGenerator
+}
+
+// CreateZkProof is the controller to create a zk proof
+func (s *Server) CreateZkProof(ctx context.Context, request CreateZkProofRequestObject) (CreateZkProofResponseObject, error) {
+	issuerDID, err := w3c.ParseDID(request.Body.Query.IssuerDID)
+	if err != nil {
+		return CreateZkProof400JSONResponse{N400JSONResponse{"invalid issuer did"}}, nil
+	}
+
+	var claimID string
+	if request.Body.Query.ClaimID != nil {
+		claimID = request.Body.Query.ClaimID.String()
+	}
+
+	const challenge = 42
+	//nolint:all
+	inputs, _, err := s.proofService.PrepareInputs(ctx, issuerDID, ports.Query{
+		Challenge:                new(big.Int).SetInt64(challenge),
+		CircuitID:                request.Body.Query.CircuitID,
+		ClaimID:                  claimID,
+		AllowedIssuers:           request.Body.Query.AllowedIssuers,
+		Context:                  request.Body.Query.Context,
+		Type:                     request.Body.Query.Type,
+		SkipClaimRevocationCheck: request.Body.Query.SkipClaimRevocationCheck,
+		CredentialSubject: map[string]interface{}{
+			"birthday": map[string]interface{}{
+				"$lt": 20000101,
+			},
+		},
+	})
+	if err != nil {
+		return CreateZkProof500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+
+	proof, err := s.zkGenerator.Generate(ctx, inputs, request.Body.Query.CircuitID)
+	if err != nil {
+		return CreateZkProof500JSONResponse{
+			N500JSONResponse{
+				Message: err.Error(),
+			},
+		}, nil
+	}
+	log.Info(ctx, "proof generated", "proof", proof)
+	return nil, nil
 }
 
 // RegisterStatic add method to the mux that are not documented in the API.

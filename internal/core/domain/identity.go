@@ -1,6 +1,6 @@
 package domain
 
-import core "github.com/iden3/go-iden3-core"
+import "github.com/iden3/go-iden3-core/v2/w3c"
 
 // Identity struct
 type Identity struct {
@@ -9,7 +9,7 @@ type Identity struct {
 }
 
 // NewIdentityFromIdentifier default identity model from identity and root state
-func NewIdentityFromIdentifier(id *core.DID, rootState string) *Identity {
+func NewIdentityFromIdentifier(id *w3c.DID, rootState string) *Identity {
 	return &Identity{
 		Identifier: id.String(),
 		State: IdentityState{

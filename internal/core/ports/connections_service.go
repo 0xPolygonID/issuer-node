@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
@@ -46,9 +46,9 @@ func NewDeleteRequest(connID uuid.UUID, deleteCredentials *bool, revokeCredentia
 
 // ConnectionsService  is the interface implemented by the Connections service
 type ConnectionsService interface {
-	Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID core.DID) error
-	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID core.DID) error
-	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID core.DID) (*domain.Connection, error)
-	GetByUserID(ctx context.Context, issuerDID core.DID, userID core.DID) (*domain.Connection, error)
-	GetAllByIssuerID(ctx context.Context, issuerDID core.DID, query string, withCredentials bool) ([]*domain.Connection, error)
+	Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID w3c.DID) error
+	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID w3c.DID) error
+	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) (*domain.Connection, error)
+	GetByUserID(ctx context.Context, issuerDID w3c.DID, userID w3c.DID) (*domain.Connection, error)
+	GetAllByIssuerID(ctx context.Context, issuerDID w3c.DID, query string, withCredentials bool) ([]*domain.Connection, error)
 }

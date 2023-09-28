@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -17,7 +17,7 @@ func NewRevocation() ports.RevocationRepository {
 	return &revocation{}
 }
 
-func (r *revocation) UpdateStatus(ctx context.Context, conn db.Querier, did *core.DID) ([]*domain.Revocation, error) {
+func (r *revocation) UpdateStatus(ctx context.Context, conn db.Querier, did *w3c.DID) ([]*domain.Revocation, error) {
 	rows, err := conn.Query(ctx, `UPDATE revocation SET status = $2 WHERE identifier = $1 AND status = $3
 RETURNING identifier, nonce, version, status, description`,
 		did.String(), domain.RevPublished, domain.RevPending)

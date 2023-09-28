@@ -73,7 +73,8 @@ paths:
                 $ref: '#/components/schemas/Config'
         '500':
           $ref: '#/components/responses/500'
-#identity:
+
+  #identity:
   /v1/identities:
     post:
       summary: Create Identity
@@ -430,6 +431,34 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  #Proof:
+  /v1/zkproof:
+    post:
+      summary: Create a ZK Proof
+      operationId: CreateZkProof
+      description: Endpoint to create a ZK Proof
+      security:
+        - basicAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateZkProofRequest'
+      responses:
+        '200':
+          description: Proof created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateZkProofResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:
@@ -598,6 +627,62 @@ components:
           birthday: 19960424
           documentType: 2
         expiration: 1903357766
+
+    # Proof
+    CreateZkProofRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: object
+          required:
+            - issuerDID
+            - circuitID
+            - allowedIssuers
+            - context
+            - type
+            - skipClaimRevocationCheck
+          properties:
+            issuerDID:
+              type: string
+              x-omitempty: false
+              example: "did:polygonid:polygon:mumbai:2qMBhL18U8PZypkSVVCqomeAiJjngCXh81oLGBcmH6"
+            claimID:
+              type: string
+              x-go-type: uuid.UUID
+              x-go-type-import:
+                name: uuid
+                path: github.com/google/uuid
+              example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+            circuitID:
+              type: string
+              x-omitempty: false
+              example: "polygon"
+            allowedIssuers:
+              type: string
+              x-omitempty: false
+              example: "mumbai"
+            context:
+              type: string
+              x-omitempty: false
+              example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"
+            type:
+              type: string
+              x-omitempty: false
+              example: "KYCAgeCredential"
+            skipClaimRevocationCheck:
+              type: boolean
+              x-omitempty: false
+              example: true
+
+    CreateZkProofResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: boolean
 
     CreateClaimResponse:
       type: object

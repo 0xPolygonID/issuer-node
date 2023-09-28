@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/consensus/misc"
+	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
@@ -337,7 +337,7 @@ func (c *Client) CreateRawTx(ctx context.Context, txParams TransactionParams) (*
 	if txParams.BaseFee == nil {
 		// since ETH and Polygon blockchain already supports London fork.
 		// no need set special block.
-		baseFee := misc.CalcBaseFee(&params.ChainConfig{LondonBlock: big.NewInt(1)}, latestBlockHeader)
+		baseFee := eip1559.CalcBaseFee(&params.ChainConfig{LondonBlock: big.NewInt(1)}, latestBlockHeader)
 
 		// add 25% to baseFee. baseFee always small value.
 		// since we use dynamic fee transactions we will get not used gas back.

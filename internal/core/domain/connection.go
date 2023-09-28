@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 )
 
 // Connection struct
 type Connection struct {
 	ID          uuid.UUID
-	IssuerDID   core.DID
-	UserDID     core.DID
+	IssuerDID   w3c.DID
+	UserDID     w3c.DID
 	IssuerDoc   json.RawMessage
 	UserDoc     json.RawMessage
 	CreatedAt   time.Time

@@ -9,7 +9,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/utils"
 )
@@ -37,7 +37,7 @@ func NewVaultBJJKeyProvider(vaultCli *api.Client, keyType KeyType) KeyProvider {
 	return &vaultBJJKeyProvider{keyType, vaultCli, reIdenKeyPathHex, reAnonKeyPathHex}
 }
 
-func (v *vaultBJJKeyProvider) New(identity *core.DID) (KeyID, error) {
+func (v *vaultBJJKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	bjjPrivKey := babyjub.NewRandPrivKey()
 	keyID := KeyID{
 		Type: v.keyType,
@@ -50,7 +50,7 @@ func (v *vaultBJJKeyProvider) New(identity *core.DID) (KeyID, error) {
 	return keyID, saveKeyMaterial(v.vaultCli, keyID.ID, keyMaterial)
 }
 
-func (v *vaultBJJKeyProvider) LinkToIdentity(_ context.Context, keyID KeyID, identity core.DID) (KeyID, error) {
+func (v *vaultBJJKeyProvider) LinkToIdentity(_ context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	if keyID.Type != v.keyType {
 		return keyID, ErrIncorrectKeyType
 	}
@@ -94,7 +94,7 @@ func (v *vaultBJJKeyProvider) Sign(_ context.Context, keyID KeyID, data []byte) 
 	return sig[:], nil
 }
 
-func (v *vaultBJJKeyProvider) ListByIdentity(_ context.Context, identity core.DID) ([]KeyID, error) {
+func (v *vaultBJJKeyProvider) ListByIdentity(_ context.Context, identity w3c.DID) ([]KeyID, error) {
 	path := identityPath(&identity)
 	entries, err := listDirectoryEntries(v.vaultCli, path)
 	if err != nil {

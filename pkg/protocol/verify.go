@@ -7,8 +7,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/iden3/contracts-abi/state/go/abi"
-	"github.com/iden3/go-circuits"
-	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/go-circuits/v2"
+	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/pkg/errors"
 )
 

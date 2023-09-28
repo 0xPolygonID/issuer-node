@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
-	"github.com/iden3/go-schema-processor/merklize"
-	"github.com/iden3/go-schema-processor/processor"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-schema-processor/v2/merklize"
+	"github.com/iden3/go-schema-processor/v2/processor"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -61,13 +63,13 @@ type claim struct {
 	qrService               ports.QrStoreService
 	identityStateRepository ports.IdentityStateRepository
 	storage                 *db.Storage
-	loaderFactory           loader.Factory
+	loader                  loader.DocumentLoader
 	publisher               pubsub.Publisher
 	ipfsClient              *shell.Shell
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.Factory, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
 		cfg: ClaimCfg{
 			RHSEnabled: cfg.RHSEnabled,
@@ -80,7 +82,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrServ
 		qrService:               qrService,
 		identityStateRepository: identityStateRepository,
 		storage:                 storage,
-		loaderFactory:           ld,
+		loader:                  ld,
 		publisher:               ps,
 	}
 	if ipfsGatewayURL != "" {
@@ -125,7 +127,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	schema, err := schemaPkg.LoadSchema(ctx, c.loaderFactory(req.Schema))
+	schema, err := schemaPkg.LoadSchema(ctx, c.loader, req.Schema)
 	if err != nil {
 		log.Error(ctx, "loading schema", "err", err, "schema", req.Schema)
 		return nil, ErrLoadingSchema
@@ -148,12 +150,12 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	jsonLDCtxBytes, _, err := c.loaderFactory(jsonLdContext).Load(ctx)
+	jsonLD, err := jsonschema.Load(ctx, jsonLdContext, c.loader)
 	if err != nil {
 		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
 		return nil, err
 	}
-	credentialType, err := merklize.TypeIDFromContext(jsonLDCtxBytes, req.Type)
+	credentialType, err := merklize.TypeIDFromContext(jsonLD.BytesNoErr(), req.Type)
 	if err != nil {
 		log.Error(ctx, "getting credential type", "err", err)
 		return nil, err
@@ -169,7 +171,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		opts.MerklizerOpts = []merklize.MerklizeOption{merklize.WithIPFSClient(c.ipfsClient)}
 	}
 
-	coreClaim, err := schemaPkg.Process(ctx, c.loaderFactory(req.Schema), credentialType, vc, opts)
+	coreClaim, err := schemaPkg.Process(ctx, c.loader, req.Schema, vc, opts)
 	if err != nil {
 		log.Error(ctx, "credential subject attributes don't match the provided schema", "err", err)
 		if errors.Is(err, schemaPkg.ErrParseClaim) {
@@ -243,11 +245,11 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	return claim, nil
 }
 
-func (c *claim) Revoke(ctx context.Context, id core.DID, nonce uint64, description string) error {
+func (c *claim) Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error {
 	return c.revoke(ctx, &id, nonce, description, c.storage.Pgx)
 }
 
-func (c *claim) RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID core.DID) error {
+func (c *claim) RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID w3c.DID) error {
 	credentials, err := c.icRepo.GetNonRevokedByConnectionAndIssuerID(ctx, c.storage.Pgx, connID, issuerID)
 	if err != nil {
 		return err
@@ -277,7 +279,7 @@ func (c *claim) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*domain.Claim, error) {
+func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error) {
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
@@ -290,7 +292,7 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 }
 
 // GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
-func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string) (string, error) {
+func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (string, error) {
 	getCredentialType := func(credentialType string) string {
 		const schemaParts = 2
 		parse := strings.Split(credentialType, "#")
@@ -349,7 +351,7 @@ func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Age
 	return c.getAgentCredential(ctx, req) // at this point the type is already validated
 }
 
-func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim, error) {
+func (c *claim) GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error) {
 	authHash, err := core.AuthSchemaHash.MarshalText()
 	if err != nil {
 		return nil, err
@@ -357,7 +359,7 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *core.DID) (*domain.Claim,
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
-func (c *claim) GetAll(ctx context.Context, did core.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
+func (c *claim) GetAll(ctx context.Context, did w3c.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
 	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
@@ -369,7 +371,7 @@ func (c *claim) GetAll(ctx context.Context, did core.DID, filter *ports.ClaimsFi
 	return claims, nil
 }
 
-func (c *claim) GetRevocationStatus(ctx context.Context, issuerDID core.DID, nonce uint64) (*verifiable.RevocationStatus, error) {
+func (c *claim) GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error) {
 	rID := new(big.Int).SetUint64(nonce)
 	revocationStatus := &verifiable.RevocationStatus{}
 
@@ -413,7 +415,7 @@ func (c *claim) GetRevocationStatus(ctx context.Context, issuerDID core.DID, non
 	return revocationStatus, nil
 }
 
-func (c *claim) GetAuthClaimForPublishing(ctx context.Context, did *core.DID, state string) (*domain.Claim, error) {
+func (c *claim) GetAuthClaimForPublishing(ctx context.Context, did *w3c.DID, state string) (*domain.Claim, error) {
 	authHash, err := core.AuthSchemaHash.MarshalText()
 	if err != nil {
 		return nil, err
@@ -432,7 +434,7 @@ func (c *claim) GetAuthClaimForPublishing(ctx context.Context, did *core.DID, st
 
 // UpdateClaimsMTPAndState update identity status and claim MTP
 func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error {
-	did, err := core.ParseDID(currentState.Identifier)
+	did, err := w3c.ParseDID(currentState.Identifier)
 	if err != nil {
 		return err
 	}
@@ -520,11 +522,11 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 	return nil
 }
 
-func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error) {
+func (c *claim) GetByStateIDWithMTPProof(ctx context.Context, did *w3c.DID, state string) ([]*domain.Claim, error) {
 	return c.icRepo.GetByStateIDWithMTPProof(ctx, c.storage.Pgx, did, state)
 }
 
-func (c *claim) revoke(ctx context.Context, did *core.DID, nonce uint64, description string, pgx db.Querier) error {
+func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, description string, pgx db.Querier) error {
 	rID := new(big.Int).SetUint64(nonce)
 	revocation := domain.Revocation{
 		Identifier:  did.String(),
@@ -629,7 +631,7 @@ func (c *claim) newVerifiableCredential(claimReq *ports.CreateClaimRequest, vcID
 	credentialSubject := claimReq.CredentialSubject
 
 	if idSubject, ok := credentialSubject["id"].(string); ok {
-		did, err := core.ParseDID(idSubject)
+		did, err := w3c.ParseDID(idSubject)
 		if err != nil {
 			return verifiable.W3CCredential{}, err
 		}
@@ -677,7 +679,7 @@ func (c *claim) getRevocationSource(issuerDID string, nonce uint64, singleIssuer
 	}
 }
 
-func (c *claim) buildCredentialID(issuerDID core.DID, credID uuid.UUID, singleIssuer bool) string {
+func (c *claim) buildCredentialID(issuerDID w3c.DID, credID uuid.UUID, singleIssuer bool) string {
 	if singleIssuer {
 		return fmt.Sprintf("%s/v1/credentials/%s", strings.TrimSuffix(c.cfg.Host, "/"), credID.String())
 	}

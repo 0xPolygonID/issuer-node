@@ -6,13 +6,15 @@ import (
 	"errors"
 	"fmt"
 
-	core "github.com/iden3/go-iden3-core"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/processor"
-	"github.com/iden3/go-schema-processor/verifiable"
+	core "github.com/iden3/go-iden3-core/v2"
+	jsonSuiteV1 "github.com/iden3/go-schema-processor/json"
+	jsonSuite "github.com/iden3/go-schema-processor/v2/json"
+	"github.com/iden3/go-schema-processor/v2/processor"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
@@ -23,13 +25,15 @@ var (
 )
 
 // LoadSchema loads schema from url
-func LoadSchema(ctx context.Context, loader loader.Loader) (jsonSuite.Schema, error) {
-	var schema jsonSuite.Schema
-	schemaBytes, _, err := loader.Load(ctx)
+// TODO: Refactor to avoid v1 dependencies
+func LoadSchema(ctx context.Context, loader loader.DocumentLoader, jsonSchemaURL string) (jsonSuiteV1.Schema, error) {
+	var schema jsonSuiteV1.Schema
+
+	schemaBytes, err := jsonschema.Load(ctx, jsonSchemaURL, loader)
 	if err != nil {
 		return schema, err
 	}
-	err = json.Unmarshal(schemaBytes, &schema)
+	err = json.Unmarshal(schemaBytes.BytesNoErr(), &schema)
 
 	return schema, err
 }
@@ -88,7 +92,7 @@ func FromClaimsModelToW3CCredential(credentials domain.Credentials) ([]*verifiab
 }
 
 // Process data and schema and create Index and Value slots
-func Process(ctx context.Context, ld loader.Loader, credentialType string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
+func Process(ctx context.Context, loader loader.DocumentLoader, schemaURL string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
 	var parser processor.Parser
 	var validator processor.Validator
 	pr := &processor.Processor{}
@@ -96,9 +100,13 @@ func Process(ctx context.Context, ld loader.Loader, credentialType string, crede
 	validator = jsonSuite.Validator{}
 	parser = jsonSuite.Parser{}
 
-	pr = processor.InitProcessorOptions(pr, processor.WithValidator(validator), processor.WithParser(parser), processor.WithSchemaLoader(ld))
+	pr = processor.InitProcessorOptions(
+		pr,
+		processor.WithDocumentLoader(loader),
+		processor.WithValidator(validator),
+		processor.WithParser(parser))
 
-	schema, _, err := pr.Load(ctx)
+	schema, err := pr.Load(ctx, schemaURL)
 	if err != nil {
 		return nil, ErrLoadSchema
 	}
@@ -113,7 +121,7 @@ func Process(ctx context.Context, ld loader.Loader, credentialType string, crede
 		return nil, ErrValidateData
 	}
 
-	claim, err := pr.ParseClaim(ctx, credential, credentialType, schema, options)
+	claim, err := pr.ParseClaim(ctx, credential, options)
 	if err != nil {
 		return nil, ErrParseClaim
 	}

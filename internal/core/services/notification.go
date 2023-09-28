@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
@@ -52,7 +52,7 @@ func (n *notification) SendCreateConnectionNotification(ctx context.Context, e p
 }
 
 func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credIDs []string) error {
-	issuerDID, err := core.ParseDID(issuerID)
+	issuerDID, err := w3c.ParseDID(issuerID)
 	if err != nil {
 		log.Error(ctx, "sendCreateCredentialNotification: failed to parse issuerID", "err", err.Error(), "issuerID", issuerID)
 		return err
@@ -75,7 +75,7 @@ func (n *notification) sendCreateCredentialNotification(ctx context.Context, iss
 		}
 
 		if credentialsUserID == "" {
-			userDID, err := core.ParseDID(credential.OtherIdentifier)
+			userDID, err := w3c.ParseDID(credential.OtherIdentifier)
 			if err != nil {
 				log.Error(ctx, "sendCreateCredentialNotification: failed to parse credential userID", "err", err.Error(), "issuerID", issuerID, "credID", credID)
 				return err
@@ -109,7 +109,7 @@ func (n *notification) sendCreateCredentialNotification(ctx context.Context, iss
 }
 
 func (n *notification) sendCreateConnectionNotification(ctx context.Context, issuerID string, connID string) error {
-	issuerDID, err := core.ParseDID(issuerID)
+	issuerDID, err := w3c.ParseDID(issuerID)
 	if err != nil {
 		log.Error(ctx, "sendCreateConnectionNotification: failed to parse issuerID", "err", err.Error(), "issuerID", issuerID, "connectionID", connID)
 		return err

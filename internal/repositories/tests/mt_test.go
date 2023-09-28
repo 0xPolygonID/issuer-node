@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/polygonid/sh-id-platform/internal/repositories"
@@ -33,7 +33,7 @@ func TestMtGetByIdentifierAndTypes(t *testing.T) {
 		mt, err := repo.Save(context.Background(), storage.Pgx, idStr, 0)
 		assert.NoError(t, err)
 		assert.NotNil(t, mt)
-		did, err := core.ParseDID(idStr)
+		did, err := w3c.ParseDID(idStr)
 		assert.NoError(t, err)
 
 		mts, err := repo.GetByIdentifierAndTypes(context.Background(), storage.Pgx, did, []uint16{0})
@@ -44,7 +44,7 @@ func TestMtGetByIdentifierAndTypes(t *testing.T) {
 
 	// when and then
 	t.Run("should not get the mt", func(t *testing.T) {
-		did, err := core.ParseDID("did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW")
+		did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW")
 		assert.NoError(t, err)
 		mts, err := repo.GetByIdentifierAndTypes(context.Background(), storage.Pgx, did, []uint16{0})
 		assert.NoError(t, err)

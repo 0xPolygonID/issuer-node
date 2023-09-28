@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 	"github.com/labstack/gommon/log"
@@ -232,7 +232,7 @@ func (c *claims) Delete(ctx context.Context, conn db.Querier, id uuid.UUID) erro
 	return nil
 }
 
-func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *core.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error) {
+func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error) {
 	claim := domain.Claim{}
 	row := conn.QueryRow(
 		ctx,
@@ -288,7 +288,7 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 	return &claim, nil
 }
 
-func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *core.DID, schemaHash string) (*domain.Claim, error) {
+func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *w3c.DID, schemaHash string) (*domain.Claim, error) {
 	var claim domain.Claim
 
 	row := conn.QueryRow(ctx,
@@ -355,7 +355,7 @@ func (c *claims) RevokeNonce(ctx context.Context, conn db.Querier, revocation *d
 }
 
 // GetByIdAndIssuer get claim by id
-func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *core.DID, claimID uuid.UUID) (*domain.Claim, error) {
+func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *w3c.DID, claimID uuid.UUID) (*domain.Claim, error) {
 	claim := domain.Claim{}
 	err := conn.QueryRow(ctx,
 		`SELECT id,
@@ -409,7 +409,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID core.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
 	query, args := buildGetAllQueryAndFilters(issuerID, filter)
 
 	rows, err := conn.Query(ctx, query, args...)
@@ -425,7 +425,7 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID
 	return processClaims(rows)
 }
 
-func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID core.DID) ([]*domain.Claim, error) {
+func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID w3c.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
@@ -463,7 +463,7 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 	return processClaims(rows)
 }
 
-func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows
 	if state == nil {
@@ -552,7 +552,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *core.D
 	return claims, err
 }
 
-func (c *claims) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *core.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
+func (c *claims) GetAllByStateWithMTProof(ctx context.Context, conn db.Querier, did *w3c.DID, state *merkletree.Hash) (claims []domain.Claim, err error) {
 	claims = make([]domain.Claim, 0)
 	var rows pgx.Rows
 	if state == nil {
@@ -684,7 +684,7 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	return claims, rows.Err()
 }
 
-func buildGetAllQueryAndFilters(issuerID core.DID, filter *ports.ClaimsFilter) (string, []interface{}) {
+func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (string, []interface{}) {
 	query := `SELECT claims.id,
 				   issuer,
 				   schema_hash,
@@ -788,7 +788,7 @@ func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *dom
 }
 
 // GetAuthClaimsForPublishing of all claims for identity
-func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier, identifier *core.DID, publishingState string, schemaHash string) ([]*domain.Claim, error) {
+func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier, identifier *w3c.DID, publishingState string, schemaHash string) ([]*domain.Claim, error) {
 	var err error
 	query := `SELECT claims.id,
 		issuer,
@@ -832,7 +832,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -893,7 +893,7 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 	return claims, nil
 }
 
-func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *core.DID, state string) ([]*domain.Claim, error) {
+func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *w3c.DID, state string) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,

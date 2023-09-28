@@ -10,6 +10,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/iden3/go-schema-processor/v2/loaders"
+	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -18,14 +20,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -72,11 +73,8 @@ func main() {
 		}
 	}(storage)
 
-	var schemaLoader loader.Factory
-	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
-	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
-		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
-	}
+	// TODO: Cache only if cfg.APIUI.SchemaCache == true
+	schemaLoader := loaders.NewDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
 
 	vaultCli, err := providers.VaultClient(ctx, providers.Config{
 		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
@@ -135,7 +133,7 @@ func main() {
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
-	}, ps, cfg.IFPS.GatewayURL)
+	}, ps, cfg.IPFS.GatewayURL)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {
@@ -154,7 +152,7 @@ func main() {
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
 	})
 
-	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
+	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := initProofService(ctx, cfg, circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(cl, cfg.Ethereum.ConfirmationBlockCount)
@@ -190,7 +188,7 @@ func main() {
 	log.Info(ctx, "Finished")
 }
 
-func initProofService(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+func initProofService(ctx context.Context, config *config.Configuration, circuitLoaderService *circuitLoaders.Circuits) ports.ZKGenerator {
 	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
 	if config.NativeProofGenerationEnabled {
 		proverConfig := &services.NativeProverConfig{

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
 
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -25,7 +25,7 @@ const (
 
 // IdentityMerkleTrees defines the merkle tree structure
 type IdentityMerkleTrees struct {
-	Identifier *core.DID
+	Identifier *w3c.DID
 	Trees      []*merkletree.MerkleTree
 	ImtModels  []*IdentityMerkleTree
 }
@@ -77,7 +77,7 @@ func (imts *IdentityMerkleTrees) ClaimsTree() (*merkletree.MerkleTree, error) {
 }
 
 // BindToIdentifier swaps temporary Identifier for real one in IdentityMerkleTree models
-func (imts *IdentityMerkleTrees) BindToIdentifier(conn db.Querier, identifier *core.DID) error {
+func (imts *IdentityMerkleTrees) BindToIdentifier(conn db.Querier, identifier *w3c.DID) error {
 	if imts.Identifier != nil {
 		return errors.New("can't change not empty Identifier")
 	}

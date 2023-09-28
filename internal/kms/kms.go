@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/pkg/errors"
 )
 
@@ -15,28 +15,28 @@ import (
 // revive:disable-next-line
 type KMSType interface {
 	RegisterKeyProvider(kt KeyType, kp KeyProvider) error
-	CreateKey(kt KeyType, identity *core.DID) (KeyID, error)
+	CreateKey(kt KeyType, identity *w3c.DID) (KeyID, error)
 	PublicKey(keyID KeyID) ([]byte, error)
 	Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error)
-	KeysByIdentity(ctx context.Context, identity core.DID) ([]KeyID, error)
-	LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID) (KeyID, error)
+	KeysByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error)
+	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
 }
 
 // KeyProvider describes the interface that key providers should match.
 type KeyProvider interface {
 	// New generates random key.
 	// If identity is nil, create new key without binding to identity.
-	New(identity *core.DID) (KeyID, error)
+	New(identity *w3c.DID) (KeyID, error)
 	// PublicKey returns byte representation of public key
 	PublicKey(keyID KeyID) ([]byte, error)
 	// Sign the data and return signature.
 	Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error)
 	// ListByIdentity returns all keys associated with identity
-	ListByIdentity(ctx context.Context, identity core.DID) ([]KeyID, error)
+	ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error)
 	// LinkToIdentity links unbound key to identity.
 	// KeyID can be changed after linking.
 	// Returning new KeyID.
-	LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID) (KeyID, error)
+	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
 }
 
 // KMS stores keys and secrets
@@ -89,7 +89,7 @@ func (k *KMS) RegisterKeyProvider(kt KeyType, kp KeyProvider) error {
 // CreateKey creates new random key of specified type.
 // If identity is not nil, store key for that identity. If nil, do not bind
 // key to identity.
-func (k *KMS) CreateKey(kt KeyType, identity *core.DID) (KeyID, error) {
+func (k *KMS) CreateKey(kt KeyType, identity *w3c.DID) (KeyID, error) {
 	var id KeyID
 	kp, ok := k.registry[kt]
 	if !ok {
@@ -118,7 +118,7 @@ func (k *KMS) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error
 }
 
 // KeysByIdentity lists keys by identity
-func (k *KMS) KeysByIdentity(ctx context.Context, identity core.DID) ([]KeyID, error) {
+func (k *KMS) KeysByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -165,7 +165,7 @@ func (k *KMS) KeysByIdentity(ctx context.Context, identity core.DID) ([]KeyID, e
 // Returning new KeyID.
 // Old key may be removed after vault. Not all key providers can support this
 // operation.
-func (k *KMS) LinkToIdentity(ctx context.Context, keyID KeyID, identity core.DID) (KeyID, error) {
+func (k *KMS) LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	kp, ok := k.registry[keyID.Type]
 	if !ok {
 		return keyID, errors.WithStack(ErrUnknownKeyType)

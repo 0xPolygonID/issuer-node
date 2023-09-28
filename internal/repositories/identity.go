@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -23,7 +23,7 @@ func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.I
 	return err
 }
 
-func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error) {
+func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.DID) (*domain.Identity, error) {
 	identity := domain.Identity{
 		State: domain.IdentityState{},
 	}
@@ -86,7 +86,7 @@ func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []strin
 	return identities, err
 }
 
-func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context, conn db.Querier) (issuersIDs []*core.DID, err error) {
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context, conn db.Querier) (issuersIDs []*w3c.DID, err error) {
 	rows, err := conn.Query(ctx,
 		`WITH issuers_to_process AS
 (
@@ -108,7 +108,7 @@ SELECT issuer FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FRO
 
 	defer rows.Close()
 
-	issuersIDs = make([]*core.DID, 0)
+	issuersIDs = make([]*w3c.DID, 0)
 
 	for rows.Next() {
 		var issuerIDStr string
@@ -116,10 +116,10 @@ SELECT issuer FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FRO
 		if err != nil {
 			return nil, err
 		}
-		var did *core.DID
-		did, err = core.ParseDID(issuerIDStr)
+		var did *w3c.DID
+		did, err = w3c.ParseDID(issuerIDStr)
 		if err != nil {
-			return []*core.DID{}, err
+			return []*w3c.DID{}, err
 		}
 		issuersIDs = append(issuersIDs, did)
 
@@ -132,7 +132,7 @@ SELECT issuer FROM issuers_to_process WHERE issuer NOT IN (SELECT identifier FRO
 	return issuersIDs, nil
 }
 
-func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier, identifier *core.DID) (bool, error) {
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier, identifier *w3c.DID) (bool, error) {
 	row := conn.QueryRow(ctx,
 		`WITH issuers_to_process AS
 				(
@@ -156,7 +156,7 @@ func (i *identity) HasUnprocessedStatesByID(ctx context.Context, conn db.Querier
 	return res > 0, nil
 }
 
-func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, conn db.Querier, identifier *core.DID) (bool, error) {
+func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, conn db.Querier, identifier *w3c.DID) (bool, error) {
 	row := conn.QueryRow(ctx,
 		`WITH issuers_to_process AS
          (

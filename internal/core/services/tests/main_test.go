@@ -6,11 +6,14 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/api"
+	"github.com/iden3/go-schema-processor/v2/loaders"
+	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
@@ -22,7 +25,10 @@ var (
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
 	cachex         cache.Cache
+	docLoader      loader.DocumentLoader
 )
+
+const ipfsGatewayURL = "http://127.0.0.1:8080"
 
 const ipfsGateway = "http://localhost:8080"
 
@@ -69,6 +75,8 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	cachex = cache.NewMemoryCache()
+
+	docLoader = loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
 
 	m.Run()
 }

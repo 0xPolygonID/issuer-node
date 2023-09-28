@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -17,17 +17,17 @@ import (
 )
 
 type schema struct {
-	repo          ports.SchemaRepository
-	loaderFactory loader.Factory
+	repo   ports.SchemaRepository
+	loader loader.DocumentLoader
 }
 
 // NewSchema is the schema service constructor
-func NewSchema(repo ports.SchemaRepository, lf loader.Factory) *schema {
-	return &schema{repo: repo, loaderFactory: lf}
+func NewSchema(repo ports.SchemaRepository, loader loader.DocumentLoader) *schema {
+	return &schema{repo: repo, loader: loader}
 }
 
 // GetByID returns a domain.Schema by ID
-func (s *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Schema, error) {
+func (s *schema) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Schema, error) {
 	schema, err := s.repo.GetByID(ctx, issuerDID, id)
 	if errors.Is(err, repositories.ErrSchemaDoesNotExist) {
 		return nil, ErrSchemaNotFound
@@ -39,13 +39,13 @@ func (s *schema) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) 
 }
 
 // GetAll return all schemas in the database that matches the query string
-func (s *schema) GetAll(ctx context.Context, issuerDID core.DID, query *string) ([]domain.Schema, error) {
+func (s *schema) GetAll(ctx context.Context, issuerDID w3c.DID, query *string) ([]domain.Schema, error) {
 	return s.repo.GetAll(ctx, issuerDID, query)
 }
 
 // ImportSchema process an schema url and imports into the system
-func (s *schema) ImportSchema(ctx context.Context, did core.DID, req *ports.ImportSchemaRequest) (*domain.Schema, error) {
-	remoteSchema, err := jsonschema.Load(ctx, s.loaderFactory(req.URL))
+func (s *schema) ImportSchema(ctx context.Context, did w3c.DID, req *ports.ImportSchemaRequest) (*domain.Schema, error) {
+	remoteSchema, err := jsonschema.Load(ctx, req.URL, s.loader)
 	if err != nil {
 		log.Error(ctx, "loading jsonschema", "err", err, "jsonschema", req.URL)
 		return nil, ErrLoadingSchema

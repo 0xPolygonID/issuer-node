@@ -3,7 +3,7 @@ package domain
 import (
 	"encoding/json"
 
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 )
 
 const (

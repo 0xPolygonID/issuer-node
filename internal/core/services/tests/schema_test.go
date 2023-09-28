@@ -6,15 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/utils"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
@@ -30,14 +29,14 @@ func TestSchema_ImportSchema(t *testing.T) {
 	ctx := context.Background()
 	repo := repositories.NewSchemaInMemory()
 
-	issuerDID := core.DID{}
-	require.NoError(t, issuerDID.SetString(did))
+	issuerDID, err := w3c.ParseDID(did)
+	require.NoError(t, err)
 
 	expectHash := utils.CreateSchemaHash([]byte(urlLD + "#" + schemaType))
 
-	s := services.NewSchema(repo, loader.HTTPFactory)
+	s := services.NewSchema(repo, docLoader)
 	iReq := ports.NewImportSchemaRequest(url, schemaType, common.ToPointer(title), version, common.ToPointer(description))
-	got, err := s.ImportSchema(ctx, issuerDID, iReq)
+	got, err := s.ImportSchema(ctx, *issuerDID, iReq)
 	require.NoError(t, err)
 	_, err = uuid.Parse(got.ID.String())
 	assert.NoError(t, err)

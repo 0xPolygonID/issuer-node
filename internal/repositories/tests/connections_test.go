@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,9 +19,9 @@ import (
 
 func TestSave(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
-	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qCp9Tx4x5hzchym1dZXtBpwRQsH7HXe7GcbvskoRn")
+	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qCp9Tx4x5hzchym1dZXtBpwRQsH7HXe7GcbvskoRn")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm")
 	require.NoError(t, err)
 
 	conn := &domain.Connection{
@@ -48,9 +48,9 @@ func TestSave(t *testing.T) {
 
 func TestUpdatePushToken(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
-	issuerDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qDLHs1n3c9oHxEPkgCMGfDjY4V37Xv8KztkZcpG1i")
+	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qDLHs1n3c9oHxEPkgCMGfDjY4V37Xv8KztkZcpG1i")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qHgCmGW1wDH5ShTH94SssR4eN8XW4xyHLfop2Qoqm")
 	require.NoError(t, err)
 
 	conn := &domain.Connection{
@@ -85,9 +85,9 @@ func TestDelete(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)
 
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
 
 	conn := fixture.CreateConnection(t, &domain.Connection{
@@ -117,9 +117,9 @@ func TestConnectionsGetAllByIssuerID(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)
 
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
 
 	_ = fixture.CreateConnection(t, &domain.Connection{
@@ -190,14 +190,14 @@ func TestGetAllWithCredentialsByIssuerID(t *testing.T) {
 		Identifier: idStr,
 	}
 	fixture.CreateIdentity(t, identity)
-	issuerDID, err := core.ParseDID(idStr)
+	issuerDID, err := w3c.ParseDID(idStr)
 	require.NoError(t, err)
 
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qNtJm8v3c8b7XjQtAtSvAbudnUAfzsjHFqRnyYDq7")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qNtJm8v3c8b7XjQtAtSvAbudnUAfzsjHFqRnyYDq7")
 	require.NoError(t, err)
-	userDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qFjTM4kX3J6AYzHBY1Q3ztnxv1UfNaaNUGw8TKo4N")
+	userDID2, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qFjTM4kX3J6AYzHBY1Q3ztnxv1UfNaaNUGw8TKo4N")
 	require.NoError(t, err)
-	userDID3, err := core.ParseDID("did:polygonid:polygon:mumbai:2qMTdi9CkqE8ihMn7qtp61QCdiKvfo2Ttx9a5TMDSt")
+	userDID3, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qMTdi9CkqE8ihMn7qtp61QCdiKvfo2Ttx9a5TMDSt")
 	require.NoError(t, err)
 
 	connNoCredentials := fixture.CreateConnection(t, &domain.Connection{
@@ -297,9 +297,9 @@ func TestDeleteConnectionCredentials(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)
 
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
 
 	conn := fixture.CreateConnection(t, &domain.Connection{
@@ -338,11 +338,11 @@ func TestGetByUserID(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)
 
-	issuerDID, err := core.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
-	userDID, err := core.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
-	userDID2, err := core.ParseDID("did:polygonid:polygon:mumbai:2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr")
+	userDID2, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr")
 	require.NoError(t, err)
 
 	_ = fixture.CreateConnection(t, &domain.Connection{

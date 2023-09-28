@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,15 +26,16 @@ func TestGetSchema(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
 	store := repositories.NewSchema(*storage)
-	did := core.DID{}
 	// Create a schemaHash
 	i := &big.Int{}
 	i.SetInt64(rand.Int63())
 
-	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
+	did, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+
 	schema1 := &domain.Schema{
 		ID:          uuid.New(),
-		IssuerDID:   did,
+		IssuerDID:   *did,
 		URL:         "https://an.url.org/index.html",
 		Type:        "schemaType",
 		Hash:        core.NewSchemaHashFromInt(i),
@@ -45,7 +47,7 @@ func TestGetSchema(t *testing.T) {
 	}
 	require.NoError(t, store.Save(ctx, schema1))
 
-	schema2, err := store.GetByID(ctx, did, schema1.ID)
+	schema2, err := store.GetByID(ctx, *did, schema1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, schema1.ID, schema2.ID)
 	assert.Equal(t, schema1.IssuerDID, schema2.IssuerDID)
@@ -63,15 +65,17 @@ func TestCreateSchema(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
 	store := repositories.NewSchema(*storage)
-	did := core.DID{}
+
 	// Create a schemaHash
 	i := &big.Int{}
 	i.SetInt64(rand.Int63())
 
-	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
+	did, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+
 	schema1 := &domain.Schema{
 		ID:          uuid.New(),
-		IssuerDID:   did,
+		IssuerDID:   *did,
 		URL:         "https://an.url.org/index.html",
 		Type:        "schemaType",
 		Hash:        core.NewSchemaHashFromInt(i),
@@ -95,15 +99,17 @@ func TestGetSchemaWithNullAttributes(t *testing.T) {
 	rand.NewSource(time.Now().Unix())
 	ctx := context.Background()
 	store := repositories.NewSchema(*storage)
-	did := core.DID{}
+
 	// Create a schemaHash
 	i := &big.Int{}
 	i.SetInt64(rand.Int63())
 
-	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
+	did, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+
 	schema1 := &domain.Schema{ //  no description
 		ID:          uuid.New(),
-		IssuerDID:   did,
+		IssuerDID:   *did,
 		URL:         "https://an.url.org/index.html",
 		Type:        "schemaType",
 		Hash:        core.NewSchemaHashFromInt(i),
@@ -115,7 +121,7 @@ func TestGetSchemaWithNullAttributes(t *testing.T) {
 
 	require.NoError(t, store.Save(ctx, schema1))
 
-	bdSchema, err := store.GetByID(ctx, did, schema1.ID)
+	bdSchema, err := store.GetByID(ctx, *did, schema1.ID)
 	require.NoError(t, err)
 	assert.Nil(t, bdSchema.Title)
 	require.NotNil(t, bdSchema.Description)
@@ -135,9 +141,9 @@ func TestGetAllFullTextSearch(t *testing.T) {
 	defer teardown()
 
 	store := repositories.NewSchema(*storage)
-	did := core.DID{}
-	require.NoError(t, did.SetString("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ"))
-	insertSchemaGetAllData(t, ctx, did, store)
+	did, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
+	require.NoError(t, err)
+	insertSchemaGetAllData(t, ctx, *did, store)
 
 	type expected struct {
 		collection []domain.Schema
@@ -277,7 +283,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 		// TODO: Add partial like tests
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			collection, err := store.GetAll(ctx, did, tc.query)
+			collection, err := store.GetAll(ctx, *did, tc.query)
 			require.NoError(t, err)
 			require.Len(t, collection, len(tc.expected.collection))
 			for i := range collection {
@@ -287,7 +293,7 @@ func TestGetAllFullTextSearch(t *testing.T) {
 	}
 }
 
-func insertSchemaGetAllData(t *testing.T, ctx context.Context, did core.DID, store ports.SchemaRepository) {
+func insertSchemaGetAllData(t *testing.T, ctx context.Context, did w3c.DID, store ports.SchemaRepository) {
 	t.Helper()
 	data := []struct {
 		typ        string

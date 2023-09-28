@@ -3,8 +3,8 @@ package domain
 import (
 	"time"
 
-	"github.com/iden3/go-circuits"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-circuits/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
@@ -65,7 +65,7 @@ func (i *IdentityState) TreeState() circuits.TreeState {
 }
 
 // ContainsID check if states contains id
-func ContainsID(states []IdentityState, id *core.DID) bool {
+func ContainsID(states []IdentityState, id *w3c.DID) bool {
 	for i := range states {
 		if states[i].Identifier == id.String() {
 			return true
