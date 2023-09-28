@@ -30,9 +30,9 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   login: Login,
-  profile: Profile,
   notFound: NotFound,
   notification: Notification,
+  profile: Profile,
   request: Request,
 };
 

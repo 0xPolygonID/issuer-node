@@ -67,10 +67,6 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/credentials/links/:linkID",
   },
-  profile: {
-    layout: "sider",
-    path: "/profile",
-  },
   login: {
     layout: "fullWidth",
     path: "/login",
@@ -82,6 +78,10 @@ export const ROUTES: Routes = {
   notification: {
     layout: "sider",
     path: "/notification",
+  },
+  profile: {
+    layout: "sider",
+    path: "/profile",
   },
   request: {
     layout: "sider",
