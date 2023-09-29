@@ -166,12 +166,12 @@ func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, us
 	//nolint:all
 	credentialSubject := map[string]interface{}{
 		"id":     userDID,
-		"member": 1234567890,
+		"member": 1,
 	}
 
 	claims, err := s.claimService.GetAll(ctx, issuerDID, &ports.ClaimsFilter{
 		Subject:    userDID,
-		SchemaType: "urn:uuid:bf1a9bd5-32fd-4757-95d2-96c97e93cb00",
+		SchemaType: "urn:uuid:84ef8672-8821-4187-9ccd-0662f07abf7c",
 	})
 	if err != nil {
 		log.Error(ctx, "error getting claims", "err", err)
