@@ -161,12 +161,12 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 }
 
 func (s *Server) createCampaignClaim(ctx context.Context, issuerDID core.DID, userDID string, sessionID uuid.UUID) (*domain.Claim, error) {
-	credentialSchema := "ipfs://QmVc8YwFxE3vQLmUbuCc9Vjqi6YzdpyqeEwFqSjBinJy9G"
+	credentialSchema := "ipfs://QmT9aaZtgZB1roSfrt5rVB6Liar6kgwfyz2Hu69hR9gC7f"
 	credentialType := "PolygonIDEarlyAdopter"
 	//nolint:all
 	credentialSubject := map[string]interface{}{
-		"id":       userDID,
-		"isActive": true,
+		"id":     userDID,
+		"member": 1234567890,
 	}
 
 	claims, err := s.claimService.GetAll(ctx, issuerDID, &ports.ClaimsFilter{
