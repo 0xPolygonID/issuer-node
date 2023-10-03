@@ -9,18 +9,21 @@ import { CREDENTIALS, ISSUE_CREDENTIAL } from "src/utils/constants";
 
 export function Credentials() {
   const navigate = useNavigate();
+  const User = localStorage.getItem("user");
 
   return (
     <SiderLayoutContent
       description="Credentials that have been issued either directly or as credential links."
       extra={
-        <Button
-          icon={<IconCreditCardPlus />}
-          onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
-          type="primary"
-        >
-          {ISSUE_CREDENTIAL}
-        </Button>
+        User !== "verifier" && (
+          <Button
+            icon={<IconCreditCardPlus />}
+            onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}
+            type="primary"
+          >
+            {ISSUE_CREDENTIAL}
+          </Button>
+        )
       }
       title={CREDENTIALS}
     >

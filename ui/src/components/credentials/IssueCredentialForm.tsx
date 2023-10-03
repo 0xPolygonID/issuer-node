@@ -251,7 +251,7 @@ export function IssueCredentialForm({
         }}
       >
         <Form.Item
-          label="Select schema type"
+          label="Select credential type"
           name="schemaID"
           rules={[{ message: VALUE_REQUIRED, required: true }]}
         >

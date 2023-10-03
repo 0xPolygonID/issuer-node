@@ -21,7 +21,7 @@ export const IDENTIFIER = "Identifier";
 export const IMPORT_SCHEMA = "Import schema";
 export const ISSUE_CREDENTIAL = "Issue credential";
 export const ISSUE_REQUEST = "My Requests";
-export const ALL_REQUEST = "All Request";
+export const ALL_REQUEST = "All Requests";
 export const REQUEST_FOR_VC_CREDS = "Request for VC verification";
 export const REQUEST_FOR_VC = "Request for VC";
 export const ISSUE_CREDENTIAL_DIRECT = "Issue credential directly";
@@ -43,6 +43,7 @@ export const REQUESTS = "Requests";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
 export const REQUEST_DATE = "Request date";
+export const SUBMIT = "Submit";
 
 // URL params
 export const DID_SEARCH_PARAM = "did";

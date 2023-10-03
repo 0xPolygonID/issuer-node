@@ -1,5 +1,6 @@
 import { Card, Col, Divider, Image, Row, Space, Typography } from "antd";
 
+import { UploadDoc } from "../shared/Upload";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 
 import { PROFILE, PROFILE_DETAILS } from "src/utils/constants";
@@ -26,17 +27,14 @@ export function Profile() {
                 width: 600,
               }}
             >
-              <Image src={src} style={{ borderRadius: 100 }} width={200} />
+              <Image src={src} style={{ borderRadius: 100, marginBottom: 10 }} width={200} />
               <Row>
-                {/* <Typography.Text strong>Name</Typography.Text> */}
                 <Typography.Text>Roshni</Typography.Text>
               </Row>
               <Row>
-                {/* <Typography.Text strong>Email ID</Typography.Text> */}
                 <Typography.Text>roshni@chaincodeconsulting.com</Typography.Text>
               </Row>
               <Row>
-                {/* <Typography.Text strong>Phone Number</Typography.Text> */}
                 <Typography.Text>7008714710</Typography.Text>
               </Row>
             </div>
@@ -53,11 +51,13 @@ export function Profile() {
               </Row>
               <Row>
                 <Typography.Text strong>Adhaar Number</Typography.Text>
-                <Typography.Text>: 7008714710</Typography.Text>
+                <Typography.Text style={{ marginRight: 10 }}>: 7008714710</Typography.Text>
+                <UploadDoc />
               </Row>
               <Row>
                 <Typography.Text strong>PAN</Typography.Text>
-                <Typography.Text>: 7008714710</Typography.Text>
+                <Typography.Text style={{ marginRight: 10 }}>: 7008714710</Typography.Text>
+                <UploadDoc />
               </Row>
               <Row>
                 <Typography.Text strong>Age</Typography.Text>

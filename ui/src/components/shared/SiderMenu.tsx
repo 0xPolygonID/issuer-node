@@ -99,6 +99,20 @@ export function SiderMenu({
                 title: "",
               },
               {
+                icon: <IconRequest />,
+                key: requestPath,
+                label: ALL_REQUEST,
+                onClick: () => onMenuClick(requestPath),
+                title: "",
+              },
+              {
+                icon: <IconNotification />,
+                key: notificationPath,
+                label: NOTIFICATION,
+                onClick: () => onMenuClick(notificationPath),
+                title: "",
+              },
+              {
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -115,20 +129,6 @@ export function SiderMenu({
                 key: connectionsPath,
                 label: CONNECTIONS,
                 onClick: () => onMenuClick(connectionsPath),
-                title: "",
-              },
-              {
-                icon: <IconNotification />,
-                key: notificationPath,
-                label: NOTIFICATION,
-                onClick: () => onMenuClick(notificationPath),
-                title: "",
-              },
-              {
-                icon: <IconRequest />,
-                key: requestPath,
-                label: ALL_REQUEST,
-                onClick: () => onMenuClick(requestPath),
                 title: "",
               },
             ]}
@@ -138,6 +138,20 @@ export function SiderMenu({
           <Menu
             items={[
               {
+                icon: <IconRequest />,
+                key: requestPath,
+                label: ALL_REQUEST,
+                onClick: () => onMenuClick(requestPath),
+                title: "",
+              },
+              {
+                icon: <IconNotification />,
+                key: notificationPath,
+                label: NOTIFICATION,
+                onClick: () => onMenuClick(notificationPath),
+                title: "",
+              },
+              {
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -154,20 +168,6 @@ export function SiderMenu({
                 key: connectionsPath,
                 label: CONNECTIONS,
                 onClick: () => onMenuClick(connectionsPath),
-                title: "",
-              },
-              {
-                icon: <IconNotification />,
-                key: notificationPath,
-                label: NOTIFICATION,
-                onClick: () => onMenuClick(notificationPath),
-                title: "",
-              },
-              {
-                icon: <IconRequest />,
-                key: requestPath,
-                label: ALL_REQUEST,
-                onClick: () => onMenuClick(requestPath),
                 title: "",
               },
             ]}

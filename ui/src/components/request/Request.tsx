@@ -6,7 +6,7 @@ import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-ca
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { ROUTES } from "src/routes";
 import {
-  ISSUED_CREDENTIALS,
+  ISSUE_CREDENTIAL,
   REQUESTS,
   REQUEST_FOR_VC,
   REQUEST_FOR_VC_CREDS,
@@ -28,7 +28,7 @@ export function Request() {
           {User === "verifier"
             ? REQUEST_FOR_VC_CREDS
             : User === "issuer"
-            ? ISSUED_CREDENTIALS
+            ? ISSUE_CREDENTIAL
             : REQUEST_FOR_VC}
         </Button>
       }

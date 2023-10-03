@@ -1,9 +1,9 @@
-import { Card, Form, Input, Select } from "antd";
+import { Button, Card, Form, Input, Select } from "antd";
 import { useState } from "react";
 
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 
-import { CREATE_REQUEST, SCHEMA_TYPE, VALUE_REQUIRED } from "src/utils/constants";
+import { CREATE_REQUEST, SCHEMA_TYPE, SUBMIT, VALUE_REQUIRED } from "src/utils/constants";
 
 const dropdownList = [
   "KYCAgeCredentialAadhar",
@@ -30,7 +30,7 @@ export function CreateRequest() {
         <Card className="issue-credential-card" title="Create Request">
           <Form layout="vertical">
             <Form.Item
-              label="Select schema type"
+              label="Select crendential type"
               name="schemaID"
               rules={[{ message: VALUE_REQUIRED, required: true }]}
             >
@@ -52,7 +52,7 @@ export function CreateRequest() {
               requestType === "ValidCredentialAadhar") && (
               <div>
                 <Form.Item
-                  label="Adhaar"
+                  label="Aadhaar Number"
                   name="adhaarID"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
@@ -71,7 +71,7 @@ export function CreateRequest() {
                 </Form.Item>
               </div>
             )}
-            {requestType && (
+            {/* {requestType && (
               <div>
                 <Form.Item
                   label="Request Type"
@@ -81,7 +81,7 @@ export function CreateRequest() {
                   <Input placeholder="Schema Type" />
                 </Form.Item>
               </div>
-            )}
+            )} */}
             {(requestType === "KYCAgeCredentialAadhar" ||
               requestType === "KYCAgeCredentialPAN") && (
               <div>
@@ -90,10 +90,24 @@ export function CreateRequest() {
                   name="age"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input defaultValue={18} placeholder="Age" />
+                  <Input defaultValue={18} placeholder="Age" readOnly />
                 </Form.Item>
               </div>
             )}
+            {requestType === "KYBGSTINCredentials" && (
+              <div>
+                <Form.Item
+                  label="GSTIN"
+                  name="gstin"
+                  rules={[{ message: VALUE_REQUIRED, required: true }]}
+                >
+                  <Input placeholder="GSTIN" readOnly />
+                </Form.Item>
+              </div>
+            )}
+            <Button key="submit" type="primary">
+              {SUBMIT}
+            </Button>
           </Form>
         </Card>
       </SiderLayoutContent>
