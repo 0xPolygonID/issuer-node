@@ -36,6 +36,10 @@ export const ROUTES: Routes = {
     layout: "sider",
     path: "/connections",
   },
+  createRequest: {
+    layout: "sider",
+    path: "/request/create",
+  },
   credentialDetails: {
     layout: "sider",
     path: "/credentials/issued/:credentialID",
@@ -47,10 +51,6 @@ export const ROUTES: Routes = {
   credentialLinkQR: {
     layout: "fullWidthGrey",
     path: "/credentials/scan-link/:linkID",
-  },
-  createRequest: {
-    layout: "sider",
-    path: "/request/create",
   },
   credentials: {
     layout: "sider",

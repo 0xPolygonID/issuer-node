@@ -23,9 +23,9 @@ import { ROOT_PATH } from "src/utils/constants";
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
+  createRequest: CreateRequest,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
-  createRequest: CreateRequest,
   credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   issueCredential: IssueCredential,
