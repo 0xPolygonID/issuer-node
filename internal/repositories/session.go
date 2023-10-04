@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/pkg/cache"

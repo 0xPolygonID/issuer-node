@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/iden3/go-circuits"
+	"github.com/iden3/go-circuits/v2"
 )
 
 const (
