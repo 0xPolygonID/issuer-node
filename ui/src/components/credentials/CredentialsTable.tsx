@@ -78,8 +78,18 @@ export function CredentialsTable() {
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
   let tableColumns: ColumnsType<Credential>;
-  if (User === "verifier") {
+  if (User === "issuer" || User === "verifier") {
     tableColumns = [
+      {
+        dataIndex: "userDID",
+        key: "userDID",
+        render: (userDID: Credential["userDID"]) => (
+          <Tooltip placement="topLeft" title={userDID}>
+            <Typography.Text strong>{userDID}</Typography.Text>
+          </Tooltip>
+        ),
+        title: "UserDID",
+      },
       {
         dataIndex: "schemaType",
         ellipsis: { showTitle: false },
@@ -102,29 +112,13 @@ export function CredentialsTable() {
         title: ISSUE_DATE,
       },
       {
-        dataIndex: "expiresAt",
-        key: "expiresAt",
-        render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
-          expiresAt ? (
-            <Tooltip placement="topLeft" title={formatDate(expiresAt)}>
-              <Typography.Text>
-                {credential.expired ? "Expired" : dayjs(expiresAt).fromNow(true)}
-              </Typography.Text>
-            </Tooltip>
-          ) : (
-            "-"
-          ),
-        responsive: ["sm"],
-        sorter: ({ expiresAt: a }, { expiresAt: b }) => {
-          if (a && b) {
-            return dayjs(a).unix() - dayjs(b).unix();
-          } else if (a) {
-            return -1;
-          } else {
-            return 1;
-          }
-        },
-        title: EXPIRATION,
+        dataIndex: "expired",
+        key: "expired",
+        render: (expired: Credential["expired"]) => (
+          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: EXPIRED,
       },
       {
         dataIndex: "revoked",
@@ -134,87 +128,6 @@ export function CredentialsTable() {
         ),
         responsive: ["md"],
         title: REVOCATION,
-      },
-      {
-        dataIndex: "id",
-        key: "id",
-        render: (id: Credential["id"], credential: Credential) => (
-          <Dropdown
-            menu={{
-              items: [
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: DETAILS,
-                  onClick: () =>
-                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-                },
-                {
-                  key: "divider1",
-                  type: "divider",
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: APPROVE1,
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: APPROVE2,
-                },
-                {
-                  danger: true,
-                  disabled: credential.revoked,
-                  icon: <IconClose />,
-                  key: "revoke",
-                  label: REVOKE,
-                  onClick: () => setCredentialToRevoke(credential),
-                },
-                {
-                  key: "divider2",
-                  type: "divider",
-                },
-                {
-                  danger: true,
-                  icon: <IconTrash />,
-                  key: "delete",
-                  label: DELETE,
-                  onClick: () => setCredentialToDelete(credential),
-                },
-              ],
-            }}
-          >
-            <Row>
-              <IconDots className="icon-secondary" />
-            </Row>
-          </Dropdown>
-        ),
-        width: DOTS_DROPDOWN_WIDTH,
-      },
-    ];
-  } else if (User === "issuer") {
-    tableColumns = [
-      {
-        dataIndex: "schemaType",
-        ellipsis: { showTitle: false },
-        key: "schemaType",
-        render: (schemaType: Credential["schemaType"]) => (
-          <Tooltip placement="topLeft" title={schemaType}>
-            <Typography.Text strong>{schemaType}</Typography.Text>
-          </Tooltip>
-        ),
-        sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
-        title: "Credential",
-      },
-      {
-        dataIndex: "createdAt",
-        key: "createdAt",
-        render: (createdAt: Credential["createdAt"]) => (
-          <Typography.Text>{formatDate(createdAt)}</Typography.Text>
-        ),
-        sorter: ({ createdAt: a }, { createdAt: b }) => dayjs(a).unix() - dayjs(b).unix(),
-        title: ISSUE_DATE,
       },
       {
         dataIndex: "expiresAt",
@@ -249,24 +162,6 @@ export function CredentialsTable() {
         ),
         sorter: ({ revokeDate: a }, { revokeDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
         title: REVOKE_DATE,
-      },
-      {
-        dataIndex: "expired",
-        key: "expired",
-        render: (expired: Credential["expired"]) => (
-          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
-        ),
-        responsive: ["md"],
-        title: EXPIRED,
-      },
-      {
-        dataIndex: "revoked",
-        key: "revoked",
-        render: (revoked: Credential["revoked"]) => (
-          <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
-        ),
-        responsive: ["md"],
-        title: REVOCATION,
       },
       {
         dataIndex: "id",
@@ -350,6 +245,24 @@ export function CredentialsTable() {
         title: ISSUE_DATE,
       },
       {
+        dataIndex: "expired",
+        key: "expired",
+        render: (expired: Credential["expired"]) => (
+          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: EXPIRED,
+      },
+      {
+        dataIndex: "revoked",
+        key: "revoked",
+        render: (revoked: Credential["revoked"]) => (
+          <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
+        ),
+        responsive: ["md"],
+        title: REVOCATION,
+      },
+      {
         dataIndex: "expiresAt",
         key: "expiresAt",
         render: (expiresAt: Credential["expiresAt"], credential: Credential) =>
@@ -375,22 +288,13 @@ export function CredentialsTable() {
         title: EXPIRATION,
       },
       {
-        dataIndex: "revoked",
-        key: "revoked",
-        render: (revoked: Credential["revoked"]) => (
-          <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
+        dataIndex: "revokeDate",
+        key: "revokeDate",
+        render: (revokeDate: Credential["revokeDate"]) => (
+          <Typography.Text>{formatDate(revokeDate)}</Typography.Text>
         ),
-        responsive: ["md"],
-        title: REVOCATION,
-      },
-      {
-        dataIndex: "expired",
-        key: "expired",
-        render: (expired: Credential["expired"]) => (
-          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
-        ),
-        responsive: ["md"],
-        title: EXPIRED,
+        sorter: ({ revokeDate: a }, { revokeDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
+        title: REVOKE_DATE,
       },
       {
         dataIndex: "id",

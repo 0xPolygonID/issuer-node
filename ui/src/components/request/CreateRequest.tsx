@@ -30,7 +30,7 @@ export function CreateRequest() {
         <Card className="issue-credential-card" title="Create Request">
           <Form layout="vertical">
             <Form.Item
-              label="Select crendential type"
+              label="Select Crendential Type"
               name="schemaID"
               rules={[{ message: VALUE_REQUIRED, required: true }]}
             >
@@ -85,12 +85,13 @@ export function CreateRequest() {
             {(requestType === "KYCAgeCredentialAadhar" ||
               requestType === "KYCAgeCredentialPAN") && (
               <div>
-                <Form.Item
-                  label="Age"
-                  name="age"
-                  rules={[{ message: VALUE_REQUIRED, required: true }]}
-                >
-                  <Input defaultValue={18} placeholder="Age" readOnly />
+                <Form.Item label="Age" name="age" rules={[{ message: VALUE_REQUIRED }]}>
+                  <Input
+                    defaultValue={18}
+                    placeholder="Age"
+                    readOnly
+                    style={{ color: "#868686" }}
+                  />
                 </Form.Item>
               </div>
             )}
