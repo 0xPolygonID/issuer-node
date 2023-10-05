@@ -69,13 +69,37 @@ func(s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (Aut
 
 
 func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error){
-
-	if (request.Body.SchemaID == " "){
+	// var req GetRequestObject;
+	if (request.Body.SchemaID.String() == " "){
 		log.Debug(ctx, "empty request body auth-callback request")
-		return VC500Response{"Request failed: SchemaId was Empty"},nil
+		return VC500Response{"Request failed: schemaId was empty"},nil
 	}
+
+	if (request.Body.RequestType == " " || request.Body.ProofType == " "){
+		return VC500Response{"Invalid Proof: Proof was empty"}, nil
+	}
+
+	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID,request.Body.SchemaID)
+	if errors.Is(err, services.ErrSchemaNotFound) {
+		return VC500Response{"Invalid schemaId: Schema not found"}, nil
+	}
+
+
+
 	// var id uuid.UUID;
-	id,err := s.requestServer.CreateRequest(ctx,request.Body.UserDID,request.Body.SchemaID)
+	var req domain.VCRequest = domain.VCRequest{
+		SchemaID: request.Body.SchemaID,
+		UserDID: request.Body.UserDID,
+		CredentialType: schema.Type,
+		RequestType: request.Body.RequestType,
+		RoleType: request.Body.RoleType,
+		ProofType: request.Body.ProofType,
+		ProofId: request.Body.ProofId,
+		Age: request.Body.Age,
+		Source: request.Body.Source};
+	
+
+	id,err := s.requestServer.CreateRequest(ctx,req);
 	if err != nil{
 		return nil,err;
 	}
@@ -86,6 +110,18 @@ func(s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject)
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
+
+	
+	_req,err := s.requestServer.GetRequest(ctx,request.Body.RequestId);
+	if err != nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "Invalid request id"}}, nil
+	}
+
+	_, err = s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID,_req.SchemaID)
+	if errors.Is(err, services.ErrSchemaNotFound) {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "Invalid Scheema id"}}, nil
+	}
+
 	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true)
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -112,6 +148,8 @@ func(s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject)
 		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
+
+	_,err = s.requestServer.UpdateStatus(ctx,request.Body.RequestId)
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 
 }
@@ -126,7 +164,21 @@ func(s *Server) GetRequest(ctx context.Context, request GetRequestObject) (GetRe
 	if(err != nil){
 		return nil,err;
 	}
-	return GetRequest200Response{res.Id,res.UserDID,res.Issuer_id,res.SchemaID,res.Active} ,nil;
+	return GetRequest200Response{res.Id,res.SchemaID,res.Issuer_id,res.UserDID,res.Active,res.CredentialType,res.RequestType,res.RoleType,res.ProofType,res.ProofId,res.Age,res.RequestStatus,res.VerifyStatus,res.WalletStatus,res.Source,res.CreatedAt,res.ModifiedAt} ,nil;
+}
+
+func(s *Server) GetAllRequests(ctx context.Context) (GetAllRequestsResponseObject, error){
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+
+	res,err := s.requestServer.GetAllRequests(ctx)
+	if(err != nil){
+		return nil,err;
+	}
+	resp,err := requestsResponse(res)
+	if(err != nil){
+		return nil,err;
+	}
+	return  GetAllRequests200Response{resp},nil
 }
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.

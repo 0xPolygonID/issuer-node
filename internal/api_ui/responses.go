@@ -336,3 +336,30 @@ func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStat
 func getAgentEndpoint(hostURL string) string {
 	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/"))
 }
+
+func requestsResponse(requets []*domain.Responce) (GetAllRequestsResponse, error) {
+	resp := make([]GetRequest200Response, 0)
+	for _, req := range requets {
+		var res GetRequest200Response
+		res.Id = req.Id
+		res.IssuerId = req.Issuer_id
+		res.SchemaID = req.SchemaID
+		res.UserDID = req.UserDID
+		res.Active = req.Active
+		res.CredentialType = req.CredentialType
+		res.RequestType = req.RequestType
+		res.RoleType = req.RoleType
+		res.ProofType=req.ProofType
+		res.ProofId=req.ProofId
+		res.Age=req.Age
+		res.RequestStatus = req.RequestStatus
+		res.VerifierStatus=req.VerifyStatus
+		res.WalletStatus=req.WalletStatus
+		res.Source = req.Source
+		res.CreatedAt = req.CreatedAt
+		res.ModifiedAt = req.ModifiedAt
+		resp = append(resp, res)
+	}
+
+	return resp, nil
+}

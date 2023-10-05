@@ -142,6 +142,37 @@ func (n *notification) sendCreateConnectionNotification(ctx context.Context, iss
 	return n.send(ctx, credOfferBytes, subjectDIDDoc)
 }
 
+
+// func (n *notification) SendRequestNotification(ctx context.Context, credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument) error {
+// 	// issuerDID, err := core.ParseDID(issuerID)
+// 	// if err != nil {
+// 	// 	log.Error(ctx, "sendCreateConnectionNotification: failed to parse issuerID", "err", err.Error(), "issuerID", issuerID, "connectionID", connID)
+// 	// 	return err
+// 	// }
+
+// 	// connUUID, err := uuid.Parse(connID)
+// 	// if err != nil {
+// 	// 	log.Error(ctx, "sendCreateConnectionNotification: failed to parse connID", "err", err.Error(), "issuerID", issuerID, "connectionID", connID)
+// 	// 	return err
+// 	// }
+	
+	
+// 	res, err := n.notificationGateway.Notify(ctx, credOfferBytes, subjectDIDDoc)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	for _, nr := range res.Devices {
+// 		if nr.Status != domain.DeviceNotificationStatusSuccess {
+// 			log.Error(ctx, "failed to send push notification to certain user device",
+// 				"device encrypted info", nr.Device.Ciphertext, "reason", nr.Reason)
+// 			return errors.New("failed to send push notification")
+// 		}
+// 	}
+
+// 	return nil
+// }
+
 func (n *notification) send(ctx context.Context, credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument) error {
 	res, err := n.notificationGateway.Notify(ctx, credOfferBytes, subjectDIDDoc)
 	if err != nil {
