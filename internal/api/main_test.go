@@ -8,8 +8,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/loaders"
+	"github.com/iden3/iden3comm/v2"
+	shell "github.com/ipfs/go-ipfs-api"
+	"github.com/piprate/json-gold/ld"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -29,9 +32,10 @@ var (
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
 	cachex         cache.Cache
+	schemaLoader   ld.DocumentLoader
 )
 
-const ipfsGateway = "http://localhost:8080"
+const ipfsGatewayURL = "http://localhost:8080"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -80,6 +84,8 @@ func TestMain(m *testing.M) {
 
 	cfg.ServerUrl = "https://testing.env/"
 
+	schemaLoader = loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
+
 	m.Run()
 }
 
@@ -126,7 +132,7 @@ func (kpm *KMSMock) RegisterKeyProvider(kt kms.KeyType, kp kms.KeyProvider) erro
 	return nil
 }
 
-func (kpm *KMSMock) CreateKey(kt kms.KeyType, identity *core.DID) (kms.KeyID, error) {
+func (kpm *KMSMock) CreateKey(kt kms.KeyType, identity *w3c.DID) (kms.KeyID, error) {
 	var key kms.KeyID
 	return key, nil
 }
@@ -141,12 +147,12 @@ func (kpm *KMSMock) Sign(ctx context.Context, keyID kms.KeyID, data []byte) ([]b
 	return signed, nil
 }
 
-func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity core.DID) ([]kms.KeyID, error) {
+func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity w3c.DID) ([]kms.KeyID, error) {
 	var keys []kms.KeyID
 	return keys, nil
 }
 
-func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity core.DID) (kms.KeyID, error) {
+func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity w3c.DID) (kms.KeyID, error) {
 	var key kms.KeyID
 	return key, nil
 }

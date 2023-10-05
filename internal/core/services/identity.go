@@ -13,15 +13,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	auth "github.com/iden3/go-iden3-auth"
-	"github.com/iden3/go-iden3-auth/pubsignals"
-	core "github.com/iden3/go-iden3-core"
+	auth "github.com/iden3/go-iden3-auth/v2"
+	"github.com/iden3/go-iden3-auth/v2/pubsignals"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql/v2"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -90,12 +90,12 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 	}
 }
 
-func (i *identity) GetByDID(ctx context.Context, identifier core.DID) (*domain.Identity, error) {
+func (i *identity) GetByDID(ctx context.Context, identifier w3c.DID) (*domain.Identity, error) {
 	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 }
 
 func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, networkID, hostURL string) (*domain.Identity, error) {
-	var identifier *core.DID
+	var identifier *w3c.DID
 	var err error
 	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
@@ -171,7 +171,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
-func (i *identity) Exists(ctx context.Context, identifier core.DID) (bool, error) {
+func (i *identity) Exists(ctx context.Context, identifier w3c.DID) (bool, error) {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 	if err != nil {
 		return false, err
@@ -189,7 +189,7 @@ func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		return keyID, errors.New("identifier is empty in auth claim")
 	}
 
-	identity, err := core.ParseDID(*authClaim.Identifier)
+	identity, err := w3c.ParseDID(*authClaim.Identifier)
 	if err != nil {
 		return keyID, err
 	}
@@ -230,7 +230,7 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 }
 
 // GetLatestStateByID get latest identity state by identifier
-func (i *identity) GetLatestStateByID(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
+func (i *identity) GetLatestStateByID(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error) {
 	// check that identity exists in the db
 	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &identifier)
 	if err != nil {
@@ -252,7 +252,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		return keyID, errors.New("identifier is empty in auth claim")
 	}
 
-	identity, err := core.ParseDID(*authClaim.Identifier)
+	identity, err := w3c.ParseDID(*authClaim.Identifier)
 	if err != nil {
 		return keyID, err
 	}
@@ -288,7 +288,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 	return keyID, errors.New("private key not found")
 }
 
-func (i *identity) UpdateState(ctx context.Context, did core.DID) (*domain.IdentityState, error) {
+func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error) {
 	newState := &domain.IdentityState{
 		Identifier: did.String(),
 		Status:     domain.StatusCreated,
@@ -374,7 +374,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) (*protocol.AuthorizationResponseMessage, error) {
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error) {
 	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
@@ -395,7 +395,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	}
 
 	bytesIssuerDoc = sanitizeIssuerDoc(bytesIssuerDoc)
-	userDID, err := core.ParseDID(arm.From)
+	userDID, err := w3c.ParseDID(arm.From)
 	if err != nil {
 		log.Error(ctx, "failed to parse userDID", "err", err)
 		return nil, err
@@ -425,7 +425,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (string, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 
@@ -455,7 +455,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 	return i.qrService.ToURL(serverURL, id), nil
 }
 
-func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {
+func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, currentState domain.IdentityState) error {
 	claims, err := i.claimsRepository.GetAllByState(ctx, conn, id, nil)
 	if err != nil {
 		return err
@@ -531,7 +531,7 @@ func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTree
 	return nil
 }
 
-func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod string, blockchain, networkID, hostURL string) (*core.DID, *big.Int, error) {
+func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod string, blockchain, networkID, hostURL string) (*w3c.DID, *big.Int, error) {
 	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create identity markle tree: %w", err)
@@ -571,13 +571,12 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 	}
 
 	// TODO: add config options for blockchain and network
-	// didType, err := core.BuildDIDType(core.DIDMethodPolygonID, core.Polygon, core.Mumbai)
 	didType, err := core.BuildDIDType(core.DIDMethod(DIDMethod), core.Blockchain(blockchain), core.NetworkID(networkID))
 	if err != nil {
 		return nil, nil, ErrWrongDIDMetada
 	}
 
-	identifier, err := core.IdGenesisFromIdenState(didType, currentState.BigInt())
+	identifier, err := core.NewIDFromIdenState(didType, currentState.BigInt())
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't genesis from state: %w", err)
 	}
@@ -617,12 +616,15 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 		return nil, nil, fmt.Errorf("can't marshal claim data: %w", err)
 	}
 
+	jsonLdContext := domain.AuthBJJCredentialJSONLDContext
+
 	cr := common.CredentialRequest{
 		CredentialSchema:  domain.AuthBJJCredentialJSONSchemaURL,
 		Type:              domain.AuthBJJCredential,
 		CredentialSubject: marshalledClaimData,
 		Version:           0,
 		RevNonce:          &revNonce,
+		LDContext:         jsonLdContext,
 	}
 
 	exp, ok := authClaim.GetExpirationDate()
@@ -632,24 +634,13 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 		cr.Expiration = exp.Unix()
 	}
 
-	var schema jsonSuite.Schema
-	err = json.Unmarshal([]byte(domain.AuthBJJCredentialSchemaJSON), &schema)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't unmarshal the shema: %w", err)
-	}
-
-	var jsonLdContext string
-	if jsonLdContext, ok = schema.Metadata.Uris["jsonLdContext"].(string); !ok {
-		return nil, nil, fmt.Errorf("invalid: %w", err)
-	}
-
 	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, domain.AuthBJJCredential)
 	claimID, err := uuid.NewUUID()
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't crate uuid: %w", err)
 	}
 
-	cred, err := common.CreateCredential(did, cr, schema)
+	cred, err := common.CreateCredential(did, cr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create credential: %w", err)
 	}
@@ -723,7 +714,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 	return did, currentState.BigInt(), nil
 }
 
-func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *core.DID) (verifiable.Iden3SparseMerkleTreeProof, error) {
+func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *w3c.DID) (verifiable.Iden3SparseMerkleTreeProof, error) {
 	index, err := authClaim.HIndex()
 	if err != nil {
 		return verifiable.Iden3SparseMerkleTreeProof{}, err
@@ -772,19 +763,19 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID core.DID) ([]domain.IdentityState, error) {
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID) ([]domain.IdentityState, error) {
 	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID)
 }
 
-func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {
 	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
 }
 
-func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier w3c.DID) (bool, error) {
 	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, &identifier)
 }
 
-func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier w3c.DID) (bool, error) {
 	return i.identityRepository.HasUnprocessedAndFailedStatesByID(ctx, i.storage.Pgx, &identifier)
 }
 
@@ -797,7 +788,7 @@ func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.Identit
 	return states, nil
 }
 
-func (i *identity) GetFailedState(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
+func (i *identity) GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error) {
 	states, err := i.identityStateRepository.GetStatesByStatusAndIssuerID(ctx, i.storage.Pgx, domain.StatusFailed, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("error getting failed state: %w", err)
@@ -828,7 +819,7 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	return kms.DecodeBJJPubKey(keyBytes)
 }
 
-func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument {
+func newDIDDocument(serverURL string, issuerDID w3c.DID) verifiable.DIDDocument {
 	return verifiable.DIDDocument{
 		Context: []string{serviceContext},
 		ID:      issuerDID.String(),

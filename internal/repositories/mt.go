@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgtype"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -49,7 +49,7 @@ func (mt *identityMerkleTreeRepository) GetByID(ctx context.Context, conn db.Que
 	return &res, nil
 }
 
-func (mt *identityMerkleTreeRepository) GetByIdentifierAndTypes(ctx context.Context, conn db.Querier, identifier *core.DID, mtTypes []uint16) ([]domain.IdentityMerkleTree, error) {
+func (mt *identityMerkleTreeRepository) GetByIdentifierAndTypes(ctx context.Context, conn db.Querier, identifier *w3c.DID, mtTypes []uint16) ([]domain.IdentityMerkleTree, error) {
 	var typesSQL pgtype.Int2Array
 	if err := typesSQL.Set(mtTypes); err != nil {
 		return nil, err

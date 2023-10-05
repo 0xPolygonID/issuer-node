@@ -12,7 +12,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/iden3/contracts-abi/state/go/abi"
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -49,7 +50,7 @@ func NewPublisherEthGateway(_client *eth.Client, contract ethCommon.Address, key
 }
 
 // PublishState creates or updates state in the blockchain
-func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *core.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error) {
+func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error) {
 	pb.rw.Lock()
 	defer pb.rw.Unlock()
 
@@ -131,7 +132,7 @@ func (pb *PublisherEthGateway) getAddressForTxInitiator() (ethCommon.Address, er
 	return fromAddress, nil
 }
 
-func (pb *PublisherEthGateway) getStatePayload(identifier *core.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) ([]byte, error) {
+func (pb *PublisherEthGateway) getStatePayload(identifier *w3c.DID, latestState, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) ([]byte, error) {
 	a, b, c, err := proof.ProofToBigInts()
 	if err != nil {
 		return nil, err
@@ -148,7 +149,12 @@ func (pb *PublisherEthGateway) getStatePayload(identifier *core.DID, latestState
 		return nil, err
 	}
 
-	payload, err := ab.Pack("transitState", identifier.ID.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis,
+	id, err := core.IDFromDID(*identifier)
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := ab.Pack("transitState", id.BigInt(), latestState.BigInt(), newState.BigInt(), isOldStateGenesis,
 		proofA, proofB, proofC)
 	if err != nil {
 		return nil, err

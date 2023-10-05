@@ -11,11 +11,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -114,7 +114,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 // CreateClaim is claim creation controller
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
@@ -155,7 +155,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 // RevokeClaim is the revocation claim controller
 func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		log.Warn(ctx, "revoke claim invalid did", "err", err, "req", request)
 		return RevokeClaim400JSONResponse{N400JSONResponse{err.Error()}}, nil
@@ -177,7 +177,7 @@ func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObje
 
 // GetRevocationStatus is the controller to get revocation status
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
-	issuerDID, err := core.ParseDID(request.Identifier)
+	issuerDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetRevocationStatus500JSONResponse{N500JSONResponse{
 			Message: err.Error(),
@@ -228,7 +228,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 		return GetClaim400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetClaim400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -264,7 +264,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -302,7 +302,7 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -376,7 +376,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 
 // PublishIdentityState - publish identity state on chain
 func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return PublishIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
@@ -400,7 +400,7 @@ func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdenti
 
 // RetryPublishState - retry to publish the current state if it failed previously.
 func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
-	did, err := core.ParseDID(request.Identifier)
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return RetryPublishState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}

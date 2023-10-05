@@ -9,8 +9,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/google/uuid"
-	"github.com/iden3/go-circuits"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-circuits/v2"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/jackc/pgx/v4"
@@ -44,7 +45,7 @@ const (
 
 // PublisherGateway - Define the interface for publishers.
 type PublisherGateway interface {
-	PublishState(ctx context.Context, identifier *core.DID, latestState *merkletree.Hash, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error)
+	PublishState(ctx context.Context, identifier *w3c.DID, latestState *merkletree.Hash, newState *merkletree.Hash, isOldStateGenesis bool, proof *domain.ZKProof) (*string, error)
 }
 
 type publisher struct {
@@ -81,7 +82,7 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 	}
 }
 
-func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+func (p *publisher) PublishState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error) {
 	idStr := identifier.String()
 	processingEntity := p.pendingTransactions.Load(idStr)
 	if processingEntity != nil {
@@ -97,7 +98,7 @@ func (p *publisher) PublishState(ctx context.Context, identifier *core.DID) (*do
 	return newState, err
 }
 
-func (p *publisher) RetryPublishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+func (p *publisher) RetryPublishState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error) {
 	idStr := identifier.String()
 	processingEntity := p.pendingTransactions.Load(idStr)
 	if processingEntity != nil {
@@ -113,7 +114,7 @@ func (p *publisher) RetryPublishState(ctx context.Context, identifier *core.DID)
 	return newState, err
 }
 
-func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+func (p *publisher) publishState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error) {
 	exists, err := p.identityService.HasUnprocessedStatesByID(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching unprocessed issuers did", "err", err)
@@ -153,7 +154,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *core.DID) (*do
 	}, nil
 }
 
-func (p *publisher) retrypublishFailedState(ctx context.Context, identifier *core.DID) (*domain.PublishedState, error) {
+func (p *publisher) retrypublishFailedState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error) {
 	failedState, err := p.identityService.GetFailedState(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching failed state", "err", err)
@@ -181,8 +182,8 @@ func (p *publisher) retrypublishFailedState(ctx context.Context, identifier *cor
 }
 
 // PublishProof publishes new proof using the latest state
-func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newState domain.IdentityState) (*string, error) {
-	did, err := core.ParseDID(newState.Identifier)
+func (p *publisher) publishProof(ctx context.Context, identifier *w3c.DID, newState domain.IdentityState) (*string, error) {
+	did, err := w3c.ParseDID(newState.Identifier)
 	if err != nil {
 		return nil, err
 	}
@@ -245,9 +246,14 @@ func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newS
 		return nil, err
 	}
 
+	id, err := core.IDFromDID(*did)
+	if err != nil {
+		return nil, err
+	}
+
 	isLatestStateGenesis := latestState.PreviousState == nil
 	stateTransitionInputs := circuits.StateTransitionInputs{
-		ID:                &did.ID,
+		ID:                &id,
 		NewTreeState:      newTreeState,
 		OldTreeState:      oldTreeState,
 		IsOldStateGenesis: isLatestStateGenesis,
@@ -302,7 +308,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *core.DID, newS
 	return txID, nil
 }
 
-func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *core.DID, authClaim *domain.Claim, newState domain.IdentityState) (
+func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *w3c.DID, authClaim *domain.Claim, newState domain.IdentityState) (
 	authClaimData *circuits.ClaimWithMTPProof, authClaimNewStateIncProof *merkletree.Proof, err error,
 ) {
 	err = p.storage.Pgx.BeginFunc(
@@ -421,7 +427,7 @@ func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *doma
 	if receipt.Status == types.ReceiptStatusSuccessful {
 		state.Status = domain.StatusConfirmed
 		err = p.claimService.UpdateClaimsMTPAndState(ctx, state)
-		did, err := core.ParseDID(state.Identifier)
+		did, err := w3c.ParseDID(state.Identifier)
 		if err != nil {
 			log.Error(ctx, "error getting did from state: ", "err", err, "state", state.StateID)
 			return err

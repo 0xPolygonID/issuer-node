@@ -14,7 +14,9 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/iden3/go-schema-processor/v2/loaders"
 	proof "github.com/iden3/merkletree-proof"
+	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -25,14 +27,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -72,11 +73,9 @@ func main() {
 	ps := pubsub.NewRedis(rdb)
 	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
-	var schemaLoader loader.Factory
-	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
-	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
-		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
-	}
+
+	// TODO: Cache only if cfg.APIUI.SchemaCache == true
+	schemaLoader := loaders.NewDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
 
 	var vaultCli *vault.Client
 	var vaultErr error
@@ -121,7 +120,7 @@ func main() {
 		return
 	}
 
-	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
+	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	if cfg.ReverseHashService.Enabled {
@@ -146,7 +145,7 @@ func main() {
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
-	}, ps, cfg.IFPS.GatewayURL)
+	}, ps, cfg.IPFS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)

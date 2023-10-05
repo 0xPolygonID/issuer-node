@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 
@@ -57,7 +57,7 @@ func (l link) Save(ctx context.Context, conn db.Querier, link *domain.Link) (*uu
 	return &id, err
 }
 
-func (l link) GetByID(ctx context.Context, issuerDID core.DID, id uuid.UUID) (*domain.Link, error) {
+func (l link) GetByID(ctx context.Context, issuerDID w3c.DID, id uuid.UUID) (*domain.Link, error) {
 	const sql = `
 SELECT links.id, 
        links.issuer_id, 
@@ -127,7 +127,7 @@ GROUP BY links.id, schemas.id
 	return &link, err
 }
 
-func (l link) GetAll(ctx context.Context, issuerDID core.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
+func (l link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
 	sql := `
 SELECT links.id, 
        links.issuer_id, 
@@ -228,7 +228,7 @@ WHERE links.issuer_id = $1
 	return links, nil
 }
 
-func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID core.DID) error {
+func (l link) Delete(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) error {
 	const sql = `DELETE FROM links WHERE id = $1 AND issuer_id =$2`
 	cmd, err := l.conn.Pgx.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {

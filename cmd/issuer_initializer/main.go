@@ -73,14 +73,16 @@ func main() {
 		return
 	}
 
-	did, err := providers.GetDID(ctx, vaultCli)
-	if err != nil {
-		log.Info(ctx, "did not found in vault, creating new one")
-	}
+	if cfg.VaultUserPassAuthEnabled {
+		did, err := providers.GetDID(ctx, vaultCli)
+		if err != nil {
+			log.Info(ctx, "did not found in vault, creating new one")
+		}
 
-	if did != "" {
-		log.Info(ctx, "did already created, skipping", "did", did)
-		return
+		if did != "" {
+			log.Info(ctx, "did already created, skipping", "did", did)
+			return
+		}
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
@@ -107,9 +109,11 @@ func main() {
 
 	log.Info(ctx, "identifier crated successfully")
 
-	if err := providers.SaveDID(ctx, vaultCli, identity.Identifier); err != nil {
-		log.Error(ctx, "error saving identifier to vault", err)
-		return
+	if cfg.VaultUserPassAuthEnabled {
+		if err := providers.SaveDID(ctx, vaultCli, identity.Identifier); err != nil {
+			log.Error(ctx, "error saving identifier to vault", err)
+			return
+		}
 	}
 
 	//nolint:all

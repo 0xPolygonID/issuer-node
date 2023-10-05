@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
@@ -57,7 +57,7 @@ const (
 )
 
 // LinkCoreDID - represents a credential offer ID
-type LinkCoreDID core.DID
+type LinkCoreDID w3c.DID
 
 // Link - represents a credential offer
 type Link struct {
@@ -78,7 +78,7 @@ type Link struct {
 
 // NewLink - Constructor
 func NewLink(
-	issuerDID core.DID,
+	issuerDID w3c.DID,
 	maxIssuance *int,
 	validUntil *time.Time,
 	schemaID uuid.UUID,
@@ -103,8 +103,8 @@ func NewLink(
 }
 
 // IssuerCoreDID - return the Core DID value
-func (l *Link) IssuerCoreDID() *core.DID {
-	return common.ToPointer(core.DID(l.IssuerDID))
+func (l *Link) IssuerCoreDID() *w3c.DID {
+	return common.ToPointer(w3c.DID(l.IssuerDID))
 }
 
 // Scan - scan the value for LinkCoreDID
@@ -113,7 +113,7 @@ func (l *LinkCoreDID) Scan(value interface{}) error {
 	if !ok {
 		return fmt.Errorf("invalid value type, expected string")
 	}
-	did, err := core.ParseDID(didStr)
+	did, err := w3c.ParseDID(didStr)
 	if err != nil {
 		return err
 	}

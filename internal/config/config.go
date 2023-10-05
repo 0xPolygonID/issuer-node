@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -43,7 +43,7 @@ type Configuration struct {
 	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
 	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
 	APIUI                        APIUI              `mapstructure:"APIUI"`
-	IFPS                         IPFS               `mapstructure:"IPFS"`
+	IPFS                         IPFS               `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
 }
@@ -138,7 +138,7 @@ type APIUI struct {
 	IssuerName         string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
 	IssuerLogo         string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
 	Issuer             string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID          core.DID  `mapstructure:"-"`
+	IssuerDID          w3c.DID   `mapstructure:"-"`
 	SchemaCache        *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
@@ -185,7 +185,7 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	if c.APIUI.Issuer != "" {
-		issuerDID, err := core.ParseDID(c.APIUI.Issuer)
+		issuerDID, err := w3c.ParseDID(c.APIUI.Issuer)
 		if err != nil {
 			log.Error(ctx, "invalid issuer did format", "error", err)
 			return fmt.Errorf("invalid issuer did format")
@@ -210,7 +210,7 @@ func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) err
 			return err
 		}
 		log.Info(ctx, "Issuer Did loaded from vault", "did", cfg.APIUI.Issuer)
-		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
+		issuerDID, err := w3c.ParseDID(cfg.APIUI.Issuer)
 		if err != nil {
 			log.Error(ctx, "invalid issuer did format", "error", err)
 			return err
@@ -389,9 +389,9 @@ func bindEnv() {
 
 // nolint:gocyclo
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
-	if cfg.IFPS.GatewayURL == "" {
+	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
-		cfg.IFPS.GatewayURL = ipfsGateway
+		cfg.IPFS.GatewayURL = ipfsGateway
 	}
 
 	if cfg.ServerUrl == "" {
