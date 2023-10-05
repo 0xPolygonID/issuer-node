@@ -210,11 +210,11 @@ restart-ui: rm-issuer-imgs up run run-ui
 restart-ui-arm: rm-issuer-imgs up run-arm run-ui-arm
 
 
-# usage: make new_password=xxx change-this-default-password
-.PHONY: change-vault-password
-change-vault-password:
-	docker exec issuer-vault-1 \
-	vault write auth/userpass/users/issuernode password=$(new_password)
+## usage: make new_password=xxx change-vault-password
+#.PHONY: change-vault-password
+#change-vault-password:
+#	docker exec issuer-vault-1 \
+#	vault write auth/userpass/users/issuernode password=$(new_password)
 
 .PHONY: print-did
 print-did:

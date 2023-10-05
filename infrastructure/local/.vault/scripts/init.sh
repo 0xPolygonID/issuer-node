@@ -66,7 +66,7 @@ vault policy write issuernode /vault/config/policies.hcl
 echo "===== CREATE USERS ====="
 vault auth enable userpass
 vault write auth/userpass/users/issuernode \
-    password=initial-password.-change-it-by-running-make-change-vault-password \
+    password=issuernodepwd \
     policies="admins,issuernode"
 
 echo $vault_token
