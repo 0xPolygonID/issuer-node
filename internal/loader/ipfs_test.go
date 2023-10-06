@@ -40,7 +40,7 @@ func TestIpfsCID(t *testing.T) {
 			},
 		},
 		{
-			url: "https://gateway.ipfs.io/ipfs/QmUrDHtC3fGYg1CqWzrgbxU5tXeQa4y323h277m6hXX84k",
+			url: "https://cloudflare-ipfs.com/ipfs/QmUrDHtC3fGYg1CqWzrgbxU5tXeQa4y323h277m6hXX84k",
 			expected: expected{
 				cid: "",
 				err: errors.New("invalid ipfs url"),

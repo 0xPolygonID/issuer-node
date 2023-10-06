@@ -11,9 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	vaultApi "github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
-	"github.com/iden3/go-schema-processor/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
-	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -88,7 +86,7 @@ func TestMain(m *testing.M) {
 
 	cfg.ServerUrl = "https://testing.env/"
 
-	schemaLoader = loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
+	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
 }
