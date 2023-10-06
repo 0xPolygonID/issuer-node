@@ -159,64 +159,6 @@ export function IssueCredentialForm({
     return false;
   }
 
-  const fetchJsonSchema = useCallback(
-    (schema: ApiSchema) => {
-      setJsonSchema({ status: "loading" });
-      void getJsonSchemaFromUrl({
-        env,
-        url: schema.url,
-      }).then((response) => {
-        if (response.success) {
-          const [jsonSchema] = response.data;
-          setJsonSchema({
-            data: jsonSchema,
-            status: "successful",
-          });
-        } else {
-          if (!isAbortedError(response.error)) {
-            setJsonSchema({ error: response.error, status: "failed" });
-          }
-        }
-      });
-    },
-    [env]
-  );
-
-  const fetchSchemas = useCallback(
-    async (signal: AbortSignal) => {
-      setApiSchemas((previousState) =>
-        isAsyncTaskDataAvailable(previousState)
-          ? { data: previousState.data, status: "reloading" }
-          : { status: "loading" }
-      );
-
-      const response = await getApiSchemas({
-        env,
-        params: {},
-        signal,
-      });
-
-      if (response.success) {
-        setApiSchemas({ data: response.data.successful, status: "successful" });
-        const selectedSchema =
-          initialValues.schemaID !== undefined
-            ? response.data.successful.find((schema) => schema.id === initialValues.schemaID)
-            : undefined;
-
-        if (selectedSchema) {
-          setApiSchema(selectedSchema);
-          fetchJsonSchema(selectedSchema);
-        }
-      } else {
-        if (!isAbortedError(response.error)) {
-          setApiSchemas({ error: undefined, status: "failed" });
-          void messageAPI.error(response.error.message);
-        }
-      }
-    },
-    [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
-  );
-
   const computeFormObjectInitialValues = useCallback(
     (
       objectAttribute: ObjectAttribute,
@@ -284,28 +226,80 @@ export function IssueCredentialForm({
     []
   );
 
+  const fetchJsonSchema = useCallback(
+    (schema: ApiSchema) => {
+      setJsonSchema({ status: "loading" });
+      void getJsonSchemaFromUrl({
+        env,
+        url: schema.url,
+      }).then((response) => {
+        if (response.success) {
+          const [jsonSchema] = response.data;
+          setJsonSchema({
+            data: jsonSchema,
+            status: "successful",
+          });
+          const credentialSubject = extractCredentialSubjectAttributeWithoutId(jsonSchema);
+          const initialValuesWithSchemaValues: Store = credentialSubject
+            ? {
+                ...initialValues,
+                credentialSubject: computeFormObjectInitialValues(
+                  credentialSubject,
+                  initialValues.credentialSubject || {}
+                ),
+              }
+            : initialValues;
+          form.setFieldsValue(initialValuesWithSchemaValues);
+        } else {
+          if (!isAbortedError(response.error)) {
+            setJsonSchema({ error: response.error, status: "failed" });
+          }
+        }
+      });
+    },
+    [computeFormObjectInitialValues, env, form, initialValues]
+  );
+
+  const fetchSchemas = useCallback(
+    async (signal: AbortSignal) => {
+      setApiSchemas((previousState) =>
+        isAsyncTaskDataAvailable(previousState)
+          ? { data: previousState.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
+      const response = await getApiSchemas({
+        env,
+        params: {},
+        signal,
+      });
+
+      if (response.success) {
+        setApiSchemas({ data: response.data.successful, status: "successful" });
+        const selectedSchema =
+          initialValues.schemaID !== undefined
+            ? response.data.successful.find((schema) => schema.id === initialValues.schemaID)
+            : undefined;
+
+        if (selectedSchema) {
+          setApiSchema(selectedSchema);
+          fetchJsonSchema(selectedSchema);
+        }
+      } else {
+        if (!isAbortedError(response.error)) {
+          setApiSchemas({ error: undefined, status: "failed" });
+          void messageAPI.error(response.error.message);
+        }
+      }
+    },
+    [env, fetchJsonSchema, initialValues.schemaID, messageAPI]
+  );
+
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchSchemas);
 
     return aborter;
   }, [fetchSchemas]);
-
-  const credentialSubjectAttributeWithoutId = isAsyncTaskDataAvailable(jsonSchema)
-    ? extractCredentialSubjectAttributeWithoutId(jsonSchema.data)
-    : undefined;
-
-  useEffect(() => {
-    const initialValuesWithSchemaValues: Store = credentialSubjectAttributeWithoutId
-      ? {
-          ...initialValues,
-          credentialSubject: computeFormObjectInitialValues(
-            credentialSubjectAttributeWithoutId,
-            initialValues.credentialSubject || {}
-          ),
-        }
-      : initialValues;
-    form.setFieldsValue(initialValuesWithSchemaValues);
-  }, [computeFormObjectInitialValues, credentialSubjectAttributeWithoutId, form, initialValues]);
 
   return (
     <>
