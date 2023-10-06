@@ -3,17 +3,12 @@ package notifications
 import (
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/iden3/iden3comm/packers"
 	"github.com/iden3/iden3comm/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-)
-
-const (
-	schemaParts = 2
 )
 
 // NewOfferMsg returns an offer message
@@ -50,12 +45,4 @@ func toProtocolCredentialOffer(credentials []*domain.Claim) []protocol.Credentia
 	}
 
 	return offers
-}
-
-func credentialType(fullSchema string) string {
-	rawSchema := strings.Split(fullSchema, "#")
-	if len(rawSchema) == schemaParts {
-		return rawSchema[1]
-	}
-	return fullSchema
 }
