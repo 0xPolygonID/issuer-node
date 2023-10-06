@@ -24,26 +24,51 @@ func NewRequests(reqRepo ports.RequestRepository, storage *db.Storage) ports.Req
 
 
 
-func ( r *requests) CreateRequest(ctx context.Context,userId string , schemaId string) (uuid.UUID,error){
-
-	req := &domain.Request{
-		ID: uuid.New(),
-		User_id: userId,
-		Schema_id: schemaId,
-		Issuer_id: schemaId,
-		Active: true,
-		
+func ( r *requests) CreateRequest(ctx context.Context,req domain.VCRequest) (uuid.UUID,error){
+	var s string = "Pending for KYC verification"
+	if req.RequestType == "KYBGSTINCredentials"{
+		s ="Pending for KYB verification"
 	}
-	err := r.reqRepo.Save(ctx,r.storage.Pgx,req)
+
+	_req := &domain.Request{
+		ID: uuid.New(),
+		User_id: req.UserDID,
+		Schema_id: req.SchemaID,
+		Issuer_id: req.UserDID,
+		Active: true,
+		Status: s,
+		Verify_Status:"VC verification pending",
+		Wallet_Status:s,
+		CredentialType: req.CredentialType,
+		Type: req.RequestType,
+		RoleType: req.RoleType,
+		ProofType: req.ProofType,
+		ProofId: req.ProofId,
+		Age: req.Age,
+		Source: req.Source,
+	}
+	err := r.reqRepo.Save(ctx,r.storage.Pgx,_req)
 	if err != nil{
 		return uuid.Nil,err;
 	}
 
-return req.ID, err;
+return _req.ID, err;
 }
 
 func ( r *requests) GetRequest(ctx context.Context,Id uuid.UUID) (domain.Responce,error){
 
-	res := r.reqRepo.GetByID(ctx,r.storage.Pgx,Id)
-	return res,nil;
+	res,err := r.reqRepo.GetByID(ctx,r.storage.Pgx,Id)
+	return res,err;
+}
+
+func ( r *requests) GetAllRequests(ctx context.Context) ([]*domain.Responce,error){
+
+	res,err := r.reqRepo.Get(ctx,r.storage.Pgx)
+	return res,err;
+}
+
+
+func (r *requests) UpdateStatus(ctx context.Context,id uuid.UUID) (int64 , error){
+	res, err := r.reqRepo.UpdateStatus(ctx,r.storage.Pgx,id)
+	return res,err
 }

@@ -2,11 +2,23 @@
 -- +goose StatementBegin
 CREATE TABLE requests_for_vc
 (
-    id         uuid                                      NOT NULL,
-    user_id    text                                      NOT NULL,
-    issuer_id    text                                      NOT NULL,
-    schema_id  text                                      NOT NULL,
-    active     bool                                      NOT NULL,
+    id             uuid                                       NOT NULL,
+    UDID           text                                       NOT NULL,
+    issuer_id      text                                       NOT NULL,
+    schema_id      text                                       NOT NULL,
+    credential_type text                                      NOT NULL,
+    request_type   text                                       NOT NULL,
+    role_type      text                                       NOT NULL,
+    proof_type     text                                       NOT NULL,
+    proof_id       text                                       NOT NULL,
+    age            text    NULL DEFAULT    "18"                       ,
+    active         bool                                       NOT NULL,
+    request_status text                                       NOT NULL,
+    verifier_status text                                       NOT NULL,
+    wallet_status   text                                       NOT NULL,
+    source          text                                       NOT NULL,
+    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+    modified_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT requests_for_vc_pkey PRIMARY KEY (id)
 );
 
@@ -19,6 +31,18 @@ CREATE TABLE requests_for_auth
     created_at int8                                      NOT NULL,
     active     bool                                      NOT NULL,
     CONSTRAINT requests_for_auth_pkey PRIMARY KEY (id)
+);
+
+
+CREATE TABLE notifications
+(
+    id                      uuid                         NOT NULL,
+    user_id                 text                         NOT NULL,
+    notification_type       text                         NOT NULL,
+    notification_title      text                         NOT NULL,
+    notification_message    text                         NOT NULL,
+    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
 -- +goose StatementEnd
 
