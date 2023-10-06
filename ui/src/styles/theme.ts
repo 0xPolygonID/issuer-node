@@ -70,9 +70,9 @@ export const theme: ThemeConfig = {
     InputNumber: { controlHeight: 40 },
     Layout: { colorBgBody: "white", colorBgHeader: "white" },
     Menu: {
-      colorItemBgHover: "white",
-      colorItemTextHover: primaryColor,
-      colorSubItemBg: "white",
+      itemHoverBg: "white",
+      itemHoverColor: primaryColor,
+      subMenuItemBg: "white",
     },
     Message: { fontSize: 18 },
     Radio: { controlHeight: 40, size: 20 },
