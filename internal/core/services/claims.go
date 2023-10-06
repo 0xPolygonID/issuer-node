@@ -297,15 +297,6 @@ func (c *claim) GetByID(ctx context.Context, issID *core.DID, id uuid.UUID) (*do
 
 // GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
 func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uuid.UUID, hostURL string, callbackURL string, sessionID uuid.UUID) (string, error) {
-	getCredentialType := func(credentialType string) string {
-		const schemaParts = 2
-		parse := strings.Split(credentialType, "#")
-		if len(parse) != schemaParts {
-			return credentialType
-		}
-		return parse[1]
-	}
-
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
 		return "", err
@@ -315,7 +306,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *core.DID, id uui
 		Body: protocol.CredentialsOfferMessageBody{
 			Credentials: []protocol.CredentialOffer{
 				{
-					Description: getCredentialType(claim.SchemaType),
+					Description: "PolygonIDEarlyAdopter",
 					ID:          claim.ID.String(),
 				},
 			},

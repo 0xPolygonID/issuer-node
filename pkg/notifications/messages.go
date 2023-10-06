@@ -45,7 +45,7 @@ func toProtocolCredentialOffer(credentials []*domain.Claim) []protocol.Credentia
 	for i := range credentials {
 		offers[i] = protocol.CredentialOffer{
 			ID:          credentials[i].ID.String(),
-			Description: credentialType(credentials[i].SchemaType),
+			Description: "PolygonIDEarlyAdopter",
 		}
 	}
 

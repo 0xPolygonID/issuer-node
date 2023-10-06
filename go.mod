@@ -1,6 +1,8 @@
 module github.com/polygonid/sh-id-platform
 
-go 1.20
+go 1.21
+
+toolchain go1.21.1
 
 require (
 	github.com/alicebob/miniredis/v2 v2.30.1
