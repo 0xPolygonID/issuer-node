@@ -14,6 +14,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 var (
@@ -115,6 +116,7 @@ func Process(ctx context.Context, ld loader.Loader, credentialType string, crede
 
 	claim, err := pr.ParseClaim(ctx, credential, credentialType, schema, options)
 	if err != nil {
+		log.Error(ctx, "error parsing claim", "err", err.Error())
 		return nil, ErrParseClaim
 	}
 	return claim, nil
