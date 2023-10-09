@@ -9,9 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
-	"github.com/iden3/go-schema-processor/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
-	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/piprate/json-gold/ld"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -20,6 +18,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
@@ -84,7 +83,7 @@ func TestMain(m *testing.M) {
 
 	cfg.ServerUrl = "https://testing.env/"
 
-	schemaLoader = loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
+	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
 }

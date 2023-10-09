@@ -22,7 +22,7 @@ import (
 
 const (
 	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
-	ipfsGateway  = "https://ipfs.io"
+	ipfsGateway  = "https://cloudflare-ipfs.com"
 )
 
 // Configuration holds the project configuration
