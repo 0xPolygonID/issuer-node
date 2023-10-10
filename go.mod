@@ -2,8 +2,6 @@ module github.com/polygonid/sh-id-platform
 
 go 1.21
 
-toolchain go1.21.1
-
 require (
 	github.com/alicebob/miniredis/v2 v2.30.1
 	github.com/deepmap/oapi-codegen v1.14.0
@@ -22,6 +20,7 @@ require (
 	github.com/iden3/go-circuits v1.0.3
 	github.com/iden3/go-iden3-auth v1.2.0
 	github.com/iden3/go-iden3-core v1.0.2
+	github.com/iden3/go-iden3-core/v2 v2.0.0
 	github.com/iden3/go-iden3-crypto v0.0.15
 	github.com/iden3/go-jwz v1.0.0
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
@@ -48,6 +47,7 @@ require (
 	github.com/pressly/goose/v3 v3.10.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.4
+	golang.org/x/crypto v0.12.0
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 )
 
@@ -335,7 +335,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/arch v0.4.0 // indirect
-	golang.org/x/crypto v0.12.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230224173230-c95f2b4c22f2 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
