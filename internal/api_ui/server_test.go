@@ -3698,9 +3698,8 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	cfg.APIUI.ServerURL = "http://localhost/issuer-admin"
 
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, NewPublisherMock(), NewPackageManagerMock(), nil)
-
-	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
-	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
+	validUntil := common.ToPointer(time.Now().Add(24 * time.Hour))
+	credentialExpiration := common.ToPointer(time.Now().Add(48 * time.Hour))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 

@@ -143,7 +143,7 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 
 // ValidateCredentialSubject validates that the given credential subject matches the given schema
 func ValidateCredentialSubject(ctx context.Context, ipfsGateway string, schemaURL string, schemaType string, cSubject map[string]interface{}) error {
-	documentLoader := merklize.NewDocumentLoader(shell.NewShell(ipfsGateway), ipfsGateway)
+	documentLoader := loader.NewW3CDocumentLoader(shell.NewShell(ipfsGateway), ipfsGateway)
 	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cache.NewMemoryCache()) // nolint: contextcheck
 	schema, err := Load(ctx, schemaLoader(schemaURL))
 	if err != nil {
