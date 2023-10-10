@@ -3725,8 +3725,8 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, qrService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
-	validUntil := common.ToPointer(time.Now().Add(365 * 24 * time.Hour))
-	credentialExpiration := common.ToPointer(validUntil.Add(365 * 24 * time.Hour))
+	validUntil := common.ToPointer(time.Now().Add(24 * time.Hour))
+	credentialExpiration := common.ToPointer(time.Now().Add(48 * time.Hour))
 	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	assert.NoError(t, err)
 
