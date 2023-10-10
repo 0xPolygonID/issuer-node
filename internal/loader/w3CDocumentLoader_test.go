@@ -11,5 +11,9 @@ func TestW3CDocumentLoader_LoadDocument(t *testing.T) {
 	doc, err := w3cLoader.LoadDocument(W3CCredential2018ContextURL)
 	require.NoError(t, err)
 
-	require.NotNil(t, (doc.Document.(map[string]interface{}))["@context"])
+	m, ok := doc.Document.(map[string]interface{})
+	require.True(t, ok)
+	context, ok := m["@context"]
+	require.True(t, ok)
+	require.NotNil(t, context)
 }
