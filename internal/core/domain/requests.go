@@ -58,7 +58,23 @@ type Responce struct{
 	CreatedAt	   time.Time  `json:"created_at"`
 	ModifiedAt     time.Time	`json:"modified_at"`
 }
-// type VCRequest struct {
-// 	SchemaID string `json:"schemaID"`
-// 	UserDID uuid.UUID `json:"userDID"`
-// }
+
+
+type NotificationData struct{
+	ID uuid.UUID `json:"id"`
+	User_id string `json:"user_id"`
+	Module string `json:"module"`
+	NotificationType string `json:"notification_type"`
+	NotificationTitle string `json:"notification_title"`
+	NotificationMessage string `json:"notification_message"`
+}
+
+type NotificationReponse struct{
+	ID uuid.UUID `json:"id"`
+	User_id string `json:"user_id"`
+	Module string `json:"module"`
+	NotificationType string `json:"notification_type"`
+	NotificationTitle string `json:"notification_title"`
+	NotificationMessage string `json:"notification_message"`
+	CreatedAt	   time.Time  `json:"created_at"`
+}

@@ -91,6 +91,7 @@ type CreateCredentialRequest struct {
 
 type GenerateVCRequest struct {
 	RequestId		uuid.UUID		`json:"requestId"`
+	UserDID 		string			`json:"userDID"`
 	CredentialSchema  string                 `json:"credentialSchema"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
@@ -324,11 +325,15 @@ type VCRequest struct {
 	Source 	string	`json:"source"`
 }
 
+
+
 // StateTransactionStatus defines model for StateTransaction.Status.
 type StateTransactionStatus string
 
 // StateTransactionsResponse defines model for StateTransactionsResponse.
 type StateTransactionsResponse = []StateTransaction
+
+
 
 // UUIDResponse defines model for UUIDResponse.
 type UUIDResponse struct {
@@ -601,6 +606,10 @@ type ServerInterface interface {
 	// Generate The VC for request Id 
 	// (POST /v1/generateVC)
 	GenerateVC(w http.ResponseWriter, r *http.Request)
+
+	// Get the details of all Notifications
+	// (POST /v1/notifications)
+	GetNotifications(w http.ResponseWriter, r *http.Request)
 }
 
 // Requesting to Issuer to verify there DOC
@@ -677,6 +686,30 @@ func (siw *ServerInterfaceWrapper) GetAllRequests(w http.ResponseWriter, r *http
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetAllRequests(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+
+func (siw *ServerInterfaceWrapper) GetNotifications(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+	// var id Id
+
+	// err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	// if err != nil {
+	// 	siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+	// 	return
+	// }
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotifications(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1862,6 +1895,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/generateVC", wrapper.GenerateVC)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/notifications", wrapper.GetNotifications)
 	})
 
 	return r
@@ -3141,6 +3177,11 @@ type GetAllRequestsResponseObject interface {
 	VisitGetAllRequestsRespose(w http.ResponseWriter) error
 }
 
+type GetAllNotificationsResponseObject interface {
+	VisitGetAllNotificationsResponse(w http.ResponseWriter) error
+}
+
+
 type GetRequest200Response struct{
 	Id 	uuid.UUID 	`json:"id"`
 	SchemaID uuid.UUID `json:"schemaID"` 
@@ -3161,8 +3202,24 @@ type GetRequest200Response struct{
 	ModifiedAt time.Time	`json:"modified_at"`
 }
 
+type Notifications200Response struct {
+	Id uuid.UUID `json:"id"`
+	User_id string `json:"user_id"`
+	Module string `json:"module"`
+	NotificationType string `json:"notification_type"`
+	NotificationTitle string `json:"notification_title"`
+	NotificationMessage string `json:"notification_message"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type AllNotifications= []Notifications200Response
+
 type GetAllRequests200Response struct{
 	GetAllRequestsResponse
+}
+
+type GetAllNotifications200Response struct{
+	AllNotifications
 }
 
 func (response GetRequest200Response) VisitGetRequestRespose(w http.ResponseWriter) error {
@@ -3178,6 +3235,20 @@ func (response GetAllRequests200Response) VisitGetAllRequestsRespose(w http.Resp
 
 	return json.NewEncoder(w).Encode(response)
 }
+
+func (response GetAllNotifications200Response ) VisitGetAllNotificationsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+// func (response GetAllNotifications200Response ) VisitGetAllNotification(w http.ResponseWriter) error {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.WriteHeader(200)
+
+// 	return json.NewEncoder(w).Encode(response)
+// }
 
 
 // StrictServerInterface represents all server handlers.
@@ -3297,6 +3368,8 @@ type StrictServerInterface interface {
 	GetAllRequests(ctx context.Context) (GetAllRequestsResponseObject,error)
 	// Generate VC for Perticular requestId
 	GenerateVC(ctx context.Context, request GenerateVCRequestObject)(CreateCredentialResponseObject,error)
+
+	GetNotifications(ctx context.Context) (GetAllNotificationsResponseObject,error)
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3430,6 +3503,30 @@ func (sh *strictHandler) GetAllRequests(w http.ResponseWriter, r *http.Request){
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
 }
+
+
+func (sh *strictHandler) GetNotifications(w http.ResponseWriter, r *http.Request){
+	var request GetAllNotificationsResponseObject
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNotifications(ctx)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNotifications")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAllNotificationsResponseObject); ok {
+		if err := validResponse.VisitGetAllNotificationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 
 
 // Generate the VC for requests 
