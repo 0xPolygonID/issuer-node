@@ -142,6 +142,38 @@ func ArrayStringToBigInt(s []string) ([]*big.Int, error) {
 	return o, nil
 }
 
+// ArrayOfStringArraysToBigInt converts array of string arrays to array of
+// big int arrays
+func ArrayOfStringArraysToBigInt(s [][]string) ([][]*big.Int, error) {
+	var o [][]*big.Int
+	for i := 0; i < len(s); i++ {
+		si, err := ArrayStringToBigInt(s[i])
+		if err != nil {
+			return o, nil
+		}
+		o = append(o, si)
+	}
+	return o, nil
+}
+
+// CheckEthIdentityByDID returns true and address if DID is ETH identity.
+func CheckEthIdentityByDID(did *w3c.DID) (isEthIdentity bool, address string, err error) {
+	id, err := core.IDFromDID(*did)
+	if err != nil {
+		return false, "", err
+	}
+	// if err nil - ETH identity
+	addr, err := core.EthAddressFromID(id)
+	if err == nil {
+		// ETH identity
+		addressString := fmt.Sprintf("%x", addr)
+		return true, addressString, nil
+	} else if err.Error() != "can't get Ethereum address: high bytes of genesis are not zero" {
+		return false, "", err
+	}
+	return false, "", nil
+}
+
 func stringToBigInt(s string) (*big.Int, error) {
 	base := 10
 	if bytes.HasPrefix([]byte(s), []byte("0x")) {

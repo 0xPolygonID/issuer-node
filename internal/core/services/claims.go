@@ -50,9 +50,12 @@ var (
 
 // ClaimCfg claim service configuration
 type ClaimCfg struct {
-	RHSEnabled bool // ReverseHash Enabled
-	RHSUrl     string
-	Host       string
+	// TODO: Rename this to CredentialRevocationSettings
+	RHSEnabled        bool // ReverseHash Enabled
+	RHSUrl            string
+	Host              string
+	AgentIden3URL     string
+	AgentIden3Enabled bool
 }
 
 type claim struct {
@@ -168,7 +171,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		Updatable:             false,
 	}
 	if c.ipfsClient != nil {
-		opts.MerklizerOpts = []merklize.MerklizeOption{merklize.WithIPFSClient(c.ipfsClient)}
+		opts.MerklizerOpts = []merklize.MerklizeOption{merklize.WithDocumentLoader(c.loader)}
 	}
 
 	coreClaim, err := schemaPkg.Process(ctx, c.loader, req.Schema, vc, opts)

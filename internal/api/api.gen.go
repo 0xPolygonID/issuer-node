@@ -58,11 +58,13 @@ type CreateIdentityRequest struct {
 		Blockchain string `json:"blockchain"`
 		Method     string `json:"method"`
 		Network    string `json:"network"`
+		Type       string `json:"type"`
 	} `json:"didMetadata"`
 }
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
+	Address    *string        `json:"address"`
 	Identifier *string        `json:"identifier,omitempty"`
 	State      *IdentityState `json:"state,omitempty"`
 }
@@ -111,6 +113,14 @@ type GetClaimResponse struct {
 
 // GetClaimsResponse defines model for GetClaimsResponse.
 type GetClaimsResponse = []GetClaimResponse
+
+// GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
+type GetIdentityDetailsResponse struct {
+	Address    *string        `json:"address,omitempty"`
+	Balance    *string        `json:"balance,omitempty"`
+	Identifier *string        `json:"identifier,omitempty"`
+	State      *IdentityState `json:"state,omitempty"`
+}
 
 // Health defines model for Health.
 type Health map[string]bool
@@ -168,6 +178,11 @@ type RevocationStatusResponse struct {
 // RevokeClaimResponse defines model for RevokeClaimResponse.
 type RevokeClaimResponse struct {
 	Message string `json:"message"`
+}
+
+// TopUpIdentityBalanceResponse defines model for TopUpIdentityBalanceResponse.
+type TopUpIdentityBalanceResponse struct {
+	TxID string `json:"txID"`
 }
 
 // PathClaim defines model for pathClaim.
@@ -268,6 +283,12 @@ type ServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
+	// Identity Detail
+	// (GET /v1/identities/{identifier}/details)
+	GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Top Up Identity Balance
+	// (POST /v1/identities/{identifier}/topup)
+	TopUpIdentityBalance(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -346,6 +367,18 @@ func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
 // Create Identity
 // (POST /v1/identities)
 func (_ Unimplemented) CreateIdentity(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Identity Detail
+// (GET /v1/identities/{identifier}/details)
+func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Top Up Identity Balance
+// (POST /v1/identities/{identifier}/topup)
+func (_ Unimplemented) TopUpIdentityBalance(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -529,6 +562,62 @@ func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateIdentity(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetIdentityDetails operation middleware
+func (siw *ServerInterfaceWrapper) GetIdentityDetails(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIdentityDetails(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// TopUpIdentityBalance operation middleware
+func (siw *ServerInterfaceWrapper) TopUpIdentityBalance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "identifier", runtime.ParamLocationPath, chi.URLParam(r, "identifier"), &identifier)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.TopUpIdentityBalance(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1021,6 +1110,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/details", wrapper.GetIdentityDetails)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/topup", wrapper.TopUpIdentityBalance)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
 	})
 	r.Group(func(r chi.Router) {
@@ -1269,6 +1364,94 @@ func (response CreateIdentity401JSONResponse) VisitCreateIdentityResponse(w http
 type CreateIdentity500JSONResponse struct{ N500CreateIdentityJSONResponse }
 
 func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetIdentityDetailsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetIdentityDetailsResponseObject interface {
+	VisitGetIdentityDetailsResponse(w http.ResponseWriter) error
+}
+
+type GetIdentityDetails200JSONResponse GetIdentityDetailsResponse
+
+func (response GetIdentityDetails200JSONResponse) VisitGetIdentityDetailsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetIdentityDetails400JSONResponse struct{ N400JSONResponse }
+
+func (response GetIdentityDetails400JSONResponse) VisitGetIdentityDetailsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetIdentityDetails401JSONResponse struct{ N401JSONResponse }
+
+func (response GetIdentityDetails401JSONResponse) VisitGetIdentityDetailsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetIdentityDetails500JSONResponse struct{ N500JSONResponse }
+
+func (response GetIdentityDetails500JSONResponse) VisitGetIdentityDetailsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type TopUpIdentityBalanceRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type TopUpIdentityBalanceResponseObject interface {
+	VisitTopUpIdentityBalanceResponse(w http.ResponseWriter) error
+}
+
+type TopUpIdentityBalance200JSONResponse TopUpIdentityBalanceResponse
+
+func (response TopUpIdentityBalance200JSONResponse) VisitTopUpIdentityBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type TopUpIdentityBalance400JSONResponse struct{ N400JSONResponse }
+
+func (response TopUpIdentityBalance400JSONResponse) VisitTopUpIdentityBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type TopUpIdentityBalance401JSONResponse struct{ N401JSONResponse }
+
+func (response TopUpIdentityBalance401JSONResponse) VisitTopUpIdentityBalanceResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type TopUpIdentityBalance500JSONResponse struct{ N500JSONResponse }
+
+func (response TopUpIdentityBalance500JSONResponse) VisitTopUpIdentityBalanceResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -1721,6 +1904,12 @@ type StrictServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
+	// Identity Detail
+	// (GET /v1/identities/{identifier}/details)
+	GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error)
+	// Top Up Identity Balance
+	// (POST /v1/identities/{identifier}/topup)
+	TopUpIdentityBalance(ctx context.Context, request TopUpIdentityBalanceRequestObject) (TopUpIdentityBalanceResponseObject, error)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
@@ -1979,6 +2168,58 @@ func (sh *strictHandler) CreateIdentity(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateIdentityResponseObject); ok {
 		if err := validResponse.VisitCreateIdentityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetIdentityDetails operation middleware
+func (sh *strictHandler) GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetIdentityDetailsRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetIdentityDetails(ctx, request.(GetIdentityDetailsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetIdentityDetails")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetIdentityDetailsResponseObject); ok {
+		if err := validResponse.VisitGetIdentityDetailsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// TopUpIdentityBalance operation middleware
+func (sh *strictHandler) TopUpIdentityBalance(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request TopUpIdentityBalanceRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.TopUpIdentityBalance(ctx, request.(TopUpIdentityBalanceRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "TopUpIdentityBalance")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(TopUpIdentityBalanceResponseObject); ok {
+		if err := validResponse.VisitTopUpIdentityBalanceResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

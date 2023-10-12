@@ -1,7 +1,10 @@
 package common
 
 import (
+	"fmt"
+
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/utils"
@@ -48,4 +51,24 @@ func DefineMerklizedRootPosition(metadata *jsonSuite.SchemaMetadata, position st
 	}
 
 	return utils.MerklizedRootPositionIndex
+}
+
+// ChainIDs Object containing chain IDs for various blockchains and networks.
+// nolint
+var ChainIDs = map[string]int32{
+	"eth":            1,
+	"eth:main":       1,
+	"eth:goerli":     5,
+	"eth:sepolia":    11155111,
+	"polygon":        137,
+	"polygon:main":   137,
+	"polygon:mumbai": 80001,
+	"zkevm":          1101,
+	"zkevm:main":     1101,
+	"zkevm:test":     1442,
+}
+
+// ChainIDfromDID returns chain name from w3c.DID
+func ChainIDfromDID(did w3c.DID) (string, error) {
+	return fmt.Sprintf("%s:%s", did.IDStrings[0], did.IDStrings[1]), nil
 }

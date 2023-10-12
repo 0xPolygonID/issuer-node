@@ -126,6 +126,56 @@ paths:
           $ref: '#/components/responses/500'
 
 
+  /v1/identities/{identifier}/topup:
+    post:
+      summary: Top Up Identity Balance
+      operationId: TopUpIdentityBalance
+      description: Endpoint to topup an identity
+      tags:
+        - Identity
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Identity top up successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopUpIdentityBalanceResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/identities/{identifier}/details:
+    get:
+      summary: Identity Detail
+      operationId: GetIdentityDetails
+      description: Endpoint to get an identity details
+      tags:
+        - Identity
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Identity top up successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetIdentityDetailsResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/{identifier}/state/retry:
     post:
       summary: Retry Publish Identity State
@@ -480,6 +530,7 @@ components:
             - method
             - blockchain
             - network
+            - type
           properties:
             method:
               type: string
@@ -493,6 +544,10 @@ components:
               type: string
               x-omitempty: false
               example: "mumbai"
+            type:
+              type: string
+              x-omitempty: false
+              example: "BJJ"
 
     CreateIdentityResponse:
       type: object
@@ -504,6 +559,33 @@ components:
           type: string
         state:
           $ref: '#/components/schemas/IdentityState'
+        address:
+          type: string
+          x-omitempty: false
+
+    TopUpIdentityBalanceResponse:
+      type: object
+      required:
+        - txID
+      properties:
+        txID:
+          type: string
+
+    GetIdentityDetailsResponse:
+      type: object
+      required:
+        - identity
+        - status
+      properties:
+        identifier:
+          type: string
+        state:
+          $ref: '#/components/schemas/IdentityState'
+        address:
+          type: string
+        balance:
+          type: string
+
 
     IdentityState:
       type: object

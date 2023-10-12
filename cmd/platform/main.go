@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
-	"github.com/iden3/go-schema-processor/v2/loaders"
 	proof "github.com/iden3/merkletree-proof"
 	shell "github.com/ipfs/go-ipfs-api"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
@@ -75,7 +75,7 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loaders.NewDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewW3CDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
 
 	var vaultCli *vault.Client
 	var vaultErr error
@@ -102,7 +102,7 @@ func main() {
 		return
 	}
 
-	ethereumClient, err := blockchain.Open(cfg)
+	ethereumClient, err := blockchain.Open(cfg, keyStore)
 	if err != nil {
 		log.Error(ctx, "error dialing with ethereum client", "err", err)
 		return
@@ -114,7 +114,7 @@ func main() {
 		return
 	}
 
-	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
+	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum, keyStore)
 	if err != nil {
 		log.Error(ctx, "failed init ethereum connect", "err", err)
 		return
@@ -140,7 +140,18 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
+
+	// TODO: Review this
+	revocationSettings := services.ClaimCfg{
+		RHSEnabled:        cfg.ReverseHashService.Enabled,
+		RHSUrl:            cfg.ReverseHashService.URL,
+		Host:              cfg.ServerUrl,
+		AgentIden3Enabled: false,
+		AgentIden3URL:     "",
+	}
+
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, revocationSettings)
+
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
@@ -169,6 +180,12 @@ func main() {
 		return
 	}
 
+	accountService, err := services.NewAccountService(cfg.Ethereum, keyStore)
+	if err != nil {
+		log.Error(ctx, "failed init account service", "err", err)
+		return
+	}
+
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
 		"redis": func(rdb *redis2.Client) health.Pinger {
@@ -187,7 +204,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth),
+			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth, accountService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

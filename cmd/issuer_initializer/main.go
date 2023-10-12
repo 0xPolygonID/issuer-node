@@ -7,9 +7,11 @@ import (
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
+	core "github.com/iden3/go-iden3-core/v2"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
@@ -99,9 +101,26 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, pubsub.NewMock())
 
-	identity, err := identityService.Create(ctx, cfg.APIUI.IdentityMethod, cfg.APIUI.IdentityBlockchain, cfg.APIUI.IdentityNetwork, cfg.ServerUrl)
+	// TODO: Review this
+	revocationSettings := services.ClaimCfg{
+		RHSEnabled:        cfg.ReverseHashService.Enabled,
+		RHSUrl:            cfg.ReverseHashService.URL,
+		Host:              cfg.ServerUrl,
+		AgentIden3Enabled: false,
+		AgentIden3URL:     "",
+	}
+
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, pubsub.NewMock(), revocationSettings)
+
+	didCreationOptions := &ports.DIDCreationOptions{
+		Method:     core.DIDMethod(cfg.APIUI.IdentityMethod),
+		Network:    core.NetworkID(cfg.APIUI.IdentityNetwork),
+		Blockchain: core.Blockchain(cfg.APIUI.IdentityBlockchain),
+		KeyType:    kms.KeyType(cfg.APIUI.KeyType),
+	}
+
+	identity, err := identityService.Create(ctx, cfg.ServerUrl, didCreationOptions)
 	if err != nil {
 		log.Error(ctx, "error creating identifier", err)
 		return
