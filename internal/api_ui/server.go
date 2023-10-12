@@ -43,7 +43,7 @@ type Server struct {
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
-	requestServer	   ports.RequestService
+	requestServer      ports.RequestService
 }
 
 // NewServer is a Server constructor
@@ -58,93 +58,89 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
-		requestServer:		requestServer,
+		requestServer:      requestServer,
 	}
 }
 
-
-func(s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (AuthResponse, error){
-	var resp Auth200Response = "Auth request accepted";
-	return resp,nil;
+func (s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (AuthResponse, error) {
+	var resp Auth200Response = "Auth request accepted"
+	return resp, nil
 }
 
-
-func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error){
+func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error) {
 	// var req GetRequestObject;
-	if (request.Body.SchemaID.String() == " "){
+	if request.Body.SchemaID.String() == " " {
 		log.Debug(ctx, "empty request body auth-callback request")
-		return VC500Response{"Request failed: schemaId was empty"},nil
+		return VC500Response{"Request failed: schemaId was empty"}, nil
 	}
 
-	if (request.Body.RequestType == " " || request.Body.ProofType == " "){
+	if request.Body.RequestType == " " || request.Body.ProofType == " " {
 		return VC500Response{"Invalid Proof: Proof was empty"}, nil
 	}
 
-	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID,request.Body.SchemaID)
+	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Body.SchemaID)
 	if errors.Is(err, services.ErrSchemaNotFound) {
 		return VC500Response{"Invalid schemaId: Schema not found"}, nil
 	}
 
 	// var id uuid.UUID;
 	var req domain.VCRequest = domain.VCRequest{
-		SchemaID: request.Body.SchemaID,
-		UserDID: request.Body.UserDID,
+		SchemaID:       request.Body.SchemaID,
+		UserDID:        request.Body.UserDID,
 		CredentialType: schema.Type,
-		RequestType: request.Body.RequestType,
-		RoleType: request.Body.RoleType,
-		ProofType: request.Body.ProofType,
-		ProofId: request.Body.ProofId,
-		Age: request.Body.Age,
-		Source: request.Body.Source};
-	
+		RequestType:    request.Body.RequestType,
+		RoleType:       request.Body.RoleType,
+		ProofType:      request.Body.ProofType,
+		ProofId:        request.Body.ProofId,
+		Age:            request.Body.Age,
+		Source:         request.Body.Source}
 
-	id,err := s.requestServer.CreateRequest(ctx,req);
-	if err != nil{
-		return nil,err;
+	id, err := s.requestServer.CreateRequest(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
 	issuernotification := &domain.NotificationData{
-		ID: uuid.New(),
-		User_id: request.Body.UserDID,
-		Module: "Issuer",
-		NotificationType: "Requested for VC",
-		NotificationTitle: "Requested for VC",
+		ID:                  uuid.New(),
+		User_id:             request.Body.UserDID,
+		Module:              "Issuer",
+		NotificationType:    "Requested for VC",
+		NotificationTitle:   "Requested for VC",
 		NotificationMessage: `User Requested For VC`,
 	}
 
 	usernotification := &domain.NotificationData{
-		ID: uuid.New(),
-		User_id: request.Body.UserDID,
-		Module: "User",
-		NotificationType: "Requested for VC",
-		NotificationTitle: "Requested for VC",
+		ID:                  uuid.New(),
+		User_id:             request.Body.UserDID,
+		Module:              "User",
+		NotificationType:    "Requested for VC",
+		NotificationTitle:   "Requested for VC",
 		NotificationMessage: `Requested Successfully`,
 	}
 
-	_,err = s.requestServer.NewNotification(ctx,issuernotification);
-	if err != nil{
-		return nil,err;
+	_, err = s.requestServer.NewNotification(ctx, issuernotification)
+	if err != nil {
+		return nil, err
 	}
-	_,err = s.requestServer.NewNotification(ctx,usernotification);
-	if err != nil{
-		return nil,err;
+	_, err = s.requestServer.NewNotification(ctx, usernotification)
+	if err != nil {
+		return nil, err
 	}
 
-	return VC200Response{"Requested Successfully",id},nil;
+	return VC200Response{"Requested Successfully", id}, nil
 }
 
-func(s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject) (CreateCredentialResponseObject, error){
+func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject) (CreateCredentialResponseObject, error) {
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
 
-	
-	_req,err := s.requestServer.GetRequest(ctx,request.Body.RequestId);
+	_req, err := s.requestServer.GetRequest(ctx, request.Body.RequestId)
 	if err != nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "Invalid request id"}}, nil
 	}
 
-	_, err = s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID,_req.SchemaID)
+	_, err = s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, _req.SchemaID)
 	if errors.Is(err, services.ErrSchemaNotFound) {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "Invalid Scheema id"}}, nil
 	}
@@ -176,64 +172,88 @@ func(s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject)
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
-	_,err = s.requestServer.UpdateStatus(ctx,request.Body.RequestId)
+	_, err = s.requestServer.UpdateStatus(ctx, request.Body.RequestId)
 
 	usernotification := &domain.NotificationData{
-		ID: uuid.New(),
-		User_id: request.Body.UserDID,
-		Module: "User",
-		NotificationType: "Requested for VC",
-		NotificationTitle: "Requested for VC",
+		ID:                  uuid.New(),
+		User_id:             request.Body.UserDID,
+		Module:              "User",
+		NotificationType:    "Requested for VC",
+		NotificationTitle:   "Requested for VC",
 		NotificationMessage: `Requested Successfully`,
 	}
-	_,err = s.requestServer.NewNotification(ctx,usernotification);
-	if err != nil{
-		return nil,err;
+	_, err = s.requestServer.NewNotification(ctx, usernotification)
+	if err != nil {
+		return nil, err
 	}
 
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
-
-func(s *Server) GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse, error){
+func (s *Server) GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
-	fmt.Println("getting Info By Request Id :",request.Id)
-	res,err := s.requestServer.GetRequest(ctx,request.Id)
+	fmt.Println("getting Info By Request Id :", request.Id)
+	res, err := s.requestServer.GetRequest(ctx, request.Id)
 
-	if(err != nil){
-		return nil,err;
+	if err != nil {
+		return nil, err
 	}
-	return GetRequest200Response{res.Id,res.SchemaID,res.Issuer_id,res.UserDID,res.Active,res.CredentialType,res.RequestType,res.RoleType,res.ProofType,res.ProofId,res.Age,res.RequestStatus,res.VerifyStatus,res.WalletStatus,res.Source,res.CreatedAt,res.ModifiedAt} ,nil;
+	return GetRequest200Response{res.Id, res.SchemaID, res.Issuer_id, res.UserDID, res.Active, res.CredentialType, res.RequestType, res.RoleType, res.ProofType, res.ProofId, res.Age, res.RequestStatus, res.VerifyStatus, res.WalletStatus, res.Source, res.CreatedAt, res.ModifiedAt}, nil
 }
 
-func(s *Server) GetAllRequests(ctx context.Context) (GetAllRequestsResponseObject, error){
+func (s *Server) GetAllRequests(ctx context.Context, request GetAllRequests) (GetAllRequestsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+		res, err := s.requestServer.GetAllRequests(ctx, request.UserDID, request.RequestType)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := requestsResponse(res)
+		if err != nil {
+			return nil, err
+		}
+		return resp, nil
+}
 
-	res,err := s.requestServer.GetAllRequests(ctx)
-	if(err != nil){
-		return nil,err;
-	}
-	resp,err := requestsResponse(res)
-	if(err != nil){
-		return nil,err;
-	}
-	return resp,nil
+func (s *Server) GetRequestsByRequestType(ctx context.Context, request GetRequestByType) (GetAllRequestsResponseObject, error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+		res, err := s.requestServer.GetRequestsByRequestType(ctx,request.RequestType)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := requestsResponse(res)
+		if err != nil {
+			return nil, err
+		}
+		return resp, nil
+}
+
+func (s *Server) GetRequestByUser(ctx context.Context, request GetRequestByUser) (GetAllRequestsResponseObject, error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+		res, err := s.requestServer.GetRequestsByUser(ctx, request.UserDID)
+		if err != nil {
+			return nil, err
+		}
+		resp, err := requestsResponse(res)
+		if err != nil {
+			return nil, err
+		}
+		return resp, nil
 }
 
 
-func(s *Server) GetNotifications(ctx context.Context) (GetAllNotificationsResponseObject, error){
+func (s *Server) GetNotificationsForUser(ctx context.Context,module string) (GetAllNotificationsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
-	res,err := s.requestServer.GetNotifications(ctx)
-	if(err != nil){
-		return nil,err;
+	res, err := s.requestServer.GetNotifications(ctx,module)
+	if err != nil {
+		return nil, err
 	}
-	resp,err := notificationResponse(res)
-	if(err != nil){
-		return nil,err;
+	resp, err := notificationResponse(res)
+	if err != nil {
+		return nil, err
 	}
-	return  GetAllNotifications200Response{resp},nil
+	return resp, nil
 }
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
@@ -248,7 +268,6 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 	}
 	return GetSchema200JSONResponse(schemaResponse(schema)), nil
 }
-
 
 // GetSchemas returns the list of schemas that match the request.Params.Query filter. If param query is nil it will return all
 func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error) {

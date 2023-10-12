@@ -321,7 +321,7 @@ type VCRequest struct {
 	RoleType 	string `json:"roleType"`
 	ProofType 	string `json:"proofType"`
 	ProofId 	string `json:"proofId"`
-	Age	string	`json:"proof"`
+	Age	string	`json:"age"`
 	Source 	string	`json:"source"`
 }
 
@@ -609,7 +609,16 @@ type ServerInterface interface {
 
 	// Get the details of all Notifications
 	// (POST /v1/notifications)
-	GetNotifications(w http.ResponseWriter, r *http.Request)
+	GetNotificationsForUser(w http.ResponseWriter, r *http.Request,module string)
+
+
+	GetRequestByUser(w http.ResponseWriter, r *http.Request)
+
+
+	GetRequestsByRequestType(w http.ResponseWriter, r *http.Request)
+
+
+
 }
 
 // Requesting to Issuer to verify there DOC
@@ -696,7 +705,7 @@ func (siw *ServerInterfaceWrapper) GetAllRequests(w http.ResponseWriter, r *http
 }
 
 
-func (siw *ServerInterfaceWrapper) GetNotifications(w http.ResponseWriter, r *http.Request) {
+func (siw *ServerInterfaceWrapper) GetRequestsByRequestType(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
@@ -709,7 +718,55 @@ func (siw *ServerInterfaceWrapper) GetNotifications(w http.ResponseWriter, r *ht
 	// }
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetNotifications(w, r)
+		siw.Handler.GetRequestsByRequestType(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+
+func (siw *ServerInterfaceWrapper) GetRequestByUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+	// var id Id
+
+	// err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	// if err != nil {
+	// 	siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+	// 	return
+	// }
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRequestByUser(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+
+func (siw *ServerInterfaceWrapper) GetNotificationsForUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+	var module string
+
+	err := runtime.BindStyledParameterWithLocation("simple", false, "module", runtime.ParamLocationPath, chi.URLParam(r, "module"), &module)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "module", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetNotificationsForUser(w, r,module)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1891,14 +1948,23 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/request/{id}", wrapper.GetRequest)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/requests", wrapper.GetAllRequests)
+		r.Get(options.BaseURL+"/v1/requests/all", wrapper.GetAllRequests)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/requests/bytype", wrapper.GetRequestsByRequestType)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/requests/byuser", wrapper.GetRequestByUser)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/generateVC", wrapper.GenerateVC)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/notifications", wrapper.GetNotifications)
+		r.Get(options.BaseURL+"/v1/notifications/{module}", wrapper.GetNotificationsForUser)
 	})
+	// r.Group(func(r chi.Router) {
+	// 	r.Get(options.BaseURL+"/v1/notifications/user", wrapper.GetNotificationsForUser)
+	// })
 
 	return r
 }
@@ -3129,7 +3195,13 @@ func (response Auth200Response) VisitAuthResponse(w http.ResponseWriter) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
+// type GetRequestsByUser struct {
+// 	userDID string `json:"userDID"`
+// }
 
+// type GetRequestsByType struct{
+// 	requestType string `json:"request_type"`
+// }
 
 // type VCRequestObject struct {VCRequest}
 
@@ -3167,6 +3239,12 @@ type GetRequestObject struct {
 	Id Id `json:"id"`
 }
 
+type GetAllRequests struct{
+	UserDID string `json:"userDID"`
+	RequestType string `json:"request_type"`
+}
+
+
 type GetRequestResponse interface {
 	VisitGetRequestRespose(w http.ResponseWriter) error
 }
@@ -3180,7 +3258,6 @@ type GetAllRequestsResponseObject interface {
 type GetAllNotificationsResponseObject interface {
 	VisitGetAllNotificationsResponse(w http.ResponseWriter) error
 }
-
 
 type GetRequest200Response struct{
 	Id 	uuid.UUID 	`json:"id"`
@@ -3212,7 +3289,7 @@ type Notifications200Response struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type AllNotifications= []Notifications200Response
+type AllNotifications []Notifications200Response
 
 type GetAllRequests200Response struct{
 	GetAllRequestsResponse
@@ -3236,13 +3313,20 @@ func (response GetAllRequestsResponse) VisitGetAllRequestsRespose(w http.Respons
 	return json.NewEncoder(w).Encode(response)
 }
 
-func (response GetAllNotifications200Response ) VisitGetAllNotificationsResponse(w http.ResponseWriter) error {
+func (response AllNotifications ) VisitGetAllNotificationsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetRequestByType struct{
+	RequestType string `json:"request_type"`
+}
+
+type GetRequestByUser struct{
+	UserDID string `json:"userDID"`
+}
 // func (response GetAllNotifications200Response ) VisitGetAllNotification(w http.ResponseWriter) error {
 // 	w.Header().Set("Content-Type", "application/json")
 // 	w.WriteHeader(200)
@@ -3365,11 +3449,16 @@ type StrictServerInterface interface {
 	// Get Details of Request by Id
 	GetRequest(ctx context.Context, request GetRequestObject) (GetRequestResponse,error)
 	// Get details of all requests
-	GetAllRequests(ctx context.Context) (GetAllRequestsResponseObject,error)
+	GetAllRequests(ctx context.Context,request GetAllRequests) (GetAllRequestsResponseObject,error)
 	// Generate VC for Perticular requestId
 	GenerateVC(ctx context.Context, request GenerateVCRequestObject)(CreateCredentialResponseObject,error)
 
-	GetNotifications(ctx context.Context) (GetAllNotificationsResponseObject,error)
+	GetNotificationsForUser(ctx context.Context,module string) (GetAllNotificationsResponseObject,error)
+
+	GetRequestsByRequestType(ctx context.Context,request GetRequestByType) (GetAllRequestsResponseObject,error)
+
+	GetRequestByUser(ctx context.Context,request GetRequestByUser) (GetAllRequestsResponseObject,error)
+
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3482,10 +3571,19 @@ func (sh *strictHandler) GetRequest(w http.ResponseWriter, r *http.Request, id I
 }
 
 func (sh *strictHandler) GetAllRequests(w http.ResponseWriter, r *http.Request){
-	var request GetRequestObject
+	var request GetAllRequests
+
+	var body GetAllRequests
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	request = body
+
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetAllRequests(ctx)
+		return sh.ssi.GetAllRequests(ctx, request.(GetAllRequests))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetAllRequests")
@@ -3504,14 +3602,76 @@ func (sh *strictHandler) GetAllRequests(w http.ResponseWriter, r *http.Request){
 	}
 }
 
+func (sh *strictHandler) GetRequestsByRequestType(w http.ResponseWriter, r *http.Request){
+	var request GetRequestByType
+	var body GetRequestByType
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
 
-func (sh *strictHandler) GetNotifications(w http.ResponseWriter, r *http.Request){
-	var request GetAllNotificationsResponseObject
+	request = body
+
+
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetNotifications(ctx)
+		return sh.ssi.GetRequestsByRequestType(ctx, request.(GetRequestByType))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetNotifications")
+		handler = middleware(handler, "GetRequestsByRequestType")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAllRequestsResponseObject); ok {
+		if err := validResponse.VisitGetAllRequestsRespose(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) GetRequestByUser(w http.ResponseWriter, r *http.Request){
+	var request GetRequestByUser
+
+	var body GetRequestByUser
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	request = body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRequestByUser(ctx, request.(GetRequestByUser))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRequestsByUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAllRequestsResponseObject); ok {
+		if err := validResponse.VisitGetAllRequestsRespose(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+
+func (sh *strictHandler) GetNotificationsForUser(w http.ResponseWriter, r *http.Request,module string){
+	var request GetAllNotificationsResponseObject
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetNotificationsForUser(ctx,module)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetNotificationsForUser")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
@@ -3526,8 +3686,6 @@ func (sh *strictHandler) GetNotifications(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
 }
-
-
 
 // Generate the VC for requests 
 func (sh *strictHandler) GenerateVC(w http.ResponseWriter, r *http.Request) {

@@ -11,7 +11,7 @@ CREATE TABLE requests_for_vc
     role_type      text                                       NOT NULL,
     proof_type     text                                       NOT NULL,
     proof_id       text                                       NOT NULL,
-    age            text                                       NOT NULL,
+    age            text                                      NOT NULL,
     active         bool                                       NOT NULL,
     request_status text                                       NOT NULL,
     verifier_status text                                       NOT NULL,

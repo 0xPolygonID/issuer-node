@@ -132,11 +132,74 @@ func (i *requests) GetByID(ctx context.Context, conn db.Querier, id uuid.UUID) (
 		}, nil
 }
 
-func (i *requests) Get(ctx context.Context, conn db.Querier) ([]*domain.Responce, error) {
+func (i *requests) Get(ctx context.Context, conn db.Querier,id string,Rtype string) ([]*domain.Responce, error) {
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
-	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc`)
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID = $1 AND request_type = $2`, id,Rtype)
+	fmt.Println("Get Rquests", rows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		fmt.Println("Get Rquests in loop", rows)
+		if err := rows.Scan(
+			&response.id,
+			&response.user_id,
+			&response.issuer_id,
+			&response.schema_id,
+			&response.credential_type,
+			&response.request_type,
+			&response.role_type,
+			&response.proof_type,
+			&response.proof_id,
+			&response.age,
+			&response.active,
+			&response.request_status,
+			&response.verifier_status,
+			&response.wallet_status,
+			&response.source,
+			&response.created_at,
+			&response.modifed_at,
+		); err != nil {
+			return nil, err
+		}
+		temp := &domain.Responce{
+			Id: response.id,
+			UserDID: response.user_id,
+			Issuer_id: response.issuer_id,
+			SchemaID: response.schema_id,
+			CredentialType: response.credential_type,
+			RequestType:response.request_type,
+			RoleType: response.role_type,
+			ProofType: response.proof_type,
+			ProofId: response.proof_id,
+			Age: response.age,
+			RequestStatus: response.request_status,
+			WalletStatus: response.wallet_status,
+			VerifyStatus: response.verifier_status,
+			Active: response.active,
+			Source: response.source,
+			CreatedAt: response.created_at,
+			ModifiedAt: response.modifed_at,
+			}
+
+		domainResponce = append(domainResponce, temp)
+	}
+	fmt.Println("response", response)
+	// si := res.Scan("schema_id")
+	// return err;
+	return domainResponce, nil
+}
+
+
+func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier,id string) ([]*domain.Responce, error) {
+	fmt.Println("Getting Dat from id ...")
+	response := Requestresponse{}
+	domainResponce := make([]*domain.Responce, 0)
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID = $1`, id)
 
 	fmt.Println("Get Rquests", rows)
 	if err != nil {
@@ -195,9 +258,71 @@ func (i *requests) Get(ctx context.Context, conn db.Querier) ([]*domain.Responce
 	return domainResponce, nil
 }
 
+func (i *requests) GetRequestsByRequestType(ctx context.Context, conn db.Querier,RType string) ([]*domain.Responce, error) {
+	fmt.Println("Getting Dat from id ...")
+	response := Requestresponse{}
+	domainResponce := make([]*domain.Responce, 0)
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE request_type = $1`, RType)
+	fmt.Println("Get Rquests", rows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		fmt.Println("Get Rquests in loop", rows)
+		if err := rows.Scan(
+			&response.id,
+			&response.user_id,
+			&response.issuer_id,
+			&response.schema_id,
+			&response.credential_type,
+			&response.request_type,
+			&response.role_type,
+			&response.proof_type,
+			&response.proof_id,
+			&response.age,
+			&response.active,
+			&response.request_status,
+			&response.verifier_status,
+			&response.wallet_status,
+			&response.source,
+			&response.created_at,
+			&response.modifed_at,
+		); err != nil {
+			return nil, err
+		}
+		temp := &domain.Responce{
+			Id: response.id,
+			UserDID: response.user_id,
+			Issuer_id: response.issuer_id,
+			SchemaID: response.schema_id,
+			CredentialType: response.credential_type,
+			RequestType:response.request_type,
+			RoleType: response.role_type,
+			ProofType: response.proof_type,
+			ProofId: response.proof_id,
+			Age: response.age,
+			RequestStatus: response.request_status,
+			WalletStatus: response.wallet_status,
+			VerifyStatus: response.verifier_status,
+			Active: response.active,
+			Source: response.source,
+			CreatedAt: response.created_at,
+			ModifiedAt: response.modifed_at,
+			}
+
+		domainResponce = append(domainResponce, temp)
+	}
+	fmt.Println("response", response)
+	// si := res.Scan("schema_id")
+	// return err;
+	return domainResponce, nil
+}
+
 func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UUID) (int64, error) {
-	query := "UPDATE requests_for_vc SET   = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
-	query = "UPDATE requests_for_vc SET request_status = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
+	// query := "UPDATE requests_for_vc SET   = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
+	query := "UPDATE requests_for_vc SET request_status = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
 	res, err := conn.Exec(ctx, query, "VC_Issued", "VC_Issued", "Issued", id)
 	if err != nil {
 		return 0, err
@@ -230,11 +355,13 @@ func (i *requests) NewNotification(ctx context.Context, conn db.Querier, req *do
 }
 
 
-func (i *requests)GetNotifications(ctx context.Context, conn db.Querier)([]*domain.NotificationReponse,error){
+
+
+func (i *requests)GetNotifications(ctx context.Context, conn db.Querier,module string)([]*domain.NotificationReponse,error){
 
 	response := NotificationReponse{}
 	domainResponce := make([]*domain.NotificationReponse, 0)
-	rows, err := conn.Query(ctx, `SELECT id,user_id,module,notification_type,notification_title,notification_message,created_at from notifications`)
+	rows, err := conn.Query(ctx, `SELECT id,user_id,module,notification_type,notification_title,notification_message,created_at from notifications WHERE module = $1`, module)
 	if err != nil {
 		return nil, err
 	}

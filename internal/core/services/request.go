@@ -61,9 +61,8 @@ func ( r *requests) GetRequest(ctx context.Context,Id uuid.UUID) (domain.Responc
 	return res,err;
 }
 
-func ( r *requests) GetAllRequests(ctx context.Context) ([]*domain.Responce,error){
-
-	res,err := r.reqRepo.Get(ctx,r.storage.Pgx)
+func ( r *requests) GetAllRequests(ctx context.Context,userDID string,requestType string) ([]*domain.Responce,error){
+	res,err := r.reqRepo.Get(ctx,r.storage.Pgx,userDID,requestType)
 	return res,err;
 }
 
@@ -79,7 +78,23 @@ func (r *requests) NewNotification(ctx context.Context,req *domain.NotificationD
 	return res,err
 }
 
-func (r *requests) GetNotifications(ctx context.Context) ([]*domain.NotificationReponse , error){
-	res, err := r.reqRepo.GetNotifications(ctx,r.storage.Pgx)
+func (r *requests) GetNotifications(ctx context.Context,module string) ([]*domain.NotificationReponse , error){
+	res, err := r.reqRepo.GetNotifications(ctx,r.storage.Pgx,module)
 	return res,err
 }
+
+// func (r *requests) GetNotificationsForIssuer(ctx context.Context) ([]*domain.NotificationReponse , error){
+// 	res, err := r.reqRepo.GetNotificationsForIssuer(ctx,r.storage.Pgx)
+// 	return res,err
+// }
+
+func (r *requests) GetRequestsByRequestType(ctx context.Context, requestType string) ([]*domain.Responce , error){
+	res, err := r.reqRepo.GetRequestsByRequestType(ctx,r.storage.Pgx,requestType)
+	return res,err
+}
+
+func (r *requests) GetRequestsByUser(ctx context.Context, userDID string) ([]*domain.Responce , error){
+	res, err := r.reqRepo.GetRequestsByUser(ctx,r.storage.Pgx,userDID)
+	return res,err
+}
+
