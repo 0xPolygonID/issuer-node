@@ -3171,7 +3171,7 @@ type GetRequestResponse interface {
 	VisitGetRequestRespose(w http.ResponseWriter) error
 }
 
-type GetAllRequestsResponse = []GetRequest200Response
+type GetAllRequestsResponse []GetRequest200Response
 
 type GetAllRequestsResponseObject interface {
 	VisitGetAllRequestsRespose(w http.ResponseWriter) error
@@ -3229,7 +3229,7 @@ func (response GetRequest200Response) VisitGetRequestRespose(w http.ResponseWrit
 	return json.NewEncoder(w).Encode(response)
 }
 
-func (response GetAllRequests200Response) VisitGetAllRequestsRespose(w http.ResponseWriter) error {
+func (response GetAllRequestsResponse) VisitGetAllRequestsRespose(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 

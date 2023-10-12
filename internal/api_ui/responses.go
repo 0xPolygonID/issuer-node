@@ -338,7 +338,7 @@ func getAgentEndpoint(hostURL string) string {
 }
 
 func requestsResponse(requets []*domain.Responce) (GetAllRequestsResponse, error) {
-	resp := make([]GetRequest200Response, 0)
+	resp := make(GetAllRequestsResponse, 0)
 	for _, req := range requets {
 		var res GetRequest200Response
 		res.Id = req.Id
