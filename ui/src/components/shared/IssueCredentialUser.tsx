@@ -40,12 +40,10 @@ export function IssueCredentialUser({
           type: schemaReponse.data.type,
         };
         void issueCredentialRequest({ dataSchema, env }).then((response) => {
-          console.log("--------------response", response);
-
           if (response.success) {
             onClose();
 
-            void messageAPI.success(response.data.message);
+            void messageAPI.success("Credential Request Sent");
           } else {
             setIsLoading(false);
 

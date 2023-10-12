@@ -2,16 +2,15 @@ import { Avatar, Card, Row, Space, Tag, Tooltip, Typography } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
+import { getNotification } from "src/adapters/api/notification";
 //import { useSearchParams } from "react-router-dom";
 
-import { getRequests } from "src/adapters/api/requests";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError } from "src/domain";
-import { Request } from "src/domain/request";
+import { AppError, Notification } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { NOTIFICATION, REQUEST_DATE } from "src/utils/constants";
@@ -21,7 +20,7 @@ import { formatDate } from "src/utils/forms";
 export function NotificationsTable() {
   const env = useEnvContext();
 
-  const [requests, setRequests] = useState<AsyncTask<Request[], AppError>>({
+  const [notifications, setNotifications] = useState<AsyncTask<Notification[], AppError>>({
     status: "pending",
   });
   const User = localStorage.getItem("user");
@@ -30,84 +29,85 @@ export function NotificationsTable() {
   // const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = ""; //searchParams.get(QUERY_SEARCH_PARAM);
   // const parsedStatusParam = requestStatusParser.safeParse(statusParam);
-  const requestStatus = "all"; //parsedStatusParam.success ? parsedStatusParam.data : "all";
+  //const notificationStatus = "all"; //parsedStatusParam.success ? parsedStatusParam.data : "all";
 
-  const requestsList = isAsyncTaskDataAvailable(requests) ? requests.data : [];
+  const notificationsList = isAsyncTaskDataAvailable(notifications) ? notifications.data : [];
   const showDefaultContent =
-    requests.status === "successful" && requestsList.length === 0 && queryParam === null;
+    notifications.status === "successful" && notificationsList.length === 0 && queryParam === null;
 
-  let tableColumns: ColumnsType<Request>;
+  let tableColumns: ColumnsType<Notification>;
   if (User === "issuer") {
     tableColumns = [
       {
-        dataIndex: "title",
-        key: "title",
-        render: (userDID: Request["userDID"]) => (
-          <Tooltip placement="topLeft" title={userDID}>
-            <Typography.Text strong>{userDID}</Typography.Text>
+        dataIndex: "notification_title",
+        key: "notification_title",
+        render: (notification_title: Notification["notification_title"]) => (
+          <Tooltip placement="topLeft" title={notification_title}>
+            <Typography.Text strong>{notification_title}</Typography.Text>
           </Tooltip>
         ),
         title: "Title",
         width: "20%",
       },
       {
-        dataIndex: "message",
-        key: "message",
-        render: (credentialType: Request["credentialType"]) => (
-          <Tooltip placement="topLeft" title={credentialType}>
-            <Typography.Text strong>{credentialType}</Typography.Text>
+        dataIndex: "notification_message",
+        key: "notification_message",
+        render: (notification_message: Notification["notification_message"]) => (
+          <Tooltip placement="topLeft" title={notification_message}>
+            <Typography.Text strong>{notification_message}</Typography.Text>
           </Tooltip>
         ),
         title: "Message",
       },
       {
         dataIndex: "created_at",
-        key: "requestDate",
-        render: (requestDate: Request["requestDate"]) => (
-          <Typography.Text>{formatDate(requestDate)}</Typography.Text>
+        key: "created_at",
+        render: (created_at: Notification["created_at"]) => (
+          <Typography.Text>{formatDate(created_at)}</Typography.Text>
         ),
-        sorter: ({ requestDate: a }, { requestDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
+        sorter: ({ created_at: a }, { created_at: b }) => dayjs(a).unix() - dayjs(b).unix(),
         title: REQUEST_DATE,
       },
     ];
   }
 
-  const fetchRequests = useCallback(
+  const fetchNotifications = useCallback(
     async (signal?: AbortSignal) => {
-      setRequests((previousRequests) =>
-        isAsyncTaskDataAvailable(previousRequests)
-          ? { data: previousRequests.data, status: "reloading" }
+      setNotifications((previousNotifications) =>
+        isAsyncTaskDataAvailable(previousNotifications)
+          ? { data: previousNotifications.data, status: "reloading" }
           : { status: "loading" }
       );
 
-      const response = await getRequests({
+      const response = await getNotification({
         env,
         params: {
           query: queryParam || undefined,
-          status: requestStatus,
         },
         signal,
       });
+      console.log("-------", response);
+
       if (response.success) {
-        setRequests({
+        setNotifications({
           data: response.data.successful,
           status: "successful",
         });
         notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
-          setRequests({ error: response.error, status: "failed" });
+          setNotifications({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, requestStatus]
+    [env, queryParam]
   );
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(fetchRequests);
+    const { aborter } = makeRequestAbortable(fetchNotifications);
 
     return aborter;
-  }, [fetchRequests]);
+  }, [fetchNotifications]);
 
   return (
     <>
@@ -121,7 +121,7 @@ export function NotificationsTable() {
             <Typography.Text type="secondary">Notification will be listed here.</Typography.Text>
           </>
         }
-        isLoading={isAsyncTaskStarting(requests)}
+        isLoading={isAsyncTaskStarting(notifications)}
         query={queryParam}
         searchPlaceholder="Search credentials, attributes, identifiers..."
         showDefaultContents={showDefaultContent}
@@ -135,11 +135,11 @@ export function NotificationsTable() {
               ),
               ...column,
             }))}
-            dataSource={requestsList}
+            dataSource={notificationsList}
             locale={{
               emptyText:
-                requests.status === "failed" ? (
-                  <ErrorResult error={requests.error.message} />
+                notifications.status === "failed" ? (
+                  <ErrorResult error={notifications.error.message} />
                 ) : (
                   <NoResults searchQuery={queryParam} />
                 ),
@@ -155,7 +155,7 @@ export function NotificationsTable() {
             <Space size="middle">
               <Card.Meta title={NOTIFICATION} />
 
-              <Tag color="blue">{requestsList.length}</Tag>
+              <Tag color="blue">{notificationsList.length}</Tag>
             </Space>
           </Row>
         }

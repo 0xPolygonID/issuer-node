@@ -35,19 +35,19 @@ export const RequestParser = getStrictParser<RequestInput, Request>()(
   z.object({
     Active: z.boolean(),
     age: z.string(),
+    created_at: datetimeParser,
     credential_type: z.string(),
     id: z.string(),
     IssuerId: z.string(),
-    proof_id: z.string(),
-    created_at: datetimeParser,
-    proof_type: z.string(),
     modified_at: datetimeParser.nullable(),
-    schemaID: z.string(),
+    proof_id: z.string(),
+    proof_type: z.string(),
     request_status: z.string(),
-    userDID: z.string(),
     request_type: z.string(),
     role_type: z.string(),
+    schemaID: z.string(),
     source: z.string(),
+    userDID: z.string(),
     verifier_status: z.string(),
     wallet_status: z.string(),
   })
@@ -229,7 +229,7 @@ export async function issueCredentialRequest({
 }: {
   dataSchema: DataSchema;
   env: Env;
-}): Promise<Response<Message>> {
+}): Promise<Response<ID>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -240,7 +240,7 @@ export async function issueCredentialRequest({
       method: "POST",
       url: `${API_VERSION}/generateVC`,
     });
-    return buildSuccessResponse(messageParser.parse(response.data));
+    return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

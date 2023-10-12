@@ -14,6 +14,7 @@ export type {
 } from "src/domain/credential";
 
 export type { Request } from "src/domain/request";
+export type { Notification } from "src/domain/notification";
 
 export type { Env } from "src/domain/env";
 
