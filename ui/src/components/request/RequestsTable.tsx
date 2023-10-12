@@ -16,35 +16,36 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
+import { IssueCredentialUser } from "../shared/IssueCredentialUser";
+import { RequestDeleteModal } from "../shared/RequestDeleteModal";
+import { RequestRevokeModal } from "../shared/RequestRevokeModal";
+import { getRequests, requestStatusParser } from "src/adapters/api/requests";
 import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
 import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
-import { CredentialDeleteModal } from "src/components/shared/CredentialDeleteModal";
-import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError, Credential } from "src/domain";
+import { AppError } from "src/domain";
 import { Request } from "src/domain/request";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
-  APPROVE1,
-  APPROVE2,
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
+  ISSUE_CREDENTIAL,
   ISSUE_REQUEST,
   QUERY_SEARCH_PARAM,
   REQUEST_DATE,
   REVOKE,
   STATUS_SEARCH_PARAM,
+  VERIFY_IDENTITY,
 } from "src/utils/constants";
 import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
@@ -56,35 +57,37 @@ export function RequestsTable() {
 
   const User = localStorage.getItem("user");
 
-  const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
+  const [requests, setRequests] = useState<AsyncTask<Request[], AppError>>({
     status: "pending",
   });
-  const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
-  const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
+  const [requestToDelete, setRequestToDelete] = useState<Request>();
+  const [requestToRevoke, setRequestToRevoke] = useState<Request>();
+  const [issueCredentialForRequest, setIssueCredentialForRequest] = useState<Request>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
-  const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
-  const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
+  const parsedStatusParam = requestStatusParser.safeParse(statusParam);
+  const requestStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
-  const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
+  const requestsList = isAsyncTaskDataAvailable(requests) ? requests.data : [];
   const showDefaultContent =
-    credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
+    requests.status === "successful" && requestsList.length === 0 && queryParam === null;
 
   let tableColumns: ColumnsType<Request>;
   if (User === "verifier" || User === "issuer") {
     tableColumns = [
       {
-        dataIndex: "requestId",
+        dataIndex: "id",
         key: "requestId",
         render: (requestId: Request["requestId"]) => (
           <Tooltip placement="topLeft" title={requestId}>
             <Typography.Text strong>{requestId}</Typography.Text>
           </Tooltip>
         ),
-        title: "Request Id",
+        title: "Request ID",
+        width: "20%",
       },
       {
         dataIndex: "userDID",
@@ -95,9 +98,10 @@ export function RequestsTable() {
           </Tooltip>
         ),
         title: "UserDID",
+        width: "20%",
       },
       {
-        dataIndex: "credentialType",
+        dataIndex: "credential_type",
         key: "credentialType",
         render: (credentialType: Request["credentialType"]) => (
           <Tooltip placement="topLeft" title={credentialType}>
@@ -107,7 +111,7 @@ export function RequestsTable() {
         title: "Credential Type",
       },
       {
-        dataIndex: "requestType",
+        dataIndex: "request_type",
         key: "requestType",
         render: (requestType: Request["requestType"]) => (
           <Tooltip placement="topLeft" title={requestType}>
@@ -117,17 +121,17 @@ export function RequestsTable() {
         title: "Request Type",
       },
       {
-        dataIndex: "status",
+        dataIndex: "Active",
         key: "status",
         render: (status: Request["status"]) => (
           <Tooltip placement="topLeft" title={status}>
-            <Typography.Text strong>{status}</Typography.Text>
+            <Typography.Text strong>{status ? "Active" : "-"}</Typography.Text>
           </Tooltip>
         ),
         title: "Status",
       },
       {
-        dataIndex: "requestDate",
+        dataIndex: "created_at",
         key: "requestDate",
         render: (requestDate: Request["requestDate"]) => (
           <Typography.Text>{formatDate(requestDate)}</Typography.Text>
@@ -138,7 +142,7 @@ export function RequestsTable() {
       {
         dataIndex: "id",
         key: "id",
-        render: (id: Credential["id"], credential: Credential) => (
+        render: (id: Request["id"], request: Request) => (
           <Dropdown
             menu={{
               items: [
@@ -156,20 +160,21 @@ export function RequestsTable() {
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: APPROVE1,
+                  label: VERIFY_IDENTITY,
                 },
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: APPROVE2,
+                  label: ISSUE_CREDENTIAL,
+                  onClick: () => setIssueCredentialForRequest(request),
                 },
                 {
                   danger: true,
-                  disabled: credential.revoked,
+                  disabled: request.Active,
                   icon: <IconClose />,
                   key: "revoke",
                   label: REVOKE,
-                  onClick: () => setCredentialToRevoke(credential),
+                  onClick: () => setRequestToRevoke(request),
                 },
                 {
                   key: "divider2",
@@ -180,7 +185,7 @@ export function RequestsTable() {
                   icon: <IconTrash />,
                   key: "delete",
                   label: DELETE,
-                  onClick: () => setCredentialToDelete(credential),
+                  onClick: () => setRequestToDelete(request),
                 },
               ],
             }}
@@ -226,7 +231,7 @@ export function RequestsTable() {
         title: "Request Type",
       },
       {
-        dataIndex: "status",
+        dataIndex: "Active",
         key: "status",
         render: (status: Request["status"]) => (
           <Tooltip placement="topLeft" title={status}>
@@ -247,7 +252,7 @@ export function RequestsTable() {
       {
         dataIndex: "id",
         key: "id",
-        render: (id: Credential["id"], credential: Credential) => (
+        render: (id: Request["id"], request: Request) => (
           <Dropdown
             menu={{
               items: [
@@ -265,20 +270,20 @@ export function RequestsTable() {
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: APPROVE1,
+                  label: VERIFY_IDENTITY,
                 },
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: APPROVE2,
+                  label: ISSUE_CREDENTIAL,
                 },
                 {
                   danger: true,
-                  disabled: credential.revoked,
+                  disabled: request.Active,
                   icon: <IconClose />,
                   key: "revoke",
                   label: REVOKE,
-                  onClick: () => setCredentialToRevoke(credential),
+                  onClick: () => setRequestToRevoke(request),
                 },
                 {
                   key: "divider2",
@@ -289,7 +294,7 @@ export function RequestsTable() {
                   icon: <IconTrash />,
                   key: "delete",
                   label: DELETE,
-                  onClick: () => setCredentialToDelete(credential),
+                  onClick: () => setRequestToDelete(request),
                 },
               ],
             }}
@@ -304,35 +309,35 @@ export function RequestsTable() {
     ];
   }
 
-  const fetchCredentials = useCallback(
+  const fetchRequests = useCallback(
     async (signal?: AbortSignal) => {
-      setCredentials((previousCredentials) =>
-        isAsyncTaskDataAvailable(previousCredentials)
-          ? { data: previousCredentials.data, status: "reloading" }
+      setRequests((previousRequests) =>
+        isAsyncTaskDataAvailable(previousRequests)
+          ? { data: previousRequests.data, status: "reloading" }
           : { status: "loading" }
       );
 
-      const response = await getCredentials({
+      const response = await getRequests({
         env,
         params: {
           query: queryParam || undefined,
-          status: credentialStatus,
+          status: requestStatus,
         },
         signal,
       });
       if (response.success) {
-        setCredentials({
+        setRequests({
           data: response.data.successful,
           status: "successful",
         });
         notifyParseErrors(response.data.failed);
       } else {
         if (!isAbortedError(response.error)) {
-          setCredentials({ error: response.error, status: "failed" });
+          setRequests({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, credentialStatus]
+    [env, queryParam, requestStatus]
   );
 
   const onSearch = useCallback(
@@ -355,27 +360,27 @@ export function RequestsTable() {
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedCredentialStatus = credentialStatusParser.safeParse(value);
-    if (parsedCredentialStatus.success) {
+    const parsedRequestStatus = requestStatusParser.safeParse(value);
+    if (parsedRequestStatus.success) {
       const params = new URLSearchParams(searchParams);
 
-      if (parsedCredentialStatus.data === "all") {
+      if (parsedRequestStatus.data === "all") {
         params.delete(STATUS_SEARCH_PARAM);
       } else {
-        params.set(STATUS_SEARCH_PARAM, parsedCredentialStatus.data);
+        params.set(STATUS_SEARCH_PARAM, parsedRequestStatus.data);
       }
 
       setSearchParams(params);
     } else {
-      notifyParseError(parsedCredentialStatus.error);
+      notifyParseError(parsedRequestStatus.error);
     }
   };
 
   useEffect(() => {
-    const { aborter } = makeRequestAbortable(fetchCredentials);
+    const { aborter } = makeRequestAbortable(fetchRequests);
 
     return aborter;
-  }, [fetchCredentials]);
+  }, [fetchRequests]);
 
   return (
     <>
@@ -388,7 +393,7 @@ export function RequestsTable() {
 
             <Typography.Text type="secondary">Issued Request will be listed here.</Typography.Text>
 
-            {credentialStatus === "all" && (
+            {requestStatus === "all" && (
               <Link to={generatePath(ROUTES.issueCredential.path)}>
                 <Button icon={<IconCreditCardPlus />} type="primary">
                   {ISSUE_REQUEST}
@@ -397,7 +402,7 @@ export function RequestsTable() {
             )}
           </>
         }
-        isLoading={isAsyncTaskStarting(credentials)}
+        isLoading={isAsyncTaskStarting(requests)}
         onSearch={onSearch}
         query={queryParam}
         searchPlaceholder="Search credentials, attributes, identifiers..."
@@ -412,11 +417,11 @@ export function RequestsTable() {
               ),
               ...column,
             }))}
-            dataSource={credentialsList}
+            dataSource={requestsList}
             locale={{
               emptyText:
-                credentials.status === "failed" ? (
-                  <ErrorResult error={credentials.error.message} />
+                requests.status === "failed" ? (
+                  <ErrorResult error={requests.error.message} />
                 ) : (
                   <NoResults searchQuery={queryParam} />
                 ),
@@ -432,11 +437,11 @@ export function RequestsTable() {
             <Space size="middle">
               <Card.Meta title={ISSUE_REQUEST} />
 
-              <Tag color="blue">{credentialsList.length}</Tag>
+              <Tag color="blue">{requestsList.length}</Tag>
             </Space>
 
-            {(!showDefaultContent || credentialStatus !== "all") && (
-              <Radio.Group onChange={handleStatusChange} value={credentialStatus}>
+            {(!showDefaultContent || requestStatus !== "all") && (
+              <Radio.Group onChange={handleStatusChange} value={requestStatus}>
                 <Radio.Button value="all">All</Radio.Button>
 
                 <Radio.Button value="revoked">Revoked</Radio.Button>
@@ -447,18 +452,24 @@ export function RequestsTable() {
           </Row>
         }
       />
-      {credentialToDelete && (
-        <CredentialDeleteModal
-          credential={credentialToDelete}
-          onClose={() => setCredentialToDelete(undefined)}
-          onDelete={() => void fetchCredentials()}
+      {requestToDelete && (
+        <RequestDeleteModal
+          onClose={() => setRequestToDelete(undefined)}
+          onDelete={() => void fetchRequests()}
+          request={requestToDelete}
         />
       )}
-      {credentialToRevoke && (
-        <CredentialRevokeModal
-          credential={credentialToRevoke}
-          onClose={() => setCredentialToRevoke(undefined)}
-          onRevoke={() => void fetchCredentials()}
+      {requestToRevoke && (
+        <RequestRevokeModal
+          onClose={() => setRequestToRevoke(undefined)}
+          onRevoke={() => void fetchRequests()}
+          request={requestToRevoke}
+        />
+      )}
+      {issueCredentialForRequest && (
+        <IssueCredentialUser
+          onClose={() => setIssueCredentialForRequest(undefined)}
+          request={issueCredentialForRequest}
         />
       )}
     </>

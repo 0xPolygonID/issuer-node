@@ -1,6 +1,5 @@
 import {
   Avatar,
-  Button,
   Card,
   Dropdown,
   Radio,
@@ -14,10 +13,9 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
+import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
-import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
@@ -34,8 +32,7 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
-  APPROVE1,
-  APPROVE2,
+  //VERIFY_IDENTITY,
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
@@ -49,6 +46,7 @@ import {
   REVOKE,
   REVOKE_DATE,
   STATUS_SEARCH_PARAM,
+  VERIFY_IDENTITY,
 } from "src/utils/constants";
 import { notifyParseError, notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
@@ -81,7 +79,7 @@ export function CredentialsTable() {
   if (User === "issuer" || User === "verifier") {
     tableColumns = [
       {
-        dataIndex: "userDID",
+        dataIndex: "userID",
         key: "userDID",
         render: (userDID: Credential["userDID"]) => (
           <Tooltip placement="topLeft" title={userDID}>
@@ -91,7 +89,7 @@ export function CredentialsTable() {
         title: "UserDID",
       },
       {
-        dataIndex: "schemaType",
+        dataIndex: "id",
         ellipsis: { showTitle: false },
         key: "schemaType",
         render: (schemaType: Credential["schemaType"]) => (
@@ -181,16 +179,16 @@ export function CredentialsTable() {
                   key: "divider1",
                   type: "divider",
                 },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: APPROVE1,
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: APPROVE2,
-                },
+                // {
+                //   icon: <IconInfoCircle />,
+                //   key: "details",
+                //   label: VERIFY_IDENTITY,
+                // },
+                // {
+                //   icon: <IconInfoCircle />,
+                //   key: "details",
+                //   label: ISSUE_CREDENTIAL,
+                // },
                 {
                   danger: true,
                   disabled: credential.revoked,
@@ -317,12 +315,12 @@ export function CredentialsTable() {
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: APPROVE1,
+                  label: VERIFY_IDENTITY,
                 },
                 {
                   icon: <IconInfoCircle />,
                   key: "details",
-                  label: APPROVE2,
+                  label: ISSUE_CREDENTIAL,
                 },
                 {
                   danger: true,
@@ -372,6 +370,7 @@ export function CredentialsTable() {
         },
         signal,
       });
+
       if (response.success) {
         setCredentials({
           data: response.data.successful,
@@ -442,13 +441,13 @@ export function CredentialsTable() {
               Issued credentials will be listed here.
             </Typography.Text>
 
-            {credentialStatus === "all" && (
+            {/* {credentialStatus === "all" && (
               <Link to={generatePath(ROUTES.issueCredential.path)}>
                 <Button icon={<IconCreditCardPlus />} type="primary">
                   {ISSUE_CREDENTIAL}
                 </Button>
               </Link>
-            )}
+            )} */}
           </>
         }
         isLoading={isAsyncTaskStarting(credentials)}

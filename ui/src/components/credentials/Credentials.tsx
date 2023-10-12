@@ -15,7 +15,8 @@ export function Credentials() {
     <SiderLayoutContent
       description="Credentials that have been issued either directly or as credential links."
       extra={
-        User !== "verifier" && (
+        User !== "verifier" &&
+        User !== "issuer" && (
           <Button
             icon={<IconCreditCardPlus />}
             onClick={() => navigate(generatePath(ROUTES.issueCredential.path))}

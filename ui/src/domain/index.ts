@@ -13,6 +13,8 @@ export type {
   ProofType,
 } from "src/domain/credential";
 
+export type { Request } from "src/domain/request";
+
 export type { Env } from "src/domain/env";
 
 export type { IssuerStatus, Transaction, TransactionStatus } from "src/domain/issuer-state";

@@ -11,8 +11,7 @@ export const CREDENTIAL_LINK = "Credential link";
 export const CREDENTIALS = "Credentials";
 export const DELETE = "Delete";
 export const DETAILS = "Details";
-export const APPROVE1 = "Approve 1";
-export const APPROVE2 = "Approve 2";
+export const VERIFY_IDENTITY = "Verify Identity";
 export const ERROR_MESSAGE = "Something went wrong";
 export const EXPIRATION = "Expiration";
 export const EXPIRED = "Expired";
@@ -42,7 +41,7 @@ export const CREATE_REQUEST = "Create Request";
 export const REQUESTS = "Requests";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
-export const REQUEST_DATE = "Request date";
+export const REQUEST_DATE = "Request Date";
 export const SUBMIT = "Submit";
 
 // URL params

@@ -11,7 +11,7 @@ CREATE TABLE requests_for_vc
     role_type      text                                       NOT NULL,
     proof_type     text                                       NOT NULL,
     proof_id       text                                       NOT NULL,
-    age            text    NULL DEFAULT    "18"                       ,
+    age            text                                       NOT NULL,
     active         bool                                       NOT NULL,
     request_status text                                       NOT NULL,
     verifier_status text                                       NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE notifications
     notification_type       text                         NOT NULL,
     notification_title      text                         NOT NULL,
     notification_message    text                         NOT NULL,
-    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP ,
     CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
 -- +goose StatementEnd
