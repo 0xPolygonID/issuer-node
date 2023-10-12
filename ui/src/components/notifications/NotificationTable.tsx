@@ -81,12 +81,12 @@ export function NotificationsTable() {
 
       const response = await getNotification({
         env,
+        module: "Issuer",
         params: {
           query: queryParam || undefined,
         },
         signal,
       });
-      console.log("-------", response);
 
       if (response.success) {
         setNotifications({

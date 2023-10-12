@@ -32,9 +32,11 @@ export const NotificationParser = getStrictParser<NotificationInput, Notificatio
 );
 export async function getNotification({
   env,
+  module,
   signal,
 }: {
   env: Env;
+  module: string;
   params?: {
     query?: string;
   };
@@ -47,13 +49,9 @@ export async function getNotification({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
-      params: new URLSearchParams({
-        ...{ module: "issuer" },
-      }),
       signal,
-      url: `${API_VERSION}/notifications`,
+      url: `${API_VERSION}/notifications/${module}`,
     });
-    console.log("response", response.data);
     return buildSuccessResponse(
       getListParser(NotificationParser)
         .transform(({ failed, successful }) => ({
@@ -62,8 +60,6 @@ export async function getNotification({
         }))
         .parse(response.data)
     );
-
-    //return buildSuccessResponse(NotificationParser.parse(response.data.AllNotifications));
   } catch (error) {
     return buildErrorResponse(error);
   }
