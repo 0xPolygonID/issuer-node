@@ -218,7 +218,7 @@ func(s *Server) GetAllRequests(ctx context.Context) (GetAllRequestsResponseObjec
 	if(err != nil){
 		return nil,err;
 	}
-	return  GetAllRequests200Response{resp},nil
+	return resp,nil
 }
 
 
