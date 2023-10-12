@@ -38,12 +38,14 @@ CREATE TABLE notifications
 (
     id                      uuid                         NOT NULL,
     user_id                 text                         NOT NULL,
+    module                  text                         NOT NULL,
     notification_type       text                         NOT NULL,
     notification_title      text                         NOT NULL,
     notification_message    text                         NOT NULL,
-    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP ,
+    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP        ,
     CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
+
 -- +goose StatementEnd
 
 -- +goose Down

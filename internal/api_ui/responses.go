@@ -363,3 +363,19 @@ func requestsResponse(requets []*domain.Responce) (GetAllRequestsResponse, error
 
 	return resp, nil
 }
+
+func notificationResponse(requets []*domain.NotificationReponse) (AllNotifications, error) {
+	resp := make([]Notifications200Response, 0)
+	for _, req := range requets {
+		var res Notifications200Response
+		res.Id = req.ID
+		res.User_id=req.User_id
+		res.Module=req.Module
+		res.CreatedAt = req.CreatedAt
+		res.NotificationType=req.NotificationType
+		res.NotificationTitle=req.NotificationTitle
+		res.NotificationMessage=req.NotificationMessage
+		resp = append(resp, res)
+	}
+	return resp, nil
+}

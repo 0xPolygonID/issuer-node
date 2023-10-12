@@ -12,6 +12,7 @@ import (
 
 	// "github.com/docker/distribution/uuid"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	core "github.com/iden3/go-iden3-core"
 	"github.com/iden3/iden3comm"
@@ -84,8 +85,6 @@ func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCRe
 		return VC500Response{"Invalid schemaId: Schema not found"}, nil
 	}
 
-
-
 	// var id uuid.UUID;
 	var req domain.VCRequest = domain.VCRequest{
 		SchemaID: request.Body.SchemaID,
@@ -103,6 +102,34 @@ func(s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCRe
 	if err != nil{
 		return nil,err;
 	}
+
+	issuernotification := &domain.NotificationData{
+		ID: uuid.New(),
+		User_id: request.Body.UserDID,
+		Module: "Issuer",
+		NotificationType: "Requested for VC",
+		NotificationTitle: "Requested for VC",
+		NotificationMessage: `User Requested For VC`,
+	}
+
+	usernotification := &domain.NotificationData{
+		ID: uuid.New(),
+		User_id: request.Body.UserDID,
+		Module: "User",
+		NotificationType: "Requested for VC",
+		NotificationTitle: "Requested for VC",
+		NotificationMessage: `Requested Successfully`,
+	}
+
+	_,err = s.requestServer.NewNotification(ctx,issuernotification);
+	if err != nil{
+		return nil,err;
+	}
+	_,err = s.requestServer.NewNotification(ctx,usernotification);
+	if err != nil{
+		return nil,err;
+	}
+
 	return VC200Response{"Requested Successfully",id},nil;
 }
 
@@ -150,8 +177,21 @@ func(s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject)
 	}
 
 	_,err = s.requestServer.UpdateStatus(ctx,request.Body.RequestId)
-	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 
+	usernotification := &domain.NotificationData{
+		ID: uuid.New(),
+		User_id: request.Body.UserDID,
+		Module: "User",
+		NotificationType: "Requested for VC",
+		NotificationTitle: "Requested for VC",
+		NotificationMessage: `Requested Successfully`,
+	}
+	_,err = s.requestServer.NewNotification(ctx,usernotification);
+	if err != nil{
+		return nil,err;
+	}
+
+	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
 
@@ -179,6 +219,21 @@ func(s *Server) GetAllRequests(ctx context.Context) (GetAllRequestsResponseObjec
 		return nil,err;
 	}
 	return  GetAllRequests200Response{resp},nil
+}
+
+
+func(s *Server) GetNotifications(ctx context.Context) (GetAllNotificationsResponseObject, error){
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+
+	res,err := s.requestServer.GetNotifications(ctx)
+	if(err != nil){
+		return nil,err;
+	}
+	resp,err := notificationResponse(res)
+	if(err != nil){
+		return nil,err;
+	}
+	return  GetAllNotifications200Response{resp},nil
 }
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.

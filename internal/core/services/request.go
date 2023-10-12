@@ -72,3 +72,14 @@ func (r *requests) UpdateStatus(ctx context.Context,id uuid.UUID) (int64 , error
 	res, err := r.reqRepo.UpdateStatus(ctx,r.storage.Pgx,id)
 	return res,err
 }
+
+
+func (r *requests) NewNotification(ctx context.Context,req *domain.NotificationData) (bool , error){
+	res, err := r.reqRepo.NewNotification(ctx,r.storage.Pgx,req)
+	return res,err
+}
+
+func (r *requests) GetNotifications(ctx context.Context) ([]*domain.NotificationReponse , error){
+	res, err := r.reqRepo.GetNotifications(ctx,r.storage.Pgx)
+	return res,err
+}
