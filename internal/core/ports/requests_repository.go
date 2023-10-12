@@ -14,10 +14,13 @@ import (
 type RequestRepository interface {
 	Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)(domain.Responce,error)
-	Get(ctx context.Context, conn db.Querier)([]*domain.Responce,error)
+	Get(ctx context.Context, conn db.Querier,userDID string,requestType string)([]*domain.Responce,error)
 	UpdateStatus(ctx context.Context, conn db.Querier,id uuid.UUID)(int64, error)
 	NewNotification(ctx context.Context, conn db.Querier,notification *domain.NotificationData) (bool,error)
-	GetNotifications(ctx context.Context, conn db.Querier) ([]*domain.NotificationReponse,error)
+	GetNotifications(ctx context.Context, conn db.Querier,module string) ([]*domain.NotificationReponse,error)
+	GetRequestsByRequestType(ctx context.Context, conn db.Querier, requestType string) ([]*domain.Responce,error)
+	GetRequestsByUser(ctx context.Context, conn db.Querier, userDID string) ([]*domain.Responce,error)
+	// GetNotificationsForIssuer(ctx context.Context, conn db.Querier) ([]*domain.NotificationReponse,error)
 	// GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error)
 	// Get(ctx context.Context, conn db.Querier) (identities []string, err error)
 	// GetUnprocessedIssuersIDs(ctx context.Context, conn db.Querier) (issuersIDs []*core.DID, err error)

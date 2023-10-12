@@ -50,6 +50,10 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 			RETURNING id`
 	err := conn.QueryRow(ctx, sql, connection.ID, connection.IssuerDID.String(), connection.UserDID.String(), connection.IssuerDoc, connection.UserDoc, connection.CreatedAt, connection.ModifiedAt).Scan(&id)
 
+	query := "UPDATE requests_for_vc SET request_status = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
+	res, err := conn.Exec(ctx, query, "VC_Issued", "VC_Issued", "Issued", id)
+	fmt.Println("Updating Status", res)
+
 	return id, err
 }
 
