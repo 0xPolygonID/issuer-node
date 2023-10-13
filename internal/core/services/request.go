@@ -98,3 +98,20 @@ func (r *requests) GetRequestsByUser(ctx context.Context, userDID string) ([]*do
 	return res,err
 }
 
+
+func (r *requests) DeleteNotification(ctx context.Context, id uuid.UUID) (*domain.DeleteNotificationResponse , error){
+	res, err := r.reqRepo.DeleteNotification(ctx,r.storage.Pgx,id)
+	return res,err
+}
+
+func (r *requests) SaveUser(ctx context.Context, user *domain.UserRequest) error{
+	err := r.reqRepo.SaveUser(ctx,r.storage.Pgx,user)
+	return err
+}
+
+func (r *requests) GetUserID(ctx context.Context,gmail string , password string) (*domain.UserResponse , error){
+	res, err := r.reqRepo.GetUserID(ctx,r.storage.Pgx,gmail,password)
+	return res,err
+}
+
+

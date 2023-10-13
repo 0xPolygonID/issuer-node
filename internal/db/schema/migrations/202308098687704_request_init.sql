@@ -46,6 +46,26 @@ CREATE TABLE notifications
     CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
 
+
+CREATE TABLE users 
+(
+    id              text              NOT NULL,
+    fullname        text              NOT NULL,
+    userowner        text             NOT NULL,
+    username         text             NOT NULL,
+    userpassword     text             NOT NULL,   
+    user_gmail       text             NOT NULL,
+    user_gstin       text             NOT NULL,
+    usertype         text              NOT NULL,
+    user_address     text            NOT NULL,
+    adhar           text                NOT NULL,
+    pan             text                NOT NULL,
+    documentation_source text           NOT NULL,
+    created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT user_pkey PRIMARY KEY (id)
+);
+
+
 -- +goose StatementEnd
 
 -- +goose Down

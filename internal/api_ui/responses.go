@@ -363,7 +363,25 @@ func requestsResponse(requets []*domain.Responce) (GetAllRequestsResponse, error
 
 	return resp, nil
 }
+func userResponse(requets *domain.UserResponse) (GetUserResponseObject, error) {
+	resp := UserResponse{
+		ID: requets.ID,
+		Name: requets.Name,
+		Owner: requets.Owner,
+		Username: requets.Username,
+		Password: requets.Password,
+		Gmail: requets.Gmail,
+		Gstin: requets.Gstin,
+		UserType: requets.UserType,
+		Address: requets.Address,
+		Adhar: requets.Adhar,
+		PAN: requets.PAN,
+		DocumentationSource: requets.DocumentationSource,
+		CreatedAt: requets.CreatedAt,
+	}
 
+	return resp, nil
+}
 func notificationResponse(requets []*domain.NotificationReponse) (AllNotifications, error) {
 	resp := make([]Notifications200Response, 0)
 	for _, req := range requets {

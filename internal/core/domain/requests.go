@@ -78,3 +78,40 @@ type NotificationReponse struct{
 	NotificationMessage string `json:"notification_message"`
 	CreatedAt	   time.Time  `json:"created_at"`
 }
+
+
+type UserRequest struct{
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Owner string `json:"owner"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Gmail string `json:"gmail"`
+	Gstin string `json:"gstin"`
+	UserType string `json:"userType"`
+	Address string `json:"address"`
+	Adhar string `json:"adhar"`
+	PAN string `json:"PAN"`
+	DocumentationSource string `json:"documentationSource"`
+}
+
+type UserResponse struct{
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Owner string `json:"owner"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Gmail string `json:"gmail"`
+	Gstin string `json:"gstin"`
+	UserType string `json:"userType"`
+	Address string `json:"address"`
+	Adhar string `json:"adhar"`
+	PAN string `json:"PAN"`
+	DocumentationSource string `json:"documentationSource"`
+	CreatedAt	   time.Time  `json:"created_at"`
+}
+
+type DeleteNotificationResponse struct{
+	Status bool `json:"status"`
+	Msg string `json:"msg"`
+}
