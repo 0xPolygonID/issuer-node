@@ -22,7 +22,7 @@ type RequestService interface {
 	GetRequestsByRequestType(ctx context.Context, requestType string) ([]*domain.Responce, error)
 	GetRequestsByUser(ctx context.Context, userDID string) ([]*domain.Responce, error)
 	DeleteNotification(ctx context.Context, id uuid.UUID) (*domain.DeleteNotificationResponse, error)
-	SaveUser(ctx context.Context, user *domain.UserRequest) error
+	SaveUser(ctx context.Context, user *domain.UserRequest) (bool,error)
 	GetUserID(ctx context.Context, username string, password string) (*domain.UserResponse, error)
 	// Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	// GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)

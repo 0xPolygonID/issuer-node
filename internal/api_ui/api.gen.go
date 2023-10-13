@@ -3476,6 +3476,22 @@ func (response UserResponse) VisitCreateUserResponse(w http.ResponseWriter) erro
 type GetUserResponseObject interface{
 	VisitCreateUserResponse(w http.ResponseWriter) error
 }
+
+type addUser200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+type AddUserResponseObject interface{
+	VisitAddUserResponse(w http.ResponseWriter) error
+}
+
+func (response addUser200Response) VisitAddUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
 // func (response GetAllNotifications200Response ) VisitGetAllNotification(w http.ResponseWriter) error {
 // 	w.Header().Set("Content-Type", "application/json")
 // 	w.WriteHeader(200)
@@ -3610,7 +3626,7 @@ type StrictServerInterface interface {
 
 	DeleteNotification(ctx context.Context,notificationId uuid.UUID) (DeleteNotificationResponseObject,error)
 
-	CreateUser(ctx context.Context, request CreateUserRequestObject) (bool,error)
+	CreateUser(ctx context.Context, request CreateUserRequestObject) (AddUserResponseObject,error)
 
 	GetUser(ctx context.Context, request GetUserRequestObject)(GetUserResponseObject,error)
 
@@ -3747,8 +3763,8 @@ func (sh *strictHandler) CreateUser(w http.ResponseWriter, r *http.Request){
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetUserResponseObject); ok {
-		if err := validResponse.VisitCreateUserResponse(w); err != nil {
+	} else if validResponse, ok := response.(AddUserResponseObject); ok {
+		if err := validResponse.VisitAddUserResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -3770,7 +3786,7 @@ func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request){
 		return sh.ssi.GetUser(ctx, request.(GetUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRequest")
+		handler = middleware(handler, "GetUser")
 	}
 
 	response, err := handler(r.Context(), w, r, request)

@@ -328,7 +328,7 @@ func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UU
 	return res.RowsAffected(), nil
 }
 
-func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) error {
+func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) (bool,error) {
 	fmt.Println("Saving Request Info into DB...", request)
 	_, err := conn.Exec(ctx, `INSERT INTO users (id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
 		request.ID,
@@ -344,12 +344,15 @@ func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domai
 		request.PAN,
 		request.DocumentationSource,
 	)
-	return err
+	if err != nil {
+		return false,err
+	}
+	return true,nil
 }
 
 func (i *requests) GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse, error) {
 	response := domain.UserResponse{}
-	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,created_at FROM users  WHERE username = $1 AND userpassword = $ 2`, username, password).Scan(
+	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,created_at FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
 		&response.ID,
 		&response.Name,
 		&response.Owner,
