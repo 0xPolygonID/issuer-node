@@ -31,28 +31,26 @@ type Requestresponse struct {
 	credential_type string
 	request_type    string
 	role_type       string
-	proof_type	  string
-	proof_id	  string
-	age 		   string
+	proof_type      string
+	proof_id        string
+	age             string
 	request_status  string
 	verifier_status string
 	wallet_status   string
-	source 			string
+	source          string
 	created_at      time.Time
 	modifed_at      time.Time
 }
 
-type NotificationReponse struct{
-	id              uuid.UUID
-	user_id         string
-	module          string
-	notification_type string
-	notification_title string
+type NotificationReponse struct {
+	id                   uuid.UUID
+	user_id              string
+	module               string
+	notification_type    string
+	notification_title   string
 	notification_message string
-	created_at      time.Time
+	created_at           time.Time
 }
-
-
 
 var ErrNoRequestExist = errors.New("Request does not exist")
 
@@ -62,22 +60,22 @@ func NewRequests() ports.RequestRepository {
 
 func (i *requests) Save(ctx context.Context, conn db.Querier, request *domain.Request) error {
 	fmt.Println("Saving Request Info into DB...", request)
-	_, err := conn.Exec(ctx, `INSERT INTO requests_for_vc (id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`, 
-	request.ID, 
-	request.User_id,
-	request.Issuer_id,
-	request.Schema_id,
-	request.CredentialType,
-	request.Type,
-	request.RoleType,
-	request.ProofType,
-	request.ProofId,
-	request.Age,
-	request.Active, 
-	request.Status, 
-	request.Verify_Status, 
-	request.Wallet_Status,
-	request.Source)
+	_, err := conn.Exec(ctx, `INSERT INTO requests_for_vc (id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+		request.ID,
+		request.User_id,
+		request.Issuer_id,
+		request.Schema_id,
+		request.CredentialType,
+		request.Type,
+		request.RoleType,
+		request.ProofType,
+		request.ProofId,
+		request.Age,
+		request.Active,
+		request.Status,
+		request.Verify_Status,
+		request.Wallet_Status,
+		request.Source)
 	return err
 }
 
@@ -112,31 +110,31 @@ func (i *requests) GetByID(ctx context.Context, conn db.Querier, id uuid.UUID) (
 	// si := res.Scan("schema_id")
 	// return err;
 	return domain.Responce{
-		Id: response.id,
-		UserDID: response.user_id,
-		Issuer_id: response.issuer_id,
-		SchemaID: response.schema_id,
+		Id:             response.id,
+		UserDID:        response.user_id,
+		Issuer_id:      response.issuer_id,
+		SchemaID:       response.schema_id,
 		CredentialType: response.credential_type,
-		RequestType:response.request_type,
-		RoleType: response.role_type,
-		ProofType: response.proof_type,
-		ProofId: response.proof_id,
-		Age: response.age,
-		RequestStatus: response.request_status,
-		WalletStatus: response.wallet_status,
-		VerifyStatus: response.verifier_status,
-		Active: response.active,
-		Source: response.source,
-		CreatedAt: response.created_at,
-		ModifiedAt: response.modifed_at,
-		}, nil
+		RequestType:    response.request_type,
+		RoleType:       response.role_type,
+		ProofType:      response.proof_type,
+		ProofId:        response.proof_id,
+		Age:            response.age,
+		RequestStatus:  response.request_status,
+		WalletStatus:   response.wallet_status,
+		VerifyStatus:   response.verifier_status,
+		Active:         response.active,
+		Source:         response.source,
+		CreatedAt:      response.created_at,
+		ModifiedAt:     response.modifed_at,
+	}, nil
 }
 
-func (i *requests) Get(ctx context.Context, conn db.Querier,id string,Rtype string) ([]*domain.Responce, error) {
+func (i *requests) Get(ctx context.Context, conn db.Querier, id string, Rtype string) ([]*domain.Responce, error) {
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
-	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID = $1 AND request_type = $2`, id,Rtype)
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID = $1 AND request_type = $2`, id, Rtype)
 	fmt.Println("Get Rquests", rows)
 	if err != nil {
 		return nil, err
@@ -167,24 +165,24 @@ func (i *requests) Get(ctx context.Context, conn db.Querier,id string,Rtype stri
 			return nil, err
 		}
 		temp := &domain.Responce{
-			Id: response.id,
-			UserDID: response.user_id,
-			Issuer_id: response.issuer_id,
-			SchemaID: response.schema_id,
+			Id:             response.id,
+			UserDID:        response.user_id,
+			Issuer_id:      response.issuer_id,
+			SchemaID:       response.schema_id,
 			CredentialType: response.credential_type,
-			RequestType:response.request_type,
-			RoleType: response.role_type,
-			ProofType: response.proof_type,
-			ProofId: response.proof_id,
-			Age: response.age,
-			RequestStatus: response.request_status,
-			WalletStatus: response.wallet_status,
-			VerifyStatus: response.verifier_status,
-			Active: response.active,
-			Source: response.source,
-			CreatedAt: response.created_at,
-			ModifiedAt: response.modifed_at,
-			}
+			RequestType:    response.request_type,
+			RoleType:       response.role_type,
+			ProofType:      response.proof_type,
+			ProofId:        response.proof_id,
+			Age:            response.age,
+			RequestStatus:  response.request_status,
+			WalletStatus:   response.wallet_status,
+			VerifyStatus:   response.verifier_status,
+			Active:         response.active,
+			Source:         response.source,
+			CreatedAt:      response.created_at,
+			ModifiedAt:     response.modifed_at,
+		}
 
 		domainResponce = append(domainResponce, temp)
 	}
@@ -194,8 +192,7 @@ func (i *requests) Get(ctx context.Context, conn db.Querier,id string,Rtype stri
 	return domainResponce, nil
 }
 
-
-func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier,id string) ([]*domain.Responce, error) {
+func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier, id string) ([]*domain.Responce, error) {
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
@@ -231,24 +228,24 @@ func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier,id str
 			return nil, err
 		}
 		temp := &domain.Responce{
-			Id: response.id,
-			UserDID: response.user_id,
-			Issuer_id: response.issuer_id,
-			SchemaID: response.schema_id,
+			Id:             response.id,
+			UserDID:        response.user_id,
+			Issuer_id:      response.issuer_id,
+			SchemaID:       response.schema_id,
 			CredentialType: response.credential_type,
-			RequestType:response.request_type,
-			RoleType: response.role_type,
-			ProofType: response.proof_type,
-			ProofId: response.proof_id,
-			Age: response.age,
-			RequestStatus: response.request_status,
-			WalletStatus: response.wallet_status,
-			VerifyStatus: response.verifier_status,
-			Active: response.active,
-			Source: response.source,
-			CreatedAt: response.created_at,
-			ModifiedAt: response.modifed_at,
-			}
+			RequestType:    response.request_type,
+			RoleType:       response.role_type,
+			ProofType:      response.proof_type,
+			ProofId:        response.proof_id,
+			Age:            response.age,
+			RequestStatus:  response.request_status,
+			WalletStatus:   response.wallet_status,
+			VerifyStatus:   response.verifier_status,
+			Active:         response.active,
+			Source:         response.source,
+			CreatedAt:      response.created_at,
+			ModifiedAt:     response.modifed_at,
+		}
 
 		domainResponce = append(domainResponce, temp)
 	}
@@ -258,7 +255,7 @@ func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier,id str
 	return domainResponce, nil
 }
 
-func (i *requests) GetRequestsByRequestType(ctx context.Context, conn db.Querier,RType string) ([]*domain.Responce, error) {
+func (i *requests) GetRequestsByRequestType(ctx context.Context, conn db.Querier, RType string) ([]*domain.Responce, error) {
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
@@ -293,24 +290,24 @@ func (i *requests) GetRequestsByRequestType(ctx context.Context, conn db.Querier
 			return nil, err
 		}
 		temp := &domain.Responce{
-			Id: response.id,
-			UserDID: response.user_id,
-			Issuer_id: response.issuer_id,
-			SchemaID: response.schema_id,
+			Id:             response.id,
+			UserDID:        response.user_id,
+			Issuer_id:      response.issuer_id,
+			SchemaID:       response.schema_id,
 			CredentialType: response.credential_type,
-			RequestType:response.request_type,
-			RoleType: response.role_type,
-			ProofType: response.proof_type,
-			ProofId: response.proof_id,
-			Age: response.age,
-			RequestStatus: response.request_status,
-			WalletStatus: response.wallet_status,
-			VerifyStatus: response.verifier_status,
-			Active: response.active,
-			Source: response.source,
-			CreatedAt: response.created_at,
-			ModifiedAt: response.modifed_at,
-			}
+			RequestType:    response.request_type,
+			RoleType:       response.role_type,
+			ProofType:      response.proof_type,
+			ProofId:        response.proof_id,
+			Age:            response.age,
+			RequestStatus:  response.request_status,
+			WalletStatus:   response.wallet_status,
+			VerifyStatus:   response.verifier_status,
+			Active:         response.active,
+			Source:         response.source,
+			CreatedAt:      response.created_at,
+			ModifiedAt:     response.modifed_at,
+		}
 
 		domainResponce = append(domainResponce, temp)
 	}
@@ -329,6 +326,50 @@ func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UU
 	}
 	fmt.Println("Updating Status", res)
 	return res.RowsAffected(), nil
+}
+
+func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) error {
+	fmt.Println("Saving Request Info into DB...", request)
+	_, err := conn.Exec(ctx, `INSERT INTO users (id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+		request.ID,
+		request.Name,
+		request.Owner,
+		request.Username,
+		request.Password,
+		request.Gmail,
+		request.Gstin,
+		request.UserType,
+		request.Address,
+		request.Adhar,
+		request.PAN,
+		request.DocumentationSource,
+	)
+	return err
+}
+
+func (i *requests) GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse, error) {
+	response := domain.UserResponse{}
+	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,created_at FROM users  WHERE username = $1 AND userpassword = $ 2`, username, password).Scan(
+		&response.ID,
+		&response.Name,
+		&response.Owner,
+		&response.Username,
+		&response.Password,
+		&response.Gmail,
+		&response.Gstin,
+		&response.UserType,
+		&response.Address,
+		&response.Adhar,
+		&response.PAN,
+		&response.DocumentationSource,
+		&response.CreatedAt,
+	)
+	if res != nil {
+		fmt.Println("ERR", res)
+		return nil, ErrNoRequestExist
+	}
+	fmt.Println("response", response)
+	return &response, nil
 }
 
 // func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) error {
@@ -354,10 +395,25 @@ func (i *requests) NewNotification(ctx context.Context, conn db.Querier, req *do
 	return true, nil
 }
 
+func (i *requests) DeleteNotification(ctx context.Context, conn db.Querier, id uuid.UUID) (*domain.DeleteNotificationResponse, error) {
+	query := "DELETE FROM notifications WHERE id = $1"
+	_, err := conn.Exec(ctx, query, id)
+	if err != nil {
+		res := &domain.DeleteNotificationResponse{
+			Status: false,
+			Msg:    "Failed To delete",
+		}
+		return res, err
+	}
 
+	res := &domain.DeleteNotificationResponse{
+		Status: true,
+		Msg:    "Deleted Successfully",
+	}
+	return res, nil
+}
 
-
-func (i *requests)GetNotifications(ctx context.Context, conn db.Querier,module string)([]*domain.NotificationReponse,error){
+func (i *requests) GetNotifications(ctx context.Context, conn db.Querier, module string) ([]*domain.NotificationReponse, error) {
 
 	response := NotificationReponse{}
 	domainResponce := make([]*domain.NotificationReponse, 0)
@@ -380,13 +436,13 @@ func (i *requests)GetNotifications(ctx context.Context, conn db.Querier,module s
 			return nil, err
 		}
 		temp := &domain.NotificationReponse{
-			ID: response.id,
-			User_id: response.user_id,
-			Module: response.module,
-			NotificationType: response.notification_type,
-			NotificationTitle: response.notification_title,
+			ID:                  response.id,
+			User_id:             response.user_id,
+			Module:              response.module,
+			NotificationType:    response.notification_type,
+			NotificationTitle:   response.notification_title,
 			NotificationMessage: response.notification_message,
-			CreatedAt: response.created_at,
+			CreatedAt:           response.created_at,
 		}
 		domainResponce = append(domainResponce, temp)
 	}

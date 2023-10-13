@@ -20,6 +20,9 @@ type RequestRepository interface {
 	GetNotifications(ctx context.Context, conn db.Querier,module string) ([]*domain.NotificationReponse,error)
 	GetRequestsByRequestType(ctx context.Context, conn db.Querier, requestType string) ([]*domain.Responce,error)
 	GetRequestsByUser(ctx context.Context, conn db.Querier, userDID string) ([]*domain.Responce,error)
+	DeleteNotification(ctx context.Context, conn db.Querier, id uuid.UUID) (*domain.DeleteNotificationResponse,error)
+	SaveUser(ctx context.Context, conn db.Querier, user *domain.UserRequest) error
+	GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse,error)
 	// GetNotificationsForIssuer(ctx context.Context, conn db.Querier) ([]*domain.NotificationReponse,error)
 	// GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error)
 	// Get(ctx context.Context, conn db.Querier) (identities []string, err error)

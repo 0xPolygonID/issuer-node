@@ -256,6 +256,60 @@ func (s *Server) GetNotificationsForUser(ctx context.Context,module string) (Get
 	return resp, nil
 }
 
+func (s *Server) DeleteNotification(ctx context.Context,id uuid.UUID) (DeleteNotificationResponseObject,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	res, err := s.requestServer.DeleteNotification(ctx,id)
+	if err != nil {
+		result:=DeleteNotification200Response{
+			Status: res.Status,
+			Msg: res.Msg,
+		}
+		return result, err
+	}
+	result:=DeleteNotification200Response{
+		Status: res.Status,
+		Msg: res.Msg,
+	}
+	return result, nil
+}
+
+func (s *Server) CreateUser(ctx context.Context,request CreateUserRequestObject) (bool,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+
+	req:= domain.UserRequest{
+		ID: request.Body.ID,
+		Name: request.Body.Name,
+		Owner: request.Body.Owner,
+		Username: request.Body.Username,
+		Password: request.Body.Password,
+		Gmail: request.Body.Gmail,
+		Gstin: request.Body.Gstin,
+		UserType: request.Body.UserType,
+		Address: request.Body.Address,
+		Adhar: request.Body.Adhar,
+		PAN: request.Body.PAN,
+		DocumentationSource: request.Body.DocumentationSource,
+	}
+
+	err := s.requestServer.SaveUser(ctx,&req)
+	if err != nil {
+		return false,err
+	}
+	return true,nil
+}
+
+func (s *Server) GetUser(ctx context.Context,request GetUserRequestObject) (GetUserResponseObject,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	res,err := s.requestServer.GetUserID(ctx,request.Username,request.Password)
+	
+	resp, err := userResponse(res)
+
+	if err != nil {
+		return nil,err
+	}
+	return resp,nil
+}
+
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
 func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
 	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)

@@ -617,7 +617,16 @@ type ServerInterface interface {
 
 	GetRequestsByRequestType(w http.ResponseWriter, r *http.Request)
 
-
+	// Remove the Notification
+	// (POST /v1/removeNotification)
+	DeleteNotification(w http.ResponseWriter, r *http.Request,id Id)
+	
+	// Get the details of User
+	// (POST /v1/addUser)
+	CreateUser(w http.ResponseWriter, r *http.Request)
+	// Get the details of User
+	// (GET /v1/getUser)
+	GetUser(w http.ResponseWriter, r *http.Request)
 
 }
 
@@ -655,6 +664,67 @@ func (siw *ServerInterfaceWrapper) RequestForVC(w http.ResponseWriter, r *http.R
 
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
+
+// Creating the User
+func (siw *ServerInterfaceWrapper) CreateUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateUser(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Get the User Details
+func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUser(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+
+func (siw *ServerInterfaceWrapper) DeleteNotification(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+	var id uuid.UUID
+
+	err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteNotification(w, r,id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+
+
 
 // Requesting to Issuer to generate the VC for scheema
 func (siw *ServerInterfaceWrapper) GetRequest(w http.ResponseWriter, r *http.Request) {
@@ -1962,6 +2032,17 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/notifications/{module}", wrapper.GetNotificationsForUser)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/deletenotifications/{id}", wrapper.DeleteNotification)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/addUser", wrapper.CreateUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/getUser", wrapper.GetUser)
+	})
+
+	
 	// r.Group(func(r chi.Router) {
 	// 	r.Get(options.BaseURL+"/v1/notifications/user", wrapper.GetNotificationsForUser)
 	// })
@@ -3259,6 +3340,23 @@ type GetAllNotificationsResponseObject interface {
 	VisitGetAllNotificationsResponse(w http.ResponseWriter) error
 }
 
+type DeleteNotificationResponseObject interface {
+	VisitDeleteNotificationResponse(w http.ResponseWriter) error
+}
+
+type DeleteNotification200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response DeleteNotification200Response) VisitDeleteNotificationResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+
+
 type GetRequest200Response struct{
 	Id 	uuid.UUID 	`json:"id"`
 	SchemaID uuid.UUID `json:"schemaID"` 
@@ -3326,6 +3424,57 @@ type GetRequestByType struct{
 
 type GetRequestByUser struct{
 	UserDID string `json:"userDID"`
+}
+type CreateUserRequestBody struct{
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Owner string `json:"owner"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Gmail string `json:"gmail"`
+	Gstin string `json:"gstin"`
+	UserType string `json:"userType"`
+	Address string `json:"address"`
+	AdharNumber string `json:"adharNumber"`
+	Adhar string `json:"adhar"`
+	PAN string `json:"PAN"`
+	DocumentationSource string `json:"documentationSource"`
+}
+
+type UserResponse struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Owner string `json:"owner"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Gmail string `json:"gmail"`
+	Gstin string `json:"gstin"`
+	UserType string `json:"userType"`
+	Address string `json:"address"`
+	Adhar string `json:"adhar"`
+	PAN string `json:"PAN"`
+	DocumentationSource string `json:"documentationSource"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type GetUserRequestObject struct{
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type CreateUserRequestObject struct{
+	Body *CreateUserRequestBody
+}
+
+func (response UserResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetUserResponseObject interface{
+	VisitCreateUserResponse(w http.ResponseWriter) error
 }
 // func (response GetAllNotifications200Response ) VisitGetAllNotification(w http.ResponseWriter) error {
 // 	w.Header().Set("Content-Type", "application/json")
@@ -3459,6 +3608,13 @@ type StrictServerInterface interface {
 
 	GetRequestByUser(ctx context.Context,request GetRequestByUser) (GetAllRequestsResponseObject,error)
 
+	DeleteNotification(ctx context.Context,notificationId uuid.UUID) (DeleteNotificationResponseObject,error)
+
+	CreateUser(ctx context.Context, request CreateUserRequestObject) (bool,error)
+
+	GetUser(ctx context.Context, request GetUserRequestObject)(GetUserResponseObject,error)
+
+
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3552,6 +3708,66 @@ func (sh *strictHandler) GetRequest(w http.ResponseWriter, r *http.Request, id I
 	request.Id =id;
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetRequest(ctx, request.(GetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRequestResponse); ok {
+		if err := validResponse.VisitGetRequestRespose(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) CreateUser(w http.ResponseWriter, r *http.Request){
+	var request CreateUserRequestObject
+
+	var body CreateUserRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateUser(ctx, request.(CreateUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateUser")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetUserResponseObject); ok {
+		if err := validResponse.VisitCreateUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request){
+	var body GetUserRequestObject
+	var request GetUserRequestObject
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	request = body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUser(ctx, request.(GetUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetRequest")
@@ -3687,6 +3903,29 @@ func (sh *strictHandler) GetNotificationsForUser(w http.ResponseWriter, r *http.
 	}
 }
 
+
+func (sh *strictHandler) DeleteNotification(w http.ResponseWriter, r *http.Request,id uuid.UUID){
+
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteNotification(ctx,id)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteNotification")
+	}
+
+	response, err := handler(r.Context(), w, r, id)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteNotificationResponseObject); ok {
+		if err := validResponse.VisitDeleteNotificationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
 // Generate the VC for requests 
 func (sh *strictHandler) GenerateVC(w http.ResponseWriter, r *http.Request) {
 	var request GenerateVCRequestObject
