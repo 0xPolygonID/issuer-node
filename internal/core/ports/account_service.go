@@ -9,6 +9,5 @@ import (
 
 // AccountService is a service for account operations
 type AccountService interface {
-	TransferTo(ctx context.Context, to *w3c.DID, value *big.Int) (string, error)
 	GetBalanceByDID(ctx context.Context, did *w3c.DID) (*big.Int, error)
 }

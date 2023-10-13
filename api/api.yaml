@@ -125,32 +125,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-
-  /v1/identities/{identifier}/topup:
-    post:
-      summary: Top Up Identity Balance
-      operationId: TopUpIdentityBalance
-      description: Endpoint to topup an identity
-      tags:
-        - Identity
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-      responses:
-        '200':
-          description: Identity top up successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TopUpIdentityBalanceResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
   /v1/identities/{identifier}/details:
     get:
       summary: Identity Detail
@@ -562,14 +536,6 @@ components:
         address:
           type: string
           x-omitempty: false
-
-    TopUpIdentityBalanceResponse:
-      type: object
-      required:
-        - txID
-      properties:
-        txID:
-          type: string
 
     GetIdentityDetailsResponse:
       type: object

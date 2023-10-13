@@ -132,26 +132,6 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c
 	return &txID, nil
 }
 
-//func (pb *PublisherEthGateway) getAddressForTxInitiator() (ethCommon.Address, error) {
-//	bytesPubKey, err := pb.kms.PublicKey(pb.publishingKeyID)
-//	if err != nil {
-//		return ethCommon.Address{}, err
-//	}
-//	var pubKey *ecdsa.PublicKey
-//	bytesPubKeyLen := 33
-//	switch len(bytesPubKey) {
-//	case bytesPubKeyLen:
-//		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
-//	default:
-//		pubKey, err = crypto.UnmarshalPubkey(bytesPubKey)
-//	}
-//	if err != nil {
-//		return ethCommon.Address{}, err
-//	}
-//	fromAddress := crypto.PubkeyToAddress(*pubKey)
-//	return fromAddress, nil
-//}
-
 func (pb *PublisherEthGateway) adaptProofToAbi(proof *rstypes.ProofData) (proofA [2]*big.Int, proofB [2][2]*big.Int, proofC [2]*big.Int, err error) {
 	a, err := common.ArrayStringToBigInt(proof.A)
 	if err != nil {

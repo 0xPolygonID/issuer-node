@@ -458,31 +458,6 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 	return NewQrContentResponse(body), nil
 }
 
-// TopUpIdentityBalance is the controller to top up identity balance
-func (s *Server) TopUpIdentityBalance(ctx context.Context, request TopUpIdentityBalanceRequestObject) (TopUpIdentityBalanceResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		log.Error(ctx, "top up identity balance. Parsing did", "err", err)
-		return TopUpIdentityBalance400JSONResponse{
-			N400JSONResponse{
-				Message: "invalid did",
-			},
-		}, err
-	}
-	tx, err := s.accountService.TransferTo(ctx, did, nil)
-	if err != nil {
-		log.Error(ctx, "top up identity balance. Transfer to", "err", err)
-		return TopUpIdentityBalance500JSONResponse{
-			N500JSONResponse{
-				Message: err.Error(),
-			},
-		}, err
-	}
-	return TopUpIdentityBalance200JSONResponse{
-		TxID: tx,
-	}, nil
-}
-
 // GetIdentityDetails is the controller to get identity details
 func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error) {
 	userDID, err := w3c.ParseDID(request.Identifier)
