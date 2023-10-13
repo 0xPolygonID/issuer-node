@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2"
-	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/piprate/json-gold/ld"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -50,7 +49,7 @@ func TestMain(m *testing.M) {
 		},
 		KeyStore: config.VaultTest(),
 		Ethereum: config.Ethereum{
-			SupportedRPC: "polygon:mumbai=https://polygon-mumbai.g.alchemy.com/v2/xaP2",
+			URL: "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
 		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
@@ -98,7 +97,7 @@ func TestMain(m *testing.M) {
 
 	cfg.ServerUrl = "https://testing.env/"
 	cfg.Ethereum = cfgForTesting.Ethereum
-	schemaLoader = loader.NewW3CDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
+	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
 }

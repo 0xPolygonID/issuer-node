@@ -22,7 +22,7 @@ import (
 
 const (
 	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
-	ipfsGateway  = "https://ipfs.io"
+	ipfsGateway  = "https://cloudflare-ipfs.com"
 )
 
 // Configuration holds the project configuration
@@ -86,7 +86,6 @@ type Ethereum struct {
 	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
 	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
 	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
-	SupportedRPC              string        `mapstructure:"SupportedRPC" tip:"Supported RPC"`
 }
 
 // Prover struct
@@ -366,7 +365,6 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
 	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
-	_ = viper.BindEnv("Ethereum.SupportedRPC", "ISSUER_ETHEREUM_SUPPORTED_RPC")
 
 	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
 	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")

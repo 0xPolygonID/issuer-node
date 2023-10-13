@@ -15,7 +15,6 @@ import (
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
 	proof "github.com/iden3/merkletree-proof"
-	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -75,7 +74,7 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loader.NewW3CDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
 	var vaultCli *vault.Client
 	var vaultErr error
@@ -180,12 +179,7 @@ func main() {
 		return
 	}
 
-	accountService, err := services.NewAccountService(cfg.Ethereum, keyStore)
-	if err != nil {
-		log.Error(ctx, "failed init account service", "err", err)
-		return
-	}
-
+	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
 		"redis": func(rdb *redis2.Client) health.Pinger {

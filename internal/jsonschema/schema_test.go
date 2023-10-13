@@ -4,15 +4,15 @@ import (
 	"context"
 	"testing"
 
-	"github.com/iden3/go-schema-processor/v2/loaders"
-	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
 func TestValidateCredentialSubject(t *testing.T) {
 	const ipfsGatewayURL = "http://127.0.0.1:8080"
 	ctx := context.Background()
-	ld := loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
+	ld := loader.NewDocumentLoader(ipfsGatewayURL)
 
 	type config struct {
 		name              string

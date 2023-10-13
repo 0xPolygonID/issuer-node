@@ -1,0 +1,25 @@
+
+
+{
+  "@context": [
+    {
+      "@protected": true,
+      "@version": 1.1,
+      "id": "@id",
+      "type": "@type",
+      "testNewType": {
+        "@context": {
+          "@propagate": true,
+          "@protected": true,
+          "polygon-vocab": "urn:uuid:0a8092e3-7100-4068-ba67-fae502cc6e7b#",
+          "xsd": "http://www.w3.org/2001/XMLSchema#",
+          "testNewTypeInt": {
+            "@id": "polygon-vocab:testNewTypeInt",
+            "@type": "xsd:integer"
+          }
+        },
+        "@id": "urn:uuid:412d4b27-bae2-4c26-ac57-bacc141010d6"
+      }
+    }
+  ]
+}

@@ -8,8 +8,6 @@ import (
 	"syscall"
 
 	vault "github.com/hashicorp/vault/api"
-	"github.com/iden3/go-schema-processor/v2/loaders"
-	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -19,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/redis"
@@ -132,7 +131,7 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
-	schemaLoader := loaders.NewDocumentLoader(shell.NewShell(cfg.IPFS.GatewayURL), cfg.IPFS.GatewayURL)
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)

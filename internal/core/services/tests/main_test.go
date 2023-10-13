@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/iden3/go-schema-processor/v2/loaders"
-	shell "github.com/ipfs/go-ipfs-api"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -89,7 +87,7 @@ func TestMain(m *testing.M) {
 
 	cachex = cache.NewMemoryCache()
 
-	docLoader = loaders.NewDocumentLoader(shell.NewShell(ipfsGatewayURL), "")
+	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
 }
