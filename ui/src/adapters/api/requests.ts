@@ -97,14 +97,17 @@ export async function getRequests({
   signal?: AbortSignal;
 }): Promise<Response<List<Request>>> {
   try {
+    console.log("entered 1");
+
     const response =
       User !== "verifier"
         ? await axios({
             baseURL: env.api.url,
+            data: { Request_type: "GenerateNewVC" },
             headers: {
               Authorization: buildAuthorizationHeader(env),
             },
-            method: "GET",
+            method: "POST",
             params: new URLSearchParams({
               ...(did !== undefined ? { did } : {}),
               ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
@@ -113,25 +116,24 @@ export async function getRequests({
                 : {}),
             }),
             signal,
-            url: `${API_VERSION}/requests`,
+            url: `${API_VERSION}/requests/bytype`,
           })
         : await axios({
             baseURL: env.api.url,
+            data: { Request_type: "VerifyVC" },
             headers: {
               Authorization: buildAuthorizationHeader(env),
             },
-            method: "GET",
+            method: "POST",
             params: new URLSearchParams({
               ...(did !== undefined ? { did } : {}),
-              ...(query !== undefined
-                ? { [QUERY_SEARCH_PARAM]: query }
-                : { request_type: "VerifyVC" }),
+              ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
               ...(status !== undefined && status !== "all"
                 ? { [STATUS_SEARCH_PARAM]: status }
                 : {}),
             }),
             signal,
-            url: `${API_VERSION}/requests`,
+            url: `${API_VERSION}/requests/bytype`,
           });
 
     return buildSuccessResponse(
@@ -163,6 +165,8 @@ export async function createRequest({
   env: Env;
   payload: CreateRequest;
 }): Promise<Response<ID>> {
+  console.log("entered 2");
+
   try {
     const response = await axios({
       baseURL: env.api.url,

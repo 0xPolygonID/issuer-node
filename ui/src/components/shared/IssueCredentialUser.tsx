@@ -30,7 +30,7 @@ export function IssueCredentialUser({
           credentialSchema: schemaReponse.data.url,
           credentialSubject: {
             "Adhar-number": parseInt(request.proof_id),
-            Age: 1,
+            Age: parseInt(request.age),
             id: request.userDID,
           },
           expiration: request.created_at,

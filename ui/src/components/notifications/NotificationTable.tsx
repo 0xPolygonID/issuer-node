@@ -66,7 +66,7 @@ export function NotificationsTable() {
           <Typography.Text>{formatDate(created_at)}</Typography.Text>
         ),
         sorter: ({ created_at: a }, { created_at: b }) => dayjs(a).unix() - dayjs(b).unix(),
-        title: REQUEST_DATE,
+        title: "Date",
       },
     ];
   }

@@ -1948,13 +1948,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/request/{id}", wrapper.GetRequest)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/requests/all", wrapper.GetAllRequests)
+		r.Post(options.BaseURL+"/v1/requests/all", wrapper.GetAllRequests)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/requests/bytype", wrapper.GetRequestsByRequestType)
+		r.Post(options.BaseURL+"/v1/requests/bytype", wrapper.GetRequestsByRequestType)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/requests/byuser", wrapper.GetRequestByUser)
+		r.Post(options.BaseURL+"/v1/requests/byuser", wrapper.GetRequestByUser)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/generateVC", wrapper.GenerateVC)
