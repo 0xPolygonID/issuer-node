@@ -68,6 +68,7 @@ export function RequestsTable() {
 
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+
   const parsedStatusParam = requestStatusParser.safeParse(statusParam);
   const requestStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
