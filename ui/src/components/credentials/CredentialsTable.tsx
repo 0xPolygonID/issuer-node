@@ -156,7 +156,7 @@ export function CredentialsTable() {
         dataIndex: "revokeDate",
         key: "revokeDate",
         render: (revokeDate: Credential["revokeDate"]) => (
-          <Typography.Text>{formatDate(revokeDate)}</Typography.Text>
+          <Typography.Text>{revokeDate ? formatDate(revokeDate) : "-"}</Typography.Text>
         ),
         sorter: ({ revokeDate: a }, { revokeDate: b }) => dayjs(a).unix() - dayjs(b).unix(),
         title: REVOKE_DATE,

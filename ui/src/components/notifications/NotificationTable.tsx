@@ -1,4 +1,4 @@
-import { Avatar, Card, Row, Space, Tag, Tooltip, Typography } from "antd";
+import { Avatar, Button, Card, Row, Space, Tag, Tooltip, Typography } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
@@ -39,17 +39,6 @@ export function NotificationsTable() {
   if (User === "issuer") {
     tableColumns = [
       {
-        dataIndex: "notification_title",
-        key: "notification_title",
-        render: (notification_title: Notification["notification_title"]) => (
-          <Tooltip placement="topLeft" title={notification_title}>
-            <Typography.Text strong>{notification_title}</Typography.Text>
-          </Tooltip>
-        ),
-        title: "Title",
-        width: "20%",
-      },
-      {
         dataIndex: "notification_message",
         key: "notification_message",
         render: (notification_message: Notification["notification_message"]) => (
@@ -58,6 +47,7 @@ export function NotificationsTable() {
           </Tooltip>
         ),
         title: "Message",
+        width: "60%",
       },
       {
         dataIndex: "created_at",
@@ -67,6 +57,13 @@ export function NotificationsTable() {
         ),
         sorter: ({ created_at: a }, { created_at: b }) => dayjs(a).unix() - dayjs(b).unix(),
         title: "Date",
+        width: "20%",
+      },
+      {
+        key: "operation",
+        render: () => <Button type="primary">Mark as Read</Button>,
+        title: "Action",
+        width: 100,
       },
     ];
   }
