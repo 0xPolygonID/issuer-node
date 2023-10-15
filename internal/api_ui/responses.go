@@ -363,7 +363,7 @@ func requestsResponse(requets []*domain.Responce) (GetAllRequestsResponse, error
 
 	return resp, nil
 }
-func userResponse(requets *domain.UserResponse) (GetUserResponseObject, error) {
+func userResponse(requets *domain.UserResponse) (UserResponse, error) {
 	resp := UserResponse{
 		ID: requets.ID,
 		Name: requets.Name,

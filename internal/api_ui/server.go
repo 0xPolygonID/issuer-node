@@ -273,7 +273,7 @@ func (s *Server) DeleteNotification(ctx context.Context,id uuid.UUID) (DeleteNot
 	return result, nil
 }
 
-func (s *Server) CreateUser(ctx context.Context,request CreateUserRequestObject) (bool,error) {
+func (s *Server) CreateUser(ctx context.Context,request CreateUserRequestObject) (AddUserResponseObject,error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
 	req:= domain.UserRequest{
@@ -291,17 +291,20 @@ func (s *Server) CreateUser(ctx context.Context,request CreateUserRequestObject)
 		DocumentationSource: request.Body.DocumentationSource,
 	}
 
-	err := s.requestServer.SaveUser(ctx,&req)
+	res,err := s.requestServer.SaveUser(ctx,&req)
+
+
 	if err != nil {
-		return false,err
+		return addUser200Response{Status: res,Msg: "Failed to create user"},err
 	}
-	return true,nil
+	return addUser200Response{Status: res,Msg: "User created Successfully"},nil
 }
 
 func (s *Server) GetUser(ctx context.Context,request GetUserRequestObject) (GetUserResponseObject,error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 	res,err := s.requestServer.GetUserID(ctx,request.Username,request.Password)
 	
+	fmt.Println("User :",res)
 	resp, err := userResponse(res)
 
 	if err != nil {
