@@ -1,6 +1,5 @@
 import {
   Avatar,
-  Button,
   Card,
   Dropdown,
   Radio,
@@ -14,13 +13,12 @@ import {
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { IssueCredentialUser } from "../shared/IssueCredentialUser";
 import { RequestDeleteModal } from "../shared/RequestDeleteModal";
 import { RequestRevokeModal } from "../shared/RequestRevokeModal";
 import { getRequests, requestStatusParser } from "src/adapters/api/requests";
-import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
 import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
@@ -32,12 +30,10 @@ import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError } from "src/domain";
 import { Request } from "src/domain/request";
-import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   DELETE,
-  DETAILS,
   DOTS_DROPDOWN_WIDTH,
   ISSUE_CREDENTIAL,
   ISSUE_REQUEST,
@@ -52,8 +48,6 @@ import { formatDate } from "src/utils/forms";
 
 export function RequestsTable() {
   const env = useEnvContext();
-
-  const navigate = useNavigate();
 
   const User = localStorage.getItem("user");
 
@@ -147,25 +141,26 @@ export function RequestsTable() {
           <Dropdown
             menu={{
               items: [
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: DETAILS,
-                  onClick: () =>
-                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-                },
+                // {
+                //   icon: <IconInfoCircle />,
+                //   key: "details",
+                //   label: DETAILS,
+                //   onClick: () =>
+                //     navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                // },
                 {
                   key: "divider1",
                   type: "divider",
                 },
                 {
+                  disabled: request.Active,
                   icon: <IconInfoCircle />,
-                  key: "details",
+                  key: "verify",
                   label: VERIFY_IDENTITY,
                 },
                 {
                   icon: <IconInfoCircle />,
-                  key: "details",
+                  key: "issue",
                   label: ISSUE_CREDENTIAL,
                   onClick: () => setIssueCredentialForRequest(request),
                 },
@@ -257,25 +252,26 @@ export function RequestsTable() {
           <Dropdown
             menu={{
               items: [
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: DETAILS,
-                  onClick: () =>
-                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-                },
+                // {
+                //   icon: <IconInfoCircle />,
+                //   key: "details",
+                //   label: DETAILS,
+                //   onClick: () =>
+                //     navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                // },
                 {
                   key: "divider1",
                   type: "divider",
                 },
                 {
+                  disabled: request.Active,
                   icon: <IconInfoCircle />,
-                  key: "details",
+                  key: "verify",
                   label: VERIFY_IDENTITY,
                 },
                 {
                   icon: <IconInfoCircle />,
-                  key: "details",
+                  key: "issue",
                   label: ISSUE_CREDENTIAL,
                 },
                 {
@@ -394,13 +390,13 @@ export function RequestsTable() {
 
             <Typography.Text type="secondary">Issued Request will be listed here.</Typography.Text>
 
-            {requestStatus === "all" && (
+            {/* {requestStatus === "all" && (
               <Link to={generatePath(ROUTES.issueCredential.path)}>
                 <Button icon={<IconCreditCardPlus />} type="primary">
                   {ISSUE_REQUEST}
                 </Button>
               </Link>
-            )}
+            )} */}
           </>
         }
         isLoading={isAsyncTaskStarting(requests)}

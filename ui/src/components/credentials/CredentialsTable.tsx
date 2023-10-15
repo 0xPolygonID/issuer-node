@@ -113,7 +113,7 @@ export function CredentialsTable() {
         dataIndex: "expired",
         key: "expired",
         render: (expired: Credential["expired"]) => (
-          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
+          <Typography.Text>{expired ? "Yes" : "No"}</Typography.Text>
         ),
         responsive: ["md"],
         title: EXPIRED,
@@ -246,7 +246,7 @@ export function CredentialsTable() {
         dataIndex: "expired",
         key: "expired",
         render: (expired: Credential["expired"]) => (
-          <Typography.Text>{expired ? "Expired" : "-"}</Typography.Text>
+          <Typography.Text>{expired ? "Yes" : "No"}</Typography.Text>
         ),
         responsive: ["md"],
         title: EXPIRED,

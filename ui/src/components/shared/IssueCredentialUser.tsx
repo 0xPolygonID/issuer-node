@@ -41,12 +41,9 @@ export function IssueCredentialUser({
         };
         void issueCredentialRequest({ dataSchema, env }).then((response) => {
           if (response.success) {
-            onClose();
-
-            void messageAPI.success("Credential Request Sent");
+            void messageAPI.success("Credential Request Sent").then(() => onClose());
           } else {
             setIsLoading(false);
-
             void messageAPI.error(response.error.message);
           }
         });
