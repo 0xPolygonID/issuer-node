@@ -87,18 +87,18 @@ export function CredentialsTable() {
           </Tooltip>
         ),
         title: "UserDID",
+        width: "20%",
       },
       {
         dataIndex: "id",
-        ellipsis: { showTitle: false },
         key: "schemaType",
         render: (schemaType: Credential["schemaType"]) => (
           <Tooltip placement="topLeft" title={schemaType}>
             <Typography.Text strong>{schemaType}</Typography.Text>
           </Tooltip>
         ),
-        sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
         title: "Credential",
+        width: "20%",
       },
       {
         dataIndex: "createdAt",
