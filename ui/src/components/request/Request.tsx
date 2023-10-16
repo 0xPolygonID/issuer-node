@@ -20,17 +20,14 @@ export function Request() {
     <SiderLayoutContent
       description="Description for Request tab"
       extra={
-        User !== "issuer" && (
+        User !== "issuer" &&
+        User !== "verifier" && (
           <Button
             icon={<IconCreditCardPlus />}
             onClick={() => navigate(generatePath(ROUTES.createRequest.path))}
             type="primary"
           >
-            {User === "verifier"
-              ? REQUEST_FOR_VC_CREDS
-              : User === "issuer"
-              ? ISSUE_CREDENTIAL
-              : REQUEST_FOR_VC}
+            {REQUEST_FOR_VC}
           </Button>
         )
       }

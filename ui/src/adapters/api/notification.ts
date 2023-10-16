@@ -6,6 +6,7 @@ import { buildAuthorizationHeader } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, Notification } from "src/domain";
 
+import { DeleteNotification } from "src/domain/deleteReponse";
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -28,6 +29,12 @@ export const NotificationParser = getStrictParser<NotificationInput, Notificatio
     notification_title: z.string(),
     notification_type: z.string(),
     user_id: z.string(),
+  })
+);
+const deleteSchemaParser = getStrictParser<DeleteNotification, DeleteNotification>()(
+  z.object({
+    msg: z.string(),
+    status: z.boolean(),
   })
 );
 export async function getNotification({
@@ -60,6 +67,29 @@ export async function getNotification({
         }))
         .parse(response.data)
     );
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function markAsRead({
+  env,
+  notiId,
+}: {
+  env: Env;
+  notiId: string;
+}): Promise<Response<DeleteNotification>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      url: `${API_VERSION}/deletenotifications/${notiId}`,
+    });
+
+    return buildSuccessResponse(deleteSchemaParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

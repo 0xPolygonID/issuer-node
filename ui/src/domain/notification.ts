@@ -5,5 +5,6 @@ export type Notification = {
   notification_message: string;
   notification_title: string;
   notification_type: string;
+  operation: string;
   user_id: string;
 };

@@ -1,15 +1,4 @@
-import {
-  Avatar,
-  Card,
-  Dropdown,
-  Radio,
-  RadioChangeEvent,
-  Row,
-  Space,
-  Tag,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Avatar, Card, Dropdown, Row, Space, Tag, Tooltip, Typography } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
@@ -43,7 +32,7 @@ import {
   STATUS_SEARCH_PARAM,
   VERIFY_IDENTITY,
 } from "src/utils/constants";
-import { notifyParseError, notifyParseErrors } from "src/utils/error";
+import { notifyParseErrors } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 
 export function RequestsTable() {
@@ -356,23 +345,6 @@ export function RequestsTable() {
     [setSearchParams]
   );
 
-  const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
-    const parsedRequestStatus = requestStatusParser.safeParse(value);
-    if (parsedRequestStatus.success) {
-      const params = new URLSearchParams(searchParams);
-
-      if (parsedRequestStatus.data === "all") {
-        params.delete(STATUS_SEARCH_PARAM);
-      } else {
-        params.set(STATUS_SEARCH_PARAM, parsedRequestStatus.data);
-      }
-
-      setSearchParams(params);
-    } else {
-      notifyParseError(parsedRequestStatus.error);
-    }
-  };
-
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchRequests);
 
@@ -437,7 +409,7 @@ export function RequestsTable() {
               <Tag color="blue">{requestsList.length}</Tag>
             </Space>
 
-            {(!showDefaultContent || requestStatus !== "all") && (
+            {/* {(!showDefaultContent || requestStatus !== "all") && (
               <Radio.Group onChange={handleStatusChange} value={requestStatus}>
                 <Radio.Button value="all">All</Radio.Button>
 
@@ -445,7 +417,7 @@ export function RequestsTable() {
 
                 <Radio.Button value="expired">Expired</Radio.Button>
               </Radio.Group>
-            )}
+            )} */}
           </Row>
         }
       />

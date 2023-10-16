@@ -1,8 +1,8 @@
-import { Avatar, Button, Card, Row, Space, Tag, Tooltip, Typography } from "antd";
+import { Avatar, Button, Card, Row, Space, Tag, Tooltip, Typography, message } from "antd";
 import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
-import { getNotification } from "src/adapters/api/notification";
+import { getNotification, markAsRead } from "src/adapters/api/notification";
 //import { useSearchParams } from "react-router-dom";
 
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
@@ -23,7 +23,7 @@ export function NotificationsTable() {
   const [notifications, setNotifications] = useState<AsyncTask<Notification[], AppError>>({
     status: "pending",
   });
-  const User = localStorage.getItem("user");
+  const [messageAPI, messageContext] = message.useMessage();
   // const [searchParams, setSearchParams] = useSearchParams();
 
   // const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
@@ -34,39 +34,49 @@ export function NotificationsTable() {
   const notificationsList = isAsyncTaskDataAvailable(notifications) ? notifications.data : [];
   const showDefaultContent =
     notifications.status === "successful" && notificationsList.length === 0 && queryParam === null;
-
-  let tableColumns: ColumnsType<Notification>;
-  if (User === "issuer") {
-    tableColumns = [
-      {
-        dataIndex: "notification_message",
-        key: "notification_message",
-        render: (notification_message: Notification["notification_message"]) => (
-          <Tooltip placement="topLeft" title={notification_message}>
-            <Typography.Text strong>{notification_message}</Typography.Text>
-          </Tooltip>
-        ),
-        title: "Message",
-        width: "60%",
-      },
-      {
-        dataIndex: "created_at",
-        key: "created_at",
-        render: (created_at: Notification["created_at"]) => (
-          <Typography.Text>{formatDate(created_at)}</Typography.Text>
-        ),
-        sorter: ({ created_at: a }, { created_at: b }) => dayjs(a).unix() - dayjs(b).unix(),
-        title: "Date",
-        width: "20%",
-      },
-      {
-        key: "operation",
-        render: () => <Button type="primary">Mark as Read</Button>,
-        title: "Action",
-        width: 100,
-      },
-    ];
-  }
+  const deleteNotification = ({ Notification }: { Notification: Notification }) => {
+    const notiId = Notification.id;
+    void markAsRead({ env, notiId }).then((response) => {
+      if (response) {
+        void fetchNotifications();
+      } else {
+        void messageAPI.error("Something went wrong");
+      }
+    });
+  };
+  const tableColumns: ColumnsType<Notification> = [
+    {
+      dataIndex: "notification_message",
+      key: "notification_message",
+      render: (notification_message: Notification["notification_message"]) => (
+        <Tooltip placement="topLeft" title={notification_message}>
+          <Typography.Text strong>{notification_message}</Typography.Text>
+        </Tooltip>
+      ),
+      title: "Message",
+      width: "60%",
+    },
+    {
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (created_at: Notification["created_at"]) => (
+        <Typography.Text>{formatDate(created_at)}</Typography.Text>
+      ),
+      sorter: ({ created_at: a }, { created_at: b }) => dayjs(a).unix() - dayjs(b).unix(),
+      title: "Date",
+      width: "20%",
+    },
+    {
+      key: "operation",
+      render: (Notification: Notification) => (
+        <Button onClick={() => deleteNotification({ Notification })} type="primary">
+          Mark as Read
+        </Button>
+      ),
+      title: "Action",
+      width: 100,
+    },
+  ];
 
   const fetchNotifications = useCallback(
     async (signal?: AbortSignal) => {
@@ -108,6 +118,7 @@ export function NotificationsTable() {
 
   return (
     <>
+      {messageContext}
       <TableCard
         defaultContents={
           <>
