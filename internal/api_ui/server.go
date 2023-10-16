@@ -67,6 +67,44 @@ func (s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (Au
 	return resp, nil
 }
 
+func (s *Server) SignUp(ctx context.Context,request SignUpRequestObject) (AddUserResponseObject,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+
+	req:= domain.SignUpRequest{
+		UserDID: request.Body.UserDID,
+		Email: request.Body.Email,
+		UserName: request.Body.UserName,
+		Password: request.Body.Password,
+		FullName: request.Body.FullName,
+		Role: request.Body.Role,
+	}
+
+	res,err := s.requestServer.SignUp(ctx,&req)
+
+
+	if err != nil {
+		return addUser200Response{Status: res,Msg: "Failed to create user"},err
+	}
+	return addUser200Response{Status: res,Msg: "User created Successfully"},nil
+}
+
+func (s *Server) SignIn(ctx context.Context,request GetUserRequestObject) (GetLoginResponseObject,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	res,err := s.requestServer.SignIn(ctx,request.Username,request.Password)
+	if err != nil {
+		return nil,err
+	}
+	fmt.Println("User :",res)
+	resp, err := loginResponse(res)
+	return resp,nil
+}
+
+
+
+
+
+
+
 func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error) {
 	// var req GetRequestObject;
 	if request.Body.SchemaID.String() == " " {
@@ -129,6 +167,9 @@ func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCR
 
 	return VC200Response{"Requested Successfully", id}, nil
 }
+
+
+
 
 func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject) (CreateCredentialResponseObject, error) {
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
@@ -230,7 +271,7 @@ func (s *Server) GetRequestsByRequestType(ctx context.Context, request GetReques
 
 func (s *Server) GetRequestByUser(ctx context.Context, request GetRequestByUser) (GetAllRequestsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-		res, err := s.requestServer.GetRequestsByUser(ctx, request.UserDID)
+		res, err := s.requestServer.GetRequestsByUser(ctx, request.UserDID,request.All)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +314,7 @@ func (s *Server) DeleteNotification(ctx context.Context,id uuid.UUID) (DeleteNot
 	return result, nil
 }
 
-func (s *Server) CreateUser(ctx context.Context,request CreateUserRequestObject) (AddUserResponseObject,error) {
+func (s *Server) UpdateUser(ctx context.Context,request CreateUserRequestObject) (AddUserResponseObject,error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
 	req:= domain.UserRequest{
@@ -307,6 +348,7 @@ func (s *Server) GetUser(ctx context.Context,request GetUserRequestObject) (GetU
 	fmt.Println("User :",res)
 	resp, err := userResponse(res)
 
+	fmt.Println("User After userResponse:",resp)
 	if err != nil {
 		return nil,err
 	}

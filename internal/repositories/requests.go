@@ -134,7 +134,7 @@ func (i *requests) Get(ctx context.Context, conn db.Querier, id string, Rtype st
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
-	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID = $1 AND request_type = $2`, id, Rtype)
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID LIKE $1 AND request_type LIKE $2`, "%"+id+"%", "%"+Rtype+"%")
 	fmt.Println("Get Rquests", rows)
 	if err != nil {
 		return nil, err
@@ -192,11 +192,12 @@ func (i *requests) Get(ctx context.Context, conn db.Querier, id string, Rtype st
 	return domainResponce, nil
 }
 
-func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier, id string) ([]*domain.Responce, error) {
+func (i *requests) GetRequestsByUser(ctx context.Context, conn db.Querier, id string,All bool) ([]*domain.Responce, error) {
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
-	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID = $1`, id)
+
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE UDID LIKE $1`,"%"+id+"%")
 
 	fmt.Println("Get Rquests", rows)
 	if err != nil {
@@ -259,7 +260,8 @@ func (i *requests) GetRequestsByRequestType(ctx context.Context, conn db.Querier
 	fmt.Println("Getting Dat from id ...")
 	response := Requestresponse{}
 	domainResponce := make([]*domain.Responce, 0)
-	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE request_type = $1`, RType)
+	rows, err := conn.Query(ctx, `SELECT id,UDID,issuer_id,schema_id,credential_type,request_type,role_type,proof_type,proof_id,age,active,request_status,verifier_status,wallet_status,source,created_at,modified_at from requests_for_vc WHERE request_type LIKE $1`, "%"+RType+"%")
+
 	fmt.Println("Get Rquests", rows)
 	if err != nil {
 		return nil, err
@@ -328,26 +330,23 @@ func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UU
 	return res.RowsAffected(), nil
 }
 
-func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) (bool,error) {
+func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) (bool, error) {
 	fmt.Println("Saving Request Info into DB...", request)
-	_, err := conn.Exec(ctx, `INSERT INTO users (id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-		request.ID,
+	_, err := conn.Exec(ctx, `UPDATE users SET fullname = $1 , userowner = $2 , user_gmail = $3 , user_gstin = $4 , user_address = $5 , adhar = $6 , pan = $7 , documentation_source = $8 WHERE id = $9`,
 		request.Name,
 		request.Owner,
-		request.Username,
-		request.Password,
 		request.Gmail,
 		request.Gstin,
-		request.UserType,
 		request.Address,
 		request.Adhar,
 		request.PAN,
 		request.DocumentationSource,
+		request.ID,
 	)
 	if err != nil {
-		return false,err
+		return false, err
 	}
-	return true,nil
+	return true, nil
 }
 
 func (i *requests) GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse, error) {
@@ -450,4 +449,39 @@ func (i *requests) GetNotifications(ctx context.Context, conn db.Querier, module
 		domainResponce = append(domainResponce, temp)
 	}
 	return domainResponce, nil
+}
+
+
+func (i *requests) SignUp(ctx context.Context, conn db.Querier,request *domain.SignUpRequest) (bool,error){
+	fmt.Println("Saving Request Info into DB...", request)
+	_, err := conn.Exec(ctx, `INSERT INTO users (id,fullname,username,userpassword,usertype,user_gmail) VALUES ($1,$2,$3,$4,$5,$6)`,
+		request.UserDID,
+		request.FullName,
+		request.UserName,
+		request.Password,
+		request.Role,
+		request.Email,
+	)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (i *requests) SignIn(ctx context.Context, conn db.Querier,username string , password string) (*domain.LoginResponse,error){
+	response := domain.LoginResponse{}
+	res := conn.QueryRow(ctx, `SELECT id,fullname,username,userpassword,user_gmail,usertype FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
+		&response.UserDID,
+		&response.FullName,
+		&response.UserName,
+		&response.Password,
+		&response.Email,
+		&response.Role,
+	)
+	if res != nil {
+		fmt.Println("ERR", res)
+		return nil, ErrNoRequestExist
+	}
+	fmt.Println("response", response)
+	return &response, nil
 }

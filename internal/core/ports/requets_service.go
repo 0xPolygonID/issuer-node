@@ -20,10 +20,13 @@ type RequestService interface {
 	NewNotification(ctx context.Context, notification *domain.NotificationData) (bool, error)
 	GetNotifications(ctx context.Context, module string) ([]*domain.NotificationReponse, error)
 	GetRequestsByRequestType(ctx context.Context, requestType string) ([]*domain.Responce, error)
-	GetRequestsByUser(ctx context.Context, userDID string) ([]*domain.Responce, error)
+	GetRequestsByUser(ctx context.Context, userDID string,All bool) ([]*domain.Responce, error)
 	DeleteNotification(ctx context.Context, id uuid.UUID) (*domain.DeleteNotificationResponse, error)
 	SaveUser(ctx context.Context, user *domain.UserRequest) (bool,error)
 	GetUserID(ctx context.Context, username string, password string) (*domain.UserResponse, error)
+	SignUp(ctx context.Context, user *domain.SignUpRequest) (bool,error)
+	SignIn(ctx context.Context, username string, password string) (*domain.LoginResponse,error)
+
 	// Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	// GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)
 	// GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error)
