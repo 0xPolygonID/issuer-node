@@ -332,7 +332,7 @@ func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UU
 
 func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) (bool, error) {
 	fmt.Println("Saving Request Info into DB...", request)
-	_, err := conn.Exec(ctx, `UPDATE users SET fullname = $1 , userowner = $2 , user_gmail = $3 , user_gstin = $4 , user_address = $5 , adhar = $6 , pan = $7 , documentation_source = $8 WHERE id = $9`,
+	_, err := conn.Exec(ctx, `UPDATE users SET fullname = $1 , userowner = $2 , user_gmail = $3 , user_gstin = $4 , user_address = $5 , adhar = $6 , pan = $7 , documentation_source = $8,iscompleted =$9 WHERE id = $10`,
 		request.Name,
 		request.Owner,
 		request.Gmail,
@@ -341,6 +341,7 @@ func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domai
 		request.Adhar,
 		request.PAN,
 		request.DocumentationSource,
+		true,
 		request.ID,
 	)
 	if err != nil {
@@ -351,7 +352,7 @@ func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domai
 
 func (i *requests) GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse, error) {
 	response := domain.UserResponse{}
-	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,created_at FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
+	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,iscompleted,created_at FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
 		&response.ID,
 		&response.Name,
 		&response.Owner,
@@ -364,6 +365,7 @@ func (i *requests) GetUserID(ctx context.Context, conn db.Querier, username stri
 		&response.Adhar,
 		&response.PAN,
 		&response.DocumentationSource,
+		&response.Iscompleted,
 		&response.CreatedAt,
 	)
 	if res != nil {
@@ -454,13 +456,14 @@ func (i *requests) GetNotifications(ctx context.Context, conn db.Querier, module
 
 func (i *requests) SignUp(ctx context.Context, conn db.Querier,request *domain.SignUpRequest) (bool,error){
 	fmt.Println("Saving Request Info into DB...", request)
-	_, err := conn.Exec(ctx, `INSERT INTO users (id,fullname,username,userpassword,usertype,user_gmail) VALUES ($1,$2,$3,$4,$5,$6)`,
+	_, err := conn.Exec(ctx, `INSERT INTO users (id,fullname,username,userpassword,usertype,user_gmail,iscompleted) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
 		request.UserDID,
 		request.FullName,
 		request.UserName,
 		request.Password,
 		request.Role,
 		request.Email,
+		false,
 	)
 	if err != nil {
 		return false, err
@@ -470,13 +473,14 @@ func (i *requests) SignUp(ctx context.Context, conn db.Querier,request *domain.S
 
 func (i *requests) SignIn(ctx context.Context, conn db.Querier,username string , password string) (*domain.LoginResponse,error){
 	response := domain.LoginResponse{}
-	res := conn.QueryRow(ctx, `SELECT id,fullname,username,userpassword,user_gmail,usertype FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
+	res := conn.QueryRow(ctx, `SELECT id,fullname,username,userpassword,user_gmail,usertype,iscompleted FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
 		&response.UserDID,
 		&response.FullName,
 		&response.UserName,
 		&response.Password,
 		&response.Email,
 		&response.Role,
+		&response.Iscompleted,
 	)
 	if res != nil {
 		fmt.Println("ERR", res)

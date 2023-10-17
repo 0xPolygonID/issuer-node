@@ -378,6 +378,7 @@ func userResponse(requets *domain.UserResponse) (UserResponse, error) {
 		Adhar: requets.Adhar,
 		PAN: requets.PAN,
 		DocumentationSource: requets.DocumentationSource,
+		Iscompleted: requets.Iscompleted,
 		CreatedAt: requets.CreatedAt,
 	}
 
@@ -392,6 +393,7 @@ func loginResponse(requets *domain.LoginResponse) (Login200Response, error) {
 		FullName: requets.FullName,
 		Gmail: requets.Email,
 		UserType: requets.Role,
+		Iscompleted: requets.Iscompleted,
 	}
 	
 	return resp, nil
