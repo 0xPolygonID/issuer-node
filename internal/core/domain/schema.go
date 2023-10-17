@@ -17,6 +17,7 @@ const (
 	AuthBJJCredentialSchemaType    = "https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"
 
 	AuthBJJCredentialJSONLDContext = "https://schema.iden3.io/core/jsonld/auth.jsonld"
+	AuthBJJCredentialTypeID        = "https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"
 )
 
 // SchemaFormat type

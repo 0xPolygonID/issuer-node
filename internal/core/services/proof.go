@@ -56,10 +56,14 @@ type Proof struct {
 	storage          *db.Storage
 	stateContract    *abi.State
 	schemaLoader     loader.DocumentLoader
+	merklizeOptions  []merklize.MerklizeOption
 }
 
 // NewProofService init proof service
 func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *abi.State, ld ld.DocumentLoader) ports.ProofService {
+	merklizeOptions := []merklize.MerklizeOption{
+		merklize.WithDocumentLoader(ld),
+	}
 	return &Proof{
 		claimSrv:         claimSrv,
 		revocationSrv:    revocationSrv,
@@ -70,6 +74,7 @@ func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.Revocatio
 		storage:          storage,
 		stateContract:    stateContract,
 		schemaLoader:     ld,
+		merklizeOptions:  merklizeOptions,
 	}
 }
 
@@ -408,7 +413,7 @@ func (p *Proof) prepareMerklizedQuery(ctx context.Context, claim domain.Claim, q
 		return circuits.Query{}, err
 	}
 
-	mk, err := vc.Merklize(ctx)
+	mk, err := vc.Merklize(ctx, p.merklizeOptions...)
 	if err != nil {
 		return circuits.Query{}, err
 	}

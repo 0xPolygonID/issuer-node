@@ -16,6 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
 	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 var (
@@ -95,8 +96,8 @@ func FromClaimsModelToW3CCredential(credentials domain.Credentials) ([]*verifiab
 func Process(ctx context.Context, loader loader.DocumentLoader, schemaURL string, credential verifiable.W3CCredential, options *processor.CoreClaimOptions) (*core.Claim, error) {
 	var parser processor.Parser
 	var validator processor.Validator
-	pr := &processor.Processor{}
 
+	pr := &processor.Processor{}
 	validator = jsonSuite.Validator{}
 	parser = jsonSuite.Parser{}
 
@@ -108,21 +109,25 @@ func Process(ctx context.Context, loader loader.DocumentLoader, schemaURL string
 
 	schema, err := pr.Load(ctx, schemaURL)
 	if err != nil {
+		log.Error(ctx, "error loading schema", "err", err)
 		return nil, ErrLoadSchema
 	}
 
 	jsonCredential, err := json.Marshal(credential)
 	if err != nil {
+		log.Error(ctx, "error marshalling credential", "err", err)
 		return nil, err
 	}
 
 	err = pr.ValidateData(jsonCredential, schema)
 	if err != nil {
+		log.Error(ctx, "error validating claim data", "err", err)
 		return nil, ErrValidateData
 	}
 
 	claim, err := pr.ParseClaim(ctx, credential, options)
 	if err != nil {
+		log.Error(ctx, "error parsing claim", "err", err)
 		return nil, ErrParseClaim
 	}
 	return claim, nil

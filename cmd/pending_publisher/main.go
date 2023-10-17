@@ -136,8 +136,18 @@ func main() {
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.ClaimCfg{
+
+	// TODO: Review this
+	revocationSettings := services.CredentialRevocationSettings{
+		RHSEnabled:        cfg.ReverseHashService.Enabled,
+		RHSUrl:            cfg.ReverseHashService.URL,
+		Host:              cfg.ServerUrl,
+		AgentIden3Enabled: false,
+		AgentIden3URL:     "",
+	}
+
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), revocationSettings)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
@@ -158,7 +168,7 @@ func main() {
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-	})
+	}, keyStore)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := initProofService(ctx, cfg, circuitsLoaderService)

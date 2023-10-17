@@ -101,7 +101,7 @@ func main() {
 		return
 	}
 
-	ethereumClient, err := blockchain.Open(cfg)
+	ethereumClient, err := blockchain.Open(cfg, keyStore)
 	if err != nil {
 		log.Error(ctx, "error dialing with ethereum client", "err", err)
 		return
@@ -113,7 +113,7 @@ func main() {
 		return
 	}
 
-	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
+	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum, keyStore)
 	if err != nil {
 		log.Error(ctx, "failed init ethereum connect", "err", err)
 		return
@@ -139,8 +139,17 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+
+	revocationSettings := services.CredentialRevocationSettings{
+		RHSEnabled:        cfg.ReverseHashService.Enabled,
+		RHSUrl:            cfg.ReverseHashService.URL,
+		Host:              cfg.ServerUrl,
+		AgentIden3Enabled: false,
+	}
+
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, revocationSettings)
+
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
@@ -168,6 +177,7 @@ func main() {
 		return
 	}
 
+	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
 		"redis": func(rdb *redis2.Client) health.Pinger {
@@ -186,7 +196,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth),
+			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

@@ -42,6 +42,8 @@ func InitPackageManager(ctx context.Context, stateContract *abi.State, zkProofSe
 		verifications,
 	)
 
+	// TODO: Why jwsPacker is not defined here?
+
 	packageManager := iden3comm.NewPackageManager()
 
 	err = packageManager.RegisterPackers(zkpPackerV2, &packers.PlainMessagePacker{})
