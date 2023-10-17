@@ -521,7 +521,7 @@ components:
             type:
               type: string
               x-omitempty: false
-              example: "BJJ|ETH"
+              example: "BJJ"
               enum: [BJJ, ETH]
 
 
