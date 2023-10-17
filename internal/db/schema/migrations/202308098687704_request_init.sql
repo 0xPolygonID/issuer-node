@@ -61,6 +61,7 @@ CREATE TABLE users
     adhar           text                NULL,
     pan             text                NULL,
     documentation_source text           NULL,
+    iscompleted    bool                NULL,
     created_at timestamptz NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT user_pkey PRIMARY KEY (id)
 );

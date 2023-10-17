@@ -3511,6 +3511,7 @@ type UserResponse struct {
 	Adhar string `json:"adhar"`
 	PAN string `json:"PAN"`
 	DocumentationSource string `json:"documentationSource"`
+	Iscompleted bool `json:"iscompleted"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -3526,6 +3527,7 @@ type LoginResponseBody struct{
 	Password string `json:"password"`
 	Gmail string `json:"gmail"`
 	UserType string `json:"userType"`
+	Iscompleted bool `json:"iscompleted"`
 }
 
 type GetLoginResponseObject interface{

@@ -112,6 +112,7 @@ type LoginResponse struct {
 	Password string `json:"password"`
 	FullName string `json:"firstName"`
 	Role string `json:"role"`
+	Iscompleted bool `json:"iscompleted"`
 }
 
 
@@ -129,6 +130,7 @@ type UserResponse struct{
 	Adhar string `json:"adhar"`
 	PAN string `json:"PAN"`
 	DocumentationSource string `json:"documentationSource"`
+	Iscompleted bool `json:"iscompleted"`
 	CreatedAt	   time.Time  `json:"created_at"`
 }
 
