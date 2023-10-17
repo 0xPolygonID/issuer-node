@@ -186,7 +186,7 @@ export function RequestsTable() {
   } else {
     tableColumns = [
       {
-        dataIndex: "requestId",
+        dataIndex: "id",
         key: "requestId",
         render: (requestId: Request["requestId"]) => (
           <Tooltip placement="topLeft" title={requestId}>
@@ -196,7 +196,7 @@ export function RequestsTable() {
         title: "Request Id",
       },
       {
-        dataIndex: "credentialType",
+        dataIndex: "credential_type",
         key: "credentialType",
         render: (credentialType: Request["credentialType"]) => (
           <Tooltip placement="topLeft" title={credentialType}>
@@ -206,7 +206,7 @@ export function RequestsTable() {
         title: "Credential Type",
       },
       {
-        dataIndex: "requestType",
+        dataIndex: "request_type",
         key: "requestType",
         render: (requestType: Request["requestType"]) => (
           <Tooltip placement="topLeft" title={requestType}>
@@ -220,13 +220,13 @@ export function RequestsTable() {
         key: "status",
         render: (status: Request["status"]) => (
           <Tooltip placement="topLeft" title={status}>
-            <Typography.Text strong>{status}</Typography.Text>
+            <Typography.Text strong>{status ? "Active" : "-"}</Typography.Text>
           </Tooltip>
         ),
         title: "Status",
       },
       {
-        dataIndex: "requestDate",
+        dataIndex: "created_at",
         key: "requestDate",
         render: (requestDate: Request["requestDate"]) => (
           <Typography.Text>{formatDate(requestDate)}</Typography.Text>
@@ -240,49 +240,76 @@ export function RequestsTable() {
         render: (id: Request["id"], request: Request) => (
           <Dropdown
             menu={{
-              items: [
-                // {
-                //   icon: <IconInfoCircle />,
-                //   key: "details",
-                //   label: DETAILS,
-                //   onClick: () =>
-                //     navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-                // },
-                {
-                  key: "divider1",
-                  type: "divider",
-                },
-                {
-                  disabled: request.Active,
-                  icon: <IconInfoCircle />,
-                  key: "verify",
-                  label: VERIFY_IDENTITY,
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "issue",
-                  label: ISSUE_CREDENTIAL,
-                },
-                {
-                  danger: true,
-                  disabled: request.Active,
-                  icon: <IconClose />,
-                  key: "revoke",
-                  label: REVOKE,
-                  onClick: () => setRequestToRevoke(request),
-                },
-                {
-                  key: "divider2",
-                  type: "divider",
-                },
-                {
-                  danger: true,
-                  icon: <IconTrash />,
-                  key: "delete",
-                  label: DELETE,
-                  onClick: () => setRequestToDelete(request),
-                },
-              ],
+              items:
+                User === "issuer" || User === "verifier"
+                  ? [
+                      // {
+                      //   icon: <IconInfoCircle />,
+                      //   key: "details",
+                      //   label: DETAILS,
+                      //   onClick: () =>
+                      //     navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                      // },
+                      {
+                        key: "divider1",
+                        type: "divider",
+                      },
+                      {
+                        disabled: request.Active,
+                        icon: <IconInfoCircle />,
+                        key: "verify",
+                        label: VERIFY_IDENTITY,
+                      },
+                      {
+                        icon: <IconInfoCircle />,
+                        key: "issue",
+                        label: ISSUE_CREDENTIAL,
+                      },
+                      {
+                        danger: true,
+                        disabled: request.Active,
+                        icon: <IconClose />,
+                        key: "revoke",
+                        label: REVOKE,
+                        onClick: () => setRequestToRevoke(request),
+                      },
+                      {
+                        key: "divider2",
+                        type: "divider",
+                      },
+                      {
+                        danger: true,
+                        icon: <IconTrash />,
+                        key: "delete",
+                        label: DELETE,
+                        onClick: () => setRequestToDelete(request),
+                      },
+                    ]
+                  : [
+                      {
+                        key: "divider1",
+                        type: "divider",
+                      },
+                      {
+                        danger: true,
+                        disabled: request.Active,
+                        icon: <IconClose />,
+                        key: "revoke",
+                        label: REVOKE,
+                        onClick: () => setRequestToRevoke(request),
+                      },
+                      {
+                        key: "divider2",
+                        type: "divider",
+                      },
+                      {
+                        danger: true,
+                        icon: <IconTrash />,
+                        key: "delete",
+                        label: DELETE,
+                        onClick: () => setRequestToDelete(request),
+                      },
+                    ],
             }}
           >
             <Row>
@@ -306,7 +333,10 @@ export function RequestsTable() {
       const response = await getRequests({
         env,
         params: {
-          query: queryParam || undefined,
+          query:
+            User === "verifier" || User === "issuer"
+              ? queryParam || undefined
+              : "did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe",
           status: requestStatus,
         },
         signal,
@@ -323,7 +353,7 @@ export function RequestsTable() {
         }
       }
     },
-    [env, queryParam, requestStatus]
+    [env, queryParam, requestStatus, User]
   );
 
   const onSearch = useCallback(

@@ -97,54 +97,66 @@ export async function getRequests({
   signal?: AbortSignal;
 }): Promise<Response<List<Request>>> {
   try {
-    const response =
-      User !== "verifier"
-        ? await axios({
-            baseURL: env.api.url,
-            data:
-              query !== undefined
-                ? { Request_type: "GenerateNewVC", UserDID: query }
-                : { Request_type: "GenerateNewVC" },
-            headers: {
-              Authorization: buildAuthorizationHeader(env),
-            },
-            method: "POST",
-            params: new URLSearchParams({
-              ...(did !== undefined ? { did } : {}),
-              ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-              ...(status !== undefined && status !== "all"
-                ? { [STATUS_SEARCH_PARAM]: status }
-                : {}),
-            }),
-            signal,
-            url:
-              query !== undefined
-                ? `${API_VERSION}/requests/all`
-                : `${API_VERSION}/requests/bytype`,
-          })
-        : await axios({
-            baseURL: env.api.url,
-            data:
-              query !== undefined
-                ? { Request_type: "VerifyVC", UserDID: query }
-                : { Request_type: "VerifyVC" },
-            headers: {
-              Authorization: buildAuthorizationHeader(env),
-            },
-            method: "POST",
-            params: new URLSearchParams({
-              ...(did !== undefined ? { did } : {}),
-              ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
-              ...(status !== undefined && status !== "all"
-                ? { [STATUS_SEARCH_PARAM]: status }
-                : {}),
-            }),
-            signal,
-            url:
-              query !== undefined
-                ? `${API_VERSION}/requests/all`
-                : `${API_VERSION}/requests/bytype`,
-          });
+    let response;
+    let response1;
+    if (User === "verifier" || User === "issuer") {
+      response = await axios({
+        baseURL: env.api.url,
+        data:
+          query !== undefined
+            ? User === "issuer"
+              ? { Request_type: "GenerateNewVC", UserDID: query }
+              : { Request_type: "VerifyVC", UserDID: query }
+            : User === "issuer"
+            ? { Request_type: "GenerateNewVC" }
+            : { Request_type: "VerifyVC" },
+        headers: {
+          Authorization: buildAuthorizationHeader(env),
+        },
+        method: "POST",
+        params: new URLSearchParams({
+          ...(did !== undefined ? { did } : {}),
+          ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+          ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
+        }),
+        signal,
+        url: query !== undefined ? `${API_VERSION}/requests/all` : `${API_VERSION}/requests/bytype`,
+      });
+    } else {
+      response1 = await axios({
+        baseURL: env.api.url,
+        data: { Request_type: "GenerateNewVC", UserDID: query },
+        headers: {
+          Authorization: buildAuthorizationHeader(env),
+        },
+        method: "POST",
+        params: new URLSearchParams({
+          ...(did !== undefined ? { did } : {}),
+          ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+          ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
+        }),
+        signal,
+        url: `${API_VERSION}/requests/all`,
+      });
+      // response2 = await axios({
+      //   baseURL: env.api.url,
+      //   data: { Request_type: "VerifyVC", UserDID: query },
+      //   headers: {
+      //     Authorization: buildAuthorizationHeader(env),
+      //   },
+      //   method: "POST",
+      //   params: new URLSearchParams({
+      //     ...(did !== undefined ? { did } : {}),
+      //     ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
+      //     ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
+      //   }),
+      //   signal,
+      //   url: `${API_VERSION}/requests/all`,
+      // });
+      response = response1;
+
+      // response.data = [...response.data, ...response2.data];
+    }
 
     return buildSuccessResponse(
       getListParser(RequestParser)

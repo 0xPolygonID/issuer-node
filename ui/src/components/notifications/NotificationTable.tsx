@@ -24,6 +24,7 @@ export function NotificationsTable() {
     status: "pending",
   });
   const [messageAPI, messageContext] = message.useMessage();
+  const User = localStorage.getItem("user");
   // const [searchParams, setSearchParams] = useSearchParams();
 
   // const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
@@ -88,7 +89,7 @@ export function NotificationsTable() {
 
       const response = await getNotification({
         env,
-        module: "Issuer",
+        module: User === "issuer" ? "Issuer" : User === "verifier" ? "Verifier" : "User",
         params: {
           query: queryParam || undefined,
         },
@@ -107,7 +108,7 @@ export function NotificationsTable() {
         }
       }
     },
-    [env, queryParam]
+    [env, queryParam, User]
   );
 
   useEffect(() => {

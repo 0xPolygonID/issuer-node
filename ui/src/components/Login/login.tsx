@@ -1,7 +1,5 @@
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { Button, Checkbox, Form, Input } from "antd";
-// import "antd/dist/antd.css";
-// import "./index.css";
 import { generatePath, useNavigate } from "react-router-dom";
 import { LoginLabel } from "src/domain";
 import { ROUTES } from "src/routes";

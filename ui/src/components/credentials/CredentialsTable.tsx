@@ -222,15 +222,13 @@ export function CredentialsTable() {
   } else {
     tableColumns = [
       {
-        dataIndex: "schemaType",
-        ellipsis: { showTitle: false },
+        dataIndex: "id",
         key: "schemaType",
         render: (schemaType: Credential["schemaType"]) => (
           <Tooltip placement="topLeft" title={schemaType}>
             <Typography.Text strong>{schemaType}</Typography.Text>
           </Tooltip>
         ),
-        sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
         title: "Credential",
       },
       {
@@ -311,16 +309,6 @@ export function CredentialsTable() {
                 {
                   key: "divider1",
                   type: "divider",
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: VERIFY_IDENTITY,
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: ISSUE_CREDENTIAL,
                 },
                 {
                   danger: true,
