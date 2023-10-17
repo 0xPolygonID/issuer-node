@@ -32,7 +32,7 @@ func Test_link_issueClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "https://host.com",
 	}

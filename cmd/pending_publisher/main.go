@@ -138,7 +138,7 @@ func main() {
 	connectionsRepository := repositories.NewConnections()
 
 	// TODO: Review this
-	revocationSettings := services.ClaimCfg{
+	revocationSettings := services.CredentialRevocationSettings{
 		RHSEnabled:        cfg.ReverseHashService.Enabled,
 		RHSUrl:            cfg.ReverseHashService.URL,
 		Host:              cfg.ServerUrl,
@@ -147,7 +147,7 @@ func main() {
 	}
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), revocationSettings)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.ClaimCfg{
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,

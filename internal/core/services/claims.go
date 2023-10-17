@@ -48,9 +48,8 @@ var (
 	ErrInvalidCredentialSubject = errors.New("credential subject does not match the provided schema") // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
 )
 
-// ClaimCfg claim service configuration
-type ClaimCfg struct {
-	// TODO: Rename this to CredentialRevocationSettings
+// CredentialRevocationSettings claim service configuration
+type CredentialRevocationSettings struct {
 	RHSEnabled        bool // ReverseHash Enabled
 	RHSUrl            string
 	Host              string
@@ -59,7 +58,7 @@ type ClaimCfg struct {
 }
 
 type claim struct {
-	cfg                     ClaimCfg
+	cfg                     CredentialRevocationSettings
 	icRepo                  ports.ClaimsRepository
 	identitySrv             ports.IdentityService
 	mtService               ports.MtService
@@ -72,9 +71,9 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, cfg ClaimCfg, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, cfg CredentialRevocationSettings, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
 	s := &claim{
-		cfg: ClaimCfg{
+		cfg: CredentialRevocationSettings{
 			RHSEnabled: cfg.RHSEnabled,
 			RHSUrl:     cfg.RHSUrl,
 			Host:       cfg.Host,

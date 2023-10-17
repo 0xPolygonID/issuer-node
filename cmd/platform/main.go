@@ -140,18 +140,16 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	// TODO: Review this
-	revocationSettings := services.ClaimCfg{
+	revocationSettings := services.CredentialRevocationSettings{
 		RHSEnabled:        cfg.ReverseHashService.Enabled,
 		RHSUrl:            cfg.ReverseHashService.URL,
 		Host:              cfg.ServerUrl,
 		AgentIden3Enabled: false,
-		AgentIden3URL:     "",
 	}
 
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, revocationSettings)
 
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
@@ -198,7 +196,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth, accountService),
+			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

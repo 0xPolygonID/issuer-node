@@ -49,19 +49,19 @@ func TestServer_CreateIdentity(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	revocationSettings := services.ClaimCfg{
+	revocationSettings := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), revocationSettings)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -220,18 +220,18 @@ func TestServer_RevokeClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	revocationSettings := services.ClaimCfg{
+	revocationSettings := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), revocationSettings)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
@@ -376,7 +376,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimCfg := services.ClaimCfg{
+	claimCfg := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -385,7 +385,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	pubSub := pubsub.NewMock()
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimCfg, pubSub, ipfsGatewayURL)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(ctx, server)
 
 	iden, err := identityService.Create(ctx, "http://polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -535,7 +535,7 @@ func TestServer_GetIdentities(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -543,7 +543,7 @@ func TestServer_GetIdentities(t *testing.T) {
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
@@ -610,7 +610,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -631,7 +631,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -757,7 +757,7 @@ func TestServer_GetClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -765,7 +765,7 @@ func TestServer_GetClaim(t *testing.T) {
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -930,7 +930,7 @@ func TestServer_GetClaims(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -940,7 +940,7 @@ func TestServer_GetClaims(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	ctx := context.Background()
 	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -1259,7 +1259,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "https://host.com",
 	}
@@ -1269,7 +1269,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	assert.NoError(t, err)
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, claimsConf, pubsub.NewMock(), ipfsGatewayURL)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
-	server := NewServer(&cfg, identityService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil, accountService)
+	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

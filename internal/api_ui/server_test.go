@@ -45,7 +45,7 @@ func TestServer_CheckStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -129,7 +129,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -653,7 +653,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -906,7 +906,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -1021,7 +1021,7 @@ func TestServer_CreateCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -1201,7 +1201,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -1307,7 +1307,7 @@ func TestServer_GetCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -1503,7 +1503,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	schemaRepository := repositories.NewSchema(*storage)
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -1785,7 +1785,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -1913,7 +1913,7 @@ func TestServer_GetConnection(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -2101,7 +2101,7 @@ func TestServer_GetConnections(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -2558,7 +2558,7 @@ func TestServer_RevokeCredential(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "host",
 	}
@@ -2702,7 +2702,7 @@ func TestServer_CreateLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRespository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -2932,7 +2932,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -3084,7 +3084,7 @@ func TestServer_GetLink(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -3256,7 +3256,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -3472,7 +3472,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	connectionsRepository := repositories.NewConnections()
 	linkRepository := repositories.NewLink(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -3591,7 +3591,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -3707,7 +3707,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -3858,7 +3858,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -4031,7 +4031,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -4138,7 +4138,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}
@@ -4227,7 +4227,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}

@@ -102,13 +102,11 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 
-	// TODO: Review this
-	revocationSettings := services.ClaimCfg{
+	revocationSettings := services.CredentialRevocationSettings{
 		RHSEnabled:        cfg.ReverseHashService.Enabled,
 		RHSUrl:            cfg.ReverseHashService.URL,
 		Host:              cfg.ServerUrl,
 		AgentIden3Enabled: false,
-		AgentIden3URL:     "",
 	}
 
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, pubsub.NewMock(), revocationSettings)

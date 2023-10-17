@@ -39,7 +39,7 @@ func TestNotification_SendNotification(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.ClaimCfg{
+	claimsConf := services.CredentialRevocationSettings{
 		RHSEnabled: false,
 		Host:       "http://host",
 	}

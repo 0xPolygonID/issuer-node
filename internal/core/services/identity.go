@@ -73,12 +73,12 @@ type identity struct {
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
 	pubsub          pubsub.Publisher
-	claimCfg        ClaimCfg
+	claimCfg        CredentialRevocationSettings
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, claimCfg ClaimCfg) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, claimCfg CredentialRevocationSettings) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,

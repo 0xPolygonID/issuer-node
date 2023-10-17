@@ -45,7 +45,7 @@ type Server struct {
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, accountService ports.AccountService) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
 	return &Server{
 		cfg:              cfg,
 		identityService:  identityService,

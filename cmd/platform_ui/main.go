@@ -172,18 +172,16 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	// TODO: Review this
-	revocationSettings := services.ClaimCfg{
+	revocationSettings := services.CredentialRevocationSettings{
 		RHSEnabled:        cfg.ReverseHashService.Enabled,
 		RHSUrl:            cfg.ReverseHashService.URL,
 		Host:              cfg.APIUI.ServerURL,
 		AgentIden3Enabled: false,
-		AgentIden3URL:     "",
 	}
 
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps, revocationSettings)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.APIUI.ServerURL,
