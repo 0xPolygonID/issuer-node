@@ -32,6 +32,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useUserContext } from "src/contexts/UserDetails";
 import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -52,6 +53,9 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
+  const { UserDID } = useUserContext();
+
+  const User = localStorage.getItem("user");
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
@@ -185,7 +189,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           env,
           params: {
             did: userID,
-            query: query || undefined,
+            query: User === "verifier" || User === "issuer" ? query || undefined : UserDID,
             status: credentialStatus,
           },
           signal,
@@ -203,7 +207,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         }
       }
     },
-    [userID, env, query, credentialStatus]
+    [userID, env, query, credentialStatus, User, UserDID]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {

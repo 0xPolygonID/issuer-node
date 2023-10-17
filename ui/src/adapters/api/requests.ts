@@ -99,6 +99,7 @@ export async function getRequests({
   try {
     let response;
     let response1;
+    // let response2;
     if (User === "verifier" || User === "issuer") {
       response = await axios({
         baseURL: env.api.url,

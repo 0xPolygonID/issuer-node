@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
+import { UserDetailsProvider } from "./contexts/UserDetails";
 import { Router } from "src/components/shared/Router";
 import { EnvProvider } from "src/contexts/Env";
 import { IssuerStateProvider } from "src/contexts/IssuerState";
@@ -31,7 +32,9 @@ root.render(
       <ConfigProvider theme={theme}>
         <EnvProvider>
           <IssuerStateProvider>
-            <Router />
+            <UserDetailsProvider>
+              <Router />
+            </UserDetailsProvider>
           </IssuerStateProvider>
         </EnvProvider>
       </ConfigProvider>

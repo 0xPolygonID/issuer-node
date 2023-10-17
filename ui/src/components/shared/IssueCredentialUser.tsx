@@ -25,8 +25,6 @@ export function IssueCredentialUser({
     const schemaID = request.schemaID;
 
     void getSchema({ env, schemaID }).then((schemaReponse) => {
-      console.log("schemaReponse", schemaReponse);
-
       if (schemaReponse.success) {
         const dataSchema = {
           credentialSchema: schemaReponse.data.url,

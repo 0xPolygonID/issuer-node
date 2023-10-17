@@ -17,6 +17,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useUserContext } from "src/contexts/UserDetails";
 import { AppError } from "src/domain";
 import { Request } from "src/domain/request";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -37,6 +38,7 @@ import { formatDate } from "src/utils/forms";
 
 export function RequestsTable() {
   const env = useEnvContext();
+  const { UserDID } = useUserContext();
 
   const User = localStorage.getItem("user");
 
@@ -333,10 +335,7 @@ export function RequestsTable() {
       const response = await getRequests({
         env,
         params: {
-          query:
-            User === "verifier" || User === "issuer"
-              ? queryParam || undefined
-              : "did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe",
+          query: User === "verifier" || User === "issuer" ? queryParam || undefined : UserDID,
           status: requestStatus,
         },
         signal,
@@ -353,7 +352,7 @@ export function RequestsTable() {
         }
       }
     },
-    [env, queryParam, requestStatus, User]
+    [env, queryParam, requestStatus, User, UserDID]
   );
 
   const onSearch = useCallback(
