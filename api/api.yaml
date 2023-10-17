@@ -521,7 +521,9 @@ components:
             type:
               type: string
               x-omitempty: false
-              example: "BJJ"
+              example: "BJJ|ETH"
+              enum: [BJJ, ETH]
+
 
     CreateIdentityResponse:
       type: object

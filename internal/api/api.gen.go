@@ -21,6 +21,12 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for CreateIdentityRequestDidMetadataType.
+const (
+	BJJ CreateIdentityRequestDidMetadataType = "BJJ"
+	ETH CreateIdentityRequestDidMetadataType = "ETH"
+)
+
 // AgentResponse defines model for AgentResponse.
 type AgentResponse struct {
 	Body     interface{} `json:"body"`
@@ -55,12 +61,15 @@ type CreateClaimResponse struct {
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
 	DidMetadata struct {
-		Blockchain string `json:"blockchain"`
-		Method     string `json:"method"`
-		Network    string `json:"network"`
-		Type       string `json:"type"`
+		Blockchain string                               `json:"blockchain"`
+		Method     string                               `json:"method"`
+		Network    string                               `json:"network"`
+		Type       CreateIdentityRequestDidMetadataType `json:"type"`
 	} `json:"didMetadata"`
 }
+
+// CreateIdentityRequestDidMetadataType defines model for CreateIdentityRequest.DidMetadata.Type.
+type CreateIdentityRequestDidMetadataType string
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
