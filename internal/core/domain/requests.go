@@ -95,6 +95,27 @@ type UserRequest struct{
 	DocumentationSource string `json:"documentationSource"`
 }
 
+
+type SignUpRequest struct {
+	UserDID string `json:"userDID"`
+	Email string `json:"email"`
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+	FullName string `json:"firstName"`
+	Role string `json:"role"`
+}
+
+type LoginResponse struct {
+	UserDID string `json:"userDID"`
+	Email string `json:"email"`
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+	FullName string `json:"firstName"`
+	Role string `json:"role"`
+}
+
+
+
 type UserResponse struct{
 	ID string `json:"id"`
 	Name string `json:"name"`

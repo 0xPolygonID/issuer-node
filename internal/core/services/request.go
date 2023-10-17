@@ -93,8 +93,8 @@ func (r *requests) GetRequestsByRequestType(ctx context.Context, requestType str
 	return res,err
 }
 
-func (r *requests) GetRequestsByUser(ctx context.Context, userDID string) ([]*domain.Responce , error){
-	res, err := r.reqRepo.GetRequestsByUser(ctx,r.storage.Pgx,userDID)
+func (r *requests) GetRequestsByUser(ctx context.Context, userDID string,All bool) ([]*domain.Responce , error){
+	res, err := r.reqRepo.GetRequestsByUser(ctx,r.storage.Pgx,userDID,All)
 	return res,err
 }
 
@@ -113,5 +113,21 @@ func (r *requests) GetUserID(ctx context.Context,username string , password stri
 	res, err := r.reqRepo.GetUserID(ctx,r.storage.Pgx,username,password)
 	return res,err
 }
+
+func (r *requests) SignUp(ctx context.Context, user *domain.SignUpRequest) (bool,error){
+	res,err := r.reqRepo.SignUp(ctx,r.storage.Pgx,user)
+	return res,err
+}
+
+
+func (r *requests) SignIn(ctx context.Context, username string, password string) (*domain.LoginResponse,error){
+	res,err := r.reqRepo.SignIn(ctx,r.storage.Pgx,username,password)
+	return res,err
+}
+
+
+
+
+
 
 

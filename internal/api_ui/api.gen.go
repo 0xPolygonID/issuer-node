@@ -100,6 +100,14 @@ type GenerateVCRequest struct {
 	Type              string                 `json:"type"`
 }
 
+type SignUpRequest struct {
+	UserDID string `json:"userDID"`
+	Email string `json:"email"`
+	UserName string `json:"userName"`
+	Password string `json:"password"`
+	FullName string `json:"firstName"`
+	Role string `json:"role"`
+}
 
 
 // CreateLinkRequest defines model for CreateLinkRequest.
@@ -623,12 +631,54 @@ type ServerInterface interface {
 	
 	// Get the details of User
 	// (POST /v1/addUser)
-	CreateUser(w http.ResponseWriter, r *http.Request)
+	UpdateUser(w http.ResponseWriter, r *http.Request)
 	// Get the details of User
 	// (GET /v1/getUser)
 	GetUser(w http.ResponseWriter, r *http.Request)
 
+	// POST("v1/signUp", api.SignUp)
+	SignUp(w http.ResponseWriter, r *http.Request)
+
+	// POST("v1/signIn", api.SignIn)
+	SignIn(w http.ResponseWriter, r *http.Request)
+
+
 }
+
+// Signing up the user
+func (siw *ServerInterfaceWrapper) SignUp(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignUp(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// Signing In the user
+func (siw *ServerInterfaceWrapper) SignIn(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SignIn(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 
 // Requesting to Issuer to verify there DOC
 func (siw *ServerInterfaceWrapper) AuthRequest(w http.ResponseWriter, r *http.Request) {
@@ -666,13 +716,13 @@ func (siw *ServerInterfaceWrapper) RequestForVC(w http.ResponseWriter, r *http.R
 }
 
 // Creating the User
-func (siw *ServerInterfaceWrapper) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateUser(w, r)
+		siw.Handler.UpdateUser(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2036,10 +2086,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/deletenotifications/{id}", wrapper.DeleteNotification)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/addUser", wrapper.CreateUser)
+		r.Post(options.BaseURL+"/v1/addUser", wrapper.UpdateUser)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/getUser", wrapper.GetUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/signup", wrapper.SignUp)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/login", wrapper.SignIn)	
 	})
 
 	
@@ -3424,6 +3480,7 @@ type GetRequestByType struct{
 
 type GetRequestByUser struct{
 	UserDID string `json:"userDID"`
+	All bool `json:"all"`
 }
 type CreateUserRequestBody struct{
 	ID string `json:"id"`
@@ -3462,11 +3519,34 @@ type GetUserRequestObject struct{
 	Password string `json:"password"`
 }
 
+type LoginResponseBody struct{
+	UserDID string `json:"userDID"`
+	FullName string `json:"fullName"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Gmail string `json:"gmail"`
+	UserType string `json:"userType"`
+}
+
+type GetLoginResponseObject interface{
+	VisitGetLoginResponse(w http.ResponseWriter) error
+}
+
+type Login200Response LoginResponseBody
+
+func (response Login200Response) VisitGetLoginResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+
 type CreateUserRequestObject struct{
 	Body *CreateUserRequestBody
 }
 
-func (response UserResponse) VisitCreateUserResponse(w http.ResponseWriter) error {
+func (response UserResponse) VisitGetUserResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
@@ -3474,7 +3554,7 @@ func (response UserResponse) VisitCreateUserResponse(w http.ResponseWriter) erro
 }
 
 type GetUserResponseObject interface{
-	VisitCreateUserResponse(w http.ResponseWriter) error
+	VisitGetUserResponse(w http.ResponseWriter) error
 }
 
 type addUser200Response struct{
@@ -3492,6 +3572,9 @@ func (response addUser200Response) VisitAddUserResponse(w http.ResponseWriter) e
 	return json.NewEncoder(w).Encode(response)
 }
 
+type SignUpRequestObject struct{
+	Body *SignUpRequest
+}
 // func (response GetAllNotifications200Response ) VisitGetAllNotification(w http.ResponseWriter) error {
 // 	w.Header().Set("Content-Type", "application/json")
 // 	w.WriteHeader(200)
@@ -3626,10 +3709,13 @@ type StrictServerInterface interface {
 
 	DeleteNotification(ctx context.Context,notificationId uuid.UUID) (DeleteNotificationResponseObject,error)
 
-	CreateUser(ctx context.Context, request CreateUserRequestObject) (AddUserResponseObject,error)
+	UpdateUser(ctx context.Context, request CreateUserRequestObject) (AddUserResponseObject,error)
 
 	GetUser(ctx context.Context, request GetUserRequestObject)(GetUserResponseObject,error)
 
+	SignUp(ctx context.Context, request SignUpRequestObject)(AddUserResponseObject,error)
+
+	SignIn(ctx context.Context, request GetUserRequestObject)(GetLoginResponseObject,error)
 
 }
 
@@ -3661,6 +3747,68 @@ type strictHandler struct {
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
 }
+
+func (sh *strictHandler) SignUp(w http.ResponseWriter, r *http.Request){
+	var request SignUpRequestObject
+
+	var body SignUpRequest
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignUp(ctx, request.(SignUpRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignUp")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AddUserResponseObject); ok {
+		if err := validResponse.VisitAddUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) SignIn(w http.ResponseWriter, r *http.Request){
+	var request GetUserRequestObject
+
+	var body GetUserRequestObject
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	request = body;
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SignIn(ctx, request.(GetUserRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SignIn")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLoginResponseObject); ok {
+		if err := validResponse.VisitGetLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 
 func (sh *strictHandler) AuthRequest(w http.ResponseWriter, r *http.Request){
 	var request AuthRequestObject
@@ -3742,7 +3890,7 @@ func (sh *strictHandler) GetRequest(w http.ResponseWriter, r *http.Request, id I
 	}
 }
 
-func (sh *strictHandler) CreateUser(w http.ResponseWriter, r *http.Request){
+func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request){
 	var request CreateUserRequestObject
 
 	var body CreateUserRequestBody
@@ -3753,10 +3901,10 @@ func (sh *strictHandler) CreateUser(w http.ResponseWriter, r *http.Request){
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateUser(ctx, request.(CreateUserRequestObject))
+		return sh.ssi.UpdateUser(ctx, request.(CreateUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateUser")
+		handler = middleware(handler, "UpdateUser")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
@@ -3793,8 +3941,8 @@ func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request){
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetRequestResponse); ok {
-		if err := validResponse.VisitGetRequestRespose(w); err != nil {
+	} else if validResponse, ok := response.(GetUserResponseObject); ok {
+		if err := validResponse.VisitGetUserResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
