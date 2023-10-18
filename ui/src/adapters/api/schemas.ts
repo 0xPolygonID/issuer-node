@@ -140,3 +140,26 @@ export const processUrl = (url: string, env: Env): Response<string> => {
     return { data: url, success: true };
   }
 };
+
+export async function getAllSchema({ env }: { env: Env }): Promise<Response<List<ApiSchema>>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      url: `${API_VERSION}/schemas`,
+    });
+    return buildSuccessResponse(
+      getListParser(apiSchemaParser)
+        .transform(({ failed, successful }) => ({
+          failed,
+          successful,
+        }))
+        .parse(response.data)
+    );
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}

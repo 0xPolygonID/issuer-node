@@ -110,3 +110,29 @@ export async function updateUser({
     return buildErrorResponse(error);
   }
 }
+
+export async function getUser({
+  env,
+  UserDID,
+}: {
+  UserDID: string;
+  env: Env;
+}): Promise<Response<UserDetails>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      params: {
+        query: UserDID,
+      },
+      url: `${API_VERSION}/getUser`,
+    });
+
+    return buildSuccessResponse(userParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}

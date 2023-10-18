@@ -13,9 +13,9 @@ import {
   message,
 } from "antd";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UploadDoc } from "../shared/Upload";
-import { updateUser } from "src/adapters/api/user";
+import { getUser, updateUser } from "src/adapters/api/user";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 
 import { useEnvContext } from "src/contexts/Env";
@@ -23,12 +23,14 @@ import { useUserContext } from "src/contexts/UserDetails";
 import { PROFILE, PROFILE_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
 
 export function Profile() {
-  const { UserDID } = useUserContext();
+  const { fullName, gmail, UserDID, userType } = useUserContext();
+
   const [openModal, setOpenModal] = useState<boolean>(false);
   const env = useEnvContext();
   const src = "https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png";
   const [messageAPI, messageContext] = message.useMessage();
   const [form] = Form.useForm();
+  const ProfileStatus = localStorage.getItem("profile");
 
   const handleCancel = () => {
     setOpenModal(false);
@@ -70,6 +72,20 @@ export function Profile() {
         console.error("An error occurred:", e);
       });
   };
+
+  useEffect(() => {
+    if (ProfileStatus === "true") {
+      const getUserDetails = async () => {
+        await getUser({
+          env,
+          UserDID,
+        });
+      };
+      getUserDetails().catch((e) => {
+        console.error("An error occurred:", e);
+      });
+    }
+  }, [ProfileStatus, UserDID, env]);
   return (
     <>
       {messageContext}
@@ -97,10 +113,10 @@ export function Profile() {
               >
                 <Image src={src} style={{ borderRadius: 100, marginBottom: 10 }} width={200} />
                 <Row>
-                  <Typography.Text>Roshni</Typography.Text>
+                  <Typography.Text>{fullName}</Typography.Text>
                 </Row>
                 <Row>
-                  <Typography.Text>roshni@chaincodeconsulting.com</Typography.Text>
+                  <Typography.Text>{gmail}</Typography.Text>
                 </Row>
                 <Row>
                   <Typography.Text>7008714710</Typography.Text>
@@ -111,7 +127,7 @@ export function Profile() {
               <Card style={{ height: 400, width: 600 }} title={PROFILE_DETAILS}>
                 <Row>
                   <Typography.Text strong>UDID</Typography.Text>
-                  <Typography.Text>: XYZ</Typography.Text>
+                  <Typography.Text>: {UserDID}</Typography.Text>
                 </Row>
                 <Row>
                   <Typography.Text strong>Address</Typography.Text>
@@ -170,22 +186,26 @@ export function Profile() {
           >
             <Input placeholder="Request Type" readOnly style={{ color: "#868686" }} />
           </Form.Item>
-          <Form.Item
-            label="Owner"
-            name="owner"
-            required
-            rules={[{ message: VALUE_REQUIRED, required: true }]}
-          >
-            <Input placeholder="Owner" readOnly style={{ color: "#868686" }} />
-          </Form.Item>
-          <Form.Item
-            label="GSTIN"
-            name="gst"
-            required
-            rules={[{ message: VALUE_REQUIRED, required: true }]}
-          >
-            <Input placeholder="GSTIN" readOnly style={{ color: "#868686" }} />
-          </Form.Item>
+          {userType !== "Individual" && (
+            <Form.Item
+              label="Owner"
+              name="owner"
+              required
+              rules={[{ message: VALUE_REQUIRED, required: true }]}
+            >
+              <Input placeholder="Owner" readOnly style={{ color: "#868686" }} />
+            </Form.Item>
+          )}
+          {userType !== "Individual" && (
+            <Form.Item
+              label="GSTIN"
+              name="gst"
+              required
+              rules={[{ message: VALUE_REQUIRED, required: true }]}
+            >
+              <Input placeholder="GSTIN" readOnly style={{ color: "#868686" }} />
+            </Form.Item>
+          )}
           <Form.Item
             label="Address"
             name="address"

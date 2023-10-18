@@ -1,4 +1,5 @@
-import { Col, Divider, Menu, Row, Space, Typography } from "antd";
+import { Col, Divider, Menu, Modal, Row, Space, Typography } from "antd";
+import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 import { ReactComponent as IconNotification } from "src/assets/icons/bell-notification.svg";
 import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
@@ -26,6 +27,7 @@ export function SiderMenu({
 }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const [status, setStatus] = useState<boolean>(false);
 
   const connectionsPath = ROUTES.connections.path;
   const credentialsPath = ROUTES.credentials.path;
@@ -65,135 +67,147 @@ export function SiderMenu({
 
     return [];
   };
-
+  const profileStatus = localStorage.getItem("profile");
   const onMenuClick = (path: string) => {
-    onClick();
-    navigate(path);
+    if (profileStatus === "true") {
+      onClick();
+      navigate(path);
+    } else {
+      setStatus(true);
+    }
   };
   const onLogout = (path: string) => {
     localStorage.removeItem("user");
     navigate(path);
   };
+  const handleOk = () => {
+    setStatus(false);
+  };
 
   return (
-    <Row
-      className="menu-sider-layout"
-      justify="space-between"
-      style={{
-        padding: isBreakpoint ? "32px 24px" : "96px 24px 32px",
-      }}
-    >
-      <Col>
-        <UserDisplay />
+    <>
+      <Row
+        className="menu-sider-layout"
+        justify="space-between"
+        style={{
+          padding: isBreakpoint ? "32px 24px" : "96px 24px 32px",
+        }}
+      >
+        <Col>
+          <UserDisplay />
 
-        <Divider />
+          <Divider />
 
-        {User !== "verifier" && User !== "issuer" ? (
+          {User !== "verifier" && User !== "issuer" ? (
+            <Menu
+              items={[
+                {
+                  icon: <IconProfile />,
+                  key: profilepath,
+                  label: PROFILE,
+                  onClick: () => onMenuClick(profilepath),
+                  title: "",
+                },
+                {
+                  icon: <IconRequest />,
+                  key: requestPath,
+                  label: ALL_REQUEST,
+                  onClick: () => onMenuClick(requestPath),
+                  title: "",
+                },
+                {
+                  icon: <IconNotification />,
+                  key: notificationPath,
+                  label: NOTIFICATION,
+                  onClick: () => onMenuClick(notificationPath),
+                  title: "",
+                },
+                {
+                  icon: <IconCredentials />,
+                  key: credentialsPath,
+                  label: CREDENTIALS,
+                  onClick: () =>
+                    onMenuClick(
+                      generatePath(credentialsPath, {
+                        tabID: CREDENTIALS_TABS[0]?.tabID,
+                      })
+                    ),
+                  title: "",
+                },
+                {
+                  icon: <IconConnections />,
+                  key: connectionsPath,
+                  label: CONNECTIONS,
+                  onClick: () => onMenuClick(connectionsPath),
+                  title: "",
+                },
+              ]}
+              selectedKeys={getSelectedKey()}
+            />
+          ) : (
+            <Menu
+              items={[
+                {
+                  icon: <IconRequest />,
+                  key: requestPath,
+                  label: ALL_REQUEST,
+                  onClick: () => onMenuClick(requestPath),
+                  title: "",
+                },
+                {
+                  icon: <IconNotification />,
+                  key: notificationPath,
+                  label: NOTIFICATION,
+                  onClick: () => onMenuClick(notificationPath),
+                  title: "",
+                },
+                {
+                  icon: <IconCredentials />,
+                  key: credentialsPath,
+                  label: CREDENTIALS,
+                  onClick: () =>
+                    onMenuClick(
+                      generatePath(credentialsPath, {
+                        tabID: CREDENTIALS_TABS[0]?.tabID,
+                      })
+                    ),
+                  title: "",
+                },
+                {
+                  icon: <IconConnections />,
+                  key: connectionsPath,
+                  label: CONNECTIONS,
+                  onClick: () => onMenuClick(connectionsPath),
+                  title: "",
+                },
+              ]}
+              selectedKeys={getSelectedKey()}
+            />
+          )}
+        </Col>
+
+        <Space direction="vertical" size={10}>
           <Menu
             items={[
               {
-                icon: <IconProfile />,
-                key: profilepath,
-                label: PROFILE,
-                onClick: () => onMenuClick(profilepath),
-                title: "",
-              },
-              {
-                icon: <IconRequest />,
-                key: requestPath,
-                label: ALL_REQUEST,
-                onClick: () => onMenuClick(requestPath),
-                title: "",
-              },
-              {
-                icon: <IconNotification />,
-                key: notificationPath,
-                label: NOTIFICATION,
-                onClick: () => onMenuClick(notificationPath),
-                title: "",
-              },
-              {
-                icon: <IconCredentials />,
-                key: credentialsPath,
-                label: CREDENTIALS,
-                onClick: () =>
-                  onMenuClick(
-                    generatePath(credentialsPath, {
-                      tabID: CREDENTIALS_TABS[0]?.tabID,
-                    })
-                  ),
-                title: "",
-              },
-              {
-                icon: <IconConnections />,
-                key: connectionsPath,
-                label: CONNECTIONS,
-                onClick: () => onMenuClick(connectionsPath),
-                title: "",
+                icon: <IconLogout />,
+                key: "documentation",
+                label: (
+                  <Typography.Link>
+                    <Row justify="space-between">
+                      <span>Sign Out</span>
+                    </Row>
+                  </Typography.Link>
+                ),
+                onClick: () => onLogout(loginPath),
               },
             ]}
-            selectedKeys={getSelectedKey()}
           />
-        ) : (
-          <Menu
-            items={[
-              {
-                icon: <IconRequest />,
-                key: requestPath,
-                label: ALL_REQUEST,
-                onClick: () => onMenuClick(requestPath),
-                title: "",
-              },
-              {
-                icon: <IconNotification />,
-                key: notificationPath,
-                label: NOTIFICATION,
-                onClick: () => onMenuClick(notificationPath),
-                title: "",
-              },
-              {
-                icon: <IconCredentials />,
-                key: credentialsPath,
-                label: CREDENTIALS,
-                onClick: () =>
-                  onMenuClick(
-                    generatePath(credentialsPath, {
-                      tabID: CREDENTIALS_TABS[0]?.tabID,
-                    })
-                  ),
-                title: "",
-              },
-              {
-                icon: <IconConnections />,
-                key: connectionsPath,
-                label: CONNECTIONS,
-                onClick: () => onMenuClick(connectionsPath),
-                title: "",
-              },
-            ]}
-            selectedKeys={getSelectedKey()}
-          />
-        )}
-      </Col>
-
-      <Space direction="vertical" size={10}>
-        <Menu
-          items={[
-            {
-              icon: <IconLogout />,
-              key: "documentation",
-              label: (
-                <Typography.Link>
-                  <Row justify="space-between">
-                    <span>Sign Out</span>
-                  </Row>
-                </Typography.Link>
-              ),
-              onClick: () => onLogout(loginPath),
-            },
-          ]}
-        />
-      </Space>
-    </Row>
+        </Space>
+      </Row>
+      <Modal onCancel={handleOk} onOk={handleOk} open={status} title="Important">
+        <p>Please update profile first</p>
+      </Modal>
+    </>
   );
 }

@@ -3,13 +3,13 @@ import { Button, Checkbox, Form, Input, message } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 import { login } from "src/adapters/api/user";
 import { useEnvContext } from "src/contexts/Env";
-//import { useUserContext } from "src/contexts/UserDetails";
+// import { useUserContext } from "src/contexts/UserDetails";
 import { LoginLabel } from "src/domain";
 import { ROUTES } from "src/routes";
 
 export const Login = () => {
   const navigate = useNavigate();
-  //const { setUserDetails } = useUserContext();
+  // const { setUserDetails } = useUserContext();
   const [messageAPI, messageContext] = message.useMessage();
   const env = useEnvContext();
 
@@ -25,11 +25,14 @@ export const Login = () => {
 
         if (userDetails.success) {
           localStorage.setItem("profile", userDetails.data.iscompleted.toString());
-          navigate(generatePath(ROUTES.request.path));
+          navigate(generatePath(ROUTES.profile.path));
           // setUserDetails(
           //   userDetails.data.username,
           //   userDetails.data.password,
-          //   userDetails.data.userDID
+          //   userDetails.data.userDID,
+          //   userDetails.data.fullName,
+          //   userDetails.data.gmail,
+          //   userDetails.data.userType
           // );
         } else {
           void messageAPI.error("Wrong Credentials");

@@ -1,7 +1,9 @@
 import { Button, Card, Form, Input, Select } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getAllSchema } from "src/adapters/api/schemas";
 
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
+import { useEnvContext } from "src/contexts/Env";
 
 import { CREATE_REQUEST, SCHEMA_TYPE, SUBMIT, VALUE_REQUIRED } from "src/utils/constants";
 
@@ -16,6 +18,18 @@ const dropdownList = [
 export function CreateRequest() {
   //const [messageAPI, messageContext] = message.useMessage();
   const [requestType, setRequestType] = useState<string>();
+  const env = useEnvContext();
+
+  useEffect(() => {
+    const getSchemas = async () => {
+      await getAllSchema({
+        env,
+      });
+    };
+    getSchemas().catch((e) => {
+      console.error("An error occurred:", e);
+    });
+  }, [env]);
 
   return (
     <>
