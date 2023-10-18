@@ -3494,9 +3494,11 @@ type CreateUserRequestBody struct{
 	ID string `json:"id"`
 	Name string `json:"name"`
 	Owner string `json:"owner"`
+	DOB string `json:"dob"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Gmail string `json:"gmail"`
+	PhoneNumber string `json:"phoneNumber"`
 	Gstin string `json:"gstin"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`
@@ -3509,9 +3511,11 @@ type CreateUserRequestBody struct{
 type UserResponse struct {
 	ID string `json:"id"`
 	Name string `json:"name"`
+	DOB string `json:"dob"`
 	Owner string `json:"owner"`
 	Username string `json:"username"`
 	Gmail string `json:"gmail"`
+	PhoneNumber string `json:"phoneNumber"`
 	Gstin string `json:"gstin"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`

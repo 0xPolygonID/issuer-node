@@ -320,10 +320,12 @@ func (s *Server) UpdateUser(ctx context.Context,request CreateUserRequestObject)
 	req:= domain.UserRequest{
 		ID: request.Body.ID,
 		Name: request.Body.Name,
+		DOB: request.Body.DOB,
 		Owner: request.Body.Owner,
 		Username: request.Body.Username,
 		Password: request.Body.Password,
 		Gmail: request.Body.Gmail,
+		Phone: request.Body.PhoneNumber,
 		Gstin: request.Body.Gstin,
 		UserType: request.Body.UserType,
 		Address: request.Body.Address,

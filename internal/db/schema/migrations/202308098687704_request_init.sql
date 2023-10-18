@@ -51,10 +51,12 @@ CREATE TABLE users
 (
     id              text              NOT NULL,
     fullname        text              NULL,
+    dob              text             NULL,
     userowner        text             NULL,
     username         text             NULL,
     userpassword     text             NULL,   
     user_gmail       text             NULL,
+    user_phone       text             NULL,
     user_gstin       text             NULL,
     usertype         text              NULL,
     user_address     text              NULL,
