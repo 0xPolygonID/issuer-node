@@ -368,9 +368,11 @@ func userResponse(requets *domain.UserResponse) (UserResponse, error) {
 	resp := UserResponse{
 		ID: requets.ID,
 		Name: requets.Name,
+		DOB: requets.DOB,
 		Owner: requets.Owner,
 		Username: requets.Username,
 		Gmail: requets.Gmail,
+		PhoneNumber: requets.Phone,
 		Gstin: requets.Gstin,
 		UserType: requets.UserType,
 		Address: requets.Address,

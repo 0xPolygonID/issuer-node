@@ -83,10 +83,12 @@ type NotificationReponse struct{
 type UserRequest struct{
 	ID string `json:"id"`
 	Name string `json:"name"`
+	DOB string `json:"dob"`
 	Owner string `json:"owner"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Gmail string `json:"gmail"`
+	Phone string `json:"phone"`
 	Gstin string `json:"gstin"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`
@@ -121,6 +123,8 @@ type UserResponse struct{
 	ID string `json:"id"`
 	Name string `json:"name"`
 	Owner string `json:"owner"`
+	DOB string `json:"dob"`
+	Phone string `json:"phone"`
 	Username string `json:"username"`
 	Gmail string `json:"gmail"`
 	Gstin string `json:"gstin"`
