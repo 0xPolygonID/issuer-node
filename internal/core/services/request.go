@@ -109,8 +109,8 @@ func (r *requests) SaveUser(ctx context.Context, user *domain.UserRequest) (bool
 	return res,err
 }
 
-func (r *requests) GetUserID(ctx context.Context,username string , password string) (*domain.UserResponse , error){
-	res, err := r.reqRepo.GetUserID(ctx,r.storage.Pgx,username,password)
+func (r *requests) GetUserID(ctx context.Context,udid string) (*domain.UserResponse , error){
+	res, err := r.reqRepo.GetUserID(ctx,r.storage.Pgx,udid)
 	return res,err
 }
 

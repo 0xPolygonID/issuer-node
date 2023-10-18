@@ -370,7 +370,6 @@ func userResponse(requets *domain.UserResponse) (UserResponse, error) {
 		Name: requets.Name,
 		Owner: requets.Owner,
 		Username: requets.Username,
-		Password: requets.Password,
 		Gmail: requets.Gmail,
 		Gstin: requets.Gstin,
 		UserType: requets.UserType,

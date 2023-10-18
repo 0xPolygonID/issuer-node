@@ -122,7 +122,6 @@ type UserResponse struct{
 	Name string `json:"name"`
 	Owner string `json:"owner"`
 	Username string `json:"username"`
-	Password string `json:"password"`
 	Gmail string `json:"gmail"`
 	Gstin string `json:"gstin"`
 	UserType string `json:"userType"`
