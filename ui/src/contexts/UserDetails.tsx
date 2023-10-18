@@ -1,5 +1,5 @@
 import { PropsWithChildren, createContext, useContext, useState } from "react";
-import { UserContext } from "src/domain/UserContext";
+import { User, UserContext } from "src/domain/UserContext";
 
 // Create a context for the API response details
 export const UserDetailsContext = createContext<UserContext>({
@@ -10,7 +10,7 @@ export const UserDetailsContext = createContext<UserContext>({
 });
 
 export function UserDetailsProvider(props: PropsWithChildren) {
-  const [userDetails, setUserDetails] = useState({
+  const [userDetails, setUserDetails] = useState<User>({
     password: "",
     UserDID: "",
     username: "",

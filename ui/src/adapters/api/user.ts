@@ -11,15 +11,14 @@ export const userParser = getStrictParser<UserDetails, UserDetails>()(
   z.object({
     address: z.string(),
     adhar: z.string(),
+    createdAt: datetimeParser,
     documentationSource: z.string(),
     gmail: z.string(),
-    createdAt: datetimeParser,
-    id: z.string(),
     gstin: z.string(),
+    id: z.string(),
     name: z.string(),
     owner: z.string(),
     PAN: z.string(),
-    password: z.string(),
     username: z.string(),
     userType: z.string(),
   })
@@ -29,6 +28,7 @@ export const loginParser = getStrictParser<Login, Login>()(
   z.object({
     fullName: z.string(),
     gmail: z.string(),
+    iscompleted: z.boolean(),
     password: z.string(),
     userDID: z.string(),
     username: z.string(),
@@ -82,6 +82,30 @@ export async function login({
     });
 
     return buildSuccessResponse(loginParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function updateUser({
+  env,
+  UserDID,
+}: {
+  UserDID: string;
+  env: Env;
+}): Promise<Response<UserDetails>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: { UserDID },
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/updateUser`,
+    });
+
+    return buildSuccessResponse(userParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

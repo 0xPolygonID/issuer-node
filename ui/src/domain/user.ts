@@ -9,7 +9,6 @@ export type UserDetails = {
   id: string;
   name: string;
   owner: string;
-  password: string;
   userType: string;
   username: string;
 };
@@ -17,6 +16,7 @@ export type UserDetails = {
 export type Login = {
   fullName: string;
   gmail: string;
+  iscompleted: boolean;
   password: string;
   userDID: string;
   userType: string;

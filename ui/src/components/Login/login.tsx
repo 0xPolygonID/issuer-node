@@ -3,7 +3,7 @@ import { Button, Checkbox, Form, Input, message } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 import { login } from "src/adapters/api/user";
 import { useEnvContext } from "src/contexts/Env";
-// import { useUserContext } from "src/contexts/UserDetails";
+//import { useUserContext } from "src/contexts/UserDetails";
 import { LoginLabel } from "src/domain";
 import { ROUTES } from "src/routes";
 
@@ -22,7 +22,9 @@ export const Login = () => {
           password: values.password,
           username: values.username,
         });
+
         if (userDetails.success) {
+          localStorage.setItem("profile", userDetails.data.iscompleted.toString());
           navigate(generatePath(ROUTES.request.path));
           // setUserDetails(
           //   userDetails.data.username,
@@ -38,14 +40,13 @@ export const Login = () => {
       }
     } else {
       localStorage.setItem("user", values.username);
-      navigate(generatePath(ROUTES.connections.path));
+      navigate(generatePath(ROUTES.request.path));
     }
   };
 
   return (
     <>
       {messageContext}
-      {/* eslint-disable-next-line */}
       <Form
         className="login-form"
         initialValues={{
