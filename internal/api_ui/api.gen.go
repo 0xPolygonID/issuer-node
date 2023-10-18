@@ -634,7 +634,7 @@ type ServerInterface interface {
 	UpdateUser(w http.ResponseWriter, r *http.Request)
 	// Get the details of User
 	// (GET /v1/getUser)
-	GetUser(w http.ResponseWriter, r *http.Request)
+	GetUser(w http.ResponseWriter, r *http.Request,udid string)
 
 	// POST("v1/signUp", api.SignUp)
 	SignUp(w http.ResponseWriter, r *http.Request)
@@ -737,9 +737,17 @@ func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 
 	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+	var udid string
+
+	err := runtime.BindStyledParameterWithLocation("simple", false, "udid", runtime.ParamLocationPath, chi.URLParam(r, "udid"), &udid)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "udid", Err: err})
+		return
+	}
+
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetUser(w, r)
+		siw.Handler.GetUser(w, r,udid)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2086,10 +2094,10 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/deletenotifications/{id}", wrapper.DeleteNotification)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/addUser", wrapper.UpdateUser)
+		r.Post(options.BaseURL+"/v1/updateUser", wrapper.UpdateUser)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/getUser", wrapper.GetUser)
+		r.Post(options.BaseURL+"/v1/getUser/{udid}", wrapper.GetUser)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/signup", wrapper.SignUp)
@@ -3503,7 +3511,6 @@ type UserResponse struct {
 	Name string `json:"name"`
 	Owner string `json:"owner"`
 	Username string `json:"username"`
-	Password string `json:"password"`
 	Gmail string `json:"gmail"`
 	Gstin string `json:"gstin"`
 	UserType string `json:"userType"`
@@ -3713,7 +3720,7 @@ type StrictServerInterface interface {
 
 	UpdateUser(ctx context.Context, request CreateUserRequestObject) (AddUserResponseObject,error)
 
-	GetUser(ctx context.Context, request GetUserRequestObject)(GetUserResponseObject,error)
+	GetUser(ctx context.Context, udid string)(GetUserResponseObject,error)
 
 	SignUp(ctx context.Context, request SignUpRequestObject)(AddUserResponseObject,error)
 
@@ -3922,24 +3929,16 @@ func (sh *strictHandler) UpdateUser(w http.ResponseWriter, r *http.Request){
 	}
 }
 
-func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request){
-	var body GetUserRequestObject
-	var request GetUserRequestObject
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-
-	request = body
+func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request, udid string){
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetUser(ctx, request.(GetUserRequestObject))
+		return sh.ssi.GetUser(ctx, udid)
 	}
 	for _, middleware := range sh.middlewares {
 		handler = middleware(handler, "GetUser")
 	}
 
-	response, err := handler(r.Context(), w, r, request)
+	response, err := handler(r.Context(), w, r, udid)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)

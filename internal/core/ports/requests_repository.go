@@ -22,7 +22,7 @@ type RequestRepository interface {
 	GetRequestsByUser(ctx context.Context, conn db.Querier, userDID string,All bool) ([]*domain.Responce,error)
 	DeleteNotification(ctx context.Context, conn db.Querier, id uuid.UUID) (*domain.DeleteNotificationResponse,error)
 	SaveUser(ctx context.Context, conn db.Querier, user *domain.UserRequest) (bool,error)
-	GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse,error)
+	GetUserID(ctx context.Context, conn db.Querier,udid string) (*domain.UserResponse,error)
 	SignUp(ctx context.Context, conn db.Querier, user *domain.SignUpRequest) (bool,error)
 	SignIn(ctx context.Context, conn db.Querier, username string, password string) (*domain.LoginResponse,error)
 	// GetNotificationsForIssuer(ctx context.Context, conn db.Querier) ([]*domain.NotificationReponse,error)

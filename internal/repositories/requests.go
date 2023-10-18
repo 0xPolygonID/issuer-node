@@ -350,14 +350,13 @@ func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domai
 	return true, nil
 }
 
-func (i *requests) GetUserID(ctx context.Context, conn db.Querier, username string, password string) (*domain.UserResponse, error) {
+func (i *requests) GetUserID(ctx context.Context, conn db.Querier,udid string) (*domain.UserResponse, error) {
 	response := domain.UserResponse{}
-	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,userpassword,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,iscompleted,created_at FROM users  WHERE username = $1 AND userpassword = $2 `, username, password).Scan(
+	res := conn.QueryRow(ctx, `SELECT id,fullname,userowner,username,user_gmail,user_gstin,usertype,user_address,adhar,pan,documentation_source,iscompleted,created_at FROM users  WHERE id = $1`, udid).Scan(
 		&response.ID,
 		&response.Name,
 		&response.Owner,
 		&response.Username,
-		&response.Password,
 		&response.Gmail,
 		&response.Gstin,
 		&response.UserType,

@@ -341,9 +341,9 @@ func (s *Server) UpdateUser(ctx context.Context,request CreateUserRequestObject)
 	return addUser200Response{Status: res,Msg: "User created Successfully"},nil
 }
 
-func (s *Server) GetUser(ctx context.Context,request GetUserRequestObject) (GetUserResponseObject,error) {
+func (s *Server) GetUser(ctx context.Context, udid string) (GetUserResponseObject,error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-	res,err := s.requestServer.GetUserID(ctx,request.Username,request.Password)
+	res,err := s.requestServer.GetUserID(ctx,udid)
 	
 	fmt.Println("User :",res)
 	resp, err := userResponse(res)
