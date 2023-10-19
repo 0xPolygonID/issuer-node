@@ -137,15 +137,16 @@ func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCR
 	if err != nil {
 		return nil, err
 	}
-
+	n:=`Request `+id.String()+` of type `+request.Body.RequestType+` has been created Successfully`
 	issuernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
 		User_id:             request.Body.UserDID,
 		Module:              "Issuer",
 		NotificationType:    "Requested for VC",
 		NotificationTitle:   "Requested for VC",
-		NotificationMessage: `User Requested For VC`,
+		NotificationMessage: n,
 	}
+
 
 	usernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
@@ -153,7 +154,7 @@ func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCR
 		Module:              "User",
 		NotificationType:    "Requested for VC",
 		NotificationTitle:   "Requested for VC",
-		NotificationMessage: `Requested Successfully`,
+		NotificationMessage: n,
 	}
 
 	_, err = s.requestServer.NewNotification(ctx, issuernotification)
@@ -214,20 +215,25 @@ func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject
 	}
 
 	_, err = s.requestServer.UpdateStatus(ctx, request.Body.RequestId)
-
+	n:=`VC for `+request.Body.RequestId.String()+` has been created Successfully`
 	usernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
 		User_id:             request.Body.UserDID,
 		Module:              "User",
-		NotificationType:    "Requested for VC",
-		NotificationTitle:   "Requested for VC",
-		NotificationMessage: `Requested Successfully`,
+		NotificationType:    "Generated VC",
+		NotificationTitle:   "Generated VC",
+		NotificationMessage: n,
 	}
 	_, err = s.requestServer.NewNotification(ctx, usernotification)
-	if err != nil {
-		return nil, err
+	issuernotification := &domain.NotificationData{
+		ID:                  uuid.New(),
+		User_id:             request.Body.UserDID,
+		Module:              "Issuer",
+		NotificationType:    "Generated VC",
+		NotificationTitle:   "Generated VC",
+		NotificationMessage: n,
 	}
-
+	_, err = s.requestServer.NewNotification(ctx, issuernotification)
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
