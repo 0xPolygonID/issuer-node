@@ -77,7 +77,7 @@ export function SiderMenu({
     }
   };
   const onLogout = (path: string) => {
-    localStorage.removeItem("user");
+    localStorage.clear();
     navigate(path);
   };
   const handleOk = () => {

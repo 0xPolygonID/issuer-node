@@ -23,6 +23,8 @@ export function IssueCredentialUser({
   const handleCredentialRequest = () => {
     setIsLoading(true);
     const schemaID = request.schemaID;
+    const expirationDate = new Date();
+    expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
     void getSchema({ env, schemaID }).then((schemaReponse) => {
       if (schemaReponse.success) {
@@ -33,7 +35,7 @@ export function IssueCredentialUser({
             Age: parseInt(request.age),
             id: request.userDID,
           },
-          expiration: request.created_at,
+          expiration: expirationDate.toISOString(),
           mtProof: false,
           requestId: request.id,
           signatureProof: true,

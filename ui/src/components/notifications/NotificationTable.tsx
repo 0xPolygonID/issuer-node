@@ -40,6 +40,7 @@ export function NotificationsTable() {
     void markAsRead({ env, notiId }).then((response) => {
       if (response) {
         void fetchNotifications();
+        void messageAPI.success("Notification is marked as read");
       } else {
         void messageAPI.error("Something went wrong");
       }

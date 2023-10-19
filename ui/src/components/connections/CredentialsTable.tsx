@@ -53,7 +53,7 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
-  const { UserDID } = useUserContext();
+  const { userDID } = useUserContext();
 
   const User = localStorage.getItem("user");
 
@@ -189,7 +189,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           env,
           params: {
             did: userID,
-            query: User === "verifier" || User === "issuer" ? query || undefined : UserDID,
+            query: User === "verifier" || User === "issuer" ? query || undefined : userDID,
             status: credentialStatus,
           },
           signal,
@@ -207,7 +207,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         }
       }
     },
-    [userID, env, query, credentialStatus, User, UserDID]
+    [userID, env, query, credentialStatus, User, userDID]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {

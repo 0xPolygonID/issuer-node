@@ -25,3 +25,18 @@ export type Request = {
   verifier_status: string;
   wallet_status: string;
 };
+
+export type RequestVc = {
+  Age: string;
+  ProofId: string;
+  ProofType: string;
+  RequestType: string;
+  RoleType: string;
+  Source: string;
+  schemaID: string;
+  userDID: string;
+};
+export type VcResponse = {
+  id: string;
+  msg: string;
+};

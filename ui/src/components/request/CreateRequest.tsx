@@ -1,35 +1,110 @@
 import { Button, Card, Form, Input, Select } from "antd";
 import { useEffect, useState } from "react";
+import { generatePath, useNavigate } from "react-router-dom";
+import { requestVC } from "src/adapters/api/requests";
 import { getAllSchema } from "src/adapters/api/schemas";
+import { getUser } from "src/adapters/api/user";
 
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useUserContext } from "src/contexts/UserDetails";
+import { AppError } from "src/domain";
+import { Schema } from "src/domain/schema";
+import { FormValue, UserDetails } from "src/domain/user";
+import { ROUTES } from "src/routes";
+import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
+import { isAbortedError } from "src/utils/browser";
 
 import { CREATE_REQUEST, SCHEMA_TYPE, SUBMIT, VALUE_REQUIRED } from "src/utils/constants";
-
-const dropdownList = [
-  "KYCAgeCredentialAadhar",
-  "ValidCredentialAadhar",
-  "KYCAgeCredentialPAN",
-  "ValidCredentialPAN",
-  "KYBGSTINCredentials",
-];
+import { notifyParseErrors } from "src/utils/error";
 
 export function CreateRequest() {
+  const navigate = useNavigate();
   //const [messageAPI, messageContext] = message.useMessage();
   const [requestType, setRequestType] = useState<string>();
+  const [schemaData, setSchemaData] = useState<AsyncTask<Schema[], AppError>>({
+    status: "pending",
+  });
+  const [userProfileData, setUserProfileData] = useState<AsyncTask<UserDetails[], AppError>>({
+    status: "pending",
+  });
   const env = useEnvContext();
+  const { userDID } = useUserContext();
+  // const userDID = localStorage.getItem("userId");
+  const schemaList = isAsyncTaskDataAvailable(schemaData) ? schemaData.data : [];
+  const profileList = isAsyncTaskDataAvailable(userProfileData) ? userProfileData.data : [];
 
   useEffect(() => {
     const getSchemas = async () => {
-      await getAllSchema({
+      const response = await getAllSchema({
         env,
       });
+      if (response.success) {
+        setSchemaData({
+          data: response.data.successful,
+          status: "successful",
+        });
+        notifyParseErrors(response.data.failed);
+      } else {
+        if (!isAbortedError(response.error)) {
+          setSchemaData({ error: response.error, status: "failed" });
+        }
+      }
+
+      // setschemaData(response.data.successful);
     };
+
     getSchemas().catch((e) => {
       console.error("An error occurred:", e);
     });
-  }, [env]);
+    const getUserDetails = async () => {
+      try {
+        const response = await getUser({
+          env,
+          userDID,
+        });
+        if (response.success) {
+          setUserProfileData({
+            data: response.data.successful,
+            status: "successful",
+          });
+          notifyParseErrors(response.data.failed);
+        } else {
+          if (!isAbortedError(response.error)) {
+            setUserProfileData({ error: response.error, status: "failed" });
+          }
+        }
+        // setUserProfileData(response.data.successful);
+      } catch (e) {
+        console.error("An error occurred:", e);
+      }
+    };
+    getUserDetails().catch((e) => {
+      console.error("An error occurred:", e);
+    });
+  }, [env, userDID]);
+
+  const handleFormSubmit = async (values: FormValue) => {
+    console.log("-----------", schemaList);
+
+    const schema = schemaList.find((item) => item.type === values.request);
+    console.log(values);
+
+    const payload = {
+      Age: values.Age,
+      ProofId: values.Aadhar,
+      ProofType: "Adhar",
+      RequestType: "GenerateNewVC",
+      RoleType: "Individual",
+      schemaID: schema?.id,
+      Source: "Manual",
+      userDID: userDID,
+    };
+    await requestVC({
+      env,
+      payload,
+    }).then(void navigate(generatePath(ROUTES.request.path)));
+  };
 
   return (
     <>
@@ -42,7 +117,7 @@ export function CreateRequest() {
         title={CREATE_REQUEST}
       >
         <Card className="issue-credential-card" title="Create Request">
-          <Form layout="vertical">
+          <Form layout="vertical" onFinish={() => handleFormSubmit}>
             <Form.Item
               label="Select Crendential Type"
               name="schemaID"
@@ -55,9 +130,9 @@ export function CreateRequest() {
                 }}
                 placeholder={SCHEMA_TYPE}
               >
-                {dropdownList.map((value, key) => (
-                  <Select.Option key={key} value={value}>
-                    {value}
+                {schemaList.map((value: Schema, key: number) => (
+                  <Select.Option key={key} value={value.type}>
+                    {value.type}
                   </Select.Option>
                 ))}
               </Select>
@@ -70,7 +145,7 @@ export function CreateRequest() {
                   name="adhaarID"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input placeholder="Adhaar Number" />
+                  <Input defaultValue={profileList[0]?.adhar} placeholder="Adhaar Number" />
                 </Form.Item>
               </div>
             )}
@@ -81,7 +156,7 @@ export function CreateRequest() {
                   name="panID"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input placeholder="Adhaar Number" />
+                  <Input defaultValue={profileList[0]?.PAN} placeholder="PAN" />
                 </Form.Item>
               </div>
             )}
@@ -100,12 +175,7 @@ export function CreateRequest() {
               requestType === "KYCAgeCredentialPAN") && (
               <div>
                 <Form.Item label="Age" name="age" rules={[{ message: VALUE_REQUIRED }]}>
-                  <Input
-                    defaultValue={18}
-                    placeholder="Age"
-                    readOnly
-                    style={{ color: "#868686" }}
-                  />
+                  <Input defaultValue="18" placeholder="Age" style={{ color: "#868686" }} />
                 </Form.Item>
               </div>
             )}
@@ -116,11 +186,11 @@ export function CreateRequest() {
                   name="gstin"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input placeholder="GSTIN" readOnly />
+                  <Input defaultValue={profileList[0]?.gstin} placeholder="GSTIN" />
                 </Form.Item>
               </div>
             )}
-            <Button key="submit" type="primary">
+            <Button htmlType="submit" type="primary">
               {SUBMIT}
             </Button>
           </Form>

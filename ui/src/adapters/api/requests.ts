@@ -6,6 +6,7 @@ import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, Json, Request } from "src/domain";
 import { DataSchema } from "src/domain/dataSchema";
+import { RequestVc, VcResponse } from "src/domain/request";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -50,6 +51,20 @@ export const RequestParser = getStrictParser<RequestInput, Request>()(
     userDID: z.string(),
     verifier_status: z.string(),
     wallet_status: z.string(),
+  })
+);
+export const RequestVcParser = getStrictParser<VcResponse, VcResponse>()(
+  z.object({
+    id: z.string(),
+    msg: z.string(),
+    // schemaID: z.string(),
+    // userDID: z.string(),
+    // RequestType: z.string(),
+    // RoleType: z.string(),
+    // ProofType: z.string(),
+    // ProofId: z.string(),
+    // Source: z.string(),
+    // Age: z.string(),
   })
 );
 
@@ -199,6 +214,29 @@ export async function createRequest({
       url: `${API_VERSION}/Requests`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function requestVC({
+  env,
+  payload,
+}: {
+  env: Env;
+  payload: RequestVc;
+}): Promise<Response<VcResponse>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      data: payload,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/requestForVC`,
+    });
+    return buildSuccessResponse(RequestVcParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

@@ -24,7 +24,9 @@ export const Login = () => {
         });
 
         if (userDetails.success) {
+          localStorage.setItem("user", values.username);
           localStorage.setItem("profile", userDetails.data.iscompleted.toString());
+          localStorage.setItem("userId", userDetails.data.userDID);
           navigate(generatePath(ROUTES.profile.path));
           // setUserDetails(
           //   userDetails.data.username,

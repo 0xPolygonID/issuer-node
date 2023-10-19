@@ -20,12 +20,22 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 
 import { useEnvContext } from "src/contexts/Env";
 import { useUserContext } from "src/contexts/UserDetails";
+import { AppError } from "src/domain";
+import { FormValue, UserDetails } from "src/domain/user";
+import { AsyncTask } from "src/utils/async";
+import { isAbortedError } from "src/utils/browser";
 import { PROFILE, PROFILE_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
+import { notifyParseErrors } from "src/utils/error";
 
 export function Profile() {
-  const { fullName, gmail, UserDID, userType } = useUserContext();
+  const { fullName, gmail, userDID, userType } = useUserContext();
+  // const userDID = localStorage.getItem("userId");
+  console.log(userDID);
 
   const [openModal, setOpenModal] = useState<boolean>(false);
+  const [userProfileData, setUserProfileData] = useState<AsyncTask<UserDetails[], AppError>>({
+    status: "pending",
+  });
   const env = useEnvContext();
   const src = "https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png";
   const [messageAPI, messageContext] = message.useMessage();
@@ -38,28 +48,32 @@ export function Profile() {
   const handleOk = () => {
     form
       .validateFields()
-      .then(async (values) => {
-        console.log("Submitted", values);
-        // const updatePayload = {
-        //   ID: UserDID,
-        //   Name: "test",
-        //   Owner: values.Owner,
-        //   Gmail: "test@gmail.com",
-        //   Gstin: values.gst,
-        //   Address: values.address,
-        //   Adhar: values.Aadhar,
-        //   PAN: values.PAN,
-        //   DocumentationSource: "manual",
-        // };
+      .then(async (values: FormValue) => {
+        const updatePayload = {
+          Address: values.address,
+          Adhar: values.Aadhar,
+          DOB: values.dob,
+          DocumentationSource: "manual",
+          Gmail: "test@gmail.com",
+          Gstin: values.gst,
+          ID: userDID,
+          Name: "test",
+          Owner: values?.owner,
+          PAN: values.PAN,
+          PhoneNumber: values.mobile,
+        };
+        console.log("---", updatePayload);
+
         try {
           const userDetails = await updateUser({
             env,
-            UserDID,
+            updatePayload,
           });
 
           if (userDetails.success) {
             localStorage.setItem("profile", "true");
             void messageAPI.success("Profile Updated");
+            setOpenModal(false);
           } else {
             void messageAPI.error("Wrong Credentials");
           }
@@ -76,16 +90,29 @@ export function Profile() {
   useEffect(() => {
     if (ProfileStatus === "true") {
       const getUserDetails = async () => {
-        await getUser({
+        const response = await getUser({
           env,
-          UserDID,
+          userDID,
         });
+        if (response.success) {
+          setUserProfileData({
+            data: response.data.successful,
+            status: "successful",
+          });
+          notifyParseErrors(response.data.failed);
+        } else {
+          if (!isAbortedError(response.error)) {
+            setUserProfileData({ error: response.error, status: "failed" });
+          }
+        }
+
+        // setUserProfileData(response.data);
       };
       getUserDetails().catch((e) => {
         console.error("An error occurred:", e);
       });
     }
-  }, [ProfileStatus, UserDID, env]);
+  }, [ProfileStatus, userDID, env]);
   return (
     <>
       {messageContext}
@@ -119,33 +146,37 @@ export function Profile() {
                   <Typography.Text>{gmail}</Typography.Text>
                 </Row>
                 <Row>
-                  <Typography.Text>7008714710</Typography.Text>
+                  <Typography.Text>{userProfileData?.phoneNumber}</Typography.Text>
                 </Row>
               </div>
             </Col>
             <Col span={6}>
               <Card style={{ height: 400, width: 600 }} title={PROFILE_DETAILS}>
                 <Row>
-                  <Typography.Text strong>UDID</Typography.Text>
-                  <Typography.Text>: {UserDID}</Typography.Text>
+                  <Typography.Text strong>UDID:</Typography.Text>
+                  <Typography.Text>{userDID || userProfileData?.id}</Typography.Text>
                 </Row>
                 <Row>
                   <Typography.Text strong>Address</Typography.Text>
-                  <Typography.Text>: College Road</Typography.Text>
+                  <Typography.Text>: {userProfileData?.address}</Typography.Text>
                 </Row>
                 <Row>
                   <Typography.Text strong>Adhaar Number</Typography.Text>
-                  <Typography.Text style={{ marginRight: 10 }}>: 7008714710</Typography.Text>
+                  <Typography.Text style={{ marginRight: 10 }}>
+                    : {userProfileData?.adhar}
+                  </Typography.Text>
                   <UploadDoc />
                 </Row>
                 <Row>
                   <Typography.Text strong>PAN</Typography.Text>
-                  <Typography.Text style={{ marginRight: 10 }}>: 7008714710</Typography.Text>
+                  <Typography.Text style={{ marginRight: 10 }}>
+                    : {userProfileData?.PAN}
+                  </Typography.Text>
                   <UploadDoc />
                 </Row>
                 <Row>
-                  <Typography.Text strong>Age</Typography.Text>
-                  <Typography.Text>: 25</Typography.Text>
+                  <Typography.Text strong>DOB</Typography.Text>
+                  <Typography.Text>: {userProfileData?.dob}</Typography.Text>
                 </Row>
               </Card>
             </Col>
@@ -155,12 +186,12 @@ export function Profile() {
       <Modal onCancel={handleCancel} onOk={handleOk} open={openModal} title="Update Profile">
         <Form form={form} layout="vertical">
           <Form.Item
-            label="Age"
-            name="age"
+            label="DOB"
+            name="dob"
             required
             rules={[{ message: VALUE_REQUIRED, required: true }]}
           >
-            <Input placeholder="Age" style={{ color: "#868686" }} />
+            <Input placeholder="DOB" style={{ color: "#868686" }} />
           </Form.Item>
           <Form.Item
             label="Aadhar Number"
@@ -168,7 +199,7 @@ export function Profile() {
             required
             rules={[{ message: VALUE_REQUIRED, required: true }]}
           >
-            <Input placeholder="Aadhar Number" readOnly style={{ color: "#868686" }} />
+            <Input placeholder="Aadhar Number" style={{ color: "#868686" }} />
           </Form.Item>
           <Form.Item
             label="PAN"
@@ -176,15 +207,19 @@ export function Profile() {
             required
             rules={[{ message: VALUE_REQUIRED, required: true }]}
           >
-            <Input placeholder="PAN" readOnly style={{ color: "#868686" }} />
+            <Input placeholder="PAN" style={{ color: "#868686" }} />
           </Form.Item>
           <Form.Item
-            label="Request- Type"
+            label="User Type"
             name="request"
             required
             rules={[{ message: VALUE_REQUIRED, required: true }]}
           >
-            <Input placeholder="Request Type" readOnly style={{ color: "#868686" }} />
+            <Input
+              defaultValue={userType}
+              placeholder="Request Type"
+              style={{ color: "#868686" }}
+            />
           </Form.Item>
           {userType !== "Individual" && (
             <Form.Item
@@ -193,7 +228,7 @@ export function Profile() {
               required
               rules={[{ message: VALUE_REQUIRED, required: true }]}
             >
-              <Input placeholder="Owner" readOnly style={{ color: "#868686" }} />
+              <Input placeholder="Owner" style={{ color: "#868686" }} />
             </Form.Item>
           )}
           {userType !== "Individual" && (
@@ -203,7 +238,7 @@ export function Profile() {
               required
               rules={[{ message: VALUE_REQUIRED, required: true }]}
             >
-              <Input placeholder="GSTIN" readOnly style={{ color: "#868686" }} />
+              <Input placeholder="GSTIN" style={{ color: "#868686" }} />
             </Form.Item>
           )}
           <Form.Item
@@ -212,7 +247,7 @@ export function Profile() {
             required
             rules={[{ message: VALUE_REQUIRED, required: true }]}
           >
-            <Input placeholder="Address" readOnly required style={{ color: "#868686" }} />
+            <Input placeholder="Address" required style={{ color: "#868686" }} />
           </Form.Item>
           <Form.Item
             label="Mobile Number"
@@ -220,7 +255,7 @@ export function Profile() {
             required
             rules={[{ message: VALUE_REQUIRED, required: true }]}
           >
-            <Input placeholder="Mobile Number" readOnly style={{ color: "#868686" }} />
+            <Input placeholder="Mobile Number" style={{ color: "#868686" }} />
           </Form.Item>
         </Form>
       </Modal>

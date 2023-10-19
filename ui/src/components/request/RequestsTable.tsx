@@ -17,7 +17,6 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
-import { useUserContext } from "src/contexts/UserDetails";
 import { AppError } from "src/domain";
 import { Request } from "src/domain/request";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -38,7 +37,8 @@ import { formatDate } from "src/utils/forms";
 
 export function RequestsTable() {
   const env = useEnvContext();
-  const { UserDID } = useUserContext();
+  // const { userDID } = useUserContext();
+  const userDID = localStorage.getItem("userId");
 
   const User = localStorage.getItem("user");
 
@@ -335,7 +335,7 @@ export function RequestsTable() {
       const response = await getRequests({
         env,
         params: {
-          query: User === "verifier" || User === "issuer" ? queryParam || undefined : UserDID,
+          query: User === "verifier" || User === "issuer" ? queryParam || undefined : userDID,
           status: requestStatus,
         },
         signal,
@@ -352,7 +352,7 @@ export function RequestsTable() {
         }
       }
     },
-    [env, queryParam, requestStatus, User, UserDID]
+    [env, queryParam, requestStatus, User, userDID]
   );
 
   const onSearch = useCallback(

@@ -4,23 +4,34 @@ import { Response, buildErrorResponse, buildSuccessResponse } from "..";
 import { datetimeParser, getStrictParser } from "../parsers";
 import { buildAuthorizationHeader } from ".";
 import { Env } from "src/domain";
-import { Login, UserDetails } from "src/domain/user";
+import { Login, UserDetails, UserResponse, userProfile } from "src/domain/user";
 import { API_VERSION } from "src/utils/constants";
+import { List } from "src/utils/types";
 
 export const userParser = getStrictParser<UserDetails, UserDetails>()(
   z.object({
     address: z.string(),
     adhar: z.string(),
     createdAt: datetimeParser,
+    dob: z.string(),
     documentationSource: z.string(),
     gmail: z.string(),
     gstin: z.string(),
     id: z.string(),
+    iscompleted: z.boolean(),
     name: z.string(),
     owner: z.string(),
     PAN: z.string(),
+    phoneNumber: z.string(),
     username: z.string(),
     userType: z.string(),
+  })
+);
+
+export const userResponseParser = getStrictParser<UserResponse, UserResponse>()(
+  z.object({
+    msg: z.string(),
+    status: z.boolean(),
   })
 );
 
@@ -89,15 +100,15 @@ export async function login({
 
 export async function updateUser({
   env,
-  UserDID,
+  updatePayload,
 }: {
-  UserDID: string;
   env: Env;
-}): Promise<Response<UserDetails>> {
+  updatePayload: userProfile;
+}): Promise<Response<UserResponse>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
-      data: { UserDID },
+      data: updatePayload,
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -105,7 +116,7 @@ export async function updateUser({
       url: `${API_VERSION}/updateUser`,
     });
 
-    return buildSuccessResponse(userParser.parse(response.data));
+    return buildSuccessResponse(userResponseParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -113,11 +124,13 @@ export async function updateUser({
 
 export async function getUser({
   env,
-  UserDID,
+  signal,
+  userDID,
 }: {
-  UserDID: string;
   env: Env;
-}): Promise<Response<UserDetails>> {
+  signal?: AbortSignal;
+  userDID: string;
+}): Promise<Response<List<UserDetails>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -125,10 +138,8 @@ export async function getUser({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      params: {
-        query: UserDID,
-      },
-      url: `${API_VERSION}/getUser`,
+      signal,
+      url: `${API_VERSION}/getUser/${userDID}`,
     });
 
     return buildSuccessResponse(userParser.parse(response.data));

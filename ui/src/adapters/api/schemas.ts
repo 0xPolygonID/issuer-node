@@ -141,7 +141,13 @@ export const processUrl = (url: string, env: Env): Response<string> => {
   }
 };
 
-export async function getAllSchema({ env }: { env: Env }): Promise<Response<List<ApiSchema>>> {
+export async function getAllSchema({
+  env,
+  signal,
+}: {
+  env: Env;
+  signal?: AbortSignal;
+}): Promise<Response<List<ApiSchema>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -149,6 +155,7 @@ export async function getAllSchema({ env }: { env: Env }): Promise<Response<List
         Authorization: buildAuthorizationHeader(env),
       },
       method: "GET",
+      signal,
       url: `${API_VERSION}/schemas`,
     });
     return buildSuccessResponse(

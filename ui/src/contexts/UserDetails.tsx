@@ -6,7 +6,7 @@ export const UserDetailsContext = createContext<UserContext>({
   fullName: "",
   gmail: "",
   password: "",
-  UserDID: "",
+  userDID: "",
   username: "",
   userType: "",
   // setUserDetails: () => {},
@@ -17,7 +17,7 @@ export function UserDetailsProvider(props: PropsWithChildren) {
     fullName: "",
     gmail: "",
     password: "",
-    UserDID: "",
+    userDID: "",
     username: "",
     userType: "",
   });
@@ -27,16 +27,23 @@ export function UserDetailsProvider(props: PropsWithChildren) {
     gmail: userDetails.gmail,
     password: userDetails.password,
     setUserDetails: (
-      password: string,
-      UserDID: string,
       username: string,
+      password: string,
+      userDID: string,
       fullName: string,
       gmail: string,
       userType: string
     ): void => {
-      setUserDetails({ fullName, gmail, password, UserDID, username, userType });
+      setUserDetails({
+        fullName,
+        gmail,
+        password,
+        userDID,
+        username,
+        userType,
+      });
     },
-    UserDID: userDetails.UserDID,
+    userDID: userDetails.userDID,
     username: userDetails.username,
     userType: userDetails.userType,
   };
