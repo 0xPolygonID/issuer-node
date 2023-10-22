@@ -20,12 +20,8 @@ import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 
 import { useEnvContext } from "src/contexts/Env";
 import { useUserContext } from "src/contexts/UserDetails";
-import { AppError } from "src/domain";
 import { FormValue, UserDetails } from "src/domain/user";
-import { AsyncTask } from "src/utils/async";
-import { isAbortedError } from "src/utils/browser";
 import { PROFILE, PROFILE_DETAILS, VALUE_REQUIRED } from "src/utils/constants";
-import { notifyParseErrors } from "src/utils/error";
 
 export function Profile() {
   const { fullName, gmail, userDID, userType } = useUserContext();
@@ -33,9 +29,7 @@ export function Profile() {
   console.log(userDID);
 
   const [openModal, setOpenModal] = useState<boolean>(false);
-  const [userProfileData, setUserProfileData] = useState<AsyncTask<UserDetails[], AppError>>({
-    status: "pending",
-  });
+  const [userProfileData, setUserProfileData] = useState<UserDetails>();
   const env = useEnvContext();
   const src = "https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png";
   const [messageAPI, messageContext] = message.useMessage();
@@ -94,19 +88,9 @@ export function Profile() {
           env,
           userDID,
         });
-        if (response.success) {
-          setUserProfileData({
-            data: response.data.successful,
-            status: "successful",
-          });
-          notifyParseErrors(response.data.failed);
-        } else {
-          if (!isAbortedError(response.error)) {
-            setUserProfileData({ error: response.error, status: "failed" });
-          }
-        }
-
-        // setUserProfileData(response.data);
+        /* eslint-disable */
+        setUserProfileData(response.data);
+        /* eslint-enable */
       };
       getUserDetails().catch((e) => {
         console.error("An error occurred:", e);

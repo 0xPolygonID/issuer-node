@@ -22,6 +22,7 @@ export const ISSUE_CREDENTIAL = "Issue credential";
 export const ISSUE_REQUEST = "My Requests";
 export const ALL_REQUEST = "All Requests";
 export const REQUEST_FOR_VC_CREDS = "Request for VC verification";
+export const REQUEST_FOR_NEW_VC = "Request for  New VC";
 export const REQUEST_FOR_VC = "Request for VC";
 export const ISSUE_CREDENTIAL_DIRECT = "Issue credential directly";
 export const ISSUE_CREDENTIAL_LINK = "Create credential link";

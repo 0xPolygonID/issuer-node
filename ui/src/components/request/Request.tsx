@@ -8,7 +8,7 @@ import { ROUTES } from "src/routes";
 import {
   ISSUE_CREDENTIAL,
   REQUESTS,
-  REQUEST_FOR_VC,
+  REQUEST_FOR_NEW_VC,
   REQUEST_FOR_VC_CREDS,
 } from "src/utils/constants";
 
@@ -27,7 +27,7 @@ export function Request() {
             onClick={() => navigate(generatePath(ROUTES.createRequest.path))}
             type="primary"
           >
-            {REQUEST_FOR_VC}
+            {REQUEST_FOR_NEW_VC}
           </Button>
         )
       }

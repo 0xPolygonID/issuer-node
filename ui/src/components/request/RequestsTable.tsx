@@ -107,11 +107,11 @@ export function RequestsTable() {
         title: "Request Type",
       },
       {
-        dataIndex: "Active",
+        dataIndex: "request_status",
         key: "status",
-        render: (status: Request["status"]) => (
+        render: (status: Request["request_status"]) => (
           <Tooltip placement="topLeft" title={status}>
-            <Typography.Text strong>{status ? "Active" : "-"}</Typography.Text>
+            <Typography.Text strong>{status}</Typography.Text>
           </Tooltip>
         ),
         title: "Status",
@@ -131,50 +131,66 @@ export function RequestsTable() {
         render: (id: Request["id"], request: Request) => (
           <Dropdown
             menu={{
-              items: [
-                // {
-                //   icon: <IconInfoCircle />,
-                //   key: "details",
-                //   label: DETAILS,
-                //   onClick: () =>
-                //     navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-                // },
-                {
-                  key: "divider1",
-                  type: "divider",
-                },
-                {
-                  disabled: request.Active,
-                  icon: <IconInfoCircle />,
-                  key: "verify",
-                  label: VERIFY_IDENTITY,
-                },
-                {
-                  icon: <IconInfoCircle />,
-                  key: "issue",
-                  label: ISSUE_CREDENTIAL,
-                  onClick: () => setIssueCredentialForRequest(request),
-                },
-                {
-                  danger: true,
-                  disabled: request.Active,
-                  icon: <IconClose />,
-                  key: "revoke",
-                  label: REVOKE,
-                  onClick: () => setRequestToRevoke(request),
-                },
-                {
-                  key: "divider2",
-                  type: "divider",
-                },
-                {
-                  danger: true,
-                  icon: <IconTrash />,
-                  key: "delete",
-                  label: DELETE,
-                  onClick: () => setRequestToDelete(request),
-                },
-              ],
+              items:
+                User === "issuer"
+                  ? [
+                      // {
+                      //   icon: <IconInfoCircle />,
+                      //   key: "details",
+                      //   label: DETAILS,
+                      //   onClick: () =>
+                      //     navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                      // },
+                      // {
+                      //   key: "divider1",
+                      //   type: "divider",
+                      // },
+                      {
+                        disabled: request.Active,
+                        icon: <IconInfoCircle />,
+                        key: "verify",
+                        label: VERIFY_IDENTITY,
+                      },
+                      {
+                        icon: <IconInfoCircle />,
+                        key: "issue",
+                        label: ISSUE_CREDENTIAL,
+                        onClick: () => setIssueCredentialForRequest(request),
+                      },
+                      {
+                        danger: true,
+                        disabled: request.Active,
+                        icon: <IconClose />,
+                        key: "revoke",
+                        label: REVOKE,
+                        onClick: () => setRequestToRevoke(request),
+                      },
+                      {
+                        key: "divider2",
+                        type: "divider",
+                      },
+                      {
+                        danger: true,
+                        icon: <IconTrash />,
+                        key: "delete",
+                        label: DELETE,
+                        onClick: () => setRequestToDelete(request),
+                      },
+                    ]
+                  : [
+                      {
+                        icon: <IconInfoCircle />,
+                        key: "verify",
+                        label: VERIFY_IDENTITY,
+                      },
+                      {
+                        danger: true,
+                        icon: <IconTrash />,
+                        key: "delete",
+                        label: DELETE,
+                        onClick: () => setRequestToDelete(request),
+                      },
+                    ],
             }}
           >
             <Row>

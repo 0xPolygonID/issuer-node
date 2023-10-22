@@ -40,6 +40,11 @@ export type FormValue = {
   owner: string;
   request: string;
 };
+export type FormData = {
+  adhaarID: string;
+  age: string;
+  schemaID: string;
+};
 
 export type Login = {
   fullName: string;

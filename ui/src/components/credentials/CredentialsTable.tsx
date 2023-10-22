@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
+import { VerifyCredentialUser } from "../shared/VerifyCredentialUser";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -42,6 +43,7 @@ import {
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
   QUERY_SEARCH_PARAM,
+  REQUEST_FOR_VC,
   REVOCATION,
   REVOKE,
   REVOKE_DATE,
@@ -57,17 +59,20 @@ export function CredentialsTable() {
   const navigate = useNavigate();
 
   const User = localStorage.getItem("user");
+  const UserDID = localStorage.getItem("userId");
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
   });
   const [credentialToDelete, setCredentialToDelete] = useState<Credential>();
   const [credentialToRevoke, setCredentialToRevoke] = useState<Credential>();
+  const [verifyCredentialForRequest, setVerifyCredentialForRequest] = useState<Credential>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
@@ -167,48 +172,60 @@ export function CredentialsTable() {
         render: (id: Credential["id"], credential: Credential) => (
           <Dropdown
             menu={{
-              items: [
-                {
-                  icon: <IconInfoCircle />,
-                  key: "details",
-                  label: DETAILS,
-                  onClick: () =>
-                    navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
-                },
-                {
-                  key: "divider1",
-                  type: "divider",
-                },
-                // {
-                //   icon: <IconInfoCircle />,
-                //   key: "details",
-                //   label: VERIFY_IDENTITY,
-                // },
-                // {
-                //   icon: <IconInfoCircle />,
-                //   key: "details",
-                //   label: ISSUE_CREDENTIAL,
-                // },
-                {
-                  danger: true,
-                  disabled: credential.revoked,
-                  icon: <IconClose />,
-                  key: "revoke",
-                  label: REVOKE,
-                  onClick: () => setCredentialToRevoke(credential),
-                },
-                {
-                  key: "divider2",
-                  type: "divider",
-                },
-                {
-                  danger: true,
-                  icon: <IconTrash />,
-                  key: "delete",
-                  label: DELETE,
-                  onClick: () => setCredentialToDelete(credential),
-                },
-              ],
+              items:
+                User === "verifier"
+                  ? [
+                      {
+                        icon: <IconInfoCircle />,
+                        key: "details",
+                        label: REQUEST_FOR_VC,
+                        onClick: () => setVerifyCredentialForRequest(credential),
+                      },
+                    ]
+                  : [
+                      {
+                        icon: <IconInfoCircle />,
+                        key: "details",
+                        label: DETAILS,
+                        onClick: () =>
+                          navigate(
+                            generatePath(ROUTES.credentialDetails.path, { credentialID: id })
+                          ),
+                      },
+                      {
+                        key: "divider1",
+                        type: "divider",
+                      },
+                      // {
+                      //   icon: <IconInfoCircle />,
+                      //   key: "details",
+                      //   label: VERIFY_IDENTITY,
+                      // },
+                      // {
+                      //   icon: <IconInfoCircle />,
+                      //   key: "details",
+                      //   label: ISSUE_CREDENTIAL,
+                      // },
+                      {
+                        danger: true,
+                        disabled: credential.revoked,
+                        icon: <IconClose />,
+                        key: "revoke",
+                        label: REVOKE,
+                        onClick: () => setCredentialToRevoke(credential),
+                      },
+                      {
+                        key: "divider2",
+                        type: "divider",
+                      },
+                      {
+                        danger: true,
+                        icon: <IconTrash />,
+                        key: "delete",
+                        label: DELETE,
+                        onClick: () => setCredentialToDelete(credential),
+                      },
+                    ],
             }}
           >
             <Row>
@@ -353,7 +370,7 @@ export function CredentialsTable() {
       const response = await getCredentials({
         env,
         params: {
-          query: queryParam || undefined,
+          query: User === "issuer" || User === "verifier" ? queryParam || undefined : UserDID,
           status: credentialStatus,
         },
         signal,
@@ -371,7 +388,7 @@ export function CredentialsTable() {
         }
       }
     },
-    [env, queryParam, credentialStatus]
+    [env, queryParam, credentialStatus, User, UserDID]
   );
 
   const onSearch = useCallback(
@@ -444,29 +461,33 @@ export function CredentialsTable() {
         searchPlaceholder="Search credentials, attributes, identifiers..."
         showDefaultContents={showDefaultContent}
         table={
-          <Table
-            columns={tableColumns.map(({ title, ...column }) => ({
-              title: (
-                <Typography.Text type="secondary">
-                  <>{title}</>
-                </Typography.Text>
-              ),
-              ...column,
-            }))}
-            dataSource={credentialsList}
-            locale={{
-              emptyText:
-                credentials.status === "failed" ? (
-                  <ErrorResult error={credentials.error.message} />
-                ) : (
-                  <NoResults searchQuery={queryParam} />
+          User !== "verifier" || queryParam ? (
+            <Table
+              columns={tableColumns.map(({ title, ...column }) => ({
+                title: (
+                  <Typography.Text type="secondary">
+                    <>{title}</>
+                  </Typography.Text>
                 ),
-            }}
-            pagination={false}
-            rowKey="id"
-            showSorterTooltip
-            sortDirections={["ascend", "descend"]}
-          />
+                ...column,
+              }))}
+              dataSource={credentialsList}
+              locale={{
+                emptyText:
+                  credentials.status === "failed" ? (
+                    <ErrorResult error={credentials.error.message} />
+                  ) : (
+                    <NoResults searchQuery={queryParam} />
+                  ),
+              }}
+              pagination={false}
+              rowKey="id"
+              showSorterTooltip
+              sortDirections={["ascend", "descend"]}
+            />
+          ) : (
+            <Table />
+          )
         }
         title={
           <Row gutter={[0, 8]} justify="space-between">
@@ -500,6 +521,12 @@ export function CredentialsTable() {
           credential={credentialToRevoke}
           onClose={() => setCredentialToRevoke(undefined)}
           onRevoke={() => void fetchCredentials()}
+        />
+      )}
+      {verifyCredentialForRequest && (
+        <VerifyCredentialUser
+          credential={verifyCredentialForRequest}
+          onClose={() => setVerifyCredentialForRequest(undefined)}
         />
       )}
     </>

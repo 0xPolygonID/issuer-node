@@ -44,6 +44,7 @@ export const Login = () => {
         console.error("An error occurred:", error);
       }
     } else {
+      localStorage.setItem("profile", "true");
       localStorage.setItem("user", values.username);
       navigate(generatePath(ROUTES.request.path));
     }

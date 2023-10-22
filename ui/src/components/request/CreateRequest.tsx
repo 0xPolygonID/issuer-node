@@ -10,7 +10,7 @@ import { useEnvContext } from "src/contexts/Env";
 import { useUserContext } from "src/contexts/UserDetails";
 import { AppError } from "src/domain";
 import { Schema } from "src/domain/schema";
-import { FormValue, UserDetails } from "src/domain/user";
+import { FormData, UserDetails } from "src/domain/user";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError } from "src/utils/browser";
@@ -32,8 +32,7 @@ export function CreateRequest() {
   const { userDID } = useUserContext();
   // const userDID = localStorage.getItem("userId");
   const schemaList = isAsyncTaskDataAvailable(schemaData) ? schemaData.data : [];
-  const profileList = isAsyncTaskDataAvailable(userProfileData) ? userProfileData.data : [];
-
+  const profileList = isAsyncTaskDataAvailable(userProfileData) ? [userProfileData.data] : [];
   useEffect(() => {
     const getSchemas = async () => {
       const response = await getAllSchema({
@@ -63,9 +62,10 @@ export function CreateRequest() {
           env,
           userDID,
         });
+
         if (response.success) {
           setUserProfileData({
-            data: response.data.successful,
+            data: response.data,
             status: "successful",
           });
           notifyParseErrors(response.data.failed);
@@ -74,7 +74,7 @@ export function CreateRequest() {
             setUserProfileData({ error: response.error, status: "failed" });
           }
         }
-        // setUserProfileData(response.data.successful);
+        // setUserProfileData(response.data);
       } catch (e) {
         console.error("An error occurred:", e);
       }
@@ -84,15 +84,13 @@ export function CreateRequest() {
     });
   }, [env, userDID]);
 
-  const handleFormSubmit = async (values: FormValue) => {
-    console.log("-----------", schemaList);
-
-    const schema = schemaList.find((item) => item.type === values.request);
+  const handleFormSubmit = async (values: FormData) => {
+    const schema = schemaList.find((item) => item.type === values.schemaID);
     console.log(values);
 
     const payload = {
-      Age: values.Age,
-      ProofId: values.Aadhar,
+      Age: values.age,
+      ProofId: values.adhaarID,
       ProofType: "Adhar",
       RequestType: "GenerateNewVC",
       RoleType: "Individual",
@@ -145,7 +143,9 @@ export function CreateRequest() {
                   name="adhaarID"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input defaultValue={profileList[0]?.adhar} placeholder="Adhaar Number" />
+                  {/* eslint-disable */}
+                  <Input defaultValue={profileList?.[0]?.adhar} placeholder="Adhaar Number" />
+                  {/* eslint-enable */}
                 </Form.Item>
               </div>
             )}
@@ -156,7 +156,9 @@ export function CreateRequest() {
                   name="panID"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input defaultValue={profileList[0]?.PAN} placeholder="PAN" />
+                  {/* eslint-disable */}
+                  <Input defaultValue={profileList?.[0]?.PAN} placeholder="PAN" />
+                  {/* eslint-enable */}
                 </Form.Item>
               </div>
             )}
@@ -186,7 +188,9 @@ export function CreateRequest() {
                   name="gstin"
                   rules={[{ message: VALUE_REQUIRED, required: true }]}
                 >
-                  <Input defaultValue={profileList[0]?.gstin} placeholder="GSTIN" />
+                  {/* eslint-disable */}
+                  <Input defaultValue={profileList?.[0]?.gstin} placeholder="GSTIN" />
+                  {/* eslint-enable */}
                 </Form.Item>
               </div>
             )}
