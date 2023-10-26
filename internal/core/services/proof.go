@@ -8,9 +8,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/google/uuid"
-	"github.com/iden3/contracts-abi/state/go/abi"
 	"github.com/iden3/go-circuits/v2"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -54,13 +52,13 @@ type Proof struct {
 	claimsRepository ports.ClaimsRepository
 	keyProvider      *kms.KMS
 	storage          *db.Storage
-	stateContract    *abi.State
+	stateService     ports.StateService
 	schemaLoader     loader.DocumentLoader
 	merklizeOptions  []merklize.MerklizeOption
 }
 
 // NewProofService init proof service
-func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateContract *abi.State, ld ld.DocumentLoader) ports.ProofService {
+func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.RevocationService, identitySrv ports.IdentityService, mtService ports.MtService, claimsRepository ports.ClaimsRepository, keyProvider *kms.KMS, storage *db.Storage, stateService ports.StateService, ld ld.DocumentLoader) ports.ProofService {
 	merklizeOptions := []merklize.MerklizeOption{
 		merklize.WithDocumentLoader(ld),
 	}
@@ -72,7 +70,7 @@ func NewProofService(claimSrv ports.ClaimsService, revocationSrv ports.Revocatio
 		claimsRepository: claimsRepository,
 		keyProvider:      keyProvider,
 		storage:          storage,
-		stateContract:    stateContract,
+		stateService:     stateService,
 		schemaLoader:     ld,
 		merklizeOptions:  merklizeOptions,
 	}
@@ -315,7 +313,12 @@ func (p *Proof) checkRevocationStatus(ctx context.Context, claim *domain.Claim) 
 		return nil, err
 	}
 
-	claimRs, err = p.revocationSrv.Status(ctx, cs, issuerDID)
+	sigProof, err := claim.GetBJJSignatureProof2021()
+	if err != nil {
+		return nil, err
+	}
+
+	claimRs, err = p.revocationSrv.Status(ctx, cs, issuerDID, &sigProof.IssuerData)
 	if err != nil && errors.Is(err, protocol.ErrStateNotFound) {
 
 		bjp := new(verifiable.BJJSignatureProof2021)
@@ -495,7 +498,7 @@ func (p *Proof) prepareNonMerklizedQuery(ctx context.Context, jsonSchemaURL stri
 }
 
 func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.IssuerData, issuerDID *w3c.DID) (circuits.MTProof, error) {
-	nonRevProof, err := p.revocationSrv.Status(ctx, issuerData.CredentialStatus, issuerDID)
+	nonRevProof, err := p.revocationSrv.Status(ctx, issuerData.CredentialStatus, issuerDID, &issuerData)
 
 	if err != nil && errors.Is(err, protocol.ErrStateNotFound) {
 		state, errIn := merkletree.NewHashFromHex(*issuerData.State.Value)
@@ -547,7 +550,7 @@ func (p *Proof) prepareAuthV2Circuit(ctx context.Context, identifier *w3c.DID, c
 	if err != nil {
 		return circuits.AuthV2Inputs{}, err
 	}
-	globalTree, err := populateGlobalTree(ctx, *identifier, p.stateContract)
+	globalTree, err := populateGlobalTree(ctx, identifier, p.stateService)
 	if err != nil {
 		return circuits.AuthV2Inputs{}, err
 	}
@@ -649,61 +652,36 @@ func prepareAuthV2CircuitInputs(id core.ID, authClaim circuits.ClaimWithMTPProof
 	}
 }
 
-func populateGlobalTree(ctx context.Context, did w3c.DID, contract *abi.State) (circuits.GISTProof, error) {
+func populateGlobalTree(ctx context.Context, did *w3c.DID, stateService ports.StateService) (circuits.GISTProof, error) {
 	// get global root
-	id, err := core.IDFromDID(did)
-	if err != nil {
-		return circuits.GISTProof{}, err
-	}
-	globalProof, err := contract.GetGISTProof(&bind.CallOpts{Context: ctx}, id.BigInt())
+	gProof, err := stateService.GetGistProof(ctx, did)
 	if err != nil {
 		return circuits.GISTProof{}, err
 	}
 
-	return toMerkleTreeProof(globalProof)
-}
-
-func toMerkleTreeProof(smtProof abi.IStateGistProof) (circuits.GISTProof, error) {
-	var existence bool
-	var nodeAux *merkletree.NodeAux
-	var err error
-
-	if smtProof.Existence {
-		existence = true
-	} else {
-		existence = false
-		if smtProof.AuxExistence {
-			nodeAux = &merkletree.NodeAux{}
-			nodeAux.Key, err = merkletree.NewHashFromBigInt(smtProof.AuxIndex)
-			if err != nil {
-				return circuits.GISTProof{}, err
-			}
-			nodeAux.Value, err = merkletree.NewHashFromBigInt(smtProof.AuxValue)
-			if err != nil {
-				return circuits.GISTProof{}, err
-			}
-		}
+	siblings := make([]*big.Int, len(gProof.Siblings))
+	for i, s := range &gProof.Siblings {
+		siblings[i] = s
 	}
 
-	allSiblings := make([]*merkletree.Hash, len(smtProof.Siblings))
-	for i, s := range smtProof.Siblings {
-		sh, err2 := merkletree.NewHashFromBigInt(s)
-		if err2 != nil {
-			return circuits.GISTProof{}, err
-		}
-		allSiblings[i] = sh
-	}
-
-	proof, err := merkletree.NewProofFromData(existence, allSiblings, nodeAux)
+	proof, err := common.SmartContractProofToMtProofAdapter(common.SmartContractProof{
+		Root:         gProof.Root,
+		Existence:    gProof.Existence,
+		Siblings:     siblings,
+		Index:        gProof.Index,
+		Value:        gProof.Value,
+		AuxExistence: gProof.AuxExistence,
+		AuxIndex:     gProof.AuxIndex,
+		AuxValue:     gProof.AuxValue,
+	})
 	if err != nil {
 		return circuits.GISTProof{}, err
 	}
 
-	root, err := merkletree.NewHashFromBigInt(smtProof.Root)
+	root, err := merkletree.NewHashFromBigInt(gProof.Root)
 	if err != nil {
 		return circuits.GISTProof{}, err
 	}
-
 	return circuits.GISTProof{
 		Root:  root,
 		Proof: proof,

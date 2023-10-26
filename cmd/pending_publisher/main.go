@@ -134,24 +134,7 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	qrService := services.NewQrStoreService(cachex)
 
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-
-	// TODO: Review this
-	revocationSettings := services.CredentialRevocationSettings{
-		RHSEnabled:        cfg.ReverseHashService.Enabled,
-		RHSUrl:            cfg.ReverseHashService.URL,
-		Host:              cfg.ServerUrl,
-		AgentIden3Enabled: false,
-		AgentIden3URL:     "",
-	}
-
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), revocationSettings)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, services.CredentialRevocationSettings{
-		RHSEnabled: cfg.ReverseHashService.Enabled,
-		RHSUrl:     cfg.ReverseHashService.URL,
-		Host:       cfg.ServerUrl,
-	}, ps, cfg.IPFS.GatewayURL)
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {
@@ -169,6 +152,12 @@ func main() {
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
 	}, keyStore)
+
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), cl, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+
+	cfg.CredentialStatus.SingleIssuer = true
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := initProofService(ctx, cfg, circuitsLoaderService)

@@ -222,3 +222,13 @@ func NewClaimModel(jsonSchemaURL string, credentialType string, coreClaim core.C
 
 	return &claimModel, nil
 }
+
+// GetCredentialStatus returns CredentialStatus deserialized object
+func (c *Claim) GetCredentialStatus() (*verifiable.CredentialStatus, error) {
+	cStatus := new(verifiable.CredentialStatus)
+	err := c.CredentialStatus.AssignTo(cStatus)
+	if err != nil {
+		return nil, err
+	}
+	return cStatus, nil
+}

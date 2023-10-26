@@ -16,7 +16,8 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
-	github.com/iden3/contracts-abi/state/go/abi v1.0.1
+	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
+	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
 	github.com/iden3/go-circuits/v2 v2.0.0
 	github.com/iden3/go-iden3-auth/v2 v2.0.0-beta.2
 	github.com/iden3/go-iden3-core/v2 v2.0.0
@@ -31,7 +32,7 @@ require (
 	github.com/iden3/go-schema-processor v1.3.1
 	github.com/iden3/go-schema-processor/v2 v2.0.1
 	github.com/iden3/iden3comm/v2 v2.0.0
-	github.com/iden3/merkletree-proof v0.0.3
+	github.com/iden3/merkletree-proof v0.0.4-0.20231013133246-b86ffb9aa70f
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.1
 	github.com/jackc/pgtype v1.14.0
@@ -166,6 +167,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
+	github.com/iden3/contracts-abi/rhs-storage/go/abi v0.0.0-20231006141557-7d13ef7e3c48 // indirect
 	github.com/iden3/go-iden3-core v1.0.2 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.5 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

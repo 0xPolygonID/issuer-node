@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	commonEth "github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,17 +32,13 @@ func Test_link_issueClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	schemaRepository := repositories.NewSchema(*storage)
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	claimsConf := services.CredentialRevocationSettings{
-		RHSEnabled: false,
-		Host:       "https://host.com",
-	}
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock(), claimsConf)
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory)
 	sessionRepository := repositories.NewSessionCached(cachex)
 	schemaService := services.NewSchema(schemaRepository, docLoader)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, claimsConf, pubsub.NewMock(), ipfsGateway)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGateway)
 
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	assert.NoError(t, err)
@@ -69,7 +67,7 @@ func Test_link_issueClaim(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schemaUrl, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
+	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schemaUrl, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)

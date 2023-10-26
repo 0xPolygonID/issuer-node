@@ -9,5 +9,5 @@ import (
 
 // RevocationService is the interface implemented by the RevocationService service
 type RevocationService interface {
-	Status(ctx context.Context, credStatus interface{}, issuerDID *w3c.DID) (*verifiable.RevocationStatus, error)
+	Status(ctx context.Context, credStatus interface{}, issuerDID *w3c.DID, issuerData *verifiable.IssuerData) (*verifiable.RevocationStatus, error)
 }

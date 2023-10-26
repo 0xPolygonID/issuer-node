@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	auth "github.com/iden3/go-iden3-auth/v2"
@@ -28,6 +29,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -70,32 +72,32 @@ type identity struct {
 	kms                     kms.KMSType
 	verifier                *auth.Verifier
 
-	ignoreRHSErrors bool
-	rhsPublisher    reverse_hash.RhsPublisher
-	pubsub          pubsub.Publisher
-	claimCfg        CredentialRevocationSettings
+	ignoreRHSErrors          bool
+	pubsub                   pubsub.Publisher
+	credentialStatusSettings config.CredentialStatus
+	rhsFactory               reverse_hash.Factory
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, claimCfg CredentialRevocationSettings) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory) ports.IdentityService {
 	return &identity{
-		identityRepository:      identityRepository,
-		imtRepository:           imtRepository,
-		identityStateRepository: identityStateRepository,
-		claimsRepository:        claimsRepository,
-		revocationRepository:    revocationRepository,
-		connectionsRepository:   connectionsRepository,
-		sessionManager:          sessionRepository,
-		storage:                 storage,
-		mtService:               mtservice,
-		qrService:               qrService,
-		kms:                     kms,
-		ignoreRHSErrors:         false,
-		rhsPublisher:            rhsPublisher,
-		verifier:                verifier,
-		pubsub:                  ps,
-		claimCfg:                claimCfg,
+		identityRepository:       identityRepository,
+		imtRepository:            imtRepository,
+		identityStateRepository:  identityStateRepository,
+		claimsRepository:         claimsRepository,
+		revocationRepository:     revocationRepository,
+		connectionsRepository:    connectionsRepository,
+		sessionManager:           sessionRepository,
+		storage:                  storage,
+		mtService:                mtservice,
+		qrService:                qrService,
+		kms:                      kms,
+		ignoreRHSErrors:          false,
+		verifier:                 verifier,
+		pubsub:                   ps,
+		credentialStatusSettings: credentialStatusSettings,
+		rhsFactory:               rhsFactory,
 	}
 }
 
@@ -355,16 +357,30 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error saving new identity state: %w", err)
 			}
 
-			err = i.rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
+			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+				Type: kms.KeyTypeEthereum,
+				ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+			})
 			if err != nil {
-				log.Error(ctx, "publishing hashes to RHS", "err", err)
-				if i.ignoreRHSErrors {
-					err = nil
-				} else {
-					return err
-				}
+				log.Error(ctx, "can't create RHS publisher", "err", err)
+				return fmt.Errorf("can't create RHS publisher: %w", err)
 			}
 
+			if len(rhsPublishers) >= 0 {
+				var errIn error
+				for _, rhsPublisher := range rhsPublishers {
+					errIn = rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
+					if err != nil {
+						log.Error(ctx, "publishing hashes to RHS", "err", err)
+						if i.ignoreRHSErrors {
+							errIn = nil
+						} else {
+							return errIn
+						}
+					}
+				}
+				err = errIn
+			}
 			return err
 		},
 	)
@@ -548,6 +564,7 @@ func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTree
 	return nil
 }
 
+// createEthIdentity - creates a new eth identity
 func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL string, didOptions *ports.DIDCreationOptions) (*w3c.DID, *big.Int, error) {
 	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
 	if err != nil {
@@ -601,7 +618,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthBJJCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -615,14 +632,16 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 	return did, identity.State.TreeState().State.BigInt(), nil
 }
 
+// createIdentity - creates a new identity
 func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string, didOptions *ports.DIDCreationOptions) (*w3c.DID, *big.Int, error) {
 	if didOptions == nil {
 		// nolint : it's a right assignment
 		didOptions = &ports.DIDCreationOptions{
-			Method:     core.DIDMethodIden3,
-			Blockchain: core.NoChain,
-			Network:    core.NoNetwork,
-			KeyType:    kms.KeyTypeBabyJubJub,
+			Method:                  core.DIDMethodIden3,
+			Blockchain:              core.NoChain,
+			Network:                 core.NoNetwork,
+			KeyType:                 kms.KeyTypeBabyJubJub,
+			AuthBJJCredentialStatus: verifiable.SparseMerkleTreeProof,
 		}
 	}
 
@@ -660,16 +679,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(
-		ctx,
-		did,
-		identity,
-		authClaim,
-		claimsTree,
-		pubKey,
-		hostURL,
-		true,
-	)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthBJJCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -684,21 +694,31 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	// TODO: Review this part
-	if i.rhsPublisher != nil {
-		err = i.rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
-			{
-				Hash: identity.State.TreeState().State,
-				Children: []*merkletree.Hash{
-					claimsTree.Root(),
-					&merkletree.HashZero,
-					&merkletree.HashZero,
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't create RHS publisher: %w", err)
+	}
+
+	if len(rhsPublishers) > 0 {
+		log.Info(ctx, "publishing state to RHS", "publishers", len(rhsPublishers))
+		for _, rhsPublisher := range rhsPublishers {
+			err := rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
+				{
+					Hash: identity.State.TreeState().State,
+					Children: []*merkletree.Hash{
+						claimsTree.Root(),
+						&merkletree.HashZero,
+						&merkletree.HashZero,
+					},
 				},
-			},
-		})
-		if err != nil {
-			log.Error(ctx, "publishing state to RHS", "err", err)
-			return nil, nil, err
+			})
+			if err != nil {
+				log.Error(ctx, "publishing state to RHS", "err", err)
+				return nil, nil, err
+			}
 		}
 	}
 
@@ -849,31 +869,93 @@ func (i *identity) GetFailedState(ctx context.Context, identifier w3c.DID) (*dom
 }
 
 // GetCredentialStatus - returns credential status
-func (i *identity) GetCredentialStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64, issuerState string) (*verifiable.CredentialStatus, error) {
-	if i.claimCfg.RHSEnabled {
+func (i *identity) GetCredentialStatus(_ context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, status verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
+	switch status {
+	case verifiable.Iden3ReverseSparseMerkleTreeProof:
 		return &verifiable.CredentialStatus{
-			ID:              buildRHSRevocationURL(i.claimCfg.RHSUrl, issuerState),
+			ID:              buildRHSRevocationURL(i.credentialStatusSettings.RHS.GetURL(), issuerState),
 			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
 			RevocationNonce: nonce,
 			StatusIssuer: &verifiable.CredentialStatus{
-				ID:              buildDirectRevocationURL(i.claimCfg.Host, issuerDID.String(), nonce),
+				ID:              buildDirectRevocationURL(i.credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, i.credentialStatusSettings.SingleIssuer),
 				Type:            verifiable.SparseMerkleTreeProof,
 				RevocationNonce: nonce,
 			},
 		}, nil
-	}
-	if i.claimCfg.AgentIden3Enabled {
+	case verifiable.Iden3commRevocationStatusV1:
+		return nil, errors.New("unsupported credential status type: Iden3commRevocationStatusV1")
+	case "", verifiable.SparseMerkleTreeProof:
 		return &verifiable.CredentialStatus{
-			ID:              i.claimCfg.AgentIden3URL,
-			Type:            verifiable.Iden3commRevocationStatusV1,
+			ID:              buildDirectRevocationURL(i.credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, i.credentialStatusSettings.SingleIssuer),
+			Type:            verifiable.SparseMerkleTreeProof,
 			RevocationNonce: nonce,
 		}, nil
+	case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
+		contractAddressHex := i.credentialStatusSettings.OnchainTreeStore.SupportedTreeStoreContract
+		return &verifiable.CredentialStatus{
+			ID:              buildIden3OnchainSMTProofURL(issuerDID, nonce, ethcommon.HexToAddress(contractAddressHex), i.credentialStatusSettings.OnchainTreeStore.ChainID, issuerState),
+			Type:            verifiable.Iden3OnchainSparseMerkleTreeProof2023,
+			RevocationNonce: nonce,
+		}, nil
+	default:
+		return nil, errors.New("unsupported credential status type")
 	}
-	return &verifiable.CredentialStatus{
-		ID:              buildDirectRevocationURL(i.claimCfg.Host, issuerDID.String(), nonce),
-		Type:            verifiable.SparseMerkleTreeProof,
-		RevocationNonce: nonce,
-	}, nil
+}
+
+func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error {
+	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *did)
+	if err != nil {
+		log.Error(ctx, "can't get identity", "err", err)
+		return err
+	}
+
+	if kms.KeyType(identity.KeyType) == kms.KeyTypeEthereum {
+		return errors.New("can't publish genesis state for the identity based on the ethereum key")
+	}
+
+	publishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+	})
+	if err != nil {
+		log.Error(ctx, "can't create RHS client", "err", err)
+		return err
+	}
+
+	if len(publishers) == 0 {
+		log.Error(ctx, "rhs client is not initialized")
+		return errors.New("rhs client is not initialized")
+	}
+
+	genesisState, err := i.identityStateRepository.GetGenesisState(ctx, i.storage.Pgx, did.String())
+	if err != nil {
+		log.Error(ctx, "can't get genesis state", "err", err)
+		return err
+	}
+
+	if genesisState == nil {
+		log.Error(ctx, "genesis state is not found")
+		return errors.New("genesis state is not found")
+	}
+
+	for _, publisher := range publishers {
+		err = publisher.PublishNodesToRHS(ctx, []mtproof.Node{
+			{
+				Hash: genesisState.TreeState().State,
+				Children: []*merkletree.Hash{
+					genesisState.TreeState().ClaimsRoot,
+					genesisState.TreeState().RevocationRoot,
+					genesisState.TreeState().RootOfRoots,
+				},
+			},
+		})
+		if err != nil {
+			log.Error(ctx, "publishing genesis state to RHS", "err", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (i *identity) addGenesisClaimsToTree(ctx context.Context,
@@ -938,7 +1020,7 @@ func (i *identity) addGenesisClaimsToTree(ctx context.Context,
 	return identity, did, nil
 }
 
-func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, hostURL string, isAuthInGenesis bool) (*domain.Claim, error) {
+func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, hostURL string, status verifiable.CredentialStatusType, isAuthInGenesis bool) (*domain.Claim, error) {
 	authClaimData := make(map[string]interface{})
 	authClaimData["x"] = pubKey.X.String()
 	authClaimData["y"] = pubKey.Y.String()
@@ -976,7 +1058,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 	}
 
 	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
-	cs, err := i.GetCredentialStatus(ctx, *did, revNonce, *identity.State.State)
+	cs, err := i.GetCredentialStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
 		return nil, err
@@ -1079,9 +1161,13 @@ func buildRHSRevocationURL(host, issuerState string) string {
 	return fmt.Sprintf("%s/node?state=%s", host, issuerState)
 }
 
-func buildDirectRevocationURL(host, issuerDID string, nonce uint64) string {
-	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
-		host, url.QueryEscape(issuerDID), nonce)
+func buildDirectRevocationURL(host, issuerDID string, nonce uint64, singleIssuer bool) string {
+	if singleIssuer {
+		return fmt.Sprintf("%s/v1/credentials/revocation/status/%d",
+			host, nonce)
+	}
+
+	return fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d", host, url.QueryEscape(issuerDID), nonce)
 }
 
 func ethPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
@@ -1090,4 +1176,8 @@ func ethPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
 		return nil, err
 	}
 	return kms.DecodeETHPubKey(keyBytes)
+}
+
+func buildIden3OnchainSMTProofURL(issuerDID w3c.DID, nonce uint64, contractAddress ethcommon.Address, chainID string, stateHex string) string {
+	return fmt.Sprintf("%s/credentialStatus?revocationNonce=%v&contractAddress=%s:%s&state=%s", issuerDID.String(), nonce, chainID, contractAddress.Hex(), stateHex)
 }

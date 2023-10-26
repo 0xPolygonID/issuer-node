@@ -183,3 +183,25 @@ func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn
 
 	return states, nil
 }
+
+func (isr *identityState) GetGenesisState(ctx context.Context, conn db.Querier, identifier string) (*domain.IdentityState, error) {
+	state := domain.IdentityState{}
+	row := conn.QueryRow(ctx, "SELECT * FROM identity_states WHERE identifier=$1 AND previous_state IS NULL ", identifier)
+	if err := row.Scan(&state.StateID,
+		&state.Identifier,
+		&state.State,
+		&state.RootOfRoots,
+		&state.RevocationTreeRoot,
+		&state.ClaimsTreeRoot,
+		&state.BlockTimestamp,
+		&state.BlockNumber,
+		&state.TxID,
+		&state.PreviousState,
+		&state.Status,
+		&state.ModifiedAt,
+		&state.CreatedAt); err != nil {
+		return nil, err
+	}
+
+	return &state, nil
+}

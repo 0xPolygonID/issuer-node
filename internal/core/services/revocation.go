@@ -7,119 +7,103 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
+	ethCommon "github.com/ethereum/go-ethereum/common"
+	abiOnchain "github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi"
 	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
-	proof "github.com/iden3/merkletree-proof"
+	proofHttp "github.com/iden3/merkletree-proof/http"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	client "github.com/polygonid/sh-id-platform/pkg/http"
-	"github.com/polygonid/sh-id-platform/pkg/protocol"
 )
 
 const (
 	defaultRevocationTime = 30
 	stateChildrenLength   = 3
+	contractPartsLength   = 2
 )
+
+// ErrIdentityDoesNotExist  - identity does not exist
+var ErrIdentityDoesNotExist = errors.New("identity does not exist")
 
 // StateStore TBD
 type StateStore interface {
-	GetLatestStateByID(ctx context.Context, addr common.Address, id *big.Int) (abi.IStateStateInfo, error)
+	GetLatestStateByID(ctx context.Context, addr ethCommon.Address, id *big.Int) (abi.IStateStateInfo, error)
+}
+
+type onChainStatusService interface {
+	GetRevocationStatus(ctx context.Context, state *big.Int, nonce uint64, did *w3c.DID, address ethCommon.Address) (abiOnchain.IOnchainCredentialStatusResolverCredentialStatus, error)
 }
 
 // Revocation TBD
 type Revocation struct {
-	eth      StateStore
-	contract common.Address
+	stateService         ports.StateService
+	onChainStatusService onChainStatusService
+	contract             ethCommon.Address
 }
 
 // NewRevocationService returns the Revocation struct
-func NewRevocationService(ethStore StateStore, contract common.Address) *Revocation {
+func NewRevocationService(contract ethCommon.Address, stateService ports.StateService, onChainStatusService onChainStatusService) *Revocation {
 	return &Revocation{
-		eth:      ethStore,
-		contract: contract,
+		contract:             contract,
+		stateService:         stateService,
+		onChainStatusService: onChainStatusService,
 	}
 }
 
 // Status returns the current revocation status
-func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerDID *w3c.DID) (*verifiable.RevocationStatus, error) {
-	switch status := credStatus.(type) {
-	case *verifiable.RHSCredentialStatus:
-		id, err := core.IDFromDID(*issuerDID)
-		if err != nil {
-			return nil, fmt.Errorf("failed parse issuer DID '%s': %v", issuerDID, err)
-		}
-		latestStateInfo, err := r.eth.GetLatestStateByID(ctx, r.contract, id.BigInt())
-		if err != nil && strings.Contains(err.Error(), protocol.ErrStateNotFound.Error()) {
-			return nil, protocol.ErrStateNotFound
-		}
-		if err != nil {
-			return nil, fmt.Errorf("failed get latest state for '%s': %v", issuerDID, err)
-		}
-
-		hashedRevNonce, err := merkletree.NewHashFromBigInt(big.NewInt(int64(status.RevocationNonce)))
-		if err != nil {
-			return nil, fmt.Errorf("failed calculate mt hash for revocation nonce '%d': '%s'",
-				status.RevocationNonce, err)
-		}
-
-		hashedIssuerRoot, err := merkletree.NewHashFromBigInt(latestStateInfo.State)
-		if err != nil {
-			return nil, fmt.Errorf("failed calcilate mt hash for issuer state '%s': '%s'",
-				latestStateInfo.State, err)
-		}
-
-		rs, err := getNonRevocationProofFromRHS(ctx, status.ID, hashedRevNonce, hashedIssuerRoot)
-		if err != nil && status.StatusIssuer.Type == verifiable.SparseMerkleTreeProof {
-			// try to get proof from issuer
-			log.Warn(ctx, "failed build revocation status from enabled RHS. Then try to fetch from issuer")
-			revocStatus, err := getRevocationProofFromIssuer(ctx, status.StatusIssuer.ID)
-			if err != nil {
-				return nil, err
-			}
-			return revocStatus, nil
-		}
-		return rs, nil
-	case *verifiable.CredentialStatus:
-		return getRevocationProofFromIssuer(ctx, status.ID)
-	case verifiable.RHSCredentialStatus:
-		return r.Status(ctx, &status, issuerDID)
-	case verifiable.CredentialStatus:
-		return r.Status(ctx, &status, issuerDID)
-	case map[string]interface{}:
-		credStatusType, ok := status["type"].(string)
-		if !ok {
-			return nil, errors.New("credential status doesn't contain type")
-		}
-		marshaledStatus, err := json.Marshal(status)
-		if err != nil {
-			return nil, err
-		}
-		var s interface{}
-		switch verifiable.CredentialStatusType(credStatusType) {
-		case verifiable.Iden3ReverseSparseMerkleTreeProof:
-			s = &verifiable.RHSCredentialStatus{}
-		case verifiable.SparseMerkleTreeProof:
-			s = &verifiable.CredentialStatus{}
-		default:
-			return nil, fmt.Errorf("credential status type %s id not supported", credStatusType)
-		}
-
-		err = json.Unmarshal(marshaledStatus, s)
-		if err != nil {
-			return nil, err
-		}
-		return r.Status(ctx, s, issuerDID)
-
-	default:
-		return nil, errors.New("unknown credential status format")
+func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerDID *w3c.DID, issuerData *verifiable.IssuerData) (*verifiable.RevocationStatus, error) {
+	status, err := convertCredentialStatus(credStatus)
+	if err != nil {
+		log.Error(ctx, "failed convert credential status", "error", err)
+		return nil, err
 	}
+	switch status.Type {
+	case verifiable.Iden3ReverseSparseMerkleTreeProof:
+		return r.getRevocationStatusFromRHS(ctx, issuerDID, status, issuerData)
+	case verifiable.SparseMerkleTreeProof:
+		return getRevocationProofFromIssuer(ctx, status.ID)
+	case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
+		return r.getRevocationStatusFromOnchainCredStatusResolver(ctx, issuerDID, status)
+	default:
+		return nil, fmt.Errorf("%s type not supported", status.Type)
+	}
+}
+
+func convertCredentialStatus(credStatus interface{}) (verifiable.CredentialStatus, error) {
+	status, ok := credStatus.(verifiable.CredentialStatus)
+	if ok {
+		return status, nil
+	}
+	pointedStatus, ok := credStatus.(*verifiable.CredentialStatus)
+	if ok {
+		return *pointedStatus, nil
+	}
+	_, ok = credStatus.(map[string]interface{})
+	if ok {
+		b, err := json.Marshal(credStatus)
+		if err != nil {
+			return verifiable.CredentialStatus{}, err
+		}
+		var status verifiable.CredentialStatus
+		err = json.Unmarshal(b, &status)
+		if err != nil {
+			return verifiable.CredentialStatus{}, err
+		}
+		return status, nil
+	}
+
+	return verifiable.CredentialStatus{}, errors.New("failed cast credential status to verifiable.CredentialStatus")
 }
 
 func getRevocationProofFromIssuer(ctx context.Context, url string) (*verifiable.RevocationStatus, error) {
@@ -136,7 +120,7 @@ func getRevocationProofFromIssuer(ctx context.Context, url string) (*verifiable.
 }
 
 func getNonRevocationProofFromRHS(ctx context.Context, rhsURL string, data, issuerRoot *merkletree.Hash) (*verifiable.RevocationStatus, error) {
-	rhsCli := proof.HTTPReverseHashCli{
+	rhsCli := proofHttp.ReverseHashCli{
 		URL:         rhsURL,
 		HTTPTimeout: time.Second * defaultRevocationTime,
 	}
@@ -180,4 +164,258 @@ func getNonRevocationProofFromRHS(ctx context.Context, rhsURL string, data, issu
 		},
 		MTP: *nonRevProof,
 	}, nil
+}
+
+func (r *Revocation) getRevocationStatusFromRHS(ctx context.Context, issuerDID *w3c.DID, status verifiable.CredentialStatus, issuerData *verifiable.IssuerData) (*verifiable.RevocationStatus, error) {
+	latestStateInfo, err := r.stateService.GetLatestStateByDID(ctx, issuerDID)
+	if err != nil && strings.Contains(err.Error(), ErrIdentityDoesNotExist.Error()) {
+
+		currentState, err := extractState(status.ID)
+		if err != nil {
+			log.Error(ctx, "failed extract state from rhs id", "error", err)
+			return nil, err
+		}
+		if currentState == "" {
+			return getRevocationStatusFromIssuerData(issuerDID, issuerData)
+		} else {
+			latestStateInfo.State, err = getGenesisState(issuerDID, currentState)
+			if err != nil {
+				return nil, fmt.Errorf("failed get genesis state for issuer '%s'", issuerDID)
+			}
+		}
+
+	} else if err != nil {
+		return nil, fmt.Errorf("failed get latest state by did '%s'", issuerDID.String())
+	}
+
+	hashedRevNonce, err := merkletree.NewHashFromBigInt(big.NewInt(int64(status.RevocationNonce)))
+	if err != nil {
+		return nil, fmt.Errorf("failed calculate mt hash for revocation nonce '%d': '%s'",
+			status.RevocationNonce, err)
+	}
+
+	hashedIssuerState, err := merkletree.NewHashFromBigInt(latestStateInfo.State)
+	if err != nil {
+		return nil, fmt.Errorf("failed calcilate mt hash for issuer state '%s': '%s'",
+			latestStateInfo.State, err)
+	}
+
+	u := strings.Split(status.ID, "/node")
+	rs, err := getNonRevocationProofFromRHS(ctx, u[0], hashedRevNonce, hashedIssuerState)
+	if err != nil && status.StatusIssuer.Type == verifiable.SparseMerkleTreeProof {
+		// try to get proof from issuer
+		log.Warn(ctx, "failed build revocation status from enabled RHS. Then try to fetch from issuer. RHS error: %v", err)
+		revocStatus, err := getRevocationProofFromIssuer(ctx, status.StatusIssuer.ID)
+		if err != nil {
+			return nil, err
+		}
+		return revocStatus, nil
+	}
+	return rs, nil
+}
+
+func extractState(id string) (string, error) {
+	rhsULR, err := url.Parse(id)
+	if err != nil {
+		return "", fmt.Errorf("invalid rhs id filed '%s'", id)
+	}
+	params, err := url.ParseQuery(rhsULR.RawQuery)
+	if err != nil {
+		return "", fmt.Errorf("invalid rhs params '%s'", rhsULR.RawQuery)
+	}
+	return params.Get("state"), nil
+}
+
+func getRevocationStatusFromIssuerData(did *w3c.DID, issuerData *verifiable.IssuerData) (*verifiable.RevocationStatus, error) {
+	if issuerData == nil || issuerData.State.Value == nil {
+		return nil, errors.New("issuer data state is empty. is not possible verify revocation status")
+	}
+	h, err := merkletree.NewHashFromHex(*issuerData.State.Value)
+	if err != nil {
+		return nil, fmt.Errorf("failed parse hex '%s'", *issuerData.State.Value)
+	}
+	err = common.CheckGenesisStateDID(did, h.BigInt())
+	if err != nil {
+		return nil, fmt.Errorf("failed check genesis state for issuer '%s'", did)
+	}
+
+	return &verifiable.RevocationStatus{
+		Issuer: struct {
+			State              *string `json:"state,omitempty"`
+			RootOfRoots        *string `json:"rootOfRoots,omitempty"`
+			ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
+			RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
+		}{
+			State:              issuerData.State.Value,
+			RootOfRoots:        issuerData.State.RootOfRoots,
+			ClaimsTreeRoot:     issuerData.State.ClaimsTreeRoot,
+			RevocationTreeRoot: issuerData.State.RevocationTreeRoot,
+		},
+		MTP: merkletree.Proof{Existence: false},
+	}, nil
+}
+
+func getGenesisState(did *w3c.DID, currentState string) (*big.Int, error) {
+	h, err := merkletree.NewHashFromHex(currentState)
+	if err != nil {
+		return nil, fmt.Errorf("failed parse hex '%s'", currentState)
+	}
+	err = common.CheckGenesisStateDID(did, h.BigInt())
+	if err != nil {
+		return nil, fmt.Errorf("failed check genesis state for issuer '%s'", did)
+	}
+	return h.BigInt(), nil
+}
+
+func (r *Revocation) getRevocationStatusFromOnchainCredStatusResolver(ctx context.Context, issuerDID *w3c.DID, status verifiable.CredentialStatus) (*verifiable.RevocationStatus, error) {
+	issuerID, err := core.IDFromDID(*issuerDID)
+	if err != nil {
+		return nil, fmt.Errorf("failed get issuer id from '%s'", issuerDID)
+	}
+
+	onchainRevStatus, err := newOnchainRevStatusFromURI(status.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if onchainRevStatus.revNonce != nil && *onchainRevStatus.revNonce != status.RevocationNonce {
+		return nil, fmt.Errorf("revocationNonce is not equal to the one in OnChainCredentialStatus ID {%d} {%d}", onchainRevStatus.revNonce, status.RevocationNonce)
+	}
+
+	// get latest state from contract
+	var stateToProof *big.Int
+	latestStateInfo, err := r.stateService.GetLatestStateByDID(ctx, issuerDID)
+	//nolint:gocritic //reason: work with errors
+	if err != nil && strings.Contains(err.Error(), ErrIdentityDoesNotExist.Error()) {
+		if onchainRevStatus.state == nil {
+			return nil, errors.New(`latest state not found and state parameter is not present in credentialStatus.id`)
+		}
+		err = common.CheckGenesisStateDID(issuerDID, onchainRevStatus.state)
+		if err != nil {
+			return nil, err
+		}
+		stateToProof = onchainRevStatus.state
+
+	} else if err != nil {
+		return nil, fmt.Errorf("failed get latest state by id '%s'", issuerID)
+	} else {
+		stateToProof = latestStateInfo.State
+	}
+
+	rs, err := r.onChainStatusService.GetRevocationStatus(
+		ctx, stateToProof, status.RevocationNonce, issuerDID, onchainRevStatus.contractAddress,
+	)
+	if err != nil {
+		return nil, errors.New("failed get revocation status from onchain cred status resolver")
+	}
+
+	smProof, err := common.SmartContractProofToMtProofAdapter(common.SmartContractProof{
+		Root:         rs.Mtp.Root,
+		Existence:    rs.Mtp.Existence,
+		Siblings:     rs.Mtp.Siblings,
+		Index:        rs.Mtp.Index,
+		Value:        rs.Mtp.Value,
+		AuxExistence: rs.Mtp.AuxExistence,
+		AuxIndex:     rs.Mtp.AuxIndex,
+		AuxValue:     rs.Mtp.AuxValue,
+	})
+	if err != nil {
+		log.Error(ctx, "failed convert smart contract proof to merkle tree proof", "error", err)
+		return nil, err
+	}
+
+	state, err := merkletree.NewHashFromBigInt(rs.Issuer.State)
+	if err != nil {
+		log.Error(ctx, "failed convert state to merkle tree hash", "error", err)
+		return nil, err
+	}
+	stateHex := state.Hex()
+	ctr, err := merkletree.NewHashFromBigInt(rs.Issuer.ClaimsTreeRoot)
+	if err != nil {
+		return nil, err
+	}
+	ctrHex := ctr.Hex()
+
+	rtr, err := merkletree.NewHashFromBigInt(rs.Issuer.RevocationTreeRoot)
+	if err != nil {
+		log.Error(ctx, "failed convert revocation tree root to merkle tree hash", "error", err)
+		return nil, err
+	}
+	rtrHex := rtr.Hex()
+
+	ror, err := merkletree.NewHashFromBigInt(rs.Issuer.RootOfRoots)
+	if err != nil {
+		log.Error(ctx, "failed convert root of roots to merkle tree hash", "error", err)
+		return nil, err
+	}
+	rorHex := ror.Hex()
+
+	return &verifiable.RevocationStatus{
+		Issuer: struct {
+			State              *string `json:"state,omitempty"`
+			RootOfRoots        *string `json:"rootOfRoots,omitempty"`
+			ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
+			RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
+		}{
+			State:              &stateHex,
+			ClaimsTreeRoot:     &ctrHex,
+			RevocationTreeRoot: &rtrHex,
+			RootOfRoots:        &rorHex,
+		},
+		MTP: *smProof,
+	}, nil
+}
+
+type onchainRevStatus struct {
+	contractAddress ethCommon.Address
+	revNonce        *uint64
+	state           *big.Int
+}
+
+func newOnchainRevStatusFromURI(id string) (onchainRevStatus, error) {
+	var s onchainRevStatus
+
+	uri, err := url.Parse(id)
+	if err != nil {
+		return s, errors.New("OnChainCredentialStatus ID is not a valid URI")
+	}
+
+	contract := uri.Query().Get("contractAddress")
+	if contract == "" {
+		return s, errors.New("OnChainCredentialStatus contract address is empty")
+	}
+
+	contractParts := strings.Split(contract, ":")
+	if len(contractParts) != contractPartsLength {
+		return s, errors.New(
+			"OnChainCredentialStatus contract address is not valid")
+	}
+	if !ethCommon.IsHexAddress(contractParts[1]) {
+		return s, errors.New(
+			"OnChainCredentialStatus incorrect contract address")
+	}
+	s.contractAddress = ethCommon.HexToAddress(contractParts[1])
+
+	revocationNonce := uri.Query().Get("revocationNonce")
+	// revnonce may be nil if params is absent in query
+	if revocationNonce != "" {
+		n, err := strconv.ParseUint(revocationNonce, 10, 64)
+		if err != nil {
+			return s, errors.New("revocationNonce is not a number in OnChainCredentialStatus ID")
+		}
+		s.revNonce = &n
+	}
+	// state may be nil if params is absent in query
+	stateParam := uri.Query().Get("state")
+	if stateParam == "" {
+		s.state = nil
+	} else {
+		stateHash, err := merkletree.NewHashFromHex(stateParam)
+		if err != nil {
+			return s, err
+		}
+		s.state = stateHash.BigInt()
+	}
+
+	return s, nil
 }

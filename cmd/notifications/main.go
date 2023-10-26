@@ -3,10 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -22,6 +25,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
@@ -128,7 +132,24 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 		return nil, fmt.Errorf("cannot initialize kms: err %s", err.Error())
 	}
 
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	if err != nil {
+		panic("Error dialing with ethclient: " + err.Error())
+	}
+
+	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
+		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
+		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
+		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
+		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
+		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
+		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
+		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
+	}, keyStore)
+
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
@@ -136,19 +157,9 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	revocationSettings := services.CredentialRevocationSettings{
-		RHSEnabled:        cfg.ReverseHashService.Enabled,
-		RHSUrl:            cfg.ReverseHashService.URL,
-		Host:              cfg.ServerUrl,
-		AgentIden3Enabled: false,
-	}
-
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, revocationSettings)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
-		RHSEnabled: cfg.ReverseHashService.Enabled,
-		RHSUrl:     cfg.ReverseHashService.URL,
-		Host:       cfg.ServerUrl,
-	}, ps, cfg.IPFS.GatewayURL)
+	cfg.CredentialStatus.SingleIssuer = true
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL)
 
 	return claimsService, nil
 }

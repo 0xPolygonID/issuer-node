@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 
@@ -302,7 +303,24 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true)
+
+	//var credentialStatusType verifiable.CredentialStatusType
+	//if request.Body.CredentialStatusType != nil {
+	//	if string(*request.Body.CredentialStatusType) != string(verifiable.Iden3ReverseSparseMerkleTreeProof) &&
+	//		string(*request.Body.CredentialStatusType) != string(verifiable.SparseMerkleTreeProof) &&
+	//		string(*request.Body.CredentialStatusType) != string(verifiable.Iden3OnchainSparseMerkleTreeProof2023) {
+	//		return CreateCredential400JSONResponse{
+	//			N400JSONResponse{
+	//				Message: "Invalid Credential Status Type",
+	//			},
+	//		}, nil
+	//	}
+	//	credentialStatusType = verifiable.CredentialStatusType(*request.Body.CredentialStatusType)
+	//} else {
+	//	credentialStatusType = verifiable.SparseMerkleTreeProof
+	//}
+
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -359,7 +377,7 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	return GetRevocationStatus200JSONResponse(getRevocationStatusResponse(rs)), err
 }
 
-// PublishState - pubish the state onchange
+// PublishState - publish the state onchange
 func (s *Server) PublishState(ctx context.Context, request PublishStateRequestObject) (PublishStateResponseObject, error) {
 	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
