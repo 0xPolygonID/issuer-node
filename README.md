@@ -1,5 +1,4 @@
 # Polygon ID Issuer Node  
-
 **Issues encountered The postgres container wont run directly so had to change the port**
 - Then In the .env.ui.sample the ipfs url was not specified so added that   
 - With these changes make sure there are different commands for Mac silicon chip users  
