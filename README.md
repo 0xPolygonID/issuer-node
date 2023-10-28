@@ -1,4 +1,9 @@
 # Polygon ID Issuer Node
+Issues encountered The postgres container wont run directly so had to change the port  
+Then In the .env.ui.sample the ipfs url was not specified so added that   
+With these changes make sure there are different commands for Mac silicon chip users  
+For setting up with the changes made in this repo follow https://www.youtube.com/watch?v=w0anLue7yZI 
+
 
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
