@@ -42,6 +42,5 @@ type IdentityService interface {
 	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, error)
 	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error)
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
-	GetCredentialStatus(_ context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, status verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error)
 	PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error
 }
