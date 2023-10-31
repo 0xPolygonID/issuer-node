@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: issuer-node-postgres-svc
+  labels:
+    app: issuer-node
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+  selector:
+    app: issuer-node-postgres

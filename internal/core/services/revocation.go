@@ -12,9 +12,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/contracts-abi/state/go/abi"
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	proof "github.com/iden3/merkletree-proof"
 
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -47,10 +48,14 @@ func NewRevocationService(ethStore StateStore, contract common.Address) *Revocat
 }
 
 // Status returns the current revocation status
-func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerDID *core.DID) (*verifiable.RevocationStatus, error) {
+func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerDID *w3c.DID) (*verifiable.RevocationStatus, error) {
 	switch status := credStatus.(type) {
 	case *verifiable.RHSCredentialStatus:
-		latestStateInfo, err := r.eth.GetLatestStateByID(ctx, r.contract, issuerDID.ID.BigInt())
+		id, err := core.IDFromDID(*issuerDID)
+		if err != nil {
+			return nil, fmt.Errorf("failed parse issuer DID '%s': %v", issuerDID, err)
+		}
+		latestStateInfo, err := r.eth.GetLatestStateByID(ctx, r.contract, id.BigInt())
 		if err != nil && strings.Contains(err.Error(), protocol.ErrStateNotFound.Error()) {
 			return nil, protocol.ErrStateNotFound
 		}
@@ -132,7 +137,7 @@ func getRevocationProofFromIssuer(ctx context.Context, url string) (*verifiable.
 
 func getNonRevocationProofFromRHS(ctx context.Context, rhsURL string, data, issuerRoot *merkletree.Hash) (*verifiable.RevocationStatus, error) {
 	rhsCli := proof.HTTPReverseHashCli{
-		URL:         strings.TrimSuffix(rhsURL, "/node"),
+		URL:         rhsURL,
 		HTTPTimeout: time.Second * defaultRevocationTime,
 	}
 

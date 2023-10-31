@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -12,16 +13,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
-	auth "github.com/iden3/go-iden3-auth"
-	"github.com/iden3/go-iden3-auth/pubsignals"
-	core "github.com/iden3/go-iden3-core"
+	auth "github.com/iden3/go-iden3-auth/v2"
+	"github.com/iden3/go-iden3-auth/v2/pubsignals"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-merkletree-sql/v2"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
+	mtproof "github.com/iden3/merkletree-proof"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -47,7 +50,10 @@ const (
 
 // ErrWrongDIDMetada - represents an error in the identity metadata
 var (
+	// ErrWrongDIDMetada - represents an error in the identity metadata
 	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
+	// ErrAssigningMTPProof - represents an error in the identity metadata
+	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
 )
 
 type identity struct {
@@ -60,16 +66,19 @@ type identity struct {
 	sessionManager          ports.SessionRepository
 	storage                 *db.Storage
 	mtService               ports.MtService
+	qrService               ports.QrStoreService
 	kms                     kms.KMSType
 	verifier                *auth.Verifier
 
 	ignoreRHSErrors bool
 	rhsPublisher    reverse_hash.RhsPublisher
 	pubsub          pubsub.Publisher
+	claimCfg        CredentialRevocationSettings
 }
 
 // NewIdentity creates a new identity
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client) ports.IdentityService {
+// nolint
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, rhsPublisher reverse_hash.RhsPublisher, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, claimCfg CredentialRevocationSettings) ports.IdentityService {
 	return &identity{
 		identityRepository:      identityRepository,
 		imtRepository:           imtRepository,
@@ -80,32 +89,41 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		sessionManager:          sessionRepository,
 		storage:                 storage,
 		mtService:               mtservice,
+		qrService:               qrService,
 		kms:                     kms,
 		ignoreRHSErrors:         false,
 		rhsPublisher:            rhsPublisher,
 		verifier:                verifier,
 		pubsub:                  ps,
+		claimCfg:                claimCfg,
 	}
 }
 
-func (i *identity) GetByDID(ctx context.Context, identifier core.DID) (*domain.Identity, error) {
+func (i *identity) GetByDID(ctx context.Context, identifier w3c.DID) (*domain.Identity, error) {
 	return i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 }
 
-func (i *identity) Create(ctx context.Context, DIDMethod string, blockchain, networkID, hostURL string) (*domain.Identity, error) {
-	var identifier *core.DID
+func (i *identity) Create(ctx context.Context, hostURL string, didOptions *ports.DIDCreationOptions) (*domain.Identity, error) {
+	var identifier *w3c.DID
 	var err error
 	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
-			identifier, _, err = i.createIdentity(ctx, tx, DIDMethod, blockchain, networkID, hostURL)
-			if err != nil {
-				if errors.Is(err, ErrWrongDIDMetada) {
-					return err
-				}
-				return fmt.Errorf("can't create identity: %w", err)
+			var keyType kms.KeyType
+			if didOptions == nil || didOptions.KeyType == "" {
+				keyType = kms.KeyTypeBabyJubJub
+			} else {
+				keyType = didOptions.KeyType
 			}
 
-			return nil
+			switch keyType {
+			case kms.KeyTypeEthereum:
+				identifier, _, err = i.createEthIdentity(ctx, tx, hostURL, didOptions)
+			case kms.KeyTypeBabyJubJub:
+				identifier, _, err = i.createIdentity(ctx, tx, hostURL, didOptions)
+			default:
+				return fmt.Errorf("unsupported key type: %s", keyType)
+			}
+			return err
 		})
 
 	if err != nil {
@@ -141,7 +159,8 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	var issuerMTP verifiable.Iden3SparseMerkleTreeProof
 	err = authClaim.MTPProof.AssignTo(&issuerMTP)
 	if err != nil {
-		return nil, err
+		log.Error(ctx, "assigning to issuerMTP", "err", err)
+		return nil, ErrAssigningMTPProof
 	}
 
 	signtureBytes, err := circuitSigner.Sign(ctx, babyjubjub.SignatureType, claimEntry)
@@ -169,7 +188,7 @@ func (i *identity) SignClaimEntry(ctx context.Context, authClaim *domain.Claim, 
 	return &proof, nil
 }
 
-func (i *identity) Exists(ctx context.Context, identifier core.DID) (bool, error) {
+func (i *identity) Exists(ctx context.Context, identifier w3c.DID) (bool, error) {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, identifier)
 	if err != nil {
 		return false, err
@@ -187,7 +206,7 @@ func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		return keyID, errors.New("identifier is empty in auth claim")
 	}
 
-	identity, err := core.ParseDID(*authClaim.Identifier)
+	identity, err := w3c.ParseDID(*authClaim.Identifier)
 	if err != nil {
 		return keyID, err
 	}
@@ -228,7 +247,7 @@ func (i *identity) Get(ctx context.Context) (identities []string, err error) {
 }
 
 // GetLatestStateByID get latest identity state by identifier
-func (i *identity) GetLatestStateByID(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
+func (i *identity) GetLatestStateByID(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error) {
 	// check that identity exists in the db
 	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &identifier)
 	if err != nil {
@@ -250,7 +269,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 		return keyID, errors.New("identifier is empty in auth claim")
 	}
 
-	identity, err := core.ParseDID(*authClaim.Identifier)
+	identity, err := w3c.ParseDID(*authClaim.Identifier)
 	if err != nil {
 		return keyID, err
 	}
@@ -286,7 +305,7 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 	return keyID, errors.New("private key not found")
 }
 
-func (i *identity) UpdateState(ctx context.Context, did core.DID) (*domain.IdentityState, error) {
+func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error) {
 	newState := &domain.IdentityState{
 		Identifier: did.String(),
 		Status:     domain.StatusCreated,
@@ -372,7 +391,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID core.DID) (*protocol.AuthorizationResponseMessage, error) {
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error) {
 	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
@@ -393,7 +412,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	}
 
 	bytesIssuerDoc = sanitizeIssuerDoc(bytesIssuerDoc)
-	userDID, err := core.ParseDID(arm.From)
+	userDID, err := w3c.ParseDID(arm.From)
 	if err != nil {
 		log.Error(ctx, "failed to parse userDID", "err", err)
 		return nil, err
@@ -423,7 +442,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID core.DID) (*protocol.AuthorizationRequestMessage, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 
@@ -438,13 +457,22 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 			Reason:      authReason,
 		},
 	}
+	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
+		return "", err
+	}
 
-	err := i.sessionManager.Set(ctx, sessionID, *qrCode)
-
-	return qrCode, err
+	raw, err := json.Marshal(qrCode)
+	if err != nil {
+		return "", err
+	}
+	id, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
+	if err != nil {
+		return "", err
+	}
+	return i.qrService.ToURL(serverURL, id), nil
 }
 
-func (i *identity) update(ctx context.Context, conn db.Querier, id *core.DID, currentState domain.IdentityState) error {
+func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, currentState domain.IdentityState) error {
 	claims, err := i.claimsRepository.GetAllByState(ctx, conn, id, nil)
 	if err != nil {
 		return err
@@ -520,7 +548,84 @@ func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTree
 	return nil
 }
 
-func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod string, blockchain, networkID, hostURL string) (*core.DID, *big.Int, error) {
+func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL string, didOptions *ports.DIDCreationOptions) (*w3c.DID, *big.Int, error) {
+	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
+	if err != nil {
+		log.Error(ctx, "creating identity markle tree", "err", err)
+		return nil, nil, err
+	}
+
+	var key kms.KeyID
+	key, err = i.kms.CreateKey(kms.KeyTypeEthereum, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	identity, did, err := i.createEthIdentityFromKeyID(ctx, mts, &key, didOptions, tx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
+		log.Error(ctx, "saving identity", "err", err)
+		return nil, nil, errors.Join(err, errors.New("can't save identity"))
+	}
+
+	identity.State.Status = domain.StatusConfirmed
+	err = i.identityStateRepository.Save(ctx, tx, identity.State)
+	if err != nil {
+		log.Error(ctx, "saving identity state", "err", err)
+		return nil, nil, errors.Join(err, errors.New("can't save identity state"))
+	}
+
+	// add auth claim
+	bjjKey, err := i.kms.CreateKey(kms.KeyTypeBabyJubJub, did)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bjjPubKey, err := bjjPubKey(i.kms, bjjKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	authClaim, err := newAuthClaim(bjjPubKey)
+	if err != nil {
+		return nil, nil, errors.Join(err, errors.New("can't create auth claim"))
+	}
+	var revNonce uint64 = 0
+	authClaim.SetRevocationNonce(revNonce)
+
+	claimsTree, err := mts.ClaimsTree()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, false)
+	if err != nil {
+		log.Error(ctx, "auth claim to model", "err", err)
+		return nil, nil, err
+	}
+
+	_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
+	if err != nil {
+		return nil, nil, errors.Join(err, errors.New("can't save auth claim"))
+	}
+
+	return did, identity.State.TreeState().State.BigInt(), nil
+}
+
+func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string, didOptions *ports.DIDCreationOptions) (*w3c.DID, *big.Int, error) {
+	if didOptions == nil {
+		// nolint : it's a right assignment
+		didOptions = &ports.DIDCreationOptions{
+			Method:     core.DIDMethodIden3,
+			Blockchain: core.NoChain,
+			Network:    core.NoNetwork,
+			KeyType:    kms.KeyTypeBabyJubJub,
+		}
+	}
+
 	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create identity markle tree: %w", err)
@@ -543,42 +648,97 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 
 	var revNonce uint64 = 0
 	authClaim.SetRevocationNonce(revNonce)
-	entry := common.TreeEntryFromCoreClaim(*authClaim)
-	err = mts.AddEntry(ctx, &entry)
+
+	identity, did, err := i.addGenesisClaimsToTree(ctx, mts, &key, authClaim, didOptions, tx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't add entry to merkle tree: %w", err)
+		log.Error(ctx, "adding genesis claims to tree", "err", err)
+		return nil, nil, fmt.Errorf("can't add genesis claims to tree: %w", err)
 	}
 
 	claimsTree, err := mts.ClaimsTree()
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't get claims tree: %w", err)
+		return nil, nil, err
 	}
 
-	currentState, err := merkletree.HashElems(claimsTree.Root().BigInt(), merkletree.HashZero.BigInt(), merkletree.HashZero.BigInt())
+	authClaimModel, err := i.authClaimToModel(
+		ctx,
+		did,
+		identity,
+		authClaim,
+		claimsTree,
+		pubKey,
+		hostURL,
+		true,
+	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
+		log.Error(ctx, "auth claim to model", "err", err)
+		return nil, nil, err
 	}
 
-	// TODO: add config options for blockchain and network
-	// didType, err := core.BuildDIDType(core.DIDMethodPolygonID, core.Polygon, core.Mumbai)
-	didType, err := core.BuildDIDType(core.DIDMethod(DIDMethod), core.Blockchain(blockchain), core.NetworkID(networkID))
+	_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
 	if err != nil {
-		return nil, nil, ErrWrongDIDMetada
+		return nil, nil, fmt.Errorf("can't save auth claim: %w", err)
 	}
 
-	identifier, err := core.IdGenesisFromIdenState(didType, currentState.BigInt())
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't genesis from state: %w", err)
+	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
+		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	did, err := core.ParseDIDFromID(*identifier)
+	// TODO: Review this part
+	if i.rhsPublisher != nil {
+		err = i.rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
+			{
+				Hash: identity.State.TreeState().State,
+				Children: []*merkletree.Hash{
+					claimsTree.Root(),
+					&merkletree.HashZero,
+					&merkletree.HashZero,
+				},
+			},
+		})
+		if err != nil {
+			log.Error(ctx, "publishing state to RHS", "err", err)
+			return nil, nil, err
+		}
+	}
+
+	identity.State.Status = domain.StatusConfirmed
+	err = i.identityStateRepository.Save(ctx, tx, identity.State)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't parse did: %w", err)
+		log.Error(ctx, "saving identity state", "err", err)
+		return nil, nil, fmt.Errorf("can't save identity state: %w", err)
+	}
+
+	return did, identity.State.TreeState().State.BigInt(), nil
+}
+
+func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {
+	pubKey, err := ethPubKey(i.kms, *key)
+	if err != nil {
+		return nil, nil, err
+	}
+	address := crypto.PubkeyToAddress(*pubKey)
+	var ethAddr [20]byte
+	copy(ethAddr[:], address.Bytes())
+
+	currentState := core.GenesisFromEthAddress(ethAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	did, err := core.NewDID(didType, currentState)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	err = mts.BindToIdentifier(tx, did)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't bind identifier to merkle tree: %w", err)
+		return nil, nil, err
 	}
 
 	for _, mt := range mts.GetMtModels() {
@@ -588,131 +748,22 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, DIDMethod 
 		}
 	}
 
-	_, err = i.kms.LinkToIdentity(ctx, key, *did)
+	//nolint:ineffassign,staticcheck // old key ID is invalid after this operation,
+	// override it if somebody would try to use it in the future
+	// to prevent possible errors.
+	_, err = i.kms.LinkToIdentity(ctx, *key, *did)
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't link to identity: %w", err)
+		return nil, nil, err
 	}
-
-	identity := domain.NewIdentityFromIdentifier(did, currentState.Hex())
-	claimsTreeHex := claimsTree.Root().Hex()
-	identity.State.ClaimsTreeRoot = &claimsTreeHex
-
-	claimData := make(map[string]interface{})
-	claimData["x"] = pubKey.X.String()
-	claimData["y"] = pubKey.Y.String()
-
-	marshalledClaimData, err := json.Marshal(claimData)
+	// empty genesis state for eth identity
+	identity, err := domain.NewIdentityFromIdentifier(did, merkletree.HashZero.Hex())
 	if err != nil {
-		return nil, nil, fmt.Errorf("can't marshal claim data: %w", err)
+		return nil, nil, err
 	}
-
-	cr := common.CredentialRequest{
-		CredentialSchema:  domain.AuthBJJCredentialJSONSchemaURL,
-		Type:              domain.AuthBJJCredential,
-		CredentialSubject: marshalledClaimData,
-		Version:           0,
-		RevNonce:          &revNonce,
-	}
-
-	exp, ok := authClaim.GetExpirationDate()
-	if !ok {
-		cr.Expiration = 0
-	} else {
-		cr.Expiration = exp.Unix()
-	}
-
-	var schema jsonSuite.Schema
-	err = json.Unmarshal([]byte(domain.AuthBJJCredentialSchemaJSON), &schema)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't unmarshal the shema: %w", err)
-	}
-
-	var jsonLdContext string
-	if jsonLdContext, ok = schema.Metadata.Uris["jsonLdContext"].(string); !ok {
-		return nil, nil, fmt.Errorf("invalid: %w", err)
-	}
-
-	credentialType := fmt.Sprintf("%s#%s", jsonLdContext, domain.AuthBJJCredential)
-	claimID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't crate uuid: %w", err)
-	}
-
-	cred, err := common.CreateCredential(did, cr, schema)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't create credential: %w", err)
-	}
-
-	cred.ID = fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(hostURL, "/"), identifier, claimID)
-	cs := &verifiable.CredentialStatus{
-		ID: fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d",
-			hostURL, url.QueryEscape(did.String()), revNonce),
-		RevocationNonce: revNonce,
-		Type:            verifiable.SparseMerkleTreeProof,
-	}
-
-	cred.CredentialStatus = cs
-
-	marshaledCredential, err := json.Marshal(cred)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't marshal credential: %w", err)
-	}
-
-	authClaimModel, err := domain.FromClaimer(authClaim, domain.AuthBJJCredentialJSONSchemaURL, credentialType)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't create authClaimModel: %w", err)
-	}
-
-	mtpProof, err := i.getAuthClaimMtpProof(ctx, claimsTree, currentState, authClaim, did)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
-	}
-
-	err = authClaimModel.Data.Set(marshaledCredential)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't set data to auth claim: %w", err)
-	}
-
-	err = authClaimModel.CredentialStatus.Set(cs)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't set credential status to auth claim: %w", err)
-	}
-
-	jsonProof, err := json.Marshal(mtpProof)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't marshal proof: %w", err)
-	}
-
-	err = authClaimModel.MTPProof.Set(jsonProof)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't set mtp proof to auth claim: %w", err)
-	}
-
-	authClaimModel.Issuer = did.String()
-
-	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
-		return nil, nil, fmt.Errorf("can't save identity: %w", err)
-	}
-
-	// mark genesis state like `confirmed` state.
-	identity.State.Status = domain.StatusConfirmed
-	err = i.identityStateRepository.Save(ctx, tx, identity.State)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't save identity state: %w", err)
-	}
-
-	authClaimModel.IdentityState = identity.State.State
-	authClaimModel.Identifier = &identity.Identifier
-	authClaimModel.MtProof = true
-	_, err = i.claimsRepository.Save(ctx, tx, authClaimModel)
-	if err != nil {
-		return nil, nil, fmt.Errorf("can't save auth claim: %w", err)
-	}
-
-	return did, currentState.BigInt(), nil
+	return identity, did, nil
 }
 
-func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *core.DID) (verifiable.Iden3SparseMerkleTreeProof, error) {
+func (i *identity) getAuthClaimMtpProof(ctx context.Context, claimsTree *merkletree.MerkleTree, currentState *merkletree.Hash, authClaim *core.Claim, did *w3c.DID) (verifiable.Iden3SparseMerkleTreeProof, error) {
 	index, err := authClaim.HIndex()
 	if err != nil {
 		return verifiable.Iden3SparseMerkleTreeProof{}, err
@@ -761,19 +812,19 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID core.DID) ([]domain.IdentityState, error) {
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID) ([]domain.IdentityState, error) {
 	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID)
 }
 
-func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*core.DID, error) {
+func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {
 	return i.identityRepository.GetUnprocessedIssuersIDs(ctx, i.storage.Pgx)
 }
 
-func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+func (i *identity) HasUnprocessedStatesByID(ctx context.Context, identifier w3c.DID) (bool, error) {
 	return i.identityRepository.HasUnprocessedStatesByID(ctx, i.storage.Pgx, &identifier)
 }
 
-func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier core.DID) (bool, error) {
+func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, identifier w3c.DID) (bool, error) {
 	return i.identityRepository.HasUnprocessedAndFailedStatesByID(ctx, i.storage.Pgx, &identifier)
 }
 
@@ -786,7 +837,7 @@ func (i *identity) GetNonTransactedStates(ctx context.Context) ([]domain.Identit
 	return states, nil
 }
 
-func (i *identity) GetFailedState(ctx context.Context, identifier core.DID) (*domain.IdentityState, error) {
+func (i *identity) GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error) {
 	states, err := i.identityStateRepository.GetStatesByStatusAndIssuerID(ctx, i.storage.Pgx, domain.StatusFailed, identifier)
 	if err != nil {
 		return nil, fmt.Errorf("error getting failed state: %w", err)
@@ -795,6 +846,191 @@ func (i *identity) GetFailedState(ctx context.Context, identifier core.DID) (*do
 		return &states[0], nil
 	}
 	return nil, nil
+}
+
+// GetCredentialStatus - returns credential status
+func (i *identity) GetCredentialStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64, issuerState string) (*verifiable.CredentialStatus, error) {
+	if i.claimCfg.RHSEnabled {
+		return &verifiable.CredentialStatus{
+			ID:              buildRHSRevocationURL(i.claimCfg.RHSUrl, issuerState),
+			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
+			RevocationNonce: nonce,
+			StatusIssuer: &verifiable.CredentialStatus{
+				ID:              buildDirectRevocationURL(i.claimCfg.Host, issuerDID.String(), nonce),
+				Type:            verifiable.SparseMerkleTreeProof,
+				RevocationNonce: nonce,
+			},
+		}, nil
+	}
+	if i.claimCfg.AgentIden3Enabled {
+		return &verifiable.CredentialStatus{
+			ID:              i.claimCfg.AgentIden3URL,
+			Type:            verifiable.Iden3commRevocationStatusV1,
+			RevocationNonce: nonce,
+		}, nil
+	}
+	return &verifiable.CredentialStatus{
+		ID:              buildDirectRevocationURL(i.claimCfg.Host, issuerDID.String(), nonce),
+		Type:            verifiable.SparseMerkleTreeProof,
+		RevocationNonce: nonce,
+	}, nil
+}
+
+func (i *identity) addGenesisClaimsToTree(ctx context.Context,
+	mts *domain.IdentityMerkleTrees,
+	key *kms.KeyID,
+	authClaim *core.Claim,
+	didOptions *ports.DIDCreationOptions,
+	tx db.Querier,
+) (*domain.Identity, *w3c.DID, error) {
+	entry := common.TreeEntryFromCoreClaim(*authClaim)
+	err := mts.AddEntry(ctx, &entry)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't add entry to merkle tree: %w", err)
+	}
+
+	claimsTree, err := mts.ClaimsTree()
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't get claims tree: %w", err)
+	}
+
+	currentState, err := merkletree.HashElems(claimsTree.Root().BigInt(), merkletree.HashZero.BigInt(), merkletree.HashZero.BigInt())
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
+	}
+
+	// TODO: add config options for blockchain and network
+	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
+	if err != nil {
+		return nil, nil, ErrWrongDIDMetada
+	}
+
+	did, err := core.NewDIDFromIdenState(didType, currentState.BigInt())
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't genesis from state: %w", err)
+	}
+
+	err = mts.BindToIdentifier(tx, did)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't bind identifier to merkle tree: %w", err)
+	}
+
+	for _, mt := range mts.GetMtModels() {
+		err := i.imtRepository.UpdateByID(ctx, tx, mt)
+		if err != nil {
+			return nil, nil, fmt.Errorf("can't update merkle tree: %w", err)
+		}
+	}
+
+	_, err = i.kms.LinkToIdentity(ctx, *key, *did)
+	if err != nil {
+		return nil, nil, fmt.Errorf("can't link to identity: %w", err)
+	}
+
+	identity, err := domain.NewIdentityFromIdentifier(did, currentState.Hex())
+	if err != nil {
+		log.Error(ctx, "can't create identity from identifier", "err", err)
+		return nil, nil, err
+	}
+	claimsTreeHex := claimsTree.Root().Hex()
+	identity.State.ClaimsTreeRoot = &claimsTreeHex
+
+	return identity, did, nil
+}
+
+func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity *domain.Identity, authClaim *core.Claim, claimsTree *merkletree.MerkleTree, pubKey *babyjub.PublicKey, hostURL string, isAuthInGenesis bool) (*domain.Claim, error) {
+	authClaimData := make(map[string]interface{})
+	authClaimData["x"] = pubKey.X.String()
+	authClaimData["y"] = pubKey.Y.String()
+
+	authMarshalledClaimData, err := json.Marshal(authClaimData)
+	if err != nil {
+		return nil, err
+	}
+
+	revNonce := authClaim.GetRevocationNonce()
+
+	authCredReq := common.CredentialRequest{
+		CredentialSchema:  domain.AuthBJJCredentialJSONSchemaURL,
+		Type:              domain.AuthBJJCredential,
+		CredentialSubject: authMarshalledClaimData,
+		Version:           0,
+		RevNonce:          &revNonce,
+		LDContext:         domain.AuthBJJCredentialJSONLDContext,
+	}
+	exp, ok := authClaim.GetExpirationDate()
+	if !ok {
+		authCredReq.Expiration = 0
+	} else {
+		authCredReq.Expiration = exp.Unix()
+	}
+
+	authClaimID, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+
+	authCred, err := common.CreateCredential(did, authCredReq)
+	if err != nil {
+		return nil, err
+	}
+
+	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	cs, err := i.GetCredentialStatus(ctx, *did, revNonce, *identity.State.State)
+	if err != nil {
+		log.Error(ctx, "get credential status", "err", err)
+		return nil, err
+	}
+
+	authCred.CredentialStatus = cs
+
+	authMarshaledCredential, err := json.Marshal(authCred)
+	if err != nil {
+		log.Error(ctx, "marshal auth credential", "err", err)
+		return nil, err
+	}
+
+	authClaimModel, err := domain.NewClaimModel(domain.AuthBJJCredentialJSONSchemaURL, domain.AuthBJJCredentialTypeID, *authClaim, nil)
+	if err != nil {
+		log.Error(ctx, "can't create auth claim model", "err", err)
+		return nil, err
+	}
+
+	if isAuthInGenesis {
+		authMtpProof, err := i.getAuthClaimMtpProof(ctx, claimsTree, identity.State.TreeState().State, authClaim, did)
+		if err != nil {
+			return nil, err
+		}
+
+		authJSONProof, err := json.Marshal(authMtpProof)
+		if err != nil {
+			return nil, errors.Join(err, errors.New("can't marshal proof"))
+		}
+
+		err = authClaimModel.MTPProof.Set(authJSONProof)
+		if err != nil {
+			return nil, errors.Join(err, errors.New("failed set mtp proof to auth claim"))
+		}
+	}
+
+	err = authClaimModel.Data.Set(authMarshaledCredential)
+	if err != nil {
+		return nil, errors.Join(err, errors.New("failed set auth claim data"))
+	}
+
+	err = authClaimModel.CredentialStatus.Set(cs)
+	if err != nil {
+		return nil, errors.Join(err, errors.New("failed set auth revocation status"))
+	}
+
+	authClaimModel.Issuer = did.String()
+	if isAuthInGenesis {
+		authClaimModel.IdentityState = identity.State.State
+	}
+
+	authClaimModel.Identifier = &identity.Identifier
+	authClaimModel.MtProof = true
+	return authClaimModel, nil
 }
 
 // newAuthClaim generate BabyJubKeyTypeAuthorizeKSign claimL
@@ -817,7 +1053,7 @@ func bjjPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*babyjub.PublicKey, error) {
 	return kms.DecodeBJJPubKey(keyBytes)
 }
 
-func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument {
+func newDIDDocument(serverURL string, issuerDID w3c.DID) verifiable.DIDDocument {
 	return verifiable.DIDDocument{
 		Context: []string{serviceContext},
 		ID:      issuerDID.String(),
@@ -834,4 +1070,24 @@ func newDIDDocument(serverURL string, issuerDID core.DID) verifiable.DIDDocument
 func sanitizeIssuerDoc(issDoc []byte) []byte {
 	str := strings.Replace(string(issDoc), "\\u0000", "", -1)
 	return []byte(str)
+}
+
+func buildRHSRevocationURL(host, issuerState string) string {
+	if issuerState == "" {
+		return host
+	}
+	return fmt.Sprintf("%s/node?state=%s", host, issuerState)
+}
+
+func buildDirectRevocationURL(host, issuerDID string, nonce uint64) string {
+	return fmt.Sprintf("%s/api/v1/identities/%s/claims/revocation/status/%d",
+		host, url.QueryEscape(issuerDID), nonce)
+}
+
+func ethPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
+	keyBytes, err := keyMS.PublicKey(keyID)
+	if err != nil {
+		return nil, err
+	}
+	return kms.DecodeETHPubKey(keyBytes)
 }

@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	sql "github.com/iden3/go-merkletree-sql/db/pgx/v2"
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/mr-tron/base58"
@@ -79,7 +79,7 @@ func (mts *mtService) CreateIdentityMerkleTrees(ctx context.Context, conn db.Que
 	return imts, nil
 }
 
-func (mts *mtService) GetIdentityMerkleTrees(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.IdentityMerkleTrees, error) {
+func (mts *mtService) GetIdentityMerkleTrees(ctx context.Context, conn db.Querier, identifier *w3c.DID) (*domain.IdentityMerkleTrees, error) {
 	trees := make([]*merkletree.MerkleTree, mtTypesCount)
 	imtModels := make([]*domain.IdentityMerkleTree, mtTypesCount)
 	imts, err := mts.imtRepo.GetByIdentifierAndTypes(ctx, conn, identifier, mtTypes)

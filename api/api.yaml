@@ -125,6 +125,30 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/identities/{identifier}/details:
+    get:
+      summary: Identity Detail
+      operationId: GetIdentityDetails
+      description: Endpoint to get an identity details
+      tags:
+        - Identity
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      responses:
+        '200':
+          description: Identity top up successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetIdentityDetailsResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '500':
+          $ref: '#/components/responses/500'
 
   /v1/{identifier}/state/retry:
     post:
@@ -399,6 +423,37 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/qr-store:
+    get:
+      summary: QrCode body
+      operationId: GetQrFromStore
+      description: Returns a previously generated QR code via url shortener method
+      tags:
+        - Agent
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+            x-go-type: uuid.UUID
+            x-go-type-import:
+              name: uuid
+              path: github.com/google/uuid
+            example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+      responses:
+        '200':
+          description: A json to generate a QR code
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:
@@ -449,6 +504,7 @@ components:
             - method
             - blockchain
             - network
+            - type
           properties:
             method:
               type: string
@@ -462,6 +518,12 @@ components:
               type: string
               x-omitempty: false
               example: "mumbai"
+            type:
+              type: string
+              x-omitempty: false
+              example: "BJJ"
+              enum: [BJJ, ETH]
+
 
     CreateIdentityResponse:
       type: object
@@ -473,6 +535,25 @@ components:
           type: string
         state:
           $ref: '#/components/schemas/IdentityState'
+        address:
+          type: string
+          x-omitempty: false
+
+    GetIdentityDetailsResponse:
+      type: object
+      required:
+        - identity
+        - status
+      properties:
+        identifier:
+          type: string
+        state:
+          $ref: '#/components/schemas/IdentityState'
+        address:
+          type: string
+        balance:
+          type: string
+
 
     IdentityState:
       type: object
@@ -626,6 +707,10 @@ components:
           x-omitempty: false
         proof:
           type: null
+
+    QrCodeLinkShortResponse:
+      type: string
+      example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
 
     GetClaimQrCodeResponse:
       type: object

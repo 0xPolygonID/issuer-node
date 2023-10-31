@@ -2,14 +2,15 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -44,24 +45,26 @@ var (
 type Link struct {
 	storage          *db.Storage
 	claimsService    ports.ClaimsService
+	qrService        ports.QrStoreService
 	claimRepository  ports.ClaimsRepository
 	linkRepository   ports.LinkRepository
 	schemaRepository ports.SchemaRepository
-	loaderFactory    loader.Factory
+	loader           loader.DocumentLoader
 	sessionManager   ports.SessionRepository
 	publisher        pubsub.Publisher
 	ipfsGateway      string
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, loaderFactory loader.Factory, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
+		qrService:        qrService,
 		claimRepository:  claimRepository,
 		linkRepository:   linkRepository,
 		schemaRepository: schemaRepository,
-		loaderFactory:    loaderFactory,
+		loader:           ld,
 		sessionManager:   sessionManager,
 		publisher:        publisher,
 		ipfsGateway:      ipfsGatewayURL,
@@ -71,7 +74,7 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, clai
 // Save - save a new credential
 func (ls *Link) Save(
 	ctx context.Context,
-	did core.DID,
+	did w3c.DID,
 	maxIssuance *int,
 	validUntil *time.Time,
 	schemaID uuid.UUID,
@@ -102,7 +105,7 @@ func (ls *Link) Save(
 }
 
 // Activate - activates or deactivates a credential link
-func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUID, active bool) error {
+func (ls *Link) Activate(ctx context.Context, issuerID w3c.DID, linkID uuid.UUID, active bool) error {
 	link, err := ls.linkRepository.GetByID(ctx, issuerID, linkID)
 	if err != nil {
 		return err
@@ -122,7 +125,7 @@ func (ls *Link) Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUI
 }
 
 // GetByID returns a link by id and issuerDID
-func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error) {
+func (ls *Link) GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID) (*domain.Link, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrLinkDoesNotExist) {
@@ -135,17 +138,17 @@ func (ls *Link) GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*
 }
 
 // GetAll returns all links from issueDID of type lType filtered by query string
-func (ls *Link) GetAll(ctx context.Context, issuerDID core.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
+func (ls *Link) GetAll(ctx context.Context, issuerDID w3c.DID, status ports.LinkStatus, query *string) ([]domain.Link, error) {
 	return ls.linkRepository.GetAll(ctx, issuerDID, status, query)
 }
 
 // Delete - delete a link by id
-func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did core.DID) error {
+func (ls *Link) Delete(ctx context.Context, id uuid.UUID, did w3c.DID) error {
 	return ls.linkRepository.Delete(ctx, id, did)
 }
 
 // CreateQRCode - generates a qr code for a link
-func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*ports.CreateQRCodeResponse, error) {
+func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*ports.CreateQRCodeResponse, error) {
 	link, err := ls.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		return nil, err
@@ -180,15 +183,25 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uui
 		return nil, err
 	}
 
+	raw, err := json.Marshal(qrCode)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := ls.qrService.Store(ctx, raw, DefaultQRBodyTTL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
-		QrCode:    qrCode,
+		QrCode:    ls.qrService.ToURL(serverURL, id),
 		Link:      link,
 	}, nil
 }
 
 // IssueClaim - Create a new claim
-func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error {
+func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) error {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
@@ -301,7 +314,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID core
 }
 
 // GetQRCode - return the link qr code.
-func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID core.DID, linkID uuid.UUID) (*ports.GetQRCodeResponse, error) {
+func (ls *Link) GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID w3c.DID, linkID uuid.UUID) (*ports.GetQRCodeResponse, error) {
 	link, err := ls.GetByID(ctx, issuerID, linkID)
 	if err != nil {
 		log.Error(ctx, "error fetching the link from the database", "err", err)
@@ -339,5 +352,5 @@ func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
 }
 
 func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaDB *domain.Schema) error {
-	return jsonschema.ValidateCredentialSubject(ctx, ls.ipfsGateway, schemaDB.URL, schemaDB.Type, cSubject)
+	return jsonschema.ValidateCredentialSubject(ctx, ls.loader, schemaDB.URL, schemaDB.Type, cSubject)
 }

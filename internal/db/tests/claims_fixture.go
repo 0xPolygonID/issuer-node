@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,7 +40,7 @@ func (f *Fixture) CreateSchema(t *testing.T, ctx context.Context, s *domain.Sche
 func (f *Fixture) GetDefaultAuthClaimOfIssuer(t *testing.T, issuerID string) *domain.Claim {
 	t.Helper()
 	ctx := context.Background()
-	did, err := core.ParseDID(issuerID)
+	did, err := w3c.ParseDID(issuerID)
 	assert.NoError(t, err)
 	claims, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, *did, &ports.ClaimsFilter{})
 	assert.NoError(t, err)

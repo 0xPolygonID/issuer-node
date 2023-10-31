@@ -5,10 +5,12 @@ import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function Boolean({
   attribute,
+  disabled = false,
   error,
   parents,
 }: {
   attribute: BooleanAttribute;
+  disabled?: boolean;
   error?: string;
   parents: ObjectAttribute[];
 }) {
@@ -22,7 +24,7 @@ export function Boolean({
       validateStatus={error ? "error" : undefined}
     >
       {attribute.schema.enum ? (
-        <Select placeholder="Select option">
+        <Select disabled={disabled} placeholder="Select option">
           {attribute.schema.enum.map((option, index) => (
             <Select.Option key={index} value={option}>
               {option.toString()}
@@ -30,7 +32,7 @@ export function Boolean({
           ))}
         </Select>
       ) : (
-        <Radio.Group>
+        <Radio.Group disabled={disabled}>
           <Space direction="vertical">
             <Radio value={true}>True</Radio>
             <Radio value={false}>False</Radio>

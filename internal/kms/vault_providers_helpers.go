@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/pkg/errors"
 )
 
@@ -54,11 +54,11 @@ func listDirectoryEntries(vaultCli *api.Client, path string) ([]string, error) {
 	return result, nil
 }
 
-func identityPath(identity *core.DID) string {
+func identityPath(identity *w3c.DID) string {
 	return fmt.Sprintf("%v%v", keysPathPrefix, identity.String())
 }
 
-func keyPath(identity *core.DID, keyType KeyType, keyID string) string {
+func keyPath(identity *w3c.DID, keyType KeyType, keyID string) string {
 	basePath := ""
 	if identity != nil {
 		basePath = identityPath(identity) + "/"

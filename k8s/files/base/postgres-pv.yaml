@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: issuer-node-postgresql-pv
+  labels:
+    app: issuer-node
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/volume_5"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim 
+metadata:
+  name: issuer-node-postgresql-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

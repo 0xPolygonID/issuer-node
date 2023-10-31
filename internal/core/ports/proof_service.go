@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 )
@@ -29,5 +29,5 @@ func (q *Query) SchemaType() string {
 
 // ProofService is the interface implemented by the ProofService service
 type ProofService interface {
-	PrepareInputs(ctx context.Context, identifier *core.DID, query Query) ([]byte, []*domain.Claim, error)
+	PrepareInputs(ctx context.Context, identifier *w3c.DID, query Query) ([]byte, []*domain.Claim, error)
 }

@@ -1,24 +1,50 @@
 package api_ui
 
 import (
-	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/google/uuid"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	openapitypes "github.com/oapi-codegen/runtime/types"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	link_state "github.com/polygonid/sh-id-platform/pkg/link"
+	linkstate "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
-const (
-	schemaParts = 2
-)
+// CustomQrContentResponse is a wrapper to return any content as an api response.
+// Just implement the Visit* method to satisfy the expected interface for that type of response.
+type CustomQrContentResponse struct {
+	content []byte
+}
+
+// NewQrContentResponse returns a new CustomQrContentResponse.
+func NewQrContentResponse(response []byte) *CustomQrContentResponse {
+	return &CustomQrContentResponse{content: response}
+}
+
+// VisitGetQrFromStoreResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
+// VisitAuthQRCodeResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
+// VisitGetCredentialQrCodeResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
+func (response CustomQrContentResponse) visit(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write(response.content) // Returning the content without encoding it. It was previously encoded
+	return err
+}
 
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
@@ -191,9 +217,9 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 func getLinkResponse(link domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
-	var date *openapi_types.Date
+	var date *openapitypes.Date
 	if link.CredentialExpiration != nil {
-		date = &openapi_types.Date{Time: *link.CredentialExpiration}
+		date = &openapitypes.Date{Time: *link.CredentialExpiration}
 	}
 
 	return Link{
@@ -245,7 +271,7 @@ func getLinkResponses(links []domain.Link) []Link {
 	return res
 }
 
-func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *QrCodeResponse {
+func getLinkQrCodeResponse(linkQrCode *linkstate.QRCodeMessage) *QrCodeResponse {
 	if linkQrCode == nil {
 		return nil
 	}
@@ -269,35 +295,6 @@ func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *QrCodeResponse
 			Credentials: credentials,
 		},
 	}
-}
-
-func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCodeResponse {
-	id := uuid.NewString()
-	return QrCodeResponse{
-		Body: QrCodeBodyResponse{
-			Credentials: []QrCodeCredentialResponse{
-				{
-					Description: getCredentialType(credential.SchemaType),
-					Id:          credential.ID.String(),
-				},
-			},
-			Url: getAgentEndpoint(hostURL),
-		},
-		From: credential.Issuer,
-		Id:   id,
-		Thid: id,
-		To:   credential.OtherIdentifier,
-		Typ:  string(packers.MediaTypePlainMessage),
-		Type: string(protocol.CredentialOfferMessageType),
-	}
-}
-
-func getCredentialType(credentialType string) string {
-	parse := strings.Split(credentialType, "#")
-	if len(parse) != schemaParts {
-		return credentialType
-	}
-	return parse[1]
 }
 
 func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {
@@ -331,8 +328,4 @@ func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStat
 	response.Mtp.Siblings = &siblings
 
 	return response
-}
-
-func getAgentEndpoint(hostURL string) string {
-	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/"))
 }

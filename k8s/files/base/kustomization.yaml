@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ./issuer-node-api-configmap.yaml
+  - ./issuer-node-api-ui-configmap.yaml
+  - ./issuer-node-ui-configmap.yaml
+  - ./issuer-node-ui-deployment.yaml
+  - ./issuer-node-ui-service.yaml
+  - ./issuer-node-api-deployment.yaml
+  - ./issuer-node-api-service.yaml
+  - ./issuer-node-api-ui-deployment.yaml
+  - ./issuer-node-api-ui-service.yaml
+  - ./issuer-node-notifications.yaml
+  - ./issuer-node-pending-publisher.yaml
+  - ./postgres-pv.yaml
+  - ./postgres-configmap.yaml
+  - ./postgres-deployment.yaml
+  - ./postgres-service.yaml
+  - ./vault-pv.yaml
+  - ./vault-configmap.yaml
+  - ./vault-deployment.yaml
+  - ./vault-service.yaml
+  - ./redis-deployment.yaml
+  - ./redis-service.yaml
+  - ./ingress.yaml
+
+
