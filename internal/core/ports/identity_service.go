@@ -13,10 +13,18 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
+// DIDCreationOptions represents options for DID creation
+type DIDCreationOptions struct {
+	Method     core.DIDMethod  `json:"method"`
+	Blockchain core.Blockchain `json:"blockchain"`
+	Network    core.NetworkID  `json:"network"`
+	KeyType    kms.KeyType     `json:"keyType"`
+}
+
 // IdentityService is the interface implemented by the identity service
 type IdentityService interface {
 	GetByDID(ctx context.Context, identifier w3c.DID) (*domain.Identity, error)
-	Create(ctx context.Context, DIDMethod string, Blockchain, NetworkID, hostURL string) (*domain.Identity, error)
+	Create(ctx context.Context, hostURL string, didOptions *DIDCreationOptions) (*domain.Identity, error)
 	SignClaimEntry(ctx context.Context, authClaim *domain.Claim, claimEntry *core.Claim) (*verifiable.BJJSignatureProof2021, error)
 	Get(ctx context.Context) (identities []string, err error)
 	UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error)

@@ -48,6 +48,9 @@ func TestMain(m *testing.M) {
 			URL: conn,
 		},
 		KeyStore: config.VaultTest(),
+		Ethereum: config.Ethereum{
+			URL: "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
@@ -73,16 +76,27 @@ func TestMain(m *testing.M) {
 		log.Error(ctx, "failed to create Iden3 Key Provider", "err", err)
 		os.Exit(1)
 	}
+	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
+	if err != nil {
+		log.Error(ctx, "failed to create Iden3 Key Provider", "err", err)
+		os.Exit(1)
+	}
 
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
-		log.Error(ctx, "failed to register Key Provider", "err", err)
+		log.Error(ctx, "failed to register bjj Key Provider", "err", err)
+		os.Exit(1)
+	}
+
+	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		log.Error(ctx, "failed to register eth Key Provider", "err", err)
 		os.Exit(1)
 	}
 
 	cfg.ServerUrl = "https://testing.env/"
-
+	cfg.Ethereum = cfgForTesting.Ethereum
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()

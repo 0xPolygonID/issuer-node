@@ -72,18 +72,20 @@ type ReverseHashService struct {
 
 // Ethereum struct
 type Ethereum struct {
-	URL                    string        `tip:"Ethereum url"`
-	ContractAddress        string        `tip:"Contract Address"`
-	DefaultGasLimit        int           `tip:"Default Gas Limit"`
-	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
-	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
-	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
-	MinGasPrice            int           `tip:"Minimum Gas Price"`
-	MaxGasPrice            int           `tip:"The Datasource name locator"`
-	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
-	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
-	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix         string        `tip:"blockchain:network e.g polygon:mumbai"`
+	URL                       string        `tip:"Ethereum url"`
+	ContractAddress           string        `tip:"Contract Address"`
+	DefaultGasLimit           int           `tip:"Default Gas Limit"`
+	ConfirmationTimeout       time.Duration `tip:"Confirmation timeout"`
+	ConfirmationBlockCount    int64         `tip:"Confirmation block count"`
+	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
+	MinGasPrice               int           `tip:"Minimum Gas Price"`
+	MaxGasPrice               int           `tip:"The Datasource name locator"`
+	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
+	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
+	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
+	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
+	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
+	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
 }
 
 // Prover struct
@@ -143,6 +145,7 @@ type APIUI struct {
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
 	IdentityNetwork    string    `mapstructure:"IdentityNetwork" tip:"Server UI API backend Identity Network"`
+	KeyType            string    `mapstructure:"KeyType" tip:"Server UI API backend Key Type"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -279,7 +282,7 @@ func Load(fileName string) (*Configuration, error) {
 
 // VaultTest returns the vault configuration to be used in tests.
 // The vault token is obtained from environment vars.
-// If there is not env var, it will try to parse the init.out file
+// If there is no env var, it will try to parse the init.out file
 // created by local docker image provided for TESTING purposes.
 func VaultTest() KeyStore {
 	return KeyStore{
@@ -360,6 +363,8 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
+	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
+	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
 	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
 	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")
@@ -368,6 +373,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
+
+	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
+	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -380,9 +388,7 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
-
-	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
-	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_KEY_TYPE")
 
 	viper.AutomaticEnv()
 }
@@ -501,6 +507,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.APIUI.KeyType == "" {
+		log.Info(ctx, "ISSUER_KEY_TYPE is missing and the server set up it as BJJ")
+		cfg.APIUI.KeyType = "BJJ"
 	}
 
 	if cfg.APIUI.ServerPort == 0 {

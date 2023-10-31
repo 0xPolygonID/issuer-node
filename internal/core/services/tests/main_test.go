@@ -66,12 +66,25 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
+	if err != nil {
+		log.Error(ctx, "failed to create Iden3 Key Provider", "err", err)
+		os.Exit(1)
+	}
+
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
 		log.Error(ctx, "failed to register Key Provider", "err", err)
 		os.Exit(1)
 	}
+
+	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		log.Error(ctx, "failed to register eth Key Provider", "err", err)
+		os.Exit(1)
+	}
+
 	cachex = cache.NewMemoryCache()
 
 	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)

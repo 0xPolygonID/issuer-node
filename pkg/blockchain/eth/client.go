@@ -15,10 +15,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/iden3/contracts-abi/state/go/abi"
 
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
@@ -44,12 +46,15 @@ var (
 	ErrReceiptNotReceived = errors.New("receipt not available")
 	// ErrTransactionNotFound transaction doesn't exist on blockchain
 	ErrTransactionNotFound = errors.New("transaction not found")
+	// CompressedPublicKeyLength is the length of a compressed public key
+	CompressedPublicKeyLength = 33
 )
 
 // Client is an ethereum client to call Smart Contract methods.
 type Client struct {
 	client *ethclient.Client
 	Config *ClientConfig
+	kms    *kms.KMS
 }
 
 // ClientConfig eth client config
@@ -66,8 +71,17 @@ type ClientConfig struct {
 }
 
 // NewClient creates a Client instance.
-func NewClient(client *ethclient.Client, c *ClientConfig) *Client {
-	return &Client{client: client, Config: c}
+func NewClient(client *ethclient.Client, c *ClientConfig, kms *kms.KMS) *Client {
+	return &Client{
+		client: client,
+		Config: c,
+		kms:    kms,
+	}
+}
+
+// GetEthereumClient returns the underlying ethereum client
+func (c *Client) GetEthereumClient() *ethclient.Client {
+	return c.client
 }
 
 // BalanceAt retrieves information about the default account
@@ -294,6 +308,32 @@ func (c *Client) GetTransactionByID(ctx context.Context, txID string) (*types.Tr
 	return c.client.TransactionByHash(ctx, common.HexToHash(txID))
 }
 
+// CreateTxOpts creates a new transaction signer
+func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.TransactOpts, error) {
+	addr, err := c.getAddress(kmsKey)
+	if err != nil {
+		return nil, err
+	}
+
+	sigFn := c.signerFnFactory(ctx, kmsKey)
+
+	tip, err := c.suggestGasTipCap(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := &bind.TransactOpts{
+		From:      addr,
+		Signer:    sigFn,
+		GasTipCap: tip, // The only option we need to set is gasTipCap as some Ethereum nodes don't support eth_maxPriorityFeePerGas
+		GasLimit:  0,   // go-ethereum library will estimate gas limit automatically if it is 0
+		Context:   ctx,
+		NoSend:    false,
+	}
+
+	return opts, nil
+}
+
 // TransactionParams settings for transaction.
 type TransactionParams struct {
 	BaseFee     *big.Int
@@ -302,6 +342,7 @@ type TransactionParams struct {
 	FromAddress common.Address
 	ToAddress   common.Address
 	Payload     []byte
+	Value       *big.Int
 }
 
 // CreateRawTx raw transaction.
@@ -318,11 +359,14 @@ func (c *Client) CreateRawTx(ctx context.Context, txParams TransactionParams) (*
 
 	_ctx2, cancel2 := context.WithTimeout(ctx, c.Config.RPCResponseTimeout)
 	defer cancel2()
+	if txParams.Value == nil {
+		txParams.Value = big.NewInt(0)
+	}
 	gasLimit, err := c.client.EstimateGas(_ctx2, ethereum.CallMsg{
 		From:  txParams.FromAddress, // the sender of the 'transaction'
 		To:    &txParams.ToAddress,
-		Gas:   0,             // wei <-> gas exchange ratio
-		Value: big.NewInt(0), // amount of wei sent along with the call
+		Gas:   0,              // wei <-> gas exchange ratio
+		Value: txParams.Value, // amount of wei sent along with the call
 		Data:  txParams.Payload,
 	})
 	if err != nil {
@@ -366,7 +410,7 @@ func (c *Client) CreateRawTx(ctx context.Context, txParams TransactionParams) (*
 		To:        &txParams.ToAddress,
 		Nonce:     *txParams.Nonce,
 		Gas:       gasLimit,
-		Value:     big.NewInt(0),
+		Value:     txParams.Value,
 		Data:      txParams.Payload,
 		GasTipCap: txParams.GasTips,
 		GasFeeCap: maxGasPricePerFee,
@@ -427,4 +471,67 @@ func (c *Client) getGasPrice(ctx context.Context) (*big.Int, error) {
 	}
 
 	return gasPrice, err
+}
+
+// getAddress - get address by keyID
+func (c *Client) getAddress(k kms.KeyID) (common.Address, error) {
+	if c.kms == nil {
+		return common.Address{}, errors.Join(errors.New("the signer is read-only"))
+	}
+	bytesPubKey, err := c.kms.PublicKey(k)
+	if err != nil {
+		return common.Address{}, err
+	}
+	var pubKey *ecdsa.PublicKey
+	switch len(bytesPubKey) {
+	case CompressedPublicKeyLength:
+		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
+	default:
+		pubKey, err = crypto.UnmarshalPubkey(bytesPubKey)
+	}
+	if err != nil {
+		return common.Address{}, err
+	}
+	fromAddress := crypto.PubkeyToAddress(*pubKey)
+	return fromAddress, nil
+}
+
+func (c *Client) signerFnFactory(ctx context.Context, signingKeyID kms.KeyID) func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+	return func(address common.Address, tx *types.Transaction) (*types.Transaction, error) {
+		if c.kms == nil {
+			return nil, errors.Join(errors.New("the signer is read-only"))
+		}
+
+		ch, err := c.ChainID(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		signer := types.LatestSignerForChainID(ch)
+		h := signer.Hash(tx)
+
+		sig, err := c.kms.Sign(ctx, signingKeyID, h[:])
+		if err != nil {
+			return nil, err
+		}
+
+		return tx.WithSignature(signer, sig)
+	}
+}
+
+func (c *Client) suggestGasTipCap(ctx context.Context) (*big.Int, error) {
+	ctxWT, cancel3 := context.WithTimeout(ctx, c.Config.RPCResponseTimeout)
+	defer cancel3()
+
+	tip, err := c.client.SuggestGasTipCap(ctxWT)
+	// since hardhat doesn't support 'eth_maxPriorityFeePerGas' rpc call.
+	// we should hard code 0 as a mainer tips. More information: https://github.com/NomicFoundation/hardhat/issues/1664#issuecomment-1149006010
+	if err != nil && strings.Contains(err.Error(), "eth_maxPriorityFeePerGas not found") {
+		log.Info(ctx, "failed get suggest gas tip: %s. use 0 instead", "err", err)
+		tip = big.NewInt(0)
+	} else if err != nil {
+		return nil, errors.Join(err, errors.New("failed get suggest gas tip"))
+	}
+
+	return tip, nil
 }

@@ -108,20 +108,17 @@ func (v *vaultPluginIden3KeyProvider) ListByIdentity(_ context.Context, identity
 		return nil, err
 	}
 
-	result := make([]KeyID, len(entries))
-	ln := 0
-	for i, k := range entries {
+	result := make([]KeyID, 0)
+	for _, k := range entries {
 		if !v.keyNameRE.MatchString(k) {
 			// ignore unknown keys
 			continue
 		}
-
-		result[i].Type = v.keyType
-		result[i].ID = path.Join(identityKeysPath.keyID, k)
-		ln++
+		keyID := KeyID{Type: v.keyType, ID: path.Join(identityKeysPath.keyID, k)}
+		result = append(result, keyID)
 	}
 
-	return result[:ln], nil
+	return result, nil
 }
 
 func (v *vaultPluginIden3KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {

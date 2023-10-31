@@ -4,12 +4,14 @@ import (
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-circuits/v2"
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgtype"
 
@@ -169,4 +171,54 @@ func (c *Claim) GetCircuitIncProof() (circuits.MTProof, error) {
 			RootOfRoots:    common.StrMTHex(proof.IssuerData.State.RootOfRoots),
 		},
 	}, nil
+}
+
+// NewClaimModel creates domain.Claim with common fields filled from core.Claim
+func NewClaimModel(jsonSchemaURL string, credentialType string, coreClaim core.Claim, did *w3c.DID) (*Claim, error) {
+	hindex, err := coreClaim.HIndex()
+	if err != nil {
+		return nil, errors.Join(err)
+	}
+
+	schemaHash := coreClaim.GetSchemaHash()
+
+	claimModel := Claim{
+		SchemaHash: hex.EncodeToString(schemaHash[:]),
+		SchemaURL:  jsonSchemaURL,
+		SchemaType: credentialType,
+		Updatable:  coreClaim.GetFlagUpdatable(),
+		Version:    coreClaim.GetVersion(),
+		RevNonce:   RevNonceUint64(coreClaim.GetRevocationNonce()),
+		CoreClaim:  CoreClaim(coreClaim),
+		HIndex:     hindex.String(),
+	}
+
+	if did != nil {
+		var claimID, id core.ID
+		id, err = core.IDFromDID(*did)
+		if err != nil {
+			return nil, err
+		}
+
+		claimID, err = coreClaim.GetID()
+		if err != nil {
+			return nil, nil
+		}
+
+		if claimID != id {
+			return nil, errors.New("claim has ID, but it's not match with DID")
+		}
+		claimModel.OtherIdentifier = did.String()
+	} else {
+		_, err = coreClaim.GetID()
+		if !errors.Is(err, core.ErrNoID) {
+			return nil, errors.New("claim has ID, but no DID")
+		}
+	}
+
+	if expDate, ok := coreClaim.GetExpirationDate(); ok {
+		claimModel.Expiration = expDate.Unix()
+	}
+
+	return &claimModel, nil
 }
