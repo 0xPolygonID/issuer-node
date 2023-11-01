@@ -220,9 +220,6 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 	}
 
 	if c.CredentialStatus.RHSMode == none {
-		if c.CredentialStatus.DirectStatus.URL == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_DIRECT_URL value is missing")
-		}
 		c.CredentialStatus.DirectStatus.URL = host
 		c.CredentialStatus.CredentialStatusType = sparseMerkleTreeProof
 	}
