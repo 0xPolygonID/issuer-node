@@ -9,11 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"net/url"
 	"strings"
 	"time"
 
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	auth "github.com/iden3/go-iden3-auth/v2"
@@ -36,6 +34,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
@@ -74,13 +73,14 @@ type identity struct {
 
 	ignoreRHSErrors          bool
 	pubsub                   pubsub.Publisher
+	revocationStatusResolver *revocation_status.RevocationStatusResolver
 	credentialStatusSettings config.CredentialStatus
 	rhsFactory               reverse_hash.Factory
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
 	return &identity{
 		identityRepository:       identityRepository,
 		imtRepository:            imtRepository,
@@ -98,6 +98,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		pubsub:                   ps,
 		credentialStatusSettings: credentialStatusSettings,
 		rhsFactory:               rhsFactory,
+		revocationStatusResolver: revocationStatusResolver,
 	}
 }
 
@@ -868,40 +869,6 @@ func (i *identity) GetFailedState(ctx context.Context, identifier w3c.DID) (*dom
 	return nil, nil
 }
 
-// GetCredentialStatus - returns credential status
-func (i *identity) GetCredentialStatus(_ context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, status verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
-	switch status {
-	case verifiable.Iden3ReverseSparseMerkleTreeProof:
-		return &verifiable.CredentialStatus{
-			ID:              buildRHSRevocationURL(i.credentialStatusSettings.RHS.GetURL(), issuerState),
-			Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
-			RevocationNonce: nonce,
-			StatusIssuer: &verifiable.CredentialStatus{
-				ID:              buildDirectRevocationURL(i.credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, i.credentialStatusSettings.SingleIssuer),
-				Type:            verifiable.SparseMerkleTreeProof,
-				RevocationNonce: nonce,
-			},
-		}, nil
-	case verifiable.Iden3commRevocationStatusV1:
-		return nil, errors.New("unsupported credential status type: Iden3commRevocationStatusV1")
-	case "", verifiable.SparseMerkleTreeProof:
-		return &verifiable.CredentialStatus{
-			ID:              buildDirectRevocationURL(i.credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, i.credentialStatusSettings.SingleIssuer),
-			Type:            verifiable.SparseMerkleTreeProof,
-			RevocationNonce: nonce,
-		}, nil
-	case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
-		contractAddressHex := i.credentialStatusSettings.OnchainTreeStore.SupportedTreeStoreContract
-		return &verifiable.CredentialStatus{
-			ID:              buildIden3OnchainSMTProofURL(issuerDID, nonce, ethcommon.HexToAddress(contractAddressHex), i.credentialStatusSettings.OnchainTreeStore.ChainID, issuerState),
-			Type:            verifiable.Iden3OnchainSparseMerkleTreeProof2023,
-			RevocationNonce: nonce,
-		}, nil
-	default:
-		return nil, errors.New("unsupported credential status type")
-	}
-}
-
 func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error {
 	identity, err := i.identityRepository.GetByID(ctx, i.storage.Pgx, *did)
 	if err != nil {
@@ -1058,7 +1025,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 	}
 
 	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
-	cs, err := i.GetCredentialStatus(ctx, *did, revNonce, *identity.State.State, status)
+	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
 		return nil, err
@@ -1154,30 +1121,10 @@ func sanitizeIssuerDoc(issDoc []byte) []byte {
 	return []byte(str)
 }
 
-func buildRHSRevocationURL(host, issuerState string) string {
-	if issuerState == "" {
-		return host
-	}
-	return fmt.Sprintf("%s/node?state=%s", host, issuerState)
-}
-
-func buildDirectRevocationURL(host, issuerDID string, nonce uint64, singleIssuer bool) string {
-	if singleIssuer {
-		return fmt.Sprintf("%s/v1/credentials/revocation/status/%d",
-			host, nonce)
-	}
-
-	return fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d", host, url.QueryEscape(issuerDID), nonce)
-}
-
 func ethPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
 	keyBytes, err := keyMS.PublicKey(keyID)
 	if err != nil {
 		return nil, err
 	}
 	return kms.DecodeETHPubKey(keyBytes)
-}
-
-func buildIden3OnchainSMTProofURL(issuerDID w3c.DID, nonce uint64, contractAddress ethcommon.Address, chainID string, stateHex string) string {
-	return fmt.Sprintf("%s/credentialStatus?revocationNonce=%v&contractAddress=%s:%s&state=%s", issuerDID.String(), nonce, chainID, contractAddress.Hex(), stateHex)
 }

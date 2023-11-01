@@ -31,6 +31,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
 	schemaPkg "github.com/polygonid/sh-id-platform/pkg/schema"
@@ -49,30 +50,32 @@ var (
 )
 
 type claim struct {
-	host                    string
-	icRepo                  ports.ClaimsRepository
-	identitySrv             ports.IdentityService
-	mtService               ports.MtService
-	qrService               ports.QrStoreService
-	identityStateRepository ports.IdentityStateRepository
-	storage                 *db.Storage
-	loader                  loader.DocumentLoader
-	publisher               pubsub.Publisher
-	ipfsClient              *shell.Shell
+	host                     string
+	icRepo                   ports.ClaimsRepository
+	identitySrv              ports.IdentityService
+	mtService                ports.MtService
+	qrService                ports.QrStoreService
+	identityStateRepository  ports.IdentityStateRepository
+	storage                  *db.Storage
+	loader                   loader.DocumentLoader
+	publisher                pubsub.Publisher
+	ipfsClient               *shell.Shell
+	revocationStatusResolver *revocation_status.RevocationStatusResolver
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.ClaimsService {
 	s := &claim{
-		host:                    host,
-		icRepo:                  repo,
-		identitySrv:             idenSrv,
-		mtService:               mtService,
-		qrService:               qrService,
-		identityStateRepository: identityStateRepository,
-		storage:                 storage,
-		loader:                  ld,
-		publisher:               ps,
+		host:                     host,
+		icRepo:                   repo,
+		identitySrv:              idenSrv,
+		mtService:                mtService,
+		qrService:                qrService,
+		identityStateRepository:  identityStateRepository,
+		storage:                  storage,
+		loader:                   ld,
+		publisher:                ps,
+		revocationStatusResolver: revocationStatusResolver,
 	}
 	if ipfsGatewayURL != "" {
 		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
@@ -644,7 +647,7 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 		log.Error(ctx, "getting latest issuer state", "err", err)
 		return verifiable.W3CCredential{}, err
 	}
-	cs, err := c.identitySrv.GetCredentialStatus(ctx, *claimReq.DID, nonce, *latestIssuerState.State, claimReq.CredentialStatusType)
+	cs, err := c.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *claimReq.DID, nonce, *latestIssuerState.State, claimReq.CredentialStatusType)
 	if err != nil {
 		log.Error(ctx, "getting credential status", "err", err)
 		return verifiable.W3CCredential{}, err

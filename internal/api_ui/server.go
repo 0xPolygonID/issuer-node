@@ -303,23 +303,6 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-
-	//var credentialStatusType verifiable.CredentialStatusType
-	//if request.Body.CredentialStatusType != nil {
-	//	if string(*request.Body.CredentialStatusType) != string(verifiable.Iden3ReverseSparseMerkleTreeProof) &&
-	//		string(*request.Body.CredentialStatusType) != string(verifiable.SparseMerkleTreeProof) &&
-	//		string(*request.Body.CredentialStatusType) != string(verifiable.Iden3OnchainSparseMerkleTreeProof2023) {
-	//		return CreateCredential400JSONResponse{
-	//			N400JSONResponse{
-	//				Message: "Invalid Credential Status Type",
-	//			},
-	//		}, nil
-	//	}
-	//	credentialStatusType = verifiable.CredentialStatusType(*request.Body.CredentialStatusType)
-	//} else {
-	//	credentialStatusType = verifiable.SparseMerkleTreeProof
-	//}
-
 	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
