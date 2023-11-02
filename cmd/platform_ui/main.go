@@ -20,7 +20,6 @@ import (
 	"github.com/iden3/go-iden3-auth/v2/pubsignals"
 	"github.com/iden3/go-iden3-auth/v2/state"
 	"github.com/iden3/go-iden3-core/v2/w3c"
-	proof "github.com/iden3/merkletree-proof"
 
 	"github.com/polygonid/sh-id-platform/internal/api_ui"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -38,7 +37,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
@@ -148,14 +149,7 @@ func main() {
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
-
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	if cfg.ReverseHashService.Enabled {
-		rhsp = reverse_hash.NewRhsPublisher(&proof.HTTPReverseHashCli{
-			URL:         cfg.ReverseHashService.URL,
-			HTTPTimeout: reverse_hash.DefaultRHSTimeOut,
-		}, true)
-	}
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
@@ -172,25 +166,27 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	revocationSettings := services.CredentialRevocationSettings{
-		RHSEnabled:        cfg.ReverseHashService.Enabled,
-		RHSUrl:            cfg.ReverseHashService.URL,
-		Host:              cfg.APIUI.ServerURL,
-		AgentIden3Enabled: false,
-	}
-
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps, revocationSettings)
+	cfg.CredentialStatus.SingleIssuer = true
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
-		RHSEnabled: cfg.ReverseHashService.Enabled,
-		RHSUrl:     cfg.ReverseHashService.URL,
-		Host:       cfg.APIUI.ServerURL,
-	}, ps, cfg.IPFS.GatewayURL)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
 
-	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
-	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
+	stateService, err := eth.NewStateService(eth.StateServiceConfig{
+		EthClient:       ethConn,
+		StateAddress:    common.HexToAddress(cfg.Ethereum.ContractAddress),
+		ResponseTimeout: cfg.Ethereum.RPCResponseTimeout,
+	})
+	if err != nil {
+		log.Error(ctx, "failed init state service", "err", err)
+		return
+	}
+
+	onChainCredentialStatusResolverService := gateways.NewOnChainCredStatusResolverService(ethConn, cfg.Ethereum.RPCResponseTimeout)
+	revocationService := services.NewRevocationService(common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
+	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateService, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)

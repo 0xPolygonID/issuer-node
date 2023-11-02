@@ -67,7 +67,7 @@ export const SIDER_WIDTH = 320;
 
 export const TOAST_NOTIFICATION_TIMEOUT = 6;
 
-export const TUTORIALS_URL = "https://0xpolygonid.github.io/tutorials";
+export const DOCS_URL = "https://devs.polygonid.com";
 
 export const WALLET_APP_STORE_URL = "https://apps.apple.com/us/app/polygon-id/id1629870183";
 

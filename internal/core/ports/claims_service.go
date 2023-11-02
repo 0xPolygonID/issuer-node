@@ -30,6 +30,7 @@ type CreateClaimRequest struct {
 	MTProof               bool
 	LinkID                *uuid.UUID
 	SingleIssuer          bool
+	CredentialStatusType  verifiable.CredentialStatusType
 }
 
 // AgentRequest struct
@@ -91,7 +92,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -123,7 +124,7 @@ func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubj
 
 	req.LinkID = linkID
 	req.SingleIssuer = singleIssuer
-
+	req.CredentialStatusType = credentialStatusType
 	return req
 }
 

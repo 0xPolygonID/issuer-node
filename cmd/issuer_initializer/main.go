@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
 
@@ -18,7 +21,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var build = buildinfo.Revision()
@@ -102,14 +107,28 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 
-	revocationSettings := services.CredentialRevocationSettings{
-		RHSEnabled:        cfg.ReverseHashService.Enabled,
-		RHSUrl:            cfg.ReverseHashService.URL,
-		Host:              cfg.ServerUrl,
-		AgentIden3Enabled: false,
+	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	if err != nil {
+		log.Error(ctx, "error dialing with ethclient", "err", err, "rth-url", cfg.Ethereum.URL)
+		return
 	}
 
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, pubsub.NewMock(), revocationSettings)
+	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
+		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
+		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
+		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
+		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
+		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
+		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
+		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
+	}, keyStore)
+
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	cfg.CredentialStatus.SingleIssuer = true
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 
 	didCreationOptions := &ports.DIDCreationOptions{
 		Method:     core.DIDMethod(cfg.APIUI.IdentityMethod),

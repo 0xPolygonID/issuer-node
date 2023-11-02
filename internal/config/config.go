@@ -30,22 +30,22 @@ type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
-	Database                     Database           `mapstructure:"Database"`
-	Cache                        Cache              `mapstructure:"Cache"`
-	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
-	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
-	Log                          Log                `mapstructure:"Log"`
-	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
-	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
-	Prover                       Prover             `mapstructure:"Prover"`
-	Circuit                      Circuit            `mapstructure:"Circuit"`
-	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
-	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
-	APIUI                        APIUI              `mapstructure:"APIUI"`
-	IPFS                         IPFS               `mapstructure:"IPFS"`
+	Database                     Database      `mapstructure:"Database"`
+	Cache                        Cache         `mapstructure:"Cache"`
+	HTTPBasicAuth                HTTPBasicAuth `mapstructure:"HTTPBasicAuth"`
+	KeyStore                     KeyStore      `mapstructure:"KeyStore"`
+	Log                          Log           `mapstructure:"Log"`
+	Ethereum                     Ethereum      `mapstructure:"Ethereum"`
+	Prover                       Prover        `mapstructure:"Prover"`
+	Circuit                      Circuit       `mapstructure:"Circuit"`
+	PublishingKeyPath            string        `mapstructure:"PublishingKeyPath"`
+	OnChainCheckStatusFrequency  time.Duration `mapstructure:"OnChainCheckStatusFrequency"`
+	SchemaCache                  *bool         `mapstructure:"SchemaCache"`
+	APIUI                        APIUI         `mapstructure:"APIUI"`
+	IPFS                         IPFS          `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
+	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
 }
 
 // Database has the database configuration
@@ -68,6 +68,7 @@ type IPFS struct {
 type ReverseHashService struct {
 	URL     string `mapstructure:"Url" tip:"Reverse Hash Service address"`
 	Enabled bool   `tip:"Reverse hash service enabled"`
+	Mode    string `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
 }
 
 // Ethereum struct
@@ -167,6 +168,13 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
+
+	err = c.sanitizeCredentialStatus(ctx, c.ServerUrl)
+	if err != nil {
+		log.Error(ctx, "error sanitizing credential status", "error", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -198,6 +206,46 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
+	err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
+	if err != nil {
+		log.Error(ctx, "error sanitizing credential status", "error", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
+	if c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
+		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
+	}
+
+	if c.CredentialStatus.RHSMode == none {
+		c.CredentialStatus.DirectStatus.URL = host
+		c.CredentialStatus.CredentialStatusType = sparseMerkleTreeProof
+	}
+
+	if c.CredentialStatus.RHSMode == offChain {
+		if c.CredentialStatus.RHS.URL == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
+		}
+		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
+		c.CredentialStatus.DirectStatus.URL = host
+	}
+
+	if c.CredentialStatus.RHSMode == onChain {
+		if c.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT value is missing")
+		}
+
+		if c.CredentialStatus.OnchainTreeStore.PublishingKeyPath == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH value is missing")
+		}
+
+		if c.CredentialStatus.OnchainTreeStore.ChainID == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID value is missing")
+		}
+		c.CredentialStatus.CredentialStatusType = iden3OnchainSparseMerkleTreeProof2023
+	}
 	return nil
 }
 
@@ -348,9 +396,6 @@ func bindEnv() {
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
 	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
 
-	_ = viper.BindEnv("ReverseHashService.URL", "ISSUER_REVERSE_HASH_SERVICE_URL")
-	_ = viper.BindEnv("ReverseHashService.Enabled", "ISSUER_REVERSE_HASH_SERVICE_ENABLED")
-
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
 	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT")
@@ -365,6 +410,14 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
 	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
+
+	_ = viper.BindEnv("CredentialStatus.DirectStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
+	_ = viper.BindEnv("CredentialStatus.RHS.URL", "ISSUER_CREDENTIAL_STATUS_RHS_URL")
+	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract", "ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT")
+	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.PublishingKeyPath", "ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH")
+	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.ChainID", "ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID")
+	_ = viper.BindEnv("CredentialStatus.RHSMode", "ISSUER_CREDENTIAL_STATUS_RHS_MODE")
+	_ = viper.BindEnv("CredentialStatus.CredentialStatusType", "ISSUER_CREDENTIAL_STATUS_RHS_STATUS_TYPE")
 
 	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
 	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")
@@ -507,6 +560,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.CredentialStatus.RHSMode == "" {
+		log.Info(ctx, "ISSUER_CREDENTIAL_STATUS_RHS_MODE value is missing and the server set up it as None")
+		cfg.CredentialStatus.RHSMode = "None"
 	}
 
 	if cfg.APIUI.KeyType == "" {
