@@ -855,7 +855,7 @@ components:
       x-go-type: timeapi.Time
       x-go-type-import:
         name: timeapi
-        path: github.com/0xPolygonID/marketplace/internal/timeapi
+        path: github.com/polygonid/sh-id-platform/internal/timeapi
       example: '2023-10-26T10:59:08Z'
 
   parameters:

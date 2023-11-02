@@ -16,6 +16,7 @@ import (
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
+	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
 const (
@@ -89,10 +90,10 @@ type CreateLinkRequest struct {
 
 // Credential defines model for Credential.
 type Credential struct {
-	CreatedAt         time.Time              `json:"createdAt"`
+	CreatedAt         TimeUTC                `json:"createdAt"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
-	ExpiresAt         *time.Time             `json:"expiresAt"`
+	ExpiresAt         *TimeUTC               `json:"expiresAt,omitempty"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
@@ -126,7 +127,7 @@ type GenericMessage struct {
 
 // GetConnectionResponse defines model for GetConnectionResponse.
 type GetConnectionResponse struct {
-	CreatedAt   time.Time    `json:"createdAt"`
+	CreatedAt   TimeUTC      `json:"createdAt"`
 	Credentials []Credential `json:"credentials"`
 	Id          string       `json:"id"`
 	IssuerID    string       `json:"issuerID"`
@@ -170,10 +171,10 @@ type KeyValue struct {
 // Link defines model for Link.
 type Link struct {
 	Active               bool                `json:"active"`
-	CreatedAt            time.Time           `json:"createdAt"`
+	CreatedAt            TimeUTC             `json:"createdAt"`
 	CredentialExpiration *openapi_types.Date `json:"credentialExpiration"`
 	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	Expiration           *time.Time          `json:"expiration"`
+	Expiration           *TimeUTC            `json:"expiration,omitempty"`
 	Id                   uuid.UUID           `json:"id"`
 	IssuedClaims         int                 `json:"issuedClaims"`
 	MaxIssuance          *int                `json:"maxIssuance"`
@@ -256,15 +257,15 @@ type RevokeCredentialResponse struct {
 
 // Schema defines model for Schema.
 type Schema struct {
-	BigInt      string    `json:"bigInt"`
-	CreatedAt   time.Time `json:"createdAt"`
-	Description *string   `json:"description"`
-	Hash        string    `json:"hash"`
-	Id          string    `json:"id"`
-	Title       *string   `json:"title"`
-	Type        string    `json:"type"`
-	Url         string    `json:"url"`
-	Version     string    `json:"version"`
+	BigInt      string  `json:"bigInt"`
+	CreatedAt   TimeUTC `json:"createdAt"`
+	Description *string `json:"description"`
+	Hash        string  `json:"hash"`
+	Id          string  `json:"id"`
+	Title       *string `json:"title"`
+	Type        string  `json:"type"`
+	Url         string  `json:"url"`
+	Version     string  `json:"version"`
 }
 
 // StateStatusResponse defines model for StateStatusResponse.
@@ -275,7 +276,7 @@ type StateStatusResponse struct {
 // StateTransaction defines model for StateTransaction.
 type StateTransaction struct {
 	Id          int64                  `json:"id"`
-	PublishDate time.Time              `json:"publishDate"`
+	PublishDate TimeUTC                `json:"publishDate"`
 	State       string                 `json:"state"`
 	Status      StateTransactionStatus `json:"status"`
 	TxID        string                 `json:"txID"`
@@ -286,6 +287,9 @@ type StateTransactionStatus string
 
 // StateTransactionsResponse defines model for StateTransactionsResponse.
 type StateTransactionsResponse = []StateTransaction
+
+// TimeUTC defines model for TimeUTC.
+type TimeUTC = timeapi.Time
 
 // UUIDResponse defines model for UUIDResponse.
 type UUIDResponse struct {

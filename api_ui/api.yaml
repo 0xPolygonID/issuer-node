@@ -1139,15 +1139,11 @@ components:
             type: string
           example: [ "BJJSignature2021" ]
         createdAt:
-          type: string
-          format: date-time
-          example: "2023-03-20T11:54:01.110295+01:00"
+          $ref: '#/components/schemas/TimeUTC'
         expiresAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
           nullable: true
-          example: "2025-03-20T11:54:01.110295+01:00"
         expired:
           type: boolean
           example: true
@@ -1217,9 +1213,7 @@ components:
         issuedClaims:
           type: integer
         expiration:
-          type: string
-          format: date-time
-          example: 2023-03-17T10:18:01.400722+01:00
+          $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
           nullable: true
         credentialExpiration:
@@ -1229,9 +1223,7 @@ components:
           x-omitempty: false
           nullable: true
         createdAt:
-          type: string
-          format: date-time
-          example: 2023-03-16T10:18:01.400722+01:00
+          $ref: '#/components/schemas/TimeUTC'
         active:
           type: boolean
         status:
@@ -1299,9 +1291,7 @@ components:
           type: string
           example: 13f9aadd4801d775e85a7ef45c2f6d02cdf83f0d724250417b165ff9cd88ee21
         publishDate:
-          type: string
-          format: date-time
-          example: 2023-03-17T10:18:01.400722+01:00
+          $ref: '#/components/schemas/TimeUTC'
         status:
           type: string
           enum: [ created, pending, published, failed ]
@@ -1351,9 +1341,7 @@ components:
           x-omitempty: false
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         createdAt:
-          type: string
-          format: date-time
-          example: 2023-03-17T10:18:01.400722+01:00
+          $ref: '#/components/schemas/TimeUTC'
         credentials:
           type: array
           x-omitempty: false
@@ -1424,10 +1412,8 @@ components:
           x-omitempty: false
           example: KYCCountryOfResidenceCredential
         createdAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
-          example: 2023-03-20T17:01:33.564119+01:00
         title:
           type: string
           x-omitempty: false
@@ -1585,7 +1571,7 @@ components:
       x-go-type: timeapi.Time
       x-go-type-import:
         name: timeapi
-        path: github.com/0xPolygonID/marketplace/internal/timeapi
+        path: github.com/polygonid/sh-id-platform/internal/timeapi
       example: '2023-10-26T10:59:08Z'
 
   parameters:
