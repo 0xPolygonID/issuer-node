@@ -25,5 +25,3 @@ COPY --from=base ./service/api ./api
 COPY --from=base ./service/api_ui ./api_ui
 COPY --from=base ./service/bin/* ./
 COPY --from=base ./service/pkg/credentials ./pkg/credentials
-COPY --from=base "/go/pkg/mod/github.com/iden3/wasmer-go@v0.0.1/wasmer/packaged/" \
- "/go/pkg/mod/github.com/iden3/wasmer-go@v0.0.1/wasmer/packaged/"

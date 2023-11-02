@@ -24,6 +24,7 @@ var (
 	keyStore       *kms.KMS
 	cachex         cache.Cache
 	docLoader      loader.DocumentLoader
+	cfg            config.Configuration
 )
 
 const ipfsGatewayURL = "http://127.0.0.1:8080"
@@ -89,6 +90,12 @@ func TestMain(m *testing.M) {
 
 	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
+	cfg.CredentialStatus = config.CredentialStatus{
+		RHSMode: "None",
+		DirectStatus: config.DirectStatus{
+			URL: "http://localhost:3001",
+		},
+	}
 	m.Run()
 }
 

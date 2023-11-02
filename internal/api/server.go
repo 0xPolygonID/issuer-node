@@ -96,10 +96,11 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
-		Method:     core.DIDMethod(method),
-		Network:    core.NetworkID(network),
-		Blockchain: core.Blockchain(blockchain),
-		KeyType:    kms.KeyType(keyType),
+		Method:                  core.DIDMethod(method),
+		Network:                 core.NetworkID(network),
+		Blockchain:              core.Blockchain(blockchain),
+		KeyType:                 kms.KeyType(keyType),
+		AuthBJJCredentialStatus: verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType),
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -142,7 +143,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false)
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {

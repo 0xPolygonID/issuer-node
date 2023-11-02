@@ -203,6 +203,8 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+
+
   #claims:
   /v1/{identifier}/claims:
     post:
@@ -523,7 +525,6 @@ components:
               x-omitempty: false
               example: "BJJ"
               enum: [BJJ, ETH]
-
 
     CreateIdentityResponse:
       type: object

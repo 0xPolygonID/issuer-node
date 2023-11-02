@@ -85,6 +85,12 @@ func TestMain(m *testing.M) {
 	}
 
 	cfg.ServerUrl = "https://testing.env/"
+	cfg.CredentialStatus = config.CredentialStatus{
+		RHSMode: "None",
+		DirectStatus: config.DirectStatus{
+			URL: "http://localhost:3001",
+		},
+	}
 
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 

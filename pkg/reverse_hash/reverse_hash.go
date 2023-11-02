@@ -30,12 +30,12 @@ type RhsPublisher interface {
 }
 
 type rhsPublisher struct {
-	rhsCli          *proof.HTTPReverseHashCli
+	rhsCli          proof.ReverseHashCli
 	ignoreRHSErrors bool
 }
 
 // NewRhsPublisher - constructor
-func NewRhsPublisher(rhsCli *proof.HTTPReverseHashCli, ignoreRHSErrors bool) *rhsPublisher {
+func NewRhsPublisher(rhsCli proof.ReverseHashCli, ignoreRHSErrors bool) RhsPublisher {
 	return &rhsPublisher{
 		rhsCli:          rhsCli,
 		ignoreRHSErrors: ignoreRHSErrors,
@@ -106,11 +106,11 @@ func (rhsp *rhsPublisher) PublishNodesToRHS(ctx context.Context, nodes []proof.N
 		return nil
 	}
 	if len(nodes) > 0 {
-		log.Info(ctx, "new state nodes", nodes)
+		log.Info(ctx, "new state nodes", "nodes", nodes)
 		err := rhsp.rhsCli.SaveNodes(ctx, nodes)
 		if err != nil {
 			if rhsp.ignoreRHSErrors {
-				log.Error(ctx, "failed to push nodes to RHS", err)
+				log.Error(ctx, "failed to push nodes to RHS", "err", err)
 				return nil
 			}
 			return err

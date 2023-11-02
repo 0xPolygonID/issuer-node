@@ -15,10 +15,11 @@ import (
 
 // DIDCreationOptions represents options for DID creation
 type DIDCreationOptions struct {
-	Method     core.DIDMethod  `json:"method"`
-	Blockchain core.Blockchain `json:"blockchain"`
-	Network    core.NetworkID  `json:"network"`
-	KeyType    kms.KeyType     `json:"keyType"`
+	Method                  core.DIDMethod                  `json:"method"`
+	Blockchain              core.Blockchain                 `json:"blockchain"`
+	Network                 core.NetworkID                  `json:"network"`
+	KeyType                 kms.KeyType                     `json:"keyType"`
+	AuthBJJCredentialStatus verifiable.CredentialStatusType `json:"authBJJCredentialStatus,omitempty"`
 }
 
 // IdentityService is the interface implemented by the identity service
@@ -41,4 +42,5 @@ type IdentityService interface {
 	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, error)
 	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error)
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
+	PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error
 }

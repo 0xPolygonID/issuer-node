@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
@@ -237,6 +238,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 
 	link.CredentialSubject["id"] = userDID.String()
 
+	// TODO: add support for multiple credential types
 	claimReq := ports.NewCreateClaimRequest(&issuerDID,
 		schema.URL,
 		link.CredentialSubject,
@@ -247,6 +249,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		common.ToPointer(link.CredentialMTPProof),
 		&linkID,
 		true,
+		verifiable.SparseMerkleTreeProof,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
