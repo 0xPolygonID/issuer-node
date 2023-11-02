@@ -119,8 +119,8 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 			BlockNumber:        identity.State.BlockNumber,
 			BlockTimestamp:     identity.State.BlockTimestamp,
 			ClaimsTreeRoot:     identity.State.ClaimsTreeRoot,
-			CreatedAt:          identity.State.CreatedAt,
-			ModifiedAt:         identity.State.ModifiedAt,
+			CreatedAt:          TimeUTC(identity.State.CreatedAt),
+			ModifiedAt:         TimeUTC(identity.State.ModifiedAt),
 			PreviousState:      identity.State.PreviousState,
 			RevocationTreeRoot: identity.State.RevocationTreeRoot,
 			RootOfRoots:        identity.State.RootOfRoots,
@@ -501,8 +501,8 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 			BlockNumber:        identity.State.BlockNumber,
 			BlockTimestamp:     identity.State.BlockTimestamp,
 			ClaimsTreeRoot:     identity.State.ClaimsTreeRoot,
-			CreatedAt:          identity.State.CreatedAt,
-			ModifiedAt:         identity.State.ModifiedAt,
+			CreatedAt:          TimeUTC(identity.State.CreatedAt),
+			ModifiedAt:         TimeUTC(identity.State.ModifiedAt),
 			PreviousState:      identity.State.PreviousState,
 			RevocationTreeRoot: identity.State.RevocationTreeRoot,
 			RootOfRoots:        identity.State.RootOfRoots,
@@ -540,6 +540,13 @@ func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSON
 }
 
 func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
+	var claimExpiration, claimIssuanceDate *TimeUTC
+	if claim.Expiration != nil {
+		claimExpiration = common.ToPointer(TimeUTC(*claim.Expiration))
+	}
+	if claim.IssuanceDate != nil {
+		claimIssuanceDate = common.ToPointer(TimeUTC(*claim.IssuanceDate))
+	}
 	return GetClaimResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
@@ -548,9 +555,9 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		},
 		CredentialStatus:  claim.CredentialStatus,
 		CredentialSubject: claim.CredentialSubject,
-		Expiration:        claim.Expiration,
+		Expiration:        claimExpiration,
 		Id:                claim.ID,
-		IssuanceDate:      claim.IssuanceDate,
+		IssuanceDate:      claimIssuanceDate,
 		Issuer:            claim.Issuer,
 		Proof:             claim.Proof,
 		Type:              claim.Type,

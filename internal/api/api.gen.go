@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/google/uuid"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
+	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
 const (
@@ -112,9 +112,9 @@ type GetClaimResponse struct {
 	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
 	CredentialStatus  interface{}            `json:"credentialStatus"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	Expiration        *time.Time             `json:"expiration,omitempty"`
+	Expiration        *TimeUTC               `json:"expiration,omitempty"`
 	Id                string                 `json:"id"`
-	IssuanceDate      *time.Time             `json:"issuanceDate,omitempty"`
+	IssuanceDate      *TimeUTC               `json:"issuanceDate,omitempty"`
 	Issuer            string                 `json:"issuer"`
 	Proof             interface{}            `json:"proof"`
 	Type              []string               `json:"type"`
@@ -136,19 +136,19 @@ type Health map[string]bool
 
 // IdentityState defines model for IdentityState.
 type IdentityState struct {
-	BlockNumber        *int      `json:"blockNumber,omitempty"`
-	BlockTimestamp     *int      `json:"blockTimestamp,omitempty"`
-	ClaimsTreeRoot     *string   `json:"claimsTreeRoot,omitempty"`
-	CreatedAt          time.Time `json:"createdAt"`
-	Identifier         string    `json:"-"`
-	ModifiedAt         time.Time `json:"modifiedAt"`
-	PreviousState      *string   `json:"previousState,omitempty"`
-	RevocationTreeRoot *string   `json:"revocationTreeRoot,omitempty"`
-	RootOfRoots        *string   `json:"rootOfRoots,omitempty"`
-	State              *string   `json:"state,omitempty"`
-	StateID            int64     `json:"-"`
-	Status             string    `json:"status"`
-	TxID               *string   `json:"txID,omitempty"`
+	BlockNumber        *int    `json:"blockNumber,omitempty"`
+	BlockTimestamp     *int    `json:"blockTimestamp,omitempty"`
+	ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
+	CreatedAt          TimeUTC `json:"createdAt"`
+	Identifier         string  `json:"-"`
+	ModifiedAt         TimeUTC `json:"modifiedAt"`
+	PreviousState      *string `json:"previousState,omitempty"`
+	RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
+	RootOfRoots        *string `json:"rootOfRoots,omitempty"`
+	State              *string `json:"state,omitempty"`
+	StateID            int64   `json:"-"`
+	Status             string  `json:"status"`
+	TxID               *string `json:"txID,omitempty"`
 }
 
 // KeyValue defines model for KeyValue.
@@ -188,6 +188,9 @@ type RevocationStatusResponse struct {
 type RevokeClaimResponse struct {
 	Message string `json:"message"`
 }
+
+// TimeUTC defines model for TimeUTC.
+type TimeUTC = timeapi.Time
 
 // PathClaim defines model for pathClaim.
 type PathClaim = string

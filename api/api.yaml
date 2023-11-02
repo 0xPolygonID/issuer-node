@@ -591,11 +591,9 @@ components:
         status:
           type: string
         modifiedAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/TimeUTC'
         createdAt:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/TimeUTC'
 
     PublishIdentityStateResponse:
       type: object
@@ -690,11 +688,9 @@ components:
           items:
             type: string
         expiration:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/TimeUTC'
         issuanceDate:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/TimeUTC'
         credentialSubject:
           type: object
           x-omitempty: false

@@ -852,7 +852,7 @@ func TestServer_GetClaim(t *testing.T) {
 						"type":         "KYCAgeCredential",
 					},
 					Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
-					IssuanceDate: common.ToPointer(time.Now().UTC()),
+					IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 					Issuer:       idStr,
 					Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 				},
@@ -1020,7 +1020,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"type":         "KYCAgeCredential",
 						},
 						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
-						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 					},
@@ -1056,7 +1056,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"type":         "KYCAgeCredential",
 						},
 						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
-						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 					},
@@ -1093,7 +1093,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"type":         "KYCAgeCredential",
 						},
 						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
-						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 					},
@@ -1142,7 +1142,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"type":         "KYCAgeCredential",
 						},
 						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
-						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 					},
@@ -1178,7 +1178,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"type":         "KYCAgeCredential",
 						},
 						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
-						IssuanceDate: common.ToPointer(time.Now().UTC()),
+						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 					},
@@ -1332,7 +1332,7 @@ func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
 	assert.Equal(t, len(resp.Context), len(tc.Context))
 	assert.EqualValues(t, resp.Context, tc.Context)
 	assert.EqualValues(t, resp.CredentialSchema, tc.CredentialSchema)
-	assert.InDelta(t, resp.IssuanceDate.Unix(), tc.IssuanceDate.Unix(), 30)
+	assert.InDelta(t, time.Time(*resp.IssuanceDate).UnixMilli(), time.Time(*tc.IssuanceDate).UnixMilli(), 1000)
 	assert.Equal(t, resp.Type, tc.Type)
 	assert.Equal(t, resp.Expiration, tc.Expiration)
 	assert.Equal(t, resp.Issuer, tc.Issuer)
