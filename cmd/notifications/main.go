@@ -96,7 +96,7 @@ func main() {
 	}
 
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	credentialsService, err := newCredentialsService(cfg, storage, cachex, ps, vaultCli)
+	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)
 		return
@@ -122,7 +122,7 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *vault.Client) (ports.ClaimsService, error) {
+func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *vault.Client) (ports.ClaimsService, error) {
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
@@ -135,7 +135,8 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {
-		panic("Error dialing with ethclient: " + err.Error())
+		log.Error(ctx, "error dialing with ethclient", "err", err, "eth-url", cfg.Ethereum.URL)
+		return nil, err
 	}
 
 	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
@@ -158,7 +159,6 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	cfg.CredentialStatus.SingleIssuer = true
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
 

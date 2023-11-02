@@ -109,9 +109,8 @@ func main() {
 
 	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {
-		log.Info(ctx, "the ethereum rcp is", "url", cfg.Ethereum.URL)
-		log.Error(ctx, "error dialing with ethclient", "err", err)
-		panic("Error dialing with ethclient: " + err.Error())
+		log.Error(ctx, "error dialing with ethclient", "err", err, "rth-url", cfg.Ethereum.URL)
+		return
 	}
 
 	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{

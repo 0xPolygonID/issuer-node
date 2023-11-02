@@ -215,7 +215,7 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 }
 
 func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
-	if c.CredentialStatus.RHSMode != "" && c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
+	if c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
 		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
 	}
 

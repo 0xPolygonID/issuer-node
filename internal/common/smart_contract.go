@@ -21,14 +21,12 @@ type SmartContractProof struct {
 // SmartContractProofToMtProofAdapter converts SmartContractProof to merkletree.Proof
 func SmartContractProofToMtProofAdapter(smtProof SmartContractProof) (*merkletree.Proof, error) {
 	var (
-		existence bool
-		nodeAux   *merkletree.NodeAux
-		err       error
+		nodeAux *merkletree.NodeAux
+		err     error
 	)
 
-	if smtProof.Existence {
-		existence = true
-	} else {
+	existence := true
+	if !smtProof.Existence {
 		existence = false
 		if smtProof.AuxExistence {
 			nodeAux = &merkletree.NodeAux{}
