@@ -8,6 +8,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	openapitypes "github.com/oapi-codegen/runtime/types"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	linkstate "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
@@ -54,7 +55,7 @@ func schemaResponse(s *domain.Schema) Schema {
 		Url:         s.URL,
 		BigInt:      s.Hash.BigInt().String(),
 		Hash:        string(hash),
-		CreatedAt:   s.CreatedAt,
+		CreatedAt:   TimeUTC(s.CreatedAt),
 		Version:     s.Version,
 		Title:       s.Title,
 		Description: s.Description,
@@ -70,20 +71,22 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 }
 
 func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
+	var expiresAt *TimeUTC
 	expired := false
 	if w3c.Expiration != nil {
 		if time.Now().UTC().After(w3c.Expiration.UTC()) {
 			expired = true
 		}
+		expiresAt = common.ToPointer(TimeUTC(*w3c.Expiration))
 	}
 
 	proofs := getProofs(credential)
 
 	return Credential{
 		CredentialSubject: w3c.CredentialSubject,
-		CreatedAt:         *w3c.IssuanceDate,
+		CreatedAt:         TimeUTC(*w3c.IssuanceDate),
 		Expired:           expired,
-		ExpiresAt:         w3c.Expiration,
+		ExpiresAt:         expiresAt,
 		Id:                credential.ID,
 		ProofTypes:        proofs,
 		RevNonce:          uint64(credential.RevNonce),
@@ -145,7 +148,7 @@ func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredentia
 	}
 
 	return GetConnectionResponse{
-		CreatedAt:   conn.CreatedAt,
+		CreatedAt:   TimeUTC(conn.CreatedAt),
 		Id:          conn.ID.String(),
 		UserID:      conn.UserDID.String(),
 		IssuerID:    conn.IssuerDID.String(),
@@ -171,7 +174,7 @@ func toStateTransaction(state domain.IdentityState) StateTransaction {
 	}
 	return StateTransaction{
 		Id:          state.StateID,
-		PublishDate: state.ModifiedAt,
+		PublishDate: TimeUTC(state.ModifiedAt),
 		State:       stateTran,
 		Status:      getTransactionStatus(state.Status),
 		TxID:        txID,
@@ -222,6 +225,11 @@ func getLinkResponse(link domain.Link) Link {
 		date = &openapitypes.Date{Time: *link.CredentialExpiration}
 	}
 
+	var validUntil *TimeUTC
+	if link.ValidUntil != nil {
+		validUntil = common.ToPointer(TimeUTC(*link.ValidUntil))
+	}
+
 	return Link{
 		Id:                   link.ID,
 		Active:               link.Active,
@@ -233,8 +241,8 @@ func getLinkResponse(link domain.Link) Link {
 		SchemaHash:           string(hash),
 		Status:               LinkStatus(link.Status()),
 		ProofTypes:           getLinkProofs(link),
-		CreatedAt:            link.CreatedAt,
-		Expiration:           link.ValidUntil,
+		CreatedAt:            TimeUTC(link.CreatedAt),
+		Expiration:           validUntil,
 		CredentialExpiration: date,
 	}
 }
