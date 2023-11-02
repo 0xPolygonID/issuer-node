@@ -850,6 +850,14 @@ components:
         to:
           type: string
 
+    TimeUTC:
+      type: string
+      x-go-type: timeapi.Time
+      x-go-type-import:
+        name: timeapi
+        path: github.com/0xPolygonID/marketplace/internal/timeapi
+      example: '2023-10-26T10:59:08Z'
+
   parameters:
     pathIdentifier:
       name: identifier
