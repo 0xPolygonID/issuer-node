@@ -1,15 +1,16 @@
 package repositories
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
+	// "io"
 	"log"
-	"net/http"
+	// "net/http"
 	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/google/uuid"
 	"github.com/iden3/go-circuits/v2"
 	auth "github.com/iden3/go-iden3-auth/v2"
 	"github.com/iden3/go-iden3-auth/v2/loaders"
@@ -25,16 +26,12 @@ type verifier struct{}
 func NewVerifier() ports.VerifierRepository {
 	return &verifier{}
 }
-
-
-
 var requestMap = make(map[string]interface{})
-
-func (v *verifier) GetAuthRequest(w http.ResponseWriter, r *http.Request){
-
+var sessionID = 0
+func (v *verifier) GetAuthRequest(ctx context.Context,schemaType string,schemaURL string,credSubject map[string]interface{})(protocol.AuthorizationRequestMessage,error){
 	// Audience is verifier id
-	rURL := "<NGROK_URL>"
-	sessionID := 1
+	rURL := "localhost:3002"
+	sessionID++ 
 	CallbackURL := "/api/callback"
 	Audience := "did:polygonid:polygon:mumbai:2qDyy1kEo2AYcP3RT4XGea7BtxsY285szg6yP9SPrs"
 
@@ -43,22 +40,17 @@ func (v *verifier) GetAuthRequest(w http.ResponseWriter, r *http.Request){
 	// Generate request for basic authentication
 	var request protocol.AuthorizationRequestMessage = auth.CreateAuthorizationRequest("test flow", Audience, uri)
 
-	request.ID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
-	request.ThreadID = "7f38a193-0918-4a48-9fac-36adfdb8b542"
-
+	request.ID = uuid.New().String()
+	request.ThreadID = request.ID
 	// Add request for a specific proof
 	var mtpProofRequest protocol.ZeroKnowledgeProofRequest
 	mtpProofRequest.ID = 1
 	mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigV2CircuitID)
 	mtpProofRequest.Query = map[string]interface{}{
 		"allowedIssuers": []string{"*"},
-		"credentialSubject": map[string]interface{}{
-			"birthday": map[string]interface{}{
-				"$lt": 20000101,
-			},
-		},
-		"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
-		"type":    "KYCAgeCredential",
+		"credentialSubject":credSubject,
+		"context": schemaURL,
+		"type":    schemaType,
 	}
 	request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
 
@@ -66,27 +58,21 @@ func (v *verifier) GetAuthRequest(w http.ResponseWriter, r *http.Request){
 	requestMap[strconv.Itoa(sessionID)] = request
 
 	// print request
-	fmt.Println(request)
-
-	msgBytes, _ := json.Marshal(request)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(msgBytes)
-	return
+	fmt.Println("Request",request)
+	return request,nil;
 }
 
-// Callback works with sign-in callbacks
-func Callback(w http.ResponseWriter, r *http.Request) {
+// // Callback works with sign-in callbacks
+func (v *verifier) Callback(ctx context.Context,sessionId string,tokenBytes []byte)(messageBytes []byte, err error) {
 
 	// Get session ID from request
-	sessionID := r.URL.Query().Get("sessionId")
+	// sessionID := r.URL.Query().Get("sessionId")
 
-	// get JWZ token params from the post request
-	tokenBytes, _ := io.ReadAll(r.Body)
+	// // get JWZ token params from the post request
+	// tokenBytes, _ := io.ReadAll(r.Body)
 
 	// Add Polygon Mumbai RPC node endpoint - needed to read on-chain state
-	ethURL := "MUMBAI_RPC_URL"
+	ethURL := "https://polygon-mumbai.g.alchemy.com/v2/YSO_NsiNTjiA-6thPC2RXS9NoBbjjDKC"
 
 	// Add identity state contract address
 	contractAddress := "0x134B1BE34911E39A8397ec6289782989729807a4"
@@ -97,7 +83,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	keyDIR := "../keys"
 
 	// fetch authRequest from sessionID
-	authRequest := requestMap[sessionID]
+	authRequest := requestMap[sessionId]
 
 	// print authRequest
 	fmt.Println(authRequest)
@@ -117,29 +103,23 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	verifier, err := auth.NewVerifier(verificationKeyloader, resolvers, auth.WithIPFSGateway("https://ipfs.io"))
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	authResponse, err := verifier.FullVerify(
-		r.Context(),
+		ctx,
 		string(tokenBytes),
 		authRequest.(protocol.AuthorizationRequestMessage),
 		pubsignals.WithAcceptedStateTransitionDelay(time.Minute*5))
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		// http.Error(w, err.Error(), http.StatusInternalServerError)
+		return nil,err
 	}
-
 	userID := authResponse.From
+	messageBytes = []byte("User with ID " + userID + " Successfully authenticated")
 
-	messageBytes := []byte("User with ID " + userID + " Successfully authenticated")
-
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(messageBytes)
-
-	return
+	return messageBytes, nil
 }
 
 

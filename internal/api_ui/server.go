@@ -44,10 +44,11 @@ type Server struct {
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
 	requestServer      ports.RequestService
+	verifierServer	   ports.VerifierService
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, requestServer ports.RequestService) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, requestServer ports.RequestService,verifierServer ports.VerifierService) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -59,6 +60,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		packageManager:     packageManager,
 		health:             health,
 		requestServer:      requestServer,
+		verifierServer: verifierServer,
 	}
 }
 
@@ -319,6 +321,39 @@ func (s *Server) DeleteNotification(ctx context.Context,id uuid.UUID) (DeleteNot
 	}
 	return result, nil
 }
+
+func (s *Server) CreateAuthRequest(ctx context.Context,id uuid.UUID) (CreateAuthRequestResponse,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	fmt.Println("IssuerId",s.cfg.APIUI.IssuerDID)
+	cred,err := s.claimService.GetByID(ctx,&s.cfg.APIUI.IssuerDID,id)
+	if err != nil{
+		return nil,err
+	}
+	w3c, err := schema.FromClaimModelToW3CCredential(*cred)
+	fmt.Println("Credential :",cred)
+	res,err:= s.verifierServer.GetAuthRequest(ctx,cred.SchemaType,cred.SchemaURL,w3c.CredentialSubject)
+	if err != nil{
+		return nil,err
+	} 
+	fmt.Println("Response :",res)
+	resp,_:=authRequestResponse(res)
+	// msgBytes, _ := json.Marshal(res)
+		return resp,nil
+}
+
+func (s *Server) Callback(ctx context.Context,req callbackRequestObject) (VerifyAuthResponseObject,error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	res,err:= s.verifierServer.Callback(ctx,req.Body.SessionID,req.Body.TokenBytes)
+	if err != nil{
+		return nil,err
+	} 
+
+	// resp,_:=authRequestResponse(res)
+	// msgBytes, _ := json.Marshal(res)
+	fmt.Println("Response :",string(res))
+		return VerifyAuth200Response{Msg: string(res),Status: true},nil
+}
+
 
 func (s *Server) UpdateUser(ctx context.Context,request CreateUserRequestObject) (AddUserResponseObject,error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
@@ -1051,3 +1086,5 @@ func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
 }
+
+

@@ -138,6 +138,7 @@ func main() {
 	linkRepository := repositories.NewLink(*storage)
 	schemaRepository := repositories.NewSchema(*storage)
 	requestRepository := repositories.NewRequests()
+	verifierRepository:=repositories.NewVerifier()
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
@@ -165,6 +166,7 @@ func main() {
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	requestService :=services.NewRequests(requestRepository,storage);
+	verifierService :=services.NewVerifier(verifierRepository,storage)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
 		return
@@ -207,7 +209,7 @@ func main() {
 	)
 	api_ui.HandlerWithOptions(
 		api_ui.NewStrictHandlerWithOptions(
-			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, publisher, packageManager, serverHealth,requestService),
+			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, publisher, packageManager, serverHealth,requestService,verifierService),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_ui.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

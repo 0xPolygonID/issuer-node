@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
@@ -385,6 +385,35 @@ func userResponse(requets *domain.UserResponse) (UserResponse, error) {
 
 	return resp, nil
 }
+
+func authRequestResponse(request protocol.AuthorizationRequestMessage)(AuthorizationRequestMessage,error){
+	resp:=make([]ZeroKnowledgeProofRequest,0)
+	for _,req := range request.Body.Scope{
+		res:= ZeroKnowledgeProofRequest{
+			req.ID,
+			req.CircuitID,
+			req.Optional,
+			req.Query,
+		}
+		resp= append(resp,res)
+	}
+		body:=AuthorizationRequestMessageBody{
+			request.Body.CallbackURL,
+			request.Body.Reason,
+			request.Body.Message,
+			request.Body.DIDDoc,
+			resp,
+		}
+		return AuthorizationRequestMessage{
+			request.ID,
+			request.Typ,
+			request.Type,
+			request.ThreadID,
+			body,
+			request.From,
+			request.To,
+		},nil
+	}
 
 func loginResponse(requets *domain.LoginResponse) (Login200Response, error) {
 	resp := Login200Response{
