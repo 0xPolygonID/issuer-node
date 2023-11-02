@@ -17,9 +17,9 @@ import {
   CONNECTIONS,
   CREDENTIALS,
   CREDENTIALS_TABS,
+  DOCS_URL,
   ISSUER_STATE,
   SCHEMAS,
-  TUTORIALS_URL,
 } from "src/utils/constants";
 
 export function SiderMenu({
@@ -149,7 +149,7 @@ export function SiderMenu({
               icon: <IconFile />,
               key: "documentation",
               label: (
-                <Typography.Link href={TUTORIALS_URL} target="_blank">
+                <Typography.Link href={DOCS_URL} target="_blank">
                   <Row justify="space-between">
                     <span>Documentation</span>
 
