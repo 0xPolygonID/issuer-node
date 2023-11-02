@@ -367,21 +367,19 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("can't create RHS publisher: %w", err)
 			}
 
-			if len(rhsPublishers) >= 0 {
-				var errIn error
-				for _, rhsPublisher := range rhsPublishers {
-					errIn = rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
-					if err != nil {
-						log.Error(ctx, "publishing hashes to RHS", "err", err)
-						if i.ignoreRHSErrors {
-							errIn = nil
-						} else {
-							return errIn
-						}
+			var errIn error
+			for _, rhsPublisher := range rhsPublishers {
+				errIn = rhsPublisher.PushHashesToRHS(ctx, newState, previousState, updatedRevocations, iTrees)
+				if errIn != nil {
+					log.Error(ctx, "publishing hashes to RHS", "err", errIn)
+					if i.ignoreRHSErrors {
+						errIn = nil
+					} else {
+						return errIn
 					}
 				}
-				err = errIn
 			}
+			err = errIn
 			return err
 		},
 	)
@@ -896,7 +894,7 @@ func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) e
 
 	genesisState, err := i.identityStateRepository.GetGenesisState(ctx, i.storage.Pgx, did.String())
 	if err != nil {
-		log.Error(ctx, "can't get genesis state", "err", err)
+		log.Error(ctx, "can't get genesis state", "err", err, "did", did.String())
 		return err
 	}
 
