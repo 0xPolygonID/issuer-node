@@ -4,7 +4,7 @@ ALTER TABLE identities
     ADD COLUMN address TEXT,
     ADD COLUMN keytype TEXT;
 
-UPDATE identities set keytype = 'BJJ' where keyType is null;
+UPDATE identities set keytype = 'BJJ' where keytype is null;
 
 ALTER TABLE identities
     ALTER COLUMN keytype SET NOT NULL;
