@@ -307,7 +307,7 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 	didStr := "did:polygonid:polygon:mumbai:2qKLWeRi6Tk23SmFpRKHvKFf2MmrocJYxwAD1MwhYw"
 	schemaStore := repositories.NewSchema(*storage)
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
 	linkStore := repositories.NewLink(*storage)
 
