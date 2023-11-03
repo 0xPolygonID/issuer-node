@@ -1,6 +1,8 @@
-# Default values for polygon-id-issuer
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+issuernode_repository_image: martinsaporiti/issuernode
+issuernode_repository_tag: 2.0.0
+issuernode_ui_repository_image: martinsaporiti/issuernodeui
+issuernode_ui_repository_tag: 2.0.0
+
 apiIssuerNode:
   deployment:
     replicaCount: 1
@@ -8,9 +10,6 @@ apiIssuerNode:
     env:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-    image:
-      repository: martinsaporiti/issuernode
-      tag: '2.0.0'
     imagePullPolicy: IfNotPresent
     labels:
       app: api-issuer-node-deployment
@@ -90,9 +89,6 @@ apiUiIssuerNode:
       env:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-      image:
-        repository: martinsaporiti/issuernode
-        tag: '2.0.0'
       imagePullPolicy: IfNotPresent
       args: 
         - '"./migrate; ./platform_ui"'
@@ -112,9 +108,6 @@ apiUiIssuerNode:
       env:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-      image:
-        repository: martinsaporiti/issuernode
-        tag: '2.0.0'
       imagePullPolicy: IfNotPresent
       args: 
         - '"sleep 30; ./migrate; ./issuer_initializer;"'
@@ -153,9 +146,6 @@ notificationsIssuerNode:
     env:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-    image:
-        repository: martinsaporiti/issuernode
-        tag: '2.0.0'
     imagePullPolicy: IfNotPresent
     labels: 
       app: notifications-issuer-node-deployment
@@ -172,9 +162,6 @@ pendingPublisherIssuerNode:
     env:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-    image:
-        repository: martinsaporiti/issuernode
-        tag: '2.0.0'
     imagePullPolicy: IfNotPresent
     labels: 
       app: pending-publisher-issuer-node-deployment
@@ -188,9 +175,6 @@ uiIssuerNode:
   deployment:
     replicaCount: 1
     name: ui-issuer-node
-    image:
-      repository: martinsaporiti/issuernodeui
-      tag: '2.0.0'
     imagePullPolicy: IfNotPresent
     uiconfigMapRef: issuer-node-ui-configmap
     containerName: ui
@@ -461,7 +445,6 @@ ingress:
       - path: /
         serviceName: api-issuer-node-svc
         servicePort: 3001
-
 
 
 uidomain: ui.issuernode.polygonid.me

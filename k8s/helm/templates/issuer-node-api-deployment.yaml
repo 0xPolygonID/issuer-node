@@ -20,7 +20,7 @@ spec:
       serviceAccountName: issuer-node-service-account
       containers:
         - name: {{ .Values.apiIssuerNode.deployment.containerName }}
-          image: {{ .Values.apiIssuerNode.deployment.image.repository }}:{{ .Values.apiIssuerNode.deployment.image.tag }}
+          image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}
           imagePullPolicy: {{ .Values.apiIssuerNode.deployment.imagePullPolicy | quote }}
           ports:
           - containerPort: {{ .Values.apiIssuerNode.deployment.containerPort }}

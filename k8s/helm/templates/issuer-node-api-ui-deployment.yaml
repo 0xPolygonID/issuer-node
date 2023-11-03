@@ -20,7 +20,7 @@ spec:
       serviceAccountName: issuer-node-service-account
       initContainers:
         - name: {{ .Values.apiUiIssuerNode.deployment.init.containerName }}
-          image: {{ .Values.apiUiIssuerNode.deployment.init.image.repository }}:{{ .Values.apiUiIssuerNode.deployment.init.image.tag }}
+          image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}
           imagePullPolicy: {{ .Values.apiUiIssuerNode.deployment.init.imagePullPolicy | quote }}
           env:
           - name: {{ include "helpers.issuer-db-url" .}}
@@ -36,7 +36,7 @@ spec:
           command: {{ .Values.apiUiIssuerNode.deployment.init.command }}
       containers:
         - name: {{ .Values.apiUiIssuerNode.deployment.apiUi.containerName }}
-          image: {{ .Values.apiUiIssuerNode.deployment.apiUi.image.repository }}:{{ .Values.apiUiIssuerNode.deployment.apiUi.image.tag }}
+          image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}
           imagePullPolicy: {{ .Values.apiUiIssuerNode.deployment.apiUi.imagePullPolicy | quote }}
           ports:
           - containerPort: {{ .Values.apiUiIssuerNode.deployment.apiUi.containerPort }}
