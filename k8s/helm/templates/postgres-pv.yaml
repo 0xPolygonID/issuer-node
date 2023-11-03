@@ -10,9 +10,9 @@ spec:
     storage: 5Gi
   accessModes:
     - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: "/data/volume_2"
+    path: "/data/volume_1"
 
 ---
 

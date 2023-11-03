@@ -6,13 +6,13 @@ metadata:
     app: issuer-node
 spec:
   storageClassName: manual
-  persistentVolumeReclaimPolicy: Delete
+  persistentVolumeReclaimPolicy: Retain
   capacity:
     storage: 250Mi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/data/volume_1"
+    path: "/data/volume_2"
 
 ---
 

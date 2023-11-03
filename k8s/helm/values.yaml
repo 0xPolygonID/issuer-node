@@ -9,9 +9,9 @@ apiIssuerNode:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
     image:
-      repository: gcr.io/polygon-public/polygon-id/issuernode
-      tag: '1.0.0'
-    imagePullPolicy: Always
+      repository: martinsaporiti/issuernode
+      tag: '2.0.0'
+    imagePullPolicy: IfNotPresent
     labels:
       app: api-issuer-node-deployment
     livenessProbe:
@@ -78,7 +78,9 @@ apiIssuerNode:
     issuerServerUrl: http://localhost:3001          
     issuerName: issuer-node-api-configmap
     issuerVaultUserpassAuthEnabled: "true"
-
+    issuerCredentialStatusPublishingKeyPath: pbkey
+    issuerIpfsGatewayUrl: https://gateway.pinata.cloud
+  
 apiUiIssuerNode:
   deployment:
     replicaCount: 1
@@ -89,9 +91,9 @@ apiUiIssuerNode:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
       image:
-        repository: gcr.io/polygon-public/polygon-id/issuernode
-        tag: '1.0.0'
-      imagePullPolicy: Always
+        repository: martinsaporiti/issuernode
+        tag: '2.0.0'
+      imagePullPolicy: IfNotPresent
       args: 
         - '"./migrate; ./platform_ui"'
       command:  
@@ -111,9 +113,9 @@ apiUiIssuerNode:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
       image:
-        repository: gcr.io/polygon-public/polygon-id/issuernode
-        tag: '1.0.0'
-      imagePullPolicy: Always
+        repository: martinsaporiti/issuernode
+        tag: '2.0.0'
+      imagePullPolicy: IfNotPresent
       args: 
         - '"sleep 30; ./migrate; ./issuer_initializer;"'
       command:  
@@ -152,9 +154,9 @@ notificationsIssuerNode:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
     image:
-      repository: gcr.io/polygon-public/polygon-id/issuernode
-      tag: '1.0.0'
-    imagePullPolicy: Always
+        repository: martinsaporiti/issuernode
+        tag: '2.0.0'
+    imagePullPolicy: IfNotPresent
     labels: 
       app: notifications-issuer-node-deployment
     containerName: notifications
@@ -171,9 +173,9 @@ pendingPublisherIssuerNode:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
     image:
-      repository: gcr.io/polygon-public/polygon-id/issuernode
-      tag: '1.0.0'
-    imagePullPolicy: Always
+        repository: martinsaporiti/issuernode
+        tag: '2.0.0'
+    imagePullPolicy: IfNotPresent
     labels: 
       app: pending-publisher-issuer-node-deployment
     containerName: pending-publisher
@@ -187,9 +189,9 @@ uiIssuerNode:
     replicaCount: 1
     name: ui-issuer-node
     image:
-      repository: 0xpolygon/issuernode-ui
-      tag: 'multi'
-    imagePullPolicy: Always
+      repository: martinsaporiti/issuernodeui
+      tag: '2.0.0'
+    imagePullPolicy: IfNotPresent
     uiconfigMapRef: issuer-node-ui-configmap
     containerName: ui
     containerPort: 80
@@ -225,7 +227,7 @@ postgresIssuerNode:
     imagePullPolicy: IfNotPresent
     volumeMounts:
     - name: postgresdata
-      mountPath: /var/lib/postgresql/polygon
+      mountPath: /var/lib/postgresql/data
     - name: postgres-initdb
       mountPath: /docker-entrypoint-initdb.d
     labels: 
@@ -442,9 +444,7 @@ secrets:
 ingress:
   enabled: true
   name: issuer-node-ingress
-  annotations: 
-
-
+  annotations:
   apphost:
     paths:
       - path: /
@@ -468,7 +468,7 @@ uidomain: ui.issuernode.polygonid.me
 appdomain: app.issuernode.polygonid.me
 apidomain: api.issuernode.polygonid.me
 
-issuerEthereumUrl: https://polygon-mumbai.g.alchemy.com/v2/xaP2_t9EUM2VYDgCgMI0k9KqDyJPvZ89
+issuerEthereumUrl: https://polygon-mumbai.g.alchemy.com/v2/
 mainnet: false
 publicIP: nil
 uiPassword: password
@@ -477,3 +477,9 @@ ingressEnabled: false
 privateKey: metamask private key
 vaultpwd: pepe
 namespace: default
+issuerKeyType: BJJ
+
+# RHS Params
+rhsMode: None
+rhsUrl: nil
+

@@ -131,6 +131,28 @@ Define block explorer
 {{- end }}
 {{- end }}
 
+{{/*
+Define RHS_CHAIN_ID
+*/}}
+{{- define "helpers.api-rsh-chain-id" -}}
+{{- if eq .Values.mainnet true }}
+"137"
+{{- else }}
+"80001"
+{{- end }}
+{{- end }}
+
+{{/*
+Define Rhs contract
+*/}}
+{{- define "helpers.api-rsh-contract" -}}
+{{- if eq .Values.mainnet true }}
+"0x80667fdB4CC6bBa3EDaE419f6BFBc129e78d2fC9"
+{{- else }}
+"0x76EB7216F2400aC18C842D8C76739F3B8E619DB9"
+{{- end }}
+{{- end }}
+
 
 {{/*
 Define an env var

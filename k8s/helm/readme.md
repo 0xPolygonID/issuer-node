@@ -20,7 +20,7 @@ Make sure you have these tools installed.
 
 ### Configure the app with environment variables
 
-To set up the app, you need to configure the following environment variables, but not all of them are required. You can choose to use ingress with domain names or not. 
+To set up the app, you need to configure the following environment variables, but not all of them are required. You can choose to use ingress with domain names or not.
 If you don't use ingress, you need to provide a public IP. If you use ingress, you need to provide a domain name.
 
 ```shell
@@ -37,6 +37,8 @@ export ISSUERNAME="My Issuer"                           # Issuer Name. This valu
 export ISSUER_ETHERUM_URL="https://polygon-mumbai.XXXX" # Blockchain RPC.
 export INGRESS_ENABLED=true                             # If this value is false you must provide a STATIC_IP
 export VAULT_PWD=password                               # Vault password.
+export RHS_MODE=None                                    # Reverse Hash Service mode. Options: None, OnChain, OffChain
+export RHS_URL="https://reverse-hash-service.com"       # Reverse Hash Service URL. Required if RHS_MODE is OffChain
 ```
 
 ## Install the helm chart with ingress and domain names
@@ -55,13 +57,15 @@ helm install "$APP_INSTANCE_NAME" . \
 --set issuerEthereumUrl="$ISSUER_ETHERUM_URL" \
 --set ingressEnabled="true" \
 --set privateKey="$PRIVATE_KEY" \
---set vaultpwd="$VAULT_PWD"
+--set vaultpwd="$VAULT_PWD" \
+--set rhsMode="$RHS_MODE" \
+--set rhsUrl="$RHS_URL"
 ```
-In the code above, the PUBLIC_IP is not provided because is not needed when the ingress is enabled. 
+
+In the code above, the PUBLIC_IP is not provided because is not needed when the ingress is enabled.
 In this case `$APP_DOMAIN`, `$UI_DOMAIN` and `$API_DOMAIN` are used to create the ingress.
-
+If the **rhsMode="OffChain"** is specified, **the rhsUrl must be provided**, but if the rhsMode="OnChain" or rshMode="None" is specified, the rhsUrl is not needed.
 After a few minutes, the ingress should be ready, and you can access the app at the domain you specified.
-
 
 ## Install the helm chart with a public IP
 
@@ -76,11 +80,15 @@ helm install "$APP_INSTANCE_NAME" . \
 --set issuerEthereumUrl="$ISSUER_ETHERUM_URL" \
 --set ingressEnabled="true" \
 --set privateKey="$PRIVATE_KEY" \
---set vaultpwd="$VAULT_PWD"
+--set vaultpwd="$VAULT_PWD" \
+--set rhsMode="$RHS_MODE" \
+--set rhsUrl="$RHS_URL"
 ```
+
 In the code above, the publicIP is provided because is needed when the ingress is not enabled. In this case `$APP_DOMAIN`, `$UI_DOMAIN` and `$API_DOMAIN` are not used.
 
 After a few minutes, you can access the app by visiting:
-* http://`$PUBLIC_IP`:30001 for the API
-* http://`$PUBLIC_IP`:30002 for the API UI
-* http://`$PUBLIC_IP`:30003 for the UI
+
+- http://`$PUBLIC_IP`:30001 for the API
+- http://`$PUBLIC_IP`:30002 for the API UI
+- http://`$PUBLIC_IP`:30003 for the UI
