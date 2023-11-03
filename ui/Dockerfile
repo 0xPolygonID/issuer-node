@@ -4,9 +4,11 @@ WORKDIR /app
 
 RUN apk add --update nodejs npm
 RUN apk add --update apache2-utils
+RUN apk add --update libwebp=1.3.2-r0
 COPY package.json package-lock.json ./
 
 RUN npm install
+
 
 COPY . .
 

@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -65,15 +65,23 @@ func main() {
 
 	connectionsRepository := repositories.NewConnections()
 
-	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+	var vaultCli *vault.Client
+	var vaultErr error
+	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,
-	})
-	if err != nil {
+	}
+
+	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+	if vaultErr != nil {
 		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
+	}
+
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
 	}
 
 	err = config.CheckDID(ctx, cfg, vaultCli)
@@ -109,7 +117,7 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *api.Client) (ports.ClaimsService, error) {
+func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *vault.Client) (ports.ClaimsService, error) {
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
@@ -121,21 +129,26 @@ func newCredentialsService(cfg *config.Configuration, storage *db.Storage, cache
 	}
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
-	var schemaLoader loader.Factory
-	if cfg.SchemaCache == nil || !*cfg.SchemaCache {
-		schemaLoader = loader.HTTPFactory
-	} else {
-		schemaLoader = loader.CachedFactory(loader.HTTPFactory, cachex)
-	}
+
+	// TODO: Cache only if cfg.APIUI.SchemaCache == true
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+
+	revocationSettings := services.CredentialRevocationSettings{
+		RHSEnabled:        cfg.ReverseHashService.Enabled,
+		RHSUrl:            cfg.ReverseHashService.URL,
+		Host:              cfg.ServerUrl,
+		AgentIden3Enabled: false,
+	}
+
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, revocationSettings)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
-	}, ps, cfg.IFPS.GatewayURL)
+	}, ps, cfg.IPFS.GatewayURL)
 
 	return claimsService, nil
 }

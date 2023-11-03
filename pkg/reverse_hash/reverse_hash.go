@@ -26,6 +26,7 @@ type stateHashes struct {
 // RhsPublisher defines reverse hash publisher functions.
 type RhsPublisher interface {
 	PushHashesToRHS(ctx context.Context, newState, prevState *domain.IdentityState, revocations []*domain.Revocation, trees *domain.IdentityMerkleTrees) error
+	PublishNodesToRHS(ctx context.Context, nodes []proof.Node) error
 }
 
 type rhsPublisher struct {
@@ -97,7 +98,36 @@ func (rhsp *rhsPublisher) PushHashesToRHS(ctx context.Context, newState, prevSta
 	return err
 }
 
+// PublishNodesToRHS pushes nodes to reverse hash service.
+func (rhsp *rhsPublisher) PublishNodesToRHS(ctx context.Context, nodes []proof.Node) error {
+	// if Reverse-Hash-Service is not configure, do nothing.
+	if rhsp.rhsCli == nil {
+		log.Error(ctx, "Reverse-Hash-Service is not configured")
+		return nil
+	}
+	if len(nodes) > 0 {
+		log.Info(ctx, "new state nodes", nodes)
+		err := rhsp.rhsCli.SaveNodes(ctx, nodes)
+		if err != nil {
+			if rhsp.ignoreRHSErrors {
+				log.Error(ctx, "failed to push nodes to RHS", err)
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 func newStateHashesFromModel(inState *domain.IdentityState) (stateHashes, error) {
+	if *inState.State == merkletree.HashZero.Hex() {
+		return stateHashes{
+			State:  merkletree.HashZero,
+			Claims: merkletree.HashZero,
+			Rev:    merkletree.HashZero,
+			Roots:  merkletree.HashZero,
+		}, nil
+	}
 	if inState == nil {
 		return stateHashes{}, errors.New("nil state")
 	}

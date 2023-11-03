@@ -11,6 +11,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
@@ -22,7 +23,10 @@ var (
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
 	cachex         cache.Cache
+	docLoader      loader.DocumentLoader
 )
+
+const ipfsGatewayURL = "http://127.0.0.1:8080"
 
 const ipfsGateway = "http://localhost:8080"
 
@@ -62,13 +66,28 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfgForTesting.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
+	if err != nil {
+		log.Error(ctx, "failed to create Iden3 Key Provider", "err", err)
+		os.Exit(1)
+	}
+
 	keyStore = kms.NewKMS()
 	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
 	if err != nil {
 		log.Error(ctx, "failed to register Key Provider", "err", err)
 		os.Exit(1)
 	}
+
+	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		log.Error(ctx, "failed to register eth Key Provider", "err", err)
+		os.Exit(1)
+	}
+
 	cachex = cache.NewMemoryCache()
+
+	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
 }

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 
@@ -53,7 +53,7 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 	return id, err
 }
 
-func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID core.DID) error {
+func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID w3c.DID) error {
 	sql := `DELETE FROM connections WHERE id = $1 AND issuer_id = $2`
 	cmd, err := conn.Exec(ctx, sql, id.String(), issuerDID.String())
 	if err != nil {
@@ -67,14 +67,14 @@ func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID,
 	return nil
 }
 
-func (c *connections) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) error {
+func (c *connections) DeleteCredentials(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID w3c.DID) error {
 	sql := `DELETE FROM claims USING connections WHERE claims.issuer = connections.issuer_id AND claims.other_identifier = connections.user_id AND connections.id = $1 AND connections.issuer_id = $2`
 	_, err := conn.Exec(ctx, sql, id.String(), issuerID.String())
 
 	return err
 }
 
-func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID core.DID) (*domain.Connection, error) {
+func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, id uuid.UUID, issuerID w3c.DID) (*domain.Connection, error) {
 	connection := dbConnection{}
 	err := conn.QueryRow(ctx,
 		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
@@ -98,7 +98,7 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDID core.DID, userDID core.DID) (*domain.Connection, error) {
+func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, userDID w3c.DID) (*domain.Connection, error) {
 	connection := dbConnection{}
 	err := conn.QueryRow(ctx,
 		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
@@ -122,7 +122,7 @@ func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDI
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error) {
+func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, query string) ([]*domain.Connection, error) {
 	all := `SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
 FROM connections 
 WHERE connections.issuer_id = $1`
@@ -156,7 +156,7 @@ WHERE connections.issuer_id = $1`
 	return domainConns, nil
 }
 
-func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID core.DID, query string) ([]*domain.Connection, error) {
+func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, query string) ([]*domain.Connection, error) {
 	sqlQuery, filters := buildGetAllWithCredentialsQueryAndFilters(issuerDID, query)
 	rows, err := conn.Query(ctx, sqlQuery, filters...)
 	if err != nil {
@@ -167,7 +167,7 @@ func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn 
 	return toConnectionsWithCredentials(rows)
 }
 
-func buildGetAllWithCredentialsQueryAndFilters(issuerDID core.DID, query string) (string, []interface{}) {
+func buildGetAllWithCredentialsQueryAndFilters(issuerDID w3c.DID, query string) (string, []interface{}) {
 	sqlQuery := `SELECT connections.id, 
        			   connections.issuer_id,
        			   connections.user_id,
@@ -300,12 +300,12 @@ func toConnectionWithCredentialsDomain(dbConn dbConnectionWithCredentials) (*dom
 }
 
 func toConnectionDomain(c *dbConnection) (*domain.Connection, error) {
-	issID, err := core.ParseDID(c.IssuerDID)
+	issID, err := w3c.ParseDID(c.IssuerDID)
 	if err != nil {
 		return nil, fmt.Errorf("parsing issuer DID from connection: %w", err)
 	}
 
-	usrDID, err := core.ParseDID(c.UserDID)
+	usrDID, err := w3c.ParseDID(c.UserDID)
 	if err != nil {
 		return nil, fmt.Errorf("parsing user DID from connection: %w", err)
 	}

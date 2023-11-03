@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -22,7 +22,7 @@ import (
 
 const (
 	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
-	ipfsGateway  = "https://ipfs.io"
+	ipfsGateway  = "https://cloudflare-ipfs.com"
 )
 
 // Configuration holds the project configuration
@@ -43,7 +43,7 @@ type Configuration struct {
 	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
 	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
 	APIUI                        APIUI              `mapstructure:"APIUI"`
-	IFPS                         IPFS               `mapstructure:"IPFS"`
+	IPFS                         IPFS               `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
 }
@@ -72,18 +72,20 @@ type ReverseHashService struct {
 
 // Ethereum struct
 type Ethereum struct {
-	URL                    string        `tip:"Ethereum url"`
-	ContractAddress        string        `tip:"Contract Address"`
-	DefaultGasLimit        int           `tip:"Default Gas Limit"`
-	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
-	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
-	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
-	MinGasPrice            int           `tip:"Minimum Gas Price"`
-	MaxGasPrice            int           `tip:"The Datasource name locator"`
-	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
-	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
-	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix         string        `tip:"blockchain:network e.g polygon:mumbai"`
+	URL                       string        `tip:"Ethereum url"`
+	ContractAddress           string        `tip:"Contract Address"`
+	DefaultGasLimit           int           `tip:"Default Gas Limit"`
+	ConfirmationTimeout       time.Duration `tip:"Confirmation timeout"`
+	ConfirmationBlockCount    int64         `tip:"Confirmation block count"`
+	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
+	MinGasPrice               int           `tip:"Minimum Gas Price"`
+	MaxGasPrice               int           `tip:"The Datasource name locator"`
+	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
+	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
+	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
+	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
+	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
+	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
 }
 
 // Prover struct
@@ -138,11 +140,12 @@ type APIUI struct {
 	IssuerName         string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
 	IssuerLogo         string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
 	Issuer             string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID          core.DID  `mapstructure:"-"`
+	IssuerDID          w3c.DID   `mapstructure:"-"`
 	SchemaCache        *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
 	IdentityNetwork    string    `mapstructure:"IdentityNetwork" tip:"Server UI API backend Identity Network"`
+	KeyType            string    `mapstructure:"KeyType" tip:"Server UI API backend Key Type"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -185,7 +188,7 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	if c.APIUI.Issuer != "" {
-		issuerDID, err := core.ParseDID(c.APIUI.Issuer)
+		issuerDID, err := w3c.ParseDID(c.APIUI.Issuer)
 		if err != nil {
 			log.Error(ctx, "invalid issuer did format", "error", err)
 			return fmt.Errorf("invalid issuer did format")
@@ -210,7 +213,7 @@ func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) err
 			return err
 		}
 		log.Info(ctx, "Issuer Did loaded from vault", "did", cfg.APIUI.Issuer)
-		issuerDID, err := core.ParseDID(cfg.APIUI.Issuer)
+		issuerDID, err := w3c.ParseDID(cfg.APIUI.Issuer)
 		if err != nil {
 			log.Error(ctx, "invalid issuer did format", "error", err)
 			return err
@@ -279,7 +282,7 @@ func Load(fileName string) (*Configuration, error) {
 
 // VaultTest returns the vault configuration to be used in tests.
 // The vault token is obtained from environment vars.
-// If there is not env var, it will try to parse the init.out file
+// If there is no env var, it will try to parse the init.out file
 // created by local docker image provided for TESTING purposes.
 func VaultTest() KeyStore {
 	return KeyStore{
@@ -360,6 +363,8 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
+	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
+	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
 	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
 	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")
@@ -368,6 +373,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
+
+	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
+	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -380,18 +388,16 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
-
-	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
-	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_KEY_TYPE")
 
 	viper.AutomaticEnv()
 }
 
 // nolint:gocyclo
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
-	if cfg.IFPS.GatewayURL == "" {
+	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
-		cfg.IFPS.GatewayURL = ipfsGateway
+		cfg.IPFS.GatewayURL = ipfsGateway
 	}
 
 	if cfg.ServerUrl == "" {
@@ -501,6 +507,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.APIUI.KeyType == "" {
+		log.Info(ctx, "ISSUER_KEY_TYPE is missing and the server set up it as BJJ")
+		cfg.APIUI.KeyType = "BJJ"
 	}
 
 	if cfg.APIUI.ServerPort == 0 {

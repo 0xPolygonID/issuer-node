@@ -9,6 +9,7 @@ import (
 	"github.com/iden3/contracts-abi/state/go/abi"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
@@ -27,7 +28,7 @@ func InitEthClient(ethURL, contractAddress string) (*abi.State, error) {
 }
 
 // InitEthConnect opens a new eth connection
-func InitEthConnect(cfg config.Ethereum) (*eth.Client, error) {
+func InitEthConnect(cfg config.Ethereum, kms *kms.KMS) (*eth.Client, error) {
 	commonClient, err := ethclient.Dial(cfg.URL)
 	if err != nil {
 		return nil, err
@@ -43,13 +44,15 @@ func InitEthConnect(cfg config.Ethereum) (*eth.Client, error) {
 		RPCResponseTimeout:     cfg.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.WaitBlockCycleTime,
-	})
+	},
+		kms,
+	)
 
 	return cl, nil
 }
 
 // Open returns an initialized eth Client with the given configuration
-func Open(cfg *config.Configuration) (*eth.Client, error) {
+func Open(cfg *config.Configuration, kms *kms.KMS) (*eth.Client, error) {
 	ethClient, err := ethclient.Dial(cfg.Ethereum.URL)
 	if err != nil {
 		return nil, err
@@ -65,5 +68,5 @@ func Open(cfg *config.Configuration) (*eth.Client, error) {
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-	}), nil
+	}, kms), nil
 }

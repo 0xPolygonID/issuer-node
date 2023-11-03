@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"math/big"
 
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/poseidon"
 	"github.com/iden3/go-merkletree-sql/v2"
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +35,7 @@ type CircuitSigner struct {
 type Context struct {
 	SignatureType       string                  `json:"signature_type"`
 	SignatureHex        string                  `json:"signature_hex"`
-	Creator             *core.DID               `json:"creator,omitempty"`
+	Creator             *w3c.DID                `json:"creator,omitempty"`
 	Created             int64                   `json:"created,omitempty"`
 	Domain              string                  `json:"domain,omitempty"`
 	Nonce               []byte                  `json:"nonce,omitempty"`

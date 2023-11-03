@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm"
-	"github.com/iden3/iden3comm/packers"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -113,9 +113,6 @@ func guardImportSchemaReq(req *ImportSchemaJSONRequestBody) error {
 	}
 	if strings.TrimSpace(req.SchemaType) == "" {
 		return errors.New("empty type")
-	}
-	if strings.TrimSpace(req.Version) == "" {
-		return errors.New("empty version")
 	}
 	if _, err := url.ParseRequestURI(req.Url); err != nil {
 		return fmt.Errorf("parsing url: %w", err)
@@ -580,7 +577,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	userDID, err := core.ParseDID(arm.From)
+	userDID, err := w3c.ParseDID(arm.From)
 	if err != nil {
 		log.Debug(ctx, "error getting user DID", err.Error())
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -672,7 +669,7 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {
 	filter := &ports.ClaimsFilter{}
 	if userDID != nil {
-		did, err := core.ParseDID(*userDID)
+		did, err := w3c.ParseDID(*userDID)
 		if err != nil {
 			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *userDID)
 			return nil, errors.New("cannot parse did parameter: wrong format")

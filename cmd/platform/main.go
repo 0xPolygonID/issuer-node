@@ -13,6 +13,7 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
+	vault "github.com/hashicorp/vault/api"
 	proof "github.com/iden3/merkletree-proof"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
@@ -31,7 +32,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -71,21 +72,27 @@ func main() {
 	ps := pubsub.NewRedis(rdb)
 	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
-	var schemaLoader loader.Factory
-	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
-	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
-		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
-	}
 
-	vaultCli, err := providers.VaultClient(ctx, providers.Config{
+	// TODO: Cache only if cfg.APIUI.SchemaCache == true
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
+
+	var vaultCli *vault.Client
+	var vaultErr error
+	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
 		Pass:                cfg.VaultUserPassAuthPassword,
-	})
-	if err != nil {
+	}
+
+	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+	if vaultErr != nil {
 		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
+	}
+
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
@@ -94,7 +101,7 @@ func main() {
 		return
 	}
 
-	ethereumClient, err := blockchain.Open(cfg)
+	ethereumClient, err := blockchain.Open(cfg, keyStore)
 	if err != nil {
 		log.Error(ctx, "error dialing with ethereum client", "err", err)
 		return
@@ -106,13 +113,13 @@ func main() {
 		return
 	}
 
-	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
+	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum, keyStore)
 	if err != nil {
 		log.Error(ctx, "failed init ethereum connect", "err", err)
 		return
 	}
 
-	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
+	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 
 	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	if cfg.ReverseHashService.Enabled {
@@ -132,12 +139,21 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.ClaimCfg{
+
+	revocationSettings := services.CredentialRevocationSettings{
+		RHSEnabled:        cfg.ReverseHashService.Enabled,
+		RHSUrl:            cfg.ReverseHashService.URL,
+		Host:              cfg.ServerUrl,
+		AgentIden3Enabled: false,
+	}
+
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, rhsp, nil, nil, ps, revocationSettings)
+
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, services.CredentialRevocationSettings{
 		RHSEnabled: cfg.ReverseHashService.Enabled,
 		RHSUrl:     cfg.ReverseHashService.URL,
 		Host:       cfg.ServerUrl,
-	}, ps, cfg.IFPS.GatewayURL)
+	}, ps, cfg.IPFS.GatewayURL)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
@@ -161,6 +177,7 @@ func main() {
 		return
 	}
 
+	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
 		"redis": func(rdb *redis2.Client) health.Pinger {
@@ -179,7 +196,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, claimsService, qrService, publisher, packageManager, serverHealth),
+			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

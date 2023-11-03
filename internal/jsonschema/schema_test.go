@@ -5,11 +5,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/polygonid/sh-id-platform/internal/loader"
 )
 
 func TestValidateCredentialSubject(t *testing.T) {
 	const ipfsGatewayURL = "http://127.0.0.1:8080"
 	ctx := context.Background()
+	ld := loader.NewDocumentLoader(ipfsGatewayURL)
 
 	type config struct {
 		name              string
@@ -188,7 +191,7 @@ func TestValidateCredentialSubject(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			err := ValidateCredentialSubject(ctx, ipfsGatewayURL, tc.schemaURL, tc.schemaType, tc.credentialSubject)
+			err := ValidateCredentialSubject(ctx, ld, tc.schemaURL, tc.schemaType, tc.credentialSubject)
 			if tc.expectedError {
 				assert.Error(t, err)
 			} else {

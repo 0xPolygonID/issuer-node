@@ -7,7 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/babyjub"
 	"github.com/iden3/go-iden3-crypto/constants"
 	"github.com/iden3/go-iden3-crypto/utils"
@@ -135,14 +136,14 @@ func testBJJKeyContent(t testing.TB, k TestKMS, keyID KeyID) babyjub.PrivateKey 
 	return privKey
 }
 
-func testBoundedBJJKey(t *testing.T, k TestKMS, keyID KeyID, identity core.DID) {
+func testBoundedBJJKey(t *testing.T, k TestKMS, keyID KeyID, identity w3c.DID) {
 	t.Helper()
 	privKey := testBJJKeyContent(t, k, keyID)
 
-	// Try to bind already bounded key to other identity: expect error
-	otherIdentity, err := core.IDFromString("x2Uw18ATvY7mEsgfrrDipBmQQdPWAao4NmF56wGvp")
+	otherID, err := core.IDFromString("x2Uw18ATvY7mEsgfrrDipBmQQdPWAao4NmF56wGvp")
 	require.NoError(t, err)
-	otherDID, err := core.ParseDIDFromID(otherIdentity)
+
+	otherDID, err := core.ParseDIDFromID(otherID)
 	require.NoError(t, err)
 
 	_, err = k.KMS.LinkToIdentity(context.Background(), keyID, *otherDID)

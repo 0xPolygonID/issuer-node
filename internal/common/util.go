@@ -10,15 +10,16 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/verifiable"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 )
 
 // CredentialRequest is a model for credential creation
 type CredentialRequest struct {
 	CredentialSchema      string          `json:"credentialSchema"`
+	LDContext             string          `json:"ldContext"`
 	Type                  string          `json:"type"`
 	CredentialSubject     json.RawMessage `json:"credentialSubject"`
 	Expiration            int64           `json:"expiration,omitempty"`
@@ -29,14 +30,14 @@ type CredentialRequest struct {
 }
 
 // CreateCredential is util to create a Verifiable credential
-func CreateCredential(issuer *core.DID, req CredentialRequest, schema jsonSuite.Schema) (verifiable.W3CCredential, error) {
+func CreateCredential(issuer *w3c.DID, req CredentialRequest) (verifiable.W3CCredential, error) {
 	var cred verifiable.W3CCredential
 
-	jsonLdContext, ok := schema.Metadata.Uris["jsonLdContext"].(string)
-	if !ok {
-		return verifiable.W3CCredential{}, fmt.Errorf("invalid jsonLdContext, expected string")
+	credentialCtx := []string{
+		verifiable.JSONLDSchemaW3CCredential2018,
+		verifiable.JSONLDSchemaIden3Credential,
+		req.LDContext,
 	}
-	credentialCtx := []string{verifiable.JSONLDSchemaW3CCredential2018, verifiable.JSONLDSchemaIden3Credential, jsonLdContext}
 
 	credentialType := []string{verifiable.TypeW3CVerifiableCredential, req.Type}
 
@@ -53,7 +54,7 @@ func CreateCredential(issuer *core.DID, req CredentialRequest, schema jsonSuite.
 	idSubject, ok := credentialSubject["id"].(string)
 	if ok {
 
-		did, err := core.ParseDID(idSubject)
+		did, err := w3c.ParseDID(idSubject)
 		if err != nil {
 			return verifiable.W3CCredential{}, err
 		}
@@ -89,17 +90,17 @@ func RandInt64() (uint64, error) {
 }
 
 // CheckGenesisStateDID return nil if state is genesis state.
-func CheckGenesisStateDID(did *core.DID, state *big.Int) error {
+func CheckGenesisStateDID(did *w3c.DID, state *big.Int) error {
 	stateHash, err := merkletree.NewHashFromBigInt(state)
 	if err != nil {
 		return err
 	}
 
-	t, err := core.BuildDIDType(did.Method, did.Blockchain, did.NetworkID)
+	id, err := core.IDFromDID(*did)
 	if err != nil {
 		return err
 	}
-	DIDFromState, err := core.DIDGenesisFromIdenState(t, stateHash.BigInt())
+	DIDFromState, err := core.NewDIDFromIdenState(id.Type(), stateHash.BigInt())
 	if err != nil {
 		return err
 	}
@@ -139,6 +140,38 @@ func ArrayStringToBigInt(s []string) ([]*big.Int, error) {
 		o = append(o, si)
 	}
 	return o, nil
+}
+
+// ArrayOfStringArraysToBigInt converts array of string arrays to array of
+// big int arrays
+func ArrayOfStringArraysToBigInt(s [][]string) ([][]*big.Int, error) {
+	var o [][]*big.Int
+	for i := 0; i < len(s); i++ {
+		si, err := ArrayStringToBigInt(s[i])
+		if err != nil {
+			return o, nil
+		}
+		o = append(o, si)
+	}
+	return o, nil
+}
+
+// CheckEthIdentityByDID returns true and address if DID is ETH identity.
+func CheckEthIdentityByDID(did *w3c.DID) (isEthIdentity bool, address string, err error) {
+	id, err := core.IDFromDID(*did)
+	if err != nil {
+		return false, "", err
+	}
+	// if err nil - ETH identity
+	addr, err := core.EthAddressFromID(id)
+	if err == nil {
+		// ETH identity
+		addressString := fmt.Sprintf("%x", addr)
+		return true, addressString, nil
+	} else if err.Error() != "can't get Ethereum address: high bytes of genesis are not zero" {
+		return false, "", err
+	}
+	return false, "", nil
 }
 
 func stringToBigInt(s string) (*big.Int, error) {
