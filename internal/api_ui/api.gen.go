@@ -93,7 +93,7 @@ type Credential struct {
 	CreatedAt         TimeUTC                `json:"createdAt"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
-	ExpiresAt         *TimeUTC               `json:"expiresAt,omitempty"`
+	ExpiresAt         *TimeUTC               `json:"expiresAt"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
@@ -174,7 +174,7 @@ type Link struct {
 	CreatedAt            TimeUTC             `json:"createdAt"`
 	CredentialExpiration *openapi_types.Date `json:"credentialExpiration"`
 	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	Expiration           *TimeUTC            `json:"expiration,omitempty"`
+	Expiration           *TimeUTC            `json:"expiration"`
 	Id                   uuid.UUID           `json:"id"`
 	IssuedClaims         int                 `json:"issuedClaims"`
 	MaxIssuance          *int                `json:"maxIssuance"`
