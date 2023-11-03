@@ -67,6 +67,11 @@ func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConf
 			Key:   "ISSUER_API_UI_ISSUER_DID",
 			Value: s.cfg.APIUI.IssuerDID.String(),
 		},
+
+		KeyValue{
+			Key:   "ISSUER_API_IPFS_GATEWAY_URL",
+			Value: s.cfg.IFPS.GatewayURL,
+		},
 	}
 
 	return variables, nil
