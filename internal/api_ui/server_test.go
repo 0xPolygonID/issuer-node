@@ -268,7 +268,7 @@ func TestServer_GetSchema(t *testing.T) {
 				httpCode: http.StatusOK,
 				schema: &Schema{
 					BigInt:    s.Hash.BigInt().String(),
-					CreatedAt: s.CreatedAt,
+					CreatedAt: TimeUTC(s.CreatedAt),
 					Hash:      string(sHash),
 					Id:        s.ID.String(),
 					Type:      s.Type,
@@ -295,7 +295,7 @@ func TestServer_GetSchema(t *testing.T) {
 				assert.Equal(t, tc.expected.schema.Type, response.Type)
 				assert.Equal(t, tc.expected.schema.Url, response.Url)
 				assert.Equal(t, tc.expected.schema.Hash, response.Hash)
-				assert.InDelta(t, tc.expected.schema.CreatedAt.UnixMilli(), response.CreatedAt.UnixMilli(), 10)
+				assert.InDelta(t, time.Time(tc.expected.schema.CreatedAt).UnixMilli(), time.Time(response.CreatedAt).UnixMilli(), 1000)
 			case http.StatusNotFound:
 				var response GetSchema404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1366,7 +1366,7 @@ func TestServer_GetCredential(t *testing.T) {
 						"birthday":     19960424,
 						"documentType": 2,
 					},
-					CreatedAt:  time.Now().UTC(),
+					CreatedAt:  TimeUTC(time.Now().UTC()),
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim1.ID,
@@ -1394,7 +1394,7 @@ func TestServer_GetCredential(t *testing.T) {
 						"birthday":     19960424,
 						"documentType": 2,
 					},
-					CreatedAt:  time.Now().UTC(),
+					CreatedAt:  TimeUTC(time.Now().UTC()),
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim2.ID,
@@ -1422,7 +1422,7 @@ func TestServer_GetCredential(t *testing.T) {
 						"birthday":     19960424,
 						"documentType": 2,
 					},
-					CreatedAt:  time.Now().UTC(),
+					CreatedAt:  TimeUTC(time.Now().UTC()),
 					Expired:    false,
 					ExpiresAt:  nil,
 					Id:         createdClaim3.ID,
@@ -1971,7 +1971,7 @@ func TestServer_GetConnection(t *testing.T) {
 			},
 			expected: expected{
 				response: GetConnection200JSONResponse{
-					CreatedAt: time.Now(),
+					CreatedAt: TimeUTC(time.Now()),
 					Id:        connID.String(),
 					IssuerID:  did.String(),
 					UserID:    usrDID.String(),
@@ -1982,7 +1982,7 @@ func TestServer_GetConnection(t *testing.T) {
 								"birthday":     19960424,
 								"documentType": 2,
 							},
-							CreatedAt:  time.Now().UTC(),
+							CreatedAt:  TimeUTC(time.Now().UTC()),
 							Expired:    false,
 							ExpiresAt:  nil,
 							Id:         claim.ID,
@@ -2007,7 +2007,7 @@ func TestServer_GetConnection(t *testing.T) {
 			},
 			expected: expected{
 				response: GetConnection200JSONResponse{
-					CreatedAt:   time.Now(),
+					CreatedAt:   TimeUTC(time.Now()),
 					Id:          connID2.String(),
 					IssuerID:    did.String(),
 					UserID:      usrDID2.String(),
@@ -2043,7 +2043,7 @@ func TestServer_GetConnection(t *testing.T) {
 				assert.Equal(t, tc.expected.response.Id, response.Id)
 				assert.Equal(t, tc.expected.response.IssuerID, response.IssuerID)
 				assert.Equal(t, tc.expected.response.UserID, response.UserID)
-				assert.InDelta(t, tc.expected.response.CreatedAt.Unix(), response.CreatedAt.Unix(), 10)
+				assert.InDelta(t, time.Time(tc.expected.response.CreatedAt).Unix(), time.Time(response.CreatedAt).Unix(), 10)
 			case http.StatusBadRequest:
 				var response GetConnection400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -2178,13 +2178,13 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:        connID.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 					{
 						Id:        connID2.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID2.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 				},
 			},
@@ -2217,7 +2217,7 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:        connID.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 				},
 			},
@@ -2237,7 +2237,7 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:        connID.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 				},
 			},
@@ -2257,13 +2257,13 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:        connID.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 					{
 						Id:        connID2.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID2.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 				},
 			},
@@ -2283,14 +2283,14 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:          connID.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
-						CreatedAt:   time.Now(),
+						CreatedAt:   TimeUTC(time.Now()),
 						Credentials: []Credential{{}, {}},
 					},
 					{
 						Id:          connID2.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID2.String(),
-						CreatedAt:   time.Now(),
+						CreatedAt:   TimeUTC(time.Now()),
 						Credentials: []Credential{},
 					},
 				},
@@ -2312,7 +2312,7 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:          connID.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
-						CreatedAt:   time.Now(),
+						CreatedAt:   TimeUTC(time.Now()),
 						Credentials: []Credential{{}, {}},
 					},
 				},
@@ -2334,7 +2334,7 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:          connID.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
-						CreatedAt:   time.Now(),
+						CreatedAt:   TimeUTC(time.Now()),
 						Credentials: []Credential{{}, {}},
 					},
 				},
@@ -2356,7 +2356,7 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:          connID.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
-						CreatedAt:   time.Now(),
+						CreatedAt:   TimeUTC(time.Now()),
 						Credentials: []Credential{{}, {}},
 					},
 				},
@@ -2378,7 +2378,7 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:          connID.String(),
 						IssuerID:    did.String(),
 						UserID:      usrDID.String(),
-						CreatedAt:   time.Now(),
+						CreatedAt:   TimeUTC(time.Now()),
 						Credentials: []Credential{{}, {}},
 					},
 				},
@@ -2427,13 +2427,13 @@ func TestServer_GetConnections(t *testing.T) {
 						Id:        connID.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 					{
 						Id:        connID2.String(),
 						IssuerID:  did.String(),
 						UserID:    usrDID2.String(),
-						CreatedAt: time.Now(),
+						CreatedAt: TimeUTC(time.Now()),
 					},
 				},
 			},
@@ -2474,7 +2474,7 @@ func TestServer_GetConnections(t *testing.T) {
 					assert.Equal(t, tc.expected.response[i].Id, response[i].Id)
 					assert.Equal(t, tc.expected.response[i].IssuerID, response[i].IssuerID)
 					assert.Equal(t, tc.expected.response[i].UserID, response[i].UserID)
-					assert.InDelta(t, tc.expected.response[i].CreatedAt.Unix(), response[i].CreatedAt.Unix(), 10)
+					assert.InDelta(t, time.Time(tc.expected.response[i].CreatedAt).Unix(), time.Time(response[i].CreatedAt).Unix(), 10)
 				}
 			}
 		})
@@ -2493,9 +2493,9 @@ func validateCredential(t *testing.T, tc Credential, response Credential) {
 	assert.Equal(t, tc.SchemaHash, response.SchemaHash)
 	assert.Equal(t, tc.Revoked, response.Revoked)
 	assert.Equal(t, tc.RevNonce, response.RevNonce)
-	assert.InDelta(t, tc.CreatedAt.Unix(), response.CreatedAt.Unix(), 10)
+	assert.InDelta(t, time.Time(tc.CreatedAt).Unix(), time.Time(response.CreatedAt).Unix(), 10)
 	if response.ExpiresAt != nil && tc.ExpiresAt != nil {
-		assert.InDelta(t, tc.ExpiresAt.Unix(), response.ExpiresAt.Unix(), 10)
+		assert.InDelta(t, time.Time(*tc.ExpiresAt).Unix(), time.Time(*response.ExpiresAt).Unix(), 10)
 	}
 	assert.Equal(t, tc.Expired, response.Expired)
 	var respAttributes, tcCredentialSubject credentialKYCSubject
@@ -3107,7 +3107,7 @@ func TestServer_GetLink(t *testing.T) {
 				response: GetLink200JSONResponse{
 					Active:            link.Active,
 					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
-					Expiration:        link.ValidUntil,
+					Expiration:        common.ToPointer(TimeUTC(*link.ValidUntil)),
 					Id:                link.ID,
 					IssuedClaims:      link.IssuedClaims,
 					MaxIssuance:       link.MaxIssuance,
@@ -3115,7 +3115,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaUrl:         link.Schema.URL,
 					Status:            LinkStatusActive,
 					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
-					CreatedAt:         link.CreatedAt,
+					CreatedAt:         TimeUTC(link.CreatedAt),
 					SchemaHash:        string(hash),
 				},
 			},
@@ -3129,7 +3129,7 @@ func TestServer_GetLink(t *testing.T) {
 				response: GetLink200JSONResponse{
 					Active:            linkExpired.Active,
 					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
-					Expiration:        linkExpired.ValidUntil,
+					Expiration:        common.ToPointer(TimeUTC(*linkExpired.ValidUntil)),
 					Id:                linkExpired.ID,
 					IssuedClaims:      linkExpired.IssuedClaims,
 					MaxIssuance:       linkExpired.MaxIssuance,
@@ -3172,7 +3172,7 @@ func TestServer_GetLink(t *testing.T) {
 				assert.Equal(t, expected.SchemaType, response.SchemaType)
 				assert.Equal(t, expected.SchemaUrl, response.SchemaUrl)
 				assert.Equal(t, expected.Active, response.Active)
-				assert.InDelta(t, expected.Expiration.UnixMilli(), response.Expiration.UnixMilli(), 10)
+				assert.InDelta(t, time.Time(*expected.Expiration).UnixMilli(), time.Time(*response.Expiration).UnixMilli(), 1000)
 				assert.Equal(t, len(expected.ProofTypes), len(response.ProofTypes))
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
@@ -3387,7 +3387,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 						respCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
 						require.NoError(t, err)
 						assert.Equal(t, tcCred, respCred)
-						assert.InDelta(t, tc.expected.response[i].Expiration.UnixMilli(), resp.Expiration.UnixMilli(), 10)
+						assert.InDelta(t, time.Time(*tc.expected.response[i].Expiration).UnixMilli(), time.Time(*resp.Expiration).UnixMilli(), 1000)
 					}
 				}
 			case http.StatusBadRequest:
