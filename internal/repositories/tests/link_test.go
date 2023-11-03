@@ -23,7 +23,7 @@ func TestSaveLink(t *testing.T) {
 	didStr := "did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63"
 	schemaStore := repositories.NewSchema(*storage)
 
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	assert.NoError(t, err)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
@@ -55,7 +55,7 @@ func TestSaveLink(t *testing.T) {
 	assert.Equal(t, tcCred, respCred)
 
 	didStr2 := "did:polygonid:polygon:mumbai:2qFrLQA6R1bfUTxjRnZEN9st77g6ZN2c7Vw1Dq6Vpp"
-	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr2)
+	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
 	assert.NoError(t, err)
 	did2, err := w3c.ParseDID(didStr2)
 	require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestGetLinkById(t *testing.T) {
 	ctx := context.Background()
 	didStr := "did:polygonid:polygon:mumbai:2qP8C6HFRANi79HDdnak4b2QJeGewKWbQBYakNXJTh"
 	schemaStore := repositories.NewSchema(*storage)
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)
@@ -148,7 +148,7 @@ func TestGetAll(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 	didStr := "did:iden3:tLZ7NJdCek9j79a1Pmxci3seELHctfGibcrnjjftQ"
 	schemaStore := repositories.NewSchema(*storage)
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	require.NoError(t, err)
 	linkStore := repositories.NewLink(*storage)
 
@@ -334,10 +334,10 @@ func TestDeleteLink(t *testing.T) {
 	didStr2 := "did:polygonid:polygon:mumbai:2qPKWbeUSqzk6zGx4cv1EspaDMJXu2suprCr6yHfkQ"
 	schemaStore := repositories.NewSchema(*storage)
 
-	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr)
+	_, err := storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr, "BJJ")
 	assert.NoError(t, err)
 
-	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier) VALUES ($1)", didStr2)
+	_, err = storage.Pgx.Exec(ctx, "INSERT INTO identities (identifier, keytype) VALUES ($1, $2)", didStr2, "BJJ")
 	assert.NoError(t, err)
 
 	schemaID := insertSchemaForLink(ctx, didStr, schemaStore, t)

@@ -2,8 +2,12 @@
 -- +goose StatementBegin
 ALTER TABLE identities
     ADD COLUMN address TEXT,
-    ADD COLUMN keyType TEXT;
+    ADD COLUMN keytype TEXT;
 
+UPDATE identities set keytype = 'BJJ' where keyType is null;
+
+ALTER TABLE identities
+    ALTER COLUMN keytype SET NOT NULL;
 -- +goose StatementEnd
 
 -- +goose Down
