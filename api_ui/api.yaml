@@ -1142,8 +1142,6 @@ components:
           $ref: '#/components/schemas/TimeUTC'
         expiresAt:
           $ref: '#/components/schemas/TimeUTC'
-          x-omitempty: false
-          nullable: true
         expired:
           type: boolean
           example: true
@@ -1573,6 +1571,7 @@ components:
         name: timeapi
         path: github.com/polygonid/sh-id-platform/internal/timeapi
       example: '2023-10-26T10:59:08Z'
+      x-omitempty: false
 
   parameters:
     sessionID:

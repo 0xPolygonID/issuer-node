@@ -112,9 +112,9 @@ type GetClaimResponse struct {
 	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
 	CredentialStatus  interface{}            `json:"credentialStatus"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	Expiration        *TimeUTC               `json:"expiration,omitempty"`
+	Expiration        *TimeUTC               `json:"expiration"`
 	Id                string                 `json:"id"`
-	IssuanceDate      *TimeUTC               `json:"issuanceDate,omitempty"`
+	IssuanceDate      *TimeUTC               `json:"issuanceDate"`
 	Issuer            string                 `json:"issuer"`
 	Proof             interface{}            `json:"proof"`
 	Type              []string               `json:"type"`
