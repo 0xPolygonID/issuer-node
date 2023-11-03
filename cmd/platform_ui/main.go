@@ -216,7 +216,7 @@ func main() {
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
 	if !identifierExists(ctx, &cfg.APIUI.IssuerDID, identityService) {
-		log.Error(ctx, "issuer DID must exist", "did", &cfg.APIUI.IssuerDID)
+		log.Error(ctx, "issuer DID must exist", "did", cfg.APIUI.IssuerDID)
 		return
 	}
 
