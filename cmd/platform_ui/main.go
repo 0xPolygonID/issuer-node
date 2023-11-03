@@ -216,7 +216,7 @@ func main() {
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
 	if !identifierExists(ctx, &cfg.APIUI.IssuerDID, identityService) {
-		log.Error(ctx, "issuer DID must exist")
+		log.Error(ctx, "issuer DID must exist", "did", cfg.APIUI.IssuerDID)
 		return
 	}
 
@@ -263,7 +263,11 @@ func main() {
 
 func identifierExists(ctx context.Context, did *w3c.DID, service ports.IdentityService) bool {
 	_, err := service.GetByDID(ctx, *did)
-	return err == nil
+	if err != nil {
+		log.Error(ctx, "error getting identity by DID", "err", err, "did", did)
+		return false
+	}
+	return true
 }
 
 func middlewares(ctx context.Context, auth config.APIUIAuth) []api_ui.StrictMiddlewareFunc {
