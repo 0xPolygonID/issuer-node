@@ -221,6 +221,12 @@ type QrCodeCredentialResponse struct {
 // QrCodeLinkShortResponse defines model for QrCodeLinkShortResponse.
 type QrCodeLinkShortResponse = string
 
+// QrCodeLinkWithSchemaTypeShortResponse defines model for QrCodeLinkWithSchemaTypeShortResponse.
+type QrCodeLinkWithSchemaTypeShortResponse struct {
+	QrCodeLink string `json:"qrCodeLink"`
+	SchemaType string `json:"schemaType"`
+}
+
 // QrCodeResponse defines model for QrCodeResponse.
 type QrCodeResponse struct {
 	Body QrCodeBodyResponse `json:"body"`
@@ -2886,7 +2892,7 @@ type GetCredentialQrCodeResponseObject interface {
 	VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error
 }
 
-type GetCredentialQrCode200JSONResponse QrCodeLinkShortResponse
+type GetCredentialQrCode200JSONResponse QrCodeLinkWithSchemaTypeShortResponse
 
 func (response GetCredentialQrCode200JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
