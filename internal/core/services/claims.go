@@ -305,7 +305,6 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	}
 
 	claim, err := c.GetByID(ctx, issID, id)
-
 	if err != nil {
 		return "", "", err
 	}
