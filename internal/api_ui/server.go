@@ -555,14 +555,17 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	qrLink, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+	qrLink, schemaType, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
-	return NewQrContentResponse([]byte(qrLink)), nil
+	return GetCredentialQrCode200JSONResponse{
+		QrCodeLink: qrLink,
+		SchemaType: schemaType,
+	}, nil
 }
 
 // CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.

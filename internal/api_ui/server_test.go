@@ -1842,7 +1842,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				qrLink := checkQRfetchURL(t, rr.Body.String())
+				qrLink := checkQRfetchURLForCredential(t, rr.Body.Bytes())
 
 				// Now let's fetch the original QR using the url
 				rr := httptest.NewRecorder()
