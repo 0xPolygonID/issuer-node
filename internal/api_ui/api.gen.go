@@ -93,7 +93,7 @@ type Credential struct {
 	CreatedAt         TimeUTC                `json:"createdAt"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expired           bool                   `json:"expired"`
-	ExpiresAt         *TimeUTC               `json:"expiresAt,omitempty"`
+	ExpiresAt         *TimeUTC               `json:"expiresAt"`
 	Id                uuid.UUID              `json:"id"`
 	ProofTypes        []string               `json:"proofTypes"`
 	RevNonce          uint64                 `json:"revNonce"`
@@ -174,7 +174,7 @@ type Link struct {
 	CreatedAt            TimeUTC             `json:"createdAt"`
 	CredentialExpiration *openapi_types.Date `json:"credentialExpiration"`
 	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	Expiration           *TimeUTC            `json:"expiration,omitempty"`
+	Expiration           *TimeUTC            `json:"expiration"`
 	Id                   uuid.UUID           `json:"id"`
 	IssuedClaims         int                 `json:"issuedClaims"`
 	MaxIssuance          *int                `json:"maxIssuance"`
@@ -220,6 +220,12 @@ type QrCodeCredentialResponse struct {
 
 // QrCodeLinkShortResponse defines model for QrCodeLinkShortResponse.
 type QrCodeLinkShortResponse = string
+
+// QrCodeLinkWithSchemaTypeShortResponse defines model for QrCodeLinkWithSchemaTypeShortResponse.
+type QrCodeLinkWithSchemaTypeShortResponse struct {
+	QrCodeLink string `json:"qrCodeLink"`
+	SchemaType string `json:"schemaType"`
+}
 
 // QrCodeResponse defines model for QrCodeResponse.
 type QrCodeResponse struct {
@@ -2886,7 +2892,7 @@ type GetCredentialQrCodeResponseObject interface {
 	VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error
 }
 
-type GetCredentialQrCode200JSONResponse QrCodeLinkShortResponse
+type GetCredentialQrCode200JSONResponse QrCodeLinkWithSchemaTypeShortResponse
 
 func (response GetCredentialQrCode200JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

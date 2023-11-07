@@ -403,7 +403,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QrCodeLinkShortResponse'
+                $ref: '#/components/schemas/QrCodeLinkWithSchemaTypeShortResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -984,6 +984,19 @@ components:
       type: string
       example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
 
+    QrCodeLinkWithSchemaTypeShortResponse:
+      type: object
+      required:
+        - qrCodeLink
+        - schemaType
+      properties:
+        qrCodeLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        schemaType:
+          type: string
+          example: "vaccinationCertificate"
+
     QrCodeResponse:
       type: object
       required:
@@ -1142,8 +1155,6 @@ components:
           $ref: '#/components/schemas/TimeUTC'
         expiresAt:
           $ref: '#/components/schemas/TimeUTC'
-          x-omitempty: false
-          nullable: true
         expired:
           type: boolean
           example: true
@@ -1573,6 +1584,7 @@ components:
         name: timeapi
         path: github.com/polygonid/sh-id-platform/internal/timeapi
       example: '2023-10-26T10:59:08Z'
+      x-omitempty: false
 
   parameters:
     sessionID:
