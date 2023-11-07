@@ -127,7 +127,7 @@ func Process(ctx context.Context, loader loader.DocumentLoader, schemaURL string
 
 	claim, err := pr.ParseClaim(ctx, credential, options)
 	if err != nil {
-		log.Error(ctx, "claim parsing error", "err", err)
+		log.Error(ctx, "error parsing claim", "err", err)
 		return nil, ErrParseClaim
 	}
 	return claim, nil

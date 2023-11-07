@@ -42,6 +42,11 @@ func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConf
 			Key:   "ISSUER_REDIS_URL",
 			Value: s.cfg.Cache.RedisUrl,
 		},
+
+		KeyValue{
+			Key:   "ISSUER_API_IPFS_GATEWAY_URL",
+			Value: s.cfg.IPFS.GatewayURL,
+		},
 	}
 
 	return variables, nil
