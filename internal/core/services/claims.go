@@ -79,7 +79,6 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrServ
 	}
 	if ipfsGatewayURL != "" {
 		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
-		s.ipfsGatewayURL = ipfsGatewayURL
 	}
 	return s
 }
