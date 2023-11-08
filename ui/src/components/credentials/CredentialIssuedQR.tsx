@@ -6,14 +6,14 @@ import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import { AppError } from "src/domain";
+import { AppError, IssuedQRCode } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 
 export function CredentialIssuedQR() {
   const env = useEnvContext();
 
-  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<string, AppError>>({
+  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<IssuedQRCode, AppError>>({
     status: "pending",
   });
 
@@ -65,7 +65,8 @@ export function CredentialIssuedQR() {
 
   return (
     <CredentialQR
-      qrCode={issuedQRCode.data}
+      qrCode={issuedQRCode.data.qrCodeLink}
+      schemaType={issuedQRCode.data.schemaType}
       subTitle="Scan the QR code with your Polygon ID wallet to add the credential."
     />
   );

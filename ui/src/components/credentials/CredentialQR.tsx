@@ -11,7 +11,7 @@ export function CredentialQR({
   subTitle,
 }: {
   qrCode: string;
-  schemaType?: string;
+  schemaType: string;
   subTitle: ReactNode;
 }) {
   const { issuer } = useEnvContext();

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, Json, Link, LinkStatus, ProofType } from "src/domain";
+import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -418,6 +418,13 @@ export async function createAuthQRCode({
   }
 }
 
+const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
+  z.object({
+    qrCodeLink: z.string(),
+    schemaType: z.string(),
+  })
+);
+
 export async function getIssuedQRCode({
   credentialID,
   env,
@@ -426,7 +433,7 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<string>> {
+}): Promise<Response<IssuedQRCode>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -434,7 +441,7 @@ export async function getIssuedQRCode({
       signal,
       url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
     });
-    return buildSuccessResponse(z.string().parse(response.data));
+    return buildSuccessResponse(issuedQRCodeParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
