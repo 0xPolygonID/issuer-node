@@ -139,9 +139,9 @@ type GetConnectionsResponse = []GetConnectionResponse
 
 // GetLinkQrCodeResponse defines model for GetLinkQrCodeResponse.
 type GetLinkQrCodeResponse struct {
-	LinkDetail LinkSimple      `json:"linkDetail"`
-	QrCode     *QrCodeResponse `json:"qrCode,omitempty"`
-	Status     *string         `json:"status,omitempty"`
+	LinkDetail LinkSimple `json:"linkDetail"`
+	QrCode     *string    `json:"qrCode,omitempty"`
+	Status     *string    `json:"status,omitempty"`
 }
 
 // Health defines model for Health.
@@ -206,18 +206,6 @@ type PublishIdentityStateResponse struct {
 	TxID               *string `json:"txID,omitempty"`
 }
 
-// QrCodeBodyResponse defines model for QrCodeBodyResponse.
-type QrCodeBodyResponse struct {
-	Credentials []QrCodeCredentialResponse `json:"credentials"`
-	Url         string                     `json:"url"`
-}
-
-// QrCodeCredentialResponse defines model for QrCodeCredentialResponse.
-type QrCodeCredentialResponse struct {
-	Description string `json:"description"`
-	Id          string `json:"id"`
-}
-
 // QrCodeLinkShortResponse defines model for QrCodeLinkShortResponse.
 type QrCodeLinkShortResponse = string
 
@@ -225,17 +213,6 @@ type QrCodeLinkShortResponse = string
 type QrCodeLinkWithSchemaTypeShortResponse struct {
 	QrCodeLink string `json:"qrCodeLink"`
 	SchemaType string `json:"schemaType"`
-}
-
-// QrCodeResponse defines model for QrCodeResponse.
-type QrCodeResponse struct {
-	Body QrCodeBodyResponse `json:"body"`
-	From string             `json:"from"`
-	Id   string             `json:"id"`
-	Thid string             `json:"thid"`
-	To   string             `json:"to"`
-	Typ  string             `json:"typ"`
-	Type string             `json:"type"`
 }
 
 // RevocationStatusResponse defines model for RevocationStatusResponse.

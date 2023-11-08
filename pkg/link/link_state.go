@@ -44,9 +44,9 @@ type QRCodeMessage struct {
 
 // State - Link state.
 type State struct {
-	Status  string         `json:"status,omitempty"`
-	Message string         `json:"message,omitempty"`
-	QRCode  *QRCodeMessage `json:"qrcode,omitempty"`
+	Status  string  `json:"status,omitempty"`
+	Message string  `json:"message,omitempty"`
+	QRCode  *string `json:"qrcode,omitempty"`
 }
 
 // NewStatePending - TODO
@@ -73,10 +73,10 @@ func NewStateError(err error) *State {
 }
 
 // NewStateDone - TODO
-func NewStateDone(qrcode *QRCodeMessage) *State {
+func NewStateDone(qrCodeLink string) *State {
 	state := &State{
 		Status: StatusDone,
-		QRCode: qrcode,
+		QRCode: &qrCodeLink,
 	}
 	return state
 }
