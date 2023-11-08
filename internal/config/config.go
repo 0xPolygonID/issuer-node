@@ -441,7 +441,7 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
-	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_KEY_TYPE")
+	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_UI_KEY_TYPE")
 
 	viper.AutomaticEnv()
 }
@@ -568,7 +568,7 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	}
 
 	if cfg.APIUI.KeyType == "" {
-		log.Info(ctx, "ISSUER_KEY_TYPE is missing and the server set up it as BJJ")
+		log.Info(ctx, "ISSUER_API_UI_KEY_TYPE is missing and the server set up it as BJJ")
 		cfg.APIUI.KeyType = "BJJ"
 	}
 
