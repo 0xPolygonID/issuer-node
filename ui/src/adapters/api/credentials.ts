@@ -448,13 +448,13 @@ export async function getIssuedQRCode({
 }
 
 export type ImportQRCode = {
-  qrCode?: unknown;
+  qrCode: string;
   status: "done" | "pending" | "pendingPublish";
 };
 
 const importQRCodeParser = getStrictParser<ImportQRCode>()(
   z.object({
-    qrCode: z.unknown(),
+    qrCode: z.string(),
     status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
   })
 );
