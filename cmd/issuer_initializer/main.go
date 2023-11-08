@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -131,10 +132,11 @@ func main() {
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 
 	didCreationOptions := &ports.DIDCreationOptions{
-		Method:     core.DIDMethod(cfg.APIUI.IdentityMethod),
-		Network:    core.NetworkID(cfg.APIUI.IdentityNetwork),
-		Blockchain: core.Blockchain(cfg.APIUI.IdentityBlockchain),
-		KeyType:    kms.KeyType(cfg.APIUI.KeyType),
+		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
+		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
+		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
+		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
+		AuthBJJCredentialStatus: verifiable.CredentialStatusType(cfg.CredentialStatus.CredentialStatusType),
 	}
 
 	identity, err := identityService.Create(ctx, cfg.ServerUrl, didCreationOptions)
