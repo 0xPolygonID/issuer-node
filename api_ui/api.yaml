@@ -997,38 +997,6 @@ components:
           type: string
           example: "vaccinationCertificate"
 
-    QrCodeResponse:
-      type: object
-      required:
-        - id
-        - typ
-        - type
-        - thid
-        - body
-        - from
-        - to
-      properties:
-        id:
-          type: string
-          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
-        typ:
-          type: string
-          example: application/iden3comm-plain-json
-        type:
-          type: string
-          example: https://iden3-communication.io/authorization/1.0/request
-        thid:
-          type: string
-          example: f7c6cdf9-878e-40c3-89f1-85bf1fb80865
-        body:
-          $ref: '#/components/schemas/QrCodeBodyResponse'
-        from:
-          type: string
-          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
-        to:
-          type: string
-          example: did:polygonid:polygon:mumbai:2qPtCq1WDpimtqsFPkpbBYzgzDbJ8i3pn9vHDLyF63
-
     QrCodeBodyResponse:
       type: object
       required:
@@ -1098,7 +1066,8 @@ components:
         - linkDetail
       properties:
         qrCode:
-          $ref: '#/components/schemas/QrCodeResponse'
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         status:
           type: string
           example: done | pending | pendingPublish

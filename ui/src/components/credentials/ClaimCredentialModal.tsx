@@ -4,13 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
 import { CLOSE } from "src/utils/constants";
 
-export function ClaimCredentialModal({
-  onClose,
-  qrCode,
-}: {
-  onClose: () => void;
-  qrCode: unknown;
-}) {
+export function ClaimCredentialModal({ onClose, qrCode }: { onClose: () => void; qrCode: string }) {
   return (
     <Modal
       centered
@@ -35,7 +29,7 @@ export function ClaimCredentialModal({
         includeMargin
         level="H"
         style={{ height: 300 }}
-        value={JSON.stringify(qrCode)}
+        value={qrCode}
       />
     </Modal>
   );

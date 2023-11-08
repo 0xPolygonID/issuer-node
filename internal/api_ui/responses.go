@@ -10,7 +10,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	linkstate "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -277,32 +276,6 @@ func getLinkResponses(links []domain.Link) []Link {
 		res[i] = getLinkResponse(link)
 	}
 	return res
-}
-
-func getLinkQrCodeResponse(linkQrCode *linkstate.QRCodeMessage) *QrCodeResponse {
-	if linkQrCode == nil {
-		return nil
-	}
-	credentials := make([]QrCodeCredentialResponse, len(linkQrCode.Body.Credentials))
-	for i, c := range linkQrCode.Body.Credentials {
-		credentials[i] = QrCodeCredentialResponse{
-			Id:          c.ID,
-			Description: c.Description,
-		}
-	}
-
-	return &QrCodeResponse{
-		Id:   linkQrCode.ID,
-		Thid: linkQrCode.ThreadID,
-		Typ:  linkQrCode.Typ,
-		Type: linkQrCode.Type,
-		From: linkQrCode.From,
-		To:   linkQrCode.To,
-		Body: QrCodeBodyResponse{
-			Url:         linkQrCode.Body.URL,
-			Credentials: credentials,
-		},
-	}
 }
 
 func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {

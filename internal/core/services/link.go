@@ -302,8 +302,20 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		To:   userDID.String(),
 	}
 
+	qrCodeBytes, err := json.Marshal(r)
+	if err != nil {
+		log.Error(ctx, "cannot marshal the qr code", "err", err)
+		return err
+	}
+
+	id, err := ls.qrService.Store(ctx, qrCodeBytes, DefaultQRBodyTTL)
+	if err != nil {
+		log.Error(ctx, "cannot store the qr code", "err", err)
+		return err
+	}
+
 	if link.CredentialSignatureProof {
-		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateDone(r))
+		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateDone(ls.qrService.ToURL(hostURL, id)))
 	} else {
 		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePendingPublish())
 	}

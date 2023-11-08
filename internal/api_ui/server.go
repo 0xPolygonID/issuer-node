@@ -611,7 +611,7 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone || getQRCodeResponse.State.Status == link_state.StatusPendingPublish {
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
-			QrCode:     getLinkQrCodeResponse(getQRCodeResponse.State.QRCode),
+			QrCode:     getQRCodeResponse.State.QRCode,
 			LinkDetail: getLinkSimpleResponse(*getQRCodeResponse.Link),
 		}, nil
 	}

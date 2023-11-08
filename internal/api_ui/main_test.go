@@ -160,7 +160,11 @@ func checkQRfetchURLForCredential(t *testing.T, body []byte) string {
 	t.Helper()
 	bodyR := &GetCredentialQrCode200JSONResponse{}
 	require.NoError(t, json.Unmarshal(body, bodyR))
-	qrURL, err := url.Parse(bodyR.QrCodeLink)
+	return parseIden3commQRCodeResponse(t, bodyR.QrCodeLink)
+}
+
+func parseIden3commQRCodeResponse(t *testing.T, input string) string {
+	qrURL, err := url.Parse(input)
 	require.NoError(t, err)
 	assert.Equal(t, "iden3comm", qrURL.Scheme)
 	vals, err := url.ParseQuery(qrURL.RawQuery)
@@ -169,6 +173,7 @@ func checkQRfetchURLForCredential(t *testing.T, body []byte) string {
 	require.True(t, found)
 	fetchURL, err := url.QueryUnescape(val[0])
 	require.NoError(t, err)
+
 	return fetchURL
 }
 

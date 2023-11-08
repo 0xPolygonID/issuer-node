@@ -1786,7 +1786,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 	type expected struct {
 		message  *string
-		response QrCodeResponse
 		httpCode int
 	}
 
@@ -1812,19 +1811,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 				Id: createdClaim.ID,
 			},
 			expected: expected{
-				response: QrCodeResponse{
-					Body: QrCodeBodyResponse{
-						Credentials: []QrCodeCredentialResponse{
-							{
-								Description: schema,
-								Id:          createdClaim.ID.String(),
-							},
-						},
-						Url: "",
-					},
-					From: did.String(),
-					To:   createdClaim.OtherIdentifier,
-				},
 				httpCode: http.StatusOK,
 			},
 		},
@@ -1854,11 +1840,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 				// Let's verify the QR body
 				realQR := protocol.CredentialsOfferMessage{}
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
-
-				require.Equal(t, tc.expected.response.From, realQR.From)
-				require.Equal(t, tc.expected.response.To, realQR.To)
-				require.Equal(t, len(tc.expected.response.Body.Credentials), len(realQR.Body.Credentials))
-
 			case http.StatusBadRequest:
 				var response GetCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -3795,10 +3776,11 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	sessionRepository := repositories.NewSessionCached(cachex)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	qrService := services.NewQrStoreService(cachex)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
@@ -3813,7 +3795,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	cfg.APIUI.IssuerDID = *did
 	cfg.APIUI.ServerURL = "http://localhost/issuer-admin"
 
-	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, qrService, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
@@ -3842,10 +3824,16 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		To:   userDID.String(),
 	}
 
+	qrCodeBytes, err := json.Marshal(qrcode)
+	require.NoError(t, err)
+
 	linkDetail := getLinkResponse(*link)
+	id, err := qrService.Store(ctx, qrCodeBytes, 100*time.Second)
+	require.NoError(t, err)
+	qrCodeLink := qrService.ToURL("http://localhost:3002", id)
 
 	type expected struct {
-		qrCode     *linkState.QRCodeMessage
+		qrCode     *string
 		linkDetail Link
 		status     string
 		httpCode   int
@@ -3901,10 +3889,10 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 			name:      "Happy path",
 			id:        link.ID,
 			sessionID: sessionID,
-			state:     linkState.NewStateDone(qrcode),
+			state:     linkState.NewStateDone(qrCodeLink),
 			expected: expected{
 				linkDetail: linkDetail,
-				qrCode:     qrcode,
+				qrCode:     common.ToPointer(qrCodeLink),
 				status:     "done",
 				httpCode:   http.StatusOK,
 			},
@@ -3930,17 +3918,23 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 				if tc.expected.status == "pending" {
 					assert.Equal(t, tc.expected.status, *response.Status)
 				} else {
-					assert.NotNil(t, response.QrCode.Body)
-					assert.Equal(t, tc.expected.qrCode.Body.Credentials[0].ID, response.QrCode.Body.Credentials[0].Id)
-					assert.Equal(t, tc.expected.qrCode.Body.Credentials[0].Description, response.QrCode.Body.Credentials[0].Description)
-					assert.Equal(t, tc.expected.qrCode.Body.URL, response.QrCode.Body.Url)
-					assert.NotNil(t, response.QrCode.Id)
-					assert.Equal(t, tc.expected.qrCode.Type, response.QrCode.Type)
-					assert.Equal(t, tc.expected.qrCode.Typ, response.QrCode.Typ)
-					assert.Equal(t, tc.expected.qrCode.From, response.QrCode.From)
 					assert.Equal(t, tc.expected.linkDetail.Id, response.LinkDetail.Id)
 					assert.Equal(t, tc.expected.linkDetail.SchemaType, response.LinkDetail.SchemaType)
 					assert.Equal(t, tc.expected.status, *response.Status)
+					require.NotNil(t, response.QrCode)
+					assert.Equal(t, *tc.expected.qrCode, *response.QrCode)
+					qrLink := parseIden3commQRCodeResponse(t, *response.QrCode)
+
+					// Now let's fetch the original QR using the url
+					rr := httptest.NewRecorder()
+					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
+					require.NoError(t, err)
+					handler.ServeHTTP(rr, req)
+					require.Equal(t, http.StatusOK, rr.Code)
+
+					// Let's verify the QR body
+					realQR := protocol.CredentialsOfferMessage{}
+					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
 				}
 			}
 		})
