@@ -16,7 +16,7 @@ type RequestService interface {
 	CreateRequest(ctx context.Context, req domain.VCRequest) (uuid.UUID, error)
 	GetRequest(ctx context.Context, Id uuid.UUID) (domain.Responce, error)
 	GetAllRequests(ctx context.Context, userDID string, requestType string) ([]*domain.Responce, error)
-	UpdateStatus(ctx context.Context, id uuid.UUID) (int64, error)
+	UpdateStatus(ctx context.Context, id uuid.UUID,issuer_status string,verifier_status string,wallet_status string) (int64, error)
 	NewNotification(ctx context.Context, notification *domain.NotificationData) (bool, error)
 	GetNotifications(ctx context.Context, module string) ([]*domain.NotificationReponse, error)
 	GetRequestsByRequestType(ctx context.Context, requestType string) ([]*domain.Responce, error)
@@ -26,6 +26,7 @@ type RequestService interface {
 	GetUserID(ctx context.Context, udid string) (*domain.UserResponse, error)
 	SignUp(ctx context.Context, user *domain.SignUpRequest) (bool,error)
 	SignIn(ctx context.Context, username string, password string) (*domain.LoginResponse,error)
+	UpdateVerificationStatus(ctx context.Context,id string,field string, status bool) (int64,error)
 
 	// Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	// GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)

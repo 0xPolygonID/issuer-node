@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -26,8 +27,27 @@ func NewRequests(reqRepo ports.RequestRepository, storage *db.Storage) ports.Req
 
 func ( r *requests) CreateRequest(ctx context.Context,req domain.VCRequest) (uuid.UUID,error){
 	var s string = "Pending for KYC verification"
-	if req.RequestType == "KYBGSTINCredentials"{
-		s ="Pending for KYB verification"
+
+	user,err := r.reqRepo.GetUserID(ctx,r.storage.Pgx,req.UserDID)
+	if err != nil{
+		return uuid.Nil,err;
+	}
+	if req.RequestType == "KYCAgeCredentialAadhar" || req.RequestType == "ValidCredentialAadhar"{
+		if user.AdharStatus == true{
+			s = "Identity is Verified"
+		}
+	} else if req.RequestType == "KYCAgeCredentialPAN" || req.RequestType == "ValidCredentialPAN"{
+		if user.PANStatus == true{
+			s = "Identity is Verified"
+		}
+	} else if req.RequestType == "KYBGSTINCredentials"{
+		if user.GstinStatus == true{
+			s = "Identity is Verified"
+		}else{
+			s = "Pending for KYB verification"
+		}
+	} else {
+		return uuid.Nil, errors.New("Invalid Request Type")
 	}
 
 	_req := &domain.Request{
@@ -47,7 +67,7 @@ func ( r *requests) CreateRequest(ctx context.Context,req domain.VCRequest) (uui
 		Age: req.Age,
 		Source: req.Source,
 	}
-	err := r.reqRepo.Save(ctx,r.storage.Pgx,_req)
+	err = r.reqRepo.Save(ctx,r.storage.Pgx,_req)
 	if err != nil{
 		return uuid.Nil,err;
 	}
@@ -67,8 +87,8 @@ func ( r *requests) GetAllRequests(ctx context.Context,userDID string,requestTyp
 }
 
 
-func (r *requests) UpdateStatus(ctx context.Context,id uuid.UUID) (int64 , error){
-	res, err := r.reqRepo.UpdateStatus(ctx,r.storage.Pgx,id)
+func (r *requests) UpdateStatus(ctx context.Context,id uuid.UUID,issuer_status string,verifier_status string,wallet_status string) (int64 , error){
+	res, err := r.reqRepo.UpdateStatus(ctx,r.storage.Pgx,id,issuer_status,verifier_status,wallet_status)
 	return res,err
 }
 
@@ -125,6 +145,10 @@ func (r *requests) SignIn(ctx context.Context, username string, password string)
 	return res,err
 }
 
+func (r *requests) UpdateVerificationStatus(ctx context.Context, id string,field string, status bool) (int64,error){
+	res,err := r.reqRepo.UpdateVerificationStatus(ctx,r.storage.Pgx,id,field,status)
+	return res,err
+}
 
 
 

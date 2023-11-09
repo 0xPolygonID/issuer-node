@@ -1,12 +1,15 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	// "io"
+	"io/ioutil"
 	"log"
-	// "net/http"
+	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,21 +20,31 @@ import (
 	"github.com/iden3/go-iden3-auth/v2/pubsignals"
 	"github.com/iden3/go-iden3-auth/v2/state"
 	"github.com/iden3/iden3comm/v2/protocol"
+	shell "github.com/ipfs/go-ipfs-api"
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
-
 
 type verifier struct{}
 
 func NewVerifier() ports.VerifierRepository {
 	return &verifier{}
 }
+
+type IdentityRequest struct {
+	Type        string   `json:"type"`
+	CallbackURL string   `json:"callbackUrl"`
+	Email       string   `json:"email"`
+	Images      []string `json:"images"`
+}
+
 var requestMap = make(map[string]interface{})
 var sessionID = 0
-func (v *verifier) GetAuthRequest(ctx context.Context,schemaType string,schemaURL string,credSubject map[string]interface{})(protocol.AuthorizationRequestMessage,error){
+
+func (v *verifier) GetAuthRequest(ctx context.Context, schemaType string, schemaURL string, credSubject map[string]interface{}) (protocol.AuthorizationRequestMessage, error) {
 	// Audience is verifier id
 	rURL := "localhost:3002"
-	sessionID++ 
+	sessionID++
 	CallbackURL := "/api/callback"
 	Audience := "did:polygonid:polygon:mumbai:2qDyy1kEo2AYcP3RT4XGea7BtxsY285szg6yP9SPrs"
 
@@ -47,10 +60,10 @@ func (v *verifier) GetAuthRequest(ctx context.Context,schemaType string,schemaUR
 	mtpProofRequest.ID = 1
 	mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigV2CircuitID)
 	mtpProofRequest.Query = map[string]interface{}{
-		"allowedIssuers": []string{"*"},
-		"credentialSubject":credSubject,
-		"context": schemaURL,
-		"type":    schemaType,
+		"allowedIssuers":    []string{"*"},
+		"credentialSubject": credSubject,
+		"context":           schemaURL,
+		"type":              schemaType,
 	}
 	request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
 
@@ -58,12 +71,12 @@ func (v *verifier) GetAuthRequest(ctx context.Context,schemaType string,schemaUR
 	requestMap[strconv.Itoa(sessionID)] = request
 
 	// print request
-	fmt.Println("Request",request)
-	return request,nil;
+	fmt.Println("Request", request)
+	return request, nil
 }
 
 // // Callback works with sign-in callbacks
-func (v *verifier) Callback(ctx context.Context,sessionId string,tokenBytes []byte)(messageBytes []byte, err error) {
+func (v *verifier) Callback(ctx context.Context, sessionId string, tokenBytes []byte) (messageBytes []byte, err error) {
 
 	// Get session ID from request
 	// sessionID := r.URL.Query().Get("sessionId")
@@ -114,7 +127,7 @@ func (v *verifier) Callback(ctx context.Context,sessionId string,tokenBytes []by
 	if err != nil {
 		log.Println(err.Error())
 		// http.Error(w, err.Error(), http.StatusInternalServerError)
-		return nil,err
+		return nil, err
 	}
 	userID := authResponse.From
 	messageBytes = []byte("User with ID " + userID + " Successfully authenticated")
@@ -122,5 +135,409 @@ func (v *verifier) Callback(ctx context.Context,sessionId string,tokenBytes []by
 	return messageBytes, nil
 }
 
+func (v *verifier) Login(ctx context.Context, username string, password string) (*domain.SinzyLoginResponse, error) {
+	url := "https://preproduction.signzy.tech/api/v2/patrons/login"
+	payload, err := json.Marshal(map[string]string{
+		"username": username,
+		"password": password,
+	})
+	if err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 10 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+	fmt.Println("res", res)
+	var loginResponse domain.SinzyLoginResponse
+	if err := json.NewDecoder(res.Body).Decode(&loginResponse); err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	fmt.Println("loginResponse", loginResponse)
+	return &loginResponse, nil
+}
 
+func (v *verifier) Logout(ctx context.Context, accessToken string) {
 
+	url := "https://signzy.tech/api/v2/patrons/logout?access_token=" + accessToken
+
+	req, _ := http.NewRequest("POST", url, nil)
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+
+}
+
+func (v *verifier) VerifyAccount(ctx context.Context, patronid string, parameterType string, parameterValue string) {
+
+	// url := "https://signzy.tech/api/v2/patrons/....patronid.../digilockers"
+	// payload := strings.NewReader("{\"task\":\"verifyAccount\", \"essentials\": {\"mobileNumber\": \"...mobileNumber...\"}}"
+	url := "https://signzy.tech/api/v2/patrons/${patronid}/digilockers"
+
+	payload := strings.NewReader(`{"task":"verifyAccount", "essentials": {${parameterType}: "${parameterValue}"}}`)
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", "<Access-Token>")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func (v *verifier) GetDigilockerURL(ctx context.Context, patronid string, accessToken string) (*domain.DigilockerURLResponse, error) {
+	url := fmt.Sprintf("https://preproduction.signzy.tech/api/v2/patrons/%s/digilockers", patronid)
+
+	fmt.Println("url", url)
+	fmt.Println("accessToken", accessToken)
+	fmt.Println("patronid", patronid)
+	payload, err := json.Marshal(map[string]interface{}{
+		"task":       "url",
+		"essentials": map[string]string{},
+	})
+	if err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	fmt.Println("payload", payload)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+	fmt.Println("resFor URL", res)
+	fmt.Println("GetURLBody", res.Body)
+	var response domain.DigilockerURLResponse
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	fmt.Println("response", response)
+	return &response, nil
+}
+
+func (v *verifier) PullDocuments(ctx context.Context, patronid string, requestId string, accessToken string) (*domain.DigilockerDocumentList, error) {
+	url := fmt.Sprintf("https://preproduction.signzy.tech/api/v2/patrons/%s/digilockers", patronid)
+	payload := map[string]interface{}{
+		"task": "url",
+		"essentials": map[string]string{
+			"requestId": requestId,
+		},
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	var response domain.DigilockerDocumentList
+
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	defer res.Body.Close()
+	// body, _ := ioutil.ReadAll(res.Body)
+	fmt.Println("resForAcess", res.Body)
+	fmt.Println("response", response)
+	return &response, nil
+}
+
+func (v *verifier) GetDigilockerEAdharData(ctx context.Context, patronid string) {
+	url := "https://signzy.tech/api/v2/patrons/${patronid}/digilockers"
+
+	payload := strings.NewReader("{\"task\":\"getEadhaar\", essentials: {\"requestId\": \"...requestId...\"}}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", "<Access-Token>")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func (v *verifier) GetRequestID(ctx context.Context, patronid string) {
+	url := "https://signzy.tech/api/v2/patrons/${patronid}/digilockers"
+	payload := strings.NewReader("{\"task\":\"url\",\"essentials\":{\"redirectUrl\":\"\",\"redirectTime\":\"\",\"callbackUrl\":\"\"}}")
+	req, _ := http.NewRequest("POST", url, payload)
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", "<Access-Token>")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func (v *verifier) GetListOfDocuments(ctx context.Context, patronid string, accessToken string, Adhar bool, PAN bool) {
+	url := "https://signzy.tech/api/v2/patrons/${patronid}/digilockers"
+
+	payload := strings.NewReader("{\"task\":\"listofdocuments\", essentials: {}}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", accessToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func (V *verifier) GetPANDoc(ctx context.Context, patronid string) {
+	url := `https://signzy.tech/api/v2/patrons/${patronid}/digilockers`
+
+	payload := strings.NewReader("{\"task\":\"pullDocuments\", \"essentials\": {\"requestId\": \"...requestId...\",\"docType\": \"...docType...\", \"name\" : \"...name...\", \"panNumber\" : \"...panNumber...\"}}")
+
+	req, _ := http.NewRequest("POST", url, payload)
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", "<Access-Token>")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func (v *verifier) GetIdentity(ctx context.Context, patronid string, _type string, accessToken string) (*domain.VerificationIdentity, error) {
+	url := "https://preproduction.signzy.tech/api/v2/patrons/64c8ce58d41cd00022d8dfa3/identities"
+
+	identityReq := IdentityRequest{
+		Type:        _type,
+		CallbackURL: "https://www.w3schools.com",
+		Email:       "ankur.rand@signzy.com",
+		Images:      []string{},
+	}
+
+	payloadBytes, err := json.Marshal(identityReq)
+	if err != nil {
+		log.Println(err.Error())
+		// return nil, err
+	}
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", accessToken)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		// return nil, err
+	}
+
+	defer res.Body.Close()
+
+	fmt.Println(res)
+	var identityResponse domain.VerificationIdentity
+
+	if err := json.NewDecoder(res.Body).Decode(&identityResponse); err != nil {
+		fmt.Println("err", err)
+		// return nil, err
+	}
+
+	fmt.Println("identityResponse", identityResponse)
+	return &identityResponse, nil
+}
+
+func (v *verifier) VerifyAdhar(ctx context.Context, itemId string, accessToken string, Authorization string, uid string) (*domain.VerifyAdharResponse, error) {
+
+	url := "https://preproduction.signzy.tech/api/v2/snoops"
+
+	payloadStr := fmt.Sprintf("{\"service\":\"Identity\",\"itemId\":\"%s\",\"accessToken\":\"%s\",\"task\":\"verifyAadhaar\",\"essentials\":{\"uid\":\"%s\"}}", itemId, accessToken, uid)
+	req, _ := http.NewRequest("POST", url, strings.NewReader(payloadStr))
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", Authorization)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
+	fmt.Println("=====Result=====", res)
+	fmt.Println("=====Body=====", string(body))
+
+	var response domain.VerifyAdharResponse
+
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	// type VerifyAdharResponseBody struct {
+	// 	Verified bool `json:"verified"`
+	// 	// add more fields here as needed
+	// }
+
+	// var response VerifyAdharResponseBody
+
+	// if err := json.Unmarshal(body, &response); err != nil {
+	// 	fmt.Println("err", err)
+	// 	return nil, err
+	// }
+
+	// fmt.Println("response", response)
+
+	if !response.Verified {
+		return nil, fmt.Errorf("Adhar not verified")
+	} else {
+		return nil, nil
+	}
+}
+
+func (v *verifier) VerifyPAN(ctx context.Context, itemId string, accessToken string, Authorization string, panNumber string, Name string, fuzzy bool, panStatus bool) (*domain.VerifyPANResponse, error) {
+
+	url := "https://preproduction.signzy.tech/api/v2/snoops"
+	payloadStr := fmt.Sprintf("{\"service\":\"Identity\",\"itemId\":\"%s\",\"accessToken\":\"%s\",\"task\":\"verification\",\"essentials\":{\"number\":\"%s\",\"name\":\"%s\",\"fuzzy\":\"false\",\"panStatus\":\"true\"}}", itemId, accessToken, panNumber, Name)
+
+	req, _ := http.NewRequest("POST", url, strings.NewReader(payloadStr))
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Authorization", Authorization)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println("=====Result=====", res)
+	fmt.Println("=====Body=====", string(body))
+	var response domain.VerifyPANResponse
+
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		fmt.Println("err", err)
+		return nil, err
+	}
+	fmt.Println("response", response)
+	if !response.Verified {
+		return nil, fmt.Errorf("PAN not verified")
+	} else {
+		return &response, nil
+	}
+}
+
+func (v *verifier) UploadToIPFS(ctx context.Context, filePath string) (string, error) {
+	sh := shell.NewShell("localhost:5001")
+	fileData, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	reader := bytes.NewReader(fileData)
+	cid, err := sh.Add(reader)
+	if err != nil {
+		return "", err
+	}
+
+	return cid, nil
+}

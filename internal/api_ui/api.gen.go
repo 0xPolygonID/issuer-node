@@ -663,6 +663,18 @@ type ServerInterface interface {
 	// POST("v1/verifyAuthRequest")
 	Callback(w http.ResponseWriter, r *http.Request)
 
+	// // POST("v1/verifyAuthRequest")
+	// VerifyAuthRequest(w http.ResponseWriter, r *http.Request)
+
+	// POST ("v1/accessDigiLocker")
+	AccessDigiLocker(w http.ResponseWriter, r *http.Request)
+
+	// POST ("v1/accessDigiLocker")
+	GetDigiLockerURL(w http.ResponseWriter, r *http.Request)
+
+	// POST ("v1/verifyRequest")
+	VerifyRequest(w http.ResponseWriter, r *http.Request,id Id)
+
 }
 
 // Signing up the user
@@ -690,6 +702,61 @@ func (siw *ServerInterfaceWrapper) SignIn(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SignIn(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (siw *ServerInterfaceWrapper) AccessDigiLocker(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AccessDigiLocker(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (siw *ServerInterfaceWrapper) GetDigiLockerURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDigiLockerURL(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+func (siw *ServerInterfaceWrapper) VerifyRequest(w http.ResponseWriter, r *http.Request){
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var id Id
+
+	err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyRequest(w, r,id)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2166,7 +2233,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	// r.Group(func(r chi.Router) {
 	// 	r.Get(options.BaseURL+"/v1/notifications/user", wrapper.GetNotificationsForUser)
 	// })
-
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/accessDigiLocker", wrapper.AccessDigiLocker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/verifyDigiLocker", wrapper.GetDigiLockerURL)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/VerifyRequest/{id}", wrapper.VerifyRequest)
+	})
 	return r
 }
 
@@ -3568,11 +3643,17 @@ type CreateUserRequestBody struct{
 	Gmail string `json:"gmail"`
 	PhoneNumber string `json:"phoneNumber"`
 	Gstin string `json:"gstin"`
+	GstinFile string `json:"gstinFile"`
+	GstinStatus bool `json:"gstinStatus"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`
 	AdharNumber string `json:"adharNumber"`
 	Adhar string `json:"adhar"`
+	AdharFile string `json:"adharFile"`
+	AdharStatus bool `json:"adharStatus"`
 	PAN string `json:"PAN"`
+	PANFile string `json:"PANFile"`
+	PANStatus bool `json:"PANStatus"`
 	DocumentationSource string `json:"documentationSource"`
 }
 
@@ -3585,10 +3666,16 @@ type UserResponse struct {
 	Gmail string `json:"gmail"`
 	PhoneNumber string `json:"phoneNumber"`
 	Gstin string `json:"gstin"`
+	GstinFile string `json:"gstinFile"`
+	GstinStatus bool `json:"gstinStatus"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`
 	Adhar string `json:"adhar"`
+	AdharFile string `json:"adharFile"`
+	AdharStatus bool `json:"adharStatus"`
 	PAN string `json:"PAN"`
+	PANFile string `json:"PANFile"`
+	PANStatus bool `json:"PANStatus"`
 	DocumentationSource string `json:"documentationSource"`
 	Iscompleted bool `json:"iscompleted"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -3714,6 +3801,94 @@ func (response VerifyAuth200Response) VisitVerifyAuthResponse(w http.ResponseWri
 	w.WriteHeader(200)
 	return json.NewEncoder(w).Encode(response)
 }
+
+type AccessDigiLockerRequestBody struct{
+	Adhar bool `json:"adhar"`
+	PAN bool `json:"PAN"`
+	DrivingLicense bool `json:"drivingLicense"`
+	PatronId string `json:"patronid"`
+	RequestId string `json:"requestid"`
+}
+
+type AccessDigiLockerRequestObject struct{
+	Body *AccessDigiLockerRequestBody
+}
+
+type AccessDigiLockerResponseObject interface{
+	VisitAccessDigiLockerResponse(w http.ResponseWriter) error
+}
+
+type AccessDigiLocker200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+type AccessDigiLocker500Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response AccessDigiLocker500Response) VisitAccessDigiLockerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	return json.NewEncoder(w).Encode(response)
+}
+
+
+func (response AccessDigiLocker200Response) VisitAccessDigiLockerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DigilockerURL200Response struct {
+	Id string `json:"id"`
+	PatronId string `json:"patronId"`
+	Task string `json:"task"`
+	Result struct {
+		URL string `json:"url"`
+		RequestId string `json:"requestId"`
+	} `json:"result"`
+}
+
+type GetDigiLockerResponseObject interface{
+	VisitGetDigiLockerResponse(w http.ResponseWriter) error
+}
+
+func (response DigilockerURL200Response) VisitGetDigiLockerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyRequestResponseObject interface{
+	VisitVerifyRequestResponse(w http.ResponseWriter) error
+}
+
+type VerifyRequest200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response VerifyRequest200Response) VisitVerifyRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyRequest500Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response VerifyRequest500Response) VisitVerifyRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	return json.NewEncoder(w).Encode(response)
+}
+
+
+
 
 
 type SignUpRequestObject struct{
@@ -3865,7 +4040,11 @@ type StrictServerInterface interface {
 
 	Callback(ctx context.Context, request callbackRequestObject)(VerifyAuthResponseObject,error)
 
+	AccessDigiLocker(ctx context.Context, request AccessDigiLockerRequestObject,Authorization string)(AccessDigiLockerResponseObject,error)
 
+	GetDigiLockerURL(ctx context.Context)(GetDigiLockerResponseObject,error)
+
+	VerifyRequest(ctx context.Context, id uuid.UUID)(VerifyRequestResponseObject,error)
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3957,6 +4136,95 @@ func (sh *strictHandler) SignIn(w http.ResponseWriter, r *http.Request){
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
 }
+
+func (sh *strictHandler) GetDigiLockerURL(w http.ResponseWriter, r *http.Request){
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDigiLockerURL(ctx)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDigiLockerURL")
+	}
+
+	response, err := handler(r.Context(), w, r, nil)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDigiLockerResponseObject); ok {
+		if err := validResponse.VisitGetDigiLockerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+
+
+func (sh *strictHandler) AccessDigiLocker(w http.ResponseWriter, r *http.Request){
+	var request AccessDigiLockerRequestObject
+
+	var body AccessDigiLockerRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	 Authorization :=r.Header.Get("Authorization")
+
+
+	request.Body = &body;
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AccessDigiLocker(ctx, request.(AccessDigiLockerRequestObject),Authorization)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AccessDigiLocker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AccessDigiLockerResponseObject); ok {
+		if err := validResponse.VisitAccessDigiLockerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if validResponse, ok := response.(AccessDigiLocker500Response); ok {
+		if err := validResponse.VisitAccessDigiLockerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) VerifyRequest(w http.ResponseWriter,r * http.Request,id uuid.UUID){
+	var request Id
+	request = id;
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyRequest(ctx, request.(Id))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+	
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyRequestResponseObject); ok {
+		if err := validResponse.VisitVerifyRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	}  else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+
+
+
 
 // func (sh *strictHandler) CreateAuthRequest(w http.ResponseWriter, r *http.Request){
 // 	// var request GetUserRequestObject

@@ -374,10 +374,16 @@ func userResponse(requets *domain.UserResponse) (UserResponse, error) {
 		Gmail: requets.Gmail,
 		PhoneNumber: requets.Phone,
 		Gstin: requets.Gstin,
+		GstinFile: requets.GstinFile,
+		GstinStatus: requets.GstinStatus,
 		UserType: requets.UserType,
 		Address: requets.Address,
 		Adhar: requets.Adhar,
+		AdharFile: requets.AdharFile,
+		AdharStatus: requets.AdharStatus,
 		PAN: requets.PAN,
+		PANFile: requets.PANFile,
+		PANStatus: requets.PANStatus,
 		DocumentationSource: requets.DocumentationSource,
 		Iscompleted: requets.Iscompleted,
 		CreatedAt: requets.CreatedAt,
@@ -444,4 +450,14 @@ func notificationResponse(requets []*domain.NotificationReponse) (AllNotificatio
 		resp = append(resp, res)
 	}
 	return resp, nil
+}
+
+func digiLockerURLResponse(request *domain.DigilockerURLResponse)(DigilockerURL200Response,error){
+	resp := DigilockerURL200Response{
+		Id: request.Id,
+		PatronId: request.PatronId,
+		Task: request.Task,
+		Result: request.Result,
+	}
+	return resp,nil
 }

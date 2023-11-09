@@ -44,11 +44,11 @@ type Server struct {
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
 	requestServer      ports.RequestService
-	verifierServer	   ports.VerifierService
+	verifierServer     ports.VerifierService
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, requestServer ports.RequestService,verifierServer ports.VerifierService) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, requestServer ports.RequestService, verifierServer ports.VerifierService) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -60,7 +60,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		packageManager:     packageManager,
 		health:             health,
 		requestServer:      requestServer,
-		verifierServer: verifierServer,
+		verifierServer:     verifierServer,
 	}
 }
 
@@ -69,43 +69,176 @@ func (s *Server) AuthRequest(ctx context.Context, request AuthRequestObject) (Au
 	return resp, nil
 }
 
-func (s *Server) SignUp(ctx context.Context,request SignUpRequestObject) (AddUserResponseObject,error) {
+func (s *Server) SignUp(ctx context.Context, request SignUpRequestObject) (AddUserResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
-	req:= domain.SignUpRequest{
-		UserDID: request.Body.UserDID,
-		Email: request.Body.Email,
+	req := domain.SignUpRequest{
+		UserDID:  request.Body.UserDID,
+		Email:    request.Body.Email,
 		UserName: request.Body.UserName,
 		Password: request.Body.Password,
 		FullName: request.Body.FullName,
-		Role: request.Body.Role,
+		Role:     request.Body.Role,
 	}
 
-	res,err := s.requestServer.SignUp(ctx,&req)
-
+	res, err := s.requestServer.SignUp(ctx, &req)
 
 	if err != nil {
-		return addUser200Response{Status: res,Msg: "Failed to create user"},err
+		return addUser200Response{Status: res, Msg: "Failed to create user"}, err
 	}
-	return addUser200Response{Status: res,Msg: "User created Successfully"},nil
+	return addUser200Response{Status: res, Msg: "User created Successfully"}, nil
 }
 
-func (s *Server) SignIn(ctx context.Context,request GetUserRequestObject) (GetLoginResponseObject,error) {
+func (s *Server) SignIn(ctx context.Context, request GetUserRequestObject) (GetLoginResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-	res,err := s.requestServer.SignIn(ctx,request.Username,request.Password)
+	res, err := s.requestServer.SignIn(ctx, request.Username, request.Password)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	fmt.Println("User :",res)
+	fmt.Println("User :", res)
 	resp, err := loginResponse(res)
-	return resp,nil
+	return resp, nil
 }
 
+func (s *Server) AccessDigiLocker(ctx context.Context, request AccessDigiLockerRequestObject, Authorization string) (AccessDigiLockerResponseObject, error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	res, err := s.verifierServer.AccessDigiLocker(ctx, request.Body.PatronId, request.Body.RequestId, Authorization, request.Body.Adhar, request.Body.PAN)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("User :", res)
+	// resp, err := accessDigiLockerResponse(res)
+	return AccessDigiLocker200Response{"Verified", true}, nil
+}
 
+func (s *Server) GetDigiLockerURL(ctx context.Context) (GetDigiLockerResponseObject, error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
+	res, err := s.verifierServer.GetDigiLockerURL(ctx)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("User :", res)
+	resp, err := digiLockerURLResponse(res)
+	return resp, nil
+}
 
+func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequestResponseObject, error) {
+	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
+	// res,err := s.verifierServer.VerifyAdhar(ctx,"894365783749")
+	// if err != nil{
+	// 	return VerifyRequest500Response{"Verification of request failed", false}, err
+	// }
+	// fmt.Println("User :", res)
+	// return VerifyRequest200Response{"Verification of request done successfully", true}, nil
 
-
+	requestDetials, err := s.requestServer.GetRequest(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("User :", requestDetials)
+	if requestDetials.CredentialType == "KYCAgeCredentialAadhar" {
+		res, err := s.verifierServer.VerifyAdhar(ctx, requestDetials.ProofId)
+		if err != nil {
+			return VerifyRequest500Response{"Verification of request failed", false}, err
+		}
+		if res.Verified {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
+			if err != nil {
+				return nil, err
+			}
+			_, err := s.requestServer.UpdateVerificationStatus(ctx, requestDetials.UserDID, "Adhar_verified", true)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity Verification Failed", "VC Verification Pending", "Identity Verification Failed")
+			if err != nil {
+				return nil, err
+			}
+		}
+		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+	} else if requestDetials.CredentialType == "ValidCredentialAadhar" {
+		res, err := s.verifierServer.VerifyAdhar(ctx, requestDetials.ProofId)
+		if err != nil {
+			return VerifyRequest500Response{"Verification of request failed", false}, err
+		}
+		if res.Verified {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
+			if err != nil {
+				return nil, err
+			}
+			_, err := s.requestServer.UpdateVerificationStatus(ctx, requestDetials.UserDID, "Adhar_verified", true)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity Verification Failed", "VC Verification Pending", "Identity Verification Failed")
+			if err != nil {
+				return nil, err
+			}
+		}
+		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+	} else if requestDetials.RequestType == "KYCAgeCredentialPAN" {
+		user, err := s.requestServer.GetUserID(ctx, requestDetials.UserDID)
+		if err != nil {
+			return nil, err
+		}
+		res, err := s.verifierServer.VerifyPAN(ctx, requestDetials.ProofId, user.Name)
+		if err != nil {
+			return nil, err
+		}
+		if res.Verified {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
+			if err != nil {
+				return nil, err
+			}
+			_, err := s.requestServer.UpdateVerificationStatus(ctx, requestDetials.UserDID, "pan_verified", true)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity Verification Failed", "VC Verification Pending", "Identity Verification Failed")
+			if err != nil {
+				return nil, err
+			}
+		}
+		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+	} else if requestDetials.RequestType == "ValidCredentialPAN" {
+		user, err := s.requestServer.GetUserID(ctx, requestDetials.UserDID)
+		if err != nil {
+			return nil, err
+		}
+		res, err := s.verifierServer.VerifyPAN(ctx, requestDetials.ProofId, user.Name)
+		if err != nil {
+			return nil, err
+		}
+		if res.Verified {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
+			if err != nil {
+				return nil, err
+			}
+			_, err := s.requestServer.UpdateVerificationStatus(ctx, requestDetials.UserDID, "pan_verified", true)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity Verification Failed", "VC Verification Pending", "Identity Verification Failed")
+			if err != nil {
+				return nil, err
+			}
+		}
+		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+	} else if requestDetials.RequestType == "KYBGSTINCredentials" {
+		_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
+		if err != nil {
+			return nil, err
+		}
+		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+	} else {
+		return VerifyRequest500Response{"Invalid reuqest Type to Validate", false}, nil
+	}
+}
 
 func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCResponse, error) {
 	// var req GetRequestObject;
@@ -139,7 +272,7 @@ func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCR
 	if err != nil {
 		return nil, err
 	}
-	n:=`Request `+id.String()+` of type `+request.Body.RequestType+` has been created Successfully`
+	n := `Request ` + id.String() + ` of type ` + request.Body.RequestType + ` has been created Successfully`
 	issuernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
 		User_id:             request.Body.UserDID,
@@ -148,7 +281,6 @@ func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCR
 		NotificationTitle:   "Requested for VC",
 		NotificationMessage: n,
 	}
-
 
 	usernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
@@ -171,9 +303,6 @@ func (s *Server) RequestForVC(ctx context.Context, request VCRequestObject) (VCR
 	return VC200Response{"Requested Successfully", id}, nil
 }
 
-
-
-
 func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject) (CreateCredentialResponseObject, error) {
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
@@ -182,6 +311,10 @@ func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject
 	_req, err := s.requestServer.GetRequest(ctx, request.Body.RequestId)
 	if err != nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "Invalid request id"}}, nil
+	}
+
+	if _req.RequestStatus != "Identity is Verified" {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "Identity is not verified"}}, nil
 	}
 
 	_, err = s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, _req.SchemaID)
@@ -216,8 +349,8 @@ func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 
-	_, err = s.requestServer.UpdateStatus(ctx, request.Body.RequestId)
-	n:=`VC for `+request.Body.RequestId.String()+` has been created Successfully`
+	_, err = s.requestServer.UpdateStatus(ctx, request.Body.RequestId, "VC Issued", "VC Issued", "VC Issued")
+	n := `VC for ` + request.Body.RequestId.String() + ` has been created Successfully`
 	usernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
 		User_id:             request.Body.UserDID,
@@ -253,48 +386,47 @@ func (s *Server) GetRequest(ctx context.Context, request GetRequestObject) (GetR
 
 func (s *Server) GetAllRequests(ctx context.Context, request GetAllRequests) (GetAllRequestsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-		res, err := s.requestServer.GetAllRequests(ctx, request.UserDID, request.RequestType)
-		if err != nil {
-			return nil, err
-		}
-		resp, err := requestsResponse(res)
-		if err != nil {
-			return nil, err
-		}
-		return resp, nil
+	res, err := s.requestServer.GetAllRequests(ctx, request.UserDID, request.RequestType)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := requestsResponse(res)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *Server) GetRequestsByRequestType(ctx context.Context, request GetRequestByType) (GetAllRequestsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-		res, err := s.requestServer.GetRequestsByRequestType(ctx,request.RequestType)
-		if err != nil {
-			return nil, err
-		}
-		resp, err := requestsResponse(res)
-		if err != nil {
-			return nil, err
-		}
-		return resp, nil
+	res, err := s.requestServer.GetRequestsByRequestType(ctx, request.RequestType)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := requestsResponse(res)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *Server) GetRequestByUser(ctx context.Context, request GetRequestByUser) (GetAllRequestsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-		res, err := s.requestServer.GetRequestsByUser(ctx, request.UserDID,request.All)
-		if err != nil {
-			return nil, err
-		}
-		resp, err := requestsResponse(res)
-		if err != nil {
-			return nil, err
-		}
-		return resp, nil
+	res, err := s.requestServer.GetRequestsByUser(ctx, request.UserDID, request.All)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := requestsResponse(res)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
-
-func (s *Server) GetNotificationsForUser(ctx context.Context,module string) (GetAllNotificationsResponseObject, error) {
+func (s *Server) GetNotificationsForUser(ctx context.Context, module string) (GetAllNotificationsResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
-	res, err := s.requestServer.GetNotifications(ctx,module)
+	res, err := s.requestServer.GetNotifications(ctx, module)
 	if err != nil {
 		return nil, err
 	}
@@ -305,97 +437,101 @@ func (s *Server) GetNotificationsForUser(ctx context.Context,module string) (Get
 	return resp, nil
 }
 
-func (s *Server) DeleteNotification(ctx context.Context,id uuid.UUID) (DeleteNotificationResponseObject,error) {
+func (s *Server) DeleteNotification(ctx context.Context, id uuid.UUID) (DeleteNotificationResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-	res, err := s.requestServer.DeleteNotification(ctx,id)
+	res, err := s.requestServer.DeleteNotification(ctx, id)
 	if err != nil {
-		result:=DeleteNotification200Response{
+		result := DeleteNotification200Response{
 			Status: res.Status,
-			Msg: res.Msg,
+			Msg:    res.Msg,
 		}
 		return result, err
 	}
-	result:=DeleteNotification200Response{
+	result := DeleteNotification200Response{
 		Status: res.Status,
-		Msg: res.Msg,
+		Msg:    res.Msg,
 	}
 	return result, nil
 }
 
-func (s *Server) CreateAuthRequest(ctx context.Context,id uuid.UUID) (CreateAuthRequestResponse,error) {
+func (s *Server) CreateAuthRequest(ctx context.Context, id uuid.UUID) (CreateAuthRequestResponse, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-	fmt.Println("IssuerId",s.cfg.APIUI.IssuerDID)
-	cred,err := s.claimService.GetByID(ctx,&s.cfg.APIUI.IssuerDID,id)
-	if err != nil{
-		return nil,err
+	fmt.Println("IssuerId", s.cfg.APIUI.IssuerDID)
+	cred, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, id)
+	if err != nil {
+		return nil, err
 	}
 	w3c, err := schema.FromClaimModelToW3CCredential(*cred)
-	fmt.Println("Credential :",cred)
-	res,err:= s.verifierServer.GetAuthRequest(ctx,cred.SchemaType,cred.SchemaURL,w3c.CredentialSubject)
-	if err != nil{
-		return nil,err
-	} 
-	fmt.Println("Response :",res)
-	resp,_:=authRequestResponse(res)
+	fmt.Println("Credential :", cred)
+	res, err := s.verifierServer.GetAuthRequest(ctx, cred.SchemaType, cred.SchemaURL, w3c.CredentialSubject)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Response :", res)
+	resp, _ := authRequestResponse(res)
 	// msgBytes, _ := json.Marshal(res)
-		return resp,nil
+	return resp, nil
 }
 
-func (s *Server) Callback(ctx context.Context,req callbackRequestObject) (VerifyAuthResponseObject,error) {
+func (s *Server) Callback(ctx context.Context, req callbackRequestObject) (VerifyAuthResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-	res,err:= s.verifierServer.Callback(ctx,req.Body.SessionID,req.Body.TokenBytes)
-	if err != nil{
-		return nil,err
-	} 
+	res, err := s.verifierServer.Callback(ctx, req.Body.SessionID, req.Body.TokenBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	// resp,_:=authRequestResponse(res)
 	// msgBytes, _ := json.Marshal(res)
-	fmt.Println("Response :",string(res))
-		return VerifyAuth200Response{Msg: string(res),Status: true},nil
+	fmt.Println("Response :", string(res))
+	return VerifyAuth200Response{Msg: string(res), Status: true}, nil
 }
 
-
-func (s *Server) UpdateUser(ctx context.Context,request CreateUserRequestObject) (AddUserResponseObject,error) {
+func (s *Server) UpdateUser(ctx context.Context, request CreateUserRequestObject) (AddUserResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
 
-	req:= domain.UserRequest{
-		ID: request.Body.ID,
-		Name: request.Body.Name,
-		DOB: request.Body.DOB,
-		Owner: request.Body.Owner,
-		Username: request.Body.Username,
-		Password: request.Body.Password,
-		Gmail: request.Body.Gmail,
-		Phone: request.Body.PhoneNumber,
-		Gstin: request.Body.Gstin,
-		UserType: request.Body.UserType,
-		Address: request.Body.Address,
-		Adhar: request.Body.Adhar,
-		PAN: request.Body.PAN,
+	req := domain.UserRequest{
+		ID:                  request.Body.ID,
+		Name:                request.Body.Name,
+		DOB:                 request.Body.DOB,
+		Owner:               request.Body.Owner,
+		Username:            request.Body.Username,
+		Password:            request.Body.Password,
+		Gmail:               request.Body.Gmail,
+		Phone:               request.Body.PhoneNumber,
+		Gstin:               request.Body.Gstin,
+		GstinFile:           request.Body.GstinFile,
+		GstinStatus:         request.Body.GstinStatus,
+		UserType:            request.Body.UserType,
+		Address:             request.Body.Address,
+		Adhar:               request.Body.Adhar,
+		AdharFile:           request.Body.AdharFile,
+		AdharStatus:         request.Body.AdharStatus,
+		PAN:                 request.Body.PAN,
+		PANFile:             request.Body.PANFile,
+		PANStatus:           request.Body.PANStatus,
 		DocumentationSource: request.Body.DocumentationSource,
 	}
 
-	res,err := s.requestServer.SaveUser(ctx,&req)
-
+	res, err := s.requestServer.SaveUser(ctx, &req)
 
 	if err != nil {
-		return addUser200Response{Status: res,Msg: "Failed to create user"},err
+		return addUser200Response{Status: res, Msg: "Failed to create user"}, err
 	}
-	return addUser200Response{Status: res,Msg: "User created Successfully"},nil
+	return addUser200Response{Status: res, Msg: "User created Successfully"}, nil
 }
 
-func (s *Server) GetUser(ctx context.Context, udid string) (GetUserResponseObject,error) {
+func (s *Server) GetUser(ctx context.Context, udid string) (GetUserResponseObject, error) {
 	// var resp GetRequestResponse = (GetRequestResponse(GetRequest200Response("Request print at log")));
-	res,err := s.requestServer.GetUserID(ctx,udid)
-	
-	fmt.Println("User :",res)
+	res, err := s.requestServer.GetUserID(ctx, udid)
+
+	fmt.Println("User :", res)
 	resp, err := userResponse(res)
 
-	fmt.Println("User After userResponse:",resp)
+	fmt.Println("User After userResponse:", resp)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return resp,nil
+	return resp, nil
 }
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
@@ -1086,5 +1222,3 @@ func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
 }
-
-
