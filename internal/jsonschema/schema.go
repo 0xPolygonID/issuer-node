@@ -6,17 +6,15 @@ import (
 	"errors"
 	"fmt"
 
-	core "github.com/iden3/go-iden3-core"
-	jsonSuite "github.com/iden3/go-schema-processor/json"
-	"github.com/iden3/go-schema-processor/merklize"
-	"github.com/iden3/go-schema-processor/processor"
-	"github.com/iden3/go-schema-processor/utils"
-	shell "github.com/ipfs/go-ipfs-api"
+	core "github.com/iden3/go-iden3-core/v2"
+	jsonSuite "github.com/iden3/go-schema-processor/v2/json"
+	"github.com/iden3/go-schema-processor/v2/merklize"
+	"github.com/iden3/go-schema-processor/v2/processor"
 	"github.com/mitchellh/mapstructure"
 	"github.com/piprate/json-gold/ld"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/loader"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
 )
 
 const (
@@ -57,14 +55,14 @@ type JSONSchema struct {
 	content map[string]any
 }
 
-// Load loads the json file doing some validations..
-func Load(ctx context.Context, loader loader.Loader) (*JSONSchema, error) {
+// Load loads the json file
+func Load(ctx context.Context, jsonSchemaURL string, loader loader.DocumentLoader) (*JSONSchema, error) {
 	pr := processor.InitProcessorOptions(
 		&processor.Processor{},
 		processor.WithValidator(jsonSuite.Validator{}),
 		processor.WithParser(jsonSuite.Parser{}),
-		processor.WithSchemaLoader(loader))
-	raw, _, err := pr.Load(ctx)
+		processor.WithDocumentLoader(loader))
+	raw, err := pr.Load(ctx, jsonSchemaURL)
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +110,17 @@ func (s *JSONSchema) AttributeByID(id string) (*Attribute, error) {
 	return &attrs[i], nil
 }
 
+// Bytes returns the json representation of the schema
+func (s *JSONSchema) Bytes() ([]byte, error) {
+	return json.Marshal(s.content)
+}
+
+// BytesNoErr returns the json representation of the schema ignoring errors, which should never happen
+func (s *JSONSchema) BytesNoErr() []byte {
+	b, _ := s.Bytes()
+	return b
+}
+
 // JSONLdContext returns the value of $metadata.uris.jsonLdContext
 func (s *JSONSchema) JSONLdContext() (string, error) {
 	var metadata map[string]any
@@ -138,14 +147,12 @@ func (s *JSONSchema) SchemaHash(schemaType string) (core.SchemaHash, error) {
 		return core.SchemaHash{}, err
 	}
 	id := jsonLdContext + "#" + schemaType
-	return utils.CreateSchemaHash([]byte(id)), nil
+	return common.CreateSchemaHash([]byte(id)), nil
 }
 
 // ValidateCredentialSubject validates that the given credential subject matches the given schema
-func ValidateCredentialSubject(ctx context.Context, ipfsGateway string, schemaURL string, schemaType string, cSubject map[string]interface{}) error {
-	documentLoader := loader.NewW3CDocumentLoader(shell.NewShell(ipfsGateway), ipfsGateway)
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cache.NewMemoryCache()) // nolint: contextcheck
-	schema, err := Load(ctx, schemaLoader(schemaURL))
+func ValidateCredentialSubject(ctx context.Context, loader loader.DocumentLoader, schemaURL string, schemaType string, cSubject map[string]interface{}) error {
+	schema, err := Load(ctx, schemaURL, loader)
 	if err != nil {
 		return err
 	}
@@ -165,7 +172,7 @@ func ValidateCredentialSubject(ctx context.Context, ipfsGateway string, schemaUR
 		return err
 	}
 
-	return validateDummyVCEntries(dummyVC, documentLoader)
+	return validateDummyVCEntries(dummyVC, loader)
 }
 
 func validateDummyVCAgainstSchema(dummyVC map[string]interface{}, schema *JSONSchema) error {
@@ -217,7 +224,7 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 	return resp, err
 }
 
-func validateDummyVCEntries(vc map[string]interface{}, loader ld.DocumentLoader) error {
+func validateDummyVCEntries(vc map[string]interface{}, loader loader.DocumentLoader) error {
 	proc := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
 	options.Algorithm = ld.AlgorithmURDNA2015

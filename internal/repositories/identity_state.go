@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -53,7 +53,7 @@ func (isr *identityState) Save(ctx context.Context, conn db.Querier, state domai
 // GetLatestStateByIdentifier returns the latest confirmed state or genesis state.
 // Firstly try to return a 'confirmed' and non-genesis state.
 // If 'confirmed' and non-genesis state are not found. Return genesis state.
-func (isr *identityState) GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *core.DID) (*domain.IdentityState, error) {
+func (isr *identityState) GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *w3c.DID) (*domain.IdentityState, error) {
 	row := conn.QueryRow(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, 
        revocation_tree_root, block_timestamp, block_number, tx_id, previous_state, status, modified_at, created_at 
 FROM identity_states
@@ -92,7 +92,7 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 }
 
 // GetPublishedStates returns all the states
-func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID core.DID) ([]domain.IdentityState, error) {
+func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID) ([]domain.IdentityState, error) {
 	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
        tx_id, previous_state, status, modified_at, created_at 
 	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC`, issuerDID.String())
@@ -145,7 +145,7 @@ func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
 }
 
 // GetStatesByStatus returns states which are not transated
-func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn db.Querier, status domain.IdentityStatus, issuerID core.DID) ([]domain.IdentityState, error) {
+func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn db.Querier, status domain.IdentityStatus, issuerID w3c.DID) ([]domain.IdentityState, error) {
 	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
        tx_id, previous_state, status, modified_at, created_at 
 	FROM identity_states WHERE identifier = $1 and status = $2 and previous_state IS NOT NULL
@@ -182,4 +182,26 @@ func (isr *identityState) GetStatesByStatusAndIssuerID(ctx context.Context, conn
 	}
 
 	return states, nil
+}
+
+func (isr *identityState) GetGenesisState(ctx context.Context, conn db.Querier, identifier string) (*domain.IdentityState, error) {
+	state := domain.IdentityState{}
+	row := conn.QueryRow(ctx, "SELECT * FROM identity_states WHERE identifier=$1 AND previous_state IS NULL ", identifier)
+	if err := row.Scan(&state.StateID,
+		&state.Identifier,
+		&state.State,
+		&state.RootOfRoots,
+		&state.RevocationTreeRoot,
+		&state.ClaimsTreeRoot,
+		&state.BlockTimestamp,
+		&state.BlockNumber,
+		&state.TxID,
+		&state.PreviousState,
+		&state.Status,
+		&state.ModifiedAt,
+		&state.CreatedAt); err != nil {
+		return nil, err
+	}
+
+	return &state, nil
 }

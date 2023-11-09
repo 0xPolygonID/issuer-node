@@ -10,7 +10,7 @@ export function CredentialQR({
   schemaType,
   subTitle,
 }: {
-  qrCode: unknown;
+  qrCode: string;
   schemaType: string;
   subTitle: ReactNode;
 }) {
@@ -59,23 +59,25 @@ export function CredentialQR({
               includeMargin
               level="H"
               style={{ height: 300 }}
-              value={JSON.stringify(qrCode)}
+              value={qrCode}
             />
           </Col>
         </Row>
 
-        <Row>
-          <Col
-            style={{
-              padding: 24,
-              paddingBottom: 8,
-            }}
-          >
-            <Typography.Title ellipsis={{ tooltip: true }} level={3}>
-              {schemaType}
-            </Typography.Title>
-          </Col>
-        </Row>
+        {schemaType && (
+          <Row>
+            <Col
+              style={{
+                padding: 24,
+                paddingBottom: 8,
+              }}
+            >
+              <Typography.Title ellipsis={{ tooltip: true }} level={3}>
+                {schemaType}
+              </Typography.Title>
+            </Col>
+          </Row>
+        )}
       </Card>
     </Space>
   );

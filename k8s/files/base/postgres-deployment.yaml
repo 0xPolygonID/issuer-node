@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issuer-node-postgres-deployment
+  labels:
+    app: issuer-node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: issuer-node-postgres
+  template:
+    metadata:
+      labels:
+        app: issuer-node-postgres # Label for the pod and will be used in the service
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14-alpine
+          imagePullPolicy: "IfNotPresent"
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: issuer-node-postgres-configmap
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgresdata
+            - mountPath: /docker-entrypoint-initdb.d
+              name: postgres-initdb
+              readOnly: true
+      volumes:
+        - name: postgresdata
+          persistentVolumeClaim:
+            claimName: issuer-node-postgresql-pvc
+        - name: postgres-initdb
+          configMap:
+            name: issuer-node-postgres-configmap
+            defaultMode: 0500
+            items:
+            - key: init.sql
+              path: init.sql

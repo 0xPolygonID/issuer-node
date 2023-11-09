@@ -1,24 +1,50 @@
 package api_ui
 
 import (
-	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
-	"github.com/google/uuid"
-	"github.com/iden3/go-schema-processor/verifiable"
-	"github.com/iden3/iden3comm/packers"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	openapitypes "github.com/oapi-codegen/runtime/types"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
-const (
-	schemaParts = 2
-)
+// CustomQrContentResponse is a wrapper to return any content as an api response.
+// Just implement the Visit* method to satisfy the expected interface for that type of response.
+type CustomQrContentResponse struct {
+	content []byte
+}
+
+// NewQrContentResponse returns a new CustomQrContentResponse.
+func NewQrContentResponse(response []byte) *CustomQrContentResponse {
+	return &CustomQrContentResponse{content: response}
+}
+
+// VisitGetQrFromStoreResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
+// VisitAuthQRCodeResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
+// VisitGetCredentialQrCodeResponse satisfies the AuthQRCodeResponseObject
+func (response CustomQrContentResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	return response.visit(w)
+}
+
+func (response CustomQrContentResponse) visit(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write(response.content) // Returning the content without encoding it. It was previously encoded
+	return err
+}
 
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
@@ -28,7 +54,7 @@ func schemaResponse(s *domain.Schema) Schema {
 		Url:         s.URL,
 		BigInt:      s.Hash.BigInt().String(),
 		Hash:        string(hash),
-		CreatedAt:   s.CreatedAt,
+		CreatedAt:   TimeUTC(s.CreatedAt),
 		Version:     s.Version,
 		Title:       s.Title,
 		Description: s.Description,
@@ -44,20 +70,22 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 }
 
 func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
+	var expiresAt *TimeUTC
 	expired := false
 	if w3c.Expiration != nil {
 		if time.Now().UTC().After(w3c.Expiration.UTC()) {
 			expired = true
 		}
+		expiresAt = common.ToPointer(TimeUTC(*w3c.Expiration))
 	}
 
 	proofs := getProofs(credential)
 
 	return Credential{
 		CredentialSubject: w3c.CredentialSubject,
-		CreatedAt:         *w3c.IssuanceDate,
+		CreatedAt:         TimeUTC(*w3c.IssuanceDate),
 		Expired:           expired,
-		ExpiresAt:         w3c.Expiration,
+		ExpiresAt:         expiresAt,
 		Id:                credential.ID,
 		ProofTypes:        proofs,
 		RevNonce:          uint64(credential.RevNonce),
@@ -119,7 +147,7 @@ func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredentia
 	}
 
 	return GetConnectionResponse{
-		CreatedAt:   conn.CreatedAt,
+		CreatedAt:   TimeUTC(conn.CreatedAt),
 		Id:          conn.ID.String(),
 		UserID:      conn.UserDID.String(),
 		IssuerID:    conn.IssuerDID.String(),
@@ -145,7 +173,7 @@ func toStateTransaction(state domain.IdentityState) StateTransaction {
 	}
 	return StateTransaction{
 		Id:          state.StateID,
-		PublishDate: state.ModifiedAt,
+		PublishDate: TimeUTC(state.ModifiedAt),
 		State:       stateTran,
 		Status:      getTransactionStatus(state.Status),
 		TxID:        txID,
@@ -191,9 +219,14 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 func getLinkResponse(link domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
-	var date *openapi_types.Date
+	var date *openapitypes.Date
 	if link.CredentialExpiration != nil {
-		date = &openapi_types.Date{Time: *link.CredentialExpiration}
+		date = &openapitypes.Date{Time: *link.CredentialExpiration}
+	}
+
+	var validUntil *TimeUTC
+	if link.ValidUntil != nil {
+		validUntil = common.ToPointer(TimeUTC(*link.ValidUntil))
 	}
 
 	return Link{
@@ -207,8 +240,8 @@ func getLinkResponse(link domain.Link) Link {
 		SchemaHash:           string(hash),
 		Status:               LinkStatus(link.Status()),
 		ProofTypes:           getLinkProofs(link),
-		CreatedAt:            link.CreatedAt,
-		Expiration:           link.ValidUntil,
+		CreatedAt:            TimeUTC(link.CreatedAt),
+		Expiration:           validUntil,
 		CredentialExpiration: date,
 	}
 }
@@ -245,61 +278,6 @@ func getLinkResponses(links []domain.Link) []Link {
 	return res
 }
 
-func getLinkQrCodeResponse(linkQrCode *link_state.QRCodeMessage) *QrCodeResponse {
-	if linkQrCode == nil {
-		return nil
-	}
-	credentials := make([]QrCodeCredentialResponse, len(linkQrCode.Body.Credentials))
-	for i, c := range linkQrCode.Body.Credentials {
-		credentials[i] = QrCodeCredentialResponse{
-			Id:          c.ID,
-			Description: c.Description,
-		}
-	}
-
-	return &QrCodeResponse{
-		Id:   linkQrCode.ID,
-		Thid: linkQrCode.ThreadID,
-		Typ:  linkQrCode.Typ,
-		Type: linkQrCode.Type,
-		From: linkQrCode.From,
-		To:   linkQrCode.To,
-		Body: QrCodeBodyResponse{
-			Url:         linkQrCode.Body.URL,
-			Credentials: credentials,
-		},
-	}
-}
-
-func getCredentialQrCodeResponse(credential *domain.Claim, hostURL string) QrCodeResponse {
-	id := uuid.NewString()
-	return QrCodeResponse{
-		Body: QrCodeBodyResponse{
-			Credentials: []QrCodeCredentialResponse{
-				{
-					Description: getCredentialType(credential.SchemaType),
-					Id:          credential.ID.String(),
-				},
-			},
-			Url: getAgentEndpoint(hostURL),
-		},
-		From: credential.Issuer,
-		Id:   id,
-		Thid: id,
-		To:   credential.OtherIdentifier,
-		Typ:  string(packers.MediaTypePlainMessage),
-		Type: string(protocol.CredentialOfferMessageType),
-	}
-}
-
-func getCredentialType(credentialType string) string {
-	parse := strings.Split(credentialType, "#")
-	if len(parse) != schemaParts {
-		return credentialType
-	}
-	return parse[1]
-}
-
 func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStatusResponse {
 	response := RevocationStatusResponse{}
 	response.Issuer.State = rs.Issuer.State
@@ -331,8 +309,4 @@ func getRevocationStatusResponse(rs *verifiable.RevocationStatus) RevocationStat
 	response.Mtp.Siblings = &siblings
 
 	return response
-}
-
-func getAgentEndpoint(hostURL string) string {
-	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/"))
 }

@@ -14,13 +14,15 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
-	auth "github.com/iden3/go-iden3-auth"
-	authLoaders "github.com/iden3/go-iden3-auth/loaders"
-	"github.com/iden3/go-iden3-auth/pubsignals"
-	"github.com/iden3/go-iden3-auth/state"
-	core "github.com/iden3/go-iden3-core"
+	vault "github.com/hashicorp/vault/api"
+	auth "github.com/iden3/go-iden3-auth/v2"
+	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
+	"github.com/iden3/go-iden3-auth/v2/pubsignals"
+	"github.com/iden3/go-iden3-auth/v2/state"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/api_ui"
+	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
@@ -35,14 +37,20 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
+var build = buildinfo.Revision()
+
 func main() {
+	log.Info(context.Background(), "starting issuer node...", "revision", build)
+
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", "err", err)
@@ -73,16 +81,26 @@ func main() {
 	ps.WithLogger(log.Error)
 	cachex := cache.NewRedisCache(rdb)
 
-	var schemaLoader loader.Factory
-	schemaLoader = loader.MultiProtocolFactory(cfg.IFPS.GatewayURL)
-	if cfg.APIUI.SchemaCache != nil && *cfg.APIUI.SchemaCache {
-		schemaLoader = loader.CachedFactory(schemaLoader, cachex)
+	// TODO: Cache only if cfg.APIUI.SchemaCache == true
+	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
+
+	var vaultCli *vault.Client
+	var vaultErr error
+	vaultCfg := providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
+	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+	if vaultErr != nil {
+		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
+	}
+
+	if vaultCfg.UserPassAuthEnabled {
+		go providers.RenewToken(ctx, vaultCli, vaultCfg)
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
@@ -91,7 +109,13 @@ func main() {
 		return
 	}
 
-	ethereumClient, err := blockchain.Open(cfg)
+	err = config.CheckDID(ctx, cfg, vaultCli)
+	if err != nil {
+		log.Error(ctx, "cannot initialize did", "err", err)
+		return
+	}
+
+	ethereumClient, err := blockchain.Open(cfg, keyStore)
 	if err != nil {
 		log.Error(ctx, "error dialing with ethereum client", "err", err)
 		return
@@ -103,7 +127,7 @@ func main() {
 		return
 	}
 
-	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum)
+	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum, keyStore)
 	if err != nil {
 		log.Error(ctx, "failed init ethereum connect", "err", err)
 		return
@@ -117,15 +141,15 @@ func main() {
 		},
 	}
 
-	verifier, err := auth.NewVerifierWithExplicitError(verificationKeyLoader, authLoaders.DefaultSchemaLoader{IpfsURL: cfg.IFPS.GatewayURL}, resolvers)
+	verifier, err := auth.NewVerifier(verificationKeyLoader, resolvers)
 	if err != nil {
 		log.Error(ctx, "failed init verifier", "err", err)
 		return
 	}
 
-	circuitsLoaderService := loaders.NewCircuits(cfg.Circuit.Path)
-
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
+	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
+	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
@@ -140,28 +164,29 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, revocationRepository, connectionsRepository, storage, rhsp, verifier, sessionRepository, ps)
+	qrService := services.NewQrStoreService(cachex)
+
+	cfg.CredentialStatus.SingleIssuer = true
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsService := services.NewClaim(
-		claimsRepository,
-		identityService,
-		mtService,
-		identityStateRepository,
-		schemaLoader,
-		storage,
-		services.ClaimCfg{
-			RHSEnabled: cfg.ReverseHashService.Enabled,
-			RHSUrl:     cfg.ReverseHashService.URL,
-			Host:       cfg.APIUI.ServerURL,
-		},
-		ps,
-		cfg.IFPS.GatewayURL,
-	)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IFPS.GatewayURL)
-	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
-	revocationService := services.NewRevocationService(ethConn, common.HexToAddress(cfg.Ethereum.ContractAddress))
-	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateContract, schemaLoader)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
+
+	stateService, err := eth.NewStateService(eth.StateServiceConfig{
+		EthClient:       ethConn,
+		StateAddress:    common.HexToAddress(cfg.Ethereum.ContractAddress),
+		ResponseTimeout: cfg.Ethereum.RPCResponseTimeout,
+	})
+	if err != nil {
+		log.Error(ctx, "failed init state service", "err", err)
+		return
+	}
+
+	onChainCredentialStatusResolverService := gateways.NewOnChainCredStatusResolverService(ethConn, cfg.Ethereum.RPCResponseTimeout)
+	revocationService := services.NewRevocationService(common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
+	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateService, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
@@ -191,7 +216,7 @@ func main() {
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
 	if !identifierExists(ctx, &cfg.APIUI.IssuerDID, identityService) {
-		log.Error(ctx, "issuer DID must exist")
+		log.Error(ctx, "issuer DID must exist", "did", cfg.APIUI.IssuerDID)
 		return
 	}
 
@@ -205,7 +230,7 @@ func main() {
 	)
 	api_ui.HandlerWithOptions(
 		api_ui.NewStrictHandlerWithOptions(
-			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, publisher, packageManager, serverHealth),
+			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, qrService, publisher, packageManager, serverHealth),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_ui.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
@@ -236,9 +261,13 @@ func main() {
 	log.Info(ctx, "Shutting down")
 }
 
-func identifierExists(ctx context.Context, did *core.DID, service ports.IdentityService) bool {
+func identifierExists(ctx context.Context, did *w3c.DID, service ports.IdentityService) bool {
 	_, err := service.GetByDID(ctx, *did)
-	return err == nil
+	if err != nil {
+		log.Error(ctx, "error getting identity by DID", "err", err, "did", did)
+		return false
+	}
+	return true
 }
 
 func middlewares(ctx context.Context, auth config.APIUIAuth) []api_ui.StrictMiddlewareFunc {

@@ -3,26 +3,38 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"os"
+	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+	vault "github.com/hashicorp/vault/api"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+
+	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
-const perm = 777
+var build = buildinfo.Revision()
+
+const (
+	timeToWaitForVault = 5 * time.Second
+)
 
 func main() {
-	if _, err := os.Stat(config.K8sDidFile); err == nil {
-		log.Info(context.Background(), "identifier already created and stored in file. New identifier not created")
-		return
-	}
-
+	log.Info(context.Background(), "starting issuer node...", "revision", build)
 	cfg, err := config.Load("")
 	if err != nil {
 		log.Error(context.Background(), "cannot load config", "err", err)
@@ -43,10 +55,42 @@ func main() {
 		return
 	}
 
-	vaultCli, err := providers.NewVaultClient(cfg.KeyStore.Address, cfg.KeyStore.Token)
-	if err != nil {
-		log.Error(ctx, "cannot init vault client: ", "err", err)
+	var vaultCli *vault.Client
+	var vaultErr error
+	vaultAttempts := 10
+	connected := false
+
+	vaultCfg := providers.Config{
+		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		Address:             cfg.KeyStore.Address,
+		Token:               cfg.KeyStore.Token,
+		Pass:                cfg.VaultUserPassAuthPassword,
+	}
+	for i := 0; i < vaultAttempts; i++ {
+		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+		if vaultErr == nil {
+			connected = true
+			break
+		}
+		log.Error(ctx, "cannot connect to vault, retrying", "err", vaultErr)
+		time.Sleep(timeToWaitForVault)
+	}
+
+	if !connected {
+		log.Error(ctx, "cannot initialize vault client", "err", err)
 		return
+	}
+
+	if cfg.VaultUserPassAuthEnabled {
+		did, err := providers.GetDID(ctx, vaultCli)
+		if err != nil {
+			log.Info(ctx, "did not found in vault, creating new one")
+		}
+
+		if did != "" {
+			log.Info(ctx, "did already created, skipping", "did", did)
+			return
+		}
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
@@ -63,9 +107,39 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, claimsRepository, nil, nil, storage, nil, nil, nil, pubsub.NewMock())
 
-	identity, err := identityService.Create(ctx, cfg.APIUI.IdentityMethod, cfg.APIUI.IdentityBlockchain, cfg.APIUI.IdentityNetwork, cfg.ServerUrl)
+	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	if err != nil {
+		log.Error(ctx, "error dialing with ethclient", "err", err, "rth-url", cfg.Ethereum.URL)
+		return
+	}
+
+	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
+		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
+		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
+		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
+		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
+		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
+		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
+		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
+		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
+	}, keyStore)
+
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	cfg.CredentialStatus.SingleIssuer = true
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+
+	didCreationOptions := &ports.DIDCreationOptions{
+		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
+		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
+		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
+		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
+		AuthBJJCredentialStatus: verifiable.CredentialStatusType(cfg.CredentialStatus.CredentialStatusType),
+	}
+
+	identity, err := identityService.Create(ctx, cfg.ServerUrl, didCreationOptions)
 	if err != nil {
 		log.Error(ctx, "error creating identifier", err)
 		return
@@ -73,10 +147,15 @@ func main() {
 
 	log.Info(ctx, "identifier crated successfully")
 
-	if err := os.WriteFile(config.K8sDidFile, []byte(identity.Identifier), os.FileMode(perm)); err != nil {
-		log.Error(ctx, "error writing identifier to file", "error", err)
+	if cfg.VaultUserPassAuthEnabled {
+		if err := providers.SaveDID(ctx, vaultCli, identity.Identifier); err != nil {
+			log.Error(ctx, "error saving identifier to vault", err)
+			return
+		}
 	}
 
 	//nolint:all
 	fmt.Printf(identity.Identifier)
+	//nolint:all
+	fmt.Printf("\n")
 }

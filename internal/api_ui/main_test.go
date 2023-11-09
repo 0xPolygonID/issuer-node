@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
 	vaultApi "github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -18,6 +21,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
@@ -30,9 +34,10 @@ var (
 	bjjKeyProvider kms.KeyProvider
 	keyStore       *kms.KMS
 	cachex         cache.Cache
+	schemaLoader   loader.DocumentLoader
 )
 
-const ipfsGateway = "http://localhost:8080"
+const ipfsGatewayURL = "http://localhost:8080"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -57,7 +62,10 @@ func TestMain(m *testing.M) {
 
 	cachex = cache.NewMemoryCache()
 
-	vaultCli, err = providers.NewVaultClient(cfgForTesting.KeyStore.Address, cfgForTesting.KeyStore.Token)
+	vaultCli, err = providers.VaultClient(context.Background(), providers.Config{
+		Address: cfgForTesting.KeyStore.Address,
+		Token:   cfgForTesting.KeyStore.Token,
+	})
 	if err != nil {
 		log.Error(ctx, "failed to acquire vault client", "err", err)
 		os.Exit(1)
@@ -77,6 +85,14 @@ func TestMain(m *testing.M) {
 	}
 
 	cfg.ServerUrl = "https://testing.env/"
+	cfg.CredentialStatus = config.CredentialStatus{
+		RHSMode: "None",
+		DirectStatus: config.DirectStatus{
+			URL: "http://localhost:3001",
+		},
+	}
+
+	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
 }
@@ -126,6 +142,41 @@ func authWrong() (string, string) {
 	return "", ""
 }
 
+func checkQRfetchURL(t *testing.T, qrLink string) string {
+	t.Helper()
+	qrURL, err := url.Parse(qrLink)
+	require.NoError(t, err)
+	assert.Equal(t, "iden3comm", qrURL.Scheme)
+	vals, err := url.ParseQuery(qrURL.RawQuery)
+	require.NoError(t, err)
+	val, found := vals["request_uri"]
+	require.True(t, found)
+	fetchURL, err := url.QueryUnescape(val[0])
+	require.NoError(t, err)
+	return fetchURL
+}
+
+func checkQRfetchURLForCredential(t *testing.T, body []byte) string {
+	t.Helper()
+	bodyR := &GetCredentialQrCode200JSONResponse{}
+	require.NoError(t, json.Unmarshal(body, bodyR))
+	return parseIden3commQRCodeResponse(t, bodyR.QrCodeLink)
+}
+
+func parseIden3commQRCodeResponse(t *testing.T, input string) string {
+	qrURL, err := url.Parse(input)
+	require.NoError(t, err)
+	assert.Equal(t, "iden3comm", qrURL.Scheme)
+	vals, err := url.ParseQuery(qrURL.RawQuery)
+	require.NoError(t, err)
+	val, found := vals["request_uri"]
+	require.True(t, found)
+	fetchURL, err := url.QueryUnescape(val[0])
+	require.NoError(t, err)
+
+	return fetchURL
+}
+
 func lookupPostgresURL() string {
 	con, ok := os.LookupEnv("POSTGRES_TEST_DATABASE")
 	if !ok {
@@ -140,7 +191,7 @@ func (kpm *KMSMock) RegisterKeyProvider(kt kms.KeyType, kp kms.KeyProvider) erro
 	return nil
 }
 
-func (kpm *KMSMock) CreateKey(kt kms.KeyType, identity *core.DID) (kms.KeyID, error) {
+func (kpm *KMSMock) CreateKey(kt kms.KeyType, identity *w3c.DID) (kms.KeyID, error) {
 	var key kms.KeyID
 	return key, nil
 }
@@ -155,12 +206,12 @@ func (kpm *KMSMock) Sign(ctx context.Context, keyID kms.KeyID, data []byte) ([]b
 	return signed, nil
 }
 
-func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity core.DID) ([]kms.KeyID, error) {
+func (kpm *KMSMock) KeysByIdentity(ctx context.Context, identity w3c.DID) ([]kms.KeyID, error) {
 	var keys []kms.KeyID
 	return keys, nil
 }
 
-func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity core.DID) (kms.KeyID, error) {
+func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identity w3c.DID) (kms.KeyID, error) {
 	var key kms.KeyID
 	return key, nil
 }

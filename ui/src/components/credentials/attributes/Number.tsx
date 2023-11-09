@@ -5,10 +5,12 @@ import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function Number({
   attribute,
+  disabled = false,
   error,
   parents,
 }: {
   attribute: IntegerAttribute | NumberAttribute;
+  disabled?: boolean;
   error?: string;
   parents: ObjectAttribute[];
 }) {
@@ -22,7 +24,7 @@ export function Number({
       validateStatus={error ? "error" : undefined}
     >
       {attribute.schema.enum ? (
-        <Select placeholder="Select option">
+        <Select disabled={disabled} placeholder="Select option">
           {attribute.schema.enum.map((option, index) => (
             <Select.Option key={index} value={option}>
               {option}
@@ -30,7 +32,12 @@ export function Number({
           ))}
         </Select>
       ) : (
-        <InputNumber className="full-width" placeholder={`Type ${attribute.type}`} type="number" />
+        <InputNumber
+          className="full-width"
+          disabled={disabled}
+          placeholder={`Type ${attribute.type}`}
+          type="number"
+        />
       )}
     </Form.Item>
   );

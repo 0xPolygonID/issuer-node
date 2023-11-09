@@ -186,7 +186,7 @@ export function CredentialLinkQR() {
                       Missed the notification?
                     </Button>
 
-                    {isModalOpen && (
+                    {isModalOpen && importQRCheck.data.qrCode && (
                       <ClaimCredentialModal
                         onClose={() => setIsModalOpen(false)}
                         qrCode={importQRCheck.data.qrCode}
@@ -208,7 +208,7 @@ export function CredentialLinkQR() {
                     Missed the notification?
                   </Button>
 
-                  {isModalOpen && (
+                  {isModalOpen && importQRCheck.data.qrCode && (
                     <ClaimCredentialModal
                       onClose={() => setIsModalOpen(false)}
                       qrCode={importQRCheck.data.qrCode}

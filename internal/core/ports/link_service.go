@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
-	"github.com/iden3/iden3comm/protocol"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
@@ -17,7 +17,7 @@ import (
 // CreateQRCodeResponse - is the result of creating a link QRcode.
 type CreateQRCodeResponse struct {
 	Link      *domain.Link
-	QrCode    *protocol.AuthorizationRequestMessage
+	QrCode    string
 	SessionID string
 }
 
@@ -48,12 +48,12 @@ type GetQRCodeResponse struct {
 
 // LinkService - the interface that defines the available methods
 type LinkService interface {
-	Save(ctx context.Context, did core.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes domain.CredentialSubject) (*domain.Link, error)
-	Activate(ctx context.Context, issuerID core.DID, linkID uuid.UUID, active bool) error
-	Delete(ctx context.Context, id uuid.UUID, did core.DID) error
-	GetByID(ctx context.Context, issuerID core.DID, id uuid.UUID) (*domain.Link, error)
-	GetAll(ctx context.Context, issuerDID core.DID, status LinkStatus, query *string) ([]domain.Link, error)
-	CreateQRCode(ctx context.Context, issuerDID core.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
-	IssueClaim(ctx context.Context, sessionID string, issuerDID core.DID, userDID core.DID, linkID uuid.UUID, hostURL string) error
-	GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID core.DID, linkID uuid.UUID) (*GetQRCodeResponse, error)
+	Save(ctx context.Context, did w3c.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes domain.CredentialSubject) (*domain.Link, error)
+	Activate(ctx context.Context, issuerID w3c.DID, linkID uuid.UUID, active bool) error
+	Delete(ctx context.Context, id uuid.UUID, did w3c.DID) error
+	GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID) (*domain.Link, error)
+	GetAll(ctx context.Context, issuerDID w3c.DID, status LinkStatus, query *string) ([]domain.Link, error)
+	CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
+	IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, CredentialStatusType verifiable.CredentialStatusType) error
+	GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID w3c.DID, linkID uuid.UUID) (*GetQRCodeResponse, error)
 }

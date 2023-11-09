@@ -5,10 +5,12 @@ import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function String({
   attribute,
+  disabled = false,
   error,
   parents,
 }: {
   attribute: StringAttribute;
+  disabled?: boolean;
   error?: string;
   parents: ObjectAttribute[];
 }) {
@@ -24,7 +26,7 @@ export function String({
   if (attribute.schema.enum) {
     return (
       <Form.Item {...commonFormItemProps}>
-        <Select placeholder="Select option">
+        <Select disabled={disabled} placeholder="Select option">
           {attribute.schema.enum.map((option, index) => (
             <Select.Option key={index} value={option}>
               {option}
@@ -39,21 +41,24 @@ export function String({
       case "date-time": {
         return (
           <Form.Item {...commonFormItemProps}>
-            <DatePicker showTime={attribute.schema.format === "date-time"} />
+            <DatePicker disabled={disabled} showTime={attribute.schema.format === "date-time"} />
           </Form.Item>
         );
       }
       case "time": {
         return (
           <Form.Item {...commonFormItemProps}>
-            <TimePicker />
+            <TimePicker disabled={disabled} />
           </Form.Item>
         );
       }
       default: {
         return (
           <Form.Item {...commonFormItemProps}>
-            <Input placeholder={`Type ${attribute.schema.format || attribute.type}`} />
+            <Input
+              disabled={disabled}
+              placeholder={`Type ${attribute.schema.format || attribute.type}`}
+            />
           </Form.Item>
         );
       }

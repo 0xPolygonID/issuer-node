@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issuer-node-ui-deployment
+  labels:
+    app: issuer-node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: issuer-node-ui
+  template:
+    metadata:
+      labels:
+        app: issuer-node-ui # Label for the pod and will be used in the service
+    spec:
+      containers:
+        - name: ui
+          image: 0xpolygon/issuernode-ui
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: issuer-node-ui-configmap
+          
+          livenessProbe:
+           httpGet:
+             path: /health
+             port: 80
+             httpHeaders:
+             - name: Custom-Header
+               value: Awesome
+           initialDelaySeconds: 60
+           periodSeconds: 300
+      

@@ -11,21 +11,18 @@ import (
 	"strings"
 	"time"
 
-	core "github.com/iden3/go-iden3-core"
+	"github.com/hashicorp/vault/api"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/providers"
 )
 
 const (
-	CIConfigPath      = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
-	k8sVaultTokenFile = "/vault/data/token.txt"                            // When running in k8s, the vault token is stored in this file
-	// K8sDidFile variable contain the k8s did file path
-	K8sDidFile        = "/did/data/did.txt"    // When running in k8s, the did is stored in this file
-	k8NRetries        = 20                     // Retries to wait for the creation of the vault token
-	k8TBetweenRetries = 500 * time.Millisecond // Time between retries
-	ipfsGateway       = "https://ipfs.io"
+	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
+	ipfsGateway  = "https://cloudflare-ipfs.com"
 )
 
 // Configuration holds the project configuration
@@ -33,20 +30,22 @@ type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
-	Database                     Database           `mapstructure:"Database"`
-	Cache                        Cache              `mapstructure:"Cache"`
-	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
-	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
-	Log                          Log                `mapstructure:"Log"`
-	ReverseHashService           ReverseHashService `mapstructure:"ReverseHashService"`
-	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
-	Prover                       Prover             `mapstructure:"Prover"`
-	Circuit                      Circuit            `mapstructure:"Circuit"`
-	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
-	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
-	APIUI                        APIUI              `mapstructure:"APIUI"`
-	IFPS                         IPFS               `mapstructure:"IPFS"`
+	Database                     Database      `mapstructure:"Database"`
+	Cache                        Cache         `mapstructure:"Cache"`
+	HTTPBasicAuth                HTTPBasicAuth `mapstructure:"HTTPBasicAuth"`
+	KeyStore                     KeyStore      `mapstructure:"KeyStore"`
+	Log                          Log           `mapstructure:"Log"`
+	Ethereum                     Ethereum      `mapstructure:"Ethereum"`
+	Prover                       Prover        `mapstructure:"Prover"`
+	Circuit                      Circuit       `mapstructure:"Circuit"`
+	PublishingKeyPath            string        `mapstructure:"PublishingKeyPath"`
+	OnChainCheckStatusFrequency  time.Duration `mapstructure:"OnChainCheckStatusFrequency"`
+	SchemaCache                  *bool         `mapstructure:"SchemaCache"`
+	APIUI                        APIUI         `mapstructure:"APIUI"`
+	IPFS                         IPFS          `mapstructure:"IPFS"`
+	VaultUserPassAuthEnabled     bool
+	VaultUserPassAuthPassword    string
+	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
 }
 
 // Database has the database configuration
@@ -69,22 +68,25 @@ type IPFS struct {
 type ReverseHashService struct {
 	URL     string `mapstructure:"Url" tip:"Reverse Hash Service address"`
 	Enabled bool   `tip:"Reverse hash service enabled"`
+	Mode    string `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
 }
 
 // Ethereum struct
 type Ethereum struct {
-	URL                    string        `tip:"Ethereum url"`
-	ContractAddress        string        `tip:"Contract Address"`
-	DefaultGasLimit        int           `tip:"Default Gas Limit"`
-	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
-	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
-	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
-	MinGasPrice            int           `tip:"Minimum Gas Price"`
-	MaxGasPrice            int           `tip:"The Datasource name locator"`
-	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
-	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
-	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix         string        `tip:"blockchain:network e.g polygon:mumbai"`
+	URL                       string        `tip:"Ethereum url"`
+	ContractAddress           string        `tip:"Contract Address"`
+	DefaultGasLimit           int           `tip:"Default Gas Limit"`
+	ConfirmationTimeout       time.Duration `tip:"Confirmation timeout"`
+	ConfirmationBlockCount    int64         `tip:"Confirmation block count"`
+	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
+	MinGasPrice               int           `tip:"Minimum Gas Price"`
+	MaxGasPrice               int           `tip:"The Datasource name locator"`
+	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
+	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
+	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
+	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
+	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
+	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
 }
 
 // Prover struct
@@ -139,11 +141,12 @@ type APIUI struct {
 	IssuerName         string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
 	IssuerLogo         string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
 	Issuer             string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID          core.DID  `mapstructure:"-"`
+	IssuerDID          w3c.DID   `mapstructure:"-"`
 	SchemaCache        *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
 	IdentityNetwork    string    `mapstructure:"IdentityNetwork" tip:"Server UI API backend Identity Network"`
+	KeyType            string    `mapstructure:"KeyType" tip:"Server UI API backend Key Type"`
 }
 
 // APIUIAuth configuration. Some of the UI API endpoints are protected with basic http auth. Here you can set the
@@ -161,13 +164,15 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
-	if c.KeyStore.Token == "" {
-		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
-		if err != nil {
-			return fmt.Errorf("a vault token must be provided")
-		}
+	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
+	}
 
-		log.Info(ctx, "Vault token loaded from file", c.KeyStore.Token)
+	err = c.sanitizeCredentialStatus(ctx, c.ServerUrl)
+	if err != nil {
+		log.Error(ctx, "error sanitizing credential status", "error", err)
+		return err
 	}
 
 	return nil
@@ -185,32 +190,84 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	log.Info(ctx, "Checking vault token", "token", c.KeyStore.Token)
-	if c.KeyStore.Token == "" {
-		c.KeyStore.Token, err = loadValueFromFile(ctx, k8sVaultTokenFile, k8NRetries, k8TBetweenRetries)
-		if err != nil {
-			return fmt.Errorf("a vault token must be provided")
-		}
-		log.Info(ctx, "Vault token loaded from file", "token", c.KeyStore.Token)
+	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
 
-	log.Info(ctx, "Checking issuer did value", "did", c.APIUI.Issuer)
-	if c.APIUI.Issuer == "" {
-		c.APIUI.Issuer, err = loadValueFromFile(ctx, K8sDidFile, k8NRetries, k8TBetweenRetries)
+	if c.APIUI.Issuer != "" {
+		issuerDID, err := w3c.ParseDID(c.APIUI.Issuer)
 		if err != nil {
-			return fmt.Errorf("an issuer DID must be provided")
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return fmt.Errorf("invalid issuer did format")
 		}
+		c.APIUI.IssuerDID = *issuerDID
+	} else {
+		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
-	log.Info(ctx, "Issuer Did from file", "did", c.APIUI.Issuer)
-
-	issuerDID, err := core.ParseDID(c.APIUI.Issuer)
+	err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
 	if err != nil {
-		log.Error(ctx, "invalid issuer did format", "error", err)
-		return fmt.Errorf("invalid issuer did format")
+		log.Error(ctx, "error sanitizing credential status", "error", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
+	if c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
+		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
 	}
 
-	c.APIUI.IssuerDID = *issuerDID
+	if c.CredentialStatus.RHSMode == none {
+		c.CredentialStatus.DirectStatus.URL = host
+		c.CredentialStatus.CredentialStatusType = sparseMerkleTreeProof
+	}
 
+	if c.CredentialStatus.RHSMode == offChain {
+		if c.CredentialStatus.RHS.URL == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
+		}
+		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
+		c.CredentialStatus.DirectStatus.URL = host
+	}
+
+	if c.CredentialStatus.RHSMode == onChain {
+		if c.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT value is missing")
+		}
+
+		if c.CredentialStatus.OnchainTreeStore.PublishingKeyPath == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH value is missing")
+		}
+
+		if c.CredentialStatus.OnchainTreeStore.ChainID == "" {
+			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID value is missing")
+		}
+		c.CredentialStatus.CredentialStatusType = iden3OnchainSparseMerkleTreeProof2023
+	}
+	return nil
+}
+
+// CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
+func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) error {
+	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
+	if cfg.APIUI.Issuer == "" {
+		log.Info(ctx, "Issuer DID not provided in configuration file. Getting it from vault")
+		var err error
+		cfg.APIUI.Issuer, err = providers.GetDID(ctx, vaultCli)
+		if err != nil {
+			log.Error(ctx, "cannot get issuer did from vault", "error", err)
+			return err
+		}
+		log.Info(ctx, "Issuer Did loaded from vault", "did", cfg.APIUI.Issuer)
+		issuerDID, err := w3c.ParseDID(cfg.APIUI.Issuer)
+		if err != nil {
+			log.Error(ctx, "invalid issuer did format", "error", err)
+			return err
+		}
+		cfg.APIUI.IssuerDID = *issuerDID
+	}
 	return nil
 }
 
@@ -271,30 +328,9 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
-// loadValueFromFile loads a value from a file. It will retry a number of times until the file is found.
-func loadValueFromFile(ctx context.Context, file string, retries int, between time.Duration) (string, error) {
-	for i := 0; i < retries; i++ {
-		if _, err := os.Stat(file); err != nil {
-			log.Warn(ctx, "loading file. Retries left", "err", err, "file", file, "retries", retries-i)
-		} else {
-			break
-		}
-		time.Sleep(between)
-	}
-	content, err := os.ReadFile(file)
-	if err != nil {
-		log.Error(ctx, "cannot read file", "err", err, "file", file)
-		return "", err
-	}
-
-	contentAsString := strings.TrimSuffix(string(content), "\n")
-	log.Info(ctx, "file loaded", "file", contentAsString)
-	return contentAsString, nil
-}
-
 // VaultTest returns the vault configuration to be used in tests.
 // The vault token is obtained from environment vars.
-// If there is not env var, it will try to parse the init.out file
+// If there is no env var, it will try to parse the init.out file
 // created by local docker image provided for TESTING purposes.
 func VaultTest() KeyStore {
 	return KeyStore{
@@ -360,9 +396,6 @@ func bindEnv() {
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
 	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
 
-	_ = viper.BindEnv("ReverseHashService.URL", "ISSUER_REVERSE_HASH_SERVICE_URL")
-	_ = viper.BindEnv("ReverseHashService.Enabled", "ISSUER_REVERSE_HASH_SERVICE_ENABLED")
-
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
 	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT")
@@ -375,6 +408,16 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
+	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
+	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
+
+	_ = viper.BindEnv("CredentialStatus.DirectStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
+	_ = viper.BindEnv("CredentialStatus.RHS.URL", "ISSUER_CREDENTIAL_STATUS_RHS_URL")
+	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract", "ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT")
+	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.PublishingKeyPath", "ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH")
+	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.ChainID", "ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID")
+	_ = viper.BindEnv("CredentialStatus.RHSMode", "ISSUER_CREDENTIAL_STATUS_RHS_MODE")
+	_ = viper.BindEnv("CredentialStatus.CredentialStatusType", "ISSUER_CREDENTIAL_STATUS_RHS_STATUS_TYPE")
 
 	_ = viper.BindEnv("Prover.ServerURL", "ISSUER_PROVER_SERVER_URL")
 	_ = viper.BindEnv("Prover.ResponseTimeout", "ISSUER_PROVER_TIMEOUT")
@@ -383,6 +426,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
+
+	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
+	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -395,15 +441,16 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityMethod", "ISSUER_API_IDENTITY_METHOD")
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
+	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_UI_KEY_TYPE")
 
 	viper.AutomaticEnv()
 }
 
 // nolint:gocyclo
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
-	if cfg.IFPS.GatewayURL == "" {
+	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
-		cfg.IFPS.GatewayURL = ipfsGateway
+		cfg.IPFS.GatewayURL = ipfsGateway
 	}
 
 	if cfg.ServerUrl == "" {
@@ -513,6 +560,16 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.CredentialStatus.RHSMode == "" {
+		log.Info(ctx, "ISSUER_CREDENTIAL_STATUS_RHS_MODE value is missing and the server set up it as None")
+		cfg.CredentialStatus.RHSMode = "None"
+	}
+
+	if cfg.APIUI.KeyType == "" {
+		log.Info(ctx, "ISSUER_API_UI_KEY_TYPE is missing and the server set up it as BJJ")
+		cfg.APIUI.KeyType = "BJJ"
 	}
 
 	if cfg.APIUI.ServerPort == 0 {

@@ -3,6 +3,7 @@ package reverse_hash
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/iden3/go-merkletree-sql/v2"
 	proof "github.com/iden3/merkletree-proof"
@@ -10,6 +11,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
+
+// DefaultRHSTimeOut - default timeout for reverse hash service requests.
+const DefaultRHSTimeOut = 30 * time.Second
 
 // stateHashes - handle hashes states.
 type stateHashes struct {
@@ -22,15 +26,16 @@ type stateHashes struct {
 // RhsPublisher defines reverse hash publisher functions.
 type RhsPublisher interface {
 	PushHashesToRHS(ctx context.Context, newState, prevState *domain.IdentityState, revocations []*domain.Revocation, trees *domain.IdentityMerkleTrees) error
+	PublishNodesToRHS(ctx context.Context, nodes []proof.Node) error
 }
 
 type rhsPublisher struct {
-	rhsCli          *proof.HTTPReverseHashCli
+	rhsCli          proof.ReverseHashCli
 	ignoreRHSErrors bool
 }
 
 // NewRhsPublisher - constructor
-func NewRhsPublisher(rhsCli *proof.HTTPReverseHashCli, ignoreRHSErrors bool) *rhsPublisher {
+func NewRhsPublisher(rhsCli proof.ReverseHashCli, ignoreRHSErrors bool) RhsPublisher {
 	return &rhsPublisher{
 		rhsCli:          rhsCli,
 		ignoreRHSErrors: ignoreRHSErrors,
@@ -43,11 +48,10 @@ func NewRhsPublisher(rhsCli *proof.HTTPReverseHashCli, ignoreRHSErrors bool) *rh
 //   - if claim's tree root is changed, also send new claim's tree root with
 //     its parents up to RoR tree root.
 func (rhsp *rhsPublisher) PushHashesToRHS(ctx context.Context, newState, prevState *domain.IdentityState, revocations []*domain.Revocation, trees *domain.IdentityMerkleTrees) error {
-	// TODO - check rhs cli
 	// if Reverse-Hash-Service is not configure, do nothing.
-	//if i.rhsCli == nil {
-	//	return nil
-	//}
+	if rhsp.rhsCli == nil {
+		return nil
+	}
 
 	nb := newNodesBuilder()
 
@@ -88,15 +92,42 @@ func (rhsp *rhsPublisher) PushHashesToRHS(ctx context.Context, newState, prevSta
 	}
 
 	if nb.numberOfNodes() > 0 {
-		// todo: call rhs
-		// err = i.rhsCli.SaveNodes(ctx, nb.nodes)
 		log.Info(ctx, "new state nodes", nb.nodes)
-		err = nil
+		err = rhsp.rhsCli.SaveNodes(ctx, nb.nodes)
 	}
 	return err
 }
 
+// PublishNodesToRHS pushes nodes to reverse hash service.
+func (rhsp *rhsPublisher) PublishNodesToRHS(ctx context.Context, nodes []proof.Node) error {
+	// if Reverse-Hash-Service is not configure, do nothing.
+	if rhsp.rhsCli == nil {
+		log.Error(ctx, "Reverse-Hash-Service is not configured")
+		return nil
+	}
+	if len(nodes) > 0 {
+		log.Info(ctx, "new state nodes", "nodes", nodes)
+		err := rhsp.rhsCli.SaveNodes(ctx, nodes)
+		if err != nil {
+			if rhsp.ignoreRHSErrors {
+				log.Error(ctx, "failed to push nodes to RHS", "err", err)
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 func newStateHashesFromModel(inState *domain.IdentityState) (stateHashes, error) {
+	if *inState.State == merkletree.HashZero.Hex() {
+		return stateHashes{
+			State:  merkletree.HashZero,
+			Claims: merkletree.HashZero,
+			Rev:    merkletree.HashZero,
+			Roots:  merkletree.HashZero,
+		}, nil
+	}
 	if inState == nil {
 		return stateHashes{}, errors.New("nil state")
 	}

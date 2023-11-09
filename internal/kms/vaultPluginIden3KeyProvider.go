@@ -14,7 +14,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-iden3-crypto/utils"
 )
 
@@ -48,7 +48,7 @@ func (v *vaultPluginIden3KeyProvider) keyPathFromID(keyID KeyID) keyPathT {
 	}
 }
 
-func (v *vaultPluginIden3KeyProvider) LinkToIdentity(_ context.Context, keyID KeyID, identity core.DID) (KeyID, error) {
+func (v *vaultPluginIden3KeyProvider) LinkToIdentity(_ context.Context, keyID KeyID, identity w3c.DID) (KeyID, error) {
 	if keyID.Type != v.keyType {
 		return keyID, ErrIncorrectKeyType
 	}
@@ -98,7 +98,7 @@ func (v *vaultPluginIden3KeyProvider) Sign(_ context.Context, keyID KeyID, dataT
 	return signData(v.vaultCli, v.keyPathFromID(keyID), dataToSign)
 }
 
-func (v *vaultPluginIden3KeyProvider) ListByIdentity(_ context.Context, identity core.DID) ([]KeyID, error) {
+func (v *vaultPluginIden3KeyProvider) ListByIdentity(_ context.Context, identity w3c.DID) ([]KeyID, error) {
 	identityKeysPath := keyPathT{
 		keyID:     v.identityPath(identity),
 		mountPath: v.keysMountPath,
@@ -108,20 +108,17 @@ func (v *vaultPluginIden3KeyProvider) ListByIdentity(_ context.Context, identity
 		return nil, err
 	}
 
-	result := make([]KeyID, len(entries))
-	ln := 0
-	for i, k := range entries {
+	result := make([]KeyID, 0)
+	for _, k := range entries {
 		if !v.keyNameRE.MatchString(k) {
 			// ignore unknown keys
 			continue
 		}
-
-		result[i].Type = v.keyType
-		result[i].ID = path.Join(identityKeysPath.keyID, k)
-		ln++
+		keyID := KeyID{Type: v.keyType, ID: path.Join(identityKeysPath.keyID, k)}
+		result = append(result, keyID)
 	}
 
-	return result[:ln], nil
+	return result, nil
 }
 
 func (v *vaultPluginIden3KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
@@ -138,7 +135,7 @@ func (v *vaultPluginIden3KeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 	return val, err
 }
 
-func (v *vaultPluginIden3KeyProvider) New(identity *core.DID) (KeyID, error) {
+func (v *vaultPluginIden3KeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	randomKeyPath, err := v.randomKeyPath()
 	if err != nil {
 		return KeyID{}, err
@@ -178,7 +175,7 @@ func (v *vaultPluginIden3KeyProvider) randomKeyPath() (keyPathT, error) {
 	}, nil
 }
 
-func (v *vaultPluginIden3KeyProvider) keyPathFromPublic(identity *core.DID, publicKey string) keyPathT {
+func (v *vaultPluginIden3KeyProvider) keyPathFromPublic(identity *w3c.DID, publicKey string) keyPathT {
 	basePath := v.keysPathPrefix
 	if identity != nil {
 		basePath = v.identityPath(*identity)
@@ -189,7 +186,7 @@ func (v *vaultPluginIden3KeyProvider) keyPathFromPublic(identity *core.DID, publ
 	}
 }
 
-func (v *vaultPluginIden3KeyProvider) identityPath(identity core.DID) string {
+func (v *vaultPluginIden3KeyProvider) identityPath(identity w3c.DID) string {
 	return path.Join(v.keysPathPrefix, identity.String())
 }
 

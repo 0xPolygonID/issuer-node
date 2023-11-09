@@ -11,7 +11,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/providers"
@@ -109,7 +110,7 @@ func randString(t *testing.T, ln int) string {
 	return hex.EncodeToString(bs)
 }
 
-func randomDID(t *testing.T) core.DID {
+func randomDID(t *testing.T) w3c.DID {
 	t.Helper()
 	typ, err := core.BuildDIDType(core.DIDMethodIden3, core.Polygon, core.Mumbai)
 	var genesis [27]byte
@@ -125,7 +126,10 @@ func randomDID(t *testing.T) core.DID {
 func setupPluginBJJProvider(t *testing.T) (vaultCli *api.Client, mountPath string) {
 	t.Helper()
 	var err error
-	vaultCli, err = providers.NewVaultClient(cfg.Address, cfg.Token)
+	vaultCli, err = providers.VaultClient(context.Background(), providers.Config{
+		Address: cfg.Address,
+		Token:   cfg.Token,
+	})
 	require.NoError(t, err)
 	mountPath = cfg.PluginIden3MountPath
 	return

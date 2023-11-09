@@ -70,7 +70,7 @@ func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConf
 
 		KeyValue{
 			Key:   "ISSUER_API_IPFS_GATEWAY_URL",
-			Value: s.cfg.IFPS.GatewayURL,
+			Value: s.cfg.IPFS.GatewayURL,
 		},
 	}
 

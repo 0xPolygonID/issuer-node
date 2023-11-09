@@ -6,16 +6,19 @@ import (
 	"testing"
 	"time"
 
+	commonEth "github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
-	core "github.com/iden3/go-iden3-core"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -30,48 +33,32 @@ func Test_link_issueClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	schemaRepository := repositories.NewSchema(*storage)
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	rhsp := reverse_hash.NewRhsPublisher(nil, false)
 	connectionsRepository := repositories.NewConnections()
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, claimsRepo, revocationRepository, connectionsRepository, storage, rhsp, nil, nil, pubsub.NewMock())
-	schemaLoader := loader.CachedFactory(loader.MultiProtocolFactory(ipfsGateway), cachex)
+	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsConf := services.ClaimCfg{
-		RHSEnabled: false,
-		Host:       "https://host.com",
-	}
-	claimsService := services.NewClaim(
-		claimsRepo,
-		identityService,
-		mtService,
-		identityStateRepo,
-		schemaLoader,
-		storage,
-		claimsConf,
-		pubsub.NewMock(),
-		ipfsGateway)
-
-	identity, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
+	schemaService := services.NewSchema(schemaRepository, docLoader)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver)
+	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	assert.NoError(t, err)
 
-	identity2, err := identityService.Create(ctx, method, blockchain, network, "http://localhost:3001")
+	identity2, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	assert.NoError(t, err)
 
 	schemaUrl := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	did, err := core.ParseDID(identity.Identifier)
-	assert.NoError(t, err)
+	did, err := w3c.ParseDID(identity.Identifier)
+	require.NoError(t, err)
 
 	iReq := ports.NewImportSchemaRequest(schemaUrl, "KYCAgeCredential", common.ToPointer("some title"), uuid.NewString(), common.ToPointer("some description"))
 	schema, err := schemaService.ImportSchema(ctx, *did, iReq)
 	assert.NoError(t, err)
-	did2, err := core.ParseDID(identity2.Identifier)
-	assert.NoError(t, err)
-	//
-	//did3, err := core.ParseDID("did:polygonid:polygon:mumbai:2qD6cqGpLX2dibdFuKfrPxGiybi3wKa8RbR4onw49H")
-	//assert.NoError(t, err)
+	did2, err := w3c.ParseDID(identity2.Identifier)
+	require.NoError(t, err)
 
-	userDID1 := core.DID{}
-	assert.NoError(t, userDID1.SetString("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ"))
+	userDID1, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+
 	credentialSubject := map[string]any{
 		"id":           userDID1.String(),
 		"birthday":     19960424,
@@ -80,11 +67,12 @@ func Test_link_issueClaim(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schemaUrl, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false))
+	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schemaUrl, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)
-	linkService := services.NewLinkService(storage, claimsService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGateway)
+	qrService := services.NewQrStoreService(cachex)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock(), ipfsGateway)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
@@ -103,8 +91,8 @@ func Test_link_issueClaim(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		did      core.DID
-		userDID  core.DID
+		did      w3c.DID
+		userDID  w3c.DID
 		LinkID   uuid.UUID
 		expected expected
 	}
@@ -113,7 +101,7 @@ func Test_link_issueClaim(t *testing.T) {
 		{
 			name:    "should return status done",
 			did:     *did,
-			userDID: userDID1,
+			userDID: *userDID1,
 			LinkID:  link.ID,
 			expected: expected{
 				err:          nil,
@@ -124,7 +112,7 @@ func Test_link_issueClaim(t *testing.T) {
 		{
 			name:    "should return status pending to publish",
 			did:     *did,
-			userDID: userDID1,
+			userDID: *userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          nil,
@@ -135,7 +123,7 @@ func Test_link_issueClaim(t *testing.T) {
 		{
 			name:    "should return error",
 			did:     *did,
-			userDID: userDID1,
+			userDID: *userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          services.ErrClaimAlreadyIssued,
@@ -146,7 +134,7 @@ func Test_link_issueClaim(t *testing.T) {
 		{
 			name:    "should return error wrong did",
 			did:     *did2,
-			userDID: userDID1,
+			userDID: *userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
 				err: errors.New("link does not exist"),
@@ -155,7 +143,7 @@ func Test_link_issueClaim(t *testing.T) {
 		{
 			name:    "should return error wrong link id",
 			did:     *did,
-			userDID: userDID1,
+			userDID: *userDID1,
 			LinkID:  uuid.New(),
 			expected: expected{
 				err: errors.New("link does not exist"),
@@ -164,7 +152,7 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url")
+			err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.SparseMerkleTreeProof)
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)

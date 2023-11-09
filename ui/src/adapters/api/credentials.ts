@@ -384,14 +384,14 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
 
 export type AuthQRCode = {
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  qrCode?: unknown;
+  qrCode: string;
   sessionID: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
-    qrCode: z.unknown(),
+    qrCode: z.string(),
     sessionID: z.string(),
   })
 );
@@ -418,36 +418,10 @@ export async function createAuthQRCode({
   }
 }
 
-type IssuedQRCodeTypeInput = {
-  body: {
-    credentials: [
-      {
-        description: string;
-      }
-    ];
-  };
-};
-
-const issuedQRCodeTypeParser = getStrictParser<IssuedQRCodeTypeInput, string>()(
-  z
-    .object({
-      body: z.object({ credentials: z.tuple([z.object({ description: z.string() })]) }),
-    })
-    .transform((data) => data.body.credentials[0].description)
-);
-
-const issuedQRCodeParser = getStrictParser<unknown, IssuedQRCode>()(
-  z.unknown().transform((unknown, context): IssuedQRCode => {
-    const parsedSchemaType = issuedQRCodeTypeParser.safeParse(unknown);
-    if (parsedSchemaType.success) {
-      return {
-        qrCode: unknown,
-        schemaType: parsedSchemaType.data,
-      };
-    } else {
-      parsedSchemaType.error.issues.map(context.addIssue);
-      return z.NEVER;
-    }
+const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
+  z.object({
+    qrCodeLink: z.string(),
+    schemaType: z.string(),
   })
 );
 
@@ -474,13 +448,13 @@ export async function getIssuedQRCode({
 }
 
 export type ImportQRCode = {
-  qrCode?: unknown;
+  qrCode?: string;
   status: "done" | "pending" | "pendingPublish";
 };
 
 const importQRCodeParser = getStrictParser<ImportQRCode>()(
   z.object({
-    qrCode: z.unknown(),
+    qrCode: z.string().optional(),
     status: z.union([z.literal("done"), z.literal("pendingPublish"), z.literal("pending")]),
   })
 );
