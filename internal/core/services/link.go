@@ -202,7 +202,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 }
 
 // IssueClaim - Create a new claim
-func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) error {
+func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) error {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
@@ -238,7 +238,6 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 
 	link.CredentialSubject["id"] = userDID.String()
 
-	// TODO: add support for multiple credential types
 	claimReq := ports.NewCreateClaimRequest(&issuerDID,
 		schema.URL,
 		link.CredentialSubject,
@@ -249,7 +248,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		common.ToPointer(link.CredentialMTPProof),
 		&linkID,
 		true,
-		verifiable.SparseMerkleTreeProof,
+		credentialStatusType,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
