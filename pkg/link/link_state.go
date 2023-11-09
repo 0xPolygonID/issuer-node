@@ -46,7 +46,7 @@ type QRCodeMessage struct {
 type State struct {
 	Status  string  `json:"status,omitempty"`
 	Message string  `json:"message,omitempty"`
-	QRCode  *string `json:"qrcode,omitempty"`
+	QRCode  *string `json:"qrcode"`
 }
 
 // NewStatePending - TODO
