@@ -16,4 +16,4 @@ data:
   ISSUER_API_IDENTITY_METHOD: {{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityMethod }}
   ISSUER_API_IDENTITY_NETWORK: {{ include "helpers.issuer-network" . | nindent 4}}
   ISSUER_API_ENVIRONMENT: {{ .Values.apiUiIssuerNode.configMap.issuerApiEnvironment }}
-  ISSUER_API_KEY_TYPE: {{ .Values.issuerKeyType }}
+  ISSUER_API_UI_KEY_TYPE: {{ .Values.issuerKeyType }}

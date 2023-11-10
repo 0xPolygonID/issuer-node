@@ -12,7 +12,7 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    path: "/data/volume_1"
+    path: "/data/volume_6"
 
 ---
 

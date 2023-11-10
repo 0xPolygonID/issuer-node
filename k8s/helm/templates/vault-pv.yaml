@@ -12,7 +12,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/data/volume_2"
+    path: "/data/volume_4"
 
 ---
 

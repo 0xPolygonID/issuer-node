@@ -147,7 +147,7 @@ Define Rhs contract
 */}}
 {{- define "helpers.api-rsh-contract" -}}
 {{- if eq .Values.mainnet true }}
-"0x80667fdB4CC6bBa3EDaE419f6BFBc129e78d2fC9"
+"0xF5d22B2385D8cA41A649df53AE010F7b4e776dB0"
 {{- else }}
 "0x76EB7216F2400aC18C842D8C76739F3B8E619DB9"
 {{- end }}

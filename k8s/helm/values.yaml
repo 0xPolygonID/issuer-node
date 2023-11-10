@@ -1,7 +1,7 @@
-issuernode_repository_image: martinsaporiti/issuernode
-issuernode_repository_tag: 2.0.0
-issuernode_ui_repository_image: martinsaporiti/issuernodeui
-issuernode_ui_repository_tag: 2.0.0
+issuernode_repository_image: 0xpolygon/issuernode
+issuernode_repository_tag: latest
+issuernode_ui_repository_image: 0xpolygon/issuernode-ui
+issuernode_ui_repository_tag: latest
 
 apiIssuerNode:
   deployment:
@@ -10,7 +10,7 @@ apiIssuerNode:
     env:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     labels:
       app: api-issuer-node-deployment
     livenessProbe:
@@ -89,7 +89,7 @@ apiUiIssuerNode:
       env:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-      imagePullPolicy: IfNotPresent
+      imagePullPolicy: Always
       args: 
         - '"./migrate; ./platform_ui"'
       command:  
@@ -108,7 +108,7 @@ apiUiIssuerNode:
       env:
         issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
         issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-      imagePullPolicy: IfNotPresent
+      imagePullPolicy: Always
       args: 
         - '"sleep 30; ./migrate; ./issuer_initializer;"'
       command:  
@@ -162,7 +162,7 @@ pendingPublisherIssuerNode:
     env:
       issuerDatabaseUrl: postgres://$(ISSUER_DB_USER):$(ISSUER_DB_PASSWORD)@postgres-issuer-node-svc:$(ISSUER_DB_PORT)/$(ISSUER_DB_NAME)?sslmode=disable
       issuerKeyStoreAddress: http://vault-issuer-node-svc:$(ISSUER_KEY_STORE_PORT)
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     labels: 
       app: pending-publisher-issuer-node-deployment
     containerName: pending-publisher
@@ -175,7 +175,7 @@ uiIssuerNode:
   deployment:
     replicaCount: 1
     name: ui-issuer-node
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Always
     uiconfigMapRef: issuer-node-ui-configmap
     containerName: ui
     containerPort: 80
