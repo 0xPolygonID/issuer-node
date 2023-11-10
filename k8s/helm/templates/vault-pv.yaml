@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: vault-issuer-node-pv 
+  labels:
+    app: issuer-node
+spec:
+  storageClassName: manual
+  persistentVolumeReclaimPolicy: Retain
+  capacity:
+    storage: 250Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/volume_4"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim 
+metadata:
+  name: {{ .Values.vaultIssuerNode.pvc.vault }}
+  labels:
+  {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.vaultIssuerNode.pvc.storageRequest }}
