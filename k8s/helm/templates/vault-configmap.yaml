@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.vaultIssuerNode.configMap.vaultConfigName }}
+  labels:
+    {{ include "polygon-id-issuer.staticLabel" . }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+data:
+  vault.json: {{- .Values.vaultIssuerNode.configMap.vaultJson | toYaml | indent 4 }}    
+  init.sh: {{ tpl .Values.vaultIssuerNode.configMap.initSh . | toYaml | indent 4}}
+  policies.hcl: {{-  .Values.vaultIssuerNode.configMap.policieshcl | toYaml | indent 4 }}
+  

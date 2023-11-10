@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.notificationsIssuerNode.deployment.name }}
+  labels:
+    {{- include "polygon-id-issuer.notificationsIssuerNode.deploymentLabels" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "polygon-id-issuer.notificationsIssuerNode.Labels" . | nindent 6 }}
+      {{- include "polygon-id-issuer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "polygon-id-issuer.notificationsIssuerNode.Labels" . | nindent 8 }}
+        {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: issuer-node-service-account
+      containers:
+        - name: {{ .Values.notificationsIssuerNode.deployment.containerName }}
+          image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}
+          imagePullPolicy: {{ .Values.notificationsIssuerNode.deployment.imagePullPolicy | quote }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.apiUiIssuerNode.deployment.apiUi.apiconfigMapRef }}
+          - configMapRef:
+              name: {{ .Values.apiUiIssuerNode.deployment.init.apiuiconfigMapRef }}
+          env:
+          - name: {{ include "helpers.issuer-db-url" .}}
+            value: {{ quote .Values.notificationsIssuerNode.deployment.env.issuerDatabaseUrl }}
+          - name: {{ include "helpers.issuer-key-store-addr" .}}
+            value: {{ quote .Values.notificationsIssuerNode.deployment.env.issuerKeyStoreAddress }}
+          args: {{ .Values.notificationsIssuerNode.deployment.args }}
+          command: {{ .Values.notificationsIssuerNode.deployment.command }}

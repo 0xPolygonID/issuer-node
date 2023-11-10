@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.apiUiIssuerNode.service.name }}
+  labels: 
+    {{- include "polygon-id-issuer.staticLabel" . | nindent 4 }}
+    {{- include "polygon-id-issuer.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.ingressEnabled }}
+  type: ClusterIP
+  {{- else }}
+  type: NodePort
+  {{- end }}
+  selector:
+    {{- include "polygon-id-issuer.apiUiIssuerNode.Labels" . | nindent 4 }}
+    {{- include "polygon-id-issuer.selectorLabels" . | nindent 4 }}
+  {{- with .Values.apiUiIssuerNode.service.ports }}
+  ports: 
+    {{-  toYaml . | nindent 2 }}
+  {{- end }}
+    {{- if eq .Values.ingressEnabled false}}
+    nodePort: {{ .Values.apiUiIssuerNode.service.nodePort }}
+    {{- end }}
