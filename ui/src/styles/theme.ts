@@ -68,7 +68,7 @@ export const theme: ThemeConfig = {
     Form: { fontSize: 14 },
     Input: { controlHeight: 40 },
     InputNumber: { controlHeight: 40 },
-    Layout: { bodyBg: "white", headerBg: "white" },
+    Layout: { bodyBg: "white", siderBg: "white" },
     Menu: {
       itemHoverBg: "white",
       itemHoverColor: primaryColor,
