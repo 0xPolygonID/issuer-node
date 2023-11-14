@@ -1,12 +1,12 @@
 import { Col, Divider, Menu, Row, Space, Tag, Typography } from "antd";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
-import { ReactComponent as IconCredentials } from "src/assets/icons/credit-card-refresh.svg";
-import { ReactComponent as IconFile } from "src/assets/icons/file-05.svg";
-import { ReactComponent as IconSchema } from "src/assets/icons/file-search-02.svg";
-import { ReactComponent as IconLink } from "src/assets/icons/link-external-01.svg";
-import { ReactComponent as IconIssuerState } from "src/assets/icons/switch-horizontal.svg";
-import { ReactComponent as IconConnections } from "src/assets/icons/users-01.svg";
+import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
+import IconFile from "src/assets/icons/file-05.svg?react";
+import IconSchema from "src/assets/icons/file-search-02.svg?react";
+import IconLink from "src/assets/icons/link-external-01.svg?react";
+import IconIssuerState from "src/assets/icons/switch-horizontal.svg?react";
+import IconConnections from "src/assets/icons/users-01.svg?react";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { useEnvContext } from "src/contexts/Env";

@@ -1,7 +1,7 @@
 import { Button, Modal, Typography } from "antd";
 import { QRCodeSVG } from "qrcode.react";
 
-import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import IconClose from "src/assets/icons/x.svg?react";
 import { CLOSE } from "src/utils/constants";
 
 export function ClaimCredentialModal({ onClose, qrCode }: { onClose: () => void; qrCode: string }) {

@@ -1,5 +1,5 @@
 import { ThemeConfig } from "antd/es/config-provider/context";
-import z from "zod";
+import { z } from "zod";
 
 import { getStrictParser } from "src/adapters/parsers";
 import variables from "src/styles/variables.module.scss";
@@ -68,7 +68,7 @@ export const theme: ThemeConfig = {
     Form: { fontSize: 14 },
     Input: { controlHeight: 40 },
     InputNumber: { controlHeight: 40 },
-    Layout: { colorBgBody: "white", colorBgHeader: "white" },
+    Layout: { bodyBg: "white", headerBg: "white" },
     Menu: {
       itemHoverBg: "white",
       itemHoverColor: primaryColor,

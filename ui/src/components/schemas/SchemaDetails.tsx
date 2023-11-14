@@ -4,7 +4,7 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { getApiSchema } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl, getSchemaJsonLdTypes } from "src/adapters/jsonSchemas";
-import { ReactComponent as CreditCardIcon } from "src/assets/icons/credit-card-plus.svg";
+import CreditCardIcon from "src/assets/icons/credit-card-plus.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";

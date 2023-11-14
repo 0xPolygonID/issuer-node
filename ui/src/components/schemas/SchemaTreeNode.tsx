@@ -1,7 +1,7 @@
 import { Col, Row, Space, Typography } from "antd";
 
-import { ReactComponent as IconTreeLeaf } from "src/assets/icons/file-04.svg";
-import { ReactComponent as IconTreeNode } from "src/assets/icons/folder.svg";
+import IconTreeLeaf from "src/assets/icons/file-04.svg?react";
+import IconTreeNode from "src/assets/icons/folder.svg?react";
 import { Attribute } from "src/domain";
 
 export function SchemaTreeNode({

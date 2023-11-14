@@ -8,10 +8,10 @@ import {
   createAuthQRCode,
   getImportQRCode,
 } from "src/adapters/api/credentials";
-import { ReactComponent as AlertIcon } from "src/assets/icons/alert-circle.svg";
-import { ReactComponent as CheckIcon } from "src/assets/icons/check.svg";
-import { ReactComponent as QRIcon } from "src/assets/icons/qr-code.svg";
-import { ReactComponent as IconRefresh } from "src/assets/icons/refresh-ccw-01.svg";
+import AlertIcon from "src/assets/icons/alert-circle.svg?react";
+import CheckIcon from "src/assets/icons/check.svg?react";
+import QRIcon from "src/assets/icons/qr-code.svg?react";
+import IconRefresh from "src/assets/icons/refresh-ccw-01.svg?react";
 import { ClaimCredentialModal } from "src/components/credentials/ClaimCredentialModal";
 import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -117,8 +117,8 @@ export function CredentialLinkQR() {
   const appError = hasAsyncTaskFailed(authQRCode)
     ? authQRCode.error
     : hasAsyncTaskFailed(importQRCheck)
-    ? importQRCheck.error
-    : undefined;
+      ? importQRCheck.error
+      : undefined;
 
   return (
     <>
