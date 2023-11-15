@@ -209,13 +209,6 @@ restart-ui: rm-issuer-imgs up run run-ui
 .PHONY: restart-ui-arm
 restart-ui-arm: rm-issuer-imgs up run-arm run-ui-arm
 
-
-## usage: make new_password=xxx change-vault-password
-#.PHONY: change-vault-password
-#change-vault-password:
-#	docker exec issuer-vault-1 \
-#	vault write auth/userpass/users/issuernode password=$(new_password)
-
 .PHONY: print-did
 print-did:
 	docker exec issuer-vault-1 \
@@ -226,3 +219,16 @@ print-did:
 delete-did:
 	docker exec issuer-vault-1 \
 	vault kv delete kv/did
+
+
+# usage: make vault_token=xxx vault-export-keys
+.PHONY: vault-export-keys
+vault-export-keys:
+	docker build -t issuer-vault-export-keys .
+	docker run --rm -it --network=issuer-network -v $(shell pwd):/keys issuer-vault-export-keys ./vault-migrator -operation=export -output-file=keys.json -vault-token=$(vault_token) -vault-addr=http://vault:8200
+
+# usage: make vault_token=xxx vault-import-keys
+.PHONY: vault-import-keys
+vault-import-keys:
+	docker build -t issuer-vault-import-keys .
+	docker run --rm -it --network=issuer-network -v $(shell pwd)/keys.json:/keys.json issuer-vault-import-keys ./vault-migrator -operation=import -input-file=keys.json -vault-token=$(vault_token) -vault-addr=http://vault:8200
