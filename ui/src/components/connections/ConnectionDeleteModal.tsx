@@ -3,7 +3,7 @@ import { CheckboxChangeEvent } from "antd/es/checkbox";
 import { useState } from "react";
 
 import { deleteConnection } from "src/adapters/api/connections";
-import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { CLOSE, DELETE } from "src/utils/constants";

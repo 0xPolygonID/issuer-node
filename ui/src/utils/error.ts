@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { isAxiosError, isCancel } from "axios";
-import z from "zod";
+import { z } from "zod";
+
 import { getStrictParser } from "src/adapters/parsers";
 import { AppError } from "src/domain";
 

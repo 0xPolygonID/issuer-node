@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { getConnection } from "src/adapters/api/connections";
-import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import IconTrash from "src/assets/icons/trash-01.svg?react";
 import { ConnectionDeleteModal } from "src/components/connections/ConnectionDeleteModal";
 import { CredentialsTable } from "src/components/connections/CredentialsTable";
 import { Detail } from "src/components/shared/Detail";

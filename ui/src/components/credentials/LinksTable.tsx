@@ -21,11 +21,11 @@ import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getLinks, linkStatusParser, updateLink } from "src/adapters/api/credentials";
-import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
-import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
-import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
-import { ReactComponent as IconLink } from "src/assets/icons/link-03.svg";
-import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
+import IconDots from "src/assets/icons/dots-vertical.svg?react";
+import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
+import IconLink from "src/assets/icons/link-03.svg?react";
+import IconTrash from "src/assets/icons/trash-01.svg?react";
 import { LinkDeleteModal } from "src/components/credentials/LinkDeleteModal";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";

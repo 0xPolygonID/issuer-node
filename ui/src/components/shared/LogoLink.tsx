@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 
-import { ReactComponent as IconLogo } from "src/assets/polygonid-logo.svg";
+import IconLogo from "src/assets/polygonid-logo.svg?react";
 import { ROOT_PATH } from "src/utils/constants";
 
 export function LogoLink() {

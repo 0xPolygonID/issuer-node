@@ -1,6 +1,6 @@
 import { Avatar, Col, Space, Typography } from "antd";
 
-import { ReactComponent as SearchIcon } from "src/assets/icons/search-lg.svg";
+import SearchIcon from "src/assets/icons/search-lg.svg?react";
 
 export function NoResults({ searchQuery }: { searchQuery: string | null }) {
   return (
