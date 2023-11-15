@@ -14,6 +14,7 @@ RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 FROM alpine:latest
 RUN apk add --no-cache libstdc++ gcompat libgomp
 RUN apk add --update busybox>1.3.1-r0
+RUN apk add --update openssl>3.1.4-r1
 RUN ln -sfv ld-linux-x86-64.so.2 /lib/libresolv.so.2
 
 RUN apk add doas; \
