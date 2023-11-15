@@ -201,6 +201,7 @@ func writeKeys(ctx context.Context, vaultCli *api.Client, file []byte) {
 		log.Error(ctx, "cannot unmarshal file", "err", err)
 		return
 	}
+	importedKeys := 0
 	for _, key := range keys {
 		keyPath := key.KeyPath
 		data := make(map[string]any)
@@ -211,5 +212,8 @@ func writeKeys(ctx context.Context, vaultCli *api.Client, file []byte) {
 			log.Error(ctx, "cannot write key", "err", err, "keyPath", keyPath)
 			continue
 		}
+		importedKeys++
 	}
+
+	log.Info(ctx, "keys imported", "keys", importedKeys)
 }
