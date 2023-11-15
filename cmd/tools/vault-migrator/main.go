@@ -96,7 +96,8 @@ func export(ctx context.Context, vaultCli *api.Client, vaultPath string, outputF
 		}
 	})
 
-	if err := os.MkdirAll("./keys", permFolder); err != nil {
+	dirPath := "./keys"
+	if err := os.MkdirAll(dirPath, permFolder); err != nil {
 		log.Error(ctx, "cannot create keys dir", "err", err)
 		return err
 	}
@@ -107,7 +108,7 @@ func export(ctx context.Context, vaultCli *api.Client, vaultPath string, outputF
 		return err
 	}
 
-	if err := os.WriteFile("./keys/"+outputFolder, file, permFile); err != nil {
+	if err := os.WriteFile(dirPath+"/"+outputFolder, file, permFile); err != nil {
 		log.Error(ctx, "cannot writeKeys file", "err", err)
 		return err
 	}
