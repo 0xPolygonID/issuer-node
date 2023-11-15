@@ -189,9 +189,9 @@ make add-vault-token;
 #   mv .env-issuer.tmp .env-issuer
 ```
 
-##### Option 2: Using user and pass authentication method (recommended :thumbsup:) 
-In order to use the user and pass authentication method, we need to create a password in the vault. **This approach for 
-the authentication method is recommended for production environments, and it is the preferred method of 
+##### Option 2: Using user and pass authentication method (recommended :thumbsup:)
+In order to use the user and pass authentication method, we need to create a password in the vault. **This approach for
+the authentication method is recommended for production environments, and it is the preferred method of
 the issuer node contributors team.** Please try to avoid using the root token authentication method.
 
 ```bash
@@ -204,8 +204,8 @@ ISSUER_VAULT_USERPASS_AUTH_ENABLED=true
 ISSUER_VAULT_USERPASS_AUTH_PASSWORD=your_new_password
 #ISSUER_KEY_STORE_TOKEN=<Key Store Vault Token>
 ```
-with the code above, the vault will be initialized with the user and pass authentication method and the root token will 
-be disabled. You can change the password as many times as you want, but you will need to update the `.env-issuer` file 
+with the code above, the vault will be initialized with the user and pass authentication method and the root token will
+be disabled. You can change the password as many times as you want, but you will need to update the `.env-issuer` file
 after running the command above.
 
 #### Create Issuer DID
