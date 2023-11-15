@@ -17,8 +17,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
-import { ReactComponent as IconAlert } from "src/assets/icons/alert-circle.svg";
-import { ReactComponent as IconSwitch } from "src/assets/icons/switch-horizontal.svg";
+import IconAlert from "src/assets/icons/alert-circle.svg?react";
+import IconSwitch from "src/assets/icons/switch-horizontal.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";

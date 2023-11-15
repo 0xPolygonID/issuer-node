@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { getConnections } from "src/adapters/api/connections";
 import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
-import { ReactComponent as IconRight } from "src/assets/icons/arrow-narrow-right.svg";
+import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Connection } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
@@ -206,8 +206,8 @@ export function IssuanceMethodForm({
                                     return now.hour() === hour
                                       ? [...Array(now.minute() + 1).keys()]
                                       : hour < 0
-                                      ? [...Array(60).keys()]
-                                      : [];
+                                        ? [...Array(60).keys()]
+                                        : [];
                                   },
                                 };
                               } else {

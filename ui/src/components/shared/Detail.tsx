@@ -1,7 +1,7 @@
 import { Col, Grid, Row, Tag, TagProps, Typography } from "antd";
 
-import { ReactComponent as IconCheckMark } from "src/assets/icons/check.svg";
-import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
+import IconCheckMark from "src/assets/icons/check.svg?react";
+import IconCopy from "src/assets/icons/copy-01.svg?react";
 
 export function Detail({
   copyable,

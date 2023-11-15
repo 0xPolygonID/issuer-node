@@ -2,7 +2,7 @@ import { Button, Grid, Space, Tabs } from "antd";
 import { ComponentType } from "react";
 import { Navigate, generatePath, useNavigate, useParams } from "react-router-dom";
 
-import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
+import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import { CredentialsTable } from "src/components/credentials/CredentialsTable";
 import { LinksTable } from "src/components/credentials/LinksTable";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";

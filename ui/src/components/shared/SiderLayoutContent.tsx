@@ -4,9 +4,9 @@ import { ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg";
-import { ReactComponent as IconArrowLeft } from "src/assets/icons/arrow-narrow-left.svg";
-import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import IconAlert from "src/assets/icons/alert-triangle.svg?react";
+import IconArrowLeft from "src/assets/icons/arrow-narrow-left.svg?react";
+import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { getStorageByKey, setStorageByKey } from "src/utils/browser";
 

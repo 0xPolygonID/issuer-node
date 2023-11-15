@@ -1,7 +1,7 @@
 import { Input } from "antd";
 import { useEffect, useState } from "react";
 
-import { ReactComponent as IconSearch } from "src/assets/icons/search-lg.svg";
+import IconSearch from "src/assets/icons/search-lg.svg?react";
 import { Spinner } from "src/components/shared/Spinner";
 import { DEBOUNCE_INPUT_TIMEOUT } from "src/utils/constants";
 

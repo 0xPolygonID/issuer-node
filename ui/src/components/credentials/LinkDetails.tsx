@@ -5,7 +5,7 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { getLink } from "src/adapters/api/credentials";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
 import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
-import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
+import IconTrash from "src/assets/icons/trash-01.svg?react";
 import { LinkDeleteModal } from "src/components/credentials/LinkDeleteModal";
 import { ObjectAttributeValueTree } from "src/components/credentials/ObjectAttributeValueTree";
 import { Detail } from "src/components/shared/Detail";
