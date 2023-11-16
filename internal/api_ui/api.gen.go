@@ -90,18 +90,19 @@ type CreateLinkRequest struct {
 
 // Credential defines model for Credential.
 type Credential struct {
-	CreatedAt         TimeUTC                `json:"createdAt"`
-	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	Expired           bool                   `json:"expired"`
-	ExpiresAt         *TimeUTC               `json:"expiresAt"`
-	Id                uuid.UUID              `json:"id"`
-	ProofTypes        []string               `json:"proofTypes"`
-	RevNonce          uint64                 `json:"revNonce"`
-	Revoked           bool                   `json:"revoked"`
-	SchemaHash        string                 `json:"schemaHash"`
-	SchemaType        string                 `json:"schemaType"`
-	SchemaUrl         string                 `json:"schemaUrl"`
-	UserID            string                 `json:"userID"`
+	CreatedAt             TimeUTC                `json:"createdAt"`
+	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
+	Expired               bool                   `json:"expired"`
+	ExpiresAt             *TimeUTC               `json:"expiresAt"`
+	Id                    uuid.UUID              `json:"id"`
+	ProofTypes            []string               `json:"proofTypes"`
+	RevNonce              uint64                 `json:"revNonce"`
+	Revoked               bool                   `json:"revoked"`
+	SchemaHash            string                 `json:"schemaHash"`
+	SchemaType            string                 `json:"schemaType"`
+	SchemaTypeDescription *string                `json:"schemaTypeDescription,omitempty"`
+	SchemaUrl             string                 `json:"schemaUrl"`
+	UserID                string                 `json:"userID"`
 }
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
