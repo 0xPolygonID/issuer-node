@@ -1,6 +1,6 @@
 import { Button, Space, Typography } from "antd";
 
-import { ReactComponent as IconBack } from "src/assets/icons/arrow-narrow-left.svg";
+import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import { DownloadSchema } from "src/components/schemas/DownloadSchema";
 import { SchemaViewer } from "src/components/schemas/SchemaViewer";
 import { Detail } from "src/components/shared/Detail";

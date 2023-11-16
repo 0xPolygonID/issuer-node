@@ -1,3 +1,11 @@
 {
-  "extends": ["stylelint-config-standard"]
+  "extends": "stylelint-config-standard-scss",
+  "plugins": ["stylelint-prettier"],
+  "rules": {
+    "prettier/prettier": true,
+    "font-family-no-missing-generic-family-keyword": null,
+    "selector-pseudo-class-no-unknown": null,
+    "property-no-unknown": null,
+    "no-descending-specificity": null
+  }
 }

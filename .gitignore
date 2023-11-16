@@ -16,6 +16,9 @@ infrastructure/local/.vault/plugins
 infrastructure/local/.vault/policies
 infrastructure/local/.vault/file
 
+tools/changelog/input.md
+tools/changelog/changelog.md
+
 .fleet
 .vscode/
 

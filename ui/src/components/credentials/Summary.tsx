@@ -2,8 +2,8 @@ import { Button, Card, Divider, Form, Input, Row, Space, message } from "antd";
 import copy from "copy-to-clipboard";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import { ReactComponent as IconCopy } from "src/assets/icons/copy-01.svg";
-import { ReactComponent as ExternalLinkIcon } from "src/assets/icons/link-external-01.svg";
+import IconCopy from "src/assets/icons/copy-01.svg?react";
+import ExternalLinkIcon from "src/assets/icons/link-external-01.svg?react";
 import { ROUTES } from "src/routes";
 import { CREDENTIALS_TABS, CREDENTIAL_LINK } from "src/utils/constants";
 

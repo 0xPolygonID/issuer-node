@@ -1,6 +1,6 @@
 import { Button } from "antd";
 
-import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
+import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 
 export function IssueDirectlyButton({ onClick }: { onClick: () => void }) {
   return (

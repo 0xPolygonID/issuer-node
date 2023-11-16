@@ -208,8 +208,8 @@ function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-time" | 
     format === "date"
       ? "YYYY-MM-DD"
       : format === "date-time"
-      ? "YYYY-MM-DDTHH:mm:ss.SSSZ"
-      : "HH:mm:ss.SSSZ";
+        ? "YYYY-MM-DDTHH:mm:ss.SSSZ"
+        : "HH:mm:ss.SSSZ";
 
   return dayjs(date).format(template);
 }

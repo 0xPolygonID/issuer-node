@@ -1,7 +1,7 @@
 import { Avatar, Button, Result } from "antd";
 
-import { ReactComponent as IconError } from "src/assets/icons/alert-circle.svg";
-import { ReactComponent as IconRetry } from "src/assets/icons/refresh-ccw-01.svg";
+import IconError from "src/assets/icons/alert-circle.svg?react";
+import IconRetry from "src/assets/icons/refresh-ccw-01.svg?react";
 import { ERROR_MESSAGE } from "src/utils/constants";
 
 export function ErrorResult({
