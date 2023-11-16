@@ -5,11 +5,13 @@ ENV GOBIN /service/bin
 COPY ./api ./api
 COPY ./api_ui ./api_ui
 COPY ./cmd ./cmd
+COPY ./tools/vault-migrator ./tools/vault-migrator
 COPY ./internal ./internal
 COPY ./pkg ./pkg
 COPY ./go.mod ./
 COPY ./go.sum ./
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
+RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./tools/...
 
 FROM alpine:latest
 RUN apk add --no-cache libstdc++ gcompat libgomp
