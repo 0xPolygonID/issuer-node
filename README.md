@@ -30,10 +30,10 @@ These steps can be followed to get up and running with all features as quickly a
 1. Run `make up`. This launches 3 containers with Postgres, Redis and Vault. Ignore the warnings about variables, since those are set up in the next step.
 1. **If you are on an Apple Silicon chip (e.g. M1/M2), run `make run-arm`**. Otherwise, run `make run`. This starts up the issuer API, whose frontend can be accessed via the browser (default <http://localhost:3001>).
 1. [Add](#import-wallet-private-key-to-vault) your Ethereum private key to the Vault.
-1. [Add](#add-vault-to-configuration-file) the Vault to the config.
-1. [Create](#create-issuer-did) your issuer DID.
-1. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#development-ui) section for more details.
-1. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
+2. [Setup vault](#setup-vault).
+3. [Create](#create-issuer-did) your issuer DID.
+4. _(Optional)_ To run the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#development-ui) section for more details.
+5. _(Optional)_ Run `make run-ui` (or `make run-ui-arm` on Apple Silicon) to have the Web UI available on <http://localhost:8088> (in production mode). Its HTTP auth credentials are set in `.env-ui`. The UI API also has a frontend for API documentation (default <http://localhost:3002>).
 
 #### Docker Guide Requirements
 
@@ -169,7 +169,7 @@ make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key;
 #   Success! Data written to: iden3/import/pbkey
 ```
 
-#### ~~Add Vault To Configuration File~~ Setup Vault
+#### Setup Vault
 
 ##### Option 1: Using root vault token (not recommended :thumbsdown:)
 This will get the vault token from the Hashicorp vault docker instance and add it to our `./env-issuer` file.
@@ -434,10 +434,10 @@ Make sure you have Postgres, Redis and Vault properly installed & configured. Do
 1. Run `./bin/platform` command to start the issuer.
 1. Run `./bin/pending_publisher`. This checks that publishing transactions to the blockchain works.
 1. [Add](#import-wallet-private-key-to-vault) your Ethereum private key to the Vault.
-1. [Add](#add-vault-to-configuration-file) the Vault to the config.
-1. [Create](#create-issuer-did) your issuer DID.
-1. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
-1. _Documentation pending: standalone UI setup._
+2. [Setup vault](#setup-vault).
+3. [Create](#create-issuer-did) your issuer DID.
+4. _(Optional)_ To set up the UI with its own API, first copy `.env-ui.sample` as `.env-ui`. Please see the [configuration](#configuration) section for more details.
+5. _Documentation pending: standalone UI setup._
 
 ---
 
