@@ -65,10 +65,17 @@ vault policy write issuernode /vault/config/policies.hcl
 
 echo "===== CREATE USERS ====="
 vault auth enable userpass
-vault write auth/userpass/users/issuernode \
-    password=issuernodepwd \
-    policies="admins,issuernode"
 
+result=$(vault read auth/userpass/users/issuernode 2>&1)
+echo $result
+
+if [[ "$result" == "No value found at auth/userpass/users/issuernode" ]]; then
+    echo "issuernode user nor found, creating..."
+    vault write auth/userpass/users/issuernode \
+        password=issuernodepwd \
+        policies="admins,issuernode"
+else
+    echo "issuernode user found, skipping creation..."
+fi
 echo $vault_token
-
 tail -f /dev/null
