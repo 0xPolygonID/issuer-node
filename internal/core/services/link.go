@@ -197,6 +197,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
 		QrCode:    ls.qrService.ToURL(serverURL, id),
+		QrID:      id,
 		Link:      link,
 	}, nil
 }

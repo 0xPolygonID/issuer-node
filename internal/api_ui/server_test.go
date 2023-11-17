@@ -147,7 +147,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name: "should get a qrCode",
+			name: "should get a qrCode", // TODO: LALA Test type = raw, type = link and type = nil
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: protocol.AuthorizationRequestMessage{
@@ -1806,6 +1806,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			},
 		},
 		{
+			// TODO: LALA Test the QR code type to raw, link and none
 			name: "happy path",
 			request: GetCredentialRequestObject{
 				Id: createdClaim.ID,

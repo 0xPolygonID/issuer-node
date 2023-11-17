@@ -148,10 +148,19 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 }
 
 // AuthQRCode returns the qr code for authenticating a user
-func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	qrCode, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
+	// TODO: Try to remove qrCode and use only id or make qrCode an object instead of a string
+	qrCode, id, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
+	}
+	if req.Params.Type != nil && *req.Params.Type == AuthQRCodeParamsTypeRaw {
+		body, err := s.qrService.Find(ctx, id)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", id)
+			return AuthQRCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		return NewQrContentResponse(body), nil
 	}
 	return NewQrContentResponse([]byte(qrCode)), nil
 }
@@ -530,8 +539,9 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 }
 
 // CreateLinkQrCode - Creates a link QrCode
-func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
-	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+// TODO: Test it!!!
+func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
+	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrLinkNotFound) {
 			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
@@ -542,28 +552,48 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
+
+	qrContent := createLinkQrCodeResponse.QrCode
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	if req.Params.Type != nil && *req.Params.Type == CreateLinkQrCodeParamsTypeRaw {
+		rawQrCode, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", qrID)
+			return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		qrContent = string(rawQrCode)
+	}
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.APIUI.IssuerName,
 			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode:     createLinkQrCodeResponse.QrCode,
+		QrCode:     qrContent,
 		SessionID:  createLinkQrCodeResponse.SessionID,
 		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
-func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	qrLink, schemaType, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+func (s *Server) GetCredentialQrCode(ctx context.Context, req GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
+	qrContent, schemaType, qrID, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	if req.Params.Type != nil && *req.Params.Type == GetCredentialQrCodeParamsTypeRaw {
+		rawQrCode, err := s.qrService.Find(ctx, qrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", qrID)
+			return GetCredentialQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		qrContent = string(rawQrCode)
+	}
 	return GetCredentialQrCode200JSONResponse{
-		QrCodeLink: qrLink,
+		QrCodeLink: qrContent,
 		SchemaType: schemaType,
 	}, nil
 }
@@ -598,7 +628,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 
 // GetLinkQRCode - returns te qr code for adding the credential
 //
-//	TODO: Aquí
+//	TODO: LALA Tocar aquí para que devuelva el qr code de la credencial
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
 	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
@@ -607,8 +637,9 @@ func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequest
 		}
 		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
-
-	if getQRCodeResponse.State.Status == link_state.StatusPending || getQRCodeResponse.State.Status == link_state.StatusDone || getQRCodeResponse.State.Status == link_state.StatusPendingPublish {
+	if getQRCodeResponse.State.Status == link_state.StatusPending ||
+		getQRCodeResponse.State.Status == link_state.StatusDone ||
+		getQRCodeResponse.State.Status == link_state.StatusPendingPublish {
 		return GetLinkQRCode200JSONResponse{
 			Status:     common.ToPointer(getQRCodeResponse.State.Status),
 			QrCode:     getQRCodeResponse.State.QRCode,

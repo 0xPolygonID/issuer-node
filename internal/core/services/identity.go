@@ -457,7 +457,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, uuid.UUID, error) {
 	sessionID := uuid.New().String()
 	reqID := uuid.New().String()
 
@@ -473,18 +473,18 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		},
 	}
 	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
 	id, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
-		return "", err
+		return "", uuid.Nil, err
 	}
-	return i.qrService.ToURL(serverURL, id), nil
+	return i.qrService.ToURL(serverURL, id), id, nil
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, currentState domain.IdentityState) error {

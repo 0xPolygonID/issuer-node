@@ -49,6 +49,18 @@ paths:
       tags:
         - Auth
         - Connection
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code. (default value)
+          schema:
+            type: string
+            enum: [ raw, link ]
+
       responses:
         '200':
           description: ok
@@ -396,7 +408,18 @@ paths:
       tags:
         - Credential
       parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ raw, link ]
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code. (default value)
         - $ref: '#/components/parameters/id'
+
       responses:
         '200':
           description: ok
@@ -772,6 +795,16 @@ paths:
       summary: Create Authentication Link QRCode
       operationId: CreateLinkQrCode
       parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ raw, link ]
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code. (default value)
         - $ref: '#/components/parameters/id'
       tags:
         - Links
@@ -990,7 +1023,7 @@ components:
         - qrCodeLink
         - schemaType
       properties:
-        qrCodeLink:
+        qrCodeLink: # TODO: Rename to QRCode. It can be a Link or a Raw QR
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         schemaType:
