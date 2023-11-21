@@ -15,6 +15,9 @@ import (
 func (f *Fixture) CreateConnection(t *testing.T, conn *domain.Connection) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
+	if conn.ID == uuid.Nil {
+		conn.ID = uuid.New()
+	}
 	id, err := f.connectionsRepository.Save(ctx, f.storage.Pgx, conn)
 	assert.NoError(t, err)
 	return id

@@ -85,9 +85,9 @@ func TestSaveUserAuthentication(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)
 
-	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:main:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
+	issuerDID, err := w3c.ParseDID("did:polygonid:ethereum:main:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
 	require.NoError(t, err)
-	userDID, err := w3c.ParseDID("did:polygonid:polygon:main:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	userDID, err := w3c.ParseDID("did:polygonid:ethereum:main:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
 
 	connID := fixture.CreateConnection(t, &domain.Connection{
