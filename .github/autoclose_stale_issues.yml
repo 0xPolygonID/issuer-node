@@ -13,4 +13,5 @@ jobs:
           close-issue-message: 'This issue was closed because it has been stalled for 10 days with no activity.'
           days-before-stale: 20
           days-before-close: 10
+          days-before-pr-stale: -1
           days-before-pr-close: -1
