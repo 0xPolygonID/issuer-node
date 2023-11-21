@@ -20,7 +20,8 @@ import (
 	"github.com/iden3/go-iden3-auth/v2/pubsignals"
 	"github.com/iden3/go-iden3-auth/v2/state"
 	"github.com/iden3/iden3comm/v2/protocol"
-	shell "github.com/ipfs/go-ipfs-api"
+
+	// shell "github.com/ipfs/go-ipfs-api"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
@@ -36,6 +37,48 @@ type IdentityRequest struct {
 	CallbackURL string   `json:"callbackUrl"`
 	Email       string   `json:"email"`
 	Images      []string `json:"images"`
+}
+
+type GetDetailsRequest struct {
+	Task       string `json:"type"`
+	Essentials struct {
+		RequestId string `json:"requestId"`
+	} `json:"essentials"`
+}
+
+type VerifyAdharResponse struct {
+	Response struct {
+		Url    struct{} `json:"url"`
+		Id     string   `json:"id"`
+		Result struct {
+			Verified     bool   `json:"verified"`
+			AgeBand      string `json:"ageBand"`
+			State        string `json:"state"`
+			MobileNumber string `json:"mobileNumber"`
+			Gender       string `json:"gender"`
+		} `json:"result"`
+	} `json:"response"`
+}
+
+type verifyresponse struct {
+	Response struct {
+		Name      string `json:"name"`
+		Number    string `json:"number"`
+		Fuzzy     string `json:"fuzzy"`
+		PanStatus string `json:"panStatus"`
+		ID        int    `json:"id"`
+		Instance  struct {
+			ID          string `json:"id"`
+			CallbackUrl string `json:"callbackUrl"`
+		} `json:"instance"`
+		Result struct {
+			Verified      bool   `json:"verified"`
+			Message       string `json:"message"`
+			UpstreamName  string `json:"upstreamName"`
+			PanStatus     string `json:"panStatus"`
+			PanStatusCode string `json:"panStatusCode"`
+		} `json:"result"`
+	} `json:"response"`
 }
 
 var requestMap = make(map[string]interface{})
@@ -348,7 +391,7 @@ func (v *verifier) GetRequestID(ctx context.Context, patronid string) {
 }
 
 func (v *verifier) GetListOfDocuments(ctx context.Context, patronid string, accessToken string, Adhar bool, PAN bool) {
-	url := "https://signzy.tech/api/v2/patrons/${patronid}/digilockers"
+	url := fmt.Sprintf("https://preproduction.signzy.tech/api/v2/patrons/%s/digilockers", patronid)
 
 	payload := strings.NewReader("{\"task\":\"listofdocuments\", essentials: {}}")
 
@@ -387,6 +430,29 @@ func (V *verifier) GetPANDoc(ctx context.Context, patronid string) {
 		return
 	}
 
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+
+	fmt.Println(res)
+	fmt.Println(string(body))
+}
+
+func (v *verifier) GetDetails(ctx context.Context, partonId string, requestId string, accessToken string) {
+	url := fmt.Sprintf("https://preproduction.signzy.tech/api/v2/patrons/%s/digilockers", partonId)
+
+	payload := fmt.Sprintf("{\"task\":\"getDetails\", essentials: {\"requestId\": \"%s\"}}", requestId)
+
+	req, _ := http.NewRequest("POST", url, strings.NewReader(payload))
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Authorization", accessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		fmt.Println("error", err)
+	}
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
@@ -454,39 +520,24 @@ func (v *verifier) VerifyAdhar(ctx context.Context, itemId string, accessToken s
 
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	var response VerifyAdharResponse
+	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
-
-	fmt.Println("=====Result=====", res)
-	fmt.Println("=====Body=====", string(body))
-
-	var response domain.VerifyAdharResponse
-
-	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-		fmt.Println("err", err)
-		return nil, err
-	}
-	// type VerifyAdharResponseBody struct {
-	// 	Verified bool `json:"verified"`
-	// 	// add more fields here as needed
-	// }
-
-	// var response VerifyAdharResponseBody
-
-	// if err := json.Unmarshal(body, &response); err != nil {
-	// 	fmt.Println("err", err)
-	// 	return nil, err
-	// }
-
-	// fmt.Println("response", response)
-
-	if !response.Verified {
+	fmt.Println("response", response)
+	if !response.Response.Result.Verified {
 		return nil, fmt.Errorf("Adhar not verified")
 	} else {
-		return nil, nil
+		fmt.Println("Status", "===========Verified==========")
+		return &domain.VerifyAdharResponse{
+			Verified:     response.Response.Result.Verified,
+			AgeBand:      response.Response.Result.AgeBand,
+			State:        response.Response.Result.State,
+			MobileNumber: response.Response.Result.MobileNumber,
+			Gender:       response.Response.Result.Gender,
+		}, nil
 	}
 }
 
@@ -508,36 +559,55 @@ func (v *verifier) VerifyPAN(ctx context.Context, itemId string, accessToken str
 	}
 	defer res.Body.Close()
 
-	body, _ := ioutil.ReadAll(res.Body)
-
-	fmt.Println("=====Result=====", res)
-	fmt.Println("=====Body=====", string(body))
-	var response domain.VerifyPANResponse
-
-	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
-		fmt.Println("err", err)
+	var response verifyresponse
+	err = json.NewDecoder(res.Body).Decode(&response)
+	if err != nil {
+		log.Println(err.Error())
 		return nil, err
 	}
+
 	fmt.Println("response", response)
-	if !response.Verified {
+	if !response.Response.Result.Verified {
 		return nil, fmt.Errorf("PAN not verified")
 	} else {
-		return &response, nil
+		return &domain.VerifyPANResponse{
+			Verified:      response.Response.Result.Verified,
+			Message:       response.Response.Result.Message,
+			UpstreamName:  response.Response.Result.UpstreamName,
+			PanStatus:     response.Response.Result.PanStatus,
+			PanStatusCode: response.Response.Result.PanStatusCode,
+		}, nil
 	}
 }
 
-func (v *verifier) UploadToIPFS(ctx context.Context, filePath string) (string, error) {
-	sh := shell.NewShell("localhost:5001")
-	fileData, err := ioutil.ReadFile(filePath)
+func (v *verifier) VerifyGSTIN(ctx context.Context, partonId string, Authorization string, gstin string) (*domain.VerifyGSTINResponse, error) {
+
+	url := fmt.Sprintf("https://preproduction.signzy.tech/api/v2/patrons/%s/gstns", partonId)
+	payloadStr := fmt.Sprintf("{\"task\":\"gstnSearch\",\"essentials\":{\"gstin\":\"%s\"}}", gstin)
+	req, _ := http.NewRequest("POST", url, strings.NewReader(payloadStr))
+
+	req.Header.Add("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Authorization", Authorization)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		log.Println(err.Error())
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var response domain.VerifyGSTINResponse
+	err = json.NewDecoder(res.Body).Decode(&response)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
 	}
 
-	reader := bytes.NewReader(fileData)
-	cid, err := sh.Add(reader)
-	if err != nil {
-		return "", err
+	fmt.Println("response", response)
+	if response.GstnDetailed.GstinStatus != "ACTIVE" {
+		return nil, fmt.Errorf("GSTIN not Active")
+	} else {
+		return &response, nil
 	}
-
-	return cid, nil
 }

@@ -15,4 +15,5 @@ type VerifierService interface {
 	GetDigiLockerURL(ctx context.Context) (*domain.DigilockerURLResponse, error)
 	VerifyPAN(ctx context.Context,PAN string,Name string) (*domain.VerifyPANResponse, error)
 	VerifyAdhar(ctx context.Context,AdahrNumber string) (*domain.VerifyAdharResponse, error)
+	VerifyGSTIN(ctx context.Context, gstin string) (*domain.VerifyGSTINResponse, error)
 }

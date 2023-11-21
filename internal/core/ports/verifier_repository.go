@@ -22,8 +22,10 @@ type VerifierRepository interface {
 	GetListOfDocuments(ctx context.Context, patronid string, accessToken string, Adhar bool, PAN bool)
 	GetPANDoc(ctx context.Context, patronid string)
 	GetIdentity(ctx context.Context, patronid string, _type string, accessToken string) (*domain.VerificationIdentity, error)
-	UploadToIPFS(ctx context.Context, filePath string) (string, error)
+	// UploadToIPFS(ctx context.Context, filePath string) (string, error)
 	PullDocuments(ctx context.Context, patronid string, requestId string, accessToken string) (*domain.DigilockerDocumentList, error)
-	VerifyPAN(ctx context.Context,itemId string,accessToken string,Authorization string,panNumber string,Name string, fuzzy bool,panStatus bool)(*domain.VerifyPANResponse,error)
-	VerifyAdhar(ctx context.Context,itemId string,accessToken string,Authorization string, adharNumber string)(*domain.VerifyAdharResponse,error)
+	VerifyPAN(ctx context.Context, itemId string, accessToken string, Authorization string, panNumber string, Name string, fuzzy bool, panStatus bool) (*domain.VerifyPANResponse, error)
+	VerifyAdhar(ctx context.Context, itemId string, accessToken string, Authorization string, adharNumber string) (*domain.VerifyAdharResponse, error)
+	GetDetails(ctx context.Context, partonId string, requestId string, accessToken string)
+	VerifyGSTIN(ctx context.Context, partonId string,Authorization string, gstin string) (*domain.VerifyGSTINResponse, error)
 }

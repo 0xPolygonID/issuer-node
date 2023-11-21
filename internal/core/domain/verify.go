@@ -63,3 +63,8 @@ type VerifyPANResponse struct {
 	PanStatus     string `json:"panStatus"`
 	PanStatusCode string `json:"panStatusCode"`
 }
+type VerifyGSTINResponse struct {
+	GstnDetailed struct{
+		GstinStatus string `json:"gstinStatus"`
+	} `json:"gstnDetailed"`
+}

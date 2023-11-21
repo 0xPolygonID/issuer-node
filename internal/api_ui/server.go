@@ -131,7 +131,6 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 	// }
 	// fmt.Println("User :", res)
 	// return VerifyRequest200Response{"Verification of request done successfully", true}, nil
-
 	requestDetials, err := s.requestServer.GetRequest(ctx, id)
 	if err != nil {
 		return nil, err
@@ -230,11 +229,22 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 		}
 		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
 	} else if requestDetials.RequestType == "KYBGSTINCredentials" {
-		_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
-		if err != nil {
-			return nil, err
+		resp, err := s.verifierServer.VerifyGSTIN(ctx, requestDetials.ProofId)
+
+		if resp.GstnDetailed.GstinStatus == "ACTIVE" {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
+			if err != nil {
+				return nil, err
+			}
+			return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+		} else {
+			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity Verification Failed", "VC Verification Pending", "Identity Verification Failed")
+			if err != nil {
+				return nil, err
+			}
+			return VerifyRequest200Response{"Verification of request Failed. Invaid GSTIN Number", false}, nil
 		}
-		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
+
 	} else {
 		return VerifyRequest500Response{"Invalid reuqest Type to Validate", false}, nil
 	}
@@ -350,6 +360,7 @@ func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject
 	}
 
 	_, err = s.requestServer.UpdateStatus(ctx, request.Body.RequestId, "VC Issued", "VC Issued", "VC Issued")
+	_ = s.claimService.AddExpirationData(ctx, resp.ID.String(), "Normal", false)
 	n := `VC for ` + request.Body.RequestId.String() + ` has been created Successfully`
 	usernotification := &domain.NotificationData{
 		ID:                  uuid.New(),
@@ -369,6 +380,7 @@ func (s *Server) GenerateVC(ctx context.Context, request GenerateVCRequestObject
 		NotificationMessage: n,
 	}
 	_, err = s.requestServer.NewNotification(ctx, issuernotification)
+
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
@@ -769,6 +781,28 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 		}
 		response[i] = credentialResponse(w3c, credential)
+
+		if IsWithinSevenDays(*w3c.Expiration) {
+			resp, err := s.claimService.GetExpirationData(ctx, credential.ID.String())
+			if err != nil {
+
+			} else {
+				if !resp.Notified {
+					n := domain.NotificationData{
+						ID:                  uuid.New(),
+						User_id:             w3c.ID,
+						Module:              "User",
+						NotificationType:    "Credential",
+						NotificationTitle:   "Credential will Expire",
+						NotificationMessage: fmt.Sprintf("Your %s Credential will expire in 7 Days", w3c.CredentialSchema.Type),
+					}
+					_, _ = s.requestServer.NewNotification(ctx, &n)
+					_ = s.claimService.UpdateExpirationStatus(ctx, w3c.ID, "Expiry Soon", true)
+
+				}
+			}
+		}
+
 	}
 	return GetCredentials200JSONResponse(response), nil
 }

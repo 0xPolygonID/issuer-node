@@ -43,6 +43,12 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 	return res
 }
 
+func IsWithinSevenDays(expirationDate time.Time) bool {
+	currentTime := time.Now()
+	sevenDaysBefore := currentTime.Add(7 * 24 * time.Hour)
+	return sevenDaysBefore.After(expirationDate)
+}
+
 func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
 	expired := false
 	if w3c.Expiration != nil {
@@ -461,3 +467,6 @@ func digiLockerURLResponse(request *domain.DigilockerURLResponse)(DigilockerURL2
 	}
 	return resp,nil
 }
+
+
+

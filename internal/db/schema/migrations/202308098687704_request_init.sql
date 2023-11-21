@@ -46,6 +46,14 @@ CREATE TABLE notifications
     CONSTRAINT notifications_pkey PRIMARY KEY (id)
 );
 
+CREATE TABLE credentialexpirations
+(
+    id  uuid  NOT NULL,
+    expiration_status text  NOT NULL,
+    isnotified bool  NOT NULL,
+    CONSTRAINT expiration_pkey PRIMARY KEY (id)
+);
+
 
 CREATE TABLE users 
 (
@@ -81,6 +89,7 @@ CREATE TABLE users
 -- +goose StatementBegin
 DROP TABLE IF EXISTS requests_for_vc;
 DROP TABLE IF EXISTS requests_for_auth;
+DROP TABLE IF EXISTS credentialexpirations;
 -- +goose StatementEnd
 
 

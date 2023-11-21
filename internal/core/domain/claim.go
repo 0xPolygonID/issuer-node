@@ -47,6 +47,12 @@ type Claim struct {
 	CreatedAt time.Time  `json:"-"`
 }
 
+type ExpirationData struct{
+	Id uuid.UUID
+	ExpirationStatus string
+	Notified bool
+}
+
 // Credentials is the type of array of credential
 type Credentials []*Claim
 

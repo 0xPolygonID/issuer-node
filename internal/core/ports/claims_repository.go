@@ -28,5 +28,8 @@ type ClaimsRepository interface {
 	UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error)
 	Delete(ctx context.Context, conn db.Querier, id uuid.UUID) error
 	GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier core.DID, userDID core.DID, linkID uuid.UUID) ([]*domain.Claim, error)
-	GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *core.DID, state string) (claims []*domain.Claim, err error)
+	GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, did *core.DID, state string) (claims []*domain.Claim, err error)	
+	AddExpirationData(ctx context.Context,conn db.Querier,id string,status string,notified bool) (bool)
+	UpdateExpirationStatus(ctx context.Context,conn db.Querier,id string, status string, notified bool) (bool)
+	GetExpirationData(ctx context.Context, conn db.Querier, id string) (*domain.ExpirationData, error)
 }

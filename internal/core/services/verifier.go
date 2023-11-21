@@ -46,11 +46,11 @@ func (v *verifier) GetDigiLockerURL(ctx context.Context) (*domain.DigilockerURLR
 }
 
 func (v *verifier) AccessDigiLocker(ctx context.Context, patronid string, requestId string, accessToken string, Adhar bool, PAN bool) (string, error) {
-	resp, err := v.verRepo.PullDocuments(ctx, patronid, requestId, accessToken)
-	if err != nil {
-		return "", err
-	}
-	fmt.Println("AccessDigiLocker", resp)
+	v.verRepo.GetDetails(ctx, patronid, requestId, accessToken)
+	// if err != nil {
+	// 	return "", err
+	// }
+	// fmt.Println("AccessDigiLocker", resp)
 	return "AccessDigiLocker", nil
 }
 
@@ -104,4 +104,18 @@ func (v *verifier) VerifyAdhar(ctx context.Context,AdharNumber string) (*domain.
 	}
 	fmt.Println("VerifyAdhar", result)
 	return result, nil
+}
+
+func(v *verifier) VerifyGSTIN(ctx context.Context, gstin string) (*domain.VerifyGSTINResponse, error){
+	res, err := v.verRepo.Login(ctx, "ChaincodeConsulting_test", "tu6rithof3qe")
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Login", res)
+
+	resp,err :=v.verRepo.VerifyGSTIN(ctx,res.UserId,res.Id,gstin)
+	if err!= nil{
+		return nil, err
+	}
+	return resp,err
 }
