@@ -147,13 +147,38 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 	return AuthCallback200Response{}, nil
 }
 
+// GetAuthenticationConnection returns the connection related to a given session
+func (s *Server) GetAuthenticationConnection(ctx context.Context, req GetAuthenticationConnectionRequestObject) (GetAuthenticationConnectionResponseObject, error) {
+	conn, err := s.connectionsService.GetByUserSessionID(ctx, req.Id)
+	if err != nil {
+		log.Error(ctx, "get authentication connection", "err", err, "req", req)
+		if errors.Is(err, services.ErrConnectionDoesNotExist) {
+			return GetAuthenticationConnection404JSONResponse{N404JSONResponse{err.Error()}}, nil
+		}
+		return GetAuthenticationConnection500JSONResponse{N500JSONResponse{"Unexpected error while getting authentication session"}}, nil
+	}
+
+	return GetAuthenticationConnection200JSONResponse{
+		Connection: AuthenticationConnection{
+			Id:         conn.ID.String(),
+			UserID:     conn.UserDID.String(),
+			IssuerID:   conn.IssuerDID.String(),
+			CreatedAt:  TimeUTC(conn.CreatedAt),
+			ModifiedAt: TimeUTC(conn.ModifiedAt),
+		},
+	}, nil
+}
+
 // AuthQRCode returns the qr code for authenticating a user
 func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	qrCode, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	qrCode, sessionID, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
-	return NewQrContentResponse([]byte(qrCode)), nil
+	return AuthQRCode200JSONResponse{
+		QrCodeLink: qrCode,
+		SessionID:  sessionID,
+	}, nil
 }
 
 // GetConnection returns a connection with its related credentials
