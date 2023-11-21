@@ -2,6 +2,7 @@ import { PropsWithChildren, createContext, useContext, useEffect, useState } fro
 import { User, UserContext } from "src/domain/UserContext";
 
 // Create a context for the API response details
+// eslint-disable-next-line import/no-default-export
 export const UserDetailsContext = createContext<UserContext>({
   fullName: "",
   gmail: "",
@@ -9,7 +10,8 @@ export const UserDetailsContext = createContext<UserContext>({
   userDID: "",
   username: "",
   userType: "",
-  // setUserDetails: () => {},
+  // eslint-disable-next-line
+  setUserDetails: () => {},
 });
 
 export function UserDetailsProvider(props: PropsWithChildren) {

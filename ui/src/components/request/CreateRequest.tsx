@@ -115,7 +115,11 @@ export function CreateRequest() {
         title={CREATE_REQUEST}
       >
         <Card className="issue-credential-card" title="Create Request">
-          <Form layout="vertical" onFinish={() => handleFormSubmit}>
+          <Form
+            layout="vertical"
+            // eslint-disable-next-line
+            onFinish={handleFormSubmit}
+          >
             <Form.Item
               label="Select Crendential Type"
               name="schemaID"
