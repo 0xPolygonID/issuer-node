@@ -71,10 +71,8 @@ run:
 
 .PHONY: run-arm
 run-arm:
-	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
-	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
-	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
+	@echo "WARN: Running ARM version is deprecated. 'make run' will be executed instead."
+	@make run
 
 .PHONY: run-ui
 run-ui: add-host-url-swagger
@@ -82,7 +80,8 @@ run-ui: add-host-url-swagger
 
 .PHONY: run-ui-arm
 run-ui-arm: add-host-url-swagger
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
+	@echo "WARN: Running ARM version is deprecated. 'make run-ui' will be executed instead."
+	@make run-ui
 	
 .PHONY: build
 build:
@@ -90,7 +89,8 @@ build:
 
 .PHONY: build-arm
 build-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+	@echo "WARN: Running ARM version is deprecated. 'make build' will be executed instead."
+	@make build
 
 .PHONY: build-ui
 build-ui:
@@ -98,7 +98,8 @@ build-ui:
 
 .PHONY: build-ui-arm
 build-ui-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) build api-ui ui notifications pending_publisher
+	@echo "WARN: Running ARM version is deprecated. 'make build-ui' will be executed instead."
+	@make build-ui
 
 .PHONY: down
 down:
@@ -176,22 +177,11 @@ generate-issuer-did: run-initializer
 	docker stop issuer-initializer-1
 	docker rm issuer-initializer-1
 
-.PHONY: run-initializer-arm
-run-initializer-arm:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile-arm" $(DOCKER_COMPOSE_CMD) up -d initializer
-	sleep 5
 
 .PHONY: generate-issuer-did-arm
-generate-issuer-did-arm: run-initializer-arm
-	docker logs issuer-initializer-1
-	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
-	@echo $(DID)
-	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-	mv .env-api.tmp .env-api
-	docker stop issuer-initializer-1
-	docker rm issuer-initializer-1
-	#make print-did
+generate-issuer-did-arm:
+	@echo "WARN: Running ARM version is deprecated. 'make generate-issuer-did' will be executed instead."
+	@make generate-issuer-did
 
 .PHONY: add-host-url-swagger
 add-host-url-swagger:
@@ -208,7 +198,9 @@ rm-issuer-imgs: stop
 restart-ui: rm-issuer-imgs up run run-ui
 
 .PHONY: restart-ui-arm
-restart-ui-arm: rm-issuer-imgs up run-arm run-ui-arm
+restart-ui-arm:
+	@echo "WARN: Running ARM version is deprecated. 'make restart-ui' will be executed instead."
+	@make restart-ui
 
 .PHONY: print-did
 print-did:
@@ -221,6 +213,12 @@ delete-did:
 	docker exec issuer-vault-1 \
 	vault kv delete kv/did
 
+# use this to add the did to vault. It will not be added to the database
+# usage: make did=xxx add-did
+.PHONY: add-did
+add-did:
+	docker exec issuer-vault-1 \
+	vault kv put kv/did did=$(did)
 
 # usage: make vault_token=xxx vault-export-keys
 .PHONY: vault-export-keys
