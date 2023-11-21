@@ -15,7 +15,7 @@ type RequestRepository interface {
 	Save(ctx context.Context, conn db.Querier, connection *domain.Request) error
 	GetByID(ctx context.Context, conn db.Querier, id uuid.UUID)(domain.Responce,error)
 	Get(ctx context.Context, conn db.Querier,userDID string,requestType string)([]*domain.Responce,error)
-	UpdateStatus(ctx context.Context, conn db.Querier,id uuid.UUID)(int64, error)
+	UpdateStatus(ctx context.Context, conn db.Querier,id uuid.UUID,issuer_status string,verifier_status string,wallet_status string)(int64, error)
 	NewNotification(ctx context.Context, conn db.Querier,notification *domain.NotificationData) (bool,error)
 	GetNotifications(ctx context.Context, conn db.Querier,module string) ([]*domain.NotificationReponse,error)
 	GetRequestsByRequestType(ctx context.Context, conn db.Querier, requestType string) ([]*domain.Responce,error)
@@ -25,6 +25,7 @@ type RequestRepository interface {
 	GetUserID(ctx context.Context, conn db.Querier,udid string) (*domain.UserResponse,error)
 	SignUp(ctx context.Context, conn db.Querier, user *domain.SignUpRequest) (bool,error)
 	SignIn(ctx context.Context, conn db.Querier, username string, password string) (*domain.LoginResponse,error)
+	UpdateVerificationStatus(ctx context.Context, conn db.Querier, id string,field string, status bool) (int64,error)
 	// GetNotificationsForIssuer(ctx context.Context, conn db.Querier) ([]*domain.NotificationReponse,error)
 	// GetByID(ctx context.Context, conn db.Querier, identifier core.DID) (*domain.Identity, error)
 	// Get(ctx context.Context, conn db.Querier) (identities []string, err error)

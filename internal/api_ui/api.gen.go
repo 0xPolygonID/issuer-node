@@ -10,16 +10,31 @@ import (
 	"io"
 	"net/http"
 	"time"
+	// "log"
+	// "strconv"
 
 	"github.com/deepmap/oapi-codegen/pkg/runtime"
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
+	"github.com/iden3/go-rapidsnark/types"
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/google/uuid"
+	"github.com/iden3/iden3comm/v2"
+	// "github.com/iden3/go-circuits/v2"
+	// "github.com/ethereum/go-ethereum/common"
+	// "github.com/iden3/go-circuits/v2"
+	// auth "github.com/iden3/go-iden3-auth/v2"
+	// "github.com/iden3/go-iden3-auth/v2/loaders"
+	// "github.com/iden3/go-iden3-auth/v2/pubsignals"
+	// "github.com/iden3/go-iden3-auth/v2/state"
+	// "github.com/iden3/iden3comm/v2/protocol"
+	// "github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
 const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
+
+var requestMap = make(map[string]interface{})
 
 // Defines values for LinkStatus.
 const (
@@ -642,6 +657,23 @@ type ServerInterface interface {
 	// POST("v1/signIn", api.SignIn)
 	SignIn(w http.ResponseWriter, r *http.Request)
 
+	// POST("v1/createAuthRequest")
+	CreateAuthRequest(w http.ResponseWriter, r *http.Request)
+
+	// POST("v1/verifyAuthRequest")
+	Callback(w http.ResponseWriter, r *http.Request)
+
+	// // POST("v1/verifyAuthRequest")
+	// VerifyAuthRequest(w http.ResponseWriter, r *http.Request)
+
+	// POST ("v1/accessDigiLocker")
+	AccessDigiLocker(w http.ResponseWriter, r *http.Request)
+
+	// POST ("v1/accessDigiLocker")
+	GetDigiLockerURL(w http.ResponseWriter, r *http.Request)
+
+	// POST ("v1/verifyRequest")
+	VerifyRequest(w http.ResponseWriter, r *http.Request,id Id)
 
 }
 
@@ -670,6 +702,93 @@ func (siw *ServerInterfaceWrapper) SignIn(w http.ResponseWriter, r *http.Request
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.SignIn(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (siw *ServerInterfaceWrapper) AccessDigiLocker(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AccessDigiLocker(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (siw *ServerInterfaceWrapper) GetDigiLockerURL(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetDigiLockerURL(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+func (siw *ServerInterfaceWrapper) VerifyRequest(w http.ResponseWriter, r *http.Request){
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var id Id
+
+	err := runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VerifyRequest(w, r,id)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (siw *ServerInterfaceWrapper) CreateAuthRequest(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAuthRequest(w, r)
+	})
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func (siw *ServerInterfaceWrapper) Callback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.Callback(w, r)
 	})
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2105,12 +2224,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/login", wrapper.SignIn)	
 	})
-
-	
+	r.Group((func(r chi.Router){
+		r.Post(options.BaseURL+"/v1/createAuthRequest",wrapper.CreateAuthRequest)
+	}))
+	r.Group((func(r chi.Router){
+		r.Post(options.BaseURL+"/v1/verifyAuthRequest",wrapper.Callback)
+	}))
 	// r.Group(func(r chi.Router) {
 	// 	r.Get(options.BaseURL+"/v1/notifications/user", wrapper.GetNotificationsForUser)
 	// })
-
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/accessDigiLocker", wrapper.AccessDigiLocker)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/verifyDigiLocker", wrapper.GetDigiLockerURL)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/VerifyRequest/{id}", wrapper.VerifyRequest)
+	})
 	return r
 }
 
@@ -3490,6 +3621,18 @@ type GetRequestByUser struct{
 	UserDID string `json:"userDID"`
 	All bool `json:"all"`
 }
+
+type CreateRequestObject struct {
+	CredId uuid.UUID `json:"cred_id"`
+}
+
+type callbackRequestBody struct{
+	SessionID string `json:"session_id"`
+	TokenBytes []byte `json:"token_bytes"`
+}
+type callbackRequestObject struct{
+	Body *callbackRequestBody
+}
 type CreateUserRequestBody struct{
 	ID string `json:"id"`
 	Name string `json:"name"`
@@ -3500,11 +3643,17 @@ type CreateUserRequestBody struct{
 	Gmail string `json:"gmail"`
 	PhoneNumber string `json:"phoneNumber"`
 	Gstin string `json:"gstin"`
+	GstinFile string `json:"gstinFile"`
+	GstinStatus bool `json:"gstinStatus"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`
 	AdharNumber string `json:"adharNumber"`
 	Adhar string `json:"adhar"`
+	AdharFile string `json:"adharFile"`
+	AdharStatus bool `json:"adharStatus"`
 	PAN string `json:"PAN"`
+	PANFile string `json:"PANFile"`
+	PANStatus bool `json:"PANStatus"`
 	DocumentationSource string `json:"documentationSource"`
 }
 
@@ -3517,10 +3666,16 @@ type UserResponse struct {
 	Gmail string `json:"gmail"`
 	PhoneNumber string `json:"phoneNumber"`
 	Gstin string `json:"gstin"`
+	GstinFile string `json:"gstinFile"`
+	GstinStatus bool `json:"gstinStatus"`
 	UserType string `json:"userType"`
 	Address string `json:"address"`
 	Adhar string `json:"adhar"`
+	AdharFile string `json:"adharFile"`
+	AdharStatus bool `json:"adharStatus"`
 	PAN string `json:"PAN"`
+	PANFile string `json:"PANFile"`
+	PANStatus bool `json:"PANStatus"`
 	DocumentationSource string `json:"documentationSource"`
 	Iscompleted bool `json:"iscompleted"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -3584,6 +3739,157 @@ func (response addUser200Response) VisitAddUserResponse(w http.ResponseWriter) e
 	w.WriteHeader(200)
 	return json.NewEncoder(w).Encode(response)
 }
+
+type AuthorizationMessageResponseBody struct {
+	DIDDoc  json.RawMessage              `json:"did_doc,omitempty"`
+	Message string                       `json:"message,omitempty"`
+	Scope   []ZeroKnowledgeProofResponse `json:"scope"`
+}
+// ZeroKnowledgeProofResponse represents structure of zkp response
+type ZeroKnowledgeProofResponse struct {
+	ID                     uint32          `json:"id"` // unique id to present unique proof request
+	CircuitID              string          `json:"circuitId"`
+	VerifiablePresentation json.RawMessage `json:"vp,omitempty"`
+	types.ZKProof
+}
+type AuthorizationRequestMessage struct {
+	ID       string                          `json:"id"`
+	Typ      iden3comm.MediaType             `json:"typ,omitempty"`
+	Type     iden3comm.ProtocolMessage       `json:"type"`
+	ThreadID string                          `json:"thid,omitempty"`
+	Body     AuthorizationRequestMessageBody `json:"body,omitempty"`
+
+	From string `json:"from,omitempty"`
+	To   string `json:"to,omitempty"`
+}
+type AuthorizationRequestMessageBody struct {
+	CallbackURL string                      `json:"callbackUrl"`
+	Reason      string                      `json:"reason,omitempty"`
+	Message     string                      `json:"message,omitempty"`
+	DIDDoc      json.RawMessage             `json:"did_doc,omitempty"`
+	Scope       []ZeroKnowledgeProofRequest `json:"scope"`
+}
+
+// ZeroKnowledgeProofRequest represents structure of zkp request object
+type ZeroKnowledgeProofRequest struct {
+	ID        uint32                 `json:"id"` // unique request id
+	CircuitID string                 `json:"circuitId"`
+	Optional  *bool                  `json:"optional,omitempty"`
+	Query     map[string]interface{} `json:"query"`
+}
+
+type CreateAuthRequestResponse interface{
+	VisitCreateAuthRequest(w http.ResponseWriter) error
+}
+
+func ( response AuthorizationRequestMessage) VisitCreateAuthRequest(w http.ResponseWriter) error{
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyAuthResponseObject interface{
+	VisitVerifyAuthResponse(w http.ResponseWriter) error
+}
+
+type VerifyAuth200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+func (response VerifyAuth200Response) VisitVerifyAuthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AccessDigiLockerRequestBody struct{
+	Adhar bool `json:"adhar"`
+	PAN bool `json:"PAN"`
+	DrivingLicense bool `json:"drivingLicense"`
+	PatronId string `json:"patronid"`
+	RequestId string `json:"requestid"`
+}
+
+type AccessDigiLockerRequestObject struct{
+	Body *AccessDigiLockerRequestBody
+}
+
+type AccessDigiLockerResponseObject interface{
+	VisitAccessDigiLockerResponse(w http.ResponseWriter) error
+}
+
+type AccessDigiLocker200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+type AccessDigiLocker500Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response AccessDigiLocker500Response) VisitAccessDigiLockerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	return json.NewEncoder(w).Encode(response)
+}
+
+
+func (response AccessDigiLocker200Response) VisitAccessDigiLockerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DigilockerURL200Response struct {
+	Id string `json:"id"`
+	PatronId string `json:"patronId"`
+	Task string `json:"task"`
+	Result struct {
+		URL string `json:"url"`
+		RequestId string `json:"requestId"`
+	} `json:"result"`
+}
+
+type GetDigiLockerResponseObject interface{
+	VisitGetDigiLockerResponse(w http.ResponseWriter) error
+}
+
+func (response DigilockerURL200Response) VisitGetDigiLockerResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyRequestResponseObject interface{
+	VisitVerifyRequestResponse(w http.ResponseWriter) error
+}
+
+type VerifyRequest200Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response VerifyRequest200Response) VisitVerifyRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VerifyRequest500Response struct{
+	Msg string `json:"msg"`
+	Status bool `json:"status"`
+}
+
+func (response VerifyRequest500Response) VisitVerifyRequestResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+	return json.NewEncoder(w).Encode(response)
+}
+
+
+
+
 
 type SignUpRequestObject struct{
 	Body *SignUpRequest
@@ -3730,6 +4036,15 @@ type StrictServerInterface interface {
 
 	SignIn(ctx context.Context, request GetUserRequestObject)(GetLoginResponseObject,error)
 
+	CreateAuthRequest(ctx context.Context,credId uuid.UUID)(CreateAuthRequestResponse,error)
+
+	Callback(ctx context.Context, request callbackRequestObject)(VerifyAuthResponseObject,error)
+
+	AccessDigiLocker(ctx context.Context, request AccessDigiLockerRequestObject,Authorization string)(AccessDigiLockerResponseObject,error)
+
+	GetDigiLockerURL(ctx context.Context)(GetDigiLockerResponseObject,error)
+
+	VerifyRequest(ctx context.Context, id uuid.UUID)(VerifyRequestResponseObject,error)
 }
 
 type StrictHandlerFunc = runtime.StrictHttpHandlerFunc
@@ -3821,6 +4136,126 @@ func (sh *strictHandler) SignIn(w http.ResponseWriter, r *http.Request){
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
 }
+
+func (sh *strictHandler) GetDigiLockerURL(w http.ResponseWriter, r *http.Request){
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetDigiLockerURL(ctx)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetDigiLockerURL")
+	}
+
+	response, err := handler(r.Context(), w, r, nil)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetDigiLockerResponseObject); ok {
+		if err := validResponse.VisitGetDigiLockerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+
+
+func (sh *strictHandler) AccessDigiLocker(w http.ResponseWriter, r *http.Request){
+	var request AccessDigiLockerRequestObject
+
+	var body AccessDigiLockerRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	 Authorization :=r.Header.Get("Authorization")
+
+
+	request.Body = &body;
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AccessDigiLocker(ctx, request.(AccessDigiLockerRequestObject),Authorization)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AccessDigiLocker")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AccessDigiLockerResponseObject); ok {
+		if err := validResponse.VisitAccessDigiLockerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if validResponse, ok := response.(AccessDigiLocker500Response); ok {
+		if err := validResponse.VisitAccessDigiLockerResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) VerifyRequest(w http.ResponseWriter,r * http.Request,id uuid.UUID){
+	var request Id
+	request = id;
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.VerifyRequest(ctx, request.(Id))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VerifyRequest")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+	
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyRequestResponseObject); ok {
+		if err := validResponse.VisitVerifyRequestResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	}  else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+
+
+
+
+// func (sh *strictHandler) CreateAuthRequest(w http.ResponseWriter, r *http.Request){
+// 	// var request GetUserRequestObject
+
+// 	// var body GetUserRequestObject
+// 	// if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+// 	// 	sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+// 	// 	return
+// 	// }
+
+// 	// request = body;
+
+// 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request) (interface{}, error) {
+// 		return sh.ssi.CreateAuthRequest(ctx)
+// 	}
+// 	for _, middleware := range sh.middlewares {
+// 		handler = middleware(handler, "CreateAuthRequest")
+// 	}
+
+// 	response, err := handler(r.Context(), w, r)
+
+// 	if err != nil {
+// 		sh.options.ResponseErrorHandlerFunc(w, r, err)
+// 	} else if validResponse, ok := response.(GetLoginResponseObject); ok {
+// 		if err := validResponse.VisitGetLoginResponse(w); err != nil {
+// 			sh.options.ResponseErrorHandlerFunc(w, r, err)
+// 		}
+// 	} else if response != nil {
+// 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+// 	}
+// }
 
 
 func (sh *strictHandler) AuthRequest(w http.ResponseWriter, r *http.Request){
@@ -3954,6 +4389,67 @@ func (sh *strictHandler) GetUser(w http.ResponseWriter, r *http.Request, udid st
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
 }
+
+func (sh *strictHandler) CreateAuthRequest(w http.ResponseWriter, r *http.Request){
+	id := 1
+	var req CreateRequestObject
+	var body CreateRequestObject
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	req = body
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateAuthRequest(ctx, req.CredId)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateAuthRequest")
+	}
+
+	response, err := handler(r.Context(), w,r,id)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateAuthRequestResponse); ok {
+		if err := validResponse.VisitCreateAuthRequest(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
+func (sh *strictHandler) Callback(w http.ResponseWriter, r *http.Request){
+	id := 1
+	var req callbackRequestObject
+	var body callbackRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+
+	req.Body = &body
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.Callback(ctx, req)
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "Callback")
+	}
+
+	response, err := handler(r.Context(), w,r,id)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(VerifyAuthResponseObject); ok {
+		if err := validResponse.VisitVerifyAuthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
+	}
+}
+
 
 func (sh *strictHandler) GetAllRequests(w http.ResponseWriter, r *http.Request){
 	var request GetAllRequests
@@ -5061,3 +5557,102 @@ func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Req
 		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("Unexpected response type: %T", response))
 	}
 }
+
+
+// func (sh *strictHandler) Callback(w http.ResponseWriter, r *http.Request) {
+// 	// Get session ID from request
+// 	sessionID := r.URL.Query().Get("sessionId")
+
+// 	// get JWZ token params from the post request
+// 	tokenBytes, _ := io.ReadAll(r.Body)
+
+// 	// Add Polygon Mumbai RPC node endpoint - needed to read on-chain state
+// 	ethURL := "https://polygon-mumbai.g.alchemy.com/v2/YSO_NsiNTjiA-6thPC2RXS9NoBbjjDKC"
+
+// 	// Add identity state contract address
+// 	contractAddress := "0x134B1BE34911E39A8397ec6289782989729807a4"
+
+// 	resolverPrefix := "polygon:mumbai"
+
+// 	// Locate the directory that contains circuit's verification keys
+// 	keyDIR := "../keys"
+
+// 	// fetch authRequest from sessionID
+// 	authRequest := requestMap[sessionID]
+
+// 	// print authRequest
+// 	fmt.Println(authRequest)
+
+// 	// load the verification key
+// 	var verificationKeyloader = &loaders.FSKeyLoader{Dir: keyDIR}
+// 	resolver := state.ETHResolver{
+// 		RPCUrl:          ethURL,
+// 		ContractAddress: common.HexToAddress(contractAddress),
+// 	}
+
+// 	resolvers := map[string]pubsignals.StateResolver{
+// 		resolverPrefix: resolver,
+// 	}
+
+// 	// EXECUTE VERIFICATION
+// 	verifier, err := auth.NewVerifier(verificationKeyloader, resolvers, auth.WithIPFSGateway("https://ipfs.io"))
+// 	if err != nil {
+// 		log.Println(err.Error())
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	authResponse, err := verifier.FullVerify(
+// 		r.Context(),
+// 		string(tokenBytes),
+// 		authRequest.(protocol.AuthorizationRequestMessage),
+// 		pubsignals.WithAcceptedStateTransitionDelay(time.Minute*5))
+// 	if err != nil {
+// 		log.Println(err.Error())
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
+// 	userID := authResponse.From
+// 	messageBytes := []byte("User with ID " + userID + " Successfully authenticated")
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.Write(messageBytes)
+// 	return
+// }
+
+// func (sh *strictHandler) AuthRequest(w http.ResponseWriter, r *http.Request) {
+// 	// Audience is verifier id
+// 	rURL := "localhost:3002"
+// 	sessionID := 1
+// 	CallbackURL := "/v1/verifyAuthRequest"
+// 	Audience := "did:polygonid:polygon:mumbai:2qDyy1kEo2AYcP3RT4XGea7BtxsY285szg6yP9SPrs"
+
+// 	uri := fmt.Sprintf("%s%s?sessionId=%s", rURL, CallbackURL, strconv.Itoa(sessionID))
+
+// 	// Generate request for basic authentication
+// 	var request protocol.AuthorizationRequestMessage = auth.CreateAuthorizationRequest("test flow", Audience, uri)
+
+// 	request.ID = uuid.New().String()
+// 	request.ThreadID = request.ID
+
+// 	// Add request for a specific proof
+// 	var mtpProofRequest protocol.ZeroKnowledgeProofRequest
+// 	mtpProofRequest.ID = 1
+// 	mtpProofRequest.CircuitID = string(circuits.AtomicQuerySigV2CircuitID)
+// 	mtpProofRequest.Query = map[string]interface{}{
+// 		"allowedIssuers": []string{"*"},
+// 		"credentialSubject": map[string]interface{}{
+// 			"birthday": map[string]interface{}{
+// 				"$lt": 20000101,
+// 			},
+// 		},
+// 		"context": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld",
+// 		"type":    "KYCAgeCredential",
+// 	}
+// 	request.Body.Scope = append(request.Body.Scope, mtpProofRequest)
+
+// 	// Store auth request in map associated with session ID
+// 	requestMap[strconv.Itoa(sessionID)] = request
+
+// 	// print request
+// 	fmt.Println("Request",request);
+// }

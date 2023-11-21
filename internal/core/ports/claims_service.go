@@ -190,4 +190,7 @@ type ClaimsService interface {
 	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByStateIDWithMTPProof(ctx context.Context, did *core.DID, state string) ([]*domain.Claim, error)
+	AddExpirationData(ctx context.Context, id string, status string, notified bool) bool
+	UpdateExpirationStatus(ctx context.Context, id string, status string, notified bool) bool
+	GetExpirationData(ctx context.Context, id string) (*domain.ExpirationData, error)
 }

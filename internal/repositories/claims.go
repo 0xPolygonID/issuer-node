@@ -33,6 +33,21 @@ var (
 
 type claims struct{}
 
+// // AddExpirationData implements ports.ClaimsRepository.
+// func (*claims) AddExpirationData(ctx context.Context, conn db.Querier, id uuid.UUID, status string, notified bool) bool {
+// 	panic("unimplemented")
+// }
+
+// // GetExpirationData implements ports.ClaimsRepository.
+// func (*claims) GetExpirationData(ctx context.Context, conn db.Querier, id uuid.UUID) (*domain.ExpirationData, error) {
+// 	panic("unimplemented")
+// }
+
+// // UpdateExpirationStatus implements ports.ClaimsRepository.
+// func (*claims) UpdateExpirationStatus(ctx context.Context, conn db.Querier, id uuid.UUID, status string, notified bool) bool {
+// 	panic("unimplemented")
+// }
+
 type dbClaim struct {
 	ID               *uuid.UUID
 	Identifier       sql.NullString
@@ -1019,4 +1034,40 @@ func toCredentialDomain(c *dbClaim) *domain.Claim {
 	}
 
 	return credential
+}
+
+func (c *claims) AddExpirationData(ctx context.Context, conn db.Querier, id string, status string, notified bool) bool {
+	_, err := conn.Exec(ctx, `INSERT INTO credentialexpirations (id,expiration_status,isnotified) VALUES ($1,$2,$3)`,
+		id,
+		status,
+		notified,
+	)
+	if err != nil {
+		return (false)
+	}
+	return true
+}
+
+func (c *claims) UpdateExpirationStatus(ctx context.Context, conn db.Querier, id string, status string, notified bool) bool {
+	query := "UPDATE credentialexpirations SET expiration_status = $1 , isnotified = $2  WHERE id = $3"
+	res, err := conn.Exec(ctx, query, status, notified, id)
+	if err != nil {
+		return false
+	}
+	fmt.Println("Updating Status", res)
+	return true
+}
+
+func (c *claims) GetExpirationData(ctx context.Context, conn db.Querier, id string) (*domain.ExpirationData, error) {
+	var response domain.ExpirationData
+	err := conn.QueryRow(ctx, `SELECT id,expiration_status,isnotified WHERE id =$1`, id).Scan(
+		&response.Id,
+		&response.ExpirationStatus,
+		&response.Notified,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }

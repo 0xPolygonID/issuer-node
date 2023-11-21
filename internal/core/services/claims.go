@@ -647,3 +647,18 @@ func buildRevocationURL(host, issuerDID string, nonce uint64, singleIssuer bool)
 	return fmt.Sprintf("%s/v1/%s/claims/revocation/status/%d",
 		host, url.QueryEscape(issuerDID), nonce)
 }
+
+func (c *claim) AddExpirationData(ctx context.Context, id string, status string, notified bool) bool {
+	stat := c.icRepo.AddExpirationData(ctx, c.storage.Pgx, id, status, notified)
+	return stat
+}
+
+func (c *claim) UpdateExpirationStatus(ctx context.Context, id string, status string, notified bool) bool {
+	stat := c.icRepo.UpdateExpirationStatus(ctx, c.storage.Pgx, id, status, notified)
+	return stat
+}
+
+func (c *claim) GetExpirationData(ctx context.Context, id string) (*domain.ExpirationData, error) {
+	resp, err := c.icRepo.GetExpirationData(ctx, c.storage.Pgx, id)
+	return resp, err
+}

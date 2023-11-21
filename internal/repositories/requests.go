@@ -319,10 +319,10 @@ func (i *requests) GetRequestsByRequestType(ctx context.Context, conn db.Querier
 	return domainResponce, nil
 }
 
-func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UUID) (int64, error) {
+func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UUID, issuer_status string,verifier_status string ,wallet_status string) (int64, error) {
 	// query := "UPDATE requests_for_vc SET   = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
 	query := "UPDATE requests_for_vc SET request_status = $1 , verifier_status = $2 , wallet_status =$3  WHERE id = $4"
-	res, err := conn.Exec(ctx, query, "VC_Issued", "VC_Issued", "Issued", id)
+	res, err := conn.Exec(ctx, query, issuer_status, verifier_status, wallet_status, id)
 	if err != nil {
 		return 0, err
 	}
@@ -332,14 +332,20 @@ func (i *requests) UpdateStatus(ctx context.Context, conn db.Querier, id uuid.UU
 
 func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domain.UserRequest) (bool, error) {
 	fmt.Println("Saving Request Info into DB...", request)
-	_, err := conn.Exec(ctx, `UPDATE users SET fullname = $1 , userowner = $2 , user_gmail = $3 , user_gstin = $4 , user_address = $5 , adhar = $6 , pan = $7 , documentation_source = $8, dob = $9, user_phone = $10,iscompleted =$11 WHERE id = $12`,
+	_, err := conn.Exec(ctx, `UPDATE users SET fullname = $1 , userowner = $2 , user_gmail = $3 , user_gstin = $4 ,gstin_file = $5, gstin_verified = $6,user_address = $7 , adhar = $8 ,adhar_file = $9,adhar_verified =$10, pan = $11,pan_file =$12 ,pan_verified =$13, documentation_source = $14, dob = $15, user_phone = $16,iscompleted =$17 WHERE id = $18`,
 		request.Name,
 		request.Owner,
 		request.Gmail,
 		request.Gstin,
+		request.GstinFile,
+		request.GstinStatus,
 		request.Address,
 		request.Adhar,
+		request.AdharFile,
+		request.AdharStatus,
 		request.PAN,
+		request.PANFile,
+		request.PANStatus,
 		request.DocumentationSource,
 		request.DOB,
 		request.Phone,
@@ -352,9 +358,12 @@ func (i *requests) SaveUser(ctx context.Context, conn db.Querier, request *domai
 	return true, nil
 }
 
+
+
+
 func (i *requests) GetUserID(ctx context.Context, conn db.Querier,udid string) (*domain.UserResponse, error) {
 	response := domain.UserResponse{}
-	res := conn.QueryRow(ctx, `SELECT id,fullname,dob,userowner,username,user_gmail,user_phone,user_gstin,usertype,user_address,adhar,pan,documentation_source,iscompleted,created_at FROM users  WHERE id = $1`, udid).Scan(
+	res := conn.QueryRow(ctx, `SELECT id,fullname,dob,userowner,username,user_gmail,user_phone,user_gstin,gstin_file,gstin_verified,usertype,user_address,adhar,adhar_file,adhar_verified,pan,pan_file,pan_verified,documentation_source,iscompleted,created_at FROM users  WHERE id = $1`, udid).Scan(
 		&response.ID,
 		&response.Name,
 		&response.DOB,
@@ -363,10 +372,16 @@ func (i *requests) GetUserID(ctx context.Context, conn db.Querier,udid string) (
 		&response.Gmail,
 		&response.Phone,
 		&response.Gstin,
+		&response.GstinFile,
+		&response.GstinStatus,
 		&response.UserType,
 		&response.Address,
 		&response.Adhar,
+		&response.AdharFile,
+		&response.AdharStatus,
 		&response.PAN,
+		&response.PANFile,
+		&response.PANStatus,
 		&response.DocumentationSource,
 		&response.Iscompleted,
 		&response.CreatedAt,
@@ -491,4 +506,14 @@ func (i *requests) SignIn(ctx context.Context, conn db.Querier,username string ,
 	}
 	fmt.Println("response", response)
 	return &response, nil
+}
+
+func (i *requests) UpdateVerificationStatus(ctx context.Context, conn db.Querier, id string,field string, status bool) (int64, error) {
+	query := fmt.Sprintf("UPDATE users SET %s = $1 WHERE id = $2",field)
+	res, err := conn.Exec(ctx, query, status, id)
+	if err != nil {
+		return 0, err
+	}
+	fmt.Println("Updated Verification Status", res)
+	return res.RowsAffected(), nil
 }
