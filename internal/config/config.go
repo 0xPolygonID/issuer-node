@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -267,6 +268,23 @@ func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) err
 			return err
 		}
 		cfg.APIUI.IssuerDID = *issuerDID
+	} else {
+		log.Info(ctx, "Issuer did loaded from configuration file", "did", cfg.APIUI.Issuer)
+		didInVault, err := providers.GetDID(ctx, vaultCli)
+		if err != nil {
+			if !errors.Is(err, providers.DidNotFound) {
+				log.Error(ctx, "cannot get issuer did from vault", "error", err)
+				return err
+			}
+			log.Info(ctx, "did not present in vault")
+		}
+
+		if didInVault != cfg.APIUI.Issuer {
+			log.Info(ctx, "issuer did in vault is different from issuer did in configuration file. Saving did in vault")
+			if err := providers.SaveDID(ctx, vaultCli, cfg.APIUI.Issuer); err != nil {
+				log.Error(ctx, "cannot save issuer did in vault", "error", err)
+			}
+		}
 	}
 	return nil
 }
