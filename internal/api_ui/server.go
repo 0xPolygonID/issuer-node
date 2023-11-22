@@ -141,7 +141,7 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 		if err != nil {
 			return VerifyRequest500Response{"Verification of request failed", false}, err
 		}
-		if res.Verified {
+		if res.Response.Result.Verified == "true" {
 			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
 			if err != nil {
 				return nil, err
@@ -162,7 +162,7 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 		if err != nil {
 			return VerifyRequest500Response{"Verification of request failed", false}, err
 		}
-		if res.Verified {
+		if res.Response.Result.Verified == "true" {
 			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
 			if err != nil {
 				return nil, err
@@ -178,7 +178,7 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 			}
 		}
 		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
-	} else if requestDetials.RequestType == "KYCAgeCredentialPAN" {
+	} else if requestDetials.CredentialType == "KYCAgeCredentialPAN" {
 		user, err := s.requestServer.GetUserID(ctx, requestDetials.UserDID)
 		if err != nil {
 			return nil, err
@@ -203,7 +203,7 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 			}
 		}
 		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
-	} else if requestDetials.RequestType == "ValidCredentialPAN" {
+	} else if requestDetials.CredentialType == "ValidCredentialPAN" {
 		user, err := s.requestServer.GetUserID(ctx, requestDetials.UserDID)
 		if err != nil {
 			return nil, err
@@ -228,10 +228,10 @@ func (s *Server) VerifyRequest(ctx context.Context, id uuid.UUID) (VerifyRequest
 			}
 		}
 		return VerifyRequest200Response{"Verification of request done successfully", true}, nil
-	} else if requestDetials.RequestType == "KYBGSTINCredentials" {
+	} else if requestDetials.CredentialType == "KYBGSTINCredentials" {
 		resp, err := s.verifierServer.VerifyGSTIN(ctx, requestDetials.ProofId)
 
-		if resp.GstnDetailed.GstinStatus == "ACTIVE" {
+		if resp.Result.GSTNDetailed.GSTINStatus == "ACTIVE" {
 			_, err = s.requestServer.UpdateStatus(ctx, id, "Identity is Verified", "VC Verification Pending", "Identity is Verified")
 			if err != nil {
 				return nil, err
