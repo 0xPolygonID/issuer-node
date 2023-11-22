@@ -177,7 +177,7 @@ func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (Aut
 	}
 	return AuthQRCode200JSONResponse{
 		QrCodeLink: qrCode,
-		SessionID:  sessionID,
+		SessionID:  sessionID.String(),
 	}, nil
 }
 

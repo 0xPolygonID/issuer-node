@@ -464,8 +464,8 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, string, error) {
-	sessionID := uuid.New().String()
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, uuid.UUID, error) {
+	sessionID := uuid.New()
 	reqID := uuid.New().String()
 
 	qrCode := &protocol.AuthorizationRequestMessage{
@@ -479,17 +479,17 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 			Reason:      authReason,
 		},
 	}
-	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
-		return "", "", err
+	if err := i.sessionManager.Set(ctx, sessionID.String(), *qrCode); err != nil {
+		return "", uuid.Nil, err
 	}
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
-		return "", "", err
+		return "", uuid.Nil, err
 	}
 	id, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
-		return "", "", err
+		return "", uuid.Nil, err
 	}
 	return i.qrService.ToURL(serverURL, id), sessionID, nil
 }
