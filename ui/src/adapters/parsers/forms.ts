@@ -214,7 +214,7 @@ function serializeDate(date: dayjs.Dayjs | Date, format: "date" | "date-time" | 
   return dayjs(date).format(template);
 }
 
-function serializeAtrributeValue({
+function serializeAttributeValue({
   attributeValue,
 }: {
   attributeValue: AttributeValue;
@@ -251,13 +251,10 @@ function serializeAtrributeValue({
     }
     case "object": {
       return attributeValue.value !== undefined
-        ? attributeValue.value.reduce(
-            (acc, curr) => ({
-              ...acc,
-              [curr.name]: serializeAtrributeValue({ attributeValue: curr }),
-            }),
-            {}
-          )
+        ? attributeValue.value.reduce((acc: JsonObject | undefined, curr) => {
+            const value = serializeAttributeValue({ attributeValue: curr });
+            return value !== undefined ? { ...acc, [curr.name]: value } : acc;
+          }, undefined)
         : undefined;
     }
     case "null": {
@@ -288,7 +285,7 @@ export function serializeSchemaForm({
     );
     if (parsedAttributeValue.success) {
       return {
-        data: serializeAtrributeValue({ attributeValue: parsedAttributeValue.data }),
+        data: serializeAttributeValue({ attributeValue: parsedAttributeValue.data }),
         success: true,
       };
     } else {
