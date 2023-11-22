@@ -5,7 +5,8 @@ import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, JsonLdType } from "src/domain";
-import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { getStorageByKey } from "src/utils/browser";
+import { API_VERSION, IPFS_CUSTOM_GATEWAY_KEY, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
 type ApiSchemaInput = Omit<ApiSchema, "createdAt"> & {
@@ -126,10 +127,15 @@ export async function getApiSchemas({
 }
 
 export const getIPFSGatewayUrl = (env: Env, ipfsUrl: string): Response<string> => {
+  const ipfsGatewayUrl = getStorageByKey({
+    defaultValue: env.ipfsGatewayUrl,
+    key: IPFS_CUSTOM_GATEWAY_KEY,
+    parser: z.string().url(),
+  });
   const cid = ipfsUrl.split("ipfs://")[1];
 
   return cid !== undefined
-    ? buildSuccessResponse(`${env.ipfsGatewayUrl}/ipfs/${cid}`)
+    ? buildSuccessResponse(`${ipfsGatewayUrl}/ipfs/${cid}`)
     : buildErrorResponse("Invalid IPFS URL");
 };
 
