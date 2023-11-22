@@ -1124,7 +1124,7 @@ components:
     UUIDString:
       type: string
       x-omitempty: false
-      example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+      example: b7144f1c-d54e-4f67-a4f1-f2e7ff1beb07
 
     GenericErrorMessage:
       type: object
