@@ -48,8 +48,6 @@ type GetDetailsRequest struct {
 
 type VerifyAdharResponse struct {
 	Response struct {
-		Url    struct{} `json:"url"`
-		Id     string   `json:"id"`
 		Result struct {
 			Verified     bool   `json:"verified"`
 			AgeBand      string `json:"ageBand"`
@@ -501,7 +499,7 @@ func (v *verifier) GetIdentity(ctx context.Context, patronid string, _type strin
 	return &identityResponse, nil
 }
 
-func (v *verifier) VerifyAdhar(ctx context.Context, itemId string, accessToken string, Authorization string, uid string) (*domain.VerifyAdharResponse, error) {
+func (v *verifier) VerifyAdhar(ctx context.Context, itemId string, accessToken string, Authorization string, uid string) (*domain.VerifyAadhaarResponse, error) {
 
 	url := "https://preproduction.signzy.tech/api/v2/snoops"
 
@@ -519,25 +517,23 @@ func (v *verifier) VerifyAdhar(ctx context.Context, itemId string, accessToken s
 	}
 
 	defer res.Body.Close()
-
-	var response VerifyAdharResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
-	fmt.Println("response", response)
-	if !response.Response.Result.Verified {
+	fmt.Println("Body", string(body))
+	var response domain.VerifyAadhaarResponse
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+	if response.Response.Result.Verified != "true"{
 		return nil, fmt.Errorf("Adhar not verified")
 	} else {
 		fmt.Println("Status", "===========Verified==========")
-		return &domain.VerifyAdharResponse{
-			Verified:     response.Response.Result.Verified,
-			AgeBand:      response.Response.Result.AgeBand,
-			State:        response.Response.Result.State,
-			MobileNumber: response.Response.Result.MobileNumber,
-			Gender:       response.Response.Result.Gender,
-		}, nil
+		return &response, nil
 	}
 }
 
@@ -580,7 +576,9 @@ func (v *verifier) VerifyPAN(ctx context.Context, itemId string, accessToken str
 	}
 }
 
-func (v *verifier) VerifyGSTIN(ctx context.Context, partonId string, Authorization string, gstin string) (*domain.VerifyGSTINResponse, error) {
+
+
+func (v *verifier) VerifyGSTIN(ctx context.Context, partonId string, Authorization string, gstin string) (*domain.VerifyGSTINResponseNew, error) {
 
 	url := fmt.Sprintf("https://preproduction.signzy.tech/api/v2/patrons/%s/gstns", partonId)
 	payloadStr := fmt.Sprintf("{\"task\":\"gstnSearch\",\"essentials\":{\"gstin\":\"%s\"}}", gstin)
@@ -597,15 +595,21 @@ func (v *verifier) VerifyGSTIN(ctx context.Context, partonId string, Authorizati
 	}
 	defer res.Body.Close()
 
-	var response domain.VerifyGSTINResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+	fmt.Println("Body", string(body))
+	var response domain.VerifyGSTINResponseNew
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		log.Println(err.Error())
 		return nil, err
 	}
 
 	fmt.Println("response", response)
-	if response.GstnDetailed.GstinStatus != "ACTIVE" {
+	if response.Result.GSTNDetailed.GSTINStatus != "ACTIVE" {
 		return nil, fmt.Errorf("GSTIN not Active")
 	} else {
 		return &response, nil

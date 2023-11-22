@@ -85,7 +85,7 @@ func (v *verifier) VerifyPAN(ctx context.Context,PAN string,Name string) (*domai
 	return result, nil
 }
 
-func (v *verifier) VerifyAdhar(ctx context.Context,AdharNumber string) (*domain.VerifyAdharResponse, error) {
+func (v *verifier) VerifyAdhar(ctx context.Context,AdharNumber string) (*domain.VerifyAadhaarResponse, error) {
 	res, err := v.verRepo.Login(ctx, "ChaincodeConsulting_test", "tu6rithof3qe")
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (v *verifier) VerifyAdhar(ctx context.Context,AdharNumber string) (*domain.
 	return result, nil
 }
 
-func(v *verifier) VerifyGSTIN(ctx context.Context, gstin string) (*domain.VerifyGSTINResponse, error){
+func(v *verifier) VerifyGSTIN(ctx context.Context, gstin string) (*domain.VerifyGSTINResponseNew, error){
 	res, err := v.verRepo.Login(ctx, "ChaincodeConsulting_test", "tu6rithof3qe")
 	if err != nil {
 		return nil, err

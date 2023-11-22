@@ -25,7 +25,7 @@ type VerifierRepository interface {
 	// UploadToIPFS(ctx context.Context, filePath string) (string, error)
 	PullDocuments(ctx context.Context, patronid string, requestId string, accessToken string) (*domain.DigilockerDocumentList, error)
 	VerifyPAN(ctx context.Context, itemId string, accessToken string, Authorization string, panNumber string, Name string, fuzzy bool, panStatus bool) (*domain.VerifyPANResponse, error)
-	VerifyAdhar(ctx context.Context, itemId string, accessToken string, Authorization string, adharNumber string) (*domain.VerifyAdharResponse, error)
+	VerifyAdhar(ctx context.Context, itemId string, accessToken string, Authorization string, adharNumber string) (*domain.VerifyAadhaarResponse, error)
 	GetDetails(ctx context.Context, partonId string, requestId string, accessToken string)
-	VerifyGSTIN(ctx context.Context, partonId string,Authorization string, gstin string) (*domain.VerifyGSTINResponse, error)
+	VerifyGSTIN(ctx context.Context, partonId string,Authorization string, gstin string) (*domain.VerifyGSTINResponseNew, error)
 }
