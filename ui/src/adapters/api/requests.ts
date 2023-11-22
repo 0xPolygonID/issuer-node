@@ -127,10 +127,10 @@ export async function getRequests({
         data:
           query !== undefined
             ? User === "issuer"
-              ? { Request_type: "KYCAgeCredentialPAN", UserDID: query }
+              ? { Request_type: "GenerateNewVC", UserDID: query }
               : { Request_type: "VerifyVC", UserDID: query }
             : User === "issuer"
-            ? { Request_type: "KYCAgeCredentialPAN" }
+            ? { Request_type: "GenerateNewVC" }
             : { Request_type: "VerifyVC" },
         headers: {
           Authorization: buildAuthorizationHeader(env),
@@ -147,7 +147,7 @@ export async function getRequests({
     } else {
       response1 = await axios({
         baseURL: env.api.url,
-        data: { Request_type: "KYCAgeCredentialPAN", UserDID: query },
+        data: { Request_type: "GenerateNewVC", UserDID: query },
         headers: {
           Authorization: buildAuthorizationHeader(env),
         },
