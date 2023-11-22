@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -81,16 +82,24 @@ func main() {
 		return
 	}
 
-	if cfg.VaultUserPassAuthEnabled {
-		did, err := providers.GetDID(ctx, vaultCli)
-		if err != nil {
-			log.Info(ctx, "did not found in vault, creating new one")
-		}
-
-		if did != "" {
-			log.Info(ctx, "did already created, skipping", "did", did)
+	did, err := providers.GetDID(ctx, vaultCli)
+	if err != nil {
+		if errors.Is(err, providers.VaultConnErr) {
+			log.Error(ctx, "cannot connect to vault", "err", err)
 			return
 		}
+		log.Info(ctx, "did not found in vault, creating new one")
+	}
+
+	if did != "" {
+		log.Info(ctx, "did already created, skipping", "info", "if you want to create new one, please remove did from vault: 'vault kv delete kv/did'")
+		//nolint:all
+		fmt.Printf("\n")
+		//nolint:all
+		fmt.Printf(did)
+		//nolint:all
+		fmt.Printf("\n")
+		return
 	}
 
 	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
@@ -147,13 +156,13 @@ func main() {
 
 	log.Info(ctx, "identifier crated successfully")
 
-	if cfg.VaultUserPassAuthEnabled {
-		if err := providers.SaveDID(ctx, vaultCli, identity.Identifier); err != nil {
-			log.Error(ctx, "error saving identifier to vault", err)
-			return
-		}
+	if err := providers.SaveDID(ctx, vaultCli, identity.Identifier); err != nil {
+		log.Error(ctx, "error saving identifier to vault", err)
+		return
 	}
 
+	//nolint:all
+	fmt.Printf("\n")
 	//nolint:all
 	fmt.Printf(identity.Identifier)
 	//nolint:all
