@@ -81,6 +81,35 @@ func TestUpdatePushToken(t *testing.T) {
 	})
 }
 
+func TestSaveUserAuthentication(t *testing.T) {
+	connectionsRepo := repositories.NewConnections()
+	fixture := tests.NewFixture(storage)
+
+	issuerDID, err := w3c.ParseDID("did:polygonid:ethereum:main:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
+	require.NoError(t, err)
+	userDID, err := w3c.ParseDID("did:polygonid:ethereum:main:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	connID := fixture.CreateConnection(t, &domain.Connection{
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  nil,
+		UserDoc:    nil,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	})
+	sessionID := uuid.New()
+
+	require.NoError(t, connectionsRepo.SaveUserAuthentication(context.Background(), storage.Pgx, connID, sessionID, time.Now()))
+
+	connDB, err := connectionsRepo.GetByUserSessionID(context.Background(), storage.Pgx, sessionID)
+	require.NoError(t, err)
+
+	assert.Equal(t, connDB.ID, connID)
+	assert.Equal(t, connDB.IssuerDID.String(), issuerDID.String())
+	assert.Equal(t, connDB.UserDID.String(), userDID.String())
+}
+
 func TestDelete(t *testing.T) {
 	connectionsRepo := repositories.NewConnections()
 	fixture := tests.NewFixture(storage)

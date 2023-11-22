@@ -64,6 +64,15 @@ type AgentResponse struct {
 	Type     string      `json:"type"`
 }
 
+// AuthenticationConnection defines model for AuthenticationConnection.
+type AuthenticationConnection struct {
+	CreatedAt  TimeUTC    `json:"createdAt"`
+	Id         UUIDString `json:"id"`
+	IssuerID   UUIDString `json:"issuerID"`
+	ModifiedAt TimeUTC    `json:"modifiedAt"`
+	UserID     UUIDString `json:"userID"`
+}
+
 // Config defines model for Config.
 type Config = []KeyValue
 
@@ -124,6 +133,11 @@ type GenericErrorMessage struct {
 // GenericMessage defines model for GenericMessage.
 type GenericMessage struct {
 	Message string `json:"message"`
+}
+
+// GetAuthenticationConnectionResponse defines model for GetAuthenticationConnectionResponse.
+type GetAuthenticationConnectionResponse struct {
+	Connection AuthenticationConnection `json:"connection"`
 }
 
 // GetConnectionResponse defines model for GetConnectionResponse.
@@ -208,7 +222,10 @@ type PublishIdentityStateResponse struct {
 }
 
 // QrCodeLinkShortResponse defines model for QrCodeLinkShortResponse.
-type QrCodeLinkShortResponse = string
+type QrCodeLinkShortResponse struct {
+	QrCodeLink string     `json:"qrCodeLink"`
+	SessionID  UUIDString `json:"sessionID"`
+}
 
 // QrCodeLinkWithSchemaTypeShortResponse defines model for QrCodeLinkWithSchemaTypeShortResponse.
 type QrCodeLinkWithSchemaTypeShortResponse struct {
@@ -279,6 +296,9 @@ type TimeUTC = timeapi.Time
 type UUIDResponse struct {
 	Id string `json:"id"`
 }
+
+// UUIDString defines model for UUIDString.
+type UUIDString = string
 
 // Id defines model for id.
 type Id = uuid.UUID
@@ -451,6 +471,9 @@ type ServerInterface interface {
 	// Get Connection QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request)
+	// Get Authentication Connection
+	// (GET /v1/authentication/sessions/{id})
+	GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id)
 	// Get Connections
 	// (GET /v1/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams)
@@ -586,6 +609,12 @@ func (_ Unimplemented) AuthCallback(w http.ResponseWriter, r *http.Request, para
 // Get Connection QRCode
 // (GET /v1/authentication/qrcode)
 func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Authentication Connection
+// (GET /v1/authentication/sessions/{id})
+func (_ Unimplemented) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -899,6 +928,34 @@ func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AuthQRCode(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetAuthenticationConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "id", runtime.ParamLocationPath, chi.URLParam(r, "id"), &id)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAuthenticationConnection(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1844,6 +1901,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/authentication/qrcode", wrapper.AuthQRCode)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/authentication/sessions/{id}", wrapper.GetAuthenticationConnection)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/connections", wrapper.GetConnections)
 	})
 	r.Group(func(r chi.Router) {
@@ -2125,6 +2185,59 @@ func (response AuthQRCode200JSONResponse) VisitAuthQRCodeResponse(w http.Respons
 type AuthQRCode500JSONResponse struct{ N500JSONResponse }
 
 func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnectionRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetAuthenticationConnectionResponseObject interface {
+	VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error
+}
+
+type GetAuthenticationConnection200JSONResponse GetAuthenticationConnectionResponse
+
+func (response GetAuthenticationConnection200JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection400JSONResponse struct{ N400JSONResponse }
+
+func (response GetAuthenticationConnection400JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection401JSONResponse struct{ N401JSONResponse }
+
+func (response GetAuthenticationConnection401JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection404JSONResponse struct{ N404JSONResponse }
+
+func (response GetAuthenticationConnection404JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection500JSONResponse struct{ N500JSONResponse }
+
+func (response GetAuthenticationConnection500JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -3208,6 +3321,9 @@ type StrictServerInterface interface {
 	// Get Connection QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
+	// Get Authentication Connection
+	// (GET /v1/authentication/sessions/{id})
+	GetAuthenticationConnection(ctx context.Context, request GetAuthenticationConnectionRequestObject) (GetAuthenticationConnectionResponseObject, error)
 	// Get Connections
 	// (GET /v1/connections)
 	GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error)
@@ -3526,6 +3642,32 @@ func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(AuthQRCodeResponseObject); ok {
 		if err := validResponse.VisitAuthQRCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAuthenticationConnection operation middleware
+func (sh *strictHandler) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id) {
+	var request GetAuthenticationConnectionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAuthenticationConnection(ctx, request.(GetAuthenticationConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAuthenticationConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAuthenticationConnectionResponseObject); ok {
+		if err := validResponse.VisitGetAuthenticationConnectionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

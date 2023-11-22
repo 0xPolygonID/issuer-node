@@ -51,4 +51,5 @@ type ConnectionsService interface {
 	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) (*domain.Connection, error)
 	GetByUserID(ctx context.Context, issuerDID w3c.DID, userID w3c.DID) (*domain.Connection, error)
 	GetAllByIssuerID(ctx context.Context, issuerDID w3c.DID, query string, withCredentials bool) ([]*domain.Connection, error)
+	GetByUserSessionID(ctx context.Context, sessionID uuid.UUID) (*domain.Connection, error)
 }
