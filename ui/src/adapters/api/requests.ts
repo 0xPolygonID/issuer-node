@@ -6,7 +6,7 @@ import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, Json, Request } from "src/domain";
 import { DataSchema } from "src/domain/dataSchema";
-import { RequestVc, VcResponse } from "src/domain/request";
+import { RequestVc, VcResponse, VerifyRequestResponse } from "src/domain/request";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -67,6 +67,12 @@ export const RequestVcParser = getStrictParser<VcResponse, VcResponse>()(
     // Age: z.string(),
   })
 );
+export const VerifyIdentityParser = getStrictParser<VerifyRequestResponse, VerifyRequestResponse>()(
+  z.object({
+    msg: z.string(),
+    status: z.boolean(),
+  })
+);
 
 export type RequestStatus = "all" | "revoked" | "expired";
 
@@ -121,10 +127,10 @@ export async function getRequests({
         data:
           query !== undefined
             ? User === "issuer"
-              ? { Request_type: "GenerateNewVC", UserDID: query }
+              ? { Request_type: "KYCAgeCredentialPAN", UserDID: query }
               : { Request_type: "VerifyVC", UserDID: query }
             : User === "issuer"
-            ? { Request_type: "GenerateNewVC" }
+            ? { Request_type: "KYCAgeCredentialPAN" }
             : { Request_type: "VerifyVC" },
         headers: {
           Authorization: buildAuthorizationHeader(env),
@@ -141,7 +147,7 @@ export async function getRequests({
     } else {
       response1 = await axios({
         baseURL: env.api.url,
-        data: { Request_type: "GenerateNewVC", UserDID: query },
+        data: { Request_type: "KYCAgeCredentialPAN", UserDID: query },
         headers: {
           Authorization: buildAuthorizationHeader(env),
         },
@@ -326,6 +332,29 @@ export async function getSchema({
       url: `${API_VERSION}/schemas/${schemaID}`,
     });
     return buildSuccessResponse(apiSchemaParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function verifyIdentityRequest({
+  env,
+  id,
+}: {
+  env: Env;
+  id: string;
+}): Promise<Response<VerifyRequestResponse>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "POST",
+      url: `${API_VERSION}/VerifyRequest/${id}`,
+    });
+    console.log("data is ......", response);
+    return buildSuccessResponse(VerifyIdentityParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

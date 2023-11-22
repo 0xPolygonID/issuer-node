@@ -40,3 +40,8 @@ export type VcResponse = {
   id: string;
   msg: string;
 };
+
+export type VerifyRequestResponse = {
+  msg: string;
+  status: boolean;
+};

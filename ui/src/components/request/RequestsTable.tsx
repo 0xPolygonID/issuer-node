@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { IssueCredentialUser } from "../shared/IssueCredentialUser";
 import { RequestDeleteModal } from "../shared/RequestDeleteModal";
 import { RequestRevokeModal } from "../shared/RequestRevokeModal";
+import { VerifyIdentityModal } from "../shared/VerifyIdentityModal";
 import { getRequests, requestStatusParser } from "src/adapters/api/requests";
 import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
 import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
@@ -48,6 +49,7 @@ export function RequestsTable() {
   const [requestToDelete, setRequestToDelete] = useState<Request>();
   const [requestToRevoke, setRequestToRevoke] = useState<Request>();
   const [issueCredentialForRequest, setIssueCredentialForRequest] = useState<Request>();
+  const [verifyIdentityForRequest, setVerifyIdentityForRequest] = useState<Request>();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -56,11 +58,9 @@ export function RequestsTable() {
 
   const parsedStatusParam = requestStatusParser.safeParse(statusParam);
   const requestStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
-
   const requestsList = isAsyncTaskDataAvailable(requests) ? requests.data : [];
   const showDefaultContent =
     requests.status === "successful" && requestsList.length === 0 && queryParam === null;
-
   let tableColumns: ColumnsType<Request>;
   if (User === "verifier" || User === "issuer") {
     tableColumns = [
@@ -146,12 +146,14 @@ export function RequestsTable() {
                       //   type: "divider",
                       // },
                       {
-                        disabled: request.Active,
+                        disabled: request.request_status == "Identity is Verified",
                         icon: <IconInfoCircle />,
                         key: "verify",
                         label: VERIFY_IDENTITY,
+                        onClick: () => setVerifyIdentityForRequest(request),
                       },
                       {
+                        disabled: request.request_status == "Pending for KYC verification",
                         icon: <IconInfoCircle />,
                         key: "issue",
                         label: ISSUE_CREDENTIAL,
@@ -484,6 +486,13 @@ export function RequestsTable() {
         <IssueCredentialUser
           onClose={() => setIssueCredentialForRequest(undefined)}
           request={issueCredentialForRequest}
+        />
+      )}
+      {verifyIdentityForRequest && (
+        <VerifyIdentityModal
+          onClose={() => setVerifyIdentityForRequest(undefined)}
+          onVerify={() => void fetchRequests()}
+          request={verifyIdentityForRequest}
         />
       )}
     </>
