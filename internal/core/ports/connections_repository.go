@@ -2,6 +2,7 @@ package ports
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -19,4 +20,6 @@ type ConnectionsRepository interface {
 	GetByUserID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, userDID w3c.DID) (*domain.Connection, error)
 	GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, query string) ([]*domain.Connection, error)
 	GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, query string) ([]*domain.Connection, error)
+	GetByUserSessionID(ctx context.Context, conn db.Querier, sessionID uuid.UUID) (*domain.Connection, error)
+	SaveUserAuthentication(ctx context.Context, conn db.Querier, connID uuid.UUID, sessID uuid.UUID, mTime time.Time) error
 }

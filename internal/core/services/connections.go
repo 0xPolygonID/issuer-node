@@ -59,6 +59,18 @@ func (c *connection) GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issue
 	return conn, nil
 }
 
+func (c *connection) GetByUserSessionID(ctx context.Context, sessionID uuid.UUID) (*domain.Connection, error) {
+	conn, err := c.connRepo.GetByUserSessionID(ctx, c.storage.Pgx, sessionID)
+	if err != nil {
+		if errors.Is(err, repositories.ErrConnectionDoesNotExist) {
+			return nil, ErrConnectionDoesNotExist
+		}
+		return nil, err
+	}
+
+	return conn, nil
+}
+
 func (c *connection) GetByUserID(ctx context.Context, issuerDID w3c.DID, userID w3c.DID) (*domain.Connection, error) {
 	conn, err := c.connRepo.GetByUserID(ctx, c.storage.Pgx, issuerDID, userID)
 	if err != nil {

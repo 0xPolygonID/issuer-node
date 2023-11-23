@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
@@ -19,8 +20,12 @@ const (
 	user         = "issuernode"
 )
 
-// DidNotFound error
-var DidNotFound = errors.New("did not found in vault")
+var (
+	// DidNotFound error
+	DidNotFound = errors.New("did not found in vault")
+	// VaultConnErr error
+	VaultConnErr = errors.New("vault connection error")
+)
 
 // HTTPClientTimeout http client timeout TODO: move to config
 const HTTPClientTimeout = 10 * time.Second
@@ -185,6 +190,10 @@ func manageTokenLifecycle(ctx context.Context, client *vault.Client, token *vaul
 func GetDID(ctx context.Context, vaultCli *vault.Client) (string, error) {
 	did, err := vaultCli.KVv2(didMountPath).Get(ctx, secretPath)
 	if err != nil {
+		if strings.Contains(err.Error(), "403") {
+			log.Error(ctx, "error getting did from vault, access denied", "error", err)
+			return "", errors.Join(err, VaultConnErr)
+		}
 		log.Error(ctx, "error getting did from vault", "error", err)
 		return "", DidNotFound
 	}
