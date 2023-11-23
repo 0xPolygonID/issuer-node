@@ -22,6 +22,7 @@ export const ISSUER_STATE = "Issuer state";
 export const LINKS = "Links";
 export const REVOCATION = "Revocation";
 export const REVOKE = "Revoke";
+export const SAVE = "Save";
 export const SCHEMA_HASH = "Schema hash";
 export const SCHEMA_TYPE = "Schema type";
 export const SCHEMAS = "Schemas";
@@ -73,3 +74,10 @@ export const WALLET_APP_STORE_URL = "https://apps.apple.com/us/app/polygon-id/id
 
 export const WALLET_PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.polygonid.wallet";
+
+export const IPFS_PUBLIC_GATEWAY_CHECKER_URL = "https://ipfs.github.io/public-gateway-checker/";
+
+export const IPFS_CUSTOM_GATEWAY_KEY = "ipfsGatewayUrl";
+
+export const URL_FIELD_ERROR_MESSAGE =
+  "Must be a valid URL that includes a scheme such as https://";
