@@ -93,12 +93,6 @@ In this section we will cover the installation of the Issuer Node API.
 ----
 **Troubleshooting:**
 
-Restart the api.
-
-```bash 
-make restart-api
-```
-
 In order to **stop** and **delete** all the containers.
 
 > [!WARNING]
@@ -141,6 +135,18 @@ The issuer node is extensively configurable, for a detailed list of the configur
 
 > Core API specification - http://localhost:3001/
 
+---
+
+**Troubleshooting:**
+
+Restart the api.
+
+```bash 
+make restart-api
+```
+
+---
+
 ### UI Installation
 
 In this section we will cover the installation of the Issuer Node UI, before continuing with these steps, make sure that you have followed the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section before continuing.
@@ -179,6 +185,7 @@ In order to make the UI work, we will need configure some env variables in the `
 
 
 >**API UI specification** - http://localhost:3002/
+> 
 >**UI** - http://localhost:8088/
 
 ---
