@@ -21,20 +21,20 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 
 ## Table of Contents
 
-- [Quick Start Installation](#Quick-Start-Installation)
-    - [Prerequisites](###Prerequisites)
-    - [Issuer Node Api](###Issuer-Node-Installation)
-    - [Issuer Node UI](###UI-Installation)
-- [Quick Start Demo](##Quick-Start-Demo)
-- [Documentation](##Documentation)
-- [Tools](##Tools)
-- [License](##License)
+- [Quick Start Installation](#quick-start-installation)
+    - [Prerequisites](#Prerequisites)
+    - [Issuer Node Api](#issuer-node-installation)
+    - [Issuer Node UI](#ui-installation)
+- [Quick Start Demo](#quick-start-demo)
+- [Documentation](#documentation)
+- [Tools](#tools)
+- [License](#license)
 
 ## Quick Start Installation
 > [!NOTE]
 > The provided installation guide is **non-production** ready. For production deployments please refer to  [Standalone Mode Guide](https://devs.polygonid.com/docs/issuer/setup-issuer-core/).
 >
-> There is no compatibility with Windows environments at this time.
+> There is no compatibility with Windows environments at this time. While using WSL should be ok, it's not officially supported.
 
 ### Prerequisites
 
@@ -105,10 +105,14 @@ make down
 If you experience **problems** with the **vault**, follow these commands:
 
 ``` bash
-docker stop issuer-vault-1
-docker rm issuer-vault-1
-make clean-vault
-make up
+docker stop issuer-vault-1    // Stops the container issuer-vault-1 
+docker rm issuer-vault-1      // Removes container issuer-vault-1
+make clean-vault              // Removes all the data in the vault, including the token
+make up                       // Starts the database, cache and vault storage (i.e, postgres, redis and vault)
+```
+Wait 20 secs so the vault can boot and generate a token.
+
+``` bash
 make add-vault-token
 make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
 ```
