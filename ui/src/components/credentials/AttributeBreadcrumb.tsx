@@ -1,7 +1,7 @@
 import { Row, Tooltip, Typography } from "antd";
 import { ReactNode } from "react";
 
-import { ReactComponent as ChevronRightIcon } from "src/assets/icons/chevron-right.svg";
+import ChevronRightIcon from "src/assets/icons/chevron-right.svg?react";
 import { ObjectAttribute } from "src/domain";
 
 export function AttributeBreadcrumb({ parents }: { parents: ObjectAttribute[] }) {

@@ -1,10 +1,12 @@
 @import "variables.module";
 
 @font-face {
-  font-family: "ModernEra-Regular";
+  font-family: ModernEra-Regular;
   font-style: normal;
   font-weight: normal;
-  src: local("ModernEra-Regular"), url("/fonts/ModernEra-Regular.woff2") format("woff2"),
+  src:
+    local("ModernEra-Regular"),
+    url("/fonts/ModernEra-Regular.woff2") format("woff2"),
     url("/fonts/ModernEra-Regular.woff") format("woff");
 }
 
@@ -172,6 +174,7 @@
         content: "*";
       }
     }
+
     .ant-form-item-control {
       .ant-form-item-extra {
         margin-top: 8px;
@@ -274,6 +277,10 @@
   white-space: pre-wrap;
 }
 
+.ant-notification-notice-content {
+  padding-inline-end: 24px;
+}
+
 /* CUSTOM */
 
 .background-grey {
@@ -281,7 +288,7 @@
 }
 
 .background-sider {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0 0 0 / 50%);
   cursor: pointer;
   height: 100vh;
   position: fixed;

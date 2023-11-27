@@ -53,6 +53,14 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 	return id, err
 }
 
+// SaveUserAuthentication creates a new entry in the user_authentications table
+func (c *connections) SaveUserAuthentication(ctx context.Context, conn db.Querier, connID uuid.UUID, sessID uuid.UUID, mTime time.Time) error {
+	sql := `INSERT INTO user_authentications (connection_id,session_id,created_at) VALUES($1, $2,$3)`
+	_, err := conn.Exec(ctx, sql, connID.String(), sessID.String(), mTime)
+
+	return err
+}
+
 func (c *connections) Delete(ctx context.Context, conn db.Querier, id uuid.UUID, issuerDID w3c.DID) error {
 	sql := `DELETE FROM connections WHERE id = $1 AND issuer_id = $2`
 	cmd, err := conn.Exec(ctx, sql, id.String(), issuerDID.String())
@@ -80,6 +88,31 @@ func (c *connections) GetByIDAndIssuerID(ctx context.Context, conn db.Querier, i
 		`SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
 				FROM connections 
 				WHERE connections.id = $1 AND connections.issuer_id = $2`, id.String(), issuerID.String()).Scan(
+		&connection.ID,
+		&connection.IssuerDID,
+		&connection.UserDID,
+		&connection.IssuerDoc,
+		&connection.UserDoc,
+		&connection.CreatedAt,
+		&connection.ModifiedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, ErrConnectionDoesNotExist
+		}
+		return nil, err
+	}
+
+	return toConnectionDomain(&connection)
+}
+
+func (c *connections) GetByUserSessionID(ctx context.Context, conn db.Querier, sessionID uuid.UUID) (*domain.Connection, error) {
+	connection := dbConnection{}
+	err := conn.QueryRow(ctx,
+		`SELECT connections.id, connections.issuer_id,connections.user_id,connections.issuer_doc,connections.user_doc,connections.created_at,connections.modified_at 
+				FROM connections 
+				JOIN user_authentications ON connections.id = user_authentications.connection_id
+				WHERE user_authentications.session_id = $1`, sessionID.String()).Scan(
 		&connection.ID,
 		&connection.IssuerDID,
 		&connection.UserDID,

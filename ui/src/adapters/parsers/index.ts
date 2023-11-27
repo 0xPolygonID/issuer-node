@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 
 import { List } from "src/utils/types";
 
@@ -60,7 +60,7 @@ type Exact<T, U> = [T, U] extends [U, T] ? true : false;
 // otherwise it produces a static error.
 export function getStrictParser<Input, Output = Input>(): <
   ParserOutput,
-  ParserInput = ParserOutput
+  ParserInput = ParserOutput,
 >(
   // 1. If the parser's input is exactly the same as the output of the provided zod schema,
   parser: Exact<

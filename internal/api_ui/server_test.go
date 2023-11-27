@@ -116,6 +116,109 @@ func TestServer_AuthCallback(t *testing.T) {
 	}
 }
 
+func TestServer_GetAuthenticationConnection(t *testing.T) {
+	connectionRepository := repositories.NewConnections()
+	qrService := services.NewQrStoreService(cachex)
+	connectionsService := services.NewConnection(connectionRepository, storage)
+	server := NewServer(&cfg, NewIdentityMock(), NewClaimsMock(), NewSchemaMock(), connectionsService, NewLinkMock(), qrService, NewPublisherMock(), NewPackageManagerMock(), nil)
+	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
+	require.NoError(t, err)
+	server.cfg.APIUI.IssuerDID = *issuerDID
+	server.cfg.APIUI.ServerURL = "https://testing.env"
+	handler := getHandler(context.Background(), server)
+
+	fixture := tests.NewFixture(storage)
+	conn := &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	}
+	fixture.CreateConnection(t, conn)
+	require.NoError(t, err)
+
+	sessionID := uuid.New()
+	fixture.CreateUserAuthentication(t, conn.ID, sessionID, conn.CreatedAt)
+
+	type expected struct {
+		httpCode int
+		message  string
+		response GetAuthenticationConnection200JSONResponse
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		id       uuid.UUID
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "Not authorized",
+			auth: authWrong,
+			id:   uuid.New(),
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "Session Not found",
+			auth: authOk,
+			id:   uuid.New(),
+			expected: expected{
+				httpCode: http.StatusNotFound,
+				message:  services.ErrConnectionDoesNotExist.Error(),
+			},
+		},
+		{
+			name: "Happy path. Existing connection",
+			auth: authOk,
+			id:   sessionID,
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetAuthenticationConnection200JSONResponse{
+					Connection: AuthenticationConnection{
+						Id:         conn.ID.String(),
+						IssuerID:   conn.IssuerDID.String(),
+						CreatedAt:  TimeUTC(conn.CreatedAt),
+						ModifiedAt: TimeUTC(conn.ModifiedAt),
+						UserID:     conn.UserDID.String(),
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/authentication/sessions/%s", tc.id.String())
+			req, err := http.NewRequest("GET", url, nil)
+			require.NoError(t, err)
+			req.SetBasicAuth(tc.auth())
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetAuthenticationConnection200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.response.Connection.Id, response.Connection.Id)
+				assert.Equal(t, tc.expected.response.Connection.IssuerID, response.Connection.IssuerID)
+				assert.InDelta(t, time.Time(tc.expected.response.Connection.CreatedAt).Unix(), time.Time(response.Connection.CreatedAt).Unix(), 100)
+				assert.InDelta(t, time.Time(tc.expected.response.Connection.ModifiedAt).Unix(), time.Time(response.Connection.ModifiedAt).Unix(), 100)
+				assert.Equal(t, tc.expected.response.Connection.UserID, response.Connection.UserID)
+			case http.StatusNotFound:
+				var response GetAuthenticationConnection404JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.message, response.Message)
+			}
+		})
+	}
+}
+
 func TestServer_AuthQRCode(t *testing.T) {
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -173,8 +276,11 @@ func TestServer_AuthQRCode(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-
-				qrLink := checkQRfetchURL(t, rr.Body.String())
+				var resp AuthQRCode200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+				require.NotEmpty(t, resp.QrCodeLink)
+				require.NotEmpty(t, resp.SessionID)
+				qrLink := checkQRfetchURL(t, resp.QrCodeLink)
 
 				// Now let's fetch the original QR using the url
 				rr := httptest.NewRecorder()

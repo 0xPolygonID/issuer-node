@@ -20,11 +20,11 @@ import {
   credentialStatusParser,
   getCredentials,
 } from "src/adapters/api/credentials";
-import { ReactComponent as IconCreditCardRefresh } from "src/assets/icons/credit-card-refresh.svg";
-import { ReactComponent as IconDots } from "src/assets/icons/dots-vertical.svg";
-import { ReactComponent as IconInfoCircle } from "src/assets/icons/info-circle.svg";
-import { ReactComponent as IconTrash } from "src/assets/icons/trash-01.svg";
-import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
+import IconDots from "src/assets/icons/dots-vertical.svg?react";
+import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
+import IconTrash from "src/assets/icons/trash-01.svg?react";
+import IconClose from "src/assets/icons/x.svg?react";
 import { IssueDirectlyButton } from "src/components/connections/IssueDirectlyButton";
 import { CredentialDeleteModal } from "src/components/shared/CredentialDeleteModal";
 import { CredentialRevokeModal } from "src/components/shared/CredentialRevokeModal";

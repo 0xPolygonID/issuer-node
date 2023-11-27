@@ -1,6 +1,6 @@
 import { Button } from "antd";
 
-import { ReactComponent as IconFeedback } from "src/assets/icons/message-smile-square.svg";
+import IconFeedback from "src/assets/icons/message-smile-square.svg?react";
 import { FEEDBACK_URL } from "src/utils/constants";
 
 export function FeedbackLink() {

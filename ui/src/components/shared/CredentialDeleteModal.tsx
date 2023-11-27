@@ -2,8 +2,8 @@ import { Alert, Button, Modal, Row, Space, Typography, message } from "antd";
 import { useState } from "react";
 
 import { deleteCredential, revokeCredential } from "src/adapters/api/credentials";
-import { ReactComponent as IconAlert } from "src/assets/icons/alert-triangle.svg";
-import { ReactComponent as IconClose } from "src/assets/icons/x.svg";
+import IconAlert from "src/assets/icons/alert-triangle.svg?react";
+import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";

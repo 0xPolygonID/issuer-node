@@ -1,8 +1,8 @@
 import { Button, Col, Divider, Row, Space, Typography } from "antd";
 import { generatePath, useNavigate } from "react-router-dom";
 
-import { ReactComponent as IconCreditCardPlus } from "src/assets/icons/credit-card-plus.svg";
-import { ReactComponent as IconUpload } from "src/assets/icons/upload-01.svg";
+import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
+import IconUpload from "src/assets/icons/upload-01.svg?react";
 import { SchemasTable } from "src/components/schemas/SchemasTable";
 import { Explainer } from "src/components/shared/Explainer";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";

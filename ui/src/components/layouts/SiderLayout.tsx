@@ -2,7 +2,7 @@ import { Button, Grid, Layout, Row } from "antd";
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 
-import { ReactComponent as IconMenu } from "src/assets/icons/menu-01.svg";
+import IconMenu from "src/assets/icons/menu-01.svg?react";
 import { FeedbackLink } from "src/components/shared/FeedbackLink";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { SiderMenu } from "src/components/shared/SiderMenu";

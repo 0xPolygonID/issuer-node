@@ -1,5 +1,5 @@
 import axios from "axios";
-import z from "zod";
+import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { processUrl } from "src/adapters/api/schemas";

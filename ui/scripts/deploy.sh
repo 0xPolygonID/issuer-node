@@ -30,8 +30,8 @@ cat /etc/nginx/.htpasswd
 # Copy app dist
 cp -r /app/dist/. /usr/share/nginx/html
 
-# Delete source code
-rm -rf /app
+# Delete build files
+rm -rf /app/dist
 
 # Run nginx
 nginx -g 'daemon off;'

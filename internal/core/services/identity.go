@@ -442,8 +442,15 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
 	}
-	connID, err := i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
-	if err != nil {
+	var connID uuid.UUID
+	if err := i.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		connID, err = i.connectionsRepository.Save(ctx, i.storage.Pgx, conn)
+		if err != nil {
+			return err
+		}
+
+		return i.connectionsRepository.SaveUserAuthentication(ctx, i.storage.Pgx, connID, sessionID, conn.CreatedAt)
+	}); err != nil {
 		return nil, err
 	}
 
@@ -458,7 +465,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 }
 
 func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, uuid.UUID, error) {
-	sessionID := uuid.New().String()
+	sessionID := uuid.New()
 	reqID := uuid.New().String()
 
 	qrCode := &protocol.AuthorizationRequestMessage{
@@ -472,7 +479,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 			Reason:      authReason,
 		},
 	}
-	if err := i.sessionManager.Set(ctx, sessionID, *qrCode); err != nil {
+	if err := i.sessionManager.Set(ctx, sessionID.String(), *qrCode); err != nil {
 		return "", uuid.Nil, err
 	}
 
@@ -484,7 +491,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 	if err != nil {
 		return "", uuid.Nil, err
 	}
-	return i.qrService.ToURL(serverURL, id), id, nil
+	return i.qrService.ToURL(serverURL, id), nil
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, currentState domain.IdentityState) error {

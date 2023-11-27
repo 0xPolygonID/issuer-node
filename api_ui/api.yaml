@@ -41,6 +41,34 @@ paths:
           $ref: '#/components/responses/500'
 
   #authentication
+  /v1/authentication/sessions/{id}:
+    get:
+      summary: Get Authentication Connection
+      operationId: getAuthenticationConnection
+      description: get authentication connection
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+          - Auth
+          - Connection
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAuthenticationConnectionResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/authentication/qrcode:
     get:
       summary: Get Connection QRCode
@@ -1014,8 +1042,17 @@ components:
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
     QrCodeLinkShortResponse:
-      type: string
-      example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+      type: object
+      required:
+        - qrCodeLink
+        - sessionID
+      properties:
+        qrCodeLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        sessionID:
+          $ref: '#/components/schemas/UUIDString'
+
 
     QrCodeLinkWithSchemaTypeShortResponse:
       type: object
@@ -1117,6 +1154,11 @@ components:
           x-omitempty: false
           example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
 
+    UUIDString:
+      type: string
+      x-omitempty: false
+      example: b7144f1c-d54e-4f67-a4f1-f2e7ff1beb07
+
     GenericErrorMessage:
       type: object
       required:
@@ -1186,6 +1228,9 @@ components:
         userID:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        schemaTypeDescription:
+          type: string
+          example: "KYC Age Credential"
 
     Link:
       type: object
@@ -1331,6 +1376,34 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/GetConnectionResponse'
+
+    AuthenticationConnection:
+      type: object
+      required:
+        - id
+        - userID
+        - issuerID
+        - createdAt
+        - modifiedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUIDString'
+        userID:
+          $ref: '#/components/schemas/UUIDString'
+        issuerID:
+          $ref: '#/components/schemas/UUIDString'
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+        modifiedAt:
+          $ref: '#/components/schemas/TimeUTC'
+
+    GetAuthenticationConnectionResponse:
+      type: object
+      required:
+        - connection
+      properties:
+        connection:
+          $ref: '#/components/schemas/AuthenticationConnection'
 
     GetConnectionResponse:
       type: object
