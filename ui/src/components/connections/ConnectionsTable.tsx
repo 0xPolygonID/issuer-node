@@ -1,5 +1,16 @@
-import { Avatar, Card, Divider, Dropdown, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
-import { ColumnsType } from "antd/es/table";
+import {
+  Avatar,
+  Card,
+  Divider,
+  Dropdown,
+  Row,
+  Space,
+  Table,
+  TableColumnsType,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -44,7 +55,7 @@ export function ConnectionsTable() {
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
-  const tableColumns: ColumnsType<Connection> = [
+  const tableColumns: TableColumnsType<Connection> = [
     {
       dataIndex: "userID",
       ellipsis: { showTitle: false },

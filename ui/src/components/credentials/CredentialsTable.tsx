@@ -7,11 +7,12 @@ import {
   RadioChangeEvent,
   Row,
   Space,
+  Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
 } from "antd";
-import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
@@ -71,7 +72,7 @@ export function CredentialsTable() {
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
-  const tableColumns: ColumnsType<Credential> = [
+  const tableColumns: TableColumnsType<Credential> = [
     {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },

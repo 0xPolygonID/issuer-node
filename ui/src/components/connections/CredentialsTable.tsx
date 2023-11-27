@@ -6,11 +6,12 @@ import {
   RadioChangeEvent,
   Row,
   Space,
+  Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
 } from "antd";
-import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
@@ -68,7 +69,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       search: `${DID_SEARCH_PARAM}=${userID}`,
     });
 
-  const tableColumns: ColumnsType<Credential> = [
+  const tableColumns: TableColumnsType<Credential> = [
     {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
