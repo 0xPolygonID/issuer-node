@@ -10,14 +10,18 @@ import (
 	"github.com/google/uuid"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
-
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db"
 )
 
-// ErrSchemaDoesNotExist claim does not exist
-var ErrSchemaDoesNotExist = errors.New("schema does not exist")
+const duplicatedEntryPGCode = "23505"
+
+var (
+	ErrSchemaDoesNotExist = errors.New("schema does not exist")   // ErrSchemaDoesNotExist schema does not exist
+	ErrSchemaDuplicated   = errors.New("schema already imported") // ErrSchemaDuplicated schema duplicated
+)
 
 type dbSchema struct {
 	ID          uuid.UUID
@@ -61,7 +65,16 @@ func (r *schema) Save(ctx context.Context, s *domain.Schema) error {
 		s.Version,
 		s.Title,
 		s.Description)
-	return err
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == duplicatedEntryPGCode {
+			return ErrSchemaDuplicated
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func (r *schema) toFullTextSearchDocument(sType string, attrs domain.SchemaWords) string {
