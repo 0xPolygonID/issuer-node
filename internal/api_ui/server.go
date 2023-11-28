@@ -172,22 +172,24 @@ func (s *Server) GetAuthenticationConnection(ctx context.Context, req GetAuthent
 // AuthQRCode returns the qr code for authenticating a user
 func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
 	// TODO: Try to remove qrCode and use only id or make qrCode an object instead of a string
-	qrCode, sessionID, id, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 	if req.Params.Type != nil && *req.Params.Type == AuthQRCodeParamsTypeRaw {
-		body, err := s.qrService.Find(ctx, id)
+		body, err := s.qrService.Find(ctx, resp.QrID)
 		if err != nil {
-			log.Error(ctx, "qr store. Finding qr", "err", err, "id", id)
+			log.Error(ctx, "qr store. Finding qr", "err", err, "QrID", resp.QrID)
 			return AuthQRCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 		}
-		return NewQrContentResponse(body), nil
+		return AuthQRCode200JSONResponse{
+			QrCodeLink: string(body),
+			SessionID:  resp.SessionID.String(),
+		}, nil
 	}
-	return NewQrContentResponse([]byte(qrCode)), nil
 	return AuthQRCode200JSONResponse{
-		QrCodeLink: qrCode,
-		SessionID:  sessionID.String(),
+		QrCodeLink: resp.QRCodeURL,
+		SessionID:  resp.SessionID.String(),
 	}, nil
 }
 
@@ -584,7 +586,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 	if req.Params.Type != nil && *req.Params.Type == CreateLinkQrCodeParamsTypeRaw {
 		rawQrCode, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
 		if err != nil {
-			log.Error(ctx, "qr store. Finding qr", "err", err, "id", qrID)
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
 			return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 		}
 		qrContent = string(rawQrCode)
@@ -652,9 +654,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 	return CreateLinkQrCodeCallback200Response{}, nil
 }
 
-// GetLinkQRCode - returns te qr code for adding the credential
-//
-//	TODO: LALA Tocar aquí para que devuelva el qr code de la credencial
+// GetLinkQRCode - returns the qr code for adding the credential
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
 	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {

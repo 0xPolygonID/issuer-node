@@ -240,19 +240,59 @@ func TestServer_AuthQRCode(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		httpCode int
-		response protocol.AuthorizationRequestMessage
+		httpCode   int
+		qrWithLink bool
+		response   protocol.AuthorizationRequestMessage
 	}
 	type testConfig struct {
 		name     string
+		request  AuthQRCodeRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "should get a qrCode", // TODO: LALA Test type = raw, type = link and type = nil
+			name:    "should get a qr code with a link by default",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: nil}},
 			expected: expected{
-				httpCode: http.StatusOK,
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+				response: protocol.AuthorizationRequestMessage{
+					Body: protocol.AuthorizationRequestMessageBody{
+						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						Reason:      "authentication",
+						Scope:       nil,
+					},
+					From: issuerDID.String(),
+					Typ:  "application/iden3comm-plain-json",
+					Type: "https://iden3-communication.io/authorization/1.0/request",
+				},
+			},
+		},
+		{
+			name:    "should get a qr code with a link as requested",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeLink)}},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+				response: protocol.AuthorizationRequestMessage{
+					Body: protocol.AuthorizationRequestMessageBody{
+						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						Reason:      "authentication",
+						Scope:       nil,
+					},
+					From: issuerDID.String(),
+					Typ:  "application/iden3comm-plain-json",
+					Type: "https://iden3-communication.io/authorization/1.0/request",
+				},
+			},
+		},
+		{
+			name:    "should get a RAW qr code as requested",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeRaw)}},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: false,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
 						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
@@ -268,7 +308,11 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", "/v1/authentication/qrcode", nil)
+			apiURL := "/v1/authentication/qrcode"
+			if tc.request.Params.Type != nil {
+				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
+			}
+			req, err := http.NewRequest("GET", apiURL, nil)
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -280,18 +324,24 @@ func TestServer_AuthQRCode(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 				require.NotEmpty(t, resp.QrCodeLink)
 				require.NotEmpty(t, resp.SessionID)
-				qrLink := checkQRfetchURL(t, resp.QrCodeLink)
 
-				// Now let's fetch the original QR using the url
-				rr := httptest.NewRecorder()
-				req, err := http.NewRequest(http.MethodGet, qrLink, nil)
-				require.NoError(t, err)
-				handler.ServeHTTP(rr, req)
-				require.Equal(t, http.StatusOK, rr.Code)
+				realQR := protocol.AuthorizationRequestMessage{}
+				if tc.expected.qrWithLink {
+					qrLink := checkQRfetchURL(t, resp.QrCodeLink)
+
+					// Now let's fetch the original QR using the url
+					rr := httptest.NewRecorder()
+					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
+					require.NoError(t, err)
+					handler.ServeHTTP(rr, req)
+					require.Equal(t, http.StatusOK, rr.Code)
+					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+				} else {
+					require.NoError(t, json.Unmarshal([]byte(resp.QrCodeLink), &realQR))
+				}
 
 				// Let's verify the QR body
-				realQR := protocol.AuthorizationRequestMessage{}
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+
 				v := tc.expected.response
 
 				assert.Equal(t, v.Typ, realQR.Typ)
@@ -1891,19 +1941,20 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	require.NoError(t, err)
 
 	type expected struct {
-		message  *string
-		httpCode int
+		message    *string
+		httpCode   int
+		qrWithLink bool
 	}
 
 	type testConfig struct {
 		name     string
-		request  GetCredentialRequestObject
+		request  GetCredentialQrCodeRequestObject
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
 			name: "should return an error, claim not found",
-			request: GetCredentialRequestObject{
+			request: GetCredentialQrCodeRequestObject{
 				Id: uuid.New(),
 			},
 			expected: expected{
@@ -1912,19 +1963,48 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			},
 		},
 		{
-			// TODO: LALA Test the QR code type to raw, link and none
 			name: "happy path",
-			request: GetCredentialRequestObject{
+			request: GetCredentialQrCodeRequestObject{
 				Id: createdClaim.ID,
 			},
 			expected: expected{
-				httpCode: http.StatusOK,
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+			},
+		},
+		{
+			name: "happy path with qr code of type link",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdClaim.ID,
+				Params: GetCredentialQrCodeParams{
+					Type: common.ToPointer(GetCredentialQrCodeParamsTypeLink),
+				},
+			},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+			},
+		},
+		{
+			name: "happy path with qr code of type raw",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdClaim.ID,
+				Params: GetCredentialQrCodeParams{
+					Type: common.ToPointer(GetCredentialQrCodeParamsTypeRaw),
+				},
+			},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: false,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			apiURL := fmt.Sprintf("/v1/credentials/%s/qrcode", tc.request.Id.String())
+			if tc.request.Params.Type != nil {
+				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
+			}
 
 			req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 			require.NoError(t, err)
@@ -1935,18 +2015,24 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				qrLink := checkQRfetchURLForCredential(t, rr.Body.Bytes())
+				resp := &GetCredentialQrCode200JSONResponse{}
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), resp))
 
-				// Now let's fetch the original QR using the url
-				rr := httptest.NewRecorder()
-				req, err := http.NewRequest(http.MethodGet, qrLink, nil)
-				require.NoError(t, err)
-				handler.ServeHTTP(rr, req)
-				require.Equal(t, http.StatusOK, rr.Code)
-
-				// Let's verify the QR body
 				realQR := protocol.CredentialsOfferMessage{}
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+				if tc.expected.qrWithLink {
+					qrLink := checkQRfetchURL(t, resp.QrCodeLink)
+
+					// Now let's fetch the original QR using the url
+					rr := httptest.NewRecorder()
+					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
+					require.NoError(t, err)
+					handler.ServeHTTP(rr, req)
+					require.Equal(t, http.StatusOK, rr.Code)
+					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+				} else {
+					require.NoError(t, json.Unmarshal([]byte(resp.QrCodeLink), &realQR))
+				}
+
 			case http.StatusBadRequest:
 				var response GetCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -4030,7 +4116,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 					assert.Equal(t, tc.expected.status, *response.Status)
 					require.NotNil(t, response.QrCode)
 					assert.Equal(t, *tc.expected.qrCode, *response.QrCode)
-					qrLink := parseIden3commQRCodeResponse(t, *response.QrCode)
+					qrLink := checkQRfetchURL(t, *response.QrCode)
 
 					// Now let's fetch the original QR using the url
 					rr := httptest.NewRecorder()
