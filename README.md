@@ -23,8 +23,8 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 
 - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#Prerequisites)
-    - [Issuer Node Api](#issuer-node-installation)
-    - [Issuer Node UI](#ui-installation)
+    - [Issuer Node Api](#issuer-node-api)
+    - [Issuer Node UI](#issuer-node-ui)
 - [Quick Start Demo](#quick-start-demo)
 - [Documentation](#documentation)
 - [Tools](#tools)
@@ -49,7 +49,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Alchemy](https://www.alchemy.com/)
     - [Infura](https://www.infura.io/)
 
-### Issuer Node Installation
+### Issuer Node API
 
 In this section we will cover the installation of the Issuer Node API.
 
@@ -113,8 +113,8 @@ make up                       // Starts the database, cache and vault storage (i
 Wait 20 secs so the vault can boot and generate a token.
 
 ``` bash
-make add-vault-token
-make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
+make add-vault-token                                          // Adds the generated token to the ISSUER_KEY_STORE_TOKEN var in .env-issuer
+make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key    // Stores the private key in the vault
 ```
 
 ----
@@ -151,7 +151,7 @@ make restart-api
 
 ---
 
-### UI Installation
+### Issuer Node UI
 
 In this section we will cover the installation of the Issuer Node UI, before continuing with these steps, make sure that you have followed the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section before continuing.
 
