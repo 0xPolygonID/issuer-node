@@ -193,10 +193,10 @@ export function CredentialsTable({ userID }: { userID: string }) {
         });
         if (response.success) {
           setCredentials({
-            data: response.data.successful,
+            data: response.data.items.successful,
             status: "successful",
           });
-          notifyParseErrors(response.data.failed);
+          notifyParseErrors(response.data.items.failed);
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });

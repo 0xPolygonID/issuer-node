@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
+import { numberFromStringParser } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
@@ -42,6 +43,8 @@ import {
   ISSUED,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
+  PAGINATION_CURRENT_PARAM,
+  PAGINATION_MAX_RESULTS_PARAM,
   QUERY_SEARCH_PARAM,
   REVOCATION,
   REVOKE,
@@ -67,6 +70,26 @@ export function CredentialsTable() {
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
+
+  const paginationCurrentParsed = numberFromStringParser.safeParse(
+    searchParams.get(PAGINATION_CURRENT_PARAM)
+  );
+  const paginationPageSizeParsed = numberFromStringParser.safeParse(
+    searchParams.get(PAGINATION_MAX_RESULTS_PARAM)
+  );
+
+  const DEFAULT_PAGINATION_CURRENT = 1;
+  const DEFAULT_PAGINATION_PAGE_SIZE = 10;
+  const DEFAULT_PAGINATION_TOTAL = 0;
+
+  const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
+
+  const paginationCurrent = paginationCurrentParsed.success
+    ? paginationCurrentParsed.data
+    : DEFAULT_PAGINATION_CURRENT;
+  const paginationPageSize = paginationPageSizeParsed.success
+    ? paginationPageSizeParsed.data
+    : DEFAULT_PAGINATION_PAGE_SIZE;
 
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
   const showDefaultContent =
@@ -178,6 +201,28 @@ export function CredentialsTable() {
     },
   ];
 
+  const updatePaginationParams = useCallback(
+    (pagination: { current?: number; pageSize?: number }) => {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(
+          PAGINATION_CURRENT_PARAM,
+          pagination.current !== undefined
+            ? pagination.current.toString()
+            : DEFAULT_PAGINATION_CURRENT.toString()
+        );
+        params.set(
+          PAGINATION_MAX_RESULTS_PARAM,
+          pagination.pageSize !== undefined
+            ? pagination.pageSize.toString()
+            : DEFAULT_PAGINATION_PAGE_SIZE.toString()
+        );
+        return params;
+      });
+    },
+    [setSearchParams]
+  );
+
   const fetchCredentials = useCallback(
     async (signal?: AbortSignal) => {
       setCredentials((previousCredentials) =>
@@ -189,6 +234,8 @@ export function CredentialsTable() {
       const response = await getCredentials({
         env,
         params: {
+          max_results: paginationPageSize,
+          page: paginationCurrent,
           query: queryParam || undefined,
           status: credentialStatus,
         },
@@ -196,17 +243,29 @@ export function CredentialsTable() {
       });
       if (response.success) {
         setCredentials({
-          data: response.data.successful,
+          data: response.data.items.successful,
           status: "successful",
         });
-        notifyParseErrors(response.data.failed);
+        setPaginationTotal(response.data.meta.total);
+        updatePaginationParams({
+          current: response.data.meta.current,
+          pageSize: response.data.meta.max_results,
+        });
+        notifyParseErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, credentialStatus]
+    [
+      env,
+      paginationPageSize,
+      paginationCurrent,
+      queryParam,
+      credentialStatus,
+      updatePaginationParams,
+    ]
   );
 
   const onSearch = useCallback(
@@ -289,6 +348,7 @@ export function CredentialsTable() {
               ...column,
             }))}
             dataSource={credentialsList}
+            loading={credentials.status === "reloading"}
             locale={{
               emptyText:
                 credentials.status === "failed" ? (
@@ -297,7 +357,17 @@ export function CredentialsTable() {
                   <NoResults searchQuery={queryParam} />
                 ),
             }}
-            pagination={false}
+            onChange={(pagination) => {
+              setPaginationTotal(pagination.total || DEFAULT_PAGINATION_TOTAL);
+              updatePaginationParams(pagination);
+            }}
+            pagination={{
+              current: paginationCurrent,
+              hideOnSinglePage: true,
+              pageSize: paginationPageSize,
+              position: ["bottomRight"],
+              total: paginationTotal,
+            }}
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}

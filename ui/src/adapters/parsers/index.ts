@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { List } from "src/utils/types";
+import { List, Meta } from "src/utils/types";
 
 export function getListParser<Input, Output = Input>(
   parser: z.ZodSchema<Output, z.ZodTypeDef, Input>
@@ -35,6 +35,25 @@ export function getListParser<Input, Output = Input>(
   );
 }
 
+const metaParser = getStrictParser<Meta>()(
+  z.object({
+    current: z.number(),
+    max_results: z.number(),
+    total: z.number(),
+  })
+);
+
+export function getResourceParser<Input, Output = Input>(
+  parser: z.ZodSchema<Output, z.ZodTypeDef, Input>
+) {
+  return getStrictParser<{ items: unknown[]; meta: Meta }, { items: List<Output>; meta: Meta }>()(
+    z.object({
+      items: getListParser(parser),
+      meta: metaParser,
+    })
+  );
+}
+
 export const datetimeParser = getStrictParser<string, Date>()(
   z
     .string()
@@ -48,6 +67,20 @@ export const datetimeParser = getStrictParser<string, Date>()(
         return z.NEVER;
       }
     })
+);
+
+export const numberFromStringParser = getStrictParser<string, number>()(
+  z.string().transform((value, context) => {
+    const trimmed = value.trim();
+    const valueToParse = trimmed === "" ? undefined : Number(trimmed);
+    const parsedNumber = z.number().safeParse(valueToParse);
+    if (parsedNumber.success) {
+      return parsedNumber.data;
+    } else {
+      parsedNumber.error.issues.map(context.addIssue);
+      return z.NEVER;
+    }
+  })
 );
 
 // The following was implemented due to a perceived limitation of Zod:
