@@ -1,9 +1,11 @@
-import { Form, Input, Modal, Typography } from "antd";
+import { Alert, Form, Input, Modal, Typography } from "antd";
 import { useState } from "react";
 import { z } from "zod";
 
+import IconAlert from "src/assets/icons/alert-circle.svg?react";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
+import { theme } from "src/styles/theme";
 import { getStorageByKey, setStorageByKey } from "src/utils/browser";
 import {
   CLOSE,
@@ -114,6 +116,13 @@ export function SettingsModal({
         >
           <Input placeholder={env.ipfsGatewayUrl} />
         </Form.Item>
+        <Alert
+          icon={<IconAlert />}
+          message="You might need to reload the page for the changes to be applied"
+          showIcon
+          style={{ background: "#FCFAFF", color: theme.token?.colorInfo, padding: 16 }}
+          type="info"
+        />
       </Form>
     </Modal>
   );

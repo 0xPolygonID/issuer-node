@@ -87,7 +87,7 @@ func TestCreateSchema(t *testing.T) {
 	}
 
 	require.NoError(t, store.Save(ctx, schema1))
-	assert.Error(t, store.Save(ctx, schema1), "cannot have duplicated schemas with the same version for the same issuer and type")
+	assert.ErrorIs(t, repositories.ErrSchemaDuplicated, store.Save(ctx, schema1), "cannot have duplicated schemas with the same version for the same issuer and type")
 
 	schema2 := schema1
 	schema2.Version = uuid.NewString()
