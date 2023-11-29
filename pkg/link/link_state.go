@@ -31,7 +31,7 @@ type CredentialsLinkMessageBody struct {
 	Credentials []CredentialLink `json:"credentials"`
 }
 
-// QRCodeMessage represents a QRCode message
+// QRCodeMessage - TODO
 type QRCodeMessage struct {
 	ID       string                     `json:"id"`
 	Typ      string                     `json:"typ,omitempty"`
@@ -49,7 +49,7 @@ type State struct {
 	QRCode  *string `json:"qrcode"`
 }
 
-// NewStatePending creates a new pending state
+// NewStatePending - TODO
 func NewStatePending() *State {
 	return &State{Status: StatusPending}
 }
@@ -59,7 +59,7 @@ func (ls *State) String() string {
 	return string(s)
 }
 
-// CredentialStateCacheKey returns the cache key for the credential state
+// CredentialStateCacheKey - TODO
 func CredentialStateCacheKey(linkID, sessionID string) string {
 	return fmt.Sprintf("credential_link_%s_%s", linkID, sessionID)
 }
@@ -72,7 +72,7 @@ func NewStateError(err error) *State {
 	}
 }
 
-// NewStateDone creates a new done state
+// NewStateDone - TODO
 func NewStateDone(qrCodeLink string) *State {
 	state := &State{
 		Status: StatusDone,
@@ -81,7 +81,7 @@ func NewStateDone(qrCodeLink string) *State {
 	return state
 }
 
-// NewStatePendingPublish creates a new pending publish state
+// NewStatePendingPublish - TODO
 func NewStatePendingPublish() *State {
 	state := &State{
 		Status: StatusPendingPublish,
