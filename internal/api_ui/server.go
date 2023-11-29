@@ -302,7 +302,14 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		}
 		response[i] = credentialResponse(w3c, credential)
 	}
-	return GetCredentials200JSONResponse(response), nil
+	return GetCredentials200JSONResponse{
+		Items: response,
+		Meta: PaginatedMetadata{
+			MaxResults: len(response),
+			Page:       1,
+			Total:      len(response),
+		},
+	}, nil
 }
 
 // DeleteCredential deletes a credential

@@ -1839,7 +1839,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			case http.StatusOK:
 				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Len(t, response, tc.expected.count)
+				assert.Len(t, response.Items, tc.expected.count)
 			case http.StatusBadRequest:
 				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
