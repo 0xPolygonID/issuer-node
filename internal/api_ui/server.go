@@ -601,27 +601,27 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 }
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
-// TODO: LALA Ensure it is tested !!!
 func (s *Server) GetCredentialQrCode(ctx context.Context, req GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	qrContent, schemaType, qrID, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
+	resp, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+	qrContent := resp.QrCodeURL
 	// Backward compatibility. If the type is raw, we return the raw qr code
 	if req.Params.Type != nil && *req.Params.Type == GetCredentialQrCodeParamsTypeRaw {
-		rawQrCode, err := s.qrService.Find(ctx, qrID)
+		rawQrCode, err := s.qrService.Find(ctx, resp.QrID)
 		if err != nil {
-			log.Error(ctx, "qr store. Finding qr", "err", err, "id", qrID)
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", resp.QrID)
 			return GetCredentialQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 		}
 		qrContent = string(rawQrCode)
 	}
 	return GetCredentialQrCode200JSONResponse{
 		QrCodeLink: qrContent,
-		SchemaType: schemaType,
+		SchemaType: resp.SchemaType,
 	}, nil
 }
 
