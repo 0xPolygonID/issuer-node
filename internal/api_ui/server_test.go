@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1643,12 +1644,14 @@ func TestServer_GetCredentials(t *testing.T) {
 	}
 
 	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		did      *string
-		query    *string
-		status   *string
-		expected expected
+		name        string
+		auth        func() (string, string)
+		did         *string
+		query       *string
+		status      *string
+		page        *int
+		max_results *int
+		expected    expected
 	}
 	for _, tc := range []testConfig{
 		{
@@ -1674,6 +1677,24 @@ func TestServer_GetCredentials(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				errorMsg: "cannot parse did parameter: wrong format",
+			},
+		},
+		{
+			name: "pagination. Page is < 1 not allowed",
+			auth: authOk,
+			page: common.ToPointer(0),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "page param must be higher than 0",
+			},
+		},
+		{
+			name:        "pagination. max_results < 1 not allowed",
+			auth:        authOk,
+			max_results: common.ToPointer(0),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "maxResults param must be higher than 0",
 			},
 		},
 		{
@@ -1827,6 +1848,12 @@ func TestServer_GetCredentials(t *testing.T) {
 			if tc.did != nil {
 				queryParams = append(queryParams, "did="+*tc.did)
 			}
+			if tc.page != nil {
+				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
+			}
+			if tc.max_results != nil {
+				queryParams = append(queryParams, "max_results="+strconv.Itoa(*tc.max_results))
+			}
 			endpoint.RawQuery = strings.Join(queryParams, "&")
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
 			req.SetBasicAuth(tc.auth())
@@ -1840,6 +1867,10 @@ func TestServer_GetCredentials(t *testing.T) {
 				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Len(t, response.Items, tc.expected.count)
+				assert.Equal(t, len(response.Items), response.Meta.Total)
+				assert.Equal(t, len(response.Items), response.Meta.MaxResults)
+				assert.Equal(t, 1, response.Meta.Page)
+
 			case http.StatusBadRequest:
 				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))

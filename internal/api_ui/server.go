@@ -284,7 +284,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	filter, err := getCredentialsFilter(ctx, request.Params.Did, request.Params.Status, request.Params.Query)
+	filter, err := getCredentialsFilter(ctx, request)
 	if err != nil {
 		return GetCredentials400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
@@ -702,18 +702,18 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 	return NewQrContentResponse(body), nil
 }
 
-func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {
+func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) (*ports.ClaimsFilter, error) {
 	filter := &ports.ClaimsFilter{}
-	if userDID != nil {
-		did, err := w3c.ParseDID(*userDID)
+	if req.Params.Did != nil {
+		did, err := w3c.ParseDID(*req.Params.Did)
 		if err != nil {
-			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *userDID)
+			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", did)
 			return nil, errors.New("cannot parse did parameter: wrong format")
 		}
 		filter.Subject, filter.FTSAndCond = did.String(), true
 	}
-	if status != nil {
-		switch GetCredentialsParamsStatus(strings.ToLower(string(*status))) {
+	if req.Params.Status != nil {
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
 		case Revoked:
 			filter.Revoked = common.ToPointer(true)
 		case Expired:
@@ -724,9 +724,25 @@ func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCrede
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
 		}
 	}
-	if query != nil {
-		filter.FTSQuery = *query
+	if req.Params.Query != nil {
+		filter.FTSQuery = *req.Params.Query
 	}
+
+	filter.MaxResults = 50
+	if req.Params.MaxResults != nil {
+		if *req.Params.MaxResults <= 0 {
+			return nil, errors.New("maxResults param must be higher than 0")
+		}
+		filter.MaxResults = *req.Params.MaxResults
+	}
+
+	if req.Params.Page != nil {
+		if *req.Params.Page <= 0 {
+			return nil, errors.New("page param must be higher than 0")
+		}
+		filter.Page = req.Params.Page
+	}
+
 	return filter, nil
 }
 
