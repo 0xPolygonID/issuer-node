@@ -103,6 +103,7 @@ build-ui-arm:
 
 .PHONY: down
 down:
+	rm -R infrastructure/local/.vault/data/init.out
 	$(DOCKER_COMPOSE_INFRA_CMD) down --remove-orphans
 	$(DOCKER_COMPOSE_CMD) down --remove-orphans
 
