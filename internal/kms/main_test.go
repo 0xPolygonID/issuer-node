@@ -38,8 +38,9 @@ func testKMSSetup(t testing.TB) TestKMS {
 	var err error
 
 	k.VaultCli, err = providers.VaultClient(context.Background(), providers.Config{
-		Address: cfg.Address,
-		Token:   cfg.Token,
+		Address:             cfg.Address,
+		UserPassAuthEnabled: cfg.UserPassEnabled,
+		Pass:                cfg.UserPassPassword,
 	})
 	require.NoError(t, err)
 

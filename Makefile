@@ -103,7 +103,6 @@ build-ui-arm:
 
 .PHONY: down
 down:
-	rm -R infrastructure/local/.vault/data/init.out
 	$(DOCKER_COMPOSE_INFRA_CMD) down --remove-orphans
 	$(DOCKER_COMPOSE_CMD) down --remove-orphans
 
@@ -115,10 +114,6 @@ stop:
 .PHONY: up-test
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
-
-.PHONY: clean-vault
-clean-vault:
-	rm -R infrastructure/local/.vault/data/init.out
 
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
