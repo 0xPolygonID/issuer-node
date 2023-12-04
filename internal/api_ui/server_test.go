@@ -3146,11 +3146,11 @@ func TestServer_GetLink(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 	hash, _ := link.Schema.Hash.MarshalText()
 
-	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -3192,18 +3192,19 @@ func TestServer_GetLink(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
-					Active:            link.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
-					Expiration:        common.ToPointer(TimeUTC(*link.ValidUntil)),
-					Id:                link.ID,
-					IssuedClaims:      link.IssuedClaims,
-					MaxIssuance:       link.MaxIssuance,
-					SchemaType:        link.Schema.Type,
-					SchemaUrl:         link.Schema.URL,
-					Status:            LinkStatusActive,
-					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
-					CreatedAt:         TimeUTC(link.CreatedAt),
-					SchemaHash:        string(hash),
+					Active:               link.Active,
+					CredentialSubject:    CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
+					Expiration:           common.ToPointer(TimeUTC(*link.ValidUntil)),
+					Id:                   link.ID,
+					IssuedClaims:         link.IssuedClaims,
+					MaxIssuance:          link.MaxIssuance,
+					SchemaType:           link.Schema.Type,
+					SchemaUrl:            link.Schema.URL,
+					Status:               LinkStatusActive,
+					ProofTypes:           []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					CreatedAt:            TimeUTC(link.CreatedAt),
+					SchemaHash:           string(hash),
+					CredentialExpiration: common.ToPointer(TimeUTC(tomorrow)),
 				},
 			},
 		},
@@ -3214,16 +3215,17 @@ func TestServer_GetLink(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
-					Active:            linkExpired.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
-					Expiration:        common.ToPointer(TimeUTC(*linkExpired.ValidUntil)),
-					Id:                linkExpired.ID,
-					IssuedClaims:      linkExpired.IssuedClaims,
-					MaxIssuance:       linkExpired.MaxIssuance,
-					SchemaType:        linkExpired.Schema.Type,
-					SchemaUrl:         linkExpired.Schema.URL,
-					Status:            LinkStatusExceeded,
-					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					Active:               linkExpired.Active,
+					CredentialSubject:    CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
+					Expiration:           common.ToPointer(TimeUTC(*linkExpired.ValidUntil)),
+					Id:                   linkExpired.ID,
+					IssuedClaims:         linkExpired.IssuedClaims,
+					MaxIssuance:          linkExpired.MaxIssuance,
+					SchemaType:           linkExpired.Schema.Type,
+					SchemaUrl:            linkExpired.Schema.URL,
+					Status:               LinkStatusExceeded,
+					ProofTypes:           []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					CredentialExpiration: nil,
 				},
 			},
 		},
@@ -3261,6 +3263,11 @@ func TestServer_GetLink(t *testing.T) {
 				assert.Equal(t, expected.Active, response.Active)
 				assert.InDelta(t, time.Time(*expected.Expiration).UnixMilli(), time.Time(*response.Expiration).UnixMilli(), 1000)
 				assert.Equal(t, len(expected.ProofTypes), len(response.ProofTypes))
+				if expected.CredentialExpiration != nil {
+					tt := time.Time(*expected.CredentialExpiration)
+					tt00 := common.ToPointer(TimeUTC(time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, time.UTC)))
+					assert.Equal(t, tt00.String(), response.CredentialExpiration.String())
+				}
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -3315,19 +3322,19 @@ func TestServer_GetAllLinks(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 	linkActive := getLinkResponse(*link1)
 
 	time.Sleep(10 * time.Millisecond)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 	linkExpired := getLinkResponse(*link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
-	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, linkService.Activate(ctx, *did, link3.ID, false))
@@ -3475,6 +3482,8 @@ func TestServer_GetAllLinks(t *testing.T) {
 						require.NoError(t, err)
 						assert.Equal(t, tcCred, respCred)
 						assert.InDelta(t, time.Time(*tc.expected.response[i].Expiration).UnixMilli(), time.Time(*resp.Expiration).UnixMilli(), 1000)
+						expectCredExpiration := common.ToPointer(TimeUTC(time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.UTC)))
+						assert.Equal(t, expectCredExpiration.String(), resp.CredentialExpiration.String())
 					}
 				}
 			case http.StatusBadRequest:
