@@ -115,13 +115,6 @@ stop:
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
 
-.PHONY: clean-vault
-clean-vault:
-	rm -R infrastructure/local/.vault/data/init.out
-	rm -R infrastructure/local/.vault/file/core/
-	rm -R infrastructure/local/.vault/file/logical/
-	rm -R infrastructure/local/.vault/file/sys/
-
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
 
@@ -231,3 +224,10 @@ vault-export-keys:
 vault-import-keys:
 	docker build -t issuer-vault-import-keys .
 	docker run --rm -it --network=issuer-network -v $(shell pwd)/keys.json:/keys.json issuer-vault-import-keys ./vault-migrator -operation=import -input-file=keys.json -vault-token=$(vault_token) -vault-addr=http://vault:8200
+
+
+# usage: make new_password=xxx change-vault-password
+.PHONY: change-vault-password
+change-vault-password:
+	docker exec issuer-vault-1 \
+	vault write auth/userpass/users/issuernode password=$(new_password)

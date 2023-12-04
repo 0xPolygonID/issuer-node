@@ -33,3 +33,8 @@ func (t Time) MarshalJSON() ([]byte, error) {
 func (t *Time) String() string {
 	return time.Time(*t).UTC().Format(time.RFC3339)
 }
+
+// UTCZeroHHMMSS returns a new Time with the time set to 00:00:00 and UTC location
+func (t *Time) UTCZeroHHMMSS() Time {
+	return Time(time.Date(time.Time(*t).Year(), time.Time(*t).Month(), time.Time(*t).Day(), 0, 0, 0, 0, time.UTC))
+}

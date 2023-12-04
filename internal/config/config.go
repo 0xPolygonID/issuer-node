@@ -106,6 +106,8 @@ type KeyStore struct {
 	Address              string `tip:"Keystore address"`
 	Token                string `tip:"Token"`
 	PluginIden3MountPath string `tip:"PluginIden3MountPath"`
+	UserPassEnabled      bool   `tip:"UserPassEnabled"`
+	UserPassPassword     string `tip:"UserPassPassword"`
 }
 
 // Log holds runtime configurations
@@ -353,21 +355,10 @@ func Load(fileName string) (*Configuration, error) {
 func VaultTest() KeyStore {
 	return KeyStore{
 		Address:              "http://localhost:8200",
-		Token:                lookupVaultTestToken(),
 		PluginIden3MountPath: "iden3",
+		UserPassEnabled:      true,
+		UserPassPassword:     "issuernodepwd",
 	}
-}
-
-func lookupVaultTestToken() string {
-	var err error
-	token, ok := os.LookupEnv("VAULT_TEST_TOKEN")
-	if !ok {
-		token, err = lookupVaultTokenFromFile("infrastructure/local/.vault/data/init.out")
-		if err != nil {
-			return ""
-		}
-	}
-	return token
 }
 
 // lookupVaultTokenFromFile parses the vault config file looking for the hvs token and returns it

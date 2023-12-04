@@ -185,19 +185,19 @@ type KeyValue struct {
 
 // Link defines model for Link.
 type Link struct {
-	Active               bool                `json:"active"`
-	CreatedAt            TimeUTC             `json:"createdAt"`
-	CredentialExpiration *openapi_types.Date `json:"credentialExpiration"`
-	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	Expiration           *TimeUTC            `json:"expiration"`
-	Id                   uuid.UUID           `json:"id"`
-	IssuedClaims         int                 `json:"issuedClaims"`
-	MaxIssuance          *int                `json:"maxIssuance"`
-	ProofTypes           []string            `json:"proofTypes"`
-	SchemaHash           string              `json:"schemaHash"`
-	SchemaType           string              `json:"schemaType"`
-	SchemaUrl            string              `json:"schemaUrl"`
-	Status               LinkStatus          `json:"status"`
+	Active               bool              `json:"active"`
+	CreatedAt            TimeUTC           `json:"createdAt"`
+	CredentialExpiration *TimeUTC          `json:"credentialExpiration"`
+	CredentialSubject    CredentialSubject `json:"credentialSubject"`
+	Expiration           *TimeUTC          `json:"expiration"`
+	Id                   uuid.UUID         `json:"id"`
+	IssuedClaims         int               `json:"issuedClaims"`
+	MaxIssuance          *int              `json:"maxIssuance"`
+	ProofTypes           []string          `json:"proofTypes"`
+	SchemaHash           string            `json:"schemaHash"`
+	SchemaType           string            `json:"schemaType"`
+	SchemaUrl            string            `json:"schemaUrl"`
+	Status               LinkStatus        `json:"status"`
 }
 
 // LinkStatus defines model for Link.Status.

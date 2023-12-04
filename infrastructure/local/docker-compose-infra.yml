@@ -56,8 +56,6 @@ services:
     volumes:
       - ./.vault/config:/vault/config
       - ./.vault/policies:/vault/policies
-      - ./.vault/data:/vault/data
-      - ./.vault/file:/vault/file:rw
       - ./.vault/scripts:/vault/scripts
       - ./.vault/plugins:/vault/plugins
     ports:

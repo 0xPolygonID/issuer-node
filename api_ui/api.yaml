@@ -1242,9 +1242,7 @@ components:
           x-omitempty: false
           nullable: true
         credentialExpiration:
-          type: string
-          format: date
-          example: "2022-12-20"
+          $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
           nullable: true
         createdAt:
