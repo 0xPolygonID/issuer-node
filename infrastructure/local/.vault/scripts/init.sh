@@ -14,7 +14,6 @@ sleep 5
 FILE=/vault/data/init.out
 if [ ! -e "$FILE" ]; then
     echo -e "===== Initialize the Vault ====="
-    mkdir /vault/data/
     vault operator init > /vault/data/init.out
 fi
 
