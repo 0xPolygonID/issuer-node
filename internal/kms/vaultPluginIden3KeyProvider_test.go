@@ -127,8 +127,9 @@ func setupPluginBJJProvider(t *testing.T) (vaultCli *api.Client, mountPath strin
 	t.Helper()
 	var err error
 	vaultCli, err = providers.VaultClient(context.Background(), providers.Config{
-		Address: cfg.Address,
-		Token:   cfg.Token,
+		Address:             cfg.Address,
+		UserPassAuthEnabled: cfg.UserPassEnabled,
+		Pass:                cfg.UserPassPassword,
 	})
 	require.NoError(t, err)
 	mountPath = cfg.PluginIden3MountPath

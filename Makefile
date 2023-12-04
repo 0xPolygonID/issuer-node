@@ -115,13 +115,6 @@ stop:
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
 
-.PHONY: clean-vault
-clean-vault:
-	rm -R infrastructure/local/.vault/data/init.out
-	rm -R infrastructure/local/.vault/file/core/
-	rm -R infrastructure/local/.vault/file/logical/
-	rm -R infrastructure/local/.vault/file/sys/
-
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
 
