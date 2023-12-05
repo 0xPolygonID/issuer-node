@@ -423,9 +423,11 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) (claims []*domain.Claim, count int, err error) {
 	query, countQuery, args := buildGetAllQueryAndFilters(issuerID, filter)
 
-	// Let's count all results
-	if err := conn.QueryRow(ctx, countQuery, args...).Scan(&count); err != nil {
-		return nil, 0, err
+	// Let's count all results, only if we are paginating
+	if filter.Page != nil {
+		if err := conn.QueryRow(ctx, countQuery, args...).Scan(&count); err != nil {
+			return nil, 0, err
+		}
 	}
 
 	// Let's do the real query
@@ -439,6 +441,10 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID
 	}
 	defer rows.Close()
 	claims, err = processClaims(rows)
+
+	if filter.Page == nil {
+		count = len(claims)
+	}
 
 	return claims, count, err
 }
