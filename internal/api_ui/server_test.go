@@ -1691,9 +1691,9 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:        "pagination. max_results < 1 not allowed",
-			auth:        authOk,
-			max_results: common.ToPointer(0),
+			name:       "pagination. max_results < 1 not allowed",
+			auth:       authOk,
+			maxResults: common.ToPointer(0),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
 				errorMsg: "maxResults param must be higher than 0",
@@ -1923,7 +1923,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
 			}
 			if tc.maxResults != nil {
-				queryParams = append(queryParams, "maxResults="+strconv.Itoa(*tc.maxResults))
+				queryParams = append(queryParams, "max_results="+strconv.Itoa(*tc.maxResults))
 			}
 			endpoint.RawQuery = strings.Join(queryParams, "&")
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
