@@ -195,7 +195,7 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 	filter := &ports.ClaimsFilter{
 		Subject: conn.UserDID.String(),
 	}
-	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	credentials, _, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
 		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
@@ -288,7 +288,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 	if err != nil {
 		return GetCredentials400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
-	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	credentials, total, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
 		log.Error(ctx, "loading credentials", "err", err, "req", request)
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -302,7 +302,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		}
 		response[i] = credentialResponse(w3c, credential)
 	}
-	return credentialsResponse(response, filter.Page, len(credentials)), nil // TODO: Change len(credentials) to the total number of credentials
+	return credentialsResponse(response, filter.Page, total), nil
 }
 
 // DeleteCredential deletes a credential

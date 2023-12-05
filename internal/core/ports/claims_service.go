@@ -184,7 +184,7 @@ type ClaimsService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	CreateCredential(ctx context.Context, req *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error
-	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, error)
+	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, int, error)
 	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID w3c.DID) error
 	GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error)

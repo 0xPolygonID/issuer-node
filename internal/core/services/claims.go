@@ -366,16 +366,16 @@ func (c *claim) GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, 
 	return c.icRepo.FindOneClaimBySchemaHash(ctx, c.storage.Pgx, did, string(authHash))
 }
 
-func (c *claim) GetAll(ctx context.Context, did w3c.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
-	claims, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
+func (c *claim) GetAll(ctx context.Context, did w3c.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, int, error) {
+	claims, total, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return nil, ErrClaimNotFound
+			return nil, 0, ErrClaimNotFound
 		}
-		return nil, err
+		return nil, 0, err
 	}
 
-	return claims, nil
+	return claims, total, nil
 }
 
 func (c *claim) GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error) {
