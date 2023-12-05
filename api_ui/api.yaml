@@ -319,7 +319,6 @@ paths:
           name: max_results
           schema:
             type: integer
-            minimum: 10
             example: 50
             default: 50
           description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
