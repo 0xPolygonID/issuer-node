@@ -37,9 +37,9 @@ export function getListParser<Input, Output = Input>(
 
 const metaParser = getStrictParser<Meta>()(
   z.object({
-    max_results: z.number(),
-    page: z.number(),
-    total: z.number(),
+    max_results: z.number().int().min(1),
+    page: z.number().int().min(1),
+    total: z.number().int().min(0),
   })
 );
 
