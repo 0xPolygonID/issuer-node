@@ -69,11 +69,11 @@ export const datetimeParser = getStrictParser<string, Date>()(
     })
 );
 
-export const numberFromStringParser = getStrictParser<string, number>()(
+export const positiveIntegerFromStringParser = getStrictParser<string, number>()(
   z.string().transform((value, context) => {
     const trimmed = value.trim();
     const valueToParse = trimmed === "" ? undefined : Number(trimmed);
-    const parsedNumber = z.number().safeParse(valueToParse);
+    const parsedNumber = z.number().int().min(1).safeParse(valueToParse);
     if (parsedNumber.success) {
       return parsedNumber.data;
     } else {

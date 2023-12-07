@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
-import { numberFromStringParser } from "src/adapters/parsers";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
@@ -74,10 +74,10 @@ export function CredentialsTable() {
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
-  const paginationPageParsed = numberFromStringParser.safeParse(
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(
     searchParams.get(PAGINATION_PAGE_PARAM)
   );
-  const paginationMaxResultsParsed = numberFromStringParser.safeParse(
+  const paginationMaxResultsParsed = positiveIntegerFromStringParser.safeParse(
     searchParams.get(PAGINATION_MAX_RESULTS_PARAM)
   );
 
