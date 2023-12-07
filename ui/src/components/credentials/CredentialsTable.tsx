@@ -36,6 +36,9 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DEFAULT_PAGINATION_MAX_RESULTS,
+  DEFAULT_PAGINATION_PAGE,
+  DEFAULT_PAGINATION_TOTAL,
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
@@ -43,8 +46,8 @@ import {
   ISSUED,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
-  PAGINATION_CURRENT_PARAM,
   PAGINATION_MAX_RESULTS_PARAM,
+  PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
   REVOCATION,
   REVOKE,
@@ -71,25 +74,21 @@ export function CredentialsTable() {
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
-  const paginationCurrentParsed = numberFromStringParser.safeParse(
-    searchParams.get(PAGINATION_CURRENT_PARAM)
+  const paginationPageParsed = numberFromStringParser.safeParse(
+    searchParams.get(PAGINATION_PAGE_PARAM)
   );
-  const paginationPageSizeParsed = numberFromStringParser.safeParse(
+  const paginationMaxResultsParsed = numberFromStringParser.safeParse(
     searchParams.get(PAGINATION_MAX_RESULTS_PARAM)
   );
 
-  const DEFAULT_PAGINATION_CURRENT = 1;
-  const DEFAULT_PAGINATION_PAGE_SIZE = 10;
-  const DEFAULT_PAGINATION_TOTAL = 0;
-
   const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
 
-  const paginationCurrent = paginationCurrentParsed.success
-    ? paginationCurrentParsed.data
-    : DEFAULT_PAGINATION_CURRENT;
-  const paginationPageSize = paginationPageSizeParsed.success
-    ? paginationPageSizeParsed.data
-    : DEFAULT_PAGINATION_PAGE_SIZE;
+  const paginationPage = paginationPageParsed.success
+    ? paginationPageParsed.data
+    : DEFAULT_PAGINATION_PAGE;
+  const paginationMaxResults = paginationMaxResultsParsed.success
+    ? paginationMaxResultsParsed.data
+    : DEFAULT_PAGINATION_MAX_RESULTS;
 
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
   const showDefaultContent =
@@ -202,20 +201,20 @@ export function CredentialsTable() {
   ];
 
   const updatePaginationParams = useCallback(
-    (pagination: { current?: number; pageSize?: number }) => {
+    (pagination: { maxResults?: number; page?: number }) => {
       setSearchParams((previousParams) => {
         const params = new URLSearchParams(previousParams);
         params.set(
-          PAGINATION_CURRENT_PARAM,
-          pagination.current !== undefined
-            ? pagination.current.toString()
-            : DEFAULT_PAGINATION_CURRENT.toString()
+          PAGINATION_PAGE_PARAM,
+          pagination.page !== undefined
+            ? pagination.page.toString()
+            : DEFAULT_PAGINATION_PAGE.toString()
         );
         params.set(
           PAGINATION_MAX_RESULTS_PARAM,
-          pagination.pageSize !== undefined
-            ? pagination.pageSize.toString()
-            : DEFAULT_PAGINATION_PAGE_SIZE.toString()
+          pagination.maxResults !== undefined
+            ? pagination.maxResults.toString()
+            : DEFAULT_PAGINATION_MAX_RESULTS.toString()
         );
         return params;
       });
@@ -234,8 +233,8 @@ export function CredentialsTable() {
       const response = await getCredentials({
         env,
         params: {
-          max_results: paginationPageSize,
-          page: paginationCurrent,
+          max_results: paginationMaxResults,
+          page: paginationPage,
           query: queryParam || undefined,
           status: credentialStatus,
         },
@@ -248,8 +247,8 @@ export function CredentialsTable() {
         });
         setPaginationTotal(response.data.meta.total);
         updatePaginationParams({
-          current: response.data.meta.current,
-          pageSize: response.data.meta.max_results,
+          maxResults: response.data.meta.max_results,
+          page: response.data.meta.page,
         });
         notifyParseErrors(response.data.items.failed);
       } else {
@@ -260,8 +259,8 @@ export function CredentialsTable() {
     },
     [
       env,
-      paginationPageSize,
-      paginationCurrent,
+      paginationMaxResults,
+      paginationPage,
       queryParam,
       credentialStatus,
       updatePaginationParams,
@@ -357,14 +356,14 @@ export function CredentialsTable() {
                   <NoResults searchQuery={queryParam} />
                 ),
             }}
-            onChange={(pagination) => {
-              setPaginationTotal(pagination.total || DEFAULT_PAGINATION_TOTAL);
-              updatePaginationParams(pagination);
+            onChange={({ current, pageSize, total }) => {
+              setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+              updatePaginationParams({ maxResults: pageSize, page: current });
             }}
             pagination={{
-              current: paginationCurrent,
+              current: paginationPage,
               hideOnSinglePage: true,
-              pageSize: paginationPageSize,
+              pageSize: paginationMaxResults,
               position: ["bottomRight"],
               total: paginationTotal,
             }}

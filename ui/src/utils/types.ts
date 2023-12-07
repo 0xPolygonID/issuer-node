@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export type Meta = {
-  current: number;
   max_results: number;
+  page: number;
   total: number;
 };
 
