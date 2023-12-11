@@ -69,11 +69,11 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 	return res
 }
 
-func credentialsResponse(creds []Credential, page *int, total int) GetCredentials200JSONResponse {
+func credentialsResponse(creds []Credential, page *int, total int, maxResults int) GetCredentials200JSONResponse {
 	resp := GetCredentials200JSONResponse{
 		Items: creds,
 		Meta: PaginatedMetadata{
-			MaxResults: len(creds),
+			MaxResults: maxResults,
 			Page:       1, // default
 			Total:      total,
 		},

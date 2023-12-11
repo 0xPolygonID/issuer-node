@@ -1638,11 +1638,12 @@ func TestServer_GetCredentials(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		page       int
-		maxResults int
-		total      int
-		httpCode   int
-		errorMsg   string
+		credentialsCount int
+		page             int
+		maxResults       int
+		total            int
+		httpCode         int
+		errorMsg         string
 	}
 
 	type testConfig struct {
@@ -1691,22 +1692,26 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
-			name:       "pagination. max_results < 1 not allowed",
+			name:       "pagination. max_results < 1 return default max results",
 			auth:       authOk,
 			maxResults: common.ToPointer(0),
 			expected: expected{
-				httpCode: http.StatusBadRequest,
-				errorMsg: "maxResults param must be higher than 0",
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
 			name: "Get all implicit",
 			auth: authOk,
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1714,10 +1719,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("all"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1727,10 +1733,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			page:       common.ToPointer(1),
 			maxResults: common.ToPointer(2),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 2,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             1,
+				credentialsCount: 2,
 			},
 		},
 		{
@@ -1740,10 +1747,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			page:       common.ToPointer(2),
 			maxResults: common.ToPointer(2),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 2,
-				page:       2,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             2,
+				credentialsCount: 2,
 			},
 		},
 		{
@@ -1753,10 +1761,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			page:       common.ToPointer(3),
 			maxResults: common.ToPointer(2),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 0,
-				page:       3,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             3,
+				credentialsCount: 0,
 			},
 		},
 		{
@@ -1765,10 +1774,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("all"),
 			did:    &claim.OtherIdentifier,
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1777,10 +1787,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("all"),
 			did:    common.ToPointer("did:iden3:tJU7z1dbKyKYLiaopZ5tN6Zjsspq7QhYayiR31RFa"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      0,
-				maxResults: 0,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
 			},
 		},
 		{
@@ -1788,10 +1799,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("revoked"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      1,
-				maxResults: 1,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1799,10 +1811,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("REVOKED"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      1,
-				maxResults: 1,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1810,10 +1823,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("expired"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      1,
-				maxResults: 1,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1821,10 +1835,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1832,10 +1847,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier[9:14]),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1843,10 +1859,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: &revoked.OtherIdentifier,
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1854,10 +1871,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("birthday"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1865,10 +1883,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("rthd"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1876,10 +1895,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1887,10 +1907,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("birthday schema attribute not the rest of words this sentence"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      4,
-				maxResults: 4,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1899,10 +1920,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			did:   &claim.OtherIdentifier,
 			query: common.ToPointer("not existing words"),
 			expected: expected{
-				httpCode:   http.StatusOK,
-				total:      0,
-				maxResults: 0,
-				page:       1,
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
 			},
 		},
 	} {
@@ -1938,7 +1960,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.total, response.Meta.Total)
-				assert.Len(t, response.Items, tc.expected.maxResults)
+				assert.Equal(t, tc.expected.credentialsCount, len(response.Items))
 				assert.Equal(t, tc.expected.maxResults, response.Meta.MaxResults)
 				assert.Equal(t, tc.expected.page, response.Meta.Page)
 

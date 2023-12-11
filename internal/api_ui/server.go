@@ -302,7 +302,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		}
 		response[i] = credentialResponse(w3c, credential)
 	}
-	return credentialsResponse(response, filter.Page, total), nil
+	return credentialsResponse(response, filter.Page, total, filter.MaxResults), nil
 }
 
 // DeleteCredential deletes a credential
@@ -724,9 +724,10 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 	filter.MaxResults = 50
 	if req.Params.MaxResults != nil {
 		if *req.Params.MaxResults <= 0 {
-			return nil, errors.New("maxResults param must be higher than 0")
+			filter.MaxResults = 50
+		} else {
+			filter.MaxResults = *req.Params.MaxResults
 		}
-		filter.MaxResults = *req.Params.MaxResults
 	}
 
 	if req.Params.Page != nil {
