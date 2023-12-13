@@ -295,9 +295,161 @@ func TestGetAllByIssuerID(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			claims, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
+			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
 			require.NoError(t, err)
 			assert.Len(t, claims, tc.expected)
+			assert.Equal(t, total, len(claims))
+		})
+	}
+}
+
+func TestGetAllByIssuerIDPagination(t *testing.T) {
+	ctx := context.Background()
+	fixture := tests.NewFixture(storage)
+	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qMFKi3ou8Sd5oeHt3NquUKnPUqDMD84yvpm4pt8Hi")
+	require.NoError(t, err)
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qPnPzctLT3jEzW3aZg2yAGEeeBW6izu5znWULdNRy")
+	require.NoError(t, err)
+
+	jsonB := &pgtype.JSONB{}
+	require.NoError(t, jsonB.Set(`{"type": "BJJSignature2021", "coreClaim": "c9b2370371b7fa8b3dab2a5ba81b68382a00000000000000000000000000000002129c52957a73ea89144dc455d28e074cd7e23ae3e5bf86d4aa56d20cd60e0074da1e21d2c4d8fc28e2e3809ed51c333d68ef4dffd31508176ab84863e8fc1a0000000000000000000000000000000000000000000000000000000000000000682561f1000000006f0535010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "signature": "fb179bc43ca2c8ce4eb97549d847415bcb759f4d7c8bb3aa008700716abb2b06853349d75571fdc3018023cce9d1e6756eb102b4b44a17555d49fc8371af1300", "issuerData": {"id": "did:polygonid:polygon:mumbai:2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr", "mtp": {"siblings": [], "existence": true}, "state": {"value": "e6a67b3bcca7e424f657f41ddaae87f772f502de49d1cfe7f9abd11a4822611d", "claimsTreeRoot": "8375a237f1597b74b17f33cce0638e93a7be9175028836ae9f54f08dd2976a2f"}, "authCoreClaim": "cca3371a6cb1b715004407e325bd993c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f5287a7ac420b7c2b1b7aa28446c52df4dda6f7e4a127fbd1272d78853c4e01a3359f10f7fef6a358b83740146445dc55f143109bf1f6a090edf7d7c7b8e651c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "credentialStatus": {"id": "https://aeb5-2a0c-5a84-e10a-5200-71e6-4d79-d127-c4dd.eu.ngrok.io/v1/did%3Apolygonid%3Apolygon%3Amumbai%3A2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr/claims/revocation/status/0", "type": "SparseMerkleTreeProof", "revocationNonce": 0}}}`))
+
+	createdAt := time.Now().Add(-24 * time.Hour)
+	for i := 0; i < 100; i++ {
+		c := &domain.Claim{
+			ID:              uuid.New(),
+			Identifier:      common.ToPointer(issuerDID.String()),
+			Issuer:          issuerDID.String(),
+			SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+			SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+			SchemaType:      "AuthBJJCredential",
+			SignatureProof:  *jsonB,
+			OtherIdentifier: userDID.String(),
+			HIndex:          fmt.Sprintf("%d", rand.Int()),
+			CreatedAt:       createdAt,
+		}
+		require.NoError(t, c.Data.Set(&verifiable.W3CCredential{
+			ID: uuid.NewString(),
+			CredentialSubject: map[string]any{
+				"number": 1,
+				"string": "some words",
+			},
+		}))
+
+		_ = fixture.CreateClaim(t, c)
+		createdAt = createdAt.Add(time.Second)
+	}
+
+	claimsRepo := repositories.NewClaims()
+
+	type expected struct {
+		total     int
+		resultLen int
+	}
+
+	type testConfig struct {
+		name     string
+		filter   ports.ClaimsFilter
+		expected expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "If page is nil, return all",
+			filter: ports.ClaimsFilter{
+				Subject:    userDID.String(),
+				MaxResults: 100,
+				Page:       nil,
+			},
+			expected: expected{
+				total:     100,
+				resultLen: 100,
+			},
+		},
+		{
+			name: "Return first page of 100",
+			filter: ports.ClaimsFilter{
+				Subject:    userDID.String(),
+				MaxResults: 100,
+				Page:       common.ToPointer(1),
+			},
+			expected: expected{
+				total:     100,
+				resultLen: 100,
+			},
+		},
+		{
+			name: "Return first page of 25",
+			filter: ports.ClaimsFilter{
+				Subject:    userDID.String(),
+				MaxResults: 25,
+				Page:       common.ToPointer(1),
+			},
+			expected: expected{
+				total:     100,
+				resultLen: 25,
+			},
+		},
+		{
+			name: "Return first page of 25",
+			filter: ports.ClaimsFilter{
+				Subject:    userDID.String(),
+				MaxResults: 25,
+				Page:       common.ToPointer(1),
+			},
+			expected: expected{
+				total:     100,
+				resultLen: 25,
+			},
+		},
+		{
+			name: "Return 4 page of 33",
+			filter: ports.ClaimsFilter{
+				Subject:    userDID.String(),
+				MaxResults: 33,
+				Page:       common.ToPointer(4),
+			},
+			expected: expected{
+				total:     100,
+				resultLen: 1,
+			},
+		},
+		{
+			name: "Return 100 page of 1",
+			filter: ports.ClaimsFilter{
+				Subject:    userDID.String(),
+				MaxResults: 1,
+				Page:       common.ToPointer(100),
+			},
+			expected: expected{
+				total:     100,
+				resultLen: 1,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
+			require.NoError(t, err)
+			assert.Len(t, claims, tc.expected.resultLen)
+			assert.Equal(t, total, tc.expected.total)
+
+			// Let's check ids, etc...
+			all := tc.filter
+			all.Page = nil
+			allClaims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &all)
+			require.NoError(t, err)
+
+			from := 0
+			to := total
+			if tc.filter.Page != nil {
+				from = (*tc.filter.Page - 1) * tc.filter.MaxResults
+				to = from + tc.filter.MaxResults
+				if to >= total {
+					to = total - 1
+				}
+			}
+			for i := from; i < to; i++ {
+				assert.Equal(t, allClaims[i].ID, claims[i].ID, "iteration: %d", i)
+			}
 		})
 	}
 }

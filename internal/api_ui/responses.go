@@ -69,6 +69,21 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 	return res
 }
 
+func credentialsResponse(creds []Credential, page *int, total int, maxResults int) GetCredentials200JSONResponse {
+	resp := GetCredentials200JSONResponse{
+		Items: creds,
+		Meta: PaginatedMetadata{
+			MaxResults: maxResults,
+			Page:       1, // default
+			Total:      total,
+		},
+	}
+	if page != nil {
+		resp.Meta.Page = *page
+	}
+	return resp
+}
+
 func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
 	var expiresAt *TimeUTC
 	expired := false

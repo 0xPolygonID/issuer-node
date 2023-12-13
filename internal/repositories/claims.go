@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -419,20 +420,33 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) ([]*domain.Claim, error) {
-	query, args := buildGetAllQueryAndFilters(issuerID, filter)
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) (claims []*domain.Claim, count int, err error) {
+	query, countQuery, args := buildGetAllQueryAndFilters(issuerID, filter)
 
+	// Let's count all results, only if we are paginating
+	if filter.Page != nil {
+		if err := conn.QueryRow(ctx, countQuery, args...).Scan(&count); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	// Let's do the real query
 	rows, err := conn.Query(ctx, query, args...)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, ErrClaimDoesNotExist
+			return nil, 0, ErrClaimDoesNotExist
 		}
 
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
+	claims, err = processClaims(rows)
 
-	return processClaims(rows)
+	if filter.Page == nil {
+		count = len(claims)
+	}
+
+	return claims, count, err
 }
 
 func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn db.Querier, connID uuid.UUID, issuerID w3c.DID) ([]*domain.Claim, error) {
@@ -694,35 +708,37 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 	return claims, rows.Err()
 }
 
-func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (string, []interface{}) {
-	query := `SELECT claims.id,
-				   issuer,
-				   schema_hash,
-				   schema_url,
-				   schema_type,
-				   other_identifier,
-				   expiration,
-				   updatable,
-				   claims.version,
-				   rev_nonce,
-				   signature_proof,
-				   mtp_proof,
-				   data,
-				   claims.identifier,
-				   identity_state,
-				   identity_states.status,
-				   credential_status,
-				   core_claim,
-				   revoked,
-				   mtp
-			FROM claims
-			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
+func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (query string, countQuery string, filters []interface{}) {
+	fields := []string{
+		"claims.id",
+		"issuer",
+		"schema_hash",
+		"schema_url",
+		"schema_type",
+		"other_identifier",
+		"expiration",
+		"updatable",
+		"claims.version",
+		"rev_nonce",
+		"signature_proof",
+		"mtp_proof",
+		"data",
+		"claims.identifier",
+		"identity_state",
+		"identity_states.status",
+		"credential_status",
+		"core_claim",
+		"revoked",
+		"mtp",
+	}
+	query = `SELECT ##QUERYFIELDS## FROM claims
+			LEFT JOIN identity_states ON claims.identity_state = identity_states.state
 			`
 	if filter.FTSQuery != "" {
 		query = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash=schemas.hash AND claims.issuer=schemas.issuer_id ", query)
 	}
 
-	filters := []interface{}{issuerID.String()}
+	filters = []interface{}{issuerID.String()}
 	query = fmt.Sprintf("%s WHERE claims.identifier = $%d ", query, len(filters))
 
 	query = fmt.Sprintf("%s AND claims.schema_type <> '%s' ", query, domain.AuthBJJCredentialSchemaType)
@@ -783,9 +799,15 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (s
 		query = fmt.Sprintf("%s AND (%s) ", query, ftsConds)
 	}
 
-	query += " ORDER BY claims.created_at DESC"
+	countQuery = strings.Replace(query, "##QUERYFIELDS##", "count(*)", 1)
+	query = strings.Replace(query, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 
-	return query, filters
+	query += " ORDER BY claims.created_at DESC"
+	if filter.Page != nil {
+		query += fmt.Sprintf(" OFFSET %d LIMIT %d;", (*filter.Page-1)*filter.MaxResults, filter.MaxResults)
+	}
+
+	return query, countQuery, filters
 }
 
 func (c *claims) UpdateClaimMTP(ctx context.Context, conn db.Querier, claim *domain.Claim) (int64, error) {
