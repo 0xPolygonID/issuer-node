@@ -32,6 +32,7 @@ type CreateClaimRequest struct {
 	SingleIssuer          bool
 	CredentialStatusType  verifiable.CredentialStatusType
 	SchemaTypeDescription string
+	RefreshService        *verifiable.RefreshService
 }
 
 // AgentRequest struct
@@ -95,7 +96,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService,) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -111,6 +112,7 @@ func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubj
 		Type:              typ,
 		SignatureProof:    *sigProof,
 		MTProof:           *mtProof,
+		RefreshService:    refreshService,
 	}
 	if expiration != nil {
 		req.Expiration = expiration

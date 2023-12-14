@@ -441,6 +441,29 @@ func TestServer_CreateClaim(t *testing.T) {
 			},
 		},
 		{
+			name: "Happy path with refresh service",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
+				Type:             "testNewType",
+				CredentialSubject: map[string]any{
+					"id":             "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"testNewTypeInt": 1234,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				RefreshService: &RefreshService{
+					Id:   "http://localhost:8080",
+					Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
 			name: "Wrong credential url",
 			auth: authOk,
 			did:  did,
@@ -855,6 +878,10 @@ func TestServer_GetClaim(t *testing.T) {
 					IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 					Issuer:       idStr,
 					Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
+					RefreshService: &RefreshService{
+						Id:   "https://refresh-service.xyz",
+						Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
+					},
 				},
 			},
 		},
@@ -1254,7 +1281,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil))
 	assert.NoError(t, err)
 
 	type expected struct {
@@ -1336,6 +1363,7 @@ func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
 	assert.Equal(t, resp.Type, tc.Type)
 	assert.Equal(t, resp.Expiration, tc.Expiration)
 	assert.Equal(t, resp.Issuer, tc.Issuer)
+	assert.Equal(t, resp.RefreshService, tc.RefreshService)
 	credentialSubjectType, ok := tc.CredentialSubject["type"]
 	require.True(t, ok)
 	assert.Contains(t, credentialSubjectTypes, credentialSubjectType)

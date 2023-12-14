@@ -609,6 +609,22 @@ components:
         rootOfRoots:
           type: string
 
+    # refresh service
+    RefreshService:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3RefreshService2023"
+
     #claims
     CreateClaimRequest:
       type: object
@@ -639,6 +655,8 @@ components:
           type: string
         merklizedRootPosition:
           type: string
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -704,6 +722,8 @@ components:
           x-omitempty: false
         proof:
           type: null
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
 
     QrCodeLinkShortResponse:
       type: string

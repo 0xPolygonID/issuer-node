@@ -143,7 +143,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService))
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -169,6 +169,9 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrAssigningMTPProof) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedRefreshServiceType) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -530,6 +533,16 @@ func RegisterStatic(mux *chi.Mux) {
 	mux.Get("/favicon.ico", favicon)
 }
 
+func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.RefreshService{
+		ID:   s.Id,
+		Type: verifiable.RefreshServiceType(s.Type),
+	}
+}
+
 func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
 	response := make(GetClaims200JSONResponse, len(claims))
 	for i := range claims {
@@ -547,6 +560,15 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 	if claim.IssuanceDate != nil {
 		claimIssuanceDate = common.ToPointer(TimeUTC(*claim.IssuanceDate))
 	}
+
+	var refreshService *RefreshService
+	if claim.RefreshService != nil {
+		refreshService = &RefreshService{
+			Id:   claim.RefreshService.ID,
+			Type: RefreshServiceType(claim.RefreshService.Type),
+		}
+	}
+
 	return GetClaimResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
@@ -561,6 +583,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Issuer:            claim.Issuer,
 		Proof:             claim.Proof,
 		Type:              claim.Type,
+		RefreshService:    refreshService,
 	}
 }
 
