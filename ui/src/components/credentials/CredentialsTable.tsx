@@ -377,7 +377,7 @@ export function CredentialsTable() {
             <Space size="middle">
               <Card.Meta title={ISSUED} />
 
-              <Tag color="blue">{credentialsList.length}</Tag>
+              <Tag color="blue">{paginationTotal}</Tag>
             </Space>
 
             {(!showDefaultContent || credentialStatus !== "all") && (
