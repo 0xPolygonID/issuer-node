@@ -10,6 +10,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
+	"github.com/polygonid/sh-id-platform/pkg/pagination"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -69,7 +70,7 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 	return res
 }
 
-func credentialsResponse(creds []Credential, page *int, total int, maxResults int) GetCredentials200JSONResponse {
+func credentialsResponse(creds []Credential, page *uint, total uint, maxResults uint) GetCredentials200JSONResponse {
 	resp := GetCredentials200JSONResponse{
 		Items: creds,
 		Meta: PaginatedMetadata{
@@ -152,6 +153,27 @@ func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, er
 	}
 
 	return resp, nil
+}
+
+func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter *pagination.Filter, total uint) (ConnectionsPaginated, error) {
+	resp, err := connectionsResponse(conns)
+	if err != nil {
+		return ConnectionsPaginated{}, err
+	}
+
+	connsPag := ConnectionsPaginated{
+		Items: resp,
+		Meta: PaginatedMetadata{
+			Page:  1, // default
+			Total: total,
+		},
+	}
+	if pagFilter != nil {
+		connsPag.Meta.Page = *pagFilter.Page
+		connsPag.Meta.MaxResults = pagFilter.MaxResults
+	}
+
+	return connsPag, nil
 }
 
 func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {

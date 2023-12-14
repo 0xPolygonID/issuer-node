@@ -76,6 +76,12 @@ type AuthenticationConnection struct {
 // Config defines model for Config.
 type Config = []KeyValue
 
+// ConnectionsPaginated defines model for ConnectionsPaginated.
+type ConnectionsPaginated struct {
+	Items GetConnectionsResponse `json:"items"`
+	Meta  PaginatedMetadata      `json:"meta"`
+}
+
 // CreateCredentialRequest defines model for CreateCredentialRequest.
 type CreateCredentialRequest struct {
 	CredentialSchema  string                 `json:"credentialSchema"`
@@ -220,9 +226,9 @@ type LinkSimple struct {
 
 // PaginatedMetadata defines model for PaginatedMetadata.
 type PaginatedMetadata struct {
-	MaxResults int `json:"max_results"`
-	Page       int `json:"page"`
-	Total      int `json:"total"`
+	MaxResults uint `json:"max_results"`
+	Page       uint `json:"page"`
+	Total      uint `json:"total"`
 }
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
@@ -359,6 +365,12 @@ type GetConnectionsParams struct {
 
 	// Credentials credentials=true to include the connection credentials.
 	Credentials *bool `form:"credentials,omitempty" json:"credentials,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
 }
 
 // DeleteConnectionParams defines parameters for DeleteConnection.
@@ -384,10 +396,10 @@ type GetCredentialsParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *int `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
 }
 
 // GetCredentialsParamsStatus defines parameters for GetCredentials.
@@ -1008,6 +1020,22 @@ func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "credentials", r.URL.Query(), &params.Credentials)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentials", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
 		return
 	}
 
@@ -2287,7 +2315,7 @@ type GetConnectionsResponseObject interface {
 	VisitGetConnectionsResponse(w http.ResponseWriter) error
 }
 
-type GetConnections200JSONResponse GetConnectionsResponse
+type GetConnections200JSONResponse ConnectionsPaginated
 
 func (response GetConnections200JSONResponse) VisitGetConnectionsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

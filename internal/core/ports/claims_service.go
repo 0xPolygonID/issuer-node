@@ -58,8 +58,8 @@ type ClaimsFilter struct {
 	FTSQuery        string
 	FTSAndCond      bool
 	Proofs          []verifiable.ProofType
-	MaxResults      int  // Max number of results to return on each call.
-	Page            *int // Page number to return. First is 1. if nul, then there is no limit in the number to return
+	MaxResults      uint  // Max number of results to return on each call.
+	Page            *uint // Page number to return. First is 1. if nul, then there is no limit in the number to return
 }
 
 // NewClaimsFilter returns a valid claims filter
@@ -184,7 +184,7 @@ type ClaimsService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
 	CreateCredential(ctx context.Context, req *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error
-	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, int, error)
+	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, uint, error)
 	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID w3c.DID) error
 	GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error)

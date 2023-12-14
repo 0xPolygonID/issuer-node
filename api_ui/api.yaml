@@ -211,13 +211,29 @@ paths:
           schema:
             type: boolean
           description: credentials=true to include the connection credentials.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
       responses:
         '200':
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetConnectionsResponse'
+                $ref: '#/components/schemas/ConnectionsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -312,6 +328,7 @@ paths:
           name: page
           schema:
             type: integer
+            format: uint
             minimum: 1
             example: 1
           description: Page to fetch. First is one. If omitted, all results will be returned.
@@ -319,6 +336,7 @@ paths:
           name: max_results
           schema:
             type: integer
+            format: uint
             example: 50
             default: 50
           description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
@@ -1360,6 +1378,15 @@ components:
         message:
           type: string
 
+    ConnectionsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          $ref: '#/components/schemas/GetConnectionsResponse'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
     GetConnectionsResponse:
       type: array
       items:
@@ -1649,12 +1676,15 @@ components:
       properties:
         total:
           type: integer
+          format: uint
           example: 1
         page:
           type: integer
+          format: uint
           example: 1
         max_results:
           type: integer
+          format: uint
           example: 50
 
     TimeUTC:
