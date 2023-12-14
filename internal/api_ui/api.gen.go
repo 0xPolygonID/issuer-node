@@ -125,6 +125,12 @@ type CredentialLinkQrCodeResponse struct {
 // CredentialSubject defines model for CredentialSubject.
 type CredentialSubject = map[string]interface{}
 
+// CredentialsPaginated defines model for CredentialsPaginated.
+type CredentialsPaginated struct {
+	Items []Credential      `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
+}
+
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
 	Message string `json:"message"`
@@ -185,19 +191,19 @@ type KeyValue struct {
 
 // Link defines model for Link.
 type Link struct {
-	Active               bool                `json:"active"`
-	CreatedAt            TimeUTC             `json:"createdAt"`
-	CredentialExpiration *openapi_types.Date `json:"credentialExpiration"`
-	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	Expiration           *TimeUTC            `json:"expiration"`
-	Id                   uuid.UUID           `json:"id"`
-	IssuedClaims         int                 `json:"issuedClaims"`
-	MaxIssuance          *int                `json:"maxIssuance"`
-	ProofTypes           []string            `json:"proofTypes"`
-	SchemaHash           string              `json:"schemaHash"`
-	SchemaType           string              `json:"schemaType"`
-	SchemaUrl            string              `json:"schemaUrl"`
-	Status               LinkStatus          `json:"status"`
+	Active               bool              `json:"active"`
+	CreatedAt            TimeUTC           `json:"createdAt"`
+	CredentialExpiration *TimeUTC          `json:"credentialExpiration"`
+	CredentialSubject    CredentialSubject `json:"credentialSubject"`
+	Expiration           *TimeUTC          `json:"expiration"`
+	Id                   uuid.UUID         `json:"id"`
+	IssuedClaims         int               `json:"issuedClaims"`
+	MaxIssuance          *int              `json:"maxIssuance"`
+	ProofTypes           []string          `json:"proofTypes"`
+	SchemaHash           string            `json:"schemaHash"`
+	SchemaType           string            `json:"schemaType"`
+	SchemaUrl            string            `json:"schemaUrl"`
+	Status               LinkStatus        `json:"status"`
 }
 
 // LinkStatus defines model for Link.Status.
@@ -210,6 +216,13 @@ type LinkSimple struct {
 	SchemaHash string    `json:"schemaHash"`
 	SchemaType string    `json:"schemaType"`
 	SchemaUrl  string    `json:"schemaUrl"`
+}
+
+// PaginatedMetadata defines model for PaginatedMetadata.
+type PaginatedMetadata struct {
+	MaxResults int `json:"max_results"`
+	Page       int `json:"page"`
+	Total      int `json:"total"`
 }
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
@@ -369,6 +382,12 @@ type GetCredentialsParams struct {
 
 	// Query Query string to do full text search
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *int `form:"max_results,omitempty" json:"max_results,omitempty"`
 }
 
 // GetCredentialsParamsStatus defines parameters for GetCredentials.
@@ -1166,6 +1185,22 @@ func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
 		return
 	}
 
@@ -2419,7 +2454,7 @@ type GetCredentialsResponseObject interface {
 	VisitGetCredentialsResponse(w http.ResponseWriter) error
 }
 
-type GetCredentials200JSONResponse []Credential
+type GetCredentials200JSONResponse CredentialsPaginated
 
 func (response GetCredentials200JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

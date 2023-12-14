@@ -127,7 +127,7 @@ func (n *notification) sendCreateConnectionNotification(ctx context.Context, iss
 		return err
 	}
 
-	credentials, err := n.credService.GetAll(ctx, conn.IssuerDID, &ports.ClaimsFilter{Subject: conn.UserDID.String(), Proofs: []verifiable.ProofType{domain.AnyProofType}})
+	credentials, _, err := n.credService.GetAll(ctx, conn.IssuerDID, &ports.ClaimsFilter{Subject: conn.UserDID.String(), Proofs: []verifiable.ProofType{domain.AnyProofType}})
 	if err != nil {
 		log.Error(ctx, "sendCreateConnectionNotification: failed to retrieve the connection credentials", "err", err.Error(), "issuerID", issuerID, "connectionID", connID)
 		return err

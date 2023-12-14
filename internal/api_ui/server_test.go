@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1637,18 +1638,23 @@ func TestServer_GetCredentials(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		count    int
-		httpCode int
-		errorMsg string
+		credentialsCount int
+		page             int
+		maxResults       int
+		total            int
+		httpCode         int
+		errorMsg         string
 	}
 
 	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		did      *string
-		query    *string
-		status   *string
-		expected expected
+		name       string
+		auth       func() (string, string)
+		did        *string
+		query      *string
+		status     *string
+		page       *int
+		maxResults *int
+		expected   expected
 	}
 	for _, tc := range []testConfig{
 		{
@@ -1677,11 +1683,35 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
+			name: "pagination. Page is < 1 not allowed",
+			auth: authOk,
+			page: common.ToPointer(0),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "page param must be higher than 0",
+			},
+		},
+		{
+			name:       "pagination. max_results < 1 return default max results",
+			auth:       authOk,
+			maxResults: common.ToPointer(0),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
 			name: "Get all implicit",
 			auth: authOk,
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1689,8 +1719,53 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("all"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:       "Get all explicit, page 1 with 2 results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(1),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             1,
+				credentialsCount: 2,
+			},
+		},
+		{
+			name:       "Get all explicit, page 2 with 2 results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(2),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             2,
+				credentialsCount: 2,
+			},
+		},
+		{
+			name:       "Get all explicit, page 3 with 2 results. No results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(3),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             3,
+				credentialsCount: 0,
 			},
 		},
 		{
@@ -1699,8 +1774,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("all"),
 			did:    &claim.OtherIdentifier,
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1709,8 +1787,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("all"),
 			did:    common.ToPointer("did:iden3:tJU7z1dbKyKYLiaopZ5tN6Zjsspq7QhYayiR31RFa"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    0,
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
 			},
 		},
 		{
@@ -1718,8 +1799,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("revoked"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1727,8 +1811,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("REVOKED"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1736,8 +1823,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("expired"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1745,8 +1835,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1754,8 +1847,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier[9:14]),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1763,8 +1859,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: &revoked.OtherIdentifier,
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1772,8 +1871,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("birthday"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1781,8 +1883,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("rthd"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1790,8 +1895,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1799,8 +1907,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("birthday schema attribute not the rest of words this sentence"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1809,8 +1920,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			did:   &claim.OtherIdentifier,
 			query: common.ToPointer("not existing words"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    0,
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
 			},
 		},
 	} {
@@ -1827,6 +1941,12 @@ func TestServer_GetCredentials(t *testing.T) {
 			if tc.did != nil {
 				queryParams = append(queryParams, "did="+*tc.did)
 			}
+			if tc.page != nil {
+				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
+			}
+			if tc.maxResults != nil {
+				queryParams = append(queryParams, "max_results="+strconv.Itoa(*tc.maxResults))
+			}
 			endpoint.RawQuery = strings.Join(queryParams, "&")
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
 			req.SetBasicAuth(tc.auth())
@@ -1839,7 +1959,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			case http.StatusOK:
 				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Len(t, response, tc.expected.count)
+				assert.Equal(t, tc.expected.total, response.Meta.Total)
+				assert.Equal(t, tc.expected.credentialsCount, len(response.Items))
+				assert.Equal(t, tc.expected.maxResults, response.Meta.MaxResults)
+				assert.Equal(t, tc.expected.page, response.Meta.Page)
+
 			case http.StatusBadRequest:
 				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -3146,11 +3270,11 @@ func TestServer_GetLink(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 	hash, _ := link.Schema.Hash.MarshalText()
 
-	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -3192,18 +3316,19 @@ func TestServer_GetLink(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
-					Active:            link.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
-					Expiration:        common.ToPointer(TimeUTC(*link.ValidUntil)),
-					Id:                link.ID,
-					IssuedClaims:      link.IssuedClaims,
-					MaxIssuance:       link.MaxIssuance,
-					SchemaType:        link.Schema.Type,
-					SchemaUrl:         link.Schema.URL,
-					Status:            LinkStatusActive,
-					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
-					CreatedAt:         TimeUTC(link.CreatedAt),
-					SchemaHash:        string(hash),
+					Active:               link.Active,
+					CredentialSubject:    CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
+					Expiration:           common.ToPointer(TimeUTC(*link.ValidUntil)),
+					Id:                   link.ID,
+					IssuedClaims:         link.IssuedClaims,
+					MaxIssuance:          link.MaxIssuance,
+					SchemaType:           link.Schema.Type,
+					SchemaUrl:            link.Schema.URL,
+					Status:               LinkStatusActive,
+					ProofTypes:           []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					CreatedAt:            TimeUTC(link.CreatedAt),
+					SchemaHash:           string(hash),
+					CredentialExpiration: common.ToPointer(TimeUTC(tomorrow)),
 				},
 			},
 		},
@@ -3214,16 +3339,17 @@ func TestServer_GetLink(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetLink200JSONResponse{
-					Active:            linkExpired.Active,
-					CredentialSubject: CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
-					Expiration:        common.ToPointer(TimeUTC(*linkExpired.ValidUntil)),
-					Id:                linkExpired.ID,
-					IssuedClaims:      linkExpired.IssuedClaims,
-					MaxIssuance:       linkExpired.MaxIssuance,
-					SchemaType:        linkExpired.Schema.Type,
-					SchemaUrl:         linkExpired.Schema.URL,
-					Status:            LinkStatusExceeded,
-					ProofTypes:        []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					Active:               linkExpired.Active,
+					CredentialSubject:    CredentialSubject{"birthday": 19791109, "documentType": 12, "type": schemaType, "id": "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"},
+					Expiration:           common.ToPointer(TimeUTC(*linkExpired.ValidUntil)),
+					Id:                   linkExpired.ID,
+					IssuedClaims:         linkExpired.IssuedClaims,
+					MaxIssuance:          linkExpired.MaxIssuance,
+					SchemaType:           linkExpired.Schema.Type,
+					SchemaUrl:            linkExpired.Schema.URL,
+					Status:               LinkStatusExceeded,
+					ProofTypes:           []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					CredentialExpiration: nil,
 				},
 			},
 		},
@@ -3261,6 +3387,11 @@ func TestServer_GetLink(t *testing.T) {
 				assert.Equal(t, expected.Active, response.Active)
 				assert.InDelta(t, time.Time(*expected.Expiration).UnixMilli(), time.Time(*response.Expiration).UnixMilli(), 1000)
 				assert.Equal(t, len(expected.ProofTypes), len(response.ProofTypes))
+				if expected.CredentialExpiration != nil {
+					tt := time.Time(*expected.CredentialExpiration)
+					tt00 := common.ToPointer(TimeUTC(time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, time.UTC)))
+					assert.Equal(t, tt00.String(), response.CredentialExpiration.String())
+				}
 			case http.StatusNotFound:
 				var response GetLink404JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -3315,19 +3446,19 @@ func TestServer_GetAllLinks(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 	linkActive := getLinkResponse(*link1)
 
 	time.Sleep(10 * time.Millisecond)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	require.NoError(t, err)
 	linkExpired := getLinkResponse(*link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
-	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, linkService.Activate(ctx, *did, link3.ID, false))
@@ -3475,6 +3606,8 @@ func TestServer_GetAllLinks(t *testing.T) {
 						require.NoError(t, err)
 						assert.Equal(t, tcCred, respCred)
 						assert.InDelta(t, time.Time(*tc.expected.response[i].Expiration).UnixMilli(), time.Time(*resp.Expiration).UnixMilli(), 1000)
+						expectCredExpiration := common.ToPointer(TimeUTC(time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, time.UTC)))
+						assert.Equal(t, expectCredExpiration.String(), resp.CredentialExpiration.String())
 					}
 				}
 			case http.StatusBadRequest:

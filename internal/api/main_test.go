@@ -63,8 +63,9 @@ func TestMain(m *testing.M) {
 	cachex = cache.NewMemoryCache()
 
 	vaultCli, err = providers.VaultClient(ctx, providers.Config{
-		Address: cfgForTesting.KeyStore.Address,
-		Token:   cfgForTesting.KeyStore.Token,
+		Address:             cfgForTesting.KeyStore.Address,
+		UserPassAuthEnabled: cfgForTesting.KeyStore.UserPassEnabled,
+		Pass:                cfgForTesting.KeyStore.UserPassPassword,
 	})
 	if err != nil {
 		log.Error(ctx, "failed to acquire vault client", "err", err)

@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
-	openapitypes "github.com/oapi-codegen/runtime/types"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/timeapi"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -67,6 +67,21 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 		res[i] = schemaResponse(&s)
 	}
 	return res
+}
+
+func credentialsResponse(creds []Credential, page *int, total int, maxResults int) GetCredentials200JSONResponse {
+	resp := GetCredentials200JSONResponse{
+		Items: creds,
+		Meta: PaginatedMetadata{
+			MaxResults: maxResults,
+			Page:       1, // default
+			Total:      total,
+		},
+	}
+	if page != nil {
+		resp.Meta.Page = *page
+	}
+	return resp
 }
 
 func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
@@ -220,9 +235,10 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 
 func getLinkResponse(link domain.Link) Link {
 	hash, _ := link.Schema.Hash.MarshalText()
-	var date *openapitypes.Date
+	var credentialExpiration *timeapi.Time
 	if link.CredentialExpiration != nil {
-		date = &openapitypes.Date{Time: *link.CredentialExpiration}
+		t := timeapi.Time(*link.CredentialExpiration)
+		credentialExpiration = common.ToPointer(t.UTCZeroHHMMSS())
 	}
 
 	var validUntil *TimeUTC
@@ -243,7 +259,7 @@ func getLinkResponse(link domain.Link) Link {
 		ProofTypes:           getLinkProofs(link),
 		CreatedAt:            TimeUTC(link.CreatedAt),
 		Expiration:           validUntil,
-		CredentialExpiration: date,
+		CredentialExpiration: credentialExpiration,
 	}
 }
 

@@ -49,8 +49,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/id'
       tags:
-          - Auth
-          - Connection
+        - Auth
+        - Connection
       security:
         - basicAuth: [ ]
       responses:
@@ -308,15 +308,27 @@ paths:
           schema:
             type: string
           description: Query string to do full text search
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
       responses:
         '200':
           description: List of credentials
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Credential'
+                $ref: '#/components/schemas/CredentialsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -1135,6 +1147,17 @@ components:
           type: string
           example: 'Something happen'
 
+    CredentialsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credential'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
     Credential:
       type: object
       required:
@@ -1242,9 +1265,7 @@ components:
           x-omitempty: false
           nullable: true
         credentialExpiration:
-          type: string
-          format: date
-          example: "2022-12-20"
+          $ref: '#/components/schemas/TimeUTC'
           x-omitempty: false
           nullable: true
         createdAt:
@@ -1618,6 +1639,23 @@ components:
           type: string
         to:
           type: string
+
+    PaginatedMetadata:
+      type: object
+      required:
+        - total
+        - page
+        - max_results
+      properties:
+        total:
+          type: integer
+          example: 1
+        page:
+          type: integer
+          example: 1
+        max_results:
+          type: integer
+          example: 50
 
     TimeUTC:
       type: string
