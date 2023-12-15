@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/issuer-node/internal/common"
 )
 
 // GetConfig - Get configuration

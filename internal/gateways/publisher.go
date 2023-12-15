@@ -17,14 +17,14 @@ import (
 	rstypes "github.com/iden3/go-rapidsnark/types"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/event"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/event"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/db"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/pkg/pubsub"
+	"github.com/polygonid/issuer-node/pkg/sync_ttl_map"
 )
 
 type jobIDType string

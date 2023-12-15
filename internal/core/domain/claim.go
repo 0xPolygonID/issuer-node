@@ -15,7 +15,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgtype"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/issuer-node/internal/common"
 )
 
 // CoreClaim is an alias for the core.Claim struct

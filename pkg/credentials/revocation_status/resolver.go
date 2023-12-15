@@ -7,7 +7,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/issuer-node/internal/config"
 )
 
 const resolversLength = 3

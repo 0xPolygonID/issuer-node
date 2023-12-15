@@ -7,7 +7,7 @@ import (
 	"github.com/iden3/go-circuits/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/issuer-node/internal/common"
 )
 
 // RevNonceUint64 uint64 alias

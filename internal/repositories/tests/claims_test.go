@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/rand"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/db/tests"
+	"github.com/polygonid/issuer-node/internal/repositories"
 )
 
 func TestRevoke(t *testing.T) {

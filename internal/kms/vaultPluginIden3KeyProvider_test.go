@@ -15,7 +15,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/issuer-node/internal/providers"
 )
 
 func TestVaultPluginBJJProvider_Ethereum(t *testing.T) {

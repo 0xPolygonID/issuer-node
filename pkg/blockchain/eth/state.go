@@ -12,7 +12,7 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/issuer-node/internal/log"
 )
 
 // StateServiceConfig is a config for StateService

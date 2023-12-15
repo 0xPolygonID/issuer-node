@@ -18,17 +18,17 @@ import (
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/gateways"
-	"github.com/polygonid/sh-id-platform/internal/health"
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/schema"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/config"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/core/services"
+	"github.com/polygonid/issuer-node/internal/gateways"
+	"github.com/polygonid/issuer-node/internal/health"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/internal/repositories"
+	"github.com/polygonid/issuer-node/pkg/schema"
 )
 
 // Server implements StrictServerInterface and holds the implementation of all API controllers

@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/core/services"
+	"github.com/polygonid/issuer-node/internal/repositories"
 )
 
 func TestSchema_ImportSchema(t *testing.T) {

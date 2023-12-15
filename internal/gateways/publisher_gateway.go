@@ -15,11 +15,11 @@ import (
 	"github.com/iden3/go-merkletree-sql/v2"
 	rstypes "github.com/iden3/go-rapidsnark/types"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/pkg/blockchain/eth"
 )
 
 // PublisherEthGateway interact with blockchain

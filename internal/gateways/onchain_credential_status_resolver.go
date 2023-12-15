@@ -11,8 +11,8 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/pkg/blockchain/eth"
 )
 
 // OnChainCredStatusResolverService - on chain credential status resolver service

@@ -10,8 +10,8 @@ import (
 	proofEth "github.com/iden3/merkletree-proof/eth"
 	proofHttp "github.com/iden3/merkletree-proof/http"
 
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/pkg/blockchain/eth"
 )
 
 // RHSMode is a mode of RHS

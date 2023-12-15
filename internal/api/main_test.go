@@ -12,16 +12,16 @@ import (
 	"github.com/iden3/iden3comm/v2"
 	"github.com/piprate/json-gold/ld"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/errors"
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/loader"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/pkg/cache"
+	"github.com/polygonid/issuer-node/internal/config"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/db"
+	"github.com/polygonid/issuer-node/internal/db/tests"
+	"github.com/polygonid/issuer-node/internal/errors"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/internal/loader"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/internal/providers"
+	"github.com/polygonid/issuer-node/pkg/cache"
 )
 
 var (

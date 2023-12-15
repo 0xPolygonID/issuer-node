@@ -21,10 +21,10 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	proofHttp "github.com/iden3/merkletree-proof/http"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	client "github.com/polygonid/sh-id-platform/pkg/http"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/log"
+	client "github.com/polygonid/issuer-node/pkg/http"
 )
 
 const (

@@ -11,8 +11,8 @@ import (
 	"github.com/iden3/go-rapidsnark/witness/v2"
 	"github.com/iden3/go-rapidsnark/witness/wazero"
 
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/pkg/loaders"
 )
 
 // NativeProverConfig represents native prover config

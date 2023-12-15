@@ -7,7 +7,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/issuer-node/internal/repositories"
 )
 
 func TestMtSave(t *testing.T) {

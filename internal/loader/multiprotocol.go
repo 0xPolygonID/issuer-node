@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/issuer-node/internal/log"
 )
 
 // MultiProtocol will return a loader for the given url that can be http or ipfs

@@ -10,7 +10,7 @@ import (
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/issuer-node/internal/common"
 )
 
 const (

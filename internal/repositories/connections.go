@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/db"
 )
 
 // ErrConnectionDoesNotExist connection does not exist

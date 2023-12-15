@@ -8,9 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/iden3/contracts-abi/state/go/abi"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/issuer-node/internal/config"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/pkg/blockchain/eth"
 )
 
 // InitEthClient returns a State Contract Instance

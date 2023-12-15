@@ -13,15 +13,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/core/services"
+	"github.com/polygonid/issuer-node/internal/repositories"
+	"github.com/polygonid/issuer-node/pkg/credentials/revocation_status"
+	linkState "github.com/polygonid/issuer-node/pkg/link"
+	"github.com/polygonid/issuer-node/pkg/pubsub"
+	"github.com/polygonid/issuer-node/pkg/reverse_hash"
 )
 
 func Test_link_issueClaim(t *testing.T) {

@@ -20,8 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/iden3/contracts-abi/state/go/abi"
 
-	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/issuer-node/internal/kms"
+	"github.com/polygonid/issuer-node/internal/log"
 )
 
 const (

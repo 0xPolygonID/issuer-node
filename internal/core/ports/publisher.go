@@ -5,7 +5,7 @@ import (
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/domain"
 )
 
 // Publisher - Define the interface for publisher services

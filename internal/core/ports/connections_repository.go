@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/db"
 )
 
 // ConnectionsRepository defines the available methods for connections repository

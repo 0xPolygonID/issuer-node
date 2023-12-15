@@ -1,4 +1,4 @@
-module github.com/polygonid/sh-id-platform
+module github.com/polygonid/issuer-node
 
 go 1.20
 

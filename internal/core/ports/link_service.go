@@ -10,8 +10,8 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	linkState "github.com/polygonid/issuer-node/pkg/link"
 )
 
 // CreateQRCodeResponse - is the result of creating a link QRcode.

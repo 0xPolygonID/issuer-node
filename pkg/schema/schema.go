@@ -13,10 +13,10 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/jackc/pgtype"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
-	"github.com/polygonid/sh-id-platform/internal/loader"
-	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/jsonschema"
+	"github.com/polygonid/issuer-node/internal/loader"
+	"github.com/polygonid/issuer-node/internal/log"
 )
 
 var (

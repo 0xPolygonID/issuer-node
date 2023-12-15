@@ -9,7 +9,7 @@ import (
 	"github.com/iden3/go-iden3-crypto/utils"
 	"github.com/pkg/errors"
 
-	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/issuer-node/internal/kms"
 )
 
 var (

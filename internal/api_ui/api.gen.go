@@ -16,7 +16,7 @@ import (
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
-	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
+	timeapi "github.com/polygonid/issuer-node/internal/timeapi"
 )
 
 const (

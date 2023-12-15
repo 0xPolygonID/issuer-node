@@ -8,7 +8,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/issuer-node/internal/config"
 )
 
 func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {

@@ -7,9 +7,9 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/db"
 )
 
 type identityState struct{}

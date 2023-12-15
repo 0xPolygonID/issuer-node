@@ -7,10 +7,10 @@ import (
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/timeapi"
-	"github.com/polygonid/sh-id-platform/pkg/schema"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/timeapi"
+	"github.com/polygonid/issuer-node/pkg/schema"
 )
 
 // CustomQrContentResponse is a wrapper to return any content as an api response.

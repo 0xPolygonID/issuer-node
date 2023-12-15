@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 
-	apiErrors "github.com/polygonid/sh-id-platform/internal/errors"
-	"github.com/polygonid/sh-id-platform/internal/log"
+	apiErrors "github.com/polygonid/issuer-node/internal/errors"
+	"github.com/polygonid/issuer-node/internal/log"
 )
 
 // LogMiddleware returns a middleware that adds general log configuration to each context request

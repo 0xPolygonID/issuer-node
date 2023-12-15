@@ -10,7 +10,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	auth2 "github.com/hashicorp/vault/api/auth/userpass"
 
-	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/issuer-node/internal/log"
 )
 
 const (

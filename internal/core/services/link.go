@@ -14,17 +14,17 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/event"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/internal/jsonschema"
-	"github.com/polygonid/sh-id-platform/internal/loader"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/event"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/internal/db"
+	"github.com/polygonid/issuer-node/internal/jsonschema"
+	"github.com/polygonid/issuer-node/internal/loader"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/internal/repositories"
+	linkState "github.com/polygonid/issuer-node/pkg/link"
+	"github.com/polygonid/issuer-node/pkg/pubsub"
 )
 
 var (

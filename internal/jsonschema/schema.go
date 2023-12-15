@@ -13,8 +13,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/piprate/json-gold/ld"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/loader"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/loader"
 )
 
 const (

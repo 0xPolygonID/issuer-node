@@ -7,7 +7,7 @@ import (
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/pkg/errors"
 
-	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
+	"github.com/polygonid/issuer-node/pkg/credentials/signature/suite"
 )
 
 const (

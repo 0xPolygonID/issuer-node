@@ -9,7 +9,7 @@ import (
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/domain"
 )
 
 const (

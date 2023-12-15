@@ -6,7 +6,7 @@ import (
 	"github.com/iden3/go-circuits/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/issuer-node/internal/common"
 )
 
 // IdentityStatus represents type for state Status

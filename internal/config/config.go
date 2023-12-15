@@ -16,9 +16,9 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/spf13/viper"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/log"
-	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/issuer-node/internal/common"
+	"github.com/polygonid/issuer-node/internal/log"
+	"github.com/polygonid/issuer-node/internal/providers"
 )
 
 const (

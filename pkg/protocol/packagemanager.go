@@ -12,8 +12,8 @@ import (
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/pkg/loaders"
+	"github.com/polygonid/issuer-node/internal/core/ports"
+	"github.com/polygonid/issuer-node/pkg/loaders"
 )
 
 // InitPackageManager initializes the iden3comm package manager

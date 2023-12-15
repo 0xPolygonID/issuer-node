@@ -8,7 +8,7 @@ import (
 	"github.com/iden3/go-merkletree-sql/v2"
 	proof "github.com/iden3/merkletree-proof"
 
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/issuer-node/internal/core/domain"
 )
 
 // append nodes to list without duplication
