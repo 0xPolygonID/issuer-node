@@ -94,9 +94,9 @@ func (ls *Link) Save(
 		log.Error(ctx, "validating credential subject", "err", err)
 		return nil, ErrParseClaim
 	}
-	if err = ls.validateRefreshService(refreshService); err != nil {
+	if err = ls.validateRefreshService(refreshService, credentialExpiration); err != nil {
 		log.Error(ctx, "validating refresh service", "err", err)
-		return nil, ErrUnsupportedRefreshServiceType
+		return nil, err
 	}
 
 	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService)
@@ -375,14 +375,15 @@ func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSub
 	return jsonschema.ValidateCredentialSubject(ctx, ls.loader, schemaDB.URL, schemaDB.Type, cSubject)
 }
 
-func (ls *Link) validateRefreshService(rs *verifiable.RefreshService) error {
+func (ls *Link) validateRefreshService(rs *verifiable.RefreshService, expiration *time.Time) error {
 	if rs == nil {
 		return nil
 	}
-
-	if rs.Type != verifiable.Iden3RefreshService2023 {
-		return fmt.Errorf("refresh service type %s not supported", rs.Type)
+	if expiration == nil {
+		return ErrRefreshServiceLacksExpirationTime
 	}
-
+	if rs.Type != verifiable.Iden3RefreshService2023 {
+		return ErrUnsupportedRefreshServiceType
+	}
 	return nil
 }

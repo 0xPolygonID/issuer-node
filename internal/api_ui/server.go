@@ -355,6 +355,9 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if errors.Is(err, services.ErrUnsupportedRefreshServiceType) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil

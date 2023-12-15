@@ -38,16 +38,17 @@ import (
 )
 
 var (
-	ErrClaimNotFound                 = errors.New("claim not found")                                       // ErrClaimNotFound Cannot retrieve the given claim
-	ErrSchemaNotFound                = errors.New("schema not found")                                      // ErrSchemaNotFound Cannot retrieve the given schema from DB
-	ErrLinkNotFound                  = errors.New("link not found")                                        // ErrLinkNotFound Cannot get the given link from the DB
-	ErrJSONLdContext                 = errors.New("jsonLdContext must be a string")                        // ErrJSONLdContext Field jsonLdContext must be a string
-	ErrLoadingSchema                 = errors.New("cannot load schema")                                    // ErrLoadingSchema means the system cannot load the schema file
-	ErrMalformedURL                  = errors.New("malformed url")                                         // ErrMalformedURL The schema url is wrong
-	ErrProcessSchema                 = errors.New("cannot process schema")                                 // ErrProcessSchema Cannot process schema
-	ErrParseClaim                    = errors.New("cannot parse claim")                                    // ErrParseClaim Cannot parse claim
-	ErrInvalidCredentialSubject      = errors.New("credential subject does not match the provided schema") // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
-	ErrUnsupportedRefreshServiceType = errors.New("unsupported refresh service type")                      // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
+	ErrClaimNotFound                     = errors.New("claim not found")                                               // ErrClaimNotFound Cannot retrieve the given claim
+	ErrSchemaNotFound                    = errors.New("schema not found")                                              // ErrSchemaNotFound Cannot retrieve the given schema from DB
+	ErrLinkNotFound                      = errors.New("link not found")                                                // ErrLinkNotFound Cannot get the given link from the DB
+	ErrJSONLdContext                     = errors.New("jsonLdContext must be a string")                                // ErrJSONLdContext Field jsonLdContext must be a string
+	ErrLoadingSchema                     = errors.New("cannot load schema")                                            // ErrLoadingSchema means the system cannot load the schema file
+	ErrMalformedURL                      = errors.New("malformed url")                                                 // ErrMalformedURL The schema url is wrong
+	ErrProcessSchema                     = errors.New("cannot process schema")                                         // ErrProcessSchema Cannot process schema
+	ErrParseClaim                        = errors.New("cannot parse claim")                                            // ErrParseClaim Cannot parse claim
+	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
+	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
+	ErrRefreshServiceLacksExpirationTime = errors.New("credential request with refresh service lacks expiration time") // ErrRefreshServiceLacksExpirationTime means the credential request includes a refresh service, but the expiration time is not set
 )
 
 type claim struct {
@@ -640,6 +641,9 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 		func() error {
 			if req.RefreshService == nil {
 				return nil
+			}
+			if req.Expiration == nil {
+				return ErrRefreshServiceLacksExpirationTime
 			}
 			if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
 				return ErrUnsupportedRefreshServiceType

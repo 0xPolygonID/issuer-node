@@ -174,6 +174,9 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		if errors.Is(err, services.ErrUnsupportedRefreshServiceType) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
+		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return CreateClaim201JSONResponse{Id: resp.ID.String()}, nil
