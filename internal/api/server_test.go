@@ -1381,7 +1381,7 @@ func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
 	assert.EqualValues(t, resp.CredentialSchema, tc.CredentialSchema)
 	assert.InDelta(t, time.Time(*resp.IssuanceDate).UnixMilli(), time.Time(*tc.IssuanceDate).UnixMilli(), 1000)
 	assert.Equal(t, resp.Type, tc.Type)
-	assert.Equal(t, resp.Expiration, tc.Expiration)
+	assert.Equal(t, resp.ExpirationDate, tc.ExpirationDate)
 	assert.Equal(t, resp.Issuer, tc.Issuer)
 	assert.Equal(t, resp.RefreshService, tc.RefreshService)
 	credentialSubjectType, ok := tc.CredentialSubject["type"]

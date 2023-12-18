@@ -297,7 +297,7 @@ func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*dom
 }
 
 // GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
-func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (string, string, error) {
+func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*ports.GetCredentialQrCodeResponse, error) {
 	getCredentialType := func(claim domain.Claim) string {
 		if claim.SchemaTypeDescription != nil {
 			return *claim.SchemaTypeDescription
@@ -313,7 +313,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	credID := uuid.New()
 	qrCode := protocol.CredentialsOfferMessage{
@@ -336,13 +336,17 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	qrID, err := c.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
-	return c.qrService.ToURL(hostURL, qrID), getCredentialType(*claim), nil
+	return &ports.GetCredentialQrCodeResponse{
+		QrCodeURL:  c.qrService.ToURL(hostURL, qrID),
+		SchemaType: getCredentialType(*claim),
+		QrID:       qrID,
+	}, nil
 }
 
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {

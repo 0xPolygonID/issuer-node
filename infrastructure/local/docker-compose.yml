@@ -10,6 +10,11 @@ services:
     env_file:
       - ../../.env-api
       - ../../.env-ui
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "host.docker.internal:8088/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -20,7 +25,12 @@ services:
     env_file:
       - ../../.env-api
       - ../../.env-issuer
-    command: sh -c "sleep 4s && ./migrate && ./platform"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "host.docker.internal:3001/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: sh -c "apk add curl && sleep 4s && ./migrate && ./platform"
 
   api-ui:
     build:
@@ -31,7 +41,12 @@ services:
     env_file:
       - ../../.env-api
       - ../../.env-issuer
-    command: sh -c "sleep 4s && ./migrate && ./platform_ui"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "host.docker.internal:3002/status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: sh -c "apk add curl && sleep 4s && ./migrate && ./platform_ui"
 
   notifications:
     build:

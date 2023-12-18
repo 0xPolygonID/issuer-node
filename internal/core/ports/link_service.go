@@ -18,6 +18,7 @@ import (
 type CreateQRCodeResponse struct {
 	Link      *domain.Link
 	QrCode    string
+	QrID      uuid.UUID
 	SessionID string
 }
 

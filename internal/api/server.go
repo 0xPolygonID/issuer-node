@@ -580,7 +580,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		},
 		CredentialStatus:  claim.CredentialStatus,
 		CredentialSubject: claim.CredentialSubject,
-		Expiration:        claimExpiration,
+		ExpirationDate:    claimExpiration,
 		Id:                claim.ID,
 		IssuanceDate:      claimIssuanceDate,
 		Issuer:            claim.Issuer,
