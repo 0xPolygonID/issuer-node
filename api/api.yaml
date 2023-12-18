@@ -687,7 +687,7 @@ components:
           x-omitempty: false
           items:
             type: string
-        expiration:
+        expirationDate:
           $ref: '#/components/schemas/TimeUTC'
         issuanceDate:
           $ref: '#/components/schemas/TimeUTC'
