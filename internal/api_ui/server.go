@@ -768,7 +768,22 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 		}
 		filter.Page = req.Params.Page
 	}
-
+	if req.Params.Sort != nil {
+		allowedSortBy := map[string]bool{"credential": true, "createdat": true, "expiration": true, "revocation": true}
+		for _, sortBy := range *req.Params.Sort {
+			field := strings.TrimSpace(strings.ToLower(string(sortBy)))
+			if !allowedSortBy[field] {
+				return nil, errors.New("wrong sort by value")
+			}
+			allowedSortBy[field] = false
+			field, desc := strings.CutPrefix(field, "-")
+			if desc {
+				filter.SortBy = append(filter.SortBy, field+" DESC")
+			} else {
+				filter.SortBy = append(filter.SortBy, field+" ASC")
+			}
+		}
+	}
 	return filter, nil
 }
 

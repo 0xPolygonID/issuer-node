@@ -60,6 +60,7 @@ type ClaimsFilter struct {
 	Proofs          []verifiable.ProofType
 	MaxResults      int  // Max number of results to return on each call.
 	Page            *int // Page number to return. First is 1. if nul, then there is no limit in the number to return
+	SortBy          []string
 }
 
 // NewClaimsFilter returns a valid claims filter
