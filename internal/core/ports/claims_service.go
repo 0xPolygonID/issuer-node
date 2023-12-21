@@ -3,7 +3,9 @@ package ports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -45,6 +47,54 @@ type AgentRequest struct {
 	Type      comm.ProtocolMessage
 }
 
+// SQLFieldName is an alias for string and is used to define order by filter constants
+type SQLFieldName string
+
+// Defines values for GetCredentialsParamsStatus.
+// TIP: Use the sql field name in these constants. A little bit coupled but easy to construct the ORDER BY clause later
+const (
+	CredentialSchemaType SQLFieldName = "claims.schemaType"
+	CredentialCreatedAt  SQLFieldName = "claims.created_at"
+	CredentialExpiresAt  SQLFieldName = "claims.expiration"
+	CredentialRevoked    SQLFieldName = "claims.revoked"
+)
+
+// OrderByFilter represents a filter over a field with an specific order (ASC(false) or DESC (true))
+type OrderByFilter struct {
+	Field SQLFieldName
+	Desc  bool
+}
+
+// OrderByFilters is a collection of OrderByFilter with some handy methods to add order filters
+// and generate an SQL LIKE ORDER BY clause
+type OrderByFilters []OrderByFilter
+
+// Add adds a new OrderByFilter to the collection. If the field already exists, it returns an error
+func (s *OrderByFilters) Add(f SQLFieldName, desc bool) error {
+	for _, v := range *s {
+		if v.Field == f {
+			return errors.New("sql sort filter field already exists")
+		}
+	}
+	*s = append(*s, OrderByFilter{Field: f, Desc: desc})
+	return nil
+}
+
+// String returns an SQL LIKE ORDER BY clause
+func (s *OrderByFilters) String() string {
+	var sortFields []string
+	for _, sortBy := range *s {
+		s := string(sortBy.Field)
+		if sortBy.Desc {
+			s += " DESC"
+		} else {
+			s += " ASC"
+		}
+		sortFields = append(sortFields, s)
+	}
+	return strings.Join(sortFields, ", ")
+}
+
 // ClaimsFilter struct
 type ClaimsFilter struct {
 	Self            *bool
@@ -60,7 +110,7 @@ type ClaimsFilter struct {
 	Proofs          []verifiable.ProofType
 	MaxResults      int  // Max number of results to return on each call.
 	Page            *int // Page number to return. First is 1. if nul, then there is no limit in the number to return
-	SortBy          []string
+	OrderBy         OrderByFilters
 }
 
 // NewClaimsFilter returns a valid claims filter

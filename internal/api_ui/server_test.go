@@ -2005,7 +2005,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			sort: common.ToPointer("createdAt, createdAt"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				errorMsg: "wrong sort by value",
+				errorMsg: "repeated sort by value field",
 			},
 		},
 		{
@@ -2014,7 +2014,7 @@ func TestServer_GetCredentials(t *testing.T) {
 			sort: common.ToPointer("createdAt, -createdAt"),
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				errorMsg: "wrong sort by value",
+				errorMsg: "repeated sort by value field",
 			},
 		},
 	} {

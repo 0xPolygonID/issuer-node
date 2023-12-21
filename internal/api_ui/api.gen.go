@@ -46,21 +46,21 @@ const (
 
 // Defines values for GetCredentialsParamsStatus.
 const (
-	All     GetCredentialsParamsStatus = "all"
-	Expired GetCredentialsParamsStatus = "expired"
-	Revoked GetCredentialsParamsStatus = "revoked"
+	GetCredentialsParamsStatusAll     GetCredentialsParamsStatus = "all"
+	GetCredentialsParamsStatusExpired GetCredentialsParamsStatus = "expired"
+	GetCredentialsParamsStatusRevoked GetCredentialsParamsStatus = "revoked"
 )
 
 // Defines values for GetCredentialsParamsSort.
 const (
 	GetCredentialsParamsSortCreatedAt       GetCredentialsParamsSort = "createdAt"
-	GetCredentialsParamsSortCredential      GetCredentialsParamsSort = "credential"
-	GetCredentialsParamsSortExpiration      GetCredentialsParamsSort = "expiration"
+	GetCredentialsParamsSortExpiresAt       GetCredentialsParamsSort = "expiresAt"
 	GetCredentialsParamsSortMinusCreatedAt  GetCredentialsParamsSort = "-createdAt"
-	GetCredentialsParamsSortMinusCredential GetCredentialsParamsSort = "-credential"
-	GetCredentialsParamsSortMinusExpiration GetCredentialsParamsSort = "-expiration"
-	GetCredentialsParamsSortMinusRevocation GetCredentialsParamsSort = "-revocation"
-	GetCredentialsParamsSortRevocation      GetCredentialsParamsSort = "revocation"
+	GetCredentialsParamsSortMinusExpiresAt  GetCredentialsParamsSort = "-expiresAt"
+	GetCredentialsParamsSortMinusRevoked    GetCredentialsParamsSort = "-revoked"
+	GetCredentialsParamsSortMinusSchemaType GetCredentialsParamsSort = "-schemaType"
+	GetCredentialsParamsSortRevoked         GetCredentialsParamsSort = "revoked"
+	GetCredentialsParamsSortSchemaType      GetCredentialsParamsSort = "schemaType"
 )
 
 // Defines values for GetLinksParamsStatus.

@@ -469,7 +469,8 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 				   credential_status,
 				   core_claim,
 				   revoked,
-				   mtp
+				   mtp,
+				   claims.created_at
 			FROM claims
 			JOIN connections ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
@@ -698,7 +699,9 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 			&claim.CredentialStatus,
 			&claim.CoreClaim,
 			&claim.Revoked,
-			&claim.MtProof)
+			&claim.MtProof,
+			&claim.CreatedAt,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -730,9 +733,10 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 		"core_claim",
 		"revoked",
 		"mtp",
+		"claims.created_at",
 	}
 	query = `SELECT ##QUERYFIELDS## FROM claims
-			LEFT JOIN identity_states ON claims.identity_state = identity_states.state
+			LEFT JOIN identity_states ON claims.identity_state = identity_states.state 
 			`
 	if filter.FTSQuery != "" {
 		query = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash=schemas.hash AND claims.issuer=schemas.issuer_id ", query)
@@ -802,7 +806,9 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 	countQuery = strings.Replace(query, "##QUERYFIELDS##", "count(*)", 1)
 	query = strings.Replace(query, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 
-	query += " ORDER BY claims.created_at DESC"
+	_ = filter.OrderBy.Add(ports.CredentialCreatedAt, true)
+	query += " ORDER BY " + filter.OrderBy.String()
+
 	if filter.Page != nil {
 		query += fmt.Sprintf(" OFFSET %d LIMIT %d;", (*filter.Page-1)*filter.MaxResults, filter.MaxResults)
 	}
@@ -830,18 +836,19 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
        	other_identifier,
        	expiration,
        	updatable,
-       	claims.version,     
+       	claims.version,
 		rev_nonce,
        	signature_proof,
        	mtp_proof,
        	data,
-       	claims.identifier,    
-		identity_state,     
+       	claims.identifier,
+		identity_state,
 		identity_states.status,
        	credential_status,
        	core_claim,
        	revoked,
-		mtp
+		mtp,
+		claims.created_at
 	FROM claims
 	LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
 	LEFT JOIN revocation  ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier

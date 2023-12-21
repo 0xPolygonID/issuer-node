@@ -342,7 +342,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [ "credential", "-credential", "createdAt", "-createdAt", "expiration", "-expiration", "revocation", "-revocation" ]
+              enum: [ "schemaType", "-schemaType", "createdAt", "-createdAt", "expiresAt", "-expiresAt", "revoked", "-revoked" ]
               default: "-createdAt"
 
             description: >
