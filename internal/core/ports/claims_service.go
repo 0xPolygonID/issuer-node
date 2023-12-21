@@ -49,7 +49,7 @@ type AgentRequest struct {
 // Defines values for GetCredentialsParamsStatus.
 // TIP: Use the sql field name in these constants. A little bit coupled but easy to construct the ORDER BY clause later
 const (
-	CredentialSchemaType sqltools.SQLFieldName = "claims.schemaType"
+	CredentialSchemaType sqltools.SQLFieldName = "claims.schema_type"
 	CredentialCreatedAt  sqltools.SQLFieldName = "claims.created_at"
 	CredentialExpiresAt  sqltools.SQLFieldName = "claims.expiration"
 	CredentialRevoked    sqltools.SQLFieldName = "claims.revoked"

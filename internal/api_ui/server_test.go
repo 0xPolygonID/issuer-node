@@ -2000,6 +2000,30 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
+			name: "Order by 2 fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by all fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt, -expiresAt, revoked"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
 			name: "Order by 2 repeated fields",
 			auth: authOk,
 			sort: common.ToPointer("createdAt, createdAt"),
