@@ -61,6 +61,9 @@ func TestGetByRevocationNonce(t *testing.T) {
 	}
 	fixture.CreateIdentity(t, identity)
 	idClaim, _ := uuid.NewUUID()
+
+	idClaim2, _ := uuid.NewUUID()
+	idClaim3, _ := uuid.NewUUID()
 	fixture.CreateClaim(t, &domain.Claim{
 		ID:              idClaim,
 		Identifier:      &idStr,
@@ -74,13 +77,47 @@ func TestGetByRevocationNonce(t *testing.T) {
 		RevNonce:        0,
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
+		HIndex:          "123",
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim2,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        100,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "456",
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim3,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         1,
+		RevNonce:        100,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "789",
 	})
 
 	claimsRepo := repositories.NewClaims()
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := w3c.ParseDID(idStr)
 		assert.NoError(t, err)
-		c, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
+		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
+		c := claims[0]
 		assert.NoError(t, err)
 		assert.NotNil(t, c)
 		coreClaimValue, err := c.CoreClaim.Value()
@@ -113,6 +150,14 @@ func TestGetByRevocationNonce(t *testing.T) {
 		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 1)
 		assert.Error(t, err)
 		assert.Nil(t, r)
+	})
+
+	t.Run("should get two claims", func(t *testing.T) {
+		did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW")
+		assert.NoError(t, err)
+		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 100)
+		assert.NoError(t, err)
+		assert.Len(t, claims, 2)
 	})
 }
 

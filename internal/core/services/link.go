@@ -256,6 +256,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		true,
 		credentialStatusType,
 		link.RefreshService,
+		nil,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)

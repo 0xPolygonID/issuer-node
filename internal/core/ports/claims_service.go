@@ -33,6 +33,7 @@ type CreateClaimRequest struct {
 	CredentialStatusType  verifiable.CredentialStatusType
 	SchemaTypeDescription string
 	RefreshService        *verifiable.RefreshService
+	RevNonce              *uint64
 }
 
 // AgentRequest struct
@@ -96,7 +97,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService,) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -127,9 +128,11 @@ func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubj
 		req.MerklizedRootPosition = *merklizedRootPosition
 	}
 
+	req.RevNonce = revNonce
 	req.LinkID = linkID
 	req.SingleIssuer = singleIssuer
 	req.CredentialStatusType = credentialStatusType
+
 	return req
 }
 
