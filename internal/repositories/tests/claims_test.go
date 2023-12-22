@@ -344,7 +344,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
 			require.NoError(t, err)
 			assert.Len(t, claims, tc.expected)
-			assert.Equal(t, total, len(claims))
+			assert.Equal(t, total, uint(len(claims)))
 		})
 	}
 }
@@ -389,8 +389,8 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 	claimsRepo := repositories.NewClaims()
 
 	type expected struct {
-		total     int
-		resultLen int
+		total     uint
+		resultLen uint
 	}
 
 	type testConfig struct {
@@ -416,7 +416,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 			filter: ports.ClaimsFilter{
 				Subject:    userDID.String(),
 				MaxResults: 100,
-				Page:       common.ToPointer(1),
+				Page:       common.ToPointer(uint(1)),
 			},
 			expected: expected{
 				total:     100,
@@ -428,7 +428,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 			filter: ports.ClaimsFilter{
 				Subject:    userDID.String(),
 				MaxResults: 25,
-				Page:       common.ToPointer(1),
+				Page:       common.ToPointer(uint(1)),
 			},
 			expected: expected{
 				total:     100,
@@ -440,7 +440,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 			filter: ports.ClaimsFilter{
 				Subject:    userDID.String(),
 				MaxResults: 25,
-				Page:       common.ToPointer(1),
+				Page:       common.ToPointer(uint(1)),
 			},
 			expected: expected{
 				total:     100,
@@ -452,7 +452,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 			filter: ports.ClaimsFilter{
 				Subject:    userDID.String(),
 				MaxResults: 33,
-				Page:       common.ToPointer(4),
+				Page:       common.ToPointer(uint(4)),
 			},
 			expected: expected{
 				total:     100,
@@ -464,7 +464,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 			filter: ports.ClaimsFilter{
 				Subject:    userDID.String(),
 				MaxResults: 1,
-				Page:       common.ToPointer(100),
+				Page:       common.ToPointer(uint(100)),
 			},
 			expected: expected{
 				total:     100,
@@ -475,7 +475,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
 			require.NoError(t, err)
-			assert.Len(t, claims, tc.expected.resultLen)
+			assert.Len(t, claims, int(tc.expected.resultLen))
 			assert.Equal(t, total, tc.expected.total)
 
 			// Let's check ids, etc...
@@ -484,7 +484,7 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 			allClaims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &all)
 			require.NoError(t, err)
 
-			from := 0
+			var from uint = 0
 			to := total
 			if tc.filter.Page != nil {
 				from = (*tc.filter.Page - 1) * tc.filter.MaxResults
@@ -536,7 +536,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
-		assert.Equal(t, total, 100)
+		assert.Equal(t, uint(100), total)
 		first := time.Now().Add(100 * 365 * 24 * time.Hour)
 		for i, claim := range claims {
 			assert.True(t, claim.CreatedAt.Before(first), "iteration %d", i)
@@ -551,7 +551,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
-		assert.Equal(t, total, 100)
+		assert.Equal(t, uint(100), total)
 		first := time.Time{}
 		for i, claim := range claims {
 			assert.True(t, first.Before(claim.CreatedAt), "iteration %d", i)
@@ -569,7 +569,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
-		assert.Equal(t, total, 100)
+		assert.Equal(t, uint(100), total)
 		firstTime := time.Time{}
 		for i := 0; i < 50; i++ {
 			assert.False(t, claims[i].Revoked, "iteration %d", i)

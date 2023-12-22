@@ -437,7 +437,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 }
 
 // GetAllByIssuerID returns all the claims of the given issuer
-func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) (claims []*domain.Claim, count int, err error) {
+func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID w3c.DID, filter *ports.ClaimsFilter) (claims []*domain.Claim, count uint, err error) {
 	query, countQuery, args := buildGetAllQueryAndFilters(issuerID, filter)
 
 	// Let's count all results, only if we are paginating
@@ -460,7 +460,7 @@ func (c *claims) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerID
 	claims, err = processClaims(rows)
 
 	if filter.Page == nil {
-		count = len(claims)
+		count = uint(len(claims))
 	}
 
 	return claims, count, err

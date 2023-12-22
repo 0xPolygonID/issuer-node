@@ -1689,9 +1689,9 @@ func TestServer_GetCredentials(t *testing.T) {
 
 	type expected struct {
 		credentialsCount int
-		page             int
-		maxResults       int
-		total            int
+		page             uint
+		maxResults       uint
+		total            uint
 		httpCode         int
 		errorMsg         string
 	}
@@ -2539,17 +2539,19 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
-					},
-					{
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
@@ -2578,11 +2580,13 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
@@ -2598,11 +2602,13 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
@@ -2618,17 +2624,19 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
-					},
-					{
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
@@ -2644,19 +2652,21 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
-					},
-					{
-						Id:          connID2.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID2.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
+						{
+							Id:          connID2.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID2.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{},
+						},
 					},
 				},
 			},
@@ -2673,12 +2683,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2695,12 +2707,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2717,12 +2731,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2739,12 +2755,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2778,6 +2796,139 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
+			name: "should return an error, invalid page",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk"),
+					Page:        common.ToPointer(uint(0)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "should return one connection, page 1",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(1)),
+					MaxResults: common.ToPointer(uint(1)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return two connection with no specified page",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					MaxResults: common.ToPointer(uint(1)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection, page 2",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(2)),
+					MaxResults: common.ToPointer(uint(1)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return 2 connections, page 1",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(1)),
+					MaxResults: common.ToPointer(uint(30)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return no connections unknown page",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(10)),
+					MaxResults: common.ToPointer(uint(30)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{},
+				},
+			},
+		},
+		{
 			name: "should return two connections, invalid query for connections",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
@@ -2788,17 +2939,19 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
-					},
-					{
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
@@ -2817,6 +2970,12 @@ func TestServer_GetConnections(t *testing.T) {
 			if tc.request.Params.Credentials != nil && *tc.request.Params.Credentials {
 				values.Add("credentials", "true")
 			}
+			if tc.request.Params.Page != nil {
+				values.Add("page", strconv.Itoa(int(*tc.request.Params.Page)))
+			}
+			if tc.request.Params.MaxResults != nil {
+				values.Add("max_results", strconv.Itoa(int(*tc.request.Params.MaxResults)))
+			}
 			parsedURL.RawQuery = values.Encode()
 			req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 			req.SetBasicAuth(tc.auth())
@@ -2830,16 +2989,16 @@ func TestServer_GetConnections(t *testing.T) {
 			case http.StatusOK:
 				var response GetConnections200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				require.Equal(t, len(tc.expected.response), len(response))
-				for i := range response {
-					if tc.expected.response[i].Credentials != nil {
-						require.NotNil(t, response[i].Credentials)
-						require.Equal(t, len(tc.expected.response[i].Credentials), len(response[i].Credentials))
+				require.Equal(t, len(tc.expected.response.Items), len(response.Items))
+				for i := range response.Items {
+					if tc.expected.response.Items[i].Credentials != nil {
+						require.NotNil(t, response.Items[i].Credentials)
+						require.Equal(t, len(tc.expected.response.Items[i].Credentials), len(response.Items[i].Credentials))
 					}
-					assert.Equal(t, tc.expected.response[i].Id, response[i].Id)
-					assert.Equal(t, tc.expected.response[i].IssuerID, response[i].IssuerID)
-					assert.Equal(t, tc.expected.response[i].UserID, response[i].UserID)
-					assert.InDelta(t, time.Time(tc.expected.response[i].CreatedAt).Unix(), time.Time(response[i].CreatedAt).Unix(), 10)
+					assert.Equal(t, tc.expected.response.Items[i].Id, response.Items[i].Id)
+					assert.Equal(t, tc.expected.response.Items[i].IssuerID, response.Items[i].IssuerID)
+					assert.Equal(t, tc.expected.response.Items[i].UserID, response.Items[i].UserID)
+					assert.InDelta(t, time.Time(tc.expected.response.Items[i].CreatedAt).Unix(), time.Time(response.Items[i].CreatedAt).Unix(), 10)
 				}
 			}
 		})

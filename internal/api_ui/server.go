@@ -223,14 +223,18 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 
 // GetConnections returns the list of credentials of a determined issuer
 func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
-	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query)
-	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req.Query, req.WithCredentials)
+	if request.Params.Page != nil && *request.Params.Page <= 0 {
+		return GetConnections400JSONResponse{N400JSONResponse{"Page must be greater than 0"}}, nil
+	}
+
+	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query, request.Params.Page, request.Params.MaxResults)
+	conns, total, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req)
 	if err != nil {
 		log.Error(ctx, "get connection request", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
 	}
 
-	resp, err := connectionsResponse(conns)
+	resp, err := connectionsPaginatedResponse(conns, req.Pagination, total)
 	if err != nil {
 		log.Error(ctx, "get connection request invalid claim format", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
