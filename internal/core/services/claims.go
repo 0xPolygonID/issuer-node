@@ -692,7 +692,7 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 		return verifiable.W3CCredential{}, err
 	}
 
-	issuanceDate := time.Now()
+	issuanceDate := time.Now().UTC()
 	return verifiable.W3CCredential{
 		ID:                c.buildCredentialID(*claimReq.DID, vcID, claimReq.SingleIssuer),
 		Context:           credentialCtx,

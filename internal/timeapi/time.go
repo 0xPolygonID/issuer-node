@@ -15,7 +15,7 @@ func (t *Time) UnmarshalJSON(bytes []byte) error {
 	if err := json.Unmarshal(bytes, &s); err != nil {
 		return err
 	}
-	got, err := time.Parse(time.RFC3339, s)
+	got, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func (t Time) MarshalJSON() ([]byte, error) {
 
 // String implements Stringer interface. It returns the date in RFC3339 format, expressed in UTC location
 func (t *Time) String() string {
-	return time.Time(*t).UTC().Format(time.RFC3339)
+	return time.Time(*t).UTC().Format(time.RFC3339Nano)
 }
 
 // UTCZeroHHMMSS returns a new Time with the time set to 00:00:00 and UTC location
