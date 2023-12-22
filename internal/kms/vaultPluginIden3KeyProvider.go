@@ -241,9 +241,17 @@ func newRandomKey(vaultCli *api.Client, keyPath keyPathT, keyType KeyType) error
 		return err
 	}
 
-	_, err = vaultCli.Logical().Write(keyPath.new(),
+	_, err1 := vaultCli.Logical().Write(keyPath.new(),
 		map[string]interface{}{jsonKeyType: pluginKeyType})
-	return err
+	if err1 != nil {
+		apiResponseError, ok := err1.(*api.ResponseError)
+		if ok {
+			if apiResponseError.StatusCode == 403 {
+				return ErrPermissionDenied
+			}
+		}
+	}
+	return err1
 }
 
 // move the key under new path

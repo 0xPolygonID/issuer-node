@@ -63,6 +63,8 @@ var ErrIncorrectKeyType = stderr.New("incorrect key type")
 // that already exists
 var ErrKeyTypeConflict = stderr.New("key type already registered")
 
+var ErrPermissionDenied = stderr.New("permission denied")
+
 // KeyID is a key unique identifier
 type KeyID struct {
 	Type KeyType

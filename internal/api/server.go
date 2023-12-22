@@ -110,6 +110,23 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 				},
 			}, nil
 		}
+
+		if errors.Is(err, kms.ErrPermissionDenied) {
+			var message string
+			if s.cfg.VaultUserPassAuthEnabled {
+				message = "Issuer Node cannot connect with Vault. Please check the value of ISSUER_VAULT_USERPASS_AUTH_PASSWORD variable."
+			} else {
+				message = `Issuer Node cannot connect with Vault. Please check the value of ISSUER_KEY_STORE_TOKEN variable.`
+			}
+
+			log.Info(ctx, message+". More information in this link: https://devs.polygonid.com/docs/issuer/vault-auth")
+			return CreateIdentity403JSONResponse{
+				N403JSONResponse{
+					Message: message,
+				},
+			}, nil
+		}
+
 		return nil, err
 	}
 
