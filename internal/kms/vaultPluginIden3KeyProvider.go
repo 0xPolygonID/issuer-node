@@ -236,6 +236,7 @@ func NewVaultPluginIden3KeyProvider(vaultCli *api.Client, keysPath string, keyTy
 
 // create random key in vault
 func newRandomKey(vaultCli *api.Client, keyPath keyPathT, keyType KeyType) error {
+	const unAuthErr = 403
 	pluginKeyType, err := toPluginKeyType(keyType)
 	if err != nil {
 		return err
@@ -246,7 +247,7 @@ func newRandomKey(vaultCli *api.Client, keyPath keyPathT, keyType KeyType) error
 	if err1 != nil {
 		apiResponseError, ok := err1.(*api.ResponseError)
 		if ok {
-			if apiResponseError.StatusCode == 403 {
+			if apiResponseError.StatusCode == unAuthErr {
 				return ErrPermissionDenied
 			}
 		}
