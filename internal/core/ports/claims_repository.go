@@ -16,7 +16,7 @@ type ClaimsRepository interface {
 	Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error)
 	Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error
 	RevokeNonce(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error
-	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) (*domain.Claim, error)
+	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) ([]*domain.Claim, error)
 	GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifier *w3c.DID, claimID uuid.UUID) (*domain.Claim, error)
 	FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, subject *w3c.DID, schemaHash string) (*domain.Claim, error)
 	GetAllByIssuerID(ctx context.Context, conn db.Querier, identifier w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, int, error)

@@ -30,6 +30,11 @@ const (
 	LinkStatusInactive LinkStatus = "inactive"
 )
 
+// Defines values for RefreshServiceType.
+const (
+	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
+)
+
 // Defines values for StateTransactionStatus.
 const (
 	Created   StateTransactionStatus = "created"
@@ -100,6 +105,7 @@ type CreateCredentialRequest struct {
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
+	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
 	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
 	Type              string                 `json:"type"`
 }
@@ -111,6 +117,7 @@ type CreateLinkRequest struct {
 	Expiration           *time.Time          `json:"expiration,omitempty"`
 	LimitedClaims        *int                `json:"limitedClaims"`
 	MtProof              bool                `json:"mtProof"`
+	RefreshService       *RefreshService     `json:"refreshService,omitempty"`
 	SchemaID             uuid.UUID           `json:"schemaID"`
 	SignatureProof       bool                `json:"signatureProof"`
 }
@@ -123,6 +130,7 @@ type Credential struct {
 	ExpiresAt             *TimeUTC               `json:"expiresAt"`
 	Id                    uuid.UUID              `json:"id"`
 	ProofTypes            []string               `json:"proofTypes"`
+	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
 	RevNonce              uint64                 `json:"revNonce"`
 	Revoked               bool                   `json:"revoked"`
 	SchemaHash            string                 `json:"schemaHash"`
@@ -218,6 +226,7 @@ type Link struct {
 	IssuedClaims         int               `json:"issuedClaims"`
 	MaxIssuance          *int              `json:"maxIssuance"`
 	ProofTypes           []string          `json:"proofTypes"`
+	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
 	SchemaHash           string            `json:"schemaHash"`
 	SchemaType           string            `json:"schemaType"`
 	SchemaUrl            string            `json:"schemaUrl"`
@@ -263,6 +272,15 @@ type QrCodeLinkWithSchemaTypeShortResponse struct {
 	QrCodeLink string `json:"qrCodeLink"`
 	SchemaType string `json:"schemaType"`
 }
+
+// RefreshService defines model for RefreshService.
+type RefreshService struct {
+	Id   string             `json:"id"`
+	Type RefreshServiceType `json:"type"`
+}
+
+// RefreshServiceType defines model for RefreshService.Type.
+type RefreshServiceType string
 
 // RevocationStatusResponse defines model for RevocationStatusResponse.
 type RevocationStatusResponse struct {

@@ -1254,6 +1254,9 @@ components:
         schemaTypeDescription:
           type: string
           example: "KYC Age Credential"
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+
 
     Link:
       type: object
@@ -1313,6 +1316,8 @@ components:
           items:
             type: string
           example: [ "BJJSignature2021" ]
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
 
     LinkSimple:
       type: object
@@ -1455,6 +1460,22 @@ components:
           items:
             $ref: '#/components/schemas/Credential'
 
+        # refresh service
+    RefreshService:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3RefreshService2023"
+
     CreateCredentialRequest:
       type: object
       required:
@@ -1487,6 +1508,8 @@ components:
         mtProof:
           type: boolean
           example: true
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
     Schema:
       type: object
       required:
@@ -1596,6 +1619,8 @@ components:
           example: false
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
 
     CredentialSubject:
       type: object
