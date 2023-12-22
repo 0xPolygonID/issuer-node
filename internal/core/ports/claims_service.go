@@ -14,6 +14,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // CreateClaimRequest struct
@@ -32,6 +33,8 @@ type CreateClaimRequest struct {
 	SingleIssuer          bool
 	CredentialStatusType  verifiable.CredentialStatusType
 	SchemaTypeDescription string
+	RefreshService        *verifiable.RefreshService
+	RevNonce              *uint64
 }
 
 // AgentRequest struct
@@ -44,6 +47,15 @@ type AgentRequest struct {
 	Typ       comm.MediaType
 	Type      comm.ProtocolMessage
 }
+
+// Defines values for GetCredentialsParamsStatus.
+// TIP: Use the sql field name in these constants. A little bit coupled but easy to construct the ORDER BY clause later
+const (
+	CredentialSchemaType sqltools.SQLFieldName = "claims.schema_type"
+	CredentialCreatedAt  sqltools.SQLFieldName = "claims.created_at"
+	CredentialExpiresAt  sqltools.SQLFieldName = "claims.expiration"
+	CredentialRevoked    sqltools.SQLFieldName = "claims.revoked"
+)
 
 // ClaimsFilter struct
 type ClaimsFilter struct {
@@ -60,6 +72,7 @@ type ClaimsFilter struct {
 	Proofs          []verifiable.ProofType
 	MaxResults      uint  // Max number of results to return on each call.
 	Page            *uint // Page number to return. First is 1. if nul, then there is no limit in the number to return
+	OrderBy         sqltools.OrderByFilters
 }
 
 // NewClaimsFilter returns a valid claims filter
@@ -95,7 +108,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -111,6 +124,7 @@ func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubj
 		Type:              typ,
 		SignatureProof:    *sigProof,
 		MTProof:           *mtProof,
+		RefreshService:    refreshService,
 	}
 	if expiration != nil {
 		req.Expiration = expiration
@@ -125,9 +139,11 @@ func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubj
 		req.MerklizedRootPosition = *merklizedRootPosition
 	}
 
+	req.RevNonce = revNonce
 	req.LinkID = linkID
 	req.SingleIssuer = singleIssuer
 	req.CredentialStatusType = credentialStatusType
+
 	return req
 }
 
@@ -179,6 +195,13 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 	}, nil
 }
 
+// GetCredentialQrCodeResponse is the response of the GetCredentialQrCode method
+type GetCredentialQrCodeResponse struct {
+	QrCodeURL  string
+	SchemaType string
+	QrID       uuid.UUID
+}
+
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
@@ -188,7 +211,7 @@ type ClaimsService interface {
 	RevokeAllFromConnection(ctx context.Context, connID uuid.UUID, issuerID w3c.DID) error
 	GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error)
-	GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (string, string, error)
+	GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*GetCredentialQrCodeResponse, error)
 	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
 	GetAuthClaimForPublishing(ctx context.Context, did *w3c.DID, state string) (*domain.Claim, error)

@@ -19,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 func TestRevoke(t *testing.T) {
@@ -61,6 +62,9 @@ func TestGetByRevocationNonce(t *testing.T) {
 	}
 	fixture.CreateIdentity(t, identity)
 	idClaim, _ := uuid.NewUUID()
+
+	idClaim2, _ := uuid.NewUUID()
+	idClaim3, _ := uuid.NewUUID()
 	fixture.CreateClaim(t, &domain.Claim{
 		ID:              idClaim,
 		Identifier:      &idStr,
@@ -74,13 +78,47 @@ func TestGetByRevocationNonce(t *testing.T) {
 		RevNonce:        0,
 		CoreClaim:       domain.CoreClaim{},
 		Status:          nil,
+		HIndex:          "123",
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim2,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        100,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "456",
+	})
+
+	fixture.CreateClaim(t, &domain.Claim{
+		ID:              idClaim3,
+		Identifier:      &idStr,
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e7",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         1,
+		RevNonce:        100,
+		CoreClaim:       domain.CoreClaim{},
+		Status:          nil,
+		HIndex:          "789",
 	})
 
 	claimsRepo := repositories.NewClaims()
 	t.Run("should get revocation", func(t *testing.T) {
 		did, err := w3c.ParseDID(idStr)
 		assert.NoError(t, err)
-		c, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
+		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 0)
+		c := claims[0]
 		assert.NoError(t, err)
 		assert.NotNil(t, c)
 		coreClaimValue, err := c.CoreClaim.Value()
@@ -113,6 +151,14 @@ func TestGetByRevocationNonce(t *testing.T) {
 		r, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 1)
 		assert.Error(t, err)
 		assert.Nil(t, r)
+	})
+
+	t.Run("should get two claims", func(t *testing.T) {
+		did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qHtzzxS7uazdumnyZEdf74CNo3MptdW6ytxxwbPMW")
+		assert.NoError(t, err)
+		claims, err := claimsRepo.GetByRevocationNonce(context.Background(), storage.Pgx, did, 100)
+		assert.NoError(t, err)
+		assert.Len(t, claims, 2)
 	})
 }
 
@@ -454,6 +500,91 @@ func TestGetAllByIssuerIDPagination(t *testing.T) {
 	}
 }
 
+func TestGetAllByIssuerIDOrderBy(t *testing.T) {
+	ctx := context.Background()
+	fixture := tests.NewFixture(storage)
+	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qDxX9177nxpRK3q2zFbr3cr4mdGXqJH83uUJ921qd")
+	require.NoError(t, err)
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:main:2q2LTxUzBz9BwarePv9yBdUV8eXZK1ffxVKBGAnt2o")
+	require.NoError(t, err)
+
+	jsonB := &pgtype.JSONB{}
+	require.NoError(t, jsonB.Set(`{"type": "BJJSignature2021", "coreClaim": "c9b2370371b7fa8b3dab2a5ba81b68382a00000000000000000000000000000002129c52957a73ea89144dc455d28e074cd7e23ae3e5bf86d4aa56d20cd60e0074da1e21d2c4d8fc28e2e3809ed51c333d68ef4dffd31508176ab84863e8fc1a0000000000000000000000000000000000000000000000000000000000000000682561f1000000006f0535010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "signature": "fb179bc43ca2c8ce4eb97549d847415bcb759f4d7c8bb3aa008700716abb2b06853349d75571fdc3018023cce9d1e6756eb102b4b44a17555d49fc8371af1300", "issuerData": {"id": "did:polygonid:polygon:mumbai:2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr", "mtp": {"siblings": [], "existence": true}, "state": {"value": "e6a67b3bcca7e424f657f41ddaae87f772f502de49d1cfe7f9abd11a4822611d", "claimsTreeRoot": "8375a237f1597b74b17f33cce0638e93a7be9175028836ae9f54f08dd2976a2f"}, "authCoreClaim": "cca3371a6cb1b715004407e325bd993c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f5287a7ac420b7c2b1b7aa28446c52df4dda6f7e4a127fbd1272d78853c4e01a3359f10f7fef6a358b83740146445dc55f143109bf1f6a090edf7d7c7b8e651c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", "credentialStatus": {"id": "https://aeb5-2a0c-5a84-e10a-5200-71e6-4d79-d127-c4dd.eu.ngrok.io/v1/did%3Apolygonid%3Apolygon%3Amumbai%3A2qL68in3FNbimFK6gka8hPZz475z31nqPJdqBeTsQr/claims/revocation/status/0", "type": "SparseMerkleTreeProof", "revocationNonce": 0}}}`))
+
+	createdAt := time.Now().Add(-24 * time.Hour)
+	for i := 0; i < 100; i++ {
+		c := &domain.Claim{
+			ID:              uuid.New(),
+			Identifier:      common.ToPointer(issuerDID.String()),
+			Issuer:          issuerDID.String(),
+			SchemaType:      fmt.Sprintf("AuthBJJCredential-%d", i),
+			OtherIdentifier: userDID.String(),
+			HIndex:          fmt.Sprintf("%d", rand.Int()),
+			CreatedAt:       createdAt,
+			Expiration:      createdAt.Add(7 * 24 * time.Hour).Unix(),
+			Revoked:         func(i int) bool { return i%2 == 0 }(i),
+		}
+		_ = fixture.CreateClaim(t, c)
+		createdAt = createdAt.Add(time.Second)
+	}
+
+	claimsRepo := repositories.NewClaims()
+
+	t.Run("should order by created_at desc by default", func(t *testing.T) {
+		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
+			Subject: userDID.String(),
+		})
+		require.NoError(t, err)
+		assert.Len(t, claims, 100)
+		assert.Equal(t, total, 100)
+		first := time.Now().Add(100 * 365 * 24 * time.Hour)
+		for i, claim := range claims {
+			assert.True(t, claim.CreatedAt.Before(first), "iteration %d", i)
+			first = claim.CreatedAt
+		}
+	})
+
+	t.Run("should order by created_at ASC", func(t *testing.T) {
+		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
+			Subject: userDID.String(),
+			OrderBy: []sqltools.OrderByFilter{{Field: ports.CredentialCreatedAt, Desc: false}},
+		})
+		require.NoError(t, err)
+		assert.Len(t, claims, 100)
+		assert.Equal(t, total, 100)
+		first := time.Time{}
+		for i, claim := range claims {
+			assert.True(t, first.Before(claim.CreatedAt), "iteration %d", i)
+			first = claim.CreatedAt
+		}
+	})
+
+	t.Run("should order by revoked (first false, then true) and createdAt ASC", func(t *testing.T) {
+		claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.ClaimsFilter{
+			Subject: userDID.String(),
+			OrderBy: []sqltools.OrderByFilter{
+				{Field: ports.CredentialRevoked, Desc: false},
+				{Field: ports.CredentialCreatedAt, Desc: false},
+			},
+		})
+		require.NoError(t, err)
+		assert.Len(t, claims, 100)
+		assert.Equal(t, total, 100)
+		firstTime := time.Time{}
+		for i := 0; i < 50; i++ {
+			assert.False(t, claims[i].Revoked, "iteration %d", i)
+			assert.True(t, firstTime.Before(claims[i].CreatedAt), "iteration %d", i)
+			firstTime = claims[i].CreatedAt
+		}
+		firstTime = time.Time{}
+		for i := 50; i < 100; i++ {
+			assert.True(t, claims[i].Revoked, "iteration %d", i)
+			assert.True(t, firstTime.Before(claims[i].CreatedAt), "iteration %d", i)
+			firstTime = claims[i].CreatedAt
+		}
+	})
+}
+
 func TestGetClaimsIssuedForUserID(t *testing.T) {
 	ctx := context.Background()
 	fixture := tests.NewFixture(storage)
@@ -471,7 +602,7 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 
-	link := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{})
+	link := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil)
 	link.MaxIssuance = common.ToPointer(100)
 
 	linkID, err := linkStore.Save(ctx, storage.Pgx, link)

@@ -170,14 +170,25 @@ func (s *Server) GetAuthenticationConnection(ctx context.Context, req GetAuthent
 }
 
 // AuthQRCode returns the qr code for authenticating a user
-func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	qrCode, sessionID, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
+	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
+	if req.Params.Type != nil && *req.Params.Type == AuthQRCodeParamsTypeRaw {
+		body, err := s.qrService.Find(ctx, resp.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "QrID", resp.QrID)
+			return AuthQRCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		return AuthQRCode200JSONResponse{
+			QrCodeLink: string(body),
+			SessionID:  resp.SessionID.String(),
+		}, nil
+	}
 	return AuthQRCode200JSONResponse{
-		QrCodeLink: qrCode,
-		SessionID:  sessionID.String(),
+		QrCodeLink: resp.QRCodeURL,
+		SessionID:  resp.SessionID.String(),
 	}, nil
 }
 
@@ -332,7 +343,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), nil)
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -354,6 +365,12 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedRefreshServiceType) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -491,7 +508,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		expirationDate = &request.Body.CredentialExpiration.Time
 	}
 
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService))
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
@@ -559,8 +576,8 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 }
 
 // CreateLinkQrCode - Creates a link QrCode
-func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
-	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
+	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrLinkNotFound) {
 			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
@@ -571,29 +588,50 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
+
+	qrContent := createLinkQrCodeResponse.QrCode
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	if req.Params.Type != nil && *req.Params.Type == CreateLinkQrCodeParamsTypeRaw {
+		rawQrCode, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
+			return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		qrContent = string(rawQrCode)
+	}
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.APIUI.IssuerName,
 			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode:     createLinkQrCodeResponse.QrCode,
+		QrCode:     qrContent,
 		SessionID:  createLinkQrCodeResponse.SessionID,
 		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
-func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	qrLink, schemaType, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+func (s *Server) GetCredentialQrCode(ctx context.Context, req GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
+	resp, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+	qrContent := resp.QrCodeURL
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	if req.Params.Type != nil && *req.Params.Type == GetCredentialQrCodeParamsTypeRaw {
+		rawQrCode, err := s.qrService.Find(ctx, resp.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", resp.QrID)
+			return GetCredentialQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		qrContent = string(rawQrCode)
+	}
 	return GetCredentialQrCode200JSONResponse{
-		QrCodeLink: qrLink,
-		SchemaType: schemaType,
+		QrCodeLink: qrContent,
+		SchemaType: resp.SchemaType,
 	}, nil
 }
 
@@ -711,11 +749,11 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 	}
 	if req.Params.Status != nil {
 		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
-		case Revoked:
+		case GetCredentialsParamsStatusRevoked:
 			filter.Revoked = common.ToPointer(true)
-		case Expired:
+		case GetCredentialsParamsStatusExpired:
 			filter.ExpiredOn = common.ToPointer(time.Now())
-		case All:
+		case GetCredentialsParamsStatusAll:
 			// Nothing to be done
 		default:
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
@@ -740,7 +778,27 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 		}
 		filter.Page = req.Params.Page
 	}
-
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetCredentialsParamsSort(field) {
+			case GetCredentialsParamsSortSchemaType:
+				err = filter.OrderBy.Add(ports.CredentialSchemaType, desc)
+			case GetCredentialsParamsSortCreatedAt:
+				err = filter.OrderBy.Add(ports.CredentialCreatedAt, desc)
+			case GetCredentialsParamsSortExpiresAt:
+				err = filter.OrderBy.Add(ports.CredentialExpiresAt, desc)
+			case GetCredentialsParamsSortRevoked:
+				err = filter.OrderBy.Add(ports.CredentialRevoked, desc)
+			default:
+				return nil, errors.New("wrong sort by value")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
 	return filter, nil
 }
 
@@ -777,4 +835,14 @@ func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", mimeType)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
+}
+
+func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.RefreshService{
+		ID:   s.Id,
+		Type: verifiable.RefreshServiceType(s.Type),
+	}
 }

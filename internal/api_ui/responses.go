@@ -97,6 +97,14 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 
 	proofs := getProofs(credential)
 
+	var refreshService *RefreshService
+	if w3c.RefreshService != nil {
+		refreshService = &RefreshService{
+			Id:   w3c.RefreshService.ID,
+			Type: RefreshServiceType(w3c.RefreshService.Type),
+		}
+	}
+
 	return Credential{
 		CredentialSubject:     w3c.CredentialSubject,
 		CreatedAt:             TimeUTC(*w3c.IssuanceDate),
@@ -111,6 +119,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		SchemaUrl:             credential.SchemaURL,
 		UserID:                credential.OtherIdentifier,
 		SchemaTypeDescription: credential.SchemaTypeDescription,
+		RefreshService:        refreshService,
 	}
 }
 
@@ -268,6 +277,14 @@ func getLinkResponse(link domain.Link) Link {
 		validUntil = common.ToPointer(TimeUTC(*link.ValidUntil))
 	}
 
+	var refreshService *RefreshService
+	if link.RefreshService != nil {
+		refreshService = &RefreshService{
+			Id:   link.RefreshService.ID,
+			Type: RefreshServiceType(link.RefreshService.Type),
+		}
+	}
+
 	return Link{
 		Id:                   link.ID,
 		Active:               link.Active,
@@ -282,6 +299,7 @@ func getLinkResponse(link domain.Link) Link {
 		CreatedAt:            TimeUTC(link.CreatedAt),
 		Expiration:           validUntil,
 		CredentialExpiration: credentialExpiration,
+		RefreshService:       refreshService,
 	}
 }
 
