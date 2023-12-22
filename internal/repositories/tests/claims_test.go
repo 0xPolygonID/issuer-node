@@ -536,7 +536,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
-		assert.Equal(t, total, 100)
+		assert.Equal(t, uint(100), total)
 		first := time.Now().Add(100 * 365 * 24 * time.Hour)
 		for i, claim := range claims {
 			assert.True(t, claim.CreatedAt.Before(first), "iteration %d", i)
@@ -551,7 +551,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
-		assert.Equal(t, total, 100)
+		assert.Equal(t, uint(100), total)
 		first := time.Time{}
 		for i, claim := range claims {
 			assert.True(t, first.Before(claim.CreatedAt), "iteration %d", i)
@@ -569,7 +569,7 @@ func TestGetAllByIssuerIDOrderBy(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.Len(t, claims, 100)
-		assert.Equal(t, total, 100)
+		assert.Equal(t, uint(100), total)
 		firstTime := time.Time{}
 		for i := 0; i < 50; i++ {
 			assert.False(t, claims[i].Revoked, "iteration %d", i)
