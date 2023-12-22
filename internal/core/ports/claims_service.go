@@ -14,6 +14,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
 
 // CreateClaimRequest struct
@@ -47,6 +48,15 @@ type AgentRequest struct {
 	Type      comm.ProtocolMessage
 }
 
+// Defines values for GetCredentialsParamsStatus.
+// TIP: Use the sql field name in these constants. A little bit coupled but easy to construct the ORDER BY clause later
+const (
+	CredentialSchemaType sqltools.SQLFieldName = "claims.schema_type"
+	CredentialCreatedAt  sqltools.SQLFieldName = "claims.created_at"
+	CredentialExpiresAt  sqltools.SQLFieldName = "claims.expiration"
+	CredentialRevoked    sqltools.SQLFieldName = "claims.revoked"
+)
+
 // ClaimsFilter struct
 type ClaimsFilter struct {
 	Self            *bool
@@ -62,6 +72,7 @@ type ClaimsFilter struct {
 	Proofs          []verifiable.ProofType
 	MaxResults      int  // Max number of results to return on each call.
 	Page            *int // Page number to return. First is 1. if nul, then there is no limit in the number to return
+	OrderBy         sqltools.OrderByFilters
 }
 
 // NewClaimsFilter returns a valid claims filter

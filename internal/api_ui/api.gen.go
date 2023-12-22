@@ -51,9 +51,21 @@ const (
 
 // Defines values for GetCredentialsParamsStatus.
 const (
-	All     GetCredentialsParamsStatus = "all"
-	Expired GetCredentialsParamsStatus = "expired"
-	Revoked GetCredentialsParamsStatus = "revoked"
+	GetCredentialsParamsStatusAll     GetCredentialsParamsStatus = "all"
+	GetCredentialsParamsStatusExpired GetCredentialsParamsStatus = "expired"
+	GetCredentialsParamsStatusRevoked GetCredentialsParamsStatus = "revoked"
+)
+
+// Defines values for GetCredentialsParamsSort.
+const (
+	GetCredentialsParamsSortCreatedAt       GetCredentialsParamsSort = "createdAt"
+	GetCredentialsParamsSortExpiresAt       GetCredentialsParamsSort = "expiresAt"
+	GetCredentialsParamsSortMinusCreatedAt  GetCredentialsParamsSort = "-createdAt"
+	GetCredentialsParamsSortMinusExpiresAt  GetCredentialsParamsSort = "-expiresAt"
+	GetCredentialsParamsSortMinusRevoked    GetCredentialsParamsSort = "-revoked"
+	GetCredentialsParamsSortMinusSchemaType GetCredentialsParamsSort = "-schemaType"
+	GetCredentialsParamsSortRevoked         GetCredentialsParamsSort = "revoked"
+	GetCredentialsParamsSortSchemaType      GetCredentialsParamsSort = "schemaType"
 )
 
 // Defines values for GetLinksParamsStatus.
@@ -434,11 +446,15 @@ type GetCredentialsParams struct {
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *int `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *int                        `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetCredentialsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // GetCredentialsParamsStatus defines parameters for GetCredentials.
 type GetCredentialsParamsStatus string
+
+// GetCredentialsParamsSort defines parameters for GetCredentials.
+type GetCredentialsParamsSort string
 
 // GetLinksParams defines parameters for GetLinks.
 type GetLinksParams struct {
@@ -1283,6 +1299,14 @@ func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 

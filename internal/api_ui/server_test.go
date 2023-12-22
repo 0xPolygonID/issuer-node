@@ -1701,6 +1701,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		auth       func() (string, string)
 		did        *string
 		query      *string
+		sort       *string
 		status     *string
 		page       *int
 		maxResults *int
@@ -1977,6 +1978,69 @@ func TestServer_GetCredentials(t *testing.T) {
 				credentialsCount: 0,
 			},
 		},
+		{
+			name: "Wrong order by",
+			auth: authOk,
+			sort: common.ToPointer("wrongField"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "wrong sort by value",
+			},
+		},
+		{
+			name: "Order by one field",
+			auth: authOk,
+			sort: common.ToPointer("createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by 2 fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by all fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt, -expiresAt, revoked"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by 2 repeated fields",
+			auth: authOk,
+			sort: common.ToPointer("createdAt, createdAt"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "repeated sort by value field",
+			},
+		},
+		{
+			name: "Order by 2 repeated contradictory fields ",
+			auth: authOk,
+			sort: common.ToPointer("createdAt, -createdAt"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "repeated sort by value field",
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -1984,6 +2048,9 @@ func TestServer_GetCredentials(t *testing.T) {
 			queryParams := make([]string, 0)
 			if tc.query != nil {
 				queryParams = append(queryParams, "query="+*tc.query)
+			}
+			if tc.sort != nil {
+				queryParams = append(queryParams, "sort="+*tc.sort)
 			}
 			if tc.status != nil {
 				queryParams = append(queryParams, "status="+*tc.status)

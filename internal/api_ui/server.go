@@ -745,11 +745,11 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 	}
 	if req.Params.Status != nil {
 		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
-		case Revoked:
+		case GetCredentialsParamsStatusRevoked:
 			filter.Revoked = common.ToPointer(true)
-		case Expired:
+		case GetCredentialsParamsStatusExpired:
 			filter.ExpiredOn = common.ToPointer(time.Now())
-		case All:
+		case GetCredentialsParamsStatusAll:
 			// Nothing to be done
 		default:
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
@@ -774,7 +774,27 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 		}
 		filter.Page = req.Params.Page
 	}
-
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetCredentialsParamsSort(field) {
+			case GetCredentialsParamsSortSchemaType:
+				err = filter.OrderBy.Add(ports.CredentialSchemaType, desc)
+			case GetCredentialsParamsSortCreatedAt:
+				err = filter.OrderBy.Add(ports.CredentialCreatedAt, desc)
+			case GetCredentialsParamsSortExpiresAt:
+				err = filter.OrderBy.Add(ports.CredentialExpiresAt, desc)
+			case GetCredentialsParamsSortRevoked:
+				err = filter.OrderBy.Add(ports.CredentialRevoked, desc)
+			default:
+				return nil, errors.New("wrong sort by value")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
 	return filter, nil
 }
 
