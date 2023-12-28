@@ -2488,14 +2488,16 @@ func TestServer_GetConnections(t *testing.T) {
 
 	uuid1, err := uuid.Parse("9736cf94-cd42-11ed-9618-debe37e1cbd6")
 	require.NoError(t, err)
+
+	now := time.Now()
 	connID := fixture.CreateConnection(t, &domain.Connection{
 		ID:         uuid1,
 		IssuerDID:  *did,
 		UserDID:    *usrDID,
 		IssuerDoc:  nil,
 		UserDoc:    nil,
-		CreatedAt:  time.Now(),
-		ModifiedAt: time.Now(),
+		CreatedAt:  now,
+		ModifiedAt: now,
 	})
 
 	uuid2, err := uuid.Parse("5736cf94-cd42-11ed-9618-debe37e1cbd6")
@@ -2506,8 +2508,8 @@ func TestServer_GetConnections(t *testing.T) {
 		UserDID:    *usrDID2,
 		IssuerDoc:  nil,
 		UserDoc:    nil,
-		CreatedAt:  time.Now(),
-		ModifiedAt: time.Now(),
+		CreatedAt:  now.Add(1 * time.Second),
+		ModifiedAt: now.Add(1 * time.Second),
 	})
 
 	handler := getHandler(ctx, server)
@@ -2533,9 +2535,49 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
-			name:    "should return 2 connections",
-			auth:    authOk,
-			request: GetConnectionsRequestObject{},
+			name: "order by wrong field",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"wrongField"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "order by repeated fields",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"createdAt", "createdAt"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "order by opposite fields",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"userID", "-userID"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "order by userID desc, createdAt asc returns 2 connections",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"createdAt, -userID"}),
+				},
+			},
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
@@ -2544,13 +2586,38 @@ func TestServer_GetConnections(t *testing.T) {
 							Id:        connID.String(),
 							IssuerID:  did.String(),
 							UserID:    usrDID.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							CreatedAt: TimeUTC(now),
 						},
 						{
 							Id:        connID2.String(),
 							IssuerID:  did.String(),
 							UserID:    usrDID2.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name:    "should return 2 connections",
+			auth:    authOk,
+			request: GetConnectionsRequestObject{},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
 						},
 					},
 				},
@@ -2614,7 +2681,7 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
-			name: "should return two connections, beginning of did",
+			name: "should return two connections, beginning by did",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
@@ -2626,16 +2693,16 @@ func TestServer_GetConnections(t *testing.T) {
 				response: GetConnections200JSONResponse{
 					Items: GetConnectionsResponse{
 						{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: TimeUTC(time.Now()),
-						},
-						{
 							Id:        connID2.String(),
 							IssuerID:  did.String(),
 							UserID:    usrDID2.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
 						},
 					},
 				},
@@ -2823,10 +2890,10 @@ func TestServer_GetConnections(t *testing.T) {
 				response: GetConnections200JSONResponse{
 					Items: GetConnectionsResponse{
 						{
-							Id:        connID.String(),
+							Id:        connID2.String(),
 							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
 						},
 					},
 				},
@@ -2845,16 +2912,16 @@ func TestServer_GetConnections(t *testing.T) {
 				response: GetConnections200JSONResponse{
 					Items: GetConnectionsResponse{
 						{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: TimeUTC(time.Now()),
-						},
-						{
 							Id:        connID2.String(),
 							IssuerID:  did.String(),
 							UserID:    usrDID2.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
 						},
 					},
 				},
@@ -2874,10 +2941,10 @@ func TestServer_GetConnections(t *testing.T) {
 				response: GetConnections200JSONResponse{
 					Items: GetConnectionsResponse{
 						{
-							Id:        connID2.String(),
+							Id:        connID.String(),
 							IssuerID:  did.String(),
-							UserID:    usrDID2.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
 						},
 					},
 				},
@@ -2897,16 +2964,16 @@ func TestServer_GetConnections(t *testing.T) {
 				response: GetConnections200JSONResponse{
 					Items: GetConnectionsResponse{
 						{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: TimeUTC(time.Now()),
-						},
-						{
 							Id:        connID2.String(),
 							IssuerID:  did.String(),
 							UserID:    usrDID2.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
 						},
 					},
 				},
@@ -2941,16 +3008,16 @@ func TestServer_GetConnections(t *testing.T) {
 				response: GetConnections200JSONResponse{
 					Items: GetConnectionsResponse{
 						{
-							Id:        connID.String(),
-							IssuerID:  did.String(),
-							UserID:    usrDID.String(),
-							CreatedAt: TimeUTC(time.Now()),
-						},
-						{
 							Id:        connID2.String(),
 							IssuerID:  did.String(),
 							UserID:    usrDID2.String(),
-							CreatedAt: TimeUTC(time.Now()),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
 						},
 					},
 				},
@@ -2975,6 +3042,13 @@ func TestServer_GetConnections(t *testing.T) {
 			}
 			if tc.request.Params.MaxResults != nil {
 				values.Add("max_results", strconv.Itoa(int(*tc.request.Params.MaxResults)))
+			}
+			if tc.request.Params.Sort != nil {
+				fields := make([]string, 0)
+				for _, field := range *tc.request.Params.Sort {
+					fields = append(fields, string(field))
+				}
+				values.Add("sort", strings.Join(fields, ","))
 			}
 			parsedURL.RawQuery = values.Encode()
 			req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)

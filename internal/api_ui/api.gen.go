@@ -49,11 +49,19 @@ const (
 	AuthQRCodeParamsTypeRaw  AuthQRCodeParamsType = "raw"
 )
 
+// Defines values for GetConnectionsParamsSort.
+const (
+	GetConnectionsParamsSortCreatedAt      GetConnectionsParamsSort = "createdAt"
+	GetConnectionsParamsSortMinusCreatedAt GetConnectionsParamsSort = "-createdAt"
+	GetConnectionsParamsSortMinusUserID    GetConnectionsParamsSort = "-userID"
+	GetConnectionsParamsSortUserID         GetConnectionsParamsSort = "userID"
+)
+
 // Defines values for GetCredentialsParamsStatus.
 const (
-	GetCredentialsParamsStatusAll     GetCredentialsParamsStatus = "all"
-	GetCredentialsParamsStatusExpired GetCredentialsParamsStatus = "expired"
-	GetCredentialsParamsStatusRevoked GetCredentialsParamsStatus = "revoked"
+	All     GetCredentialsParamsStatus = "all"
+	Expired GetCredentialsParamsStatus = "expired"
+	Revoked GetCredentialsParamsStatus = "revoked"
 )
 
 // Defines values for GetCredentialsParamsSort.
@@ -429,8 +437,12 @@ type GetConnectionsParams struct {
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint                       `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetConnectionsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
+
+// GetConnectionsParamsSort defines parameters for GetConnections.
+type GetConnectionsParamsSort string
 
 // DeleteConnectionParams defines parameters for DeleteConnection.
 type DeleteConnectionParams struct {
@@ -1134,6 +1146,14 @@ func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
