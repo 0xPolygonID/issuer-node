@@ -16,9 +16,8 @@ import (
 func LogMiddleware(ctx context.Context) StrictMiddlewareFunc {
 	return func(f StrictHandlerFunc, operationID string) StrictHandlerFunc {
 		return func(ctxReq context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error) {
-			ctx := log.CopyFromContext(ctx, ctxReq)
 			if reqID := middleware.GetReqID(ctxReq); reqID != "" {
-				ctx = log.With(ctx, "req-id", reqID)
+				log.With("req-id", reqID)
 			}
 			return f(ctx, w, r, args)
 		}
