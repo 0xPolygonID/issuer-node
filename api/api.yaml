@@ -100,6 +100,8 @@ paths:
           $ref: '#/components/responses/400'
         '401':
           $ref: '#/components/responses/401'
+        '403':
+            $ref: '#/components/responses/403'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
     get:
@@ -915,6 +917,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '402':
       description: 'Payment Required'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '403':
+      description: 'Permission Denied'
       content:
         application/json:
           schema:
