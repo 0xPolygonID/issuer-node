@@ -223,13 +223,29 @@ paths:
           schema:
             type: boolean
           description: credentials=true to include the connection credentials.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
       responses:
         '200':
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetConnectionsResponse'
+                $ref: '#/components/schemas/ConnectionsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -324,6 +340,7 @@ paths:
           name: page
           schema:
             type: integer
+            format: uint
             minimum: 1
             example: 1
           description: Page to fetch. First is one. If omitted, all results will be returned.
@@ -331,9 +348,25 @@ paths:
           name: max_results
           schema:
             type: integer
+            format: uint
             example: 50
             default: 50
           description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "schemaType", "-schemaType", "createdAt", "-createdAt", "expiresAt", "-expiresAt", "revoked", "-revoked" ]
+              default: "-createdAt"
+
+            description: >
+              Sort by schemaType ascending and createdAt descending.
+              The minus sign (-) before createdAt means descending order.
+
       responses:
         '200':
           description: List of credentials
@@ -1254,6 +1287,9 @@ components:
         schemaTypeDescription:
           type: string
           example: "KYC Age Credential"
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+
 
     Link:
       type: object
@@ -1313,6 +1349,8 @@ components:
           items:
             type: string
           example: [ "BJJSignature2021" ]
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
 
     LinkSimple:
       type: object
@@ -1393,6 +1431,15 @@ components:
         message:
           type: string
 
+    ConnectionsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          $ref: '#/components/schemas/GetConnectionsResponse'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
     GetConnectionsResponse:
       type: array
       items:
@@ -1455,6 +1502,22 @@ components:
           items:
             $ref: '#/components/schemas/Credential'
 
+        # refresh service
+    RefreshService:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3RefreshService2023"
+
     CreateCredentialRequest:
       type: object
       required:
@@ -1487,6 +1550,8 @@ components:
         mtProof:
           type: boolean
           example: true
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
     Schema:
       type: object
       required:
@@ -1596,6 +1661,8 @@ components:
           example: false
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
 
     CredentialSubject:
       type: object
@@ -1682,12 +1749,15 @@ components:
       properties:
         total:
           type: integer
+          format: uint
           example: 1
         page:
           type: integer
+          format: uint
           example: 1
         max_results:
           type: integer
+          format: uint
           example: 50
 
     TimeUTC:

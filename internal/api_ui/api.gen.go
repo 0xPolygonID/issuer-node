@@ -30,6 +30,11 @@ const (
 	LinkStatusInactive LinkStatus = "inactive"
 )
 
+// Defines values for RefreshServiceType.
+const (
+	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
+)
+
 // Defines values for StateTransactionStatus.
 const (
 	Created   StateTransactionStatus = "created"
@@ -46,9 +51,21 @@ const (
 
 // Defines values for GetCredentialsParamsStatus.
 const (
-	All     GetCredentialsParamsStatus = "all"
-	Expired GetCredentialsParamsStatus = "expired"
-	Revoked GetCredentialsParamsStatus = "revoked"
+	GetCredentialsParamsStatusAll     GetCredentialsParamsStatus = "all"
+	GetCredentialsParamsStatusExpired GetCredentialsParamsStatus = "expired"
+	GetCredentialsParamsStatusRevoked GetCredentialsParamsStatus = "revoked"
+)
+
+// Defines values for GetCredentialsParamsSort.
+const (
+	GetCredentialsParamsSortCreatedAt       GetCredentialsParamsSort = "createdAt"
+	GetCredentialsParamsSortExpiresAt       GetCredentialsParamsSort = "expiresAt"
+	GetCredentialsParamsSortMinusCreatedAt  GetCredentialsParamsSort = "-createdAt"
+	GetCredentialsParamsSortMinusExpiresAt  GetCredentialsParamsSort = "-expiresAt"
+	GetCredentialsParamsSortMinusRevoked    GetCredentialsParamsSort = "-revoked"
+	GetCredentialsParamsSortMinusSchemaType GetCredentialsParamsSort = "-schemaType"
+	GetCredentialsParamsSortRevoked         GetCredentialsParamsSort = "revoked"
+	GetCredentialsParamsSortSchemaType      GetCredentialsParamsSort = "schemaType"
 )
 
 // Defines values for GetLinksParamsStatus.
@@ -94,12 +111,19 @@ type AuthenticationConnection struct {
 // Config defines model for Config.
 type Config = []KeyValue
 
+// ConnectionsPaginated defines model for ConnectionsPaginated.
+type ConnectionsPaginated struct {
+	Items GetConnectionsResponse `json:"items"`
+	Meta  PaginatedMetadata      `json:"meta"`
+}
+
 // CreateCredentialRequest defines model for CreateCredentialRequest.
 type CreateCredentialRequest struct {
 	CredentialSchema  string                 `json:"credentialSchema"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
+	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
 	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
 	Type              string                 `json:"type"`
 }
@@ -111,6 +135,7 @@ type CreateLinkRequest struct {
 	Expiration           *time.Time          `json:"expiration,omitempty"`
 	LimitedClaims        *int                `json:"limitedClaims"`
 	MtProof              bool                `json:"mtProof"`
+	RefreshService       *RefreshService     `json:"refreshService,omitempty"`
 	SchemaID             uuid.UUID           `json:"schemaID"`
 	SignatureProof       bool                `json:"signatureProof"`
 }
@@ -123,6 +148,7 @@ type Credential struct {
 	ExpiresAt             *TimeUTC               `json:"expiresAt"`
 	Id                    uuid.UUID              `json:"id"`
 	ProofTypes            []string               `json:"proofTypes"`
+	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
 	RevNonce              uint64                 `json:"revNonce"`
 	Revoked               bool                   `json:"revoked"`
 	SchemaHash            string                 `json:"schemaHash"`
@@ -218,6 +244,7 @@ type Link struct {
 	IssuedClaims         int               `json:"issuedClaims"`
 	MaxIssuance          *int              `json:"maxIssuance"`
 	ProofTypes           []string          `json:"proofTypes"`
+	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
 	SchemaHash           string            `json:"schemaHash"`
 	SchemaType           string            `json:"schemaType"`
 	SchemaUrl            string            `json:"schemaUrl"`
@@ -238,9 +265,9 @@ type LinkSimple struct {
 
 // PaginatedMetadata defines model for PaginatedMetadata.
 type PaginatedMetadata struct {
-	MaxResults int `json:"max_results"`
-	Page       int `json:"page"`
-	Total      int `json:"total"`
+	MaxResults uint `json:"max_results"`
+	Page       uint `json:"page"`
+	Total      uint `json:"total"`
 }
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
@@ -263,6 +290,15 @@ type QrCodeLinkWithSchemaTypeShortResponse struct {
 	QrCodeLink string `json:"qrCodeLink"`
 	SchemaType string `json:"schemaType"`
 }
+
+// RefreshService defines model for RefreshService.
+type RefreshService struct {
+	Id   string             `json:"id"`
+	Type RefreshServiceType `json:"type"`
+}
+
+// RefreshServiceType defines model for RefreshService.Type.
+type RefreshServiceType string
 
 // RevocationStatusResponse defines model for RevocationStatusResponse.
 type RevocationStatusResponse struct {
@@ -388,6 +424,12 @@ type GetConnectionsParams struct {
 
 	// Credentials credentials=true to include the connection credentials.
 	Credentials *bool `form:"credentials,omitempty" json:"credentials,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
 }
 
 // DeleteConnectionParams defines parameters for DeleteConnection.
@@ -413,14 +455,18 @@ type GetCredentialsParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *int `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint                       `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetCredentialsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // GetCredentialsParamsStatus defines parameters for GetCredentials.
 type GetCredentialsParamsStatus string
+
+// GetCredentialsParamsSort defines parameters for GetCredentials.
+type GetCredentialsParamsSort string
 
 // GetLinksParams defines parameters for GetLinks.
 type GetLinksParams struct {
@@ -1075,6 +1121,22 @@ func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http
 		return
 	}
 
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetConnections(w, r, params)
 	}))
@@ -1265,6 +1327,14 @@ func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -2374,7 +2444,7 @@ type GetConnectionsResponseObject interface {
 	VisitGetConnectionsResponse(w http.ResponseWriter) error
 }
 
-type GetConnections200JSONResponse GetConnectionsResponse
+type GetConnections200JSONResponse ConnectionsPaginated
 
 func (response GetConnections200JSONResponse) VisitGetConnectionsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

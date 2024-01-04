@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
@@ -74,6 +75,7 @@ type Link struct {
 	Active                   bool
 	Schema                   *Schema
 	IssuedClaims             int // TODO: Give a value when link redemption is implemented
+	RefreshService           *verifiable.RefreshService
 }
 
 // NewLink - Constructor
@@ -86,6 +88,7 @@ func NewLink(
 	credentialSignatureProof bool,
 	credentialMTPProof bool,
 	credentialSubject CredentialSubject,
+	refreshService *verifiable.RefreshService,
 ) *Link {
 	return &Link{
 		ID:                       uuid.New(),
@@ -99,6 +102,7 @@ func NewLink(
 		CredentialSubject:        credentialSubject,
 		Active:                   true,
 		IssuedClaims:             0,
+		RefreshService:           refreshService,
 	}
 }
 

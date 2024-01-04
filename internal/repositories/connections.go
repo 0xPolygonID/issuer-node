@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -155,21 +156,33 @@ func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDI
 	return toConnectionDomain(&connection)
 }
 
-func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, query string) ([]*domain.Connection, error) {
-	all := `SELECT id, issuer_id,user_id,issuer_doc,user_doc,created_at,modified_at 
-FROM connections 
-WHERE connections.issuer_id = $1`
+func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]*domain.Connection, uint, error) {
+	fields := []string{"id", "issuer_id", "user_id", "issuer_doc", "user_doc", "created_at", "modified_at"}
+	all := `SELECT ##QUERYFIELDS## 
+	FROM connections 
+	WHERE connections.issuer_id = $1`
 
-	if query != "" {
-		dids := tokenizeQuery(query)
+	if filter.Query != "" {
+		dids := tokenizeQuery(filter.Query)
 		if len(dids) > 0 {
 			all += " AND (" + buildPartialQueryDidLikes("connections.user_id", dids, "OR") + ")"
 		}
 	}
 
+	var count uint
+	if filter.Pagination != nil {
+		countQuery := strings.Replace(all, "##QUERYFIELDS##", "COUNT(*)", 1)
+		if err := conn.QueryRow(ctx, countQuery, issuerDID.String()).Scan(&count); err != nil {
+			return nil, 0, err
+		}
+
+		all += fmt.Sprintf(" OFFSET %d LIMIT %d;", filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
+	}
+
+	all = strings.Replace(all, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 	rows, err := conn.Query(ctx, all, issuerDID.String())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -177,71 +190,93 @@ WHERE connections.issuer_id = $1`
 	dbConn := dbConnection{}
 	for rows.Next() {
 		if err := rows.Scan(&dbConn.ID, &dbConn.IssuerDID, &dbConn.UserDID, &dbConn.IssuerDoc, &dbConn.UserDoc, &dbConn.CreatedAt, &dbConn.ModifiedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		domainConn, err := toConnectionDomain(&dbConn)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		domainConns = append(domainConns, domainConn)
 	}
 
-	return domainConns, nil
+	if filter.Pagination == nil {
+		count = uint(len(domainConns))
+	}
+
+	return domainConns, count, nil
 }
 
-func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, query string) ([]*domain.Connection, error) {
-	sqlQuery, filters := buildGetAllWithCredentialsQueryAndFilters(issuerDID, query)
+func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]*domain.Connection, uint, error) {
+	sqlQuery, countQuery, filters := buildGetAllWithCredentialsQueryAndFilters(issuerDID, filter)
+
+	var count uint
+	if filter.Pagination != nil {
+		if err := conn.QueryRow(ctx, countQuery, filters...).Scan(&count); err != nil {
+			return nil, 0, err
+		}
+	}
+
 	rows, err := conn.Query(ctx, sqlQuery, filters...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	defer rows.Close()
-	return toConnectionsWithCredentials(rows)
+
+	conns, err := toConnectionsWithCredentials(rows)
+	if filter.Pagination == nil {
+		count = uint(len(conns))
+	}
+
+	return conns, count, err
 }
 
-func buildGetAllWithCredentialsQueryAndFilters(issuerDID w3c.DID, query string) (string, []interface{}) {
-	sqlQuery := `SELECT connections.id, 
-       			   connections.issuer_id,
-       			   connections.user_id,
-       			   connections.issuer_doc,
-       			   connections.user_doc,
-       			   connections.created_at,
-       			   connections.modified_at,
-				   claims.id,
-				   claims.issuer,
-				   claims.schema_hash,
-				   claims.schema_url,
-				   claims.schema_type,
-				   claims.other_identifier,
-				   claims.expiration,
-				   claims.version,
-				   claims.rev_nonce,
-				   claims.updatable,
-				   claims.signature_proof,
-				   claims.mtp_proof,
-				   claims.data,
-				   claims.identifier,
-				   claims.identity_state,
-				   identity_states.status,
-				   claims.credential_status,
-				   claims.core_claim,
-				   claims.mtp,
-				   claims.created_at
+func buildGetAllWithCredentialsQueryAndFilters(issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) (string, string, []interface{}) {
+	fields := []string{
+		"connections.id",
+		"connections.issuer_id",
+		"connections.user_id",
+		"connections.issuer_doc",
+		"connections.user_doc",
+		"connections.created_at",
+		"connections.modified_at",
+		"claims.id",
+		"claims.issuer",
+		"claims.schema_hash",
+		"claims.schema_url",
+		"claims.schema_type",
+		"claims.other_identifier",
+		"claims.expiration",
+		"claims.version",
+		"claims.rev_nonce",
+		"claims.updatable",
+		"claims.signature_proof",
+		"claims.mtp_proof",
+		"claims.data",
+		"claims.identifier",
+		"claims.identity_state",
+		"identity_states.status",
+		"claims.credential_status",
+		"claims.core_claim",
+		"claims.mtp",
+		"claims.created_at",
+	}
+
+	sqlQuery := `SELECT ##QUERYFIELDS##
 	FROM connections 
 	LEFT JOIN claims
 	ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
 	LEFT JOIN identity_states  ON claims.identity_state = identity_states.state`
 
-	if query != "" {
+	if filter.Query != "" {
 		sqlQuery = fmt.Sprintf("%s LEFT JOIN schemas ON claims.schema_hash=schemas.hash AND claims.issuer=schemas.issuer_id ", sqlQuery)
 	}
 
 	sqlArgs := []interface{}{issuerDID.String()}
 
 	sqlQuery = fmt.Sprintf("%s WHERE connections.issuer_id = $%d", sqlQuery, len(sqlArgs))
-	if query != "" {
-		terms := tokenizeQuery(query)
+	if filter.Query != "" {
+		terms := tokenizeQuery(filter.Query)
 		if len(terms) > 0 {
 			ftsConds := buildPartialQueryLikes("schemas.words", "OR", len(sqlArgs)+1, len(terms)) + " OR " + buildPartialQueryDidLikes("connections.user_id", terms, "OR")
 			sqlQuery += fmt.Sprintf(" AND (%s) ", ftsConds)
@@ -251,9 +286,15 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID w3c.DID, query string) 
 		}
 	}
 
-	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST, connections.created_at DESC"
+	countQuery := strings.Replace(sqlQuery, "##QUERYFIELDS##", "COUNT(*)", 1)
+	sqlQuery = strings.Replace(sqlQuery, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 
-	return sqlQuery, sqlArgs
+	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST, connections.created_at DESC"
+	if filter.Pagination != nil {
+		sqlQuery += fmt.Sprintf(" OFFSET %d LIMIT %d;", filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
+	}
+
+	return sqlQuery, countQuery, sqlArgs
 }
 
 func toConnectionsWithCredentials(rows pgx.Rows) ([]*domain.Connection, error) {

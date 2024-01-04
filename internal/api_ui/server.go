@@ -223,14 +223,18 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 
 // GetConnections returns the list of credentials of a determined issuer
 func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
-	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query)
-	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req.Query, req.WithCredentials)
+	if request.Params.Page != nil && *request.Params.Page <= 0 {
+		return GetConnections400JSONResponse{N400JSONResponse{"Page must be greater than 0"}}, nil
+	}
+
+	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query, request.Params.Page, request.Params.MaxResults)
+	conns, total, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req)
 	if err != nil {
 		log.Error(ctx, "get connection request", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
 	}
 
-	resp, err := connectionsResponse(conns)
+	resp, err := connectionsPaginatedResponse(conns, req.Pagination, total)
 	if err != nil {
 		log.Error(ctx, "get connection request invalid claim format", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
@@ -339,7 +343,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), nil)
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -361,6 +365,12 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedRefreshServiceType) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -503,7 +513,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		expirationDate = &request.Body.CredentialExpiration.Time
 	}
 
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService))
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
@@ -744,11 +754,11 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 	}
 	if req.Params.Status != nil {
 		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
-		case Revoked:
+		case GetCredentialsParamsStatusRevoked:
 			filter.Revoked = common.ToPointer(true)
-		case Expired:
+		case GetCredentialsParamsStatusExpired:
 			filter.ExpiredOn = common.ToPointer(time.Now())
-		case All:
+		case GetCredentialsParamsStatusAll:
 			// Nothing to be done
 		default:
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
@@ -773,7 +783,27 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 		}
 		filter.Page = req.Params.Page
 	}
-
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetCredentialsParamsSort(field) {
+			case GetCredentialsParamsSortSchemaType:
+				err = filter.OrderBy.Add(ports.CredentialSchemaType, desc)
+			case GetCredentialsParamsSortCreatedAt:
+				err = filter.OrderBy.Add(ports.CredentialCreatedAt, desc)
+			case GetCredentialsParamsSortExpiresAt:
+				err = filter.OrderBy.Add(ports.CredentialExpiresAt, desc)
+			case GetCredentialsParamsSortRevoked:
+				err = filter.OrderBy.Add(ports.CredentialRevoked, desc)
+			default:
+				return nil, errors.New("wrong sort by value")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
 	return filter, nil
 }
 
@@ -810,4 +840,14 @@ func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", mimeType)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
+}
+
+func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.RefreshService{
+		ID:   s.Id,
+		Type: verifiable.RefreshServiceType(s.Type),
+	}
 }

@@ -19,8 +19,8 @@ func TestTime_MarshalJSON_UnmarshallJson(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, json.Unmarshal(b, &res))
-	assert.NotEqual(t, now.Format(time.RFC3339), res.String())
-	assert.Equal(t, now.UTC().Format(time.RFC3339), res.String())
+	assert.NotEqual(t, now.Format(time.RFC3339Nano), res.String())
+	assert.Equal(t, now.UTC().Format(time.RFC3339Nano), res.String())
 }
 
 func TestTime_ZeroHHMMSS(t *testing.T) {
