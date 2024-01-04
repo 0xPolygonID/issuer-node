@@ -49,6 +49,7 @@ var (
 	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
 	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
 	ErrRefreshServiceLacksExpirationTime = errors.New("credential request with refresh service lacks expiration time") // ErrRefreshServiceLacksExpirationTime means the credential request includes a refresh service, but the expiration time is not set
+	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 )
 
 type claim struct {
@@ -320,6 +321,10 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if !claim.ValidProof() {
+		return nil, ErrEmptyMTPProof
 	}
 	credID := uuid.New()
 	qrCode := protocol.CredentialsOfferMessage{

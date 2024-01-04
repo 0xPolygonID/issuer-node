@@ -229,6 +229,9 @@ type N403 = GenericErrorMessage
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
 
+// N409 defines model for 409.
+type N409 = GenericErrorMessage
+
 // N422 defines model for 422.
 type N422 = GenericErrorMessage
 
@@ -1140,6 +1143,8 @@ type N403JSONResponse GenericErrorMessage
 
 type N404JSONResponse GenericErrorMessage
 
+type N409JSONResponse GenericErrorMessage
+
 type N422JSONResponse GenericErrorMessage
 
 type N500JSONResponse GenericErrorMessage
@@ -1730,6 +1735,15 @@ type GetClaimQrCode404JSONResponse struct{ N404JSONResponse }
 func (response GetClaimQrCode404JSONResponse) VisitGetClaimQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetClaimQrCode409JSONResponse struct{ N409JSONResponse }
+
+func (response GetClaimQrCode409JSONResponse) VisitGetClaimQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
