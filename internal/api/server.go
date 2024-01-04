@@ -346,6 +346,11 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 		}
 		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+
+	if !claim.ValidProof() {
+		return GetClaimQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credential"}}, nil
+	}
+
 	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
 }
 

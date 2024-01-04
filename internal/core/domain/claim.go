@@ -174,6 +174,15 @@ func (c *Claim) GetCircuitIncProof() (circuits.MTProof, error) {
 	}, nil
 }
 
+// ValidProof returns true if the claim has a valid proof
+func (c *Claim) ValidProof() bool {
+	if !c.MtProof {
+		return true
+	}
+
+	return c.MTPProof.Status != pgtype.Null
+}
+
 // NewClaimModel creates domain.Claim with common fields filled from core.Claim
 func NewClaimModel(jsonSchemaURL string, credentialType string, coreClaim core.Claim, did *w3c.DID) (*Claim, error) {
 	hindex, err := coreClaim.HIndex()

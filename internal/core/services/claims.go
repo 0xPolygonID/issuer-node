@@ -47,6 +47,7 @@ var (
 	ErrProcessSchema            = errors.New("cannot process schema")                                 // ErrProcessSchema Cannot process schema
 	ErrParseClaim               = errors.New("cannot parse claim")                                    // ErrParseClaim Cannot parse claim
 	ErrInvalidCredentialSubject = errors.New("credential subject does not match the provided schema") // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
+	ErrEmptyMTPProof            = errors.New("mtp credentials must have a mtp proof to be fetched")   // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 )
 
 type claim struct {
@@ -313,6 +314,11 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	if err != nil {
 		return "", "", err
 	}
+
+	if !claim.ValidProof() {
+		return "", "", ErrEmptyMTPProof
+	}
+
 	credID := uuid.New()
 	qrCode := protocol.CredentialsOfferMessage{
 		Body: protocol.CredentialsOfferMessageBody{

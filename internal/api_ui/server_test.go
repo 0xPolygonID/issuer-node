@@ -1887,7 +1887,9 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	createdClaimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof))
+	require.NoError(t, err)
+	createdClaimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
 	require.NoError(t, err)
 
 	type expected struct {
@@ -1914,10 +1916,19 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name: "happy path",
 			request: GetCredentialRequestObject{
-				Id: createdClaim.ID,
+				Id: createdClaimSIG.ID,
 			},
 			expected: expected{
 				httpCode: http.StatusOK,
+			},
+		},
+		{
+			name: "invalid credential mtp proof",
+			request: GetCredentialRequestObject{
+				Id: createdClaimMTP.ID,
+			},
+			expected: expected{
+				httpCode: http.StatusConflict,
 			},
 		},
 	} {
