@@ -68,6 +68,20 @@ services:
       - VAULT_ADDRESS=http://0.0.0.0:8200
     cap_add:
       - IPC_LOCK
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--spider",
+          "--proxy",
+          "off",
+          "http://localhost:8200/v1/sys/health?standbyok=true",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
     command: ./vault/scripts/init.sh
 
 networks:

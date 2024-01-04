@@ -83,12 +83,12 @@ func (c *connection) GetByUserID(ctx context.Context, issuerDID w3c.DID, userID 
 	return conn, nil
 }
 
-func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID w3c.DID, query string, withCredentials bool) ([]*domain.Connection, error) {
-	if withCredentials {
-		return c.connRepo.GetAllWithCredentialsByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
+func (c *connection) GetAllByIssuerID(ctx context.Context, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]*domain.Connection, uint, error) {
+	if filter.WithCredentials {
+		return c.connRepo.GetAllWithCredentialsByIssuerID(ctx, c.storage.Pgx, issuerDID, filter)
 	}
 
-	return c.connRepo.GetAllByIssuerID(ctx, c.storage.Pgx, issuerDID, query)
+	return c.connRepo.GetAllByIssuerID(ctx, c.storage.Pgx, issuerDID, filter)
 }
 
 func (c *connection) delete(ctx context.Context, id uuid.UUID, issuerDID w3c.DID, pgx db.Querier) error {

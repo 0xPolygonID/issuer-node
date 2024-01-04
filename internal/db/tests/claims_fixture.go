@@ -42,7 +42,7 @@ func (f *Fixture) GetDefaultAuthClaimOfIssuer(t *testing.T, issuerID string) *do
 	ctx := context.Background()
 	did, err := w3c.ParseDID(issuerID)
 	assert.NoError(t, err)
-	claims, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, *did, &ports.ClaimsFilter{})
+	claims, _, err := f.claimRepository.GetAllByIssuerID(ctx, f.storage.Pgx, *did, &ports.ClaimsFilter{})
 	assert.NoError(t, err)
 	require.Equal(t, len(claims), defualtAuthClaims)
 
@@ -94,6 +94,10 @@ func (f *Fixture) NewClaim(t *testing.T, identity string) *domain.Claim {
 		CredentialSchema: verifiable.CredentialSchema{
 			ID:   "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 			Type: "JsonSchemaValidator2018",
+		},
+		RefreshService: &verifiable.RefreshService{
+			ID:   "https://refresh-service.xyz",
+			Type: verifiable.Iden3RefreshService2023,
 		},
 	}
 
