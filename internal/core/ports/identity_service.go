@@ -22,6 +22,13 @@ type DIDCreationOptions struct {
 	AuthBJJCredentialStatus verifiable.CredentialStatusType `json:"authBJJCredentialStatus,omitempty"`
 }
 
+// CreateAuthenticationQRCodeResponse represents the response of the CreateAuthenticationQRCode method
+type CreateAuthenticationQRCodeResponse struct {
+	QRCodeURL string `json:"qrCodeURL"`
+	SessionID uuid.UUID
+	QrID      uuid.UUID
+}
+
 // IdentityService is the interface implemented by the identity service
 type IdentityService interface {
 	GetByDID(ctx context.Context, identifier w3c.DID) (*domain.Identity, error)
@@ -39,7 +46,7 @@ type IdentityService interface {
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	GetStates(ctx context.Context, issuerDID w3c.DID) ([]domain.IdentityState, error)
-	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, uuid.UUID, error)
+	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (*CreateAuthenticationQRCodeResponse, error)
 	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error)
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)
 	PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) error

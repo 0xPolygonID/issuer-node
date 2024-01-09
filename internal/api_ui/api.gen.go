@@ -30,12 +30,31 @@ const (
 	LinkStatusInactive LinkStatus = "inactive"
 )
 
+// Defines values for RefreshServiceType.
+const (
+	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
+)
+
 // Defines values for StateTransactionStatus.
 const (
 	Created   StateTransactionStatus = "created"
 	Failed    StateTransactionStatus = "failed"
 	Pending   StateTransactionStatus = "pending"
 	Published StateTransactionStatus = "published"
+)
+
+// Defines values for AuthQRCodeParamsType.
+const (
+	AuthQRCodeParamsTypeLink AuthQRCodeParamsType = "link"
+	AuthQRCodeParamsTypeRaw  AuthQRCodeParamsType = "raw"
+)
+
+// Defines values for GetConnectionsParamsSort.
+const (
+	GetConnectionsParamsSortCreatedAt      GetConnectionsParamsSort = "createdAt"
+	GetConnectionsParamsSortMinusCreatedAt GetConnectionsParamsSort = "-createdAt"
+	GetConnectionsParamsSortMinusUserID    GetConnectionsParamsSort = "-userID"
+	GetConnectionsParamsSortUserID         GetConnectionsParamsSort = "userID"
 )
 
 // Defines values for GetCredentialsParamsStatus.
@@ -45,12 +64,36 @@ const (
 	Revoked GetCredentialsParamsStatus = "revoked"
 )
 
+// Defines values for GetCredentialsParamsSort.
+const (
+	GetCredentialsParamsSortCreatedAt       GetCredentialsParamsSort = "createdAt"
+	GetCredentialsParamsSortExpiresAt       GetCredentialsParamsSort = "expiresAt"
+	GetCredentialsParamsSortMinusCreatedAt  GetCredentialsParamsSort = "-createdAt"
+	GetCredentialsParamsSortMinusExpiresAt  GetCredentialsParamsSort = "-expiresAt"
+	GetCredentialsParamsSortMinusRevoked    GetCredentialsParamsSort = "-revoked"
+	GetCredentialsParamsSortMinusSchemaType GetCredentialsParamsSort = "-schemaType"
+	GetCredentialsParamsSortRevoked         GetCredentialsParamsSort = "revoked"
+	GetCredentialsParamsSortSchemaType      GetCredentialsParamsSort = "schemaType"
+)
+
 // Defines values for GetLinksParamsStatus.
 const (
 	GetLinksParamsStatusActive   GetLinksParamsStatus = "active"
 	GetLinksParamsStatusAll      GetLinksParamsStatus = "all"
 	GetLinksParamsStatusExceeded GetLinksParamsStatus = "exceeded"
 	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
+)
+
+// Defines values for CreateLinkQrCodeParamsType.
+const (
+	CreateLinkQrCodeParamsTypeLink CreateLinkQrCodeParamsType = "link"
+	CreateLinkQrCodeParamsTypeRaw  CreateLinkQrCodeParamsType = "raw"
+)
+
+// Defines values for GetCredentialQrCodeParamsType.
+const (
+	GetCredentialQrCodeParamsTypeLink GetCredentialQrCodeParamsType = "link"
+	GetCredentialQrCodeParamsTypeRaw  GetCredentialQrCodeParamsType = "raw"
 )
 
 // AgentResponse defines model for AgentResponse.
@@ -76,12 +119,19 @@ type AuthenticationConnection struct {
 // Config defines model for Config.
 type Config = []KeyValue
 
+// ConnectionsPaginated defines model for ConnectionsPaginated.
+type ConnectionsPaginated struct {
+	Items GetConnectionsResponse `json:"items"`
+	Meta  PaginatedMetadata      `json:"meta"`
+}
+
 // CreateCredentialRequest defines model for CreateCredentialRequest.
 type CreateCredentialRequest struct {
 	CredentialSchema  string                 `json:"credentialSchema"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
+	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
 	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
 	Type              string                 `json:"type"`
 }
@@ -93,6 +143,7 @@ type CreateLinkRequest struct {
 	Expiration           *time.Time          `json:"expiration,omitempty"`
 	LimitedClaims        *int                `json:"limitedClaims"`
 	MtProof              bool                `json:"mtProof"`
+	RefreshService       *RefreshService     `json:"refreshService,omitempty"`
 	SchemaID             uuid.UUID           `json:"schemaID"`
 	SignatureProof       bool                `json:"signatureProof"`
 }
@@ -105,6 +156,7 @@ type Credential struct {
 	ExpiresAt             *TimeUTC               `json:"expiresAt"`
 	Id                    uuid.UUID              `json:"id"`
 	ProofTypes            []string               `json:"proofTypes"`
+	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
 	RevNonce              uint64                 `json:"revNonce"`
 	Revoked               bool                   `json:"revoked"`
 	SchemaHash            string                 `json:"schemaHash"`
@@ -200,6 +252,7 @@ type Link struct {
 	IssuedClaims         int               `json:"issuedClaims"`
 	MaxIssuance          *int              `json:"maxIssuance"`
 	ProofTypes           []string          `json:"proofTypes"`
+	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
 	SchemaHash           string            `json:"schemaHash"`
 	SchemaType           string            `json:"schemaType"`
 	SchemaUrl            string            `json:"schemaUrl"`
@@ -220,9 +273,9 @@ type LinkSimple struct {
 
 // PaginatedMetadata defines model for PaginatedMetadata.
 type PaginatedMetadata struct {
-	MaxResults int `json:"max_results"`
-	Page       int `json:"page"`
-	Total      int `json:"total"`
+	MaxResults uint `json:"max_results"`
+	Page       uint `json:"page"`
+	Total      uint `json:"total"`
 }
 
 // PublishIdentityStateResponse defines model for PublishIdentityStateResponse.
@@ -245,6 +298,15 @@ type QrCodeLinkWithSchemaTypeShortResponse struct {
 	QrCodeLink string `json:"qrCodeLink"`
 	SchemaType string `json:"schemaType"`
 }
+
+// RefreshService defines model for RefreshService.
+type RefreshService struct {
+	Id   string             `json:"id"`
+	Type RefreshServiceType `json:"type"`
+}
+
+// RefreshServiceType defines model for RefreshService.Type.
+type RefreshServiceType string
 
 // RevocationStatusResponse defines model for RevocationStatusResponse.
 type RevocationStatusResponse struct {
@@ -352,6 +414,17 @@ type AuthCallbackParams struct {
 	SessionID SessionID `form:"sessionID" json:"sessionID"`
 }
 
+// AuthQRCodeParams defines parameters for AuthQRCode.
+type AuthQRCodeParams struct {
+	// Type Type:
+	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
+	//   * `raw` - Return the raw QR code. (default value)
+	Type *AuthQRCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// AuthQRCodeParamsType defines parameters for AuthQRCode.
+type AuthQRCodeParamsType string
+
 // GetConnectionsParams defines parameters for GetConnections.
 type GetConnectionsParams struct {
 	// Query Query string to do full text search in connections.
@@ -359,7 +432,17 @@ type GetConnectionsParams struct {
 
 	// Credentials credentials=true to include the connection credentials.
 	Credentials *bool `form:"credentials,omitempty" json:"credentials,omitempty"`
+
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+	MaxResults *uint                       `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetConnectionsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
+
+// GetConnectionsParamsSort defines parameters for GetConnections.
+type GetConnectionsParamsSort string
 
 // DeleteConnectionParams defines parameters for DeleteConnection.
 type DeleteConnectionParams struct {
@@ -384,14 +467,18 @@ type GetCredentialsParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
-	Page *int `form:"page,omitempty" json:"page,omitempty"`
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *int `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint                       `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetCredentialsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // GetCredentialsParamsStatus defines parameters for GetCredentials.
 type GetCredentialsParamsStatus string
+
+// GetCredentialsParamsSort defines parameters for GetCredentials.
+type GetCredentialsParamsSort string
 
 // GetLinksParams defines parameters for GetLinks.
 type GetLinksParams struct {
@@ -431,6 +518,28 @@ type GetLinkQRCodeParams struct {
 	// SessionID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
 	SessionID SessionID `form:"sessionID" json:"sessionID"`
 }
+
+// CreateLinkQrCodeParams defines parameters for CreateLinkQrCode.
+type CreateLinkQrCodeParams struct {
+	// Type Type:
+	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
+	//   * `raw` - Return the raw QR code. (default value)
+	Type *CreateLinkQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// CreateLinkQrCodeParamsType defines parameters for CreateLinkQrCode.
+type CreateLinkQrCodeParamsType string
+
+// GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
+type GetCredentialQrCodeParams struct {
+	// Type Type:
+	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
+	//   * `raw` - Return the raw QR code. (default value)
+	Type *GetCredentialQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// GetCredentialQrCodeParamsType defines parameters for GetCredentialQrCode.
+type GetCredentialQrCodeParamsType string
 
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
 type GetQrFromStoreParams struct {
@@ -489,7 +598,7 @@ type ServerInterface interface {
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
 	// Get Connection QRCode
 	// (GET /v1/authentication/qrcode)
-	AuthQRCode(w http.ResponseWriter, r *http.Request)
+	AuthQRCode(w http.ResponseWriter, r *http.Request, params AuthQRCodeParams)
 	// Get Authentication Connection
 	// (GET /v1/authentication/sessions/{id})
 	GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id)
@@ -537,7 +646,7 @@ type ServerInterface interface {
 	GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams)
 	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
-	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id)
+	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams)
 	// Get Revocation Status
 	// (GET /v1/credentials/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, nonce PathNonce)
@@ -552,7 +661,7 @@ type ServerInterface interface {
 	GetCredential(w http.ResponseWriter, r *http.Request, id Id)
 	// Get Credential QR code
 	// (GET /v1/credentials/{id}/qrcode)
-	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id)
+	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id, params GetCredentialQrCodeParams)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -627,7 +736,7 @@ func (_ Unimplemented) AuthCallback(w http.ResponseWriter, r *http.Request, para
 
 // Get Connection QRCode
 // (GET /v1/authentication/qrcode)
-func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request, params AuthQRCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -723,7 +832,7 @@ func (_ Unimplemented) GetLinkQRCode(w http.ResponseWriter, r *http.Request, id 
 
 // Create Authentication Link QRCode
 // (POST /v1/credentials/links/{id}/qrcode)
-func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id) {
+func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -753,7 +862,7 @@ func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, id 
 
 // Get Credential QR code
 // (GET /v1/credentials/{id}/qrcode)
-func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id) {
+func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id, params GetCredentialQrCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -945,8 +1054,21 @@ func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.R
 func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthQRCodeParams
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AuthQRCode(w, r)
+		siw.Handler.AuthQRCode(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1008,6 +1130,30 @@ func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "credentials", r.URL.Query(), &params.Credentials)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentials", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -1201,6 +1347,14 @@ func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -1480,8 +1634,19 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateLinkQrCodeParams
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateLinkQrCode(w, r, id)
+		siw.Handler.CreateLinkQrCode(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1616,8 +1781,19 @@ func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r 
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCredentialQrCodeParams
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCredentialQrCode(w, r, id)
+		siw.Handler.GetCredentialQrCode(w, r, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2202,6 +2378,7 @@ func (response AuthCallback500JSONResponse) VisitAuthCallbackResponse(w http.Res
 }
 
 type AuthQRCodeRequestObject struct {
+	Params AuthQRCodeParams
 }
 
 type AuthQRCodeResponseObject interface {
@@ -2287,7 +2464,7 @@ type GetConnectionsResponseObject interface {
 	VisitGetConnectionsResponse(w http.ResponseWriter) error
 }
 
-type GetConnections200JSONResponse GetConnectionsResponse
+type GetConnections200JSONResponse ConnectionsPaginated
 
 func (response GetConnections200JSONResponse) VisitGetConnectionsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -2809,7 +2986,8 @@ func (response GetLinkQRCode500JSONResponse) VisitGetLinkQRCodeResponse(w http.R
 }
 
 type CreateLinkQrCodeRequestObject struct {
-	Id Id `json:"id"`
+	Id     Id `json:"id"`
+	Params CreateLinkQrCodeParams
 }
 
 type CreateLinkQrCodeResponseObject interface {
@@ -3011,7 +3189,8 @@ func (response GetCredential500JSONResponse) VisitGetCredentialResponse(w http.R
 }
 
 type GetCredentialQrCodeRequestObject struct {
-	Id Id `json:"id"`
+	Id     Id `json:"id"`
+	Params GetCredentialQrCodeParams
 }
 
 type GetCredentialQrCodeResponseObject interface {
@@ -3661,8 +3840,10 @@ func (sh *strictHandler) AuthCallback(w http.ResponseWriter, r *http.Request, pa
 }
 
 // AuthQRCode operation middleware
-func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request, params AuthQRCodeParams) {
 	var request AuthQRCodeRequestObject
+
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.AuthQRCode(ctx, request.(AuthQRCodeRequestObject))
@@ -4102,10 +4283,11 @@ func (sh *strictHandler) GetLinkQRCode(w http.ResponseWriter, r *http.Request, i
 }
 
 // CreateLinkQrCode operation middleware
-func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id) {
+func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams) {
 	var request CreateLinkQrCodeRequestObject
 
 	request.Id = id
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateLinkQrCode(ctx, request.(CreateLinkQrCodeRequestObject))
@@ -4232,10 +4414,11 @@ func (sh *strictHandler) GetCredential(w http.ResponseWriter, r *http.Request, i
 }
 
 // GetCredentialQrCode operation middleware
-func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id) {
+func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id, params GetCredentialQrCodeParams) {
 	var request GetCredentialQrCodeRequestObject
 
 	request.Id = id
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetCredentialQrCode(ctx, request.(GetCredentialQrCodeRequestObject))

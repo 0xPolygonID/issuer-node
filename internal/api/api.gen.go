@@ -27,6 +27,11 @@ const (
 	ETH CreateIdentityRequestDidMetadataType = "ETH"
 )
 
+// Defines values for RefreshServiceType.
+const (
+	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
+)
+
 // AgentResponse defines model for AgentResponse.
 type AgentResponse struct {
 	Body     interface{} `json:"body"`
@@ -47,6 +52,7 @@ type CreateClaimRequest struct {
 	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
 	Expiration            *int64                 `json:"expiration,omitempty"`
 	MerklizedRootPosition *string                `json:"merklizedRootPosition,omitempty"`
+	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
 	RevNonce              *uint64                `json:"revNonce,omitempty"`
 	SubjectPosition       *string                `json:"subjectPosition,omitempty"`
 	Type                  string                 `json:"type"`
@@ -112,11 +118,12 @@ type GetClaimResponse struct {
 	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
 	CredentialStatus  interface{}            `json:"credentialStatus"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	Expiration        *TimeUTC               `json:"expiration"`
+	ExpirationDate    *TimeUTC               `json:"expirationDate"`
 	Id                string                 `json:"id"`
 	IssuanceDate      *TimeUTC               `json:"issuanceDate"`
 	Issuer            string                 `json:"issuer"`
 	Proof             interface{}            `json:"proof"`
+	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
 	Type              []string               `json:"type"`
 }
 
@@ -166,6 +173,15 @@ type PublishIdentityStateResponse struct {
 	TxID               *string `json:"txID,omitempty"`
 }
 
+// RefreshService defines model for RefreshService.
+type RefreshService struct {
+	Id   string             `json:"id"`
+	Type RefreshServiceType `json:"type"`
+}
+
+// RefreshServiceType defines model for RefreshService.Type.
+type RefreshServiceType string
+
 // RevocationStatusResponse defines model for RevocationStatusResponse.
 type RevocationStatusResponse struct {
 	Issuer struct {
@@ -206,6 +222,9 @@ type N400 = GenericErrorMessage
 
 // N401 defines model for 401.
 type N401 = GenericErrorMessage
+
+// N403 defines model for 403.
+type N403 = GenericErrorMessage
 
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
@@ -1117,6 +1136,8 @@ type N400JSONResponse GenericErrorMessage
 
 type N401JSONResponse GenericErrorMessage
 
+type N403JSONResponse GenericErrorMessage
+
 type N404JSONResponse GenericErrorMessage
 
 type N422JSONResponse GenericErrorMessage
@@ -1324,6 +1345,15 @@ type CreateIdentity401JSONResponse struct{ N401JSONResponse }
 func (response CreateIdentity401JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateIdentity403JSONResponse struct{ N403JSONResponse }
+
+func (response CreateIdentity403JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
 
 	return json.NewEncoder(w).Encode(response)
 }

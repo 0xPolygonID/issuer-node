@@ -95,6 +95,10 @@ func (f *Fixture) NewClaim(t *testing.T, identity string) *domain.Claim {
 			ID:   "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 			Type: "JsonSchemaValidator2018",
 		},
+		RefreshService: &verifiable.RefreshService{
+			ID:   "https://refresh-service.xyz",
+			Type: verifiable.Iden3RefreshService2023,
+		},
 	}
 
 	err = claim.CredentialStatus.Set(vc.CredentialStatus)
