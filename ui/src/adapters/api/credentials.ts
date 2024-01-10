@@ -437,7 +437,7 @@ const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
   })
 );
 
-export async function getIssuedQRCode({
+export async function getIssuedQRCodes({
   credentialID,
   env,
   signal,
@@ -445,15 +445,29 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<IssuedQRCode>> {
+}): Promise<Response<[IssuedQRCode, IssuedQRCode]>> {
   try {
-    const response = await axios({
-      baseURL: env.api.url,
-      method: "GET",
-      signal,
-      url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
-    });
-    return buildSuccessResponse(issuedQRCodeParser.parse(response.data));
+    const [qrLinkResponse, qrRawResponse] = await Promise.all([
+      axios({
+        baseURL: env.api.url,
+        method: "GET",
+        params: { type: "link" },
+        signal,
+        url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+      }),
+      axios({
+        baseURL: env.api.url,
+        method: "GET",
+        params: { type: "raw" },
+        signal,
+        url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+      }),
+    ]);
+
+    return buildSuccessResponse([
+      issuedQRCodeParser.parse(qrLinkResponse.data),
+      issuedQRCodeParser.parse(qrRawResponse.data),
+    ]);
   } catch (error) {
     return buildErrorResponse(error);
   }

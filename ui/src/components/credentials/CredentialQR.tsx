@@ -1,4 +1,4 @@
-import { Avatar, Card, Col, Grid, Image, Row, Space, Typography } from "antd";
+import { Avatar, Card, Col, Grid, Image, Row, Space, Tabs, TabsProps, Typography } from "antd";
 import { QRCodeSVG } from "qrcode.react";
 import { ReactNode } from "react";
 
@@ -6,17 +6,48 @@ import { useEnvContext } from "src/contexts/Env";
 import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
 
 export function CredentialQR({
-  qrCode,
+  qrCodeLink,
+  qrCodeRaw,
   schemaType,
   subTitle,
 }: {
-  qrCode: string;
+  qrCodeLink: string;
+  qrCodeRaw: string;
   schemaType: string;
   subTitle: ReactNode;
 }) {
   const { issuer } = useEnvContext();
 
   const { lg } = Grid.useBreakpoint();
+
+  const qrCodeTabs: TabsProps["items"] = [
+    {
+      children: (
+        <QRCodeSVG
+          className="full-width"
+          includeMargin
+          level="H"
+          style={{ height: 300 }}
+          value={qrCodeRaw}
+        />
+      ),
+      key: "1",
+      label: "Raw JSON",
+    },
+    {
+      children: (
+        <QRCodeSVG
+          className="full-width"
+          includeMargin
+          level="H"
+          style={{ height: 300 }}
+          value={qrCodeLink}
+        />
+      ),
+      key: "2",
+      label: "Link",
+    },
+  ];
 
   return (
     <Space align="center" direction="vertical" size="large">
@@ -42,28 +73,13 @@ export function CredentialQR({
           <Image preview={false} src="/images/google-play.svg" />
         </Typography.Link>
       </Space>
-
+      <Tabs
+        className="tab-responsive"
+        destroyInactiveTabPane
+        items={qrCodeTabs}
+        style={{ margin: "auto", width: lg ? 800 : "100%" }}
+      />
       <Card bodyStyle={{ padding: 0 }} style={{ margin: "auto", width: lg ? 800 : "100%" }}>
-        <Row>
-          <Col
-            className="full-width"
-            style={{
-              background:
-                'url("/images/noise-bg.png"), linear-gradient(50deg, rgb(130 101 208) 0%, rgba(221, 178, 248, 1) 50%',
-              borderRadius: 8,
-              padding: 24,
-            }}
-          >
-            <QRCodeSVG
-              className="full-width"
-              includeMargin
-              level="H"
-              style={{ height: 300 }}
-              value={qrCode}
-            />
-          </Col>
-        </Row>
-
         {schemaType && (
           <Row>
             <Col
