@@ -4,10 +4,15 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
-import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
+import {
+  datetimeParser,
+  getListParser,
+  getResourceParser,
+  getStrictParser,
+} from "src/adapters/parsers";
 import { Connection, Env } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM } from "src/utils/constants";
-import { List } from "src/utils/types";
+import { Resource } from "src/utils/types";
 
 type ConnectionInput = Omit<Connection, "credentials" | "createdAt"> & {
   createdAt: string;
@@ -52,16 +57,18 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params,
+  params: { max_results, page, query },
   signal,
 }: {
   credentials: boolean;
   env: Env;
-  params?: {
+  params: {
+    max_results?: number;
+    page?: number;
     query?: string;
   };
   signal?: AbortSignal;
-}): Promise<Response<List<Connection>>> {
+}): Promise<Response<Resource<Connection>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -70,17 +77,22 @@ export async function getConnections({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(params?.query !== undefined ? { [QUERY_SEARCH_PARAM]: params?.query } : {}),
+        ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(credentials ? { credentials: "true" } : {}),
+        ...(max_results !== undefined ? { max_results: max_results.toString() } : {}),
+        ...(page !== undefined ? { page: page.toString() } : {}),
       }),
       signal,
       url: `${API_VERSION}/connections`,
     });
     return buildSuccessResponse(
-      getListParser(connectionParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      getResourceParser(connectionParser)
+        .transform(({ items: { failed, successful }, meta }) => ({
+          items: {
+            failed,
+            successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+          },
+          meta,
         }))
         .parse(response.data)
     );

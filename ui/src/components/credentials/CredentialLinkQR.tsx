@@ -239,7 +239,8 @@ export function CredentialLinkQR() {
 
           return (
             <CredentialQR
-              qrCode={authQRCode.data.qrCode}
+              qrCodeLink={authQRCode.data.qrCode}
+              qrCodeRaw={authQRCode.data.qrCode}
               schemaType={authQRCode.data.linkDetail.schemaType}
               subTitle={
                 <>

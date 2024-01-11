@@ -52,11 +52,16 @@ export function IssuanceMethodForm({
 
   const fetchConnections = useCallback(
     async (signal: AbortSignal) => {
-      const response = await getConnections({ credentials: false, env, signal });
+      const response = await getConnections({
+        credentials: false,
+        env,
+        params: { max_results: 0 },
+        signal,
+      });
 
       if (response.success) {
-        setConnections({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        setConnections({ data: response.data.items.successful, status: "successful" });
+        notifyParseErrors(response.data.items.failed);
       } else {
         setConnections({ error: response.error, status: "failed" });
       }
