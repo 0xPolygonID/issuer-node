@@ -105,6 +105,7 @@ func NewLink(
 		Active:                   true,
 		IssuedClaims:             0,
 		RefreshService:           refreshService,
+		DisplayMethod:            displayMethod,
 	}
 }
 

@@ -105,6 +105,14 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		}
 	}
 
+	var displayService *DisplayMethod
+	if w3c.DisplayMethod != nil {
+		displayService = &DisplayMethod{
+			Id:   w3c.DisplayMethod.ID,
+			Type: DisplayMethodType(w3c.DisplayMethod.Type),
+		}
+	}
+
 	return Credential{
 		CredentialSubject:     w3c.CredentialSubject,
 		CreatedAt:             TimeUTC(*w3c.IssuanceDate),
@@ -120,6 +128,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		UserID:                credential.OtherIdentifier,
 		SchemaTypeDescription: credential.SchemaTypeDescription,
 		RefreshService:        refreshService,
+		DisplayMethod:         displayService,
 	}
 }
 
