@@ -20,7 +20,7 @@ require (
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
 	github.com/iden3/go-circuits/v2 v2.0.0
 	github.com/iden3/go-iden3-auth/v2 v2.0.0-beta.2
-	github.com/iden3/go-iden3-core/v2 v2.0.0
+	github.com/iden3/go-iden3-core/v2 v2.0.3
 	github.com/iden3/go-iden3-crypto v0.0.15
 	github.com/iden3/go-jwz/v2 v2.0.0
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
@@ -30,7 +30,7 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.1.0
+	github.com/iden3/go-schema-processor/v2 v2.1.2-0.20240111003118-4f6fe4efdb18
 	github.com/iden3/iden3comm/v2 v2.0.0
 	github.com/iden3/merkletree-proof v0.0.4
 	github.com/ipfs/go-ipfs-api v0.7.0

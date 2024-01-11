@@ -1302,6 +1302,8 @@ components:
           example: "KYC Age Credential"
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
 
     Link:
@@ -1364,6 +1366,8 @@ components:
           example: [ "BJJSignature2021" ]
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     LinkSimple:
       type: object
@@ -1515,7 +1519,7 @@ components:
           items:
             $ref: '#/components/schemas/Credential'
 
-        # refresh service
+    # refresh service
     RefreshService:
       type: object
       required:
@@ -1530,6 +1534,22 @@ components:
           x-omitempty: false
           enum:
             - "Iden3RefreshService2023"
+
+    # display method
+    DisplayMethod:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3BasicDisplayMethodV1"
 
     CreateCredentialRequest:
       type: object
@@ -1565,6 +1585,8 @@ components:
           example: true
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
     Schema:
       type: object
       required:
@@ -1676,6 +1698,8 @@ components:
           $ref: '#/components/schemas/CredentialSubject'
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     CredentialSubject:
       type: object

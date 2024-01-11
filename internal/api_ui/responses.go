@@ -285,6 +285,14 @@ func getLinkResponse(link domain.Link) Link {
 		}
 	}
 
+	var displayMethod *DisplayMethod
+	if link.DisplayMethod != nil {
+		displayMethod = &DisplayMethod{
+			Id:   link.DisplayMethod.ID,
+			Type: DisplayMethodType(link.DisplayMethod.Type),
+		}
+	}
+
 	return Link{
 		Id:                   link.ID,
 		Active:               link.Active,
@@ -300,6 +308,7 @@ func getLinkResponse(link domain.Link) Link {
 		Expiration:           validUntil,
 		CredentialExpiration: credentialExpiration,
 		RefreshService:       refreshService,
+		DisplayMethod:        displayMethod,
 	}
 }
 

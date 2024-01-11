@@ -627,6 +627,22 @@ components:
           enum:
             - "Iden3RefreshService2023"
 
+    # display method
+    DisplayMethod:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3BasicDisplayMethodV1"
+
     #claims
     CreateClaimRequest:
       type: object
@@ -659,6 +675,8 @@ components:
           type: string
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -724,6 +742,8 @@ components:
           x-omitempty: false
         proof:
           type: null
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
         refreshService:
           $ref: '#/components/schemas/RefreshService'
 
