@@ -396,14 +396,16 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
 
 export type AuthQRCode = {
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  qrCode: string;
+  qrCodeLink: string;
+  qrCodeRaw: string;
   sessionID: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
-    qrCode: z.string(),
+    qrCodeLink: z.string(),
+    qrCodeRaw: z.string(),
     sessionID: z.string(),
   })
 );
