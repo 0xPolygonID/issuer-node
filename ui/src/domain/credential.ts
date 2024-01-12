@@ -18,7 +18,7 @@ export type Credential = {
 };
 
 export type IssuedQRCode = {
-  qrCodeLink: string;
+  qrCodeLink: string; // TODO: rename to qrCode
   schemaType: string;
 };
 
