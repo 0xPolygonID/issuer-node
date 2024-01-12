@@ -518,6 +518,8 @@ github.com/iden3/go-schema-processor/v2 v2.1.2-0.20240109232752-0fb9c04b0407 h1:
 github.com/iden3/go-schema-processor/v2 v2.1.2-0.20240109232752-0fb9c04b0407/go.mod h1:wIa6h8BPWnXBImIIElYu5eLVW513pHjyTOj6KyVHenQ=
 github.com/iden3/go-schema-processor/v2 v2.1.2-0.20240111003118-4f6fe4efdb18 h1:6ojrFj6RTLgYOC+PPBdlCbK73aipWPNHhBRMlEIKW2U=
 github.com/iden3/go-schema-processor/v2 v2.1.2-0.20240111003118-4f6fe4efdb18/go.mod h1:wIa6h8BPWnXBImIIElYu5eLVW513pHjyTOj6KyVHenQ=
+github.com/iden3/go-schema-processor/v2 v2.1.2 h1:ghyhAvywq+FfFd5xo8x7BHbvvxK6OtvKO8Bch+P+oFg=
+github.com/iden3/go-schema-processor/v2 v2.1.2/go.mod h1:wIa6h8BPWnXBImIIElYu5eLVW513pHjyTOj6KyVHenQ=
 github.com/iden3/iden3comm/v2 v2.0.0 h1:cFDfF6aJ589ENg5zlTBEPK6Qqv4I11C/gliAWZORpyY=
 github.com/iden3/iden3comm/v2 v2.0.0/go.mod h1:wrXoxi8eoQSLopatRW5+hYF9lDRvzGL2As9ZE88q/kA=
 github.com/iden3/merkletree-proof v0.0.4 h1:o1XXws6zb7+BBDQYXlo0GPUH+jUY3+GxkT88U1C4Sb8=
