@@ -264,7 +264,7 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 
 	if c.CredentialStatus.RHSMode == none {
 		c.CredentialStatus.DirectStatus.URL = host
-		c.CredentialStatus.CredentialStatusType = sparseMerkleTreeProof
+		c.CredentialStatus.CredentialStatusType = iden3commRevocationStatusV1
 	}
 
 	if c.CredentialStatus.RHSMode == offChain {

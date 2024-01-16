@@ -1,11 +1,13 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 )
 
 const (
 	sparseMerkleTreeProof                 = "SparseMerkleTreeProof"
+	iden3commRevocationStatusV1           = "Iden3commRevocationStatusV1.0"
 	iden3ReverseSparseMerkleTreeProof     = "Iden3ReverseSparseMerkleTreeProof"
 	iden3OnchainSparseMerkleTreeProof2023 = "Iden3OnchainSparseMerkleTreeProof2023"
 	onChain                               = "OnChain"
@@ -23,7 +25,7 @@ type CredentialStatus struct {
 	OnchainTreeStore     OnchainTreeStore `mapstructure:"OnchainTreeStore"`
 	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
 	SingleIssuer         bool
-	CredentialStatusType string `mapstructure:"CredentialStatusType" default:"SparseMerkleTreeProof"`
+	CredentialStatusType string `mapstructure:"CredentialStatusType" default:"Iden3commRevocationStatusV1"`
 }
 
 // DirectStatus is the type of direct status
@@ -31,9 +33,14 @@ type DirectStatus struct {
 	URL string `mapstructure:"URL"`
 }
 
-// GetURL returns the URL of the direct status
+// GetURL returns the URL of the di	rect status
 func (r *DirectStatus) GetURL() string {
 	return strings.TrimSuffix(r.URL, "/")
+}
+
+// GetAgentURL returns the URL of the agent endpoint
+func (r *DirectStatus) GetAgentURL() string {
+	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(r.URL, "/"))
 }
 
 // RHS is the type of RHS
