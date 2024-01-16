@@ -127,6 +127,10 @@ export async function getCredentials({
 
 export type CreateCredential = {
   credentialSchema: string;
+  credentialRefreshService: {
+    id: string;
+    type: "Iden3RefreshService2023";
+  } | null;
   credentialSubject: Json;
   expiration: string | null;
   mtProof: boolean;

@@ -118,6 +118,7 @@ export function IssueCredential() {
   }) => {
     const credentialSubjectAttributeWithoutId =
       extractCredentialSubjectAttributeWithoutId(jsonSchema);
+    console.log("lala3", credentialSubjectAttributeWithoutId);
 
     if (schemaID && credentialSubjectAttributeWithoutId) {
       setLinkID({ status: "loading" });
@@ -171,6 +172,7 @@ export function IssueCredential() {
       });
 
       if (serializedCredentialForm.success) {
+        console.log("lala2", serializedCredentialForm.data);
         const response = await createCredential({
           env,
           payload: serializedCredentialForm.data,
@@ -260,6 +262,7 @@ export function IssueCredential() {
                         setCredentialFormInput(newCredentialFormInput);
 
                         const parsedForm = credentialFormParser.safeParse(newCredentialFormInput);
+                        console.log("lala1", newCredentialFormInput.issueCredential); // TODO: LALA: remove
 
                         if (parsedForm.success) {
                           if (parsedForm.data.type === "credentialLink") {
@@ -268,6 +271,7 @@ export function IssueCredential() {
                               jsonSchema,
                             });
                           } else {
+                            console.log("form lala", parsedForm.data);
                             void issueCredential({
                               apiSchema,
                               credentialIssuance: parsedForm.data,

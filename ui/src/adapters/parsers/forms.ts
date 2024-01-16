@@ -24,6 +24,7 @@ type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
   credentialExpiration: Date | undefined;
+  credentialRefreshService: string | undefined;
   credentialSubject: Record<string, unknown> | undefined;
   mtProof: boolean;
   signatureProof: boolean;
@@ -116,6 +117,7 @@ export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
   proofTypes: ProofType[];
+  refreshService: { enabled: boolean; url: string };
   schemaID?: string;
 };
 
@@ -126,6 +128,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     proofTypes: z
       .array(z.union([z.literal("MTP"), z.literal("SIG")]))
       .min(1, "At least one proof type is required"),
+    refreshService: z.object({ enabled: z.boolean(), url: z.string().url() }),
     schemaID: z.string().optional(),
   })
 );
@@ -145,8 +148,10 @@ export const credentialFormParser = getStrictParser<
       issueCredential: issueCredentialFormDataParser,
     })
     .transform(({ issuanceMethod, issueCredential }, context) => {
-      const { credentialExpiration, credentialSubject, proofTypes } = issueCredential;
+      const { credentialExpiration, credentialSubject, proofTypes, refreshService } =
+        issueCredential;
       const { type } = issuanceMethod;
+      console.log("lala", issueCredential, refreshService);
 
       const baseIssuance = {
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
@@ -196,6 +201,7 @@ export const credentialFormParser = getStrictParser<
           ...baseIssuance,
           did: issuanceMethod.did,
           type,
+          credentialRefreshService: refreshService.enabled ? refreshService.url : null,
         };
       }
     })
@@ -339,7 +345,14 @@ export function serializeCredentialLinkIssuance({
 export function serializeCredentialIssuance({
   attribute,
   credentialSchema,
-  issueCredential: { credentialExpiration, credentialSubject, did, mtProof, signatureProof },
+  issueCredential: {
+    credentialExpiration,
+    credentialRefreshService,
+    credentialSubject,
+    did,
+    mtProof,
+    signatureProof,
+  },
   type,
 }: {
   attribute: ObjectAttribute;
@@ -358,6 +371,12 @@ export function serializeCredentialIssuance({
     return {
       data: {
         credentialSchema,
+        credentialRefreshService: credentialRefreshService
+          ? {
+              id: credentialRefreshService,
+              type: "Iden3RefreshService2023",
+            }
+          : null,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,

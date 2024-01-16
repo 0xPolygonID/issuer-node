@@ -101,6 +101,8 @@ export function IssueCredentialForm({
 
   const [inputErrors, setInputErrors] = useState<InputErrors>();
 
+  const [refreshServiceChecked, setRefreshServiceChecked] = useState(false);
+
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     if (isAsyncTaskDataAvailable(jsonSchema)) {
       const serializedSchemaForm = serializeSchemaForm({
@@ -396,6 +398,7 @@ export function IssueCredentialForm({
                 case "successful": {
                   const credentialSubjectAttributeWithoutId =
                     extractCredentialSubjectAttributeWithoutId(jsonSchema.data);
+
                   return credentialSubjectAttributeWithoutId?.schema.attributes ? (
                     <>
                       {jsonSchema.data.schema.description && (
@@ -409,6 +412,29 @@ export function IssueCredentialForm({
                           attributes={credentialSubjectAttributeWithoutId.schema.attributes}
                           inputErrors={inputErrors}
                         />
+
+                        <Form.Item label="Credential Refresh Service">
+                          <Form.Item
+                            name={["refreshService", "enabled"]}
+                            noStyle
+                            valuePropName="checked"
+                          >
+                            <Checkbox
+                              checked={refreshServiceChecked}
+                              onChange={() => {
+                                setRefreshServiceChecked(!refreshServiceChecked);
+                              }}
+                            >
+                              Enable Credential Refresh Service
+                            </Checkbox>
+                          </Form.Item>
+                          <Form.Item name={["refreshService", "url"]} noStyle>
+                            <Input
+                              disabled={!refreshServiceChecked}
+                              placeholder="Valid URL of the credential refresh service"
+                            />
+                          </Form.Item>
+                        </Form.Item>
 
                         <Form.Item
                           label="Proof type"
