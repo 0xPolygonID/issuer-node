@@ -412,6 +412,11 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "error publishing the state", "err", err)
+
+		if errors.Is(err, services.ErrNoClaimsFoundToProcess) {
+			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+
 		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoStatesToProcess) {
 			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
