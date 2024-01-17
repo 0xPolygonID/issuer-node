@@ -119,7 +119,7 @@ export function IssueCredential() {
   }) => {
     const credentialSubjectAttributeWithoutId =
       extractCredentialSubjectAttributeWithoutId(jsonSchema);
-    console.log("lala3", credentialSubjectAttributeWithoutId);
+    console.log("lala3", credentialLinkIssuance);
 
     if (schemaID && credentialSubjectAttributeWithoutId) {
       setLinkID({ status: "loading" });
@@ -267,12 +267,12 @@ export function IssueCredential() {
 
                         if (parsedForm.success) {
                           if (parsedForm.data.type === "credentialLink") {
+                            console.log("form lala", parsedForm.data);
                             void createCredentialLink({
                               credentialLinkIssuance: parsedForm.data,
                               jsonSchema,
                             });
                           } else {
-                            console.log("form lala", parsedForm.data);
                             void issueCredential({
                               apiSchema,
                               credentialIssuance: parsedForm.data,

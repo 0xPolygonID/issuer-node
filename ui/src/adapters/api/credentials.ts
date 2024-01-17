@@ -351,6 +351,7 @@ export async function deleteLink({
 
 export type CreateLink = {
   credentialExpiration: string | null;
+  credentialRefreshService: string | null;
   credentialSubject: Json;
   expiration: string | null;
   limitedClaims: number | null;

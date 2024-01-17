@@ -36,6 +36,7 @@ export type CredentialDirectIssuance = CredentialIssuance & {
 };
 
 export type CredentialLinkIssuance = CredentialIssuance & {
+  credentialRefreshService: string | null;
   linkAccessibleUntil: Date | undefined;
   linkMaximumIssuance: number | undefined;
   type: "credentialLink";
@@ -117,7 +118,7 @@ export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
   proofTypes: ProofType[];
-  refreshService: { enabled: boolean; url: string };
+  refreshService: {enabled: boolean, url: string};
   schemaID?: string;
 };
 
@@ -128,7 +129,16 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     proofTypes: z
       .array(z.union([z.literal("MTP"), z.literal("SIG")]))
       .min(1, "At least one proof type is required"),
-      refreshService: z.object({ enabled: z.boolean(), url: z.union([z.literal(""), z.string().url()]) }),
+      refreshService: z.union([
+        z.object({
+          enabled: z.literal(false),
+          url: z.string(),
+        }),
+        z.object({
+            enabled: z.literal(true),
+            url:  z.string().url()
+        }),
+        ]),
     schemaID: z.string().optional(),
   })
 );
@@ -306,6 +316,7 @@ export function serializeCredentialLinkIssuance({
   attribute,
   issueCredential: {
     credentialExpiration,
+    credentialRefreshService,
     credentialSubject,
     linkAccessibleUntil,
     linkMaximumIssuance,
@@ -328,6 +339,7 @@ export function serializeCredentialLinkIssuance({
         credentialExpiration: credentialExpiration
           ? serializeDate(credentialExpiration, "date")
           : null,
+        credentialRefreshService: credentialRefreshService,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
