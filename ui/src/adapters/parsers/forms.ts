@@ -161,7 +161,6 @@ export const credentialFormParser = getStrictParser<
       const { credentialExpiration, credentialSubject, proofTypes, refreshService } =
         issueCredential;
       const { type } = issuanceMethod;
-      console.log("lala", issueCredential, refreshService);
 
       const baseIssuance = {
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
