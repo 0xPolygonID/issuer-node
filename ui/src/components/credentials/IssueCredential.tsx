@@ -41,6 +41,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
   },
   issueCredential: {
     proofTypes: ["SIG"],
+    refreshService: { enabled: false, url: "" }
   },
 };
 
@@ -279,6 +280,7 @@ export function IssueCredential() {
                             });
                           }
                         } else {
+                          console.log("parsedForm.error", parsedForm.error); // TODO: LALA: remove
                           notifyParseError(parsedForm.error);
                         }
                       }}

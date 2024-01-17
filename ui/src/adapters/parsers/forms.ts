@@ -24,7 +24,7 @@ type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
   credentialExpiration: Date | undefined;
-  credentialRefreshService: string | undefined;
+  credentialRefreshService: string | null;
   credentialSubject: Record<string, unknown> | undefined;
   mtProof: boolean;
   signatureProof: boolean;
@@ -128,7 +128,7 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     proofTypes: z
       .array(z.union([z.literal("MTP"), z.literal("SIG")]))
       .min(1, "At least one proof type is required"),
-    refreshService: z.object({ enabled: z.boolean(), url: z.string().url() }),
+      refreshService: z.object({ enabled: z.boolean(), url: z.union([z.literal(""), z.string().url()]) }),
     schemaID: z.string().optional(),
   })
 );
@@ -155,6 +155,7 @@ export const credentialFormParser = getStrictParser<
 
       const baseIssuance = {
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
+        credentialRefreshService: refreshService.enabled ? refreshService.url : null,
         credentialSubject,
         mtProof: proofTypes.includes("MTP"),
         signatureProof: proofTypes.includes("SIG"),
@@ -201,7 +202,6 @@ export const credentialFormParser = getStrictParser<
           ...baseIssuance,
           did: issuanceMethod.did,
           type,
-          credentialRefreshService: refreshService.enabled ? refreshService.url : null,
         };
       }
     })
@@ -370,13 +370,13 @@ export function serializeCredentialIssuance({
   if (serializedSchemaForm.success) {
     return {
       data: {
-        credentialSchema,
         credentialRefreshService: credentialRefreshService
           ? {
               id: credentialRefreshService,
               type: "Iden3RefreshService2023",
             }
           : null,
+        credentialSchema,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,
