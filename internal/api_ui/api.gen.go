@@ -156,7 +156,7 @@ type Credential struct {
 	ExpiresAt             *TimeUTC               `json:"expiresAt"`
 	Id                    uuid.UUID              `json:"id"`
 	ProofTypes            []string               `json:"proofTypes"`
-	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
+	RefreshService        *RefreshService        `json:"refreshService"`
 	RevNonce              uint64                 `json:"revNonce"`
 	Revoked               bool                   `json:"revoked"`
 	SchemaHash            string                 `json:"schemaHash"`
@@ -252,7 +252,7 @@ type Link struct {
 	IssuedClaims         int               `json:"issuedClaims"`
 	MaxIssuance          *int              `json:"maxIssuance"`
 	ProofTypes           []string          `json:"proofTypes"`
-	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
+	RefreshService       *RefreshService   `json:"refreshService"`
 	SchemaHash           string            `json:"schemaHash"`
 	SchemaType           string            `json:"schemaType"`
 	SchemaUrl            string            `json:"schemaUrl"`

@@ -338,7 +338,7 @@ export function serializeCredentialLinkIssuance({
         credentialExpiration: credentialExpiration
           ? serializeDate(credentialExpiration, "date")
           : null,
-        credentialRefreshService: credentialRefreshService,
+        refreshService: credentialRefreshService,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
@@ -352,7 +352,7 @@ export function serializeCredentialLinkIssuance({
     return serializedSchemaForm;
   }
 }
-
+// TODO: Check that expiration is set when refresh service is set
 export function serializeCredentialIssuance({
   attribute,
   credentialSchema,
@@ -381,7 +381,7 @@ export function serializeCredentialIssuance({
   if (serializedSchemaForm.success) {
     return {
       data: {
-        credentialRefreshService: credentialRefreshService
+        refreshService: credentialRefreshService
           ? {
               id: credentialRefreshService,
               type: "Iden3RefreshService2023",

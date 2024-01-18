@@ -126,7 +126,7 @@ export async function getCredentials({
 }
 
 export type CreateCredential = {
-  credentialRefreshService: {
+  refreshService: {
     id: string;
     type: "Iden3RefreshService2023";
   } | null;
@@ -351,7 +351,7 @@ export async function deleteLink({
 
 export type CreateLink = {
   credentialExpiration: string | null;
-  credentialRefreshService: string | null;
+  refreshService: string | null;
   credentialSubject: Json;
   expiration: string | null;
   limitedClaims: number | null;
