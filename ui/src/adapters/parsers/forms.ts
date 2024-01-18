@@ -136,7 +136,11 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
         }),
         z.object({
             enabled: z.literal(true),
-            url:  z.string().url()
+            url:  z.string().url({
+              code: z.ZodIssueCode.custom,
+              fatal: true,
+              message: `Refresh service URL must be a valid URL.`,
+            })
         }),
         ]),
     schemaID: z.string().optional(),
@@ -350,7 +354,12 @@ export function serializeCredentialLinkIssuance({
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
-        refreshService: credentialRefreshService,
+        refreshService: credentialRefreshService
+          ? {
+            id: credentialRefreshService,
+            type: "Iden3RefreshService2023",
+          }
+          : null,
         schemaID,
         signatureProof,
       },

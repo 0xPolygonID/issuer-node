@@ -356,7 +356,10 @@ export type CreateLink = {
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
-  refreshService: string | null;
+  refreshService: {
+    id: string;
+    type: "Iden3RefreshService2023";
+  } | null;
   schemaID: string;
   signatureProof: boolean;
 };
