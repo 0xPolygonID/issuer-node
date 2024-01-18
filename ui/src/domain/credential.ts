@@ -2,6 +2,11 @@ export type CredentialsTabIDs = "issued" | "links";
 
 export type ProofType = "MTP" | "SIG";
 
+export type RefreshService = {
+  id: string;
+  type: string;
+};
+
 export type Credential = {
   createdAt: Date;
   credentialSubject: Record<string, unknown>;
@@ -9,6 +14,7 @@ export type Credential = {
   expiresAt: Date | null;
   id: string;
   proofTypes: ProofType[];
+  refreshService: RefreshService | null;
   revNonce: number;
   revoked: boolean;
   schemaHash: string;

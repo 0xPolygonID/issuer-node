@@ -40,11 +40,11 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z.object({
     createdAt: datetimeParser,
     credentialSubject: z.record(z.unknown()),
-    refreshService: z.object({ id: z.string(), type: z.literal("Iden3RefreshService2023") }).nullable(),
     expired: z.boolean(),
     expiresAt: datetimeParser.nullable(),
     id: z.string(),
     proofTypes: proofTypeParser,
+    refreshService: z.object({ id: z.string(), type: z.string() }).nullable(),
     revNonce: z.number(),
     revoked: z.boolean(),
     schemaHash: z.string(),
@@ -127,14 +127,14 @@ export async function getCredentials({
 }
 
 export type CreateCredential = {
-  refreshService: {
-    id: string;
-    type: "Iden3RefreshService2023";
-  } | null;
   credentialSchema: string;
   credentialSubject: Json;
   expiration: string | null;
   mtProof: boolean;
+  refreshService: {
+    id: string;
+    type: "Iden3RefreshService2023";
+  } | null;
   signatureProof: boolean;
   type: string;
 };
@@ -352,11 +352,11 @@ export async function deleteLink({
 
 export type CreateLink = {
   credentialExpiration: string | null;
-  refreshService: string | null;
   credentialSubject: Json;
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
+  refreshService: string | null;
   schemaID: string;
   signatureProof: boolean;
 };

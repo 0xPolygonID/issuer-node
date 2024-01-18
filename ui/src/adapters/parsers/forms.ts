@@ -338,11 +338,11 @@ export function serializeCredentialLinkIssuance({
         credentialExpiration: credentialExpiration
           ? serializeDate(credentialExpiration, "date")
           : null,
-        refreshService: credentialRefreshService,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
+        refreshService: credentialRefreshService,
         schemaID,
         signatureProof,
       },
@@ -381,16 +381,16 @@ export function serializeCredentialIssuance({
   if (serializedSchemaForm.success) {
     return {
       data: {
-        refreshService: credentialRefreshService
-          ? {
-              id: credentialRefreshService,
-              type: "Iden3RefreshService2023",
-            }
-          : null,
         credentialSchema,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
         mtProof,
+        refreshService: credentialRefreshService
+          ? {
+            id: credentialRefreshService,
+            type: "Iden3RefreshService2023",
+          }
+          : null,
         signatureProof,
         type,
       },
