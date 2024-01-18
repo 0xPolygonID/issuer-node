@@ -575,16 +575,16 @@ type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get the documentation
+	// GetEthClient the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Get Config
+	// GetEthClient Config
 	// (GET /config)
 	GetConfig(w http.ResponseWriter, r *http.Request)
 	// Gets the favicon
 	// (GET /favicon.ico)
 	GetFavicon(w http.ResponseWriter, r *http.Request)
-	// Get the documentation yaml file
+	// GetEthClient the documentation yaml file
 	// (GET /static/docs/api_ui/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
@@ -596,19 +596,19 @@ type ServerInterface interface {
 	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
-	// Get Connection QRCode
+	// GetEthClient Connection QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request, params AuthQRCodeParams)
-	// Get Authentication Connection
+	// GetEthClient Authentication Connection
 	// (GET /v1/authentication/sessions/{id})
 	GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id)
-	// Get Connections
+	// GetEthClient Connections
 	// (GET /v1/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams)
 	// Delete Connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, id Id, params DeleteConnectionParams)
-	// Get Connection
+	// GetEthClient Connection
 	// (GET /v1/connections/{id})
 	GetConnection(w http.ResponseWriter, r *http.Request, id Id)
 	// Delete Connection Credentials
@@ -617,13 +617,13 @@ type ServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, id Id)
-	// Get Credentials
+	// GetEthClient Credentials
 	// (GET /v1/credentials)
 	GetCredentials(w http.ResponseWriter, r *http.Request, params GetCredentialsParams)
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request)
-	// Get Links
+	// GetEthClient Links
 	// (GET /v1/credentials/links)
 	GetLinks(w http.ResponseWriter, r *http.Request, params GetLinksParams)
 	// Create Link
@@ -635,19 +635,19 @@ type ServerInterface interface {
 	// Delete Link
 	// (DELETE /v1/credentials/links/{id})
 	DeleteLink(w http.ResponseWriter, r *http.Request, id Id)
-	// Get Link
+	// GetEthClient Link
 	// (GET /v1/credentials/links/{id})
 	GetLink(w http.ResponseWriter, r *http.Request, id Id)
 	// Activate | Deactivate Link
 	// (PATCH /v1/credentials/links/{id})
 	AcivateLink(w http.ResponseWriter, r *http.Request, id Id)
-	// Get Credential Link QRCode
+	// GetEthClient Credential Link QRCode
 	// (GET /v1/credentials/links/{id}/qrcode)
 	GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams)
 	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams)
-	// Get Revocation Status
+	// GetEthClient Revocation Status
 	// (GET /v1/credentials/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, nonce PathNonce)
 	// Revoke Credential
@@ -656,22 +656,22 @@ type ServerInterface interface {
 	// Delete Credential
 	// (DELETE /v1/credentials/{id})
 	DeleteCredential(w http.ResponseWriter, r *http.Request, id Id)
-	// Get Credential
+	// GetEthClient Credential
 	// (GET /v1/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, id Id)
-	// Get Credential QR code
+	// GetEthClient Credential QR code
 	// (GET /v1/credentials/{id}/qrcode)
 	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id, params GetCredentialQrCodeParams)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
-	// Get Schemas
+	// GetEthClient Schemas
 	// (GET /v1/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, params GetSchemasParams)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(w http.ResponseWriter, r *http.Request)
-	// Get Schema
+	// GetEthClient Schema
 	// (GET /v1/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, id Id)
 	// Publish Identity State
@@ -680,10 +680,10 @@ type ServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/state/retry)
 	RetryPublishState(w http.ResponseWriter, r *http.Request)
-	// Get Identity State Status
+	// GetEthClient Identity State Status
 	// (GET /v1/state/status)
 	GetStateStatus(w http.ResponseWriter, r *http.Request)
-	// Get Identity State Transactions
+	// GetEthClient Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request)
 }
@@ -692,13 +692,13 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// Get the documentation
+// GetEthClient the documentation
 // (GET /)
 func (_ Unimplemented) GetDocumentation(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Config
+// GetEthClient Config
 // (GET /config)
 func (_ Unimplemented) GetConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -710,7 +710,7 @@ func (_ Unimplemented) GetFavicon(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get the documentation yaml file
+// GetEthClient the documentation yaml file
 // (GET /static/docs/api_ui/api.yaml)
 func (_ Unimplemented) GetYaml(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -734,19 +734,19 @@ func (_ Unimplemented) AuthCallback(w http.ResponseWriter, r *http.Request, para
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Connection QRCode
+// GetEthClient Connection QRCode
 // (GET /v1/authentication/qrcode)
 func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request, params AuthQRCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Authentication Connection
+// GetEthClient Authentication Connection
 // (GET /v1/authentication/sessions/{id})
 func (_ Unimplemented) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Connections
+// GetEthClient Connections
 // (GET /v1/connections)
 func (_ Unimplemented) GetConnections(w http.ResponseWriter, r *http.Request, params GetConnectionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -758,7 +758,7 @@ func (_ Unimplemented) DeleteConnection(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Connection
+// GetEthClient Connection
 // (GET /v1/connections/{id})
 func (_ Unimplemented) GetConnection(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -776,7 +776,7 @@ func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credentials
+// GetEthClient Credentials
 // (GET /v1/credentials)
 func (_ Unimplemented) GetCredentials(w http.ResponseWriter, r *http.Request, params GetCredentialsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -788,7 +788,7 @@ func (_ Unimplemented) CreateCredential(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Links
+// GetEthClient Links
 // (GET /v1/credentials/links)
 func (_ Unimplemented) GetLinks(w http.ResponseWriter, r *http.Request, params GetLinksParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -812,7 +812,7 @@ func (_ Unimplemented) DeleteLink(w http.ResponseWriter, r *http.Request, id Id)
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Link
+// GetEthClient Link
 // (GET /v1/credentials/links/{id})
 func (_ Unimplemented) GetLink(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -824,7 +824,7 @@ func (_ Unimplemented) AcivateLink(w http.ResponseWriter, r *http.Request, id Id
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credential Link QRCode
+// GetEthClient Credential Link QRCode
 // (GET /v1/credentials/links/{id}/qrcode)
 func (_ Unimplemented) GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -836,7 +836,7 @@ func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Revocation Status
+// GetEthClient Revocation Status
 // (GET /v1/credentials/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -854,13 +854,13 @@ func (_ Unimplemented) DeleteCredential(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credential
+// GetEthClient Credential
 // (GET /v1/credentials/{id})
 func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credential QR code
+// GetEthClient Credential QR code
 // (GET /v1/credentials/{id}/qrcode)
 func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, id Id, params GetCredentialQrCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -872,7 +872,7 @@ func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, pa
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Schemas
+// GetEthClient Schemas
 // (GET /v1/schemas)
 func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, params GetSchemasParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -884,7 +884,7 @@ func (_ Unimplemented) ImportSchema(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Schema
+// GetEthClient Schema
 // (GET /v1/schemas/{id})
 func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -902,13 +902,13 @@ func (_ Unimplemented) RetryPublishState(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Identity State Status
+// GetEthClient Identity State Status
 // (GET /v1/state/status)
 func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Identity State Transactions
+// GetEthClient Identity State Transactions
 // (GET /v1/state/transactions)
 func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -3511,16 +3511,16 @@ func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsRes
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Get the documentation
+	// GetEthClient the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Get Config
+	// GetEthClient Config
 	// (GET /config)
 	GetConfig(ctx context.Context, request GetConfigRequestObject) (GetConfigResponseObject, error)
 	// Gets the favicon
 	// (GET /favicon.ico)
 	GetFavicon(ctx context.Context, request GetFaviconRequestObject) (GetFaviconResponseObject, error)
-	// Get the documentation yaml file
+	// GetEthClient the documentation yaml file
 	// (GET /static/docs/api_ui/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
 	// Healthcheck
@@ -3532,19 +3532,19 @@ type StrictServerInterface interface {
 	// Authentication Callback
 	// (POST /v1/authentication/callback)
 	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
-	// Get Connection QRCode
+	// GetEthClient Connection QRCode
 	// (GET /v1/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
-	// Get Authentication Connection
+	// GetEthClient Authentication Connection
 	// (GET /v1/authentication/sessions/{id})
 	GetAuthenticationConnection(ctx context.Context, request GetAuthenticationConnectionRequestObject) (GetAuthenticationConnectionResponseObject, error)
-	// Get Connections
+	// GetEthClient Connections
 	// (GET /v1/connections)
 	GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error)
 	// Delete Connection
 	// (DELETE /v1/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
-	// Get Connection
+	// GetEthClient Connection
 	// (GET /v1/connections/{id})
 	GetConnection(ctx context.Context, request GetConnectionRequestObject) (GetConnectionResponseObject, error)
 	// Delete Connection Credentials
@@ -3553,13 +3553,13 @@ type StrictServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
-	// Get Credentials
+	// GetEthClient Credentials
 	// (GET /v1/credentials)
 	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
 	// Create Credential
 	// (POST /v1/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
-	// Get Links
+	// GetEthClient Links
 	// (GET /v1/credentials/links)
 	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
 	// Create Link
@@ -3571,19 +3571,19 @@ type StrictServerInterface interface {
 	// Delete Link
 	// (DELETE /v1/credentials/links/{id})
 	DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error)
-	// Get Link
+	// GetEthClient Link
 	// (GET /v1/credentials/links/{id})
 	GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error)
 	// Activate | Deactivate Link
 	// (PATCH /v1/credentials/links/{id})
 	AcivateLink(ctx context.Context, request AcivateLinkRequestObject) (AcivateLinkResponseObject, error)
-	// Get Credential Link QRCode
+	// GetEthClient Credential Link QRCode
 	// (GET /v1/credentials/links/{id}/qrcode)
 	GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error)
 	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
-	// Get Revocation Status
+	// GetEthClient Revocation Status
 	// (GET /v1/credentials/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Revoke Credential
@@ -3592,22 +3592,22 @@ type StrictServerInterface interface {
 	// Delete Credential
 	// (DELETE /v1/credentials/{id})
 	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
-	// Get Credential
+	// GetEthClient Credential
 	// (GET /v1/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
-	// Get Credential QR code
+	// GetEthClient Credential QR code
 	// (GET /v1/credentials/{id}/qrcode)
 	GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
-	// Get Schemas
+	// GetEthClient Schemas
 	// (GET /v1/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
 	// Import JSON schema
 	// (POST /v1/schemas)
 	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
-	// Get Schema
+	// GetEthClient Schema
 	// (GET /v1/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 	// Publish Identity State
@@ -3616,10 +3616,10 @@ type StrictServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/state/retry)
 	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
-	// Get Identity State Status
+	// GetEthClient Identity State Status
 	// (GET /v1/state/status)
 	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
-	// Get Identity State Transactions
+	// GetEthClient Identity State Transactions
 	// (GET /v1/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 }

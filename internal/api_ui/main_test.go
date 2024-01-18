@@ -51,6 +51,10 @@ func TestMain(m *testing.M) {
 			URL: conn,
 		},
 		KeyStore: config.VaultTest(),
+		Ethereum: config.Ethereum{
+			URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+			ResolverPrefix: "polygon:mumbai",
+		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
@@ -91,6 +95,8 @@ func TestMain(m *testing.M) {
 			URL: "http://localhost:3001",
 		},
 	}
+
+	cfg.Ethereum = cfgForTesting.Ethereum
 
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 

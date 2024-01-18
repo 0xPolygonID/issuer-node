@@ -3,13 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -25,10 +22,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/http"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -133,33 +130,22 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 		return nil, fmt.Errorf("cannot initialize kms: err %s", err.Error())
 	}
 
-	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	cfg.CredentialStatus.SingleIssuer = true
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore)
 	if err != nil {
-		log.Error(ctx, "error dialing with ethclient", "err", err, "eth-url", cfg.Ethereum.URL)
+		log.Error(ctx, "failed initialize network resolver", "err", err)
 		return nil, err
 	}
 
-	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
-		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
-		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
-		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
-		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
-		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
-		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
-		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
-		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
-		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-	}, keyStore)
-
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
 
 	return claimsService, nil

@@ -6,7 +6,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 )
 
-// GetConfig - Get configuration
+// GetConfig - GetEthClient configuration
 func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConfigResponseObject, error) {
 	token := common.ReplaceCharacters(s.cfg.KeyStore.Token)
 	variables := GetConfig200JSONResponse{

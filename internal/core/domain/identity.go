@@ -1,13 +1,18 @@
 package domain
 
 import (
+	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
+
+// ErrInvalidIdentifier - invalid identifier error
+var ErrInvalidIdentifier = errors.New("invalid identifier")
 
 // Identity struct
 type Identity struct {
@@ -42,4 +47,16 @@ func NewIdentityFromIdentifier(did *w3c.DID, rootState string) (*Identity, error
 			State:      &rootState,
 		},
 	}, nil
+}
+
+// GetResolverPrefix get resolver prefix
+func (i *Identity) GetResolverPrefix() (string, error) {
+	const itemsLen = 4
+	items := strings.Split(i.Identifier, ":")
+	if len(items) < itemsLen {
+		return "", ErrInvalidIdentifier
+	}
+	chain := items[2]
+	network := items[3]
+	return chain + ":" + network, nil
 }

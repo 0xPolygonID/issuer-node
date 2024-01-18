@@ -4,12 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
@@ -23,8 +20,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -116,38 +113,33 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
+	cfg.CredentialStatus.SingleIssuer = true
 
-	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	// this is needed to create the did with the correct auth core claim revocation status URL
+	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore)
 	if err != nil {
-		log.Error(ctx, "error dialing with ethclient", "err", err, "rth-url", cfg.Ethereum.URL)
+		log.Error(ctx, "failed init eth resolver", "err", err)
 		return
 	}
 
-	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
-		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
-		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
-		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
-		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
-		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
-		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
-		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
-		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
-		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-	}, keyStore)
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, *networkResolver, rhsFactory, revocationStatusResolver)
 
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
-	cfg.CredentialStatus.SingleIssuer = true
-	// this is needed to create the did with the correct auth core claim revocation status URL
-	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	resolverPrefix := fmt.Sprintf("%s:%s", cfg.APIUI.IdentityBlockchain, cfg.APIUI.IdentityNetwork)
+	rhsSettings, err := networkResolver.GetRhsSettings(resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "error getting rhs settings", "err", err)
+		return
+	}
 
 	didCreationOptions := &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: verifiable.CredentialStatusType(rhsSettings.CredentialStatusType),
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)

@@ -5,12 +5,18 @@ import (
 )
 
 const (
-	sparseMerkleTreeProof                 = "SparseMerkleTreeProof"
-	iden3ReverseSparseMerkleTreeProof     = "Iden3ReverseSparseMerkleTreeProof"
-	iden3OnchainSparseMerkleTreeProof2023 = "Iden3OnchainSparseMerkleTreeProof2023"
-	onChain                               = "OnChain"
-	offChain                              = "OffChain"
-	none                                  = "None"
+	// SparseMerkleTreeProof is the type of sparse merkle tree proof
+	SparseMerkleTreeProof = "SparseMerkleTreeProof"
+	// Iden3ReverseSparseMerkleTreeProof is the type of Iden3 reverse sparse merkle tree proof
+	Iden3ReverseSparseMerkleTreeProof = "Iden3ReverseSparseMerkleTreeProof"
+	// Iden3OnchainSparseMerkleTreeProof2023 is the type of Iden3 onchain sparse merkle tree proof 2023
+	Iden3OnchainSparseMerkleTreeProof2023 = "Iden3OnchainSparseMerkleTreeProof2023"
+	// OnChain is the type for revocation status on chain
+	OnChain = "OnChain"
+	// OffChain is the type for revocation status off chain
+	OffChain = "OffChain"
+	// None is the type for revocation status None
+	None = "None"
 )
 
 // RHSMode is a mode of RHS

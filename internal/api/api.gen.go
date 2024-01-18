@@ -285,16 +285,16 @@ type CreateClaimJSONRequestBody = CreateClaimRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get the documentation
+	// GetEthClient the documentation
 	// (GET /)
 	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Get Config
+	// GetEthClient Config
 	// (GET /config)
 	GetConfig(w http.ResponseWriter, r *http.Request)
 	// Gets the favicon
 	// (GET /favicon.ico)
 	GetFavicon(w http.ResponseWriter, r *http.Request)
-	// Get the documentation yaml file
+	// GetEthClient the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
@@ -303,7 +303,7 @@ type ServerInterface interface {
 	// Agent
 	// (POST /v1/agent)
 	Agent(w http.ResponseWriter, r *http.Request)
-	// Get Identities
+	// GetEthClient Identities
 	// (GET /v1/identities)
 	GetIdentities(w http.ResponseWriter, r *http.Request)
 	// Create Identity
@@ -315,22 +315,22 @@ type ServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
-	// Get Claims
+	// GetEthClient Claims
 	// (GET /v1/{identifier}/claims)
 	GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Revocation Status
+	// GetEthClient Revocation Status
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
-	// Get Claim
+	// GetEthClient Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
-	// Get Claim QR code
+	// GetEthClient Claim QR code
 	// (GET /v1/{identifier}/claims/{id}/qrcode)
 	GetClaimQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Publish Identity State
@@ -345,13 +345,13 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
-// Get the documentation
+// GetEthClient the documentation
 // (GET /)
 func (_ Unimplemented) GetDocumentation(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Config
+// GetEthClient Config
 // (GET /config)
 func (_ Unimplemented) GetConfig(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -363,7 +363,7 @@ func (_ Unimplemented) GetFavicon(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get the documentation yaml file
+// GetEthClient the documentation yaml file
 // (GET /static/docs/api/api.yaml)
 func (_ Unimplemented) GetYaml(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -381,7 +381,7 @@ func (_ Unimplemented) Agent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Identities
+// GetEthClient Identities
 // (GET /v1/identities)
 func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -405,7 +405,7 @@ func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, pa
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Claims
+// GetEthClient Claims
 // (GET /v1/{identifier}/claims)
 func (_ Unimplemented) GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -417,7 +417,7 @@ func (_ Unimplemented) CreateClaim(w http.ResponseWriter, r *http.Request, ident
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Revocation Status
+// GetEthClient Revocation Status
 // (GET /v1/{identifier}/claims/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -429,13 +429,13 @@ func (_ Unimplemented) RevokeClaim(w http.ResponseWriter, r *http.Request, ident
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Claim
+// GetEthClient Claim
 // (GET /v1/{identifier}/claims/{id})
 func (_ Unimplemented) GetClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Claim QR code
+// GetEthClient Claim QR code
 // (GET /v1/{identifier}/claims/{id}/qrcode)
 func (_ Unimplemented) GetClaimQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -1833,16 +1833,16 @@ func (response RetryPublishState500JSONResponse) VisitRetryPublishStateResponse(
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Get the documentation
+	// GetEthClient the documentation
 	// (GET /)
 	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Get Config
+	// GetEthClient Config
 	// (GET /config)
 	GetConfig(ctx context.Context, request GetConfigRequestObject) (GetConfigResponseObject, error)
 	// Gets the favicon
 	// (GET /favicon.ico)
 	GetFavicon(ctx context.Context, request GetFaviconRequestObject) (GetFaviconResponseObject, error)
-	// Get the documentation yaml file
+	// GetEthClient the documentation yaml file
 	// (GET /static/docs/api/api.yaml)
 	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
 	// Healthcheck
@@ -1851,7 +1851,7 @@ type StrictServerInterface interface {
 	// Agent
 	// (POST /v1/agent)
 	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
-	// Get Identities
+	// GetEthClient Identities
 	// (GET /v1/identities)
 	GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error)
 	// Create Identity
@@ -1863,22 +1863,22 @@ type StrictServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
-	// Get Claims
+	// GetEthClient Claims
 	// (GET /v1/{identifier}/claims)
 	GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error)
 	// Create Claim
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error)
-	// Get Revocation Status
+	// GetEthClient Revocation Status
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Revoke Claim
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error)
-	// Get Claim
+	// GetEthClient Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error)
-	// Get Claim QR code
+	// GetEthClient Claim QR code
 	// (GET /v1/{identifier}/claims/{id}/qrcode)
 	GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error)
 	// Publish Identity State
