@@ -126,7 +126,7 @@ export async function getCredentials({
         .transform(({ items: { failed, successful }, meta }) => ({
           items: {
             failed,
-            successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+            successful,
           },
           meta,
         }))
