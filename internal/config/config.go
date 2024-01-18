@@ -439,6 +439,7 @@ func bindEnv() {
 
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -572,6 +573,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.SchemaCache = common.ToPointer(false)
 	}
 
+	if cfg.NetworkResolverPath == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing")
+		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
+	}
+
 	if cfg.CredentialStatus.RHSMode == "" {
 		log.Info(ctx, "ISSUER_CREDENTIAL_STATUS_RHS_MODE value is missing and the server set up it as None")
 		cfg.CredentialStatus.RHSMode = "None"
@@ -626,7 +632,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.APIUI.IdentityNetwork = "mumbai"
 	}
 
-	cfg.NetworkResolverPath = "/Users/martinsaporiti/dev/polygon/sh-id-platform/resolvers_settings.yaml"
 }
 
 func getWorkingDirectory() string {

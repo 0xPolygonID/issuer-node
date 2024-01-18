@@ -117,7 +117,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS) (*
 	}
 
 	log.Info(ctx, "resolver settings file found", "path", cfg.NetworkResolverPath)
-	log.Info(ctx, "the issuer node will use the resolver settings file for configuring the eth configuration")
+	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
 	for chainName, chainSettings := range rs {
 		for networkName, networkSettings := range chainSettings {
 			if err != nil {
@@ -234,6 +234,7 @@ func (r *Resolver) GetConfirmationTimeout(resolverPrefixKey string) (time.Durati
 func parseResolversSettings(ctx context.Context, resolverSettingsPath string) (ResolverSettings, error) {
 	if _, err := os.Stat(resolverSettingsPath); errors.Is(err, os.ErrNotExist) {
 		log.Info(ctx, "resolver settings file not found", "path", resolverSettingsPath)
+		log.Info(ctx, "issuer node wil not run supporting multi chain feature")
 		return nil, fmt.Errorf("resolver settings file not found: %s", resolverSettingsPath)
 	}
 
