@@ -1,6 +1,6 @@
 module github.com/polygonid/sh-id-platform
 
-go 1.20
+go 1.19
 
 require (
 	github.com/alicebob/miniredis/v2 v2.31.0
@@ -18,11 +18,11 @@ require (
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
-	github.com/iden3/go-circuits/v2 v2.0.0
+	github.com/iden3/go-circuits/v2 v2.0.1
 	github.com/iden3/go-iden3-auth/v2 v2.0.0-beta.2
 	github.com/iden3/go-iden3-core/v2 v2.0.3
 	github.com/iden3/go-iden3-crypto v0.0.15
-	github.com/iden3/go-jwz/v2 v2.0.0
+	github.com/iden3/go-jwz/v2 v2.0.1
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6
 	github.com/iden3/go-rapidsnark/prover v0.0.10
@@ -30,9 +30,10 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.2.0
-	github.com/iden3/iden3comm/v2 v2.0.0
-	github.com/iden3/merkletree-proof v0.0.4
+	github.com/iden3/go-schema-processor/v2 v2.2.1-0.20240118174550-f1f74877ba9e
+	github.com/iden3/iden3comm v1.1.0
+	github.com/iden3/iden3comm/v2 v2.1.1-0.20240118180238-a2e694eb8e5c
+	github.com/iden3/merkletree-proof v0.0.5-0.20240118180835-bfedc01feb18
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.1
 	github.com/jackc/pgtype v1.14.0
@@ -141,6 +142,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
+	github.com/gofrs/uuid/v5 v5.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
@@ -173,8 +175,12 @@ require (
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
 	github.com/holiman/uint256 v1.2.3 // indirect
 	github.com/iden3/contracts-abi/rhs-storage/go/abi v0.0.0-20231006141557-7d13ef7e3c48 // indirect
+	github.com/iden3/go-circuits v1.0.3 // indirect
 	github.com/iden3/go-iden3-core v1.0.2 // indirect
+	github.com/iden3/go-jwz v1.0.0 // indirect
 	github.com/iden3/go-rapidsnark/verifier v0.0.5 // indirect
+	github.com/iden3/go-rapidsnark/witness v0.0.6 // indirect
+	github.com/iden3/wasmer-go v0.0.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/ipfs/boxo v0.13.1 // indirect

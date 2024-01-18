@@ -6,14 +6,19 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
+	merkletreeProofResolvers "github.com/iden3/merkletree-proof/resolvers"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -152,7 +157,50 @@ func main() {
 	}
 
 	onChainCredentialStatusResolverService := gateways.NewOnChainCredStatusResolverService(ethConn, cfg.Ethereum.RPCResponseTimeout)
-	revocationService := services.NewRevocationService(common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
+
+	credStatusResolverRegistry := verifiable.CredentialStatusResolverRegistry{}
+	// issuer resolver
+	credStatusResolverRegistry.Register(verifiable.SparseMerkleTreeProof, verifiable.IssuerResolver{})
+
+	// // agent resolver
+	// pm := iden3comm.NewPackageManager()
+	// err = pm.RegisterPackers(&packers.PlainMessagePacker{})
+	// agentResolverConfig := agentResolvers.AgentResolverConfig{
+	// 	PackageManager: pm,
+	// }
+	// credStatusResolverRegistry.Register(verifiable.Iden3commRevocationStatusV1, agentResolvers.NewAgentResolver(agentResolverConfig))
+
+	// onchain resolver
+
+	ethClients := make(map[core.ChainID]*ethclient.Client)
+	chainIDBigInt, err := ethConn.ChainID(ctx)
+	if err != nil {
+		log.Error(ctx, "failed to get ChainID", "err", err)
+		return
+	}
+	chainID, err := strconv.Atoi(chainIDBigInt.String())
+	if err != nil {
+		log.Error(ctx, "invalid chainID", "err", err)
+		return
+	}
+
+	ethClients[core.ChainID(chainID)] = ethConn.GetEthereumClient()
+	stateAddr := common.HexToAddress(cfg.Ethereum.ContractAddress)
+	onChainResolverConf := merkletreeProofResolvers.OnChainResolverConfig{
+		StateContractAddr: stateAddr,
+		EthClients:        ethClients,
+	}
+	credStatusResolverRegistry.Register(verifiable.Iden3OnchainSparseMerkleTreeProof2023, merkletreeProofResolvers.NewOnChainResolver(onChainResolverConf))
+
+	// rhs resolver
+	rhsResolverConf := merkletreeProofResolvers.RHSResolverConfig{
+		StateContractAddr: stateAddr,
+		EthClients:        ethClients,
+	}
+
+	credStatusResolverRegistry.Register(verifiable.Iden3ReverseSparseMerkleTreeProof, merkletreeProofResolvers.NewRHSResolver(rhsResolverConf))
+
+	revocationService := services.NewRevocationService(credStatusResolverRegistry, common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
 
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateService, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)

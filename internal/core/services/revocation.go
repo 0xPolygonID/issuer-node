@@ -47,14 +47,16 @@ type onChainStatusService interface {
 
 // Revocation TBD
 type Revocation struct {
+	resolverRegistry     verifiable.CredentialStatusResolverRegistry
 	stateService         ports.StateService
 	onChainStatusService onChainStatusService
 	contract             ethCommon.Address
 }
 
 // NewRevocationService returns the Revocation struct
-func NewRevocationService(contract ethCommon.Address, stateService ports.StateService, onChainStatusService onChainStatusService) *Revocation {
+func NewRevocationService(resolverRegistry verifiable.CredentialStatusResolverRegistry, contract ethCommon.Address, stateService ports.StateService, onChainStatusService onChainStatusService) *Revocation {
 	return &Revocation{
+		resolverRegistry:     resolverRegistry,
 		contract:             contract,
 		stateService:         stateService,
 		onChainStatusService: onChainStatusService,
@@ -68,16 +70,29 @@ func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerD
 		log.Error(ctx, "failed convert credential status", "error", err)
 		return nil, err
 	}
-	switch status.Type {
-	case verifiable.Iden3ReverseSparseMerkleTreeProof:
-		return r.getRevocationStatusFromRHS(ctx, issuerDID, status, issuerData)
-	case verifiable.SparseMerkleTreeProof:
-		return getRevocationProofFromIssuer(ctx, status.ID)
-	case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
-		return r.getRevocationStatusFromOnchainCredStatusResolver(ctx, issuerDID, status)
-	default:
-		return nil, fmt.Errorf("%s type not supported", status.Type)
+
+	resolver, err := r.resolverRegistry.Get(status.Type)
+	if err != nil {
+		return nil, err
 	}
+
+	resolveOptions := verifiable.CredentialStatusResolveOptions{
+		IssuerDID: issuerDID,
+	}
+
+	revStatus, err := resolver.Resolve(ctx, status, &resolveOptions)
+	return &revStatus, err
+
+	// switch status.Type {
+	// case verifiable.Iden3ReverseSparseMerkleTreeProof:
+	// 	return r.getRevocationStatusFromRHS(ctx, issuerDID, status, issuerData)
+	// case verifiable.SparseMerkleTreeProof:
+	// 	return getRevocationProofFromIssuer(ctx, status.ID)
+	// case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
+	// 	return r.getRevocationStatusFromOnchainCredStatusResolver(ctx, issuerDID, status)
+	// default:
+	// 	return nil, fmt.Errorf("%s type not supported", status.Type)
+	// }
 }
 
 func convertCredentialStatus(credStatus interface{}) (verifiable.CredentialStatus, error) {

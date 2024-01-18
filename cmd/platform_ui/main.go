@@ -20,6 +20,7 @@ import (
 	"github.com/iden3/go-iden3-auth/v2/pubsignals"
 	"github.com/iden3/go-iden3-auth/v2/state"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/api_ui"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -185,7 +186,10 @@ func main() {
 	}
 
 	onChainCredentialStatusResolverService := gateways.NewOnChainCredStatusResolverService(ethConn, cfg.Ethereum.RPCResponseTimeout)
-	revocationService := services.NewRevocationService(common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
+
+	credStatusResolverRegistry := verifiable.CredentialStatusResolverRegistry{}
+
+	revocationService := services.NewRevocationService(credStatusResolverRegistry, common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
 	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateService, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
