@@ -40,6 +40,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   z.object({
     createdAt: datetimeParser,
     credentialSubject: z.record(z.unknown()),
+    refreshService: z.object({ id: z.string(), type: z.literal("Iden3RefreshService2023") }).nullable(),
     expired: z.boolean(),
     expiresAt: datetimeParser.nullable(),
     id: z.string(),

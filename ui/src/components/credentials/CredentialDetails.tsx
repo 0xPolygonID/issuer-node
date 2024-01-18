@@ -168,7 +168,7 @@ export function CredentialDetails() {
             </Card>
           );
         } else {
-          const { createdAt, expiresAt, proofTypes, revoked, schemaHash, schemaType, userID } =
+          const { refreshService, createdAt, expiresAt, proofTypes, revoked, schemaHash, schemaType, userID } =
             credential.data;
 
           return (
@@ -214,6 +214,11 @@ export function CredentialDetails() {
                     <Detail
                       label="Credential expiration date"
                       text={expiresAt ? formatDate(expiresAt) : "-"}
+                    />
+
+                    <Detail
+                      label="Refresh Service"
+                      text={refreshService ? " " + refreshService.id : "-"}
                     />
 
                     <Detail
