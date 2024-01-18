@@ -360,7 +360,7 @@ export function serializeCredentialLinkIssuance({
     return serializedSchemaForm;
   }
 }
-// TODO: Check that expiration is set when refresh service is set
+
 export function serializeCredentialIssuance({
   attribute,
   credentialSchema,
