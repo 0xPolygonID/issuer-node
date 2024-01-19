@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export type Meta = {
+export type ResourceMeta = {
   max_results: number;
   page: number;
   total: number;
@@ -13,7 +13,7 @@ export type List<T> = {
 
 export type Resource<T> = {
   items: List<T>;
-  meta: Meta;
+  meta: ResourceMeta;
 };
 
 export type Nullable<T> = T | null | undefined;

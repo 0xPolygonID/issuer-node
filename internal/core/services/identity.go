@@ -55,6 +55,8 @@ var (
 	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
+	// ErrNoClaimsFoundToProcess - means that there are no claims to process
+	ErrNoClaimsFoundToProcess = errors.New("no MTP claims found to process")
 )
 
 type identity struct {
@@ -329,6 +331,10 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
 			if err != nil {
 				return fmt.Errorf("error getting the states: %w", err)
+			}
+
+			if len(lc) == 0 {
+				return ErrNoClaimsFoundToProcess
 			}
 
 			for i := range lc {

@@ -14,9 +14,9 @@ type W3CDocumentLoader struct {
 }
 
 // NewW3CDocumentLoader creates a new document loader with a predefined http schema
-func NewW3CDocumentLoader(ipfsCli *shell.Shell, ipfsGW string) ld.DocumentLoader {
+func NewW3CDocumentLoader(_ *shell.Shell, ipfsGW string) ld.DocumentLoader {
 	return &W3CDocumentLoader{
-		l: loaders.NewDocumentLoader(ipfsCli, ipfsGW),
+		l: loaders.NewDocumentLoader(nil, ipfsGW),
 	}
 }
 

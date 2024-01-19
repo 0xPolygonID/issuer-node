@@ -207,6 +207,7 @@ type GetCredentialQrCodeResponse struct {
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
+	GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error)
 	CreateCredential(ctx context.Context, req *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error
 	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, uint, error)

@@ -20,7 +20,7 @@ require (
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
 	github.com/iden3/go-circuits/v2 v2.0.0
 	github.com/iden3/go-iden3-auth/v2 v2.0.0-beta.2
-	github.com/iden3/go-iden3-core/v2 v2.0.0
+	github.com/iden3/go-iden3-core/v2 v2.0.3
 	github.com/iden3/go-iden3-crypto v0.0.15
 	github.com/iden3/go-jwz/v2 v2.0.0
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
@@ -30,7 +30,7 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.1.0
+	github.com/iden3/go-schema-processor/v2 v2.2.0
 	github.com/iden3/iden3comm/v2 v2.0.0
 	github.com/iden3/merkletree-proof v0.0.4
 	github.com/ipfs/go-ipfs-api v0.7.0
@@ -50,7 +50,7 @@ require (
 	github.com/pressly/goose/v3 v3.15.1
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.15.0
+	golang.org/x/crypto v0.17.0
 	golang.org/x/exp v0.0.0-20231108232855-2478ac86f678
 )
 
@@ -232,7 +232,7 @@ require (
 	github.com/moricho/tparallel v0.3.1 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect
-	github.com/multiformats/go-multiaddr v0.11.0 // indirect
+	github.com/multiformats/go-multiaddr v0.12.1 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
 	github.com/multiformats/go-multihash v0.2.3 // indirect
@@ -322,7 +322,7 @@ require (
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect

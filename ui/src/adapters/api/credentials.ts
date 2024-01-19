@@ -91,13 +91,13 @@ export async function getCredential({
 
 export async function getCredentials({
   env,
-  params: { did, max_results, page, query, status },
+  params: { did, maxResults, page, query, status },
   signal,
 }: {
   env: Env;
   params: {
     did?: string;
-    max_results?: number;
+    maxResults?: number;
     page?: number;
     query?: string;
     status?: CredentialStatus;
@@ -115,7 +115,7 @@ export async function getCredentials({
         ...(did !== undefined ? { did } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
-        ...(max_results !== undefined ? { max_results: max_results.toString() } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
         ...(page !== undefined ? { page: page.toString() } : {}),
       }),
       signal,
@@ -126,7 +126,7 @@ export async function getCredentials({
         .transform(({ items: { failed, successful }, meta }) => ({
           items: {
             failed,
-            successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+            successful,
           },
           meta,
         }))

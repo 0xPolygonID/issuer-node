@@ -233,7 +233,7 @@ export function CredentialsTable() {
       const response = await getCredentials({
         env,
         params: {
-          max_results: paginationMaxResults,
+          maxResults: paginationMaxResults,
           page: paginationPage,
           query: queryParam || undefined,
           status: credentialStatus,

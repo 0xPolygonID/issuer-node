@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { List, Meta } from "src/utils/types";
+import { List, ResourceMeta } from "src/utils/types";
 
 export function getListParser<Input, Output = Input>(
   parser: z.ZodSchema<Output, z.ZodTypeDef, Input>
@@ -35,7 +35,7 @@ export function getListParser<Input, Output = Input>(
   );
 }
 
-const metaParser = getStrictParser<Meta>()(
+const metaParser = getStrictParser<ResourceMeta>()(
   z.object({
     max_results: z.number().int().min(1),
     page: z.number().int().min(1),
@@ -46,7 +46,10 @@ const metaParser = getStrictParser<Meta>()(
 export function getResourceParser<Input, Output = Input>(
   parser: z.ZodSchema<Output, z.ZodTypeDef, Input>
 ) {
-  return getStrictParser<{ items: unknown[]; meta: Meta }, { items: List<Output>; meta: Meta }>()(
+  return getStrictParser<
+    { items: unknown[]; meta: ResourceMeta },
+    { items: List<Output>; meta: ResourceMeta }
+  >()(
     z.object({
       items: getListParser(parser),
       meta: metaParser,
