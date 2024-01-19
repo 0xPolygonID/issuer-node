@@ -14,8 +14,8 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import { getConnections } from "src/adapters/api/connections";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";

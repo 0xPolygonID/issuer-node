@@ -20,7 +20,7 @@ export function CredentialQR({
 
   const { lg } = Grid.useBreakpoint();
 
-  const qrCodeBase64=`iden3comm://?i_m=${btoa(qrCodeRaw)}`
+  const qrCodeBase64 = `iden3comm://?i_m=${btoa(qrCodeRaw)}`;
 
   const qrCodeTabs: TabsProps["items"] = [
     {
@@ -61,7 +61,7 @@ export function CredentialQR({
       ),
       key: "3",
       label: "Base64 encoded",
-    }
+    },
   ];
 
   return (
