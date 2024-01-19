@@ -68,7 +68,6 @@ export function CredentialIssuedQR() {
   const [issuedQRCodeLink, issuedQRCodeRaw] = issuedQRCodes.data;
   return (
     <CredentialQR
-      qrCodeBase64={`iden3comm://?i_m=${btoa(issuedQRCodeRaw.qrCode)}`}
       qrCodeLink={issuedQRCodeLink.qrCode}
       qrCodeRaw={issuedQRCodeRaw.qrCode}
       schemaType={issuedQRCodeLink.schemaType}

@@ -6,13 +6,11 @@ import { useEnvContext } from "src/contexts/Env";
 import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
 
 export function CredentialQR({
-  qrCodeBase64,
   qrCodeLink,
   qrCodeRaw,
   schemaType,
   subTitle,
 }: {
-  qrCodeBase64: string;
   qrCodeLink: string;
   qrCodeRaw: string;
   schemaType: string;
@@ -21,6 +19,8 @@ export function CredentialQR({
   const { issuer } = useEnvContext();
 
   const { lg } = Grid.useBreakpoint();
+
+  const qrCodeBase64=`iden3comm://?i_m=${btoa(qrCodeRaw)}`
 
   const qrCodeTabs: TabsProps["items"] = [
     {

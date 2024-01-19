@@ -239,7 +239,6 @@ export function CredentialLinkQR() {
 
           return (
             <CredentialQR
-              qrCodeBase64={`iden3comm://?i_m=${btoa(authQRCode.data.qrCodeRaw)}`}
               qrCodeLink={authQRCode.data.qrCodeLink}
               qrCodeRaw={authQRCode.data.qrCodeRaw}
               schemaType={authQRCode.data.linkDetail.schemaType}
