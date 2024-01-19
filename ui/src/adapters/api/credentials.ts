@@ -436,7 +436,7 @@ const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
   z.object({
     qrCodeLink: z.string(),
     schemaType: z.string(),
-  }).transform(({ qrCodeLink, schemaType }) => ({qrCode: qrCodeLink, schemaType}))
+  })
 );
 
 export async function getIssuedQRCodes({
