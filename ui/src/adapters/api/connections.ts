@@ -85,17 +85,7 @@ export async function getConnections({
       signal,
       url: `${API_VERSION}/connections`,
     });
-    return buildSuccessResponse(
-      getResourceParser(connectionParser)
-        .transform(({ items: { failed, successful }, meta }) => ({
-          items: {
-            failed,
-            successful,
-          },
-          meta,
-        }))
-        .parse(response.data)
-    );
+    return buildSuccessResponse(getResourceParser(connectionParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

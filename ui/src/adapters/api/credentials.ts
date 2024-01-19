@@ -295,14 +295,7 @@ export async function getLinks({
       signal,
       url: `${API_VERSION}/credentials/links`,
     });
-    return buildSuccessResponse(
-      getListParser(linkParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-        }))
-        .parse(response.data)
-    );
+    return buildSuccessResponse(getListParser(linkParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
