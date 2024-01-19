@@ -7,30 +7,31 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 )
 
 const resolversLength = 3
 
 type revocationCredentialStatusResolver interface {
-	resolve(credentialStatusSettings config.CredentialStatus, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus
+	resolve(credentialStatusSettings network.RhsSettings, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus
 }
 
 // RevocationStatusResolver resolves credential status.
 type RevocationStatusResolver struct {
-	credentialStatusSettings config.CredentialStatus
-	resolvers                map[verifiable.CredentialStatusType]revocationCredentialStatusResolver
+	networkResolver network.Resolver
+	resolvers       map[verifiable.CredentialStatusType]revocationCredentialStatusResolver
 }
 
 // NewRevocationStatusResolver - constructor
-func NewRevocationStatusResolver(credentialStatusSettings config.CredentialStatus) *RevocationStatusResolver {
+func NewRevocationStatusResolver(networkResolver network.Resolver) *RevocationStatusResolver {
 	resolvers := make(map[verifiable.CredentialStatusType]revocationCredentialStatusResolver, resolversLength)
 	resolvers[verifiable.Iden3ReverseSparseMerkleTreeProof] = &iden3ReverseSparseMerkleTreeProofResolver{}
 	resolvers[verifiable.SparseMerkleTreeProof] = &sparseMerkleTreeProofResolver{}
 	resolvers[verifiable.Iden3OnchainSparseMerkleTreeProof2023] = &iden3OnChainSparseMerkleTreeProof2023Resolver{}
 	return &RevocationStatusResolver{
-		credentialStatusSettings: credentialStatusSettings,
-		resolvers:                resolvers,
+		networkResolver: networkResolver,
+		resolvers:       resolvers,
 	}
 }
 
@@ -45,5 +46,16 @@ func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(_ context.Con
 	if !ok {
 		return nil, errors.New("unsupported credential credentialStatusType type")
 	}
-	return resolver.resolve(rsr.credentialStatusSettings, issuerDID, nonce, issuerState), nil
+
+	resolverPrefix, err := common.ResolverPrefix(&issuerDID)
+	if err != nil {
+		return nil, err
+	}
+
+	settings, err := rsr.networkResolver.GetRhsSettings(resolverPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver.resolve(*settings, issuerDID, nonce, issuerState), nil
 }

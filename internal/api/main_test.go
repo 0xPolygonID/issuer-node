@@ -49,7 +49,8 @@ func TestMain(m *testing.M) {
 		},
 		KeyStore: config.VaultTest(),
 		Ethereum: config.Ethereum{
-			URL: "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+			URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+			ResolverPrefix: "polygon:mumbai",
 		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)

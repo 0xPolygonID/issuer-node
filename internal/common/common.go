@@ -1,7 +1,11 @@
 package common
 
 import (
+	"errors"
+	"strings"
+
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
 	jsonSuite "github.com/iden3/go-schema-processor/json"
 	"github.com/iden3/go-schema-processor/utils"
@@ -48,4 +52,16 @@ func DefineMerklizedRootPosition(metadata *jsonSuite.SchemaMetadata, position st
 	}
 
 	return utils.MerklizedRootPositionIndex
+}
+
+// ResolverPrefix - get resolver prefix
+func ResolverPrefix(did *w3c.DID) (string, error) {
+	const itemsLen = 4
+	items := strings.Split(did.String(), ":")
+	if len(items) < itemsLen {
+		return "", errors.New("invalid identifier")
+	}
+	chain := items[2]
+	network := items[3]
+	return chain + ":" + network, nil
 }

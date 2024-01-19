@@ -28,6 +28,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -42,10 +43,11 @@ type Server struct {
 	packageManager   *iden3comm.PackageManager
 	health           *health.Status
 	accountService   ports.AccountService
+	networkResolver  network.Resolver
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status) *Server {
 	return &Server{
 		cfg:              cfg,
 		identityService:  identityService,
@@ -55,6 +57,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		packageManager:   packageManager,
 		health:           health,
 		accountService:   accountService,
+		networkResolver:  networkResolver,
 	}
 }
 
@@ -95,12 +98,18 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		}, nil
 	}
 
+	resolverPrefix := fmt.Sprintf("%s:%s", blockchain, network)
+	rhsSettings, err := s.networkResolver.GetRhsSettings(resolverPrefix)
+	if err != nil {
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(method),
 		Network:                 core.NetworkID(network),
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: verifiable.CredentialStatusType(rhsSettings.CredentialStatusType),
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -160,7 +169,16 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce)
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	}
+
+	rhsSettings, err := s.networkResolver.GetRhsSettings(resolverPrefix)
+	if err != nil {
+		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(rhsSettings.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce)
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {

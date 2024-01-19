@@ -47,6 +47,7 @@ type Configuration struct {
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
 	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
+	NetworkResolverPath          string           `mapstructure:"NetworkResolverPath"`
 }
 
 // Database has the database configuration
@@ -218,24 +219,24 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 }
 
 func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
-	if c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
+	if c.CredentialStatus.RHSMode != OnChain && c.CredentialStatus.RHSMode != OffChain && c.CredentialStatus.RHSMode != None {
 		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
 	}
 
-	if c.CredentialStatus.RHSMode == none {
+	if c.CredentialStatus.RHSMode == None {
 		c.CredentialStatus.DirectStatus.URL = host
-		c.CredentialStatus.CredentialStatusType = sparseMerkleTreeProof
+		c.CredentialStatus.CredentialStatusType = SparseMerkleTreeProof
 	}
 
-	if c.CredentialStatus.RHSMode == offChain {
+	if c.CredentialStatus.RHSMode == OffChain {
 		if c.CredentialStatus.RHS.URL == "" {
 			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
 		}
-		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
+		c.CredentialStatus.CredentialStatusType = Iden3ReverseSparseMerkleTreeProof
 		c.CredentialStatus.DirectStatus.URL = host
 	}
 
-	if c.CredentialStatus.RHSMode == onChain {
+	if c.CredentialStatus.RHSMode == OnChain {
 		if c.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract == "" {
 			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT value is missing")
 		}
@@ -247,7 +248,7 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 		if c.CredentialStatus.OnchainTreeStore.ChainID == "" {
 			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID value is missing")
 		}
-		c.CredentialStatus.CredentialStatusType = iden3OnchainSparseMerkleTreeProof2023
+		c.CredentialStatus.CredentialStatusType = Iden3OnchainSparseMerkleTreeProof2023
 	}
 	return nil
 }
@@ -438,6 +439,7 @@ func bindEnv() {
 
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -569,6 +571,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.NetworkResolverPath == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing")
+		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
 	}
 
 	if cfg.CredentialStatus.RHSMode == "" {

@@ -12,6 +12,7 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
@@ -24,22 +25,15 @@ type StateServiceConfig struct {
 
 // StateService is a service for working with state contract
 type StateService struct {
-	rw              *sync.RWMutex
-	contractBinding *abi.State
-	rpcConfig       StateServiceConfig
+	rw             *sync.RWMutex
+	stateContracts map[string]*abi.State
 }
 
 // NewStateService creates new instance of StateService
-func NewStateService(rpcConfig StateServiceConfig) (*StateService, error) {
-	contractBinding, err := abi.NewState(rpcConfig.StateAddress, rpcConfig.EthClient.GetEthereumClient())
-	if err != nil {
-		log.Error(context.Background(), "Failed to create state contract binding", "error", err)
-		return &StateService{}, err
-	}
+func NewStateService(stateContracts map[string]*abi.State) (*StateService, error) {
 	return &StateService{
-		contractBinding: contractBinding,
-		rw:              &sync.RWMutex{},
-		rpcConfig:       rpcConfig,
+		rw:             &sync.RWMutex{},
+		stateContracts: stateContracts,
 	}, nil
 }
 
@@ -53,7 +47,13 @@ func (ss *StateService) GetLatestStateByDID(ctx context.Context, did *w3c.DID) (
 	if err != nil {
 		return abi.IStateStateInfo{}, err
 	}
-	latestState, err = ss.contractBinding.GetStateInfoById(&bind.CallOpts{Context: ctx}, id.BigInt())
+
+	contractBinding, err := ss.getContractBinding(ctx, did)
+	if err != nil {
+		return latestState, err
+	}
+
+	latestState, err = contractBinding.GetStateInfoById(&bind.CallOpts{Context: ctx}, id.BigInt())
 	if err != nil {
 		return latestState, err
 	}
@@ -62,10 +62,11 @@ func (ss *StateService) GetLatestStateByDID(ctx context.Context, did *w3c.DID) (
 
 // GetGistRootInfo returns global state info
 func (ss *StateService) GetGistRootInfo(ctx context.Context, did *w3c.DID, gist *big.Int) (abi.IStateGistRootInfo, error) {
-	var err error
-
-	// get chain ID from DID
-	globalStateInfo, err := ss.contractBinding.GetGISTRootInfo(&bind.CallOpts{Context: ctx}, gist)
+	contractBinding, err := ss.getContractBinding(ctx, did)
+	if err != nil {
+		return abi.IStateGistRootInfo{}, err
+	}
+	globalStateInfo, err := contractBinding.GetGISTRootInfo(&bind.CallOpts{Context: ctx}, gist)
 	if err != nil {
 		return abi.IStateGistRootInfo{}, err
 	}
@@ -74,17 +75,30 @@ func (ss *StateService) GetGistRootInfo(ctx context.Context, did *w3c.DID, gist 
 
 // GetGistProof returns proof for global state
 func (ss *StateService) GetGistProof(ctx context.Context, did *w3c.DID) (abi.IStateGistProof, error) {
-	var err error
+	contractBinding, err := ss.getContractBinding(ctx, did)
+	if err != nil {
+		return abi.IStateGistProof{}, err
+	}
+
 	id, err := core.IDFromDID(*did)
 	if err != nil {
 		return abi.IStateGistProof{}, err
 	}
 
-	gistProof, err := ss.contractBinding.GetGISTProof(&bind.CallOpts{Context: ctx}, id.BigInt())
+	gistProof, err := contractBinding.GetGISTProof(&bind.CallOpts{Context: ctx}, id.BigInt())
 	if err != nil {
 		log.Error(ctx, "Failed to get gist proof", "error", err)
 		return abi.IStateGistProof{}, err
 	}
 
 	return gistProof, nil
+}
+
+func (ss *StateService) getContractBinding(ctx context.Context, did *w3c.DID) (*abi.State, error) {
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "failed to get resolver prefix", "error", err)
+	}
+	contractBinding := ss.stateContracts[resolverPrefix]
+	return contractBinding, nil
 }

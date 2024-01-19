@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 )
 
 func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
@@ -191,7 +192,16 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			rsr := NewRevocationStatusResolver(tc.credentialStatusSettings)
+			cfg := &config.Configuration{
+				CredentialStatus: tc.credentialStatusSettings,
+				Ethereum: config.Ethereum{
+					URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+					ResolverPrefix: "polygon:mumbai",
+				},
+			}
+			networkResolver, err := network.NewResolver(context.Background(), *cfg, nil)
+			require.NoError(t, err)
+			rsr := NewRevocationStatusResolver(*networkResolver)
 			credentialStatus, err := rsr.GetCredentialRevocationStatus(context.Background(), *didW3c, tc.nonce, tc.issuerState, tc.credentialStatusType)
 			require.Equal(t, tc.expected.CredentialStatus, credentialStatus)
 			require.NoError(t, err)
