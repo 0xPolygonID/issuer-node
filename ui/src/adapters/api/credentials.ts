@@ -3,10 +3,15 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
-import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
+import {
+  datetimeParser,
+  getListParser,
+  getResourceParser,
+  getStrictParser,
+} from "src/adapters/parsers";
 import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
-import { List } from "src/utils/types";
+import { List, Resource } from "src/utils/types";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 
@@ -86,17 +91,19 @@ export async function getCredential({
 
 export async function getCredentials({
   env,
-  params: { did, query, status },
+  params: { did, maxResults, page, query, status },
   signal,
 }: {
   env: Env;
   params: {
     did?: string;
+    maxResults?: number;
+    page?: number;
     query?: string;
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<Response<List<Credential>>> {
+}): Promise<Response<Resource<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -108,15 +115,20 @@ export async function getCredentials({
         ...(did !== undefined ? { did } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
+        ...(page !== undefined ? { page: page.toString() } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials`,
     });
     return buildSuccessResponse(
-      getListParser(credentialParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+      getResourceParser(credentialParser)
+        .transform(({ items: { failed, successful }, meta }) => ({
+          items: {
+            failed,
+            successful,
+          },
+          meta,
         }))
         .parse(response.data)
     );
