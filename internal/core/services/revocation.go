@@ -76,11 +76,9 @@ func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerD
 		return nil, err
 	}
 
-	resolveOptions := verifiable.CredentialStatusResolveOptions{
-		IssuerDID: issuerDID,
-	}
+	resolveOptions := []verifiable.CredentialStatusResolveOpt{verifiable.WithIssuerDID(issuerDID)}
 
-	revStatus, err := resolver.Resolve(ctx, status, &resolveOptions)
+	revStatus, err := resolver.Resolve(ctx, status, resolveOptions...)
 	return &revStatus, err
 
 	// switch status.Type {
