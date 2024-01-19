@@ -85,7 +85,8 @@ func (f *Factory) initOnChainRHSCli(ctx context.Context, kmsKey *kms.KeyID) (pro
 	if err != nil {
 		return nil, err
 	}
-	cli, err := proofEth.NewReverseHashCli(f.onChainTreeStoreContract, f.ethClient.GetEthereumClient(), txOpts, f.responseTimeout)
+	opts := []proofEth.Option{proofEth.WithTxReceiptTimeout(f.responseTimeout)}
+	cli, err := proofEth.NewReverseHashCli(f.ethClient.GetEthereumClient(), f.onChainTreeStoreContract, txOpts.From, txOpts.Signer, opts...)
 	if err != nil {
 		return nil, err
 	}
