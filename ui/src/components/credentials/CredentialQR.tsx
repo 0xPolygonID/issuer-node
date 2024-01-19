@@ -6,11 +6,13 @@ import { useEnvContext } from "src/contexts/Env";
 import { WALLET_APP_STORE_URL, WALLET_PLAY_STORE_URL } from "src/utils/constants";
 
 export function CredentialQR({
+  qrCodeBase64,
   qrCodeLink,
   qrCodeRaw,
   schemaType,
   subTitle,
 }: {
+  qrCodeBase64: string;
   qrCodeLink: string;
   qrCodeRaw: string;
   schemaType: string;
@@ -28,10 +30,23 @@ export function CredentialQR({
           includeMargin
           level="H"
           style={{ height: 300 }}
-          value={qrCodeRaw}
+          value={qrCodeLink}
         />
       ),
       key: "1",
+      label: "Link",
+    },
+    {
+      children: (
+        <QRCodeSVG
+          className="full-width"
+          includeMargin
+          level="H"
+          style={{ height: 300 }}
+          value={qrCodeRaw}
+        />
+      ),
+      key: "2",
       label: "Raw JSON",
     },
     {
@@ -41,12 +56,12 @@ export function CredentialQR({
           includeMargin
           level="H"
           style={{ height: 300 }}
-          value={qrCodeLink}
+          value={qrCodeBase64}
         />
       ),
-      key: "2",
-      label: "Link",
-    },
+      key: "3",
+      label: "Base64 encoded",
+    }
   ];
 
   return (

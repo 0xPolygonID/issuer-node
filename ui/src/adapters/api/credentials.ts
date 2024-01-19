@@ -432,11 +432,16 @@ export async function createAuthQRCode({
   }
 }
 
-const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
+type IssuedQRCodeInput = {
+  qrCodeLink: string;
+  schemaType: string;
+};
+
+const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
   z.object({
     qrCodeLink: z.string(),
     schemaType: z.string(),
-  })
+  }).transform(({ qrCodeLink, schemaType }) => ({ qrCode: qrCodeLink, schemaType: schemaType }))
 );
 
 export async function getIssuedQRCodes({
