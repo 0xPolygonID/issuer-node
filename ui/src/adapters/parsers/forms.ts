@@ -137,8 +137,6 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
         z.object({
             enabled: z.literal(true),
             url:  z.string().url({
-              code: z.ZodIssueCode.custom,
-              fatal: true,
               message: `Refresh service URL must be a valid URL.`,
             })
         }),

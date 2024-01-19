@@ -414,29 +414,6 @@ export function IssueCredentialForm({
                           inputErrors={inputErrors}
                         />
 
-                        <Form.Item label="Credential Refresh Service">
-                          <Form.Item
-                            name={["refreshService", "enabled"]}
-                            noStyle
-                            valuePropName="checked"
-                          >
-                            <Checkbox
-                              checked={refreshServiceChecked}
-                              onChange={() => {
-                                setRefreshServiceChecked(!refreshServiceChecked);
-                              }}
-                            >
-                              Enable Credential Refresh Service
-                            </Checkbox>
-                          </Form.Item>
-                          <Form.Item name={["refreshService", "url"]} noStyle>
-                            <Input
-                              disabled={!refreshServiceChecked}
-                              placeholder="Valid URL of the credential refresh service"
-                            />
-                          </Form.Item>
-                        </Form.Item>
-
                         <Form.Item
                           label="Proof type"
                           name="proofTypes"
@@ -464,6 +441,31 @@ export function IssueCredentialForm({
                           </Checkbox.Group>
                         </Form.Item>
                       </Space>
+                      <Form.Item label="Refresh Service">
+                        <Space direction="vertical">
+                          <Form.Item
+                            name={["refreshService", "enabled"]}
+                            noStyle
+                            valuePropName="checked"
+                          >
+                            <Checkbox
+                              checked={refreshServiceChecked}
+                              onChange={() => {
+                                setRefreshServiceChecked(!refreshServiceChecked);
+                              }}
+                            >
+                              Enable
+                            </Checkbox>
+                          </Form.Item>
+                          <Form.Item name={["refreshService", "url"]} noStyle>
+                            <Input
+                              disabled={!refreshServiceChecked}
+                              placeholder="Valid URL of the credential refresh service"
+                            />
+                          </Form.Item>
+                        </Space>
+                      </Form.Item>
+
 
                       <Form.Item label="Credential expiration date" name="credentialExpiration">
                         <DatePicker />
