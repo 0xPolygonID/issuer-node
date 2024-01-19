@@ -206,7 +206,7 @@ func TestConnectionsGetAllByIssuerID(t *testing.T) {
 	t.Run("should get 0 connections for a the given issuerDID and non existing userDID", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "did:polygonid:polygon:mumbai:2qH7XAwnonexisting"})
 		require.NoError(t, err)
-		assert.Equal(t, 1, len(conns))
+		assert.Equal(t, 0, len(conns))
 	})
 }
 

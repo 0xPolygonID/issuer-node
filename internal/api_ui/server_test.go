@@ -2904,7 +2904,7 @@ func TestServer_GetConnections(t *testing.T) {
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
-					MaxResults: common.ToPointer(uint(1)),
+					MaxResults: common.ToPointer(uint(2)),
 				},
 			},
 			expected: expected{
