@@ -185,7 +185,7 @@ export function ConnectionsTable() {
         credentials: true,
         env,
         params: {
-          max_results: paginationMaxResults,
+          maxResults: paginationMaxResults,
           page: paginationPage,
           query: queryParam || undefined,
         },

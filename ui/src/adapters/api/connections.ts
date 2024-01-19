@@ -57,13 +57,13 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params: { max_results, page, query },
+  params: { maxResults, page, query },
   signal,
 }: {
   credentials: boolean;
   env: Env;
   params: {
-    max_results?: number;
+    maxResults?: number;
     page?: number;
     query?: string;
   };
@@ -79,7 +79,7 @@ export async function getConnections({
       params: new URLSearchParams({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(credentials ? { credentials: "true" } : {}),
-        ...(max_results !== undefined ? { max_results: max_results.toString() } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
         ...(page !== undefined ? { page: page.toString() } : {}),
       }),
       signal,
