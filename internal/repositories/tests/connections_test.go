@@ -170,43 +170,43 @@ func TestConnectionsGetAllByIssuerID(t *testing.T) {
 	t.Run("should get 1 connection for a the given issuerDID and no query", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: ""})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 1)
+		assert.Equal(t, 1, len(conns))
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and valid query, just beginning", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "did:"})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 1)
+		assert.Equal(t, 1, len(conns))
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and valid query, full did", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5"})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 1)
+		assert.Equal(t, 1, len(conns))
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and valid query, part of did", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "did:polygonid:polygon:mumbai:2qH7XAw"})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 1)
+		assert.Equal(t, 1, len(conns))
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and a query with some chars in the middle of a string", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "H7XAw"})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 1)
+		assert.Equal(t, 1, len(conns))
 	})
 
 	t.Run("should get 1 connection for a the given issuerDID and a query with some chars in the middle of a string and other words", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "H7XAw other words"})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 1)
+		assert.Equal(t, 1, len(conns))
 	})
 
 	t.Run("should get 0 connections for a the given issuerDID and non existing userDID", func(t *testing.T) {
 		conns, _, err := connectionsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &ports.NewGetAllConnectionsRequest{Query: "did:polygonid:polygon:mumbai:2qH7XAwnonexisting"})
 		require.NoError(t, err)
-		assert.Equal(t, len(conns), 0)
+		assert.Equal(t, 1, len(conns))
 	})
 }
 

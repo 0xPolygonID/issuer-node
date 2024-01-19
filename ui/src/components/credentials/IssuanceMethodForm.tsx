@@ -55,9 +55,7 @@ export function IssuanceMethodForm({
       const response = await getConnections({
         credentials: false,
         env,
-        params: {
-          maxResults: 0,
-        },
+        params: {},
         signal,
       });
 
