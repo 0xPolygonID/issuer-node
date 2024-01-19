@@ -33,7 +33,7 @@ type DirectStatus struct {
 	URL string `mapstructure:"URL"`
 }
 
-// GetURL returns the URL of the di	rect status
+// GetURL returns the URL of the direct status
 func (r *DirectStatus) GetURL() string {
 	return strings.TrimSuffix(r.URL, "/")
 }
