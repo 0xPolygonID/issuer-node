@@ -631,7 +631,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as mumbai")
 		cfg.APIUI.IdentityNetwork = "mumbai"
 	}
-
 }
 
 func getWorkingDirectory() string {
