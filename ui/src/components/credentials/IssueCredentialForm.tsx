@@ -14,7 +14,7 @@ import {
   Select,
   Space,
   Typography,
-  message
+  message,
 } from "antd";
 import { Store } from "antd/es/form/interface";
 import dayjs from "dayjs";
@@ -465,10 +465,11 @@ export function IssueCredentialForm({
                           </Form.Item>
                         </Space>
                       </Form.Item>
-
-
                       <Form.Item label="Credential expiration date" name="credentialExpiration">
-                        <DatePicker />
+                        <DatePicker
+                          format="YYYY-MM-DD HH:mm:ss"
+                          showTime={{ defaultValue: dayjs("23:59:59", "HH:mm:ss") }}
+                        />
                       </Form.Item>
                     </>
                   ) : (

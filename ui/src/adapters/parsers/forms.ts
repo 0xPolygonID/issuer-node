@@ -118,7 +118,7 @@ export type IssueCredentialFormData = {
   credentialExpiration?: dayjs.Dayjs | null;
   credentialSubject?: Record<string, unknown>;
   proofTypes: ProofType[];
-  refreshService: {enabled: boolean, url: string};
+  refreshService: { enabled: boolean; url: string };
   schemaID?: string;
 };
 
@@ -129,18 +129,18 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     proofTypes: z
       .array(z.union([z.literal("MTP"), z.literal("SIG")]))
       .min(1, "At least one proof type is required"),
-      refreshService: z.union([
-        z.object({
-          enabled: z.literal(false),
-          url: z.string(),
+    refreshService: z.union([
+      z.object({
+        enabled: z.literal(false),
+        url: z.string(),
+      }),
+      z.object({
+        enabled: z.literal(true),
+        url: z.string().url({
+          message: `Refresh service URL must be a valid URL.`,
         }),
-        z.object({
-            enabled: z.literal(true),
-            url:  z.string().url({
-              message: `Refresh service URL must be a valid URL.`,
-            })
-        }),
-        ]),
+      }),
+    ]),
     schemaID: z.string().optional(),
   })
 );
@@ -345,18 +345,16 @@ export function serializeCredentialLinkIssuance({
   if (serializedSchemaForm.success) {
     return {
       data: {
-        credentialExpiration: credentialExpiration
-          ? serializeDate(credentialExpiration, "date")
-          : null,
+        credentialExpiration: credentialExpiration ? credentialExpiration.toISOString() : null,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
         expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
         refreshService: credentialRefreshService
           ? {
-            id: credentialRefreshService,
-            type: "Iden3RefreshService2023",
-          }
+              id: credentialRefreshService,
+              type: "Iden3RefreshService2023",
+            }
           : null,
         schemaID,
         signatureProof,
@@ -402,9 +400,9 @@ export function serializeCredentialIssuance({
         mtProof,
         refreshService: credentialRefreshService
           ? {
-            id: credentialRefreshService,
-            type: "Iden3RefreshService2023",
-          }
+              id: credentialRefreshService,
+              type: "Iden3RefreshService2023",
+            }
           : null,
         signatureProof,
         type,

@@ -168,8 +168,16 @@ export function CredentialDetails() {
             </Card>
           );
         } else {
-          const { createdAt, expiresAt, proofTypes, refreshService, revoked, schemaHash, schemaType, userID } =
-            credential.data;
+          const {
+            createdAt,
+            expiresAt,
+            proofTypes,
+            refreshService,
+            revoked,
+            schemaHash,
+            schemaType,
+            userID,
+          } = credential.data;
 
           return (
             <Card
