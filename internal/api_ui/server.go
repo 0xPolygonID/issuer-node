@@ -504,12 +504,7 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		}
 	}
 
-	var expirationDate *time.Time
-	if request.Body.CredentialExpiration != nil {
-		expirationDate = &request.Body.CredentialExpiration.Time
-	}
-
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService))
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, request.Body.CredentialExpiration, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService))
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {

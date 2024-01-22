@@ -15,7 +15,6 @@ import (
 	uuid "github.com/google/uuid"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -131,21 +130,21 @@ type CreateCredentialRequest struct {
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
-	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
+	RefreshService    *RefreshService        `json:"refreshService"`
 	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
 	Type              string                 `json:"type"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	CredentialExpiration *openapi_types.Date `json:"credentialExpiration,omitempty"`
-	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	Expiration           *time.Time          `json:"expiration,omitempty"`
-	LimitedClaims        *int                `json:"limitedClaims"`
-	MtProof              bool                `json:"mtProof"`
-	RefreshService       *RefreshService     `json:"refreshService,omitempty"`
-	SchemaID             uuid.UUID           `json:"schemaID"`
-	SignatureProof       bool                `json:"signatureProof"`
+	CredentialExpiration *time.Time        `json:"credentialExpiration,omitempty"`
+	CredentialSubject    CredentialSubject `json:"credentialSubject"`
+	Expiration           *time.Time        `json:"expiration,omitempty"`
+	LimitedClaims        *int              `json:"limitedClaims"`
+	MtProof              bool              `json:"mtProof"`
+	RefreshService       *RefreshService   `json:"refreshService"`
+	SchemaID             uuid.UUID         `json:"schemaID"`
+	SignatureProof       bool              `json:"signatureProof"`
 }
 
 // Credential defines model for Credential.
