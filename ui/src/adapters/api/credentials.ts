@@ -121,17 +121,7 @@ export async function getCredentials({
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    return buildSuccessResponse(
-      getResourceParser(credentialParser)
-        .transform(({ items: { failed, successful }, meta }) => ({
-          items: {
-            failed,
-            successful,
-          },
-          meta,
-        }))
-        .parse(response.data)
-    );
+    return buildSuccessResponse(getResourceParser(credentialParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -396,14 +386,16 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
 
 export type AuthQRCode = {
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  qrCode: string;
+  qrCodeLink: string;
+  qrCodeRaw: string;
   sessionID: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
-    qrCode: z.string(),
+    qrCodeLink: z.string(),
+    qrCodeRaw: z.string(),
     sessionID: z.string(),
   })
 );
@@ -430,14 +422,21 @@ export async function createAuthQRCode({
   }
 }
 
-const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
-  z.object({
-    qrCodeLink: z.string(),
-    schemaType: z.string(),
-  })
+type IssuedQRCodeInput = {
+  qrCodeLink: string;
+  schemaType: string;
+};
+
+const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
+  z
+    .object({
+      qrCodeLink: z.string(),
+      schemaType: z.string(),
+    })
+    .transform(({ qrCodeLink, schemaType }) => ({ qrCode: qrCodeLink, schemaType: schemaType }))
 );
 
-export async function getIssuedQRCode({
+export async function getIssuedQRCodes({
   credentialID,
   env,
   signal,
@@ -445,15 +444,29 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<IssuedQRCode>> {
+}): Promise<Response<[IssuedQRCode, IssuedQRCode]>> {
   try {
-    const response = await axios({
-      baseURL: env.api.url,
-      method: "GET",
-      signal,
-      url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
-    });
-    return buildSuccessResponse(issuedQRCodeParser.parse(response.data));
+    const [qrLinkResponse, qrRawResponse] = await Promise.all([
+      axios({
+        baseURL: env.api.url,
+        method: "GET",
+        params: { type: "link" },
+        signal,
+        url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+      }),
+      axios({
+        baseURL: env.api.url,
+        method: "GET",
+        params: { type: "raw" },
+        signal,
+        url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+      }),
+    ]);
+
+    return buildSuccessResponse([
+      issuedQRCodeParser.parse(qrLinkResponse.data),
+      issuedQRCodeParser.parse(qrRawResponse.data),
+    ]);
   } catch (error) {
     return buildErrorResponse(error);
   }

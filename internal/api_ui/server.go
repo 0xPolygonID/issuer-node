@@ -595,22 +595,20 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
-	qrContent := createLinkQrCodeResponse.QrCode
 	// Backward compatibility. If the type is raw, we return the raw qr code
-	if req.Params.Type != nil && *req.Params.Type == CreateLinkQrCodeParamsTypeRaw {
-		rawQrCode, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
-		if err != nil {
-			log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
-			return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
-		}
-		qrContent = string(rawQrCode)
+	qrCodeRaw, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
+	if err != nil {
+		log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
+		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 	}
+
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.APIUI.IssuerName,
 			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode:     qrContent,
+		QrCodeLink: createLinkQrCodeResponse.QrCode,
+		QrCodeRaw:  string(qrCodeRaw),
 		SessionID:  createLinkQrCodeResponse.SessionID,
 		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil

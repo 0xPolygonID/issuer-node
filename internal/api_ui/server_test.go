@@ -2904,7 +2904,7 @@ func TestServer_GetConnections(t *testing.T) {
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
-					MaxResults: common.ToPointer(uint(1)),
+					MaxResults: common.ToPointer(uint(2)),
 				},
 			},
 			expected: expected{
@@ -4298,7 +4298,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	type expected struct {
 		linkDetail Link
 		httpCode   int
-		qrWithLink bool
 		message    string
 	}
 
@@ -4320,8 +4319,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		{
 			name: "Expired link",
 			request: CreateLinkQrCodeRequestObject{
-				Id:     linkExpired.ID,
-				Params: CreateLinkQrCodeParams{Type: nil},
+				Id: linkExpired.ID,
 			},
 			expected: expected{
 				httpCode: http.StatusNotFound,
@@ -4329,38 +4327,12 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 			},
 		},
 		{
-			name: "Happy path without qr type, expecting a qr code with link",
+			name: "Happy path",
 			request: CreateLinkQrCodeRequestObject{
-				Id:     link.ID,
-				Params: CreateLinkQrCodeParams{Type: nil},
+				Id: link.ID,
 			},
 			expected: expected{
 				linkDetail: linkDetail,
-				qrWithLink: true,
-				httpCode:   http.StatusOK,
-			},
-		},
-		{
-			name: "Happy path with qr type == link",
-			request: CreateLinkQrCodeRequestObject{
-				Id:     link.ID,
-				Params: CreateLinkQrCodeParams{Type: common.ToPointer(CreateLinkQrCodeParamsTypeLink)},
-			},
-			expected: expected{
-				linkDetail: linkDetail,
-				qrWithLink: true,
-				httpCode:   http.StatusOK,
-			},
-		},
-		{
-			name: "Happy path with qr type == raw",
-			request: CreateLinkQrCodeRequestObject{
-				Id:     link.ID,
-				Params: CreateLinkQrCodeParams{Type: common.ToPointer(CreateLinkQrCodeParamsTypeRaw)},
-			},
-			expected: expected{
-				linkDetail: linkDetail,
-				qrWithLink: false,
 				httpCode:   http.StatusOK,
 			},
 		},
@@ -4368,9 +4340,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			apiURL := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.request.Id.String())
-			if tc.request.Params.Type != nil {
-				apiURL = apiURL + "?type=" + string(*tc.request.Params.Type)
-			}
 
 			req, err := http.NewRequest(http.MethodPost, apiURL, tests.JSONBody(t, nil))
 			require.NoError(t, err)
@@ -4386,20 +4355,17 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 
 				realQR := protocol.AuthorizationRequestMessage{}
-				if tc.expected.qrWithLink {
-					qrLink := checkQRfetchURL(t, response.QrCode)
 
-					// Now let's fetch the original QR using the url
-					rr := httptest.NewRecorder()
-					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
-					require.NoError(t, err)
-					handler.ServeHTTP(rr, req)
-					require.Equal(t, http.StatusOK, rr.Code)
+				qrLink := checkQRfetchURL(t, response.QrCodeLink)
 
-					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
-				} else {
-					require.NoError(t, json.Unmarshal([]byte(response.QrCode), &realQR))
-				}
+				// Now let's fetch the original QR using the url
+				rr := httptest.NewRecorder()
+				req, err := http.NewRequest(http.MethodGet, qrLink, nil)
+				require.NoError(t, err)
+				handler.ServeHTTP(rr, req)
+				require.Equal(t, http.StatusOK, rr.Code)
+
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
 
 				assert.NotNil(t, realQR.Body)
 				assert.Equal(t, "authentication", realQR.Body.Reason)
