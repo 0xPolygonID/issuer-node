@@ -655,37 +655,17 @@ func (c *claim) createVC(ctx context.Context, claimReq *ports.CreateClaimRequest
 }
 
 func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
-	type guardFunc func() error
-
-	guards := []guardFunc{
-		// check if schema's URL is valid
-		func() error {
-			if _, err := url.ParseRequestURI(req.Schema); err != nil {
-				return ErrMalformedURL
-			}
-			return nil
-		},
-		// check if refresh service has supported type
-		func() error {
-			if req.RefreshService == nil {
-				return nil
-			}
-			if req.Expiration == nil {
-				return ErrRefreshServiceLacksExpirationTime
-			}
-			if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
-				return ErrUnsupportedRefreshServiceType
-			}
-			return nil
-		},
+	if _, err := url.ParseRequestURI(req.Schema); err != nil {
+		return ErrMalformedURL
 	}
-
-	for _, guard := range guards {
-		if err := guard(); err != nil {
-			return err
+	if req.RefreshService != nil {
+		if req.Expiration == nil {
+			return ErrRefreshServiceLacksExpirationTime
+		}
+		if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
+			return ErrUnsupportedRefreshServiceType
 		}
 	}
-
 	return nil
 }
 
