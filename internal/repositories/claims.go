@@ -570,7 +570,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			credential_status,
 			core_claim 
 		FROM claims
-		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer AND mtp = true
+		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer AND (mtp = true OR revoked = true)
 		`, did.String())
 	} else {
 		rows, err = conn.Query(ctx, `
@@ -595,7 +595,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			core_claim 
 		FROM claims
 		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
-		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer AND mtp = true
+		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer AND (mtp = true OR revoked = true)
 		`, did.String(), state.Hex())
 	}
 
