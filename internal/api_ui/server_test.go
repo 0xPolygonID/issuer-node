@@ -4608,55 +4608,55 @@ func TestServer_GetStateStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 
-	iden1, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	idenWithSignatureClaim, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
-	did1, err := w3c.ParseDID(iden1.Identifier)
+	didSignatureClaim, err := w3c.ParseDID(idenWithSignatureClaim.Identifier)
 	require.NoError(t, err)
 
 	cfg1 := &config.Configuration{
 		APIUI: config.APIUI{
-			IssuerDID: *did1,
+			IssuerDID: *didSignatureClaim,
 		},
 	}
 
-	server1 := NewServer(cfg1, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did1, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil))
+	serverWithSignatureClaim := NewServer(cfg1, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didSignatureClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil))
 	require.NoError(t, err)
-	handler1 := getHandler(ctx, server1)
+	handlerWithSignatureClaim := getHandler(ctx, serverWithSignatureClaim)
 
-	iden2, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
-	require.NoError(t, err)
-
-	did2, err := w3c.ParseDID(iden2.Identifier)
+	idenWithMTPClaim, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
-	cfg2 := &config.Configuration{
+	didWithMTPClaim, err := w3c.ParseDID(idenWithMTPClaim.Identifier)
+	require.NoError(t, err)
+
+	cfgWithMTPClaim := &config.Configuration{
 		APIUI: config.APIUI{
-			IssuerDID: *did2,
+			IssuerDID: *didWithMTPClaim,
 		},
 	}
-	server2 := NewServer(cfg2, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did2, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true, verifiable.SparseMerkleTreeProof, nil, nil))
+	serverWithMTPClaim := NewServer(cfgWithMTPClaim, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithMTPClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true, verifiable.SparseMerkleTreeProof, nil, nil))
 	require.NoError(t, err)
-	handler2 := getHandler(ctx, server2)
+	handlerWithMTPClaim := getHandler(ctx, serverWithMTPClaim)
 
-	iden3, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
-	require.NoError(t, err)
-
-	did3, err := w3c.ParseDID(iden3.Identifier)
+	idenWithRevokedClaim, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
-	cfg3 := &config.Configuration{
+	didWithRevokedClaim, err := w3c.ParseDID(idenWithRevokedClaim.Identifier)
+	require.NoError(t, err)
+
+	cfgWithRevokedClaim := &config.Configuration{
 		APIUI: config.APIUI{
-			IssuerDID: *did3,
+			IssuerDID: *didWithRevokedClaim,
 		},
 	}
-	server3 := NewServer(cfg3, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
-	cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did3, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil))
+	serverWithRevokedClaim := NewServer(cfgWithRevokedClaim, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil))
 	require.NoError(t, err)
-	require.NoError(t, claimsService.Revoke(ctx, cfg3.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
-	handler3 := getHandler(ctx, server3)
+	require.NoError(t, claimsService.Revoke(ctx, cfgWithRevokedClaim.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
+	handlerWithRevokedClaim := getHandler(ctx, serverWithRevokedClaim)
 
 	type expected struct {
 		response GetStateStatus200JSONResponse
@@ -4672,7 +4672,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	for _, tc := range []testConfig{
 		{
 			name:    "No auth header",
-			handler: handler1,
+			handler: handlerWithSignatureClaim,
 			auth:    authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
@@ -4681,7 +4681,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 		{
 			name:    "No states to process",
 			auth:    authOk,
-			handler: handler1,
+			handler: handlerWithSignatureClaim,
 			expected: expected{
 				response: GetStateStatus200JSONResponse{PendingActions: false},
 				httpCode: http.StatusOK,
@@ -4689,7 +4689,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 		},
 		{
 			name:    "New state to process because there is a new credential with mtp proof",
-			handler: handler2,
+			handler: handlerWithMTPClaim,
 			auth:    authOk,
 			expected: expected{
 				response: GetStateStatus200JSONResponse{PendingActions: true},
@@ -4698,7 +4698,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 		},
 		{
 			name:    "New state to process because there is a revoked credential",
-			handler: handler3,
+			handler: handlerWithRevokedClaim,
 			auth:    authOk,
 			expected: expected{
 				response: GetStateStatus200JSONResponse{PendingActions: true},
