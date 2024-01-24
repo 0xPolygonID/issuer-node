@@ -56,7 +56,7 @@ const formLiteralParser = getStrictParser<FormLiteralInput, FormLiteral>()(
     z.boolean(),
     z.null(),
     z.undefined(),
-    dayjsInstanceParser.transform((value) => (value.isValid() ? value.toISOString() : undefined)),
+    dayjsInstanceParser.transform((value) => (value.isValid() ? serializeDate(value, "date-time") : undefined)),
   ])
 );
 
@@ -337,9 +337,9 @@ export function serializeCredentialLinkIssuance({
   if (serializedSchemaForm.success) {
     return {
       data: {
-        credentialExpiration: credentialExpiration ? credentialExpiration.toISOString() : null,
+        credentialExpiration: credentialExpiration ? serializeDate(credentialExpiration, "date-time") : null,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
-        expiration: linkAccessibleUntil ? linkAccessibleUntil.toISOString() : null,
+        expiration: linkAccessibleUntil ? serializeDate(linkAccessibleUntil, "date-time") : null,
         limitedClaims: linkMaximumIssuance ?? null,
         mtProof,
         refreshService: credentialRefreshService
@@ -388,7 +388,7 @@ export function serializeCredentialIssuance({
       data: {
         credentialSchema,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
-        expiration: credentialExpiration ? dayjs(credentialExpiration).toISOString() : null,
+        expiration: credentialExpiration ? serializeDate(dayjs(credentialExpiration), "date-time") : null,
         mtProof,
         refreshService: credentialRefreshService
           ? {
