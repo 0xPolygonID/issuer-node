@@ -164,14 +164,6 @@ export const credentialFormParser = getStrictParser<
         issueCredential;
       const { type } = issuanceMethod;
 
-      if (refreshService.enabled && credentialExpiration === undefined) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          fatal: true,
-          message: `Credential expiration must set when refresh service is enabled.`,
-        });
-      }
-
       const baseIssuance = {
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
         credentialRefreshService: refreshService.enabled ? refreshService.url : null,
