@@ -108,6 +108,11 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	return claim, nil
 }
 
+// GetRevoked returns all the revoked credentials for the given state
+func (c *claim) GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error) {
+	return c.icRepo.GetRevoked(ctx, c.storage.Pgx, currentState)
+}
+
 // CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
 func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
@@ -650,37 +655,17 @@ func (c *claim) createVC(ctx context.Context, claimReq *ports.CreateClaimRequest
 }
 
 func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
-	type guardFunc func() error
-
-	guards := []guardFunc{
-		// check if schema's URL is valid
-		func() error {
-			if _, err := url.ParseRequestURI(req.Schema); err != nil {
-				return ErrMalformedURL
-			}
-			return nil
-		},
-		// check if refresh service has supported type
-		func() error {
-			if req.RefreshService == nil {
-				return nil
-			}
-			if req.Expiration == nil {
-				return ErrRefreshServiceLacksExpirationTime
-			}
-			if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
-				return ErrUnsupportedRefreshServiceType
-			}
-			return nil
-		},
+	if _, err := url.ParseRequestURI(req.Schema); err != nil {
+		return ErrMalformedURL
 	}
-
-	for _, guard := range guards {
-		if err := guard(); err != nil {
-			return err
+	if req.RefreshService != nil {
+		if req.Expiration == nil {
+			return ErrRefreshServiceLacksExpirationTime
+		}
+		if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
+			return ErrUnsupportedRefreshServiceType
 		}
 	}
-
 	return nil
 }
 

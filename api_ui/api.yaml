@@ -881,16 +881,6 @@ paths:
       summary: Create Authentication Link QRCode
       operationId: CreateLinkQrCode
       parameters:
-        - name: type
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [ raw, link ]
-          description: >
-            Type:
-              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
-              * `raw` - Return the raw QR code. (default value)
         - $ref: '#/components/parameters/id'
       tags:
         - Links
@@ -1154,19 +1144,21 @@ components:
           type: string
           example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential
 
-
     CredentialLinkQrCodeResponse:
       type: object
       required:
         - issuer
-        - qrCode
+        - qrCodeLink
+        - qrCodeRaw
         - sessionID
         - linkID
         - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
-        qrCode:
+        qrCodeRaw:
+          type: string
+        qrCodeLink:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:

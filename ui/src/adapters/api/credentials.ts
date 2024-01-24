@@ -3,7 +3,12 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
-import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
+import {
+  datetimeParser,
+  getListParser,
+  getResourceParser,
+  getStrictParser,
+} from "src/adapters/parsers";
 import {
   Credential,
   Env,
@@ -15,7 +20,7 @@ import {
   RefreshService,
 } from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
-import { List } from "src/utils/types";
+import { List, Resource } from "src/utils/types";
 
 type ProofTypeInput = "BJJSignature2021" | "SparseMerkleTreeProof";
 
@@ -98,17 +103,19 @@ export async function getCredential({
 
 export async function getCredentials({
   env,
-  params: { did, query, status },
+  params: { did, maxResults, page, query, status },
   signal,
 }: {
   env: Env;
   params: {
     did?: string;
+    maxResults?: number;
+    page?: number;
     query?: string;
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
-}): Promise<Response<List<Credential>>> {
+}): Promise<Response<Resource<Credential>>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
@@ -120,18 +127,13 @@ export async function getCredentials({
         ...(did !== undefined ? { did } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
+        ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
+        ...(page !== undefined ? { page: page.toString() } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials`,
     });
-    return buildSuccessResponse(
-      getListParser(credentialParser)
-        .transform(({ failed, successful }) => ({
-          failed,
-          successful: successful.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
-        }))
-        .parse(response.data)
-    );
+    return buildSuccessResponse(getResourceParser(credentialParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
@@ -398,14 +400,16 @@ type AuthQRCodeInput = Omit<AuthQRCode, "linkDetail"> & {
 
 export type AuthQRCode = {
   linkDetail: { proofTypes: ProofType[]; schemaType: string };
-  qrCode: string;
+  qrCodeLink: string;
+  qrCodeRaw: string;
   sessionID: string;
 };
 
 const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
   z.object({
     linkDetail: z.object({ proofTypes: proofTypeParser, schemaType: z.string() }),
-    qrCode: z.string(),
+    qrCodeLink: z.string(),
+    qrCodeRaw: z.string(),
     sessionID: z.string(),
   })
 );
@@ -432,14 +436,21 @@ export async function createAuthQRCode({
   }
 }
 
-const issuedQRCodeParser = getStrictParser<IssuedQRCode>()(
-  z.object({
-    qrCodeLink: z.string(),
-    schemaType: z.string(),
-  })
+type IssuedQRCodeInput = {
+  qrCodeLink: string;
+  schemaType: string;
+};
+
+const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
+  z
+    .object({
+      qrCodeLink: z.string(),
+      schemaType: z.string(),
+    })
+    .transform(({ qrCodeLink, schemaType }) => ({ qrCode: qrCodeLink, schemaType: schemaType }))
 );
 
-export async function getIssuedQRCode({
+export async function getIssuedQRCodes({
   credentialID,
   env,
   signal,
@@ -447,15 +458,29 @@ export async function getIssuedQRCode({
   credentialID: string;
   env: Env;
   signal: AbortSignal;
-}): Promise<Response<IssuedQRCode>> {
+}): Promise<Response<[IssuedQRCode, IssuedQRCode]>> {
   try {
-    const response = await axios({
-      baseURL: env.api.url,
-      method: "GET",
-      signal,
-      url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
-    });
-    return buildSuccessResponse(issuedQRCodeParser.parse(response.data));
+    const [qrLinkResponse, qrRawResponse] = await Promise.all([
+      axios({
+        baseURL: env.api.url,
+        method: "GET",
+        params: { type: "link" },
+        signal,
+        url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+      }),
+      axios({
+        baseURL: env.api.url,
+        method: "GET",
+        params: { type: "raw" },
+        signal,
+        url: `${API_VERSION}/credentials/${credentialID}/qrcode`,
+      }),
+    ]);
+
+    return buildSuccessResponse([
+      issuedQRCodeParser.parse(qrLinkResponse.data),
+      issuedQRCodeParser.parse(qrRawResponse.data),
+    ]);
   } catch (error) {
     return buildErrorResponse(error);
   }

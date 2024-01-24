@@ -164,7 +164,7 @@ func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, er
 	return resp, nil
 }
 
-func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter *pagination.Filter, total uint) (ConnectionsPaginated, error) {
+func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter pagination.Filter, total uint) (ConnectionsPaginated, error) {
 	resp, err := connectionsResponse(conns)
 	if err != nil {
 		return ConnectionsPaginated{}, err
@@ -173,13 +173,13 @@ func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter *paginat
 	connsPag := ConnectionsPaginated{
 		Items: resp,
 		Meta: PaginatedMetadata{
-			Page:  1, // default
-			Total: total,
+			MaxResults: pagFilter.MaxResults,
+			Page:       1, // default
+			Total:      total,
 		},
 	}
-	if pagFilter != nil {
+	if pagFilter.Page != nil {
 		connsPag.Meta.Page = *pagFilter.Page
-		connsPag.Meta.MaxResults = pagFilter.MaxResults
 	}
 
 	return connsPag, nil

@@ -6,12 +6,13 @@ import {
   Row,
   Space,
   Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
   message,
 } from "antd";
-import { ColumnsType } from "antd/es/table";
+
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -87,7 +88,7 @@ export function IssuerState() {
     [env]
   );
 
-  const tableColumns: ColumnsType<Transaction> = [
+  const tableColumns: TableColumnsType<Transaction> = [
     {
       dataIndex: "txID",
       ellipsis: { showTitle: false },

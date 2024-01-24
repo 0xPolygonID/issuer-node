@@ -15,28 +15,24 @@ import (
 type NewGetAllConnectionsRequest struct {
 	WithCredentials bool
 	Query           string
-	Pagination      *pagination.Filter
+	Pagination      pagination.Filter
 	OrderBy         sqltools.OrderByFilters
 }
 
 // NewGetAllRequest returns the request object for obtaining all connections
 func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResults *uint, orderBy sqltools.OrderByFilters) *NewGetAllConnectionsRequest {
-	var (
-		connQuery string
-		pagFilter *pagination.Filter
-	)
+	var connQuery string
+
 	if query != nil {
 		connQuery = *query
 	}
 
-	if page != nil {
-		pagFilter = pagination.NewFilter(maxResults, page)
-	}
+	pagFilter := pagination.NewFilter(maxResults, page)
 
 	return &NewGetAllConnectionsRequest{
 		WithCredentials: withCredentials != nil && *withCredentials,
 		Query:           connQuery,
-		Pagination:      pagFilter,
+		Pagination:      *pagFilter,
 		OrderBy:         orderBy,
 	}
 }
