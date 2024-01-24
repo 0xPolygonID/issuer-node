@@ -9,6 +9,7 @@ export type {
   Link,
   LinkStatus,
   ProofType,
+  RefreshService
 } from "src/domain/credential";
 
 export type { Env } from "src/domain/env";

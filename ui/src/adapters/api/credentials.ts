@@ -4,7 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
-import { Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType } from "src/domain";
+import {Credential, Env, IssuedQRCode, Json, Link, LinkStatus, ProofType, RefreshService} from "src/domain";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -44,7 +44,7 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
     expiresAt: datetimeParser.nullable(),
     id: z.string(),
     proofTypes: proofTypeParser,
-    refreshService: z.object({ id: z.string(), type: z.string() }).nullable(),
+    refreshService: z.object({ id: z.string(), type: z.literal("Iden3RefreshService2023") }).nullable(),
     revNonce: z.number(),
     revoked: z.boolean(),
     schemaHash: z.string(),
@@ -131,10 +131,7 @@ export type CreateCredential = {
   credentialSubject: Json;
   expiration: string | null;
   mtProof: boolean;
-  refreshService: {
-    id: string;
-    type: "Iden3RefreshService2023";
-  } | null;
+  refreshService: RefreshService | null;
   signatureProof: boolean;
   type: string;
 };
@@ -356,10 +353,7 @@ export type CreateLink = {
   expiration: string | null;
   limitedClaims: number | null;
   mtProof: boolean;
-  refreshService: {
-    id: string;
-    type: "Iden3RefreshService2023";
-  } | null;
+  refreshService: RefreshService | null;
   schemaID: string;
   signatureProof: boolean;
 };

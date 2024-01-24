@@ -4,7 +4,7 @@ export type ProofType = "MTP" | "SIG";
 
 export type RefreshService = {
   id: string;
-  type: string;
+  type: "Iden3RefreshService2023";
 };
 
 export type Credential = {
