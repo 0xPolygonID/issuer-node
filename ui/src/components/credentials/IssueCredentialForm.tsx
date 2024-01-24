@@ -23,7 +23,7 @@ import { z } from "zod";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
-import {dayjsInstanceParser, IssueCredentialFormData, serializeSchemaForm} from "src/adapters/parsers/forms";
+import {IssueCredentialFormData, dayjsInstanceParser, serializeSchemaForm} from "src/adapters/parsers/forms";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";

@@ -24,7 +24,7 @@ type FormInput = { [key: string]: FormLiteralInput | FormInput };
 
 type CredentialIssuance = {
   credentialExpiration: Date | undefined;
-  credentialRefreshService: string | null;
+  credentialRefreshService: string | undefined;
   credentialSubject: Record<string, unknown> | undefined;
   mtProof: boolean;
   signatureProof: boolean;
@@ -36,7 +36,6 @@ export type CredentialDirectIssuance = CredentialIssuance & {
 };
 
 export type CredentialLinkIssuance = CredentialIssuance & {
-  credentialRefreshService: string | null;
   linkAccessibleUntil: Date | undefined;
   linkMaximumIssuance: number | undefined;
   type: "credentialLink";
@@ -166,7 +165,7 @@ export const credentialFormParser = getStrictParser<
 
       const baseIssuance = {
         credentialExpiration: credentialExpiration ? credentialExpiration.toDate() : undefined,
-        credentialRefreshService: refreshService.enabled ? refreshService.url : null,
+        credentialRefreshService: refreshService.enabled ? refreshService.url : undefined,
         credentialSubject,
         mtProof: proofTypes.includes("MTP"),
         signatureProof: proofTypes.includes("SIG"),
