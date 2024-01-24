@@ -179,7 +179,9 @@ export function CredentialDetails() {
             userID,
           } = credential.data;
 
-          const qrCodeLink = window.location.origin + generatePath(ROUTES.credentialIssuedQR.path,{ credentialID: credentialID})
+          const qrCodeLink =
+            window.location.origin +
+            generatePath(ROUTES.credentialIssuedQR.path, { credentialID: credentialID });
 
           return (
             <Card
@@ -240,12 +242,7 @@ export function CredentialDetails() {
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
 
-                    <Detail
-                      copyable
-                      href={qrCodeLink}
-                      label="QR code link"
-                      text={qrCodeLink}
-                    />
+                    <Detail copyable href={qrCodeLink} label="QR code link" text={qrCodeLink} />
                   </Space>
                 </Card>
 

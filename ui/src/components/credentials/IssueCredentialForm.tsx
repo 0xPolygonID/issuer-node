@@ -23,7 +23,11 @@ import { z } from "zod";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
-import {IssueCredentialFormData, dayjsInstanceParser, serializeSchemaForm} from "src/adapters/parsers/forms";
+import {
+  IssueCredentialFormData,
+  dayjsInstanceParser,
+  serializeSchemaForm,
+} from "src/adapters/parsers/forms";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
@@ -467,9 +471,9 @@ export function IssueCredentialForm({
                                   refreshServiceChecked
                                     ? z.string().url().parseAsync(value)
                                     : Promise.resolve(true),
-                              }
-                             ]}
-                           >
+                              },
+                            ]}
+                          >
                             <Input
                               disabled={!refreshServiceChecked}
                               placeholder="Valid URL of the credential refresh service"
@@ -482,12 +486,13 @@ export function IssueCredentialForm({
                         name="credentialExpiration"
                         rules={[
                           {
-                            message: 'Credential expiration must set when refresh service is enabled.',
+                            message:
+                              "Credential expiration must set when refresh service is enabled.",
                             validator: (_, value) =>
                               refreshServiceChecked
                                 ? dayjsInstanceParser.parseAsync(value)
                                 : Promise.resolve(true),
-                          }
+                          },
                         ]}
                       >
                         <DatePicker
