@@ -179,6 +179,8 @@ export function CredentialDetails() {
             userID,
           } = credential.data;
 
+          const qrCodeLink = window.location.origin + generatePath(ROUTES.credentialIssuedQR.path,{ credentialID: credentialID})
+
           return (
             <Card
               className="centered"
@@ -226,7 +228,7 @@ export function CredentialDetails() {
 
                     <Detail
                       label="Refresh Service"
-                      text={refreshService ? " " + refreshService.id : "-"}
+                      text={refreshService ? refreshService.id : "-"}
                     />
 
                     <Detail
@@ -240,11 +242,9 @@ export function CredentialDetails() {
 
                     <Detail
                       copyable
+                      href={qrCodeLink}
                       label="QR code link"
-                      text={`${window.location.origin}${generatePath(
-                        ROUTES.credentialIssuedQR.path,
-                        { credentialID }
-                      )}`}
+                      text={qrCodeLink}
                     />
                   </Space>
                 </Card>
