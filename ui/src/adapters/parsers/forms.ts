@@ -43,7 +43,7 @@ export type CredentialLinkIssuance = CredentialIssuance & {
 };
 
 // Parsers
-const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
+export const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
   z.custom<dayjs.Dayjs>(isDayjs, {
     message: "The provided input is not a valid Dayjs instance",
   })
