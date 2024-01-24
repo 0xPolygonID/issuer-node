@@ -65,6 +65,46 @@ func NewClaims() ports.ClaimsRepository {
 	return &claims{}
 }
 
+// GetRevoked returns all the revoked claims from the given state
+func (c *claims) GetRevoked(ctx context.Context, conn db.Querier, currentState string) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+		issuer,
+		schema_hash,
+		schema_url,
+		schema_type,
+		other_identifier,
+		expiration,
+		updatable,
+		claims.version,
+		rev_nonce,
+		signature_proof,
+		mtp_proof,
+		data,
+		claims.identifier,
+		identity_state,
+		claims.metadata,
+		credential_status,
+		core_claim,
+		revoked,
+		mtp,
+		claims.created_at
+	FROM claims
+	LEFT JOIN revocation ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier
+	WHERE claims.identity_state = $1`
+
+	rows, err := conn.Query(ctx, query, currentState)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, err := processClaims(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, nil
+}
+
 func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error) {
 	var err error
 	id := claim.ID
@@ -530,7 +570,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			credential_status,
 			core_claim 
 		FROM claims
-		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer
+		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer AND (mtp = true OR revoked = true)
 		`, did.String())
 	} else {
 		rows, err = conn.Query(ctx, `
@@ -555,7 +595,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			core_claim 
 		FROM claims
 		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
-		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer
+		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer AND (mtp = true OR revoked = true)
 		`, did.String(), state.Hex())
 	}
 

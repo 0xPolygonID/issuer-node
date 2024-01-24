@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { getIssuedQRCode } from "src/adapters/api/credentials";
+import { getIssuedQRCodes } from "src/adapters/api/credentials";
 import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
@@ -13,7 +13,9 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 export function CredentialIssuedQR() {
   const env = useEnvContext();
 
-  const [issuedQRCode, setIssuedQRCode] = useState<AsyncTask<IssuedQRCode, AppError>>({
+  const [issuedQRCodes, setIssuedQRCodes] = useState<
+    AsyncTask<[IssuedQRCode, IssuedQRCode], AppError>
+  >({
     status: "pending",
   });
 
@@ -22,15 +24,15 @@ export function CredentialIssuedQR() {
   const createCredentialQR = useCallback(
     async (signal: AbortSignal) => {
       if (credentialID) {
-        setIssuedQRCode({ status: "loading" });
+        setIssuedQRCodes({ status: "loading" });
 
-        const response = await getIssuedQRCode({ credentialID, env, signal });
+        const response = await getIssuedQRCodes({ credentialID, env, signal });
 
         if (response.success) {
-          setIssuedQRCode({ data: response.data, status: "successful" });
+          setIssuedQRCodes({ data: response.data, status: "successful" });
         } else {
           if (!isAbortedError(response.error)) {
-            setIssuedQRCode({ error: response.error, status: "failed" });
+            setIssuedQRCodes({ error: response.error, status: "failed" });
           }
         }
       }
@@ -46,27 +48,29 @@ export function CredentialIssuedQR() {
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);
-    setIssuedQRCode({ status: "pending" });
+    setIssuedQRCodes({ status: "pending" });
   };
 
-  if (hasAsyncTaskFailed(issuedQRCode)) {
+  if (hasAsyncTaskFailed(issuedQRCodes)) {
     return (
       <ErrorResult
-        error={issuedQRCode.error.message}
+        error={issuedQRCodes.error.message}
         labelRetry="Start again"
         onRetry={onStartAgain}
       />
     );
   }
 
-  if (!isAsyncTaskDataAvailable(issuedQRCode)) {
+  if (!isAsyncTaskDataAvailable(issuedQRCodes)) {
     return <LoadingResult />;
   }
 
+  const [issuedQRCodeLink, issuedQRCodeRaw] = issuedQRCodes.data;
   return (
     <CredentialQR
-      qrCode={issuedQRCode.data.qrCodeLink}
-      schemaType={issuedQRCode.data.schemaType}
+      qrCodeLink={issuedQRCodeLink.qrCode}
+      qrCodeRaw={issuedQRCodeRaw.qrCode}
+      schemaType={issuedQRCodeLink.schemaType}
       subTitle="Scan the QR code with your Polygon ID wallet to add the credential."
     />
   );

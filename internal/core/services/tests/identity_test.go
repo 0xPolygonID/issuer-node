@@ -82,7 +82,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		{
 			name:            "should get a new state for identity without claim",
 			did:             did2,
-			shouldReturnErr: false,
+			shouldReturnErr: true,
 		},
 		{
 			name:            "should return an error",

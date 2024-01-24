@@ -14,6 +14,7 @@ import (
 // ClaimsRepository is the interface that defines the available methods
 type ClaimsRepository interface {
 	Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error)
+	GetRevoked(ctx context.Context, conn db.Querier, currentState string) ([]*domain.Claim, error)
 	Revoke(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error
 	RevokeNonce(ctx context.Context, conn db.Querier, revocation *domain.Revocation) error
 	GetByRevocationNonce(ctx context.Context, conn db.Querier, identifier *w3c.DID, revocationNonce domain.RevNonceUint64) ([]*domain.Claim, error)

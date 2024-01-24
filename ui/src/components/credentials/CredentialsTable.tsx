@@ -7,16 +7,18 @@ import {
   RadioChangeEvent,
   Row,
   Space,
+  Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
 } from "antd";
-import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
@@ -34,6 +36,9 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DEFAULT_PAGINATION_MAX_RESULTS,
+  DEFAULT_PAGINATION_PAGE,
+  DEFAULT_PAGINATION_TOTAL,
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
@@ -41,6 +46,8 @@ import {
   ISSUED,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
+  PAGINATION_MAX_RESULTS_PARAM,
+  PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
   REVOCATION,
   REVOKE,
@@ -67,11 +74,27 @@ export function CredentialsTable() {
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
 
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(
+    searchParams.get(PAGINATION_PAGE_PARAM)
+  );
+  const paginationMaxResultsParsed = positiveIntegerFromStringParser.safeParse(
+    searchParams.get(PAGINATION_MAX_RESULTS_PARAM)
+  );
+
+  const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
+
+  const paginationPage = paginationPageParsed.success
+    ? paginationPageParsed.data
+    : DEFAULT_PAGINATION_PAGE;
+  const paginationMaxResults = paginationMaxResultsParsed.success
+    ? paginationMaxResultsParsed.data
+    : DEFAULT_PAGINATION_MAX_RESULTS;
+
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
-  const tableColumns: ColumnsType<Credential> = [
+  const tableColumns: TableColumnsType<Credential> = [
     {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
@@ -177,6 +200,28 @@ export function CredentialsTable() {
     },
   ];
 
+  const updatePaginationParams = useCallback(
+    (pagination: { maxResults?: number; page?: number }) => {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(
+          PAGINATION_PAGE_PARAM,
+          pagination.page !== undefined
+            ? pagination.page.toString()
+            : DEFAULT_PAGINATION_PAGE.toString()
+        );
+        params.set(
+          PAGINATION_MAX_RESULTS_PARAM,
+          pagination.maxResults !== undefined
+            ? pagination.maxResults.toString()
+            : DEFAULT_PAGINATION_MAX_RESULTS.toString()
+        );
+        return params;
+      });
+    },
+    [setSearchParams]
+  );
+
   const fetchCredentials = useCallback(
     async (signal?: AbortSignal) => {
       setCredentials((previousCredentials) =>
@@ -188,6 +233,8 @@ export function CredentialsTable() {
       const response = await getCredentials({
         env,
         params: {
+          maxResults: paginationMaxResults,
+          page: paginationPage,
           query: queryParam || undefined,
           status: credentialStatus,
         },
@@ -195,17 +242,29 @@ export function CredentialsTable() {
       });
       if (response.success) {
         setCredentials({
-          data: response.data.successful,
+          data: response.data.items.successful,
           status: "successful",
         });
-        notifyParseErrors(response.data.failed);
+        setPaginationTotal(response.data.meta.total);
+        updatePaginationParams({
+          maxResults: response.data.meta.max_results,
+          page: response.data.meta.page,
+        });
+        notifyParseErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, credentialStatus]
+    [
+      env,
+      paginationMaxResults,
+      paginationPage,
+      queryParam,
+      credentialStatus,
+      updatePaginationParams,
+    ]
   );
 
   const onSearch = useCallback(
@@ -288,6 +347,7 @@ export function CredentialsTable() {
               ...column,
             }))}
             dataSource={credentialsList}
+            loading={credentials.status === "reloading"}
             locale={{
               emptyText:
                 credentials.status === "failed" ? (
@@ -296,7 +356,17 @@ export function CredentialsTable() {
                   <NoResults searchQuery={queryParam} />
                 ),
             }}
-            pagination={false}
+            onChange={({ current, pageSize, total }) => {
+              setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+              updatePaginationParams({ maxResults: pageSize, page: current });
+            }}
+            pagination={{
+              current: paginationPage,
+              hideOnSinglePage: true,
+              pageSize: paginationMaxResults,
+              position: ["bottomRight"],
+              total: paginationTotal,
+            }}
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
@@ -307,7 +377,7 @@ export function CredentialsTable() {
             <Space size="middle">
               <Card.Meta title={ISSUED} />
 
-              <Tag color="blue">{credentialsList.length}</Tag>
+              <Tag color="blue">{paginationTotal}</Tag>
             </Space>
 
             {(!showDefaultContent || credentialStatus !== "all") && (
