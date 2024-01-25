@@ -130,18 +130,10 @@ const issueCredentialFormDataParser = getStrictParser<IssueCredentialFormData>()
     proofTypes: z
       .array(z.union([z.literal("MTP"), z.literal("SIG")]))
       .min(1, "At least one proof type is required"),
-    refreshService: z.union([
-      z.object({
-        enabled: z.literal(false),
-        url: z.string(),
-      }),
-      z.object({
-        enabled: z.literal(true),
-        url: z.string().url({
-          message: `Refresh service URL must be a valid URL.`,
-        }),
-      }),
-    ]),
+    refreshService: z.object({
+      enabled: z.boolean(),
+      url: z.union([z.string().url(), z.literal("")]),
+    }),
     schemaID: z.string().optional(),
   })
 );
