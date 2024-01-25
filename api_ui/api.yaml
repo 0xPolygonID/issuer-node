@@ -1510,6 +1510,7 @@ components:
         # refresh service
     RefreshService:
       type: object
+      x-omitempty: false
       required:
         - id
         - type
@@ -1648,8 +1649,8 @@ components:
           x-omitempty: false
         credentialExpiration:
           type: string
-          format: date
-          example: "2022-12-20"
+          format: date-time
+          example: 2025-04-17T11:40:43.681857-03:00
         expiration:
           type: string
           format: date-time
