@@ -487,7 +487,7 @@ export function IssueCredentialForm({
                         rules={[
                           {
                             message:
-                              "Credential expiration must set when refresh service is enabled.",
+                              "Credential expiration must be set when the refresh service is enabled",
                             validator: (_, value) =>
                               refreshServiceChecked
                                 ? dayjsInstanceParser.parseAsync(value)
