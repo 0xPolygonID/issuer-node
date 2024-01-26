@@ -2127,7 +2127,9 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil))
+	createdSIGClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil))
+	require.NoError(t, err)
+	createdMTPClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil))
 	require.NoError(t, err)
 
 	type expected struct {
@@ -2153,9 +2155,19 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			},
 		},
 		{
+			name: "no mtp proof",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdMTPClaim.ID,
+			},
+			expected: expected{
+				message:  common.ToPointer("State must be published before fetching MTP type credentials"),
+				httpCode: http.StatusConflict,
+			},
+		},
+		{
 			name: "happy path",
 			request: GetCredentialQrCodeRequestObject{
-				Id: createdClaim.ID,
+				Id: createdSIGClaim.ID,
 			},
 			expected: expected{
 				httpCode:   http.StatusOK,
@@ -2165,7 +2177,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name: "happy path with qr code of type link",
 			request: GetCredentialQrCodeRequestObject{
-				Id: createdClaim.ID,
+				Id: createdSIGClaim.ID,
 				Params: GetCredentialQrCodeParams{
 					Type: common.ToPointer(GetCredentialQrCodeParamsTypeLink),
 				},
@@ -2178,7 +2190,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		{
 			name: "happy path with qr code of type raw",
 			request: GetCredentialQrCodeRequestObject{
-				Id: createdClaim.ID,
+				Id: createdSIGClaim.ID,
 				Params: GetCredentialQrCodeParams{
 					Type: common.ToPointer(GetCredentialQrCodeParamsTypeRaw),
 				},
