@@ -65,7 +65,7 @@ export function ImportSchemaPreview({
             text={schemaHash || "An error occurred while calculating Hash."}
           />
 
-          <Detail copyable label="URL" text={url} />
+          <Detail copyable href={url} label="URL" text={url} />
 
           <DownloadSchema env={env} fileName={jsonSchema.name} url={url} />
         </Space>

@@ -41,6 +41,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
   },
   issueCredential: {
     proofTypes: ["SIG"],
+    refreshService: { enabled: false, url: "" },
   },
 };
 

@@ -125,6 +125,15 @@ func (c *CoreClaim) Get() *core.Claim {
 	return (*core.Claim)(c)
 }
 
+// ValidProof returns true if the claim has a valid proof
+func (c *Claim) ValidProof() bool {
+	if !c.MtProof || c.SignatureProof.Status != pgtype.Null { // this second condition is for credentials that has both types of proofs
+		return true
+	}
+
+	return c.MTPProof.Status != pgtype.Null
+}
+
 // BuildTreeState returns circuits.TreeState structure
 func BuildTreeState(state, claimsTreeRoot, revocationTreeRoot, rootOfRoots *string) (circuits.TreeState, error) {
 	return circuits.TreeState{

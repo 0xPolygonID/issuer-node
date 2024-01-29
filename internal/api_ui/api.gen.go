@@ -15,7 +15,6 @@ import (
 	uuid "github.com/google/uuid"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
 )
 
@@ -89,12 +88,6 @@ const (
 	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
-// Defines values for CreateLinkQrCodeParamsType.
-const (
-	CreateLinkQrCodeParamsTypeLink CreateLinkQrCodeParamsType = "link"
-	CreateLinkQrCodeParamsTypeRaw  CreateLinkQrCodeParamsType = "raw"
-)
-
 // Defines values for GetCredentialQrCodeParamsType.
 const (
 	GetCredentialQrCodeParamsTypeLink GetCredentialQrCodeParamsType = "link"
@@ -137,14 +130,14 @@ type CreateCredentialRequest struct {
 	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
-	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
+	RefreshService    *RefreshService        `json:"refreshService"`
 	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
 	Type              string                 `json:"type"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	CredentialExpiration *openapi_types.Date `json:"credentialExpiration,omitempty"`
+	CredentialExpiration *time.Time 		 `json:"credentialExpiration,omitempty"`
 	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
 	DisplayMethod        *DisplayMethod      `json:"displayMethod,omitempty"`
 	Expiration           *time.Time          `json:"expiration,omitempty"`
@@ -164,7 +157,7 @@ type Credential struct {
 	ExpiresAt             *TimeUTC               `json:"expiresAt"`
 	Id                    uuid.UUID              `json:"id"`
 	ProofTypes            []string               `json:"proofTypes"`
-	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
+	RefreshService        *RefreshService        `json:"refreshService"`
 	RevNonce              uint64                 `json:"revNonce"`
 	Revoked               bool                   `json:"revoked"`
 	SchemaHash            string                 `json:"schemaHash"`
@@ -178,7 +171,8 @@ type Credential struct {
 type CredentialLinkQrCodeResponse struct {
 	Issuer     IssuerDescription `json:"issuer"`
 	LinkDetail LinkSimple        `json:"linkDetail"`
-	QrCode     string            `json:"qrCode"`
+	QrCodeLink string            `json:"qrCodeLink"`
+	QrCodeRaw  string            `json:"qrCodeRaw"`
 	SessionID  string            `json:"sessionID"`
 }
 
@@ -270,7 +264,7 @@ type Link struct {
 	IssuedClaims         int               `json:"issuedClaims"`
 	MaxIssuance          *int              `json:"maxIssuance"`
 	ProofTypes           []string          `json:"proofTypes"`
-	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
+	RefreshService       *RefreshService   `json:"refreshService"`
 	SchemaHash           string            `json:"schemaHash"`
 	SchemaType           string            `json:"schemaType"`
 	SchemaUrl            string            `json:"schemaUrl"`
@@ -414,6 +408,9 @@ type N401 = GenericErrorMessage
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
 
+// N409 defines model for 409.
+type N409 = GenericErrorMessage
+
 // N422 defines model for 422.
 type N422 = GenericErrorMessage
 
@@ -537,17 +534,6 @@ type GetLinkQRCodeParams struct {
 	SessionID SessionID `form:"sessionID" json:"sessionID"`
 }
 
-// CreateLinkQrCodeParams defines parameters for CreateLinkQrCode.
-type CreateLinkQrCodeParams struct {
-	// Type Type:
-	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
-	//   * `raw` - Return the raw QR code. (default value)
-	Type *CreateLinkQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
-}
-
-// CreateLinkQrCodeParamsType defines parameters for CreateLinkQrCode.
-type CreateLinkQrCodeParamsType string
-
 // GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
 type GetCredentialQrCodeParams struct {
 	// Type Type:
@@ -664,7 +650,7 @@ type ServerInterface interface {
 	GetLinkQRCode(w http.ResponseWriter, r *http.Request, id Id, params GetLinkQRCodeParams)
 	// Create Authentication Link QRCode
 	// (POST /v1/credentials/links/{id}/qrcode)
-	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams)
+	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id)
 	// Get Revocation Status
 	// (GET /v1/credentials/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, nonce PathNonce)
@@ -850,7 +836,7 @@ func (_ Unimplemented) GetLinkQRCode(w http.ResponseWriter, r *http.Request, id 
 
 // Create Authentication Link QRCode
 // (POST /v1/credentials/links/{id}/qrcode)
-func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams) {
+func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1652,19 +1638,8 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateLinkQrCodeParams
-
-	// ------------- Optional query parameter "type" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateLinkQrCode(w, r, id, params)
+		siw.Handler.CreateLinkQrCode(w, r, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2225,6 +2200,8 @@ type N400JSONResponse GenericErrorMessage
 type N401JSONResponse GenericErrorMessage
 
 type N404JSONResponse GenericErrorMessage
+
+type N409JSONResponse GenericErrorMessage
 
 type N422JSONResponse GenericErrorMessage
 
@@ -3004,8 +2981,7 @@ func (response GetLinkQRCode500JSONResponse) VisitGetLinkQRCodeResponse(w http.R
 }
 
 type CreateLinkQrCodeRequestObject struct {
-	Id     Id `json:"id"`
-	Params CreateLinkQrCodeParams
+	Id Id `json:"id"`
 }
 
 type CreateLinkQrCodeResponseObject interface {
@@ -3238,6 +3214,15 @@ type GetCredentialQrCode404JSONResponse struct{ N404JSONResponse }
 func (response GetCredentialQrCode404JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode409JSONResponse struct{ N409JSONResponse }
+
+func (response GetCredentialQrCode409JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -4301,11 +4286,10 @@ func (sh *strictHandler) GetLinkQRCode(w http.ResponseWriter, r *http.Request, i
 }
 
 // CreateLinkQrCode operation middleware
-func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id, params CreateLinkQrCodeParams) {
+func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, id Id) {
 	var request CreateLinkQrCodeRequestObject
 
 	request.Id = id
-	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateLinkQrCode(ctx, request.(CreateLinkQrCodeRequestObject))

@@ -52,6 +52,7 @@ var (
 	ErrRefreshServiceLacksURL            = errors.New("credential request with refresh service lacks url")             // ErrRefreshServiceLacksURL means the credential request includes a refresh service, but the url is not set
 	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
 	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
+	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 )
 
 type claim struct {
@@ -109,6 +110,11 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	}
 
 	return claim, nil
+}
+
+// GetRevoked returns all the revoked credentials for the given state
+func (c *claim) GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error) {
+	return c.icRepo.GetRevoked(ctx, c.storage.Pgx, currentState)
 }
 
 // CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
@@ -323,6 +329,10 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if !claim.ValidProof() {
+		return nil, ErrEmptyMTPProof
 	}
 	credID := uuid.New()
 	qrCode := protocol.CredentialsOfferMessage{
@@ -706,6 +716,14 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 				return ErrUnsupportedDisplayMethodType
 			}
 		},
+	}
+	if req.RefreshService != nil {
+		if req.Expiration == nil {
+			return ErrRefreshServiceLacksExpirationTime
+		}
+		if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
+			return ErrUnsupportedRefreshServiceType
+		}
 	}
 
 	for _, guard := range guards {

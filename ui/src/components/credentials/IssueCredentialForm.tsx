@@ -9,6 +9,7 @@ import {
   DatePicker,
   Divider,
   Form,
+  Input,
   Row,
   Select,
   Space,
@@ -22,7 +23,11 @@ import { z } from "zod";
 
 import { getApiSchemas } from "src/adapters/api/schemas";
 import { getJsonSchemaFromUrl } from "src/adapters/jsonSchemas";
-import { IssueCredentialFormData, serializeSchemaForm } from "src/adapters/parsers/forms";
+import {
+  IssueCredentialFormData,
+  dayjsInstanceParser,
+  serializeSchemaForm,
+} from "src/adapters/parsers/forms";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
@@ -39,6 +44,7 @@ import {
   ISSUE_CREDENTIAL_LINK,
   SCHEMA_HASH,
   SCHEMA_TYPE,
+  URL_FIELD_ERROR_MESSAGE,
   VALUE_REQUIRED,
 } from "src/utils/constants";
 import { buildAppError, jsonSchemaErrorToString, notifyError } from "src/utils/error";
@@ -100,6 +106,8 @@ export function IssueCredentialForm({
   });
 
   const [inputErrors, setInputErrors] = useState<InputErrors>();
+
+  const [refreshServiceChecked, setRefreshServiceChecked] = useState(false);
 
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     if (isAsyncTaskDataAvailable(jsonSchema)) {
@@ -396,6 +404,7 @@ export function IssueCredentialForm({
                 case "successful": {
                   const credentialSubjectAttributeWithoutId =
                     extractCredentialSubjectAttributeWithoutId(jsonSchema.data);
+
                   return credentialSubjectAttributeWithoutId?.schema.attributes ? (
                     <>
                       {jsonSchema.data.schema.description && (
@@ -437,9 +446,59 @@ export function IssueCredentialForm({
                           </Checkbox.Group>
                         </Form.Item>
                       </Space>
-
-                      <Form.Item label="Credential expiration date" name="credentialExpiration">
-                        <DatePicker />
+                      <Form.Item label="Refresh Service">
+                        <Space direction="vertical">
+                          <Form.Item
+                            name={["refreshService", "enabled"]}
+                            noStyle
+                            valuePropName="checked"
+                          >
+                            <Checkbox
+                              checked={refreshServiceChecked}
+                              onChange={() => {
+                                setRefreshServiceChecked(!refreshServiceChecked);
+                              }}
+                            >
+                              Enable
+                            </Checkbox>
+                          </Form.Item>
+                          <Form.Item
+                            name={["refreshService", "url"]}
+                            rules={[
+                              {
+                                message: URL_FIELD_ERROR_MESSAGE,
+                                validator: (_, value) =>
+                                  refreshServiceChecked
+                                    ? z.string().url().parseAsync(value)
+                                    : Promise.resolve(true),
+                              },
+                            ]}
+                          >
+                            <Input
+                              disabled={!refreshServiceChecked}
+                              placeholder="Valid URL of the credential refresh service"
+                            />
+                          </Form.Item>
+                        </Space>
+                      </Form.Item>
+                      <Form.Item
+                        label="Credential expiration date"
+                        name="credentialExpiration"
+                        rules={[
+                          {
+                            message:
+                              "Credential expiration must be set when the refresh service is enabled",
+                            validator: (_, value) =>
+                              refreshServiceChecked
+                                ? dayjsInstanceParser.parseAsync(value)
+                                : Promise.resolve(true),
+                          },
+                        ]}
+                      >
+                        <DatePicker
+                          format="YYYY-MM-DD HH:mm:ss"
+                          showTime={{ defaultValue: dayjs("23:59:59", "HH:mm:ss") }}
+                        />
                       </Form.Item>
                     </>
                   ) : (
