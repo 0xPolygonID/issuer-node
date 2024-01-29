@@ -105,6 +105,14 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		}
 	}
 
+	var displayService *DisplayMethod
+	if w3c.DisplayMethod != nil {
+		displayService = &DisplayMethod{
+			Id:   w3c.DisplayMethod.ID,
+			Type: DisplayMethodType(w3c.DisplayMethod.Type),
+		}
+	}
+
 	return Credential{
 		CredentialSubject:     w3c.CredentialSubject,
 		CreatedAt:             TimeUTC(*w3c.IssuanceDate),
@@ -120,6 +128,7 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		UserID:                credential.OtherIdentifier,
 		SchemaTypeDescription: credential.SchemaTypeDescription,
 		RefreshService:        refreshService,
+		DisplayMethod:         displayService,
 	}
 }
 
@@ -285,6 +294,14 @@ func getLinkResponse(link domain.Link) Link {
 		}
 	}
 
+	var displayMethod *DisplayMethod
+	if link.DisplayMethod != nil {
+		displayMethod = &DisplayMethod{
+			Id:   link.DisplayMethod.ID,
+			Type: DisplayMethodType(link.DisplayMethod.Type),
+		}
+	}
+
 	return Link{
 		Id:                   link.ID,
 		Active:               link.Active,
@@ -300,6 +317,7 @@ func getLinkResponse(link domain.Link) Link {
 		Expiration:           validUntil,
 		CredentialExpiration: credentialExpiration,
 		RefreshService:       refreshService,
+		DisplayMethod:        displayMethod,
 	}
 }
 

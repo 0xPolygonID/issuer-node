@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -84,6 +85,7 @@ func (ls *Link) Save(
 	credentialMTPProof bool,
 	credentialSubject domain.CredentialSubject,
 	refreshService *verifiable.RefreshService,
+	displayMethod *verifiable.DisplayMethod,
 ) (*domain.Link, error) {
 	schemaDB, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
@@ -98,8 +100,12 @@ func (ls *Link) Save(
 		log.Error(ctx, "validating refresh service", "err", err)
 		return nil, err
 	}
+	if err = ls.validateDisplayMethod(displayMethod); err != nil {
+		log.Error(ctx, "validating display method", "err", err)
+		return nil, err
+	}
 
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService)
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod)
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -257,6 +263,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		credentialStatusType,
 		link.RefreshService,
 		nil,
+		link.DisplayMethod,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
@@ -384,8 +391,39 @@ func (ls *Link) validateRefreshService(rs *verifiable.RefreshService, expiration
 	if expiration == nil {
 		return ErrRefreshServiceLacksExpirationTime
 	}
-	if rs.Type != verifiable.Iden3RefreshService2023 {
+
+	if rs.ID == "" {
+		return ErrRefreshServiceLacksURL
+	}
+	_, err := url.ParseRequestURI(rs.ID)
+	if err != nil {
+		return ErrRefreshServiceLacksURL
+	}
+
+	switch rs.Type {
+	case verifiable.Iden3RefreshService2023:
+		return nil
+	default:
 		return ErrUnsupportedRefreshServiceType
 	}
-	return nil
+}
+
+func (ls *Link) validateDisplayMethod(dm *verifiable.DisplayMethod) error {
+	if dm == nil {
+		return nil
+	}
+
+	if dm.ID == "" {
+		return ErrDisplayMethodLacksURL
+	}
+	if _, err := url.ParseRequestURI(dm.ID); err != nil {
+		return ErrDisplayMethodLacksURL
+	}
+
+	switch dm.Type {
+	case verifiable.Iden3BasicDisplayMethodV1:
+		return nil
+	default:
+		return ErrUnsupportedDisplayMethodType
+	}
 }

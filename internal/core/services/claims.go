@@ -49,6 +49,9 @@ var (
 	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
 	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
 	ErrRefreshServiceLacksExpirationTime = errors.New("credential request with refresh service lacks expiration time") // ErrRefreshServiceLacksExpirationTime means the credential request includes a refresh service, but the expiration time is not set
+	ErrRefreshServiceLacksURL            = errors.New("credential request with refresh service lacks url")             // ErrRefreshServiceLacksURL means the credential request includes a refresh service, but the url is not set
+	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
+	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
 	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 )
 
@@ -660,8 +663,59 @@ func (c *claim) createVC(ctx context.Context, claimReq *ports.CreateClaimRequest
 }
 
 func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
-	if _, err := url.ParseRequestURI(req.Schema); err != nil {
-		return ErrMalformedURL
+	type guardFunc func() error
+
+	guards := []guardFunc{
+		// check if schema's URL is valid
+		func() error {
+			if _, err := url.ParseRequestURI(req.Schema); err != nil {
+				return ErrMalformedURL
+			}
+			return nil
+		},
+		// check if refresh service has supported type
+		func() error {
+			if req.RefreshService == nil {
+				return nil
+			}
+			if req.Expiration == nil {
+				return ErrRefreshServiceLacksExpirationTime
+			}
+			if req.RefreshService.ID == "" {
+				return ErrRefreshServiceLacksURL
+			}
+			_, err := url.ParseRequestURI(req.RefreshService.ID)
+			if err != nil {
+				return ErrRefreshServiceLacksURL
+			}
+
+			switch req.RefreshService.Type {
+			case verifiable.Iden3RefreshService2023:
+				return nil
+			default:
+				return ErrUnsupportedRefreshServiceType
+			}
+		},
+		// check display method in correct uri
+		func() error {
+			if req.DisplayMethod == nil {
+				return nil
+			}
+			if req.DisplayMethod.ID == "" {
+				return ErrDisplayMethodLacksURL
+			}
+			_, err := url.ParseRequestURI(req.DisplayMethod.ID)
+			if err != nil {
+				return ErrDisplayMethodLacksURL
+			}
+
+			switch req.DisplayMethod.Type {
+			case verifiable.Iden3BasicDisplayMethodV1:
+				return nil
+			default:
+				return ErrUnsupportedDisplayMethodType
+			}
+		},
 	}
 	if req.RefreshService != nil {
 		if req.Expiration == nil {
@@ -671,6 +725,13 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 			return ErrUnsupportedRefreshServiceType
 		}
 	}
+
+	for _, guard := range guards {
+		if err := guard(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -701,6 +762,10 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 		return verifiable.W3CCredential{}, err
 	}
 
+	if claimReq.DisplayMethod != nil {
+		credentialCtx = append(credentialCtx, verifiable.JSONLDSchemaIden3DisplayMethod)
+	}
+
 	issuanceDate := time.Now().UTC()
 	return verifiable.W3CCredential{
 		ID:                c.buildCredentialID(*claimReq.DID, vcID, claimReq.SingleIssuer),
@@ -716,6 +781,7 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 		},
 		CredentialStatus: cs,
 		RefreshService:   claimReq.RefreshService,
+		DisplayMethod:    claimReq.DisplayMethod,
 	}, nil
 }
 

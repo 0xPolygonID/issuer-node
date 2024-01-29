@@ -22,6 +22,11 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for DisplayMethodType.
+const (
+	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
+)
+
 // Defines values for LinkStatus.
 const (
 	LinkStatusActive   LinkStatus = "active"
@@ -122,6 +127,7 @@ type ConnectionsPaginated struct {
 type CreateCredentialRequest struct {
 	CredentialSchema  string                 `json:"credentialSchema"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
 	Expiration        *time.Time             `json:"expiration,omitempty"`
 	MtProof           *bool                  `json:"mtProof,omitempty"`
 	RefreshService    *RefreshService        `json:"refreshService"`
@@ -131,20 +137,22 @@ type CreateCredentialRequest struct {
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	CredentialExpiration *time.Time        `json:"credentialExpiration,omitempty"`
-	CredentialSubject    CredentialSubject `json:"credentialSubject"`
-	Expiration           *time.Time        `json:"expiration,omitempty"`
-	LimitedClaims        *int              `json:"limitedClaims"`
-	MtProof              bool              `json:"mtProof"`
-	RefreshService       *RefreshService   `json:"refreshService"`
-	SchemaID             uuid.UUID         `json:"schemaID"`
-	SignatureProof       bool              `json:"signatureProof"`
+	CredentialExpiration *time.Time 		 `json:"credentialExpiration,omitempty"`
+	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
+	DisplayMethod        *DisplayMethod      `json:"displayMethod,omitempty"`
+	Expiration           *time.Time          `json:"expiration,omitempty"`
+	LimitedClaims        *int                `json:"limitedClaims"`
+	MtProof              bool                `json:"mtProof"`
+	RefreshService       *RefreshService     `json:"refreshService,omitempty"`
+	SchemaID             uuid.UUID           `json:"schemaID"`
+	SignatureProof       bool                `json:"signatureProof"`
 }
 
 // Credential defines model for Credential.
 type Credential struct {
 	CreatedAt             TimeUTC                `json:"createdAt"`
 	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod         *DisplayMethod         `json:"displayMethod,omitempty"`
 	Expired               bool                   `json:"expired"`
 	ExpiresAt             *TimeUTC               `json:"expiresAt"`
 	Id                    uuid.UUID              `json:"id"`
@@ -176,6 +184,15 @@ type CredentialsPaginated struct {
 	Items []Credential      `json:"items"`
 	Meta  PaginatedMetadata `json:"meta"`
 }
+
+// DisplayMethod defines model for DisplayMethod.
+type DisplayMethod struct {
+	Id   string            `json:"id"`
+	Type DisplayMethodType `json:"type"`
+}
+
+// DisplayMethodType defines model for DisplayMethod.Type.
+type DisplayMethodType string
 
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
@@ -241,6 +258,7 @@ type Link struct {
 	CreatedAt            TimeUTC           `json:"createdAt"`
 	CredentialExpiration *TimeUTC          `json:"credentialExpiration"`
 	CredentialSubject    CredentialSubject `json:"credentialSubject"`
+	DisplayMethod        *DisplayMethod    `json:"displayMethod,omitempty"`
 	Expiration           *TimeUTC          `json:"expiration"`
 	Id                   uuid.UUID         `json:"id"`
 	IssuedClaims         int               `json:"issuedClaims"`

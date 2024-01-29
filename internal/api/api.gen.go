@@ -27,6 +27,11 @@ const (
 	ETH CreateIdentityRequestDidMetadataType = "ETH"
 )
 
+// Defines values for DisplayMethodType.
+const (
+	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
+)
+
 // Defines values for RefreshServiceType.
 const (
 	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
@@ -50,6 +55,7 @@ type Config = []KeyValue
 type CreateClaimRequest struct {
 	CredentialSchema      string                 `json:"credentialSchema"`
 	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod         *DisplayMethod         `json:"displayMethod,omitempty"`
 	Expiration            *int64                 `json:"expiration,omitempty"`
 	MerklizedRootPosition *string                `json:"merklizedRootPosition,omitempty"`
 	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
@@ -90,6 +96,15 @@ type CredentialSchema struct {
 	Type string `json:"type"`
 }
 
+// DisplayMethod defines model for DisplayMethod.
+type DisplayMethod struct {
+	Id   string            `json:"id"`
+	Type DisplayMethodType `json:"type"`
+}
+
+// DisplayMethodType defines model for DisplayMethod.Type.
+type DisplayMethodType string
+
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
 	Message string `json:"message"`
@@ -118,6 +133,7 @@ type GetClaimResponse struct {
 	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
 	CredentialStatus  interface{}            `json:"credentialStatus"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
 	ExpirationDate    *TimeUTC               `json:"expirationDate"`
 	Id                string                 `json:"id"`
 	IssuanceDate      *TimeUTC               `json:"issuanceDate"`

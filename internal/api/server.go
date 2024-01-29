@@ -160,7 +160,8 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce)
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -192,6 +193,15 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrDisplayMethodLacksURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedDisplayMethodType) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -568,6 +578,16 @@ func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
 	}
 }
 
+func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.DisplayMethod{
+		ID:   s.Id,
+		Type: verifiable.DisplayMethodType(s.Type),
+	}
+}
+
 func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
 	response := make(GetClaims200JSONResponse, len(claims))
 	for i := range claims {
@@ -594,6 +614,14 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		}
 	}
 
+	var displayMethod *DisplayMethod
+	if claim.DisplayMethod != nil {
+		displayMethod = &DisplayMethod{
+			Id:   claim.DisplayMethod.ID,
+			Type: DisplayMethodType(claim.DisplayMethod.Type),
+		}
+	}
+
 	return GetClaimResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
@@ -609,6 +637,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Proof:             claim.Proof,
 		Type:              claim.Type,
 		RefreshService:    refreshService,
+		DisplayMethod:     displayMethod,
 	}
 }
 
