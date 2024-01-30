@@ -100,6 +100,8 @@ paths:
           $ref: '#/components/responses/400'
         '401':
           $ref: '#/components/responses/401'
+        '403':
+            $ref: '#/components/responses/403'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
     get:
@@ -396,6 +398,8 @@ paths:
           $ref: '#/components/responses/400'
         '404':
           $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
         '500':
           $ref: '#/components/responses/500'
 #agent
@@ -609,6 +613,38 @@ components:
         rootOfRoots:
           type: string
 
+    # refresh service
+    RefreshService:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3RefreshService2023"
+
+    # display method
+    DisplayMethod:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3BasicDisplayMethodV1"
+
     #claims
     CreateClaimRequest:
       type: object
@@ -639,6 +675,10 @@ components:
           type: string
         merklizedRootPosition:
           type: string
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -687,7 +727,7 @@ components:
           x-omitempty: false
           items:
             type: string
-        expiration:
+        expirationDate:
           $ref: '#/components/schemas/TimeUTC'
         issuanceDate:
           $ref: '#/components/schemas/TimeUTC'
@@ -704,6 +744,10 @@ components:
           x-omitempty: false
         proof:
           type: null
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
 
     QrCodeLinkShortResponse:
       type: string
@@ -899,8 +943,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/GenericErrorMessage'
+    '403':
+      description: 'Permission Denied'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
     '404':
       description: 'Not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '409':
+      description: 'Conflict'
       content:
         application/json:
           schema:

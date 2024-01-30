@@ -42,6 +42,15 @@ func (n *notification) SendCreateCredentialNotification(ctx context.Context, e p
 	return n.sendCreateCredentialNotification(ctx, cEvent.IssuerID, cEvent.CredentialIDs)
 }
 
+func (n *notification) SendRevokeCredentialNotification(ctx context.Context, payload pubsub.Message) error {
+	var rEvent event.CreateState
+	if err := rEvent.Unmarshal(payload); err != nil {
+		return errors.New("sendRevokeCredentialNotification unexpected data type")
+	}
+
+	return n.sendRevokeCredentialNotification(ctx, rEvent.State)
+}
+
 func (n *notification) SendCreateConnectionNotification(ctx context.Context, e pubsub.Message) error {
 	var cEvent event.CreateConnection
 	if err := cEvent.Unmarshal(e); err != nil {
@@ -49,6 +58,50 @@ func (n *notification) SendCreateConnectionNotification(ctx context.Context, e p
 	}
 
 	return n.sendCreateConnectionNotification(ctx, cEvent.IssuerID, cEvent.ConnectionID)
+}
+
+func (n *notification) sendRevokeCredentialNotification(ctx context.Context, state string) error {
+	rCreds, err := n.credService.GetRevoked(ctx, state)
+	if err != nil {
+		log.Error(ctx, "sendRevokeCredentialNotification: get revoked credentials", "err", err.Error(), "state", state)
+		return err
+	}
+
+	for _, rCred := range rCreds {
+		issuerDID, err := w3c.ParseDID(rCred.Issuer)
+		if err != nil {
+			log.Error(ctx, "sendRevokeCredentialNotification: failed to parse issuerID", "err", err.Error(), "issuerID", rCred.Issuer, "credID", rCred.ID)
+			return err
+		}
+
+		userDID, err := w3c.ParseDID(rCred.OtherIdentifier)
+		if err != nil {
+			log.Error(ctx, "sendRevokeCredentialNotification: failed to parse credential userID", "err", err.Error(), "issuerID", rCred.Issuer, "credID", rCred.ID)
+			return err
+		}
+
+		connection, err := n.connService.GetByUserID(ctx, *issuerDID, *userDID)
+		if err != nil {
+			log.Warn(ctx, "sendRevokeCredentialNotification: get connection", "err", err.Error(), "issuerID", rCred.Issuer, "credID", rCred.ID)
+			return err
+		}
+
+		credOfferBytes, subjectDIDDoc, err := getRevokedCredentialData(connection, rCred)
+		if err != nil {
+			log.Error(ctx, "sendRevokeCredentialNotification: getCredentialOfferData", "err", err.Error(), "issuerID", rCred.Issuer, "credID", rCred.ID)
+			return err
+		}
+
+		// send notification
+		log.Info(ctx, "sendRevokeCredentialNotification: sending notification", "issuerID", rCred.Issuer, "subjectDIDDoc", subjectDIDDoc.ID)
+		err = n.send(ctx, credOfferBytes, subjectDIDDoc)
+		if err != nil {
+			log.Error(ctx, "sendRevokeCredentialNotification: send notification", "err", err.Error(), "issuerID", rCred.Issuer, "credID", rCred.ID)
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (n *notification) sendCreateCredentialNotification(ctx context.Context, issuerID string, credIDs []string) error {
@@ -127,7 +180,7 @@ func (n *notification) sendCreateConnectionNotification(ctx context.Context, iss
 		return err
 	}
 
-	credentials, err := n.credService.GetAll(ctx, conn.IssuerDID, &ports.ClaimsFilter{Subject: conn.UserDID.String(), Proofs: []verifiable.ProofType{domain.AnyProofType}})
+	credentials, _, err := n.credService.GetAll(ctx, conn.IssuerDID, &ports.ClaimsFilter{Subject: conn.UserDID.String(), Proofs: []verifiable.ProofType{domain.AnyProofType}})
 	if err != nil {
 		log.Error(ctx, "sendCreateConnectionNotification: failed to retrieve the connection credentials", "err", err.Error(), "issuerID", issuerID, "connectionID", connID)
 		return err
@@ -174,6 +227,26 @@ func getCredentialOfferData(conn *domain.Connection, credentials ...*domain.Clai
 	credOfferBytes, err = notifications.NewOfferMsg(managedService.ServiceEndpoint, credentials...)
 	if err != nil {
 		return nil, verifiable.DIDDocument{}, fmt.Errorf("newOfferMsg, err: %v", err.Error())
+	}
+
+	err = json.Unmarshal(conn.UserDoc, &subjectDIDDoc)
+	if err != nil {
+		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal subjectDIDDoc, err: %v", err.Error())
+	}
+
+	return
+}
+
+func getRevokedCredentialData(conn *domain.Connection, credential *domain.Claim) (credOfferBytes []byte, subjectDIDDoc verifiable.DIDDocument, err error) {
+	var managedDIDDoc verifiable.DIDDocument
+	err = json.Unmarshal(conn.IssuerDoc, &managedDIDDoc)
+	if err != nil {
+		return nil, verifiable.DIDDocument{}, fmt.Errorf("unmarshal managedDIDDoc, err: %v", err.Error())
+	}
+
+	credOfferBytes, err = notifications.NewRevokedMsg(credential)
+	if err != nil {
+		return nil, verifiable.DIDDocument{}, fmt.Errorf("NewRevokedMsg, err: %v", err.Error())
 	}
 
 	err = json.Unmarshal(conn.UserDoc, &subjectDIDDoc)

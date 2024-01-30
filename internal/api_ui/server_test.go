@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -19,7 +20,6 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/mitchellh/mapstructure"
-	"github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -240,19 +240,59 @@ func TestServer_AuthQRCode(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		httpCode int
-		response protocol.AuthorizationRequestMessage
+		httpCode   int
+		qrWithLink bool
+		response   protocol.AuthorizationRequestMessage
 	}
 	type testConfig struct {
 		name     string
+		request  AuthQRCodeRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "should get a qrCode",
+			name:    "should get a qr code with a link by default",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: nil}},
 			expected: expected{
-				httpCode: http.StatusOK,
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+				response: protocol.AuthorizationRequestMessage{
+					Body: protocol.AuthorizationRequestMessageBody{
+						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						Reason:      "authentication",
+						Scope:       nil,
+					},
+					From: issuerDID.String(),
+					Typ:  "application/iden3comm-plain-json",
+					Type: "https://iden3-communication.io/authorization/1.0/request",
+				},
+			},
+		},
+		{
+			name:    "should get a qr code with a link as requested",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeLink)}},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+				response: protocol.AuthorizationRequestMessage{
+					Body: protocol.AuthorizationRequestMessageBody{
+						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						Reason:      "authentication",
+						Scope:       nil,
+					},
+					From: issuerDID.String(),
+					Typ:  "application/iden3comm-plain-json",
+					Type: "https://iden3-communication.io/authorization/1.0/request",
+				},
+			},
+		},
+		{
+			name:    "should get a RAW qr code as requested",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeRaw)}},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: false,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
 						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
@@ -268,7 +308,11 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", "/v1/authentication/qrcode", nil)
+			apiURL := "/v1/authentication/qrcode"
+			if tc.request.Params.Type != nil {
+				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
+			}
+			req, err := http.NewRequest("GET", apiURL, nil)
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -280,18 +324,24 @@ func TestServer_AuthQRCode(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
 				require.NotEmpty(t, resp.QrCodeLink)
 				require.NotEmpty(t, resp.SessionID)
-				qrLink := checkQRfetchURL(t, resp.QrCodeLink)
 
-				// Now let's fetch the original QR using the url
-				rr := httptest.NewRecorder()
-				req, err := http.NewRequest(http.MethodGet, qrLink, nil)
-				require.NoError(t, err)
-				handler.ServeHTTP(rr, req)
-				require.Equal(t, http.StatusOK, rr.Code)
+				realQR := protocol.AuthorizationRequestMessage{}
+				if tc.expected.qrWithLink {
+					qrLink := checkQRfetchURL(t, resp.QrCodeLink)
+
+					// Now let's fetch the original QR using the url
+					rr := httptest.NewRecorder()
+					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
+					require.NoError(t, err)
+					handler.ServeHTTP(rr, req)
+					require.Equal(t, http.StatusOK, rr.Code)
+					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+				} else {
+					require.NoError(t, json.Unmarshal([]byte(resp.QrCodeLink), &realQR))
+				}
 
 				// Let's verify the QR body
-				realQR := protocol.AuthorizationRequestMessage{}
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+
 				v := tc.expected.response
 
 				assert.Equal(t, v.Typ, realQR.Typ)
@@ -1415,13 +1465,13 @@ func TestServer_GetCredential(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
-	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof))
+	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
-	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -1615,19 +1665,19 @@ func TestServer_GetCredentials(t *testing.T) {
 	_, err = schemaService.ImportSchema(ctx, *did, iReq)
 	require.NoError(t, err)
 	// Never expires
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	// Expires in future
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	// Expired
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	// non expired, but revoked
-	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	id, err := w3c.ParseDID(*revoked.Identifier)
@@ -1637,18 +1687,24 @@ func TestServer_GetCredentials(t *testing.T) {
 	handler := getHandler(ctx, server)
 
 	type expected struct {
-		count    int
-		httpCode int
-		errorMsg string
+		credentialsCount int
+		page             uint
+		maxResults       uint
+		total            uint
+		httpCode         int
+		errorMsg         string
 	}
 
 	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		did      *string
-		query    *string
-		status   *string
-		expected expected
+		name       string
+		auth       func() (string, string)
+		did        *string
+		query      *string
+		sort       *string
+		status     *string
+		page       *int
+		maxResults *int
+		expected   expected
 	}
 	for _, tc := range []testConfig{
 		{
@@ -1677,11 +1733,35 @@ func TestServer_GetCredentials(t *testing.T) {
 			},
 		},
 		{
+			name: "pagination. Page is < 1 not allowed",
+			auth: authOk,
+			page: common.ToPointer(0),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "page param must be higher than 0",
+			},
+		},
+		{
+			name:       "pagination. max_results < 1 return default max results",
+			auth:       authOk,
+			maxResults: common.ToPointer(0),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
 			name: "Get all implicit",
 			auth: authOk,
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1689,8 +1769,53 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("all"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:       "Get all explicit, page 1 with 2 results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(1),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             1,
+				credentialsCount: 2,
+			},
+		},
+		{
+			name:       "Get all explicit, page 2 with 2 results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(2),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             2,
+				credentialsCount: 2,
+			},
+		},
+		{
+			name:       "Get all explicit, page 3 with 2 results. No results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(3),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             3,
+				credentialsCount: 0,
 			},
 		},
 		{
@@ -1699,8 +1824,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("all"),
 			did:    &claim.OtherIdentifier,
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1709,8 +1837,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			status: common.ToPointer("all"),
 			did:    common.ToPointer("did:iden3:tJU7z1dbKyKYLiaopZ5tN6Zjsspq7QhYayiR31RFa"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    0,
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
 			},
 		},
 		{
@@ -1718,8 +1849,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("revoked"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1727,8 +1861,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("REVOKED"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1736,8 +1873,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:   authOk,
 			status: common.ToPointer("expired"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    1,
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
 			},
 		},
 		{
@@ -1745,8 +1885,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1754,8 +1897,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("some words and " + revoked.OtherIdentifier[9:14]),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1763,8 +1909,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: &revoked.OtherIdentifier,
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1772,8 +1921,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("birthday"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1781,8 +1933,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("rthd"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1790,8 +1945,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1799,8 +1957,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			auth:  authOk,
 			query: common.ToPointer("birthday schema attribute not the rest of words this sentence"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    4,
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
 			},
 		},
 		{
@@ -1809,8 +1970,74 @@ func TestServer_GetCredentials(t *testing.T) {
 			did:   &claim.OtherIdentifier,
 			query: common.ToPointer("not existing words"),
 			expected: expected{
-				httpCode: http.StatusOK,
-				count:    0,
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
+			},
+		},
+		{
+			name: "Wrong order by",
+			auth: authOk,
+			sort: common.ToPointer("wrongField"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "wrong sort by value",
+			},
+		},
+		{
+			name: "Order by one field",
+			auth: authOk,
+			sort: common.ToPointer("createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by 2 fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by all fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt, -expiresAt, revoked"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by 2 repeated fields",
+			auth: authOk,
+			sort: common.ToPointer("createdAt, createdAt"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "repeated sort by value field",
+			},
+		},
+		{
+			name: "Order by 2 repeated contradictory fields ",
+			auth: authOk,
+			sort: common.ToPointer("createdAt, -createdAt"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "repeated sort by value field",
 			},
 		},
 	} {
@@ -1821,11 +2048,20 @@ func TestServer_GetCredentials(t *testing.T) {
 			if tc.query != nil {
 				queryParams = append(queryParams, "query="+*tc.query)
 			}
+			if tc.sort != nil {
+				queryParams = append(queryParams, "sort="+*tc.sort)
+			}
 			if tc.status != nil {
 				queryParams = append(queryParams, "status="+*tc.status)
 			}
 			if tc.did != nil {
 				queryParams = append(queryParams, "did="+*tc.did)
+			}
+			if tc.page != nil {
+				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
+			}
+			if tc.maxResults != nil {
+				queryParams = append(queryParams, "max_results="+strconv.Itoa(*tc.maxResults))
 			}
 			endpoint.RawQuery = strings.Join(queryParams, "&")
 			req, err := http.NewRequest("GET", endpoint.String(), nil)
@@ -1839,7 +2075,11 @@ func TestServer_GetCredentials(t *testing.T) {
 			case http.StatusOK:
 				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Len(t, response, tc.expected.count)
+				assert.Equal(t, tc.expected.total, response.Meta.Total)
+				assert.Equal(t, tc.expected.credentialsCount, len(response.Items))
+				assert.Equal(t, tc.expected.maxResults, response.Meta.MaxResults)
+				assert.Equal(t, tc.expected.page, response.Meta.Page)
+
 			case http.StatusBadRequest:
 				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1887,23 +2127,26 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	createdSIGClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	require.NoError(t, err)
+	createdMTPClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	type expected struct {
-		message  *string
-		httpCode int
+		message    *string
+		httpCode   int
+		qrWithLink bool
 	}
 
 	type testConfig struct {
 		name     string
-		request  GetCredentialRequestObject
+		request  GetCredentialQrCodeRequestObject
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
 			name: "should return an error, claim not found",
-			request: GetCredentialRequestObject{
+			request: GetCredentialQrCodeRequestObject{
 				Id: uuid.New(),
 			},
 			expected: expected{
@@ -1912,18 +2155,58 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			},
 		},
 		{
-			name: "happy path",
-			request: GetCredentialRequestObject{
-				Id: createdClaim.ID,
+			name: "no mtp proof",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdMTPClaim.ID,
 			},
 			expected: expected{
-				httpCode: http.StatusOK,
+				message:  common.ToPointer("State must be published before fetching MTP type credentials"),
+				httpCode: http.StatusConflict,
+			},
+		},
+		{
+			name: "happy path",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdSIGClaim.ID,
+			},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+			},
+		},
+		{
+			name: "happy path with qr code of type link",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdSIGClaim.ID,
+				Params: GetCredentialQrCodeParams{
+					Type: common.ToPointer(GetCredentialQrCodeParamsTypeLink),
+				},
+			},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: true,
+			},
+		},
+		{
+			name: "happy path with qr code of type raw",
+			request: GetCredentialQrCodeRequestObject{
+				Id: createdSIGClaim.ID,
+				Params: GetCredentialQrCodeParams{
+					Type: common.ToPointer(GetCredentialQrCodeParamsTypeRaw),
+				},
+			},
+			expected: expected{
+				httpCode:   http.StatusOK,
+				qrWithLink: false,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			apiURL := fmt.Sprintf("/v1/credentials/%s/qrcode", tc.request.Id.String())
+			if tc.request.Params.Type != nil {
+				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
+			}
 
 			req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 			require.NoError(t, err)
@@ -1934,18 +2217,24 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				qrLink := checkQRfetchURLForCredential(t, rr.Body.Bytes())
+				resp := &GetCredentialQrCode200JSONResponse{}
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), resp))
 
-				// Now let's fetch the original QR using the url
-				rr := httptest.NewRecorder()
-				req, err := http.NewRequest(http.MethodGet, qrLink, nil)
-				require.NoError(t, err)
-				handler.ServeHTTP(rr, req)
-				require.Equal(t, http.StatusOK, rr.Code)
-
-				// Let's verify the QR body
 				realQR := protocol.CredentialsOfferMessage{}
-				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+				if tc.expected.qrWithLink {
+					qrLink := checkQRfetchURL(t, resp.QrCodeLink)
+
+					// Now let's fetch the original QR using the url
+					rr := httptest.NewRecorder()
+					req, err := http.NewRequest(http.MethodGet, qrLink, nil)
+					require.NoError(t, err)
+					handler.ServeHTTP(rr, req)
+					require.Equal(t, http.StatusOK, rr.Code)
+					require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
+				} else {
+					require.NoError(t, json.Unmarshal([]byte(resp.QrCodeLink), &realQR))
+				}
+
 			case http.StatusBadRequest:
 				var response GetCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -2197,9 +2486,9 @@ func TestServer_GetConnections(t *testing.T) {
 	}
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	usrDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -2210,14 +2499,16 @@ func TestServer_GetConnections(t *testing.T) {
 
 	uuid1, err := uuid.Parse("9736cf94-cd42-11ed-9618-debe37e1cbd6")
 	require.NoError(t, err)
+
+	now := time.Now()
 	connID := fixture.CreateConnection(t, &domain.Connection{
 		ID:         uuid1,
 		IssuerDID:  *did,
 		UserDID:    *usrDID,
 		IssuerDoc:  nil,
 		UserDoc:    nil,
-		CreatedAt:  time.Now(),
-		ModifiedAt: time.Now(),
+		CreatedAt:  now,
+		ModifiedAt: now,
 	})
 
 	uuid2, err := uuid.Parse("5736cf94-cd42-11ed-9618-debe37e1cbd6")
@@ -2228,8 +2519,8 @@ func TestServer_GetConnections(t *testing.T) {
 		UserDID:    *usrDID2,
 		IssuerDoc:  nil,
 		UserDoc:    nil,
-		CreatedAt:  time.Now(),
-		ModifiedAt: time.Now(),
+		CreatedAt:  now.Add(1 * time.Second),
+		ModifiedAt: now.Add(1 * time.Second),
 	})
 
 	handler := getHandler(ctx, server)
@@ -2255,23 +2546,90 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
+			name: "order by wrong field",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"wrongField"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "order by repeated fields",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"createdAt", "createdAt"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "order by opposite fields",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"userID", "-userID"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "order by userID desc, createdAt asc returns 2 connections",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Sort: common.ToPointer([]GetConnectionsParamsSort{"createdAt, -userID"}),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+					},
+				},
+			},
+		},
+
+		{
 			name:    "should return 2 connections",
 			auth:    authOk,
 			request: GetConnectionsRequestObject{},
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
-					},
-					{
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
 					},
 				},
 			},
@@ -2300,11 +2658,13 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
@@ -2320,17 +2680,19 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(time.Now()),
+						},
 					},
 				},
 			},
 		},
 		{
-			name: "should return two connections, beginning of did",
+			name: "should return two connections, beginning by did",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
 				Params: GetConnectionsParams{
@@ -2340,17 +2702,19 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
-					},
-					{
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
 					},
 				},
 			},
@@ -2366,19 +2730,21 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
-					},
-					{
-						Id:          connID2.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID2.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
+						{
+							Id:          connID2.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID2.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{},
+						},
 					},
 				},
 			},
@@ -2395,12 +2761,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2417,12 +2785,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2439,12 +2809,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2461,12 +2833,14 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:          connID.String(),
-						IssuerID:    did.String(),
-						UserID:      usrDID.String(),
-						CreatedAt:   TimeUTC(time.Now()),
-						Credentials: []Credential{{}, {}},
+					Items: GetConnectionsResponse{
+						{
+							Id:          connID.String(),
+							IssuerID:    did.String(),
+							UserID:      usrDID.String(),
+							CreatedAt:   TimeUTC(time.Now()),
+							Credentials: []Credential{{}, {}},
+						},
 					},
 				},
 			},
@@ -2500,6 +2874,139 @@ func TestServer_GetConnections(t *testing.T) {
 			},
 		},
 		{
+			name: "should return an error, invalid page",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Credentials: common.ToPointer(true),
+					Query:       common.ToPointer("did:polygonid:polygon:mumbai:2qFVUasb8QZ1XAmD71b3NA8bzQhGs92VQEPgELYnpk"),
+					Page:        common.ToPointer(uint(0)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
+			name: "should return one connection, page 1",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(1)),
+					MaxResults: common.ToPointer(uint(1)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return two connection with no specified page",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					MaxResults: common.ToPointer(uint(2)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return one connection, page 2",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(2)),
+					MaxResults: common.ToPointer(uint(1)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return 2 connections, page 1",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(1)),
+					MaxResults: common.ToPointer(uint(30)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should return no connections unknown page",
+			auth: authOk,
+			request: GetConnectionsRequestObject{
+				Params: GetConnectionsParams{
+					Page:       common.ToPointer(uint(10)),
+					MaxResults: common.ToPointer(uint(30)),
+				},
+			},
+			expected: expected{
+				httpCode: http.StatusOK,
+				response: GetConnections200JSONResponse{
+					Items: GetConnectionsResponse{},
+				},
+			},
+		},
+		{
 			name: "should return two connections, invalid query for connections",
 			auth: authOk,
 			request: GetConnectionsRequestObject{
@@ -2510,17 +3017,19 @@ func TestServer_GetConnections(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				response: GetConnections200JSONResponse{
-					{
-						Id:        connID.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID.String(),
-						CreatedAt: TimeUTC(time.Now()),
-					},
-					{
-						Id:        connID2.String(),
-						IssuerID:  did.String(),
-						UserID:    usrDID2.String(),
-						CreatedAt: TimeUTC(time.Now()),
+					Items: GetConnectionsResponse{
+						{
+							Id:        connID2.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID2.String(),
+							CreatedAt: TimeUTC(now.Add(1 * time.Second)),
+						},
+						{
+							Id:        connID.String(),
+							IssuerID:  did.String(),
+							UserID:    usrDID.String(),
+							CreatedAt: TimeUTC(now),
+						},
 					},
 				},
 			},
@@ -2539,6 +3048,19 @@ func TestServer_GetConnections(t *testing.T) {
 			if tc.request.Params.Credentials != nil && *tc.request.Params.Credentials {
 				values.Add("credentials", "true")
 			}
+			if tc.request.Params.Page != nil {
+				values.Add("page", strconv.Itoa(int(*tc.request.Params.Page)))
+			}
+			if tc.request.Params.MaxResults != nil {
+				values.Add("max_results", strconv.Itoa(int(*tc.request.Params.MaxResults)))
+			}
+			if tc.request.Params.Sort != nil {
+				fields := make([]string, 0)
+				for _, field := range *tc.request.Params.Sort {
+					fields = append(fields, string(field))
+				}
+				values.Add("sort", strings.Join(fields, ","))
+			}
 			parsedURL.RawQuery = values.Encode()
 			req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
 			req.SetBasicAuth(tc.auth())
@@ -2552,16 +3074,16 @@ func TestServer_GetConnections(t *testing.T) {
 			case http.StatusOK:
 				var response GetConnections200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				require.Equal(t, len(tc.expected.response), len(response))
-				for i := range response {
-					if tc.expected.response[i].Credentials != nil {
-						require.NotNil(t, response[i].Credentials)
-						require.Equal(t, len(tc.expected.response[i].Credentials), len(response[i].Credentials))
+				require.Equal(t, len(tc.expected.response.Items), len(response.Items))
+				for i := range response.Items {
+					if tc.expected.response.Items[i].Credentials != nil {
+						require.NotNil(t, response.Items[i].Credentials)
+						require.Equal(t, len(tc.expected.response.Items[i].Credentials), len(response.Items[i].Credentials))
 					}
-					assert.Equal(t, tc.expected.response[i].Id, response[i].Id)
-					assert.Equal(t, tc.expected.response[i].IssuerID, response[i].IssuerID)
-					assert.Equal(t, tc.expected.response[i].UserID, response[i].UserID)
-					assert.InDelta(t, time.Time(tc.expected.response[i].CreatedAt).Unix(), time.Time(response[i].CreatedAt).Unix(), 10)
+					assert.Equal(t, tc.expected.response.Items[i].Id, response.Items[i].Id)
+					assert.Equal(t, tc.expected.response.Items[i].IssuerID, response.Items[i].IssuerID)
+					assert.Equal(t, tc.expected.response.Items[i].UserID, response.Items[i].UserID)
+					assert.InDelta(t, time.Time(tc.expected.response.Items[i].CreatedAt).Unix(), time.Time(response.Items[i].CreatedAt).Unix(), 10)
 				}
 			}
 		})
@@ -2796,7 +3318,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
@@ -2813,7 +3335,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              false,
@@ -2830,7 +3352,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
@@ -2881,7 +3403,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: common.ToPointer(time.Date(2020, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{},
 				MtProof:              true,
@@ -2898,7 +3420,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             importedSchema.ID,
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": true},
 				MtProof:              true,
@@ -2915,7 +3437,7 @@ func TestServer_CreateLink(t *testing.T) {
 			body: CreateLinkRequest{
 				SchemaID:             uuid.New(),
 				Expiration:           common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local)),
-				CredentialExpiration: &types.Date{Time: time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)},
+				CredentialExpiration: common.ToPointer(time.Date(2000, 8, 15, 14, 30, 45, 100, time.Local)),
 				LimitedClaims:        common.ToPointer(10),
 				CredentialSubject:    CredentialSubject{"birthday": 19790911, "documentType": 12},
 				MtProof:              true,
@@ -2995,7 +3517,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	server := NewServer(&cfg, NewIdentityMock(), claimsService, NewSchemaMock(), connectionsService, linkService, nil, NewPublisherMock(), NewPackageManagerMock(), nil)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, CredentialSubject{"birthday": 19790911, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, CredentialSubject{"birthday": 19790911, "documentType": 12}, nil, nil)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -3146,11 +3668,11 @@ func TestServer_GetLink(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	require.NoError(t, err)
 	hash, _ := link.Schema.Hash.MarshalText()
 
-	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -3322,19 +3844,37 @@ func TestServer_GetAllLinks(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link1, err := linkService.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12},
+		&verifiable.RefreshService{
+			ID:   "https://refresh.xyz",
+			Type: verifiable.Iden3RefreshService2023,
+		},
+		&verifiable.DisplayMethod{
+			ID:   "https://display.xyz",
+			Type: verifiable.Iden3BasicDisplayMethodV1,
+		},
+	)
 	require.NoError(t, err)
 	linkActive := getLinkResponse(*link1)
 
 	time.Sleep(10 * time.Millisecond)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12},
+		&verifiable.RefreshService{
+			ID:   "https://revreshv2.xyz",
+			Type: verifiable.Iden3RefreshService2023,
+		},
+		&verifiable.DisplayMethod{
+			ID:   "https://display.xyz",
+			Type: verifiable.Iden3BasicDisplayMethodV1,
+		},
+	)
 	require.NoError(t, err)
 	linkExpired := getLinkResponse(*link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
-	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link3, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, linkService.Activate(ctx, *did, link3.ID, false))
@@ -3476,6 +4016,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 						assert.Equal(t, tc.expected.response[i].MaxIssuance, resp.MaxIssuance)
 						assert.Equal(t, tc.expected.response[i].SchemaUrl, resp.SchemaUrl)
 						assert.Equal(t, tc.expected.response[i].SchemaType, resp.SchemaType)
+						assert.Equal(t, tc.expected.response[i].RefreshService, resp.RefreshService)
 						tcCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
 						require.NoError(t, err)
 						respCred, err := json.Marshal(tc.expected.response[i].CredentialSubject)
@@ -3536,7 +4077,7 @@ func TestServer_DeleteLink(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -3657,7 +4198,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -3766,11 +4307,11 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Now().Add(365 * 24 * time.Hour))
 	credentialExpiration := common.ToPointer(validUntil.Add(365 * 24 * time.Hour))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	assert.NoError(t, err)
 
 	yesterday := time.Now().Add(-24 * time.Hour)
-	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	linkExpired, err := linkService.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -3785,14 +4326,14 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 	type testConfig struct {
 		name     string
-		id       uuid.UUID
+		request  CreateLinkQrCodeRequestObject
 		expected expected
 	}
 
 	for _, tc := range []testConfig{
 		{
-			name: "Wrong link id",
-			id:   uuid.New(),
+			name:    "Wrong link id",
+			request: CreateLinkQrCodeRequestObject{Id: uuid.New()},
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				message:  "error: link not found",
@@ -3800,7 +4341,9 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Expired link",
-			id:   linkExpired.ID,
+			request: CreateLinkQrCodeRequestObject{
+				Id: linkExpired.ID,
+			},
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				message:  "error: cannot issue a credential for an expired link",
@@ -3808,7 +4351,9 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		},
 		{
 			name: "Happy path",
-			id:   link.ID,
+			request: CreateLinkQrCodeRequestObject{
+				Id: link.ID,
+			},
 			expected: expected{
 				linkDetail: linkDetail,
 				httpCode:   http.StatusOK,
@@ -3817,9 +4362,9 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.id.String())
+			apiURL := fmt.Sprintf("/v1/credentials/links/%s/qrcode", tc.request.Id.String())
 
-			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, nil))
+			req, err := http.NewRequest(http.MethodPost, apiURL, tests.JSONBody(t, nil))
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)
@@ -3831,7 +4376,10 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				callBack := cfg.APIUI.ServerURL + "/v1/credentials/links/callback?"
 				var response CreateLinkQrCode200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				qrLink := checkQRfetchURL(t, response.QrCode)
+
+				realQR := protocol.AuthorizationRequestMessage{}
+
+				qrLink := checkQRfetchURL(t, response.QrCodeLink)
 
 				// Now let's fetch the original QR using the url
 				rr := httptest.NewRecorder()
@@ -3840,8 +4388,6 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 				handler.ServeHTTP(rr, req)
 				require.Equal(t, http.StatusOK, rr.Code)
 
-				// Let's verify the QR body
-				realQR := protocol.AuthorizationRequestMessage{}
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &realQR))
 
 				assert.NotNil(t, realQR.Body)
@@ -3914,7 +4460,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 0, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 0, time.Local))
-	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12})
+	link, err := linkService.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -4038,7 +4584,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 					assert.Equal(t, tc.expected.status, *response.Status)
 					require.NotNil(t, response.QrCode)
 					assert.Equal(t, *tc.expected.qrCode, *response.QrCode)
-					qrLink := parseIden3commQRCodeResponse(t, *response.QrCode)
+					qrLink := checkQRfetchURL(t, *response.QrCode)
 
 					// Now let's fetch the original QR using the url
 					rr := httptest.NewRecorder()
@@ -4084,16 +4630,56 @@ func TestServer_GetStateStatus(t *testing.T) {
 	}
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
-	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+
+	idenWithSignatureClaim, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
-	did, err := w3c.ParseDID(iden.Identifier)
+	didSignatureClaim, err := w3c.ParseDID(idenWithSignatureClaim.Identifier)
 	require.NoError(t, err)
 
-	cfg.APIUI.IssuerDID = *did
-	server := NewServer(&cfg, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	cfg1 := &config.Configuration{
+		APIUI: config.APIUI{
+			IssuerDID: *didSignatureClaim,
+		},
+	}
 
-	handler := getHandler(ctx, server)
+	serverWithSignatureClaim := NewServer(cfg1, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didSignatureClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	require.NoError(t, err)
+	handlerWithSignatureClaim := getHandler(ctx, serverWithSignatureClaim)
+
+	idenWithMTPClaim, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+
+	didWithMTPClaim, err := w3c.ParseDID(idenWithMTPClaim.Identifier)
+	require.NoError(t, err)
+
+	cfgWithMTPClaim := &config.Configuration{
+		APIUI: config.APIUI{
+			IssuerDID: *didWithMTPClaim,
+		},
+	}
+	serverWithMTPClaim := NewServer(cfgWithMTPClaim, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithMTPClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	require.NoError(t, err)
+	handlerWithMTPClaim := getHandler(ctx, serverWithMTPClaim)
+
+	idenWithRevokedClaim, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+
+	didWithRevokedClaim, err := w3c.ParseDID(idenWithRevokedClaim.Identifier)
+	require.NoError(t, err)
+
+	cfgWithRevokedClaim := &config.Configuration{
+		APIUI: config.APIUI{
+			IssuerDID: *didWithRevokedClaim,
+		},
+	}
+	serverWithRevokedClaim := NewServer(cfgWithRevokedClaim, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
+	cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	require.NoError(t, err)
+	require.NoError(t, claimsService.Revoke(ctx, cfgWithRevokedClaim.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
+	handlerWithRevokedClaim := getHandler(ctx, serverWithRevokedClaim)
 
 	type expected struct {
 		response GetStateStatus200JSONResponse
@@ -4102,39 +4688,45 @@ func TestServer_GetStateStatus(t *testing.T) {
 
 	type testConfig struct {
 		name     string
+		handler  http.Handler
 		auth     func() (string, string)
-		cleanUp  func()
 		expected expected
 	}
 	for _, tc := range []testConfig{
 		{
-			name: "No auth header",
-			auth: authWrong,
+			name:    "No auth header",
+			handler: handlerWithSignatureClaim,
+			auth:    authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
 			},
 		},
 		{
-			name: "No states to process",
-			auth: authOk,
+			name:    "No states to process",
+			auth:    authOk,
+			handler: handlerWithSignatureClaim,
 			expected: expected{
 				response: GetStateStatus200JSONResponse{PendingActions: false},
 				httpCode: http.StatusOK,
 			},
-			cleanUp: func() {
-				cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true, verifiable.SparseMerkleTreeProof))
-				require.NoError(t, err)
-				require.NoError(t, claimsService.Revoke(ctx, cfg.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
-			},
 		},
 		{
-			name: "New state to process",
-			auth: authOk,
+			name:    "New state to process because there is a new credential with mtp proof",
+			handler: handlerWithMTPClaim,
+			auth:    authOk,
 			expected: expected{
 				response: GetStateStatus200JSONResponse{PendingActions: true},
 				httpCode: http.StatusOK,
 			},
-			cleanUp: func() {},
+		},
+		{
+			name:    "New state to process because there is a revoked credential",
+			handler: handlerWithRevokedClaim,
+			auth:    authOk,
+			expected: expected{
+				response: GetStateStatus200JSONResponse{PendingActions: true},
+				httpCode: http.StatusOK,
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -4145,7 +4737,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
-			handler.ServeHTTP(rr, req)
+			tc.handler.ServeHTTP(rr, req)
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
@@ -4154,7 +4746,6 @@ func TestServer_GetStateStatus(t *testing.T) {
 				var response GetStateStatus200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.response.PendingActions, response.PendingActions)
-				tc.cleanUp()
 			}
 		})
 	}
@@ -4284,7 +4875,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdCredential, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	createdCredential, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)

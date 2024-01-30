@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,6 +84,8 @@ func (ls *Link) Save(
 	credentialSignatureProof bool,
 	credentialMTPProof bool,
 	credentialSubject domain.CredentialSubject,
+	refreshService *verifiable.RefreshService,
+	displayMethod *verifiable.DisplayMethod,
 ) (*domain.Link, error) {
 	schemaDB, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
@@ -93,8 +96,16 @@ func (ls *Link) Save(
 		log.Error(ctx, "validating credential subject", "err", err)
 		return nil, ErrParseClaim
 	}
+	if err = ls.validateRefreshService(refreshService, credentialExpiration); err != nil {
+		log.Error(ctx, "validating refresh service", "err", err)
+		return nil, err
+	}
+	if err = ls.validateDisplayMethod(displayMethod); err != nil {
+		log.Error(ctx, "validating display method", "err", err)
+		return nil, err
+	}
 
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject)
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod)
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -197,6 +208,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 	return &ports.CreateQRCodeResponse{
 		SessionID: sessionID,
 		QrCode:    ls.qrService.ToURL(serverURL, id),
+		QrID:      id,
 		Link:      link,
 	}, nil
 }
@@ -249,6 +261,9 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		&linkID,
 		true,
 		credentialStatusType,
+		link.RefreshService,
+		nil,
+		link.DisplayMethod,
 	)
 
 	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
@@ -367,4 +382,48 @@ func (ls *Link) validate(ctx context.Context, link *domain.Link) error {
 
 func (ls *Link) validateCredentialSubjectAgainstSchema(ctx context.Context, cSubject domain.CredentialSubject, schemaDB *domain.Schema) error {
 	return jsonschema.ValidateCredentialSubject(ctx, ls.loader, schemaDB.URL, schemaDB.Type, cSubject)
+}
+
+func (ls *Link) validateRefreshService(rs *verifiable.RefreshService, expiration *time.Time) error {
+	if rs == nil {
+		return nil
+	}
+	if expiration == nil {
+		return ErrRefreshServiceLacksExpirationTime
+	}
+
+	if rs.ID == "" {
+		return ErrRefreshServiceLacksURL
+	}
+	_, err := url.ParseRequestURI(rs.ID)
+	if err != nil {
+		return ErrRefreshServiceLacksURL
+	}
+
+	switch rs.Type {
+	case verifiable.Iden3RefreshService2023:
+		return nil
+	default:
+		return ErrUnsupportedRefreshServiceType
+	}
+}
+
+func (ls *Link) validateDisplayMethod(dm *verifiable.DisplayMethod) error {
+	if dm == nil {
+		return nil
+	}
+
+	if dm.ID == "" {
+		return ErrDisplayMethodLacksURL
+	}
+	if _, err := url.ParseRequestURI(dm.ID); err != nil {
+		return ErrDisplayMethodLacksURL
+	}
+
+	switch dm.Type {
+	case verifiable.Iden3BasicDisplayMethodV1:
+		return nil
+	default:
+		return ErrUnsupportedDisplayMethodType
+	}
 }

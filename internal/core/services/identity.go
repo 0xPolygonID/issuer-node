@@ -55,6 +55,8 @@ var (
 	ErrWrongDIDMetada = errors.New("wrong DID Metadata")
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
+	// ErrNoClaimsFoundToProcess - means that there are no claims to process
+	ErrNoClaimsFoundToProcess = errors.New("no MTP claims found to process")
 )
 
 type identity struct {
@@ -331,6 +333,10 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error getting the states: %w", err)
 			}
 
+			if len(lc) == 0 {
+				return ErrNoClaimsFoundToProcess
+			}
+
 			for i := range lc {
 				err = iTrees.AddClaim(ctx, &lc[i])
 				if err != nil {
@@ -464,7 +470,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 	return arm, nil
 }
 
-func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (string, uuid.UUID, error) {
+func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (*ports.CreateAuthenticationQRCodeResponse, error) {
 	sessionID := uuid.New()
 	reqID := uuid.New().String()
 
@@ -480,18 +486,22 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		},
 	}
 	if err := i.sessionManager.Set(ctx, sessionID.String(), *qrCode); err != nil {
-		return "", uuid.Nil, err
+		return nil, err
 	}
 
 	raw, err := json.Marshal(qrCode)
 	if err != nil {
-		return "", uuid.Nil, err
+		return nil, err
 	}
-	id, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
+	linkID, err := i.qrService.Store(ctx, raw, DefaultQRBodyTTL)
 	if err != nil {
-		return "", uuid.Nil, err
+		return nil, err
 	}
-	return i.qrService.ToURL(serverURL, id), sessionID, nil
+	return &ports.CreateAuthenticationQRCodeResponse{
+		QRCodeURL: i.qrService.ToURL(serverURL, linkID),
+		SessionID: sessionID,
+		QrID:      linkID,
+	}, nil
 }
 
 func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, currentState domain.IdentityState) error {

@@ -168,8 +168,20 @@ export function CredentialDetails() {
             </Card>
           );
         } else {
-          const { createdAt, expiresAt, proofTypes, revoked, schemaHash, schemaType, userID } =
-            credential.data;
+          const {
+            createdAt,
+            expiresAt,
+            proofTypes,
+            refreshService,
+            revoked,
+            schemaHash,
+            schemaType,
+            userID,
+          } = credential.data;
+
+          const qrCodeLink =
+            window.location.origin +
+            generatePath(ROUTES.credentialIssuedQR.path, { credentialID: credentialID });
 
           return (
             <Card
@@ -217,6 +229,11 @@ export function CredentialDetails() {
                     />
 
                     <Detail
+                      label="Refresh Service"
+                      text={refreshService ? refreshService.id : "-"}
+                    />
+
+                    <Detail
                       copyable
                       ellipsisPosition={5}
                       label="Issued to identifier"
@@ -225,14 +242,7 @@ export function CredentialDetails() {
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
 
-                    <Detail
-                      copyable
-                      label="QR code link"
-                      text={`${window.location.origin}${generatePath(
-                        ROUTES.credentialIssuedQR.path,
-                        { credentialID }
-                      )}`}
-                    />
+                    <Detail copyable href={qrCodeLink} label="QR code link" text={qrCodeLink} />
                   </Space>
                 </Card>
 

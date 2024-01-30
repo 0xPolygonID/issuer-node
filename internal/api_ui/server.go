@@ -25,6 +25,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/health"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
@@ -170,14 +171,25 @@ func (s *Server) GetAuthenticationConnection(ctx context.Context, req GetAuthent
 }
 
 // AuthQRCode returns the qr code for authenticating a user
-func (s *Server) AuthQRCode(ctx context.Context, _ AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	qrCode, sessionID, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
+	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
+	if req.Params.Type != nil && *req.Params.Type == AuthQRCodeParamsTypeRaw {
+		body, err := s.qrService.Find(ctx, resp.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "QrID", resp.QrID)
+			return AuthQRCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		return AuthQRCode200JSONResponse{
+			QrCodeLink: string(body),
+			SessionID:  resp.SessionID.String(),
+		}, nil
+	}
 	return AuthQRCode200JSONResponse{
-		QrCodeLink: qrCode,
-		SessionID:  sessionID.String(),
+		QrCodeLink: resp.QRCodeURL,
+		SessionID:  resp.SessionID.String(),
 	}, nil
 }
 
@@ -195,7 +207,7 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 	filter := &ports.ClaimsFilter{
 		Subject: conn.UserDID.String(),
 	}
-	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	credentials, _, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
 		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
@@ -212,14 +224,18 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 
 // GetConnections returns the list of credentials of a determined issuer
 func (s *Server) GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error) {
-	req := ports.NewGetAllRequest(request.Params.Credentials, request.Params.Query)
-	conns, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, req.Query, req.WithCredentials)
+	filter, err := getConnectionsFilter(request)
+	if err != nil {
+		return GetConnections400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
+	conns, total, err := s.connectionsService.GetAllByIssuerID(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
 		log.Error(ctx, "get connection request", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
 	}
 
-	resp, err := connectionsResponse(conns)
+	resp, err := connectionsPaginatedResponse(conns, filter.Pagination, total)
 	if err != nil {
 		log.Error(ctx, "get connection request invalid claim format", "err", err)
 		return GetConnections500JSONResponse{N500JSONResponse{"Unexpected error while retrieving connections"}}, nil
@@ -284,11 +300,11 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	filter, err := getCredentialsFilter(ctx, request.Params.Did, request.Params.Status, request.Params.Query)
+	filter, err := getCredentialsFilter(ctx, request)
 	if err != nil {
 		return GetCredentials400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
-	credentials, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	credentials, total, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
 	if err != nil {
 		log.Error(ctx, "loading credentials", "err", err, "req", request)
 		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -302,7 +318,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 		}
 		response[i] = credentialResponse(w3c, credential)
 	}
-	return GetCredentials200JSONResponse(response), nil
+	return credentialsResponse(response, filter.Page, total, filter.MaxResults), nil
 }
 
 // DeleteCredential deletes a credential
@@ -328,7 +344,8 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), nil,
+		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -350,6 +367,21 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrMalformedURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedRefreshServiceType) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrDisplayMethodLacksURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedDisplayMethodType) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -390,6 +422,11 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "error publishing the state", "err", err)
+
+		if errors.Is(err, services.ErrNoClaimsFoundToProcess) {
+			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+
 		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoStatesToProcess) {
 			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
@@ -484,10 +521,10 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 
 	var expirationDate *time.Time
 	if request.Body.CredentialExpiration != nil {
-		expirationDate = &request.Body.CredentialExpiration.Time
+		expirationDate = request.Body.CredentialExpiration
 	}
 
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject)
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService), toDisplayMethodService(request.Body.DisplayMethod))
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
@@ -555,8 +592,8 @@ func (s *Server) DeleteLink(ctx context.Context, request DeleteLinkRequestObject
 }
 
 // CreateLinkQrCode - Creates a link QrCode
-func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
-	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error) {
+	createLinkQrCodeResponse, err := s.linkService.CreateQRCode(ctx, s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrLinkNotFound) {
 			return CreateLinkQrCode404JSONResponse{N404JSONResponse{Message: "error: link not found"}}, nil
@@ -567,29 +604,51 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeR
 		log.Error(ctx, "Unexpected error while creating qr code", "err", err)
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
+
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	qrCodeRaw, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
+	if err != nil {
+		log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
+		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+	}
+
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.APIUI.IssuerName,
 			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode:     createLinkQrCodeResponse.QrCode,
+		QrCodeLink: createLinkQrCodeResponse.QrCode,
+		QrCodeRaw:  string(qrCodeRaw),
 		SessionID:  createLinkQrCodeResponse.SessionID,
 		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
 
 // GetCredentialQrCode - returns a QR Code for fetching the credential
-func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	qrLink, schemaType, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, request.Id, s.cfg.APIUI.ServerURL)
+func (s *Server) GetCredentialQrCode(ctx context.Context, req GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
+	resp, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
+		if errors.Is(err, services.ErrEmptyMTPProof) {
+			return GetCredentialQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credentials"}}, nil
+		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+	qrContent := resp.QrCodeURL
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	if req.Params.Type != nil && *req.Params.Type == GetCredentialQrCodeParamsTypeRaw {
+		rawQrCode, err := s.qrService.Find(ctx, resp.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", resp.QrID)
+			return GetCredentialQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		qrContent = string(rawQrCode)
+	}
 	return GetCredentialQrCode200JSONResponse{
-		QrCodeLink: qrLink,
-		SchemaType: schemaType,
+		QrCodeLink: qrContent,
+		SchemaType: resp.SchemaType,
 	}, nil
 }
 
@@ -622,8 +681,6 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 }
 
 // GetLinkQRCode - returns te qr code for adding the credential
-//
-//	TODO: Aquí
 func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
 	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
@@ -695,18 +752,43 @@ func (s *Server) GetQrFromStore(ctx context.Context, request GetQrFromStoreReque
 	return NewQrContentResponse(body), nil
 }
 
-func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCredentialsParamsStatus, query *string) (*ports.ClaimsFilter, error) {
+func getConnectionsFilter(req GetConnectionsRequestObject) (*ports.NewGetAllConnectionsRequest, error) {
+	if req.Params.Page != nil && *req.Params.Page <= 0 {
+		return nil, errors.New("page must be greater than 0")
+	}
+	orderBy := sqltools.OrderByFilters{}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetConnectionsParamsSort(field) {
+			case GetConnectionsParamsSortCreatedAt:
+				err = orderBy.Add(ports.ConnectionsCreatedAt, desc)
+			case GetConnectionsParamsSortUserID:
+				err = orderBy.Add(ports.ConnectionsUserID, desc)
+			default:
+				return nil, errors.New("wrong sort by value")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	return ports.NewGetAllRequest(req.Params.Credentials, req.Params.Query, req.Params.Page, req.Params.MaxResults, orderBy), nil
+}
+
+func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) (*ports.ClaimsFilter, error) {
 	filter := &ports.ClaimsFilter{}
-	if userDID != nil {
-		did, err := w3c.ParseDID(*userDID)
+	if req.Params.Did != nil {
+		did, err := w3c.ParseDID(*req.Params.Did)
 		if err != nil {
-			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", *userDID)
+			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", did)
 			return nil, errors.New("cannot parse did parameter: wrong format")
 		}
 		filter.Subject, filter.FTSAndCond = did.String(), true
 	}
-	if status != nil {
-		switch GetCredentialsParamsStatus(strings.ToLower(string(*status))) {
+	if req.Params.Status != nil {
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
 		case Revoked:
 			filter.Revoked = common.ToPointer(true)
 		case Expired:
@@ -717,8 +799,45 @@ func getCredentialsFilter(ctx context.Context, userDID *string, status *GetCrede
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
 		}
 	}
-	if query != nil {
-		filter.FTSQuery = *query
+	if req.Params.Query != nil {
+		filter.FTSQuery = *req.Params.Query
+	}
+
+	filter.MaxResults = 50
+	if req.Params.MaxResults != nil {
+		if *req.Params.MaxResults <= 0 {
+			filter.MaxResults = 50
+		} else {
+			filter.MaxResults = *req.Params.MaxResults
+		}
+	}
+
+	if req.Params.Page != nil {
+		if *req.Params.Page <= 0 {
+			return nil, errors.New("page param must be higher than 0")
+		}
+		filter.Page = req.Params.Page
+	}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetCredentialsParamsSort(field) {
+			case GetCredentialsParamsSortSchemaType:
+				err = filter.OrderBy.Add(ports.CredentialSchemaType, desc)
+			case GetCredentialsParamsSortCreatedAt:
+				err = filter.OrderBy.Add(ports.CredentialCreatedAt, desc)
+			case GetCredentialsParamsSortExpiresAt:
+				err = filter.OrderBy.Add(ports.CredentialExpiresAt, desc)
+			case GetCredentialsParamsSortRevoked:
+				err = filter.OrderBy.Add(ports.CredentialRevoked, desc)
+			default:
+				return nil, errors.New("wrong sort by value")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
 	}
 	return filter, nil
 }
@@ -756,4 +875,24 @@ func writeFile(path string, mimeType string, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", mimeType)
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(f)
+}
+
+func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.RefreshService{
+		ID:   s.Id,
+		Type: verifiable.RefreshServiceType(s.Type),
+	}
+}
+
+func toDisplayMethodService(s *DisplayMethod) *verifiable.DisplayMethod {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.DisplayMethod{
+		ID:   s.Id,
+		Type: verifiable.DisplayMethodType(s.Type),
+	}
 }

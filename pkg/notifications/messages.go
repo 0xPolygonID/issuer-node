@@ -40,6 +40,24 @@ func NewOfferMsg(fetchURL string, credentials ...*domain.Claim) ([]byte, error) 
 	return json.Marshal(credOffer)
 }
 
+// NewRevokedMsg returns a revoked message
+func NewRevokedMsg(claim *domain.Claim) ([]byte, error) {
+	msgID := uuid.NewString()
+	statusUpdate := &protocol.CredentialStatusUpdateMessage{
+		ID:       msgID,
+		Typ:      packers.MediaTypePlainMessage,
+		Type:     protocol.CredentialStatusUpdateMessageType,
+		ThreadID: msgID,
+		Body: protocol.CredentialStatusUpdateMessageBody{
+			ID:     claim.ID.String(),
+			Reason: "claim was revoked",
+		},
+		From: claim.Issuer,
+		To:   claim.OtherIdentifier,
+	}
+	return json.Marshal(statusUpdate)
+}
+
 func toProtocolCredentialOffer(credentials []*domain.Claim) []protocol.CredentialOffer {
 	offers := make([]protocol.CredentialOffer, len(credentials))
 	for i := range credentials {

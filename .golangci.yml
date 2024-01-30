@@ -71,7 +71,7 @@ linters-settings:
       - name: argument-limit
         severity: warning
         disabled: false
-        arguments: [ 14 ]
+        arguments: [ 16 ]
       - name: exported
         severity: warning
         disabled: false

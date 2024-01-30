@@ -6,11 +6,12 @@ import {
   RadioChangeEvent,
   Row,
   Space,
+  Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
 } from "antd";
-import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate } from "react-router-dom";
@@ -68,7 +69,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       search: `${DID_SEARCH_PARAM}=${userID}`,
     });
 
-  const tableColumns: ColumnsType<Credential> = [
+  const tableColumns: TableColumnsType<Credential> = [
     {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
@@ -192,10 +193,10 @@ export function CredentialsTable({ userID }: { userID: string }) {
         });
         if (response.success) {
           setCredentials({
-            data: response.data.successful,
+            data: response.data.items.successful,
             status: "successful",
           });
-          notifyParseErrors(response.data.failed);
+          notifyParseErrors(response.data.items.failed);
         } else {
           if (!isAbortedError(response.error)) {
             setCredentials({ error: response.error, status: "failed" });

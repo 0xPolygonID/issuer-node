@@ -64,7 +64,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof))
+	_, err = claimsService.Save(context.Background(), ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type testConfig struct {
@@ -82,7 +82,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		{
 			name:            "should get a new state for identity without claim",
 			did:             did2,
-			shouldReturnErr: false,
+			shouldReturnErr: true,
 		},
 		{
 			name:            "should return an error",

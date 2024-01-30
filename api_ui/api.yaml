@@ -49,8 +49,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/id'
       tags:
-          - Auth
-          - Connection
+        - Auth
+        - Connection
       security:
         - basicAuth: [ ]
       responses:
@@ -77,6 +77,18 @@ paths:
       tags:
         - Auth
         - Connection
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code. (default value)
+          schema:
+            type: string
+            enum: [ raw, link ]
+
       responses:
         '200':
           description: ok
@@ -211,13 +223,43 @@ paths:
           schema:
             type: boolean
           description: credentials=true to include the connection credentials.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "createdAt", "-createdAt", "userID", "-userID" ]
+              default: "-createdAt"
+
+            description: >
+              The minus sign (-) before createdAt means descending order.
+
       responses:
         '200':
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetConnectionsResponse'
+                $ref: '#/components/schemas/ConnectionsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -308,15 +350,43 @@ paths:
           schema:
             type: string
           description: Query string to do full text search
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "schemaType", "-schemaType", "createdAt", "-createdAt", "expiresAt", "-expiresAt", "revoked", "-revoked" ]
+              default: "-createdAt"
+
+            description: >
+              The minus sign (-) before createdAt means descending order.
+
       responses:
         '200':
           description: List of credentials
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Credential'
+                $ref: '#/components/schemas/CredentialsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -424,7 +494,18 @@ paths:
       tags:
         - Credential
       parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ raw, link ]
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code. (default value)
         - $ref: '#/components/parameters/id'
+
       responses:
         '200':
           description: ok
@@ -436,6 +517,8 @@ paths:
           $ref: '#/components/responses/400'
         '404':
           $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
         '500':
           $ref: '#/components/responses/500'
 
@@ -1063,19 +1146,21 @@ components:
           type: string
           example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential
 
-
     CredentialLinkQrCodeResponse:
       type: object
       required:
         - issuer
-        - qrCode
+        - qrCodeLink
+        - qrCodeRaw
         - sessionID
         - linkID
         - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
-        qrCode:
+        qrCodeRaw:
+          type: string
+        qrCodeLink:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
@@ -1134,6 +1219,17 @@ components:
         message:
           type: string
           example: 'Something happen'
+
+    CredentialsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credential'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
 
     Credential:
       type: object
@@ -1198,6 +1294,11 @@ components:
         schemaTypeDescription:
           type: string
           example: "KYC Age Credential"
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
+
 
     Link:
       type: object
@@ -1257,6 +1358,10 @@ components:
           items:
             type: string
           example: [ "BJJSignature2021" ]
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     LinkSimple:
       type: object
@@ -1337,6 +1442,15 @@ components:
         message:
           type: string
 
+    ConnectionsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          $ref: '#/components/schemas/GetConnectionsResponse'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
     GetConnectionsResponse:
       type: array
       items:
@@ -1399,6 +1513,39 @@ components:
           items:
             $ref: '#/components/schemas/Credential'
 
+    # refresh service
+    RefreshService:
+      type: object
+      x-omitempty: false
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3RefreshService2023"
+
+    # display method
+    DisplayMethod:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3BasicDisplayMethodV1"
+
     CreateCredentialRequest:
       type: object
       required:
@@ -1431,6 +1578,10 @@ components:
         mtProof:
           type: boolean
           example: true
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
     Schema:
       type: object
       required:
@@ -1522,8 +1673,8 @@ components:
           x-omitempty: false
         credentialExpiration:
           type: string
-          format: date
-          example: "2022-12-20"
+          format: date-time
+          example: 2025-04-17T11:40:43.681857-03:00
         expiration:
           type: string
           format: date-time
@@ -1540,6 +1691,10 @@ components:
           example: false
         credentialSubject:
           $ref: '#/components/schemas/CredentialSubject'
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     CredentialSubject:
       type: object
@@ -1617,6 +1772,26 @@ components:
         to:
           type: string
 
+    PaginatedMetadata:
+      type: object
+      required:
+        - total
+        - page
+        - max_results
+      properties:
+        total:
+          type: integer
+          format: uint
+          example: 1
+        page:
+          type: integer
+          format: uint
+          example: 1
+        max_results:
+          type: integer
+          format: uint
+          example: 50
+
     TimeUTC:
       type: string
       x-go-type: timeapi.Time
@@ -1690,6 +1865,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '404':
       description: 'Entity not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '409':
+      description: 'Conflict'
       content:
         application/json:
           schema:
