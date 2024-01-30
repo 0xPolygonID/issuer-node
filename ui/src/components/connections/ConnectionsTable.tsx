@@ -14,8 +14,10 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
+import { Sorter } from "src/adapters/api";
 import { getConnections } from "src/adapters/api/connections";
 import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { tableSorterParser } from "src/adapters/parsers/view";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -67,6 +69,7 @@ export function ConnectionsTable() {
   );
 
   const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
+  const [sorters, setSorters] = useState<Sorter[]>();
 
   const paginationPage = paginationPageParsed.success
     ? paginationPageParsed.data
@@ -87,7 +90,9 @@ export function ConnectionsTable() {
           <Typography.Text strong>{userID.split(":").pop()}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ id: a }, { id: b }) => a.localeCompare(b),
+      sorter: {
+        multiple: 1,
+      },
       title: IDENTIFIER,
     },
     {
@@ -180,7 +185,12 @@ export function ConnectionsTable() {
 
   const fetchConnections = useCallback(
     async (signal?: AbortSignal) => {
-      setConnections({ status: "loading" });
+      setConnections((previousConnections) =>
+        isAsyncTaskDataAvailable(previousConnections)
+          ? { data: previousConnections.data, status: "reloading" }
+          : { status: "loading" }
+      );
+
       const response = await getConnections({
         credentials: true,
         env,
@@ -188,6 +198,7 @@ export function ConnectionsTable() {
           maxResults: paginationMaxResults,
           page: paginationPage,
           query: queryParam || undefined,
+          sorters,
         },
         signal,
       });
@@ -208,7 +219,7 @@ export function ConnectionsTable() {
         }
       }
     },
-    [env, paginationMaxResults, paginationPage, queryParam, updatePaginationParams]
+    [env, paginationMaxResults, paginationPage, queryParam, sorters, updatePaginationParams]
   );
 
   const onSearch = useCallback(
@@ -287,7 +298,11 @@ export function ConnectionsTable() {
                     <NoResults searchQuery={queryParam} />
                   ),
               }}
-              onChange={({ current, pageSize, total }) => {
+              onChange={({ current, pageSize, total }, _, sorters) => {
+                const parsedSorters = tableSorterParser.safeParse(sorters);
+                if (parsedSorters.success) {
+                  setSorters(parsedSorters.data);
+                }
                 setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
                 updatePaginationParams({ maxResults: pageSize, page: current });
               }}

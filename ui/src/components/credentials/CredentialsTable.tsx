@@ -17,8 +17,10 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
+import { Sorter } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
 import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { tableSorterParser } from "src/adapters/parsers/view";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
@@ -82,6 +84,7 @@ export function CredentialsTable() {
   );
 
   const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
+  const [sorters, setSorters] = useState<Sorter[]>();
 
   const paginationPage = paginationPageParsed.success
     ? paginationPageParsed.data
@@ -104,7 +107,9 @@ export function CredentialsTable() {
           <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      sorter: {
+        multiple: 1,
+      },
       title: "Credential",
     },
     {
@@ -113,7 +118,9 @@ export function CredentialsTable() {
       render: (createdAt: Credential["createdAt"]) => (
         <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
+      sorter: {
+        multiple: 2,
+      },
       title: ISSUE_DATE,
     },
     {
@@ -130,14 +137,8 @@ export function CredentialsTable() {
           "-"
         ),
       responsive: ["md"],
-      sorter: ({ expiresAt: a }, { expiresAt: b }) => {
-        if (a && b) {
-          return a.getTime() - b.getTime();
-        } else if (a) {
-          return -1;
-        } else {
-          return 1;
-        }
+      sorter: {
+        multiple: 3,
       },
       title: EXPIRATION,
     },
@@ -148,7 +149,9 @@ export function CredentialsTable() {
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
       responsive: ["sm"],
-      sorter: ({ revoked: a }, { revoked: b }) => (a === b ? 0 : a ? 1 : -1),
+      sorter: {
+        multiple: 4,
+      },
       title: REVOCATION,
     },
     {
@@ -236,6 +239,7 @@ export function CredentialsTable() {
           maxResults: paginationMaxResults,
           page: paginationPage,
           query: queryParam || undefined,
+          sorters,
           status: credentialStatus,
         },
         signal,
@@ -262,6 +266,7 @@ export function CredentialsTable() {
       paginationMaxResults,
       paginationPage,
       queryParam,
+      sorters,
       credentialStatus,
       updatePaginationParams,
     ]
@@ -356,7 +361,11 @@ export function CredentialsTable() {
                   <NoResults searchQuery={queryParam} />
                 ),
             }}
-            onChange={({ current, pageSize, total }) => {
+            onChange={({ current, pageSize, total }, _, sorters) => {
+              const parsedSorters = tableSorterParser.safeParse(sorters);
+              if (parsedSorters.success) {
+                setSorters(parsedSorters.data);
+              }
               setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
               updatePaginationParams({ maxResults: pageSize, page: current });
             }}

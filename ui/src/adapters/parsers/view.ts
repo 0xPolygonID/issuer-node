@@ -1,6 +1,7 @@
 import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
+import { Sorter, sorterParser } from "src/adapters/api";
 import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
@@ -42,6 +43,24 @@ export type CredentialLinkIssuance = CredentialIssuance & {
 };
 
 // Parsers
+
+export const tableSorterParser = getStrictParser<Sorter | unknown[], Sorter[]>()(
+  z.union([
+    z
+      .unknown()
+      .array()
+      .transform((unknowns) =>
+        unknowns.reduce((acc: Sorter[], curr): Sorter[] => {
+          const parsedSorter = sorterParser.safeParse(curr);
+          return parsedSorter.success && parsedSorter.data.order !== undefined
+            ? [...acc, parsedSorter.data]
+            : acc;
+        }, [])
+      ),
+    sorterParser.transform((sorter) => (sorter.order !== undefined ? [sorter] : [])),
+  ])
+);
+
 export const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
   z.custom<dayjs.Dayjs>(isDayjs, {
     message: "The provided input is not a valid Dayjs instance",
