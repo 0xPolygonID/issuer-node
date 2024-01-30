@@ -202,7 +202,8 @@ func createDummyVC(cSubject map[string]interface{}, schemaType string, schemaCon
 			"type": "JsonSchemaValidator2018",
 		},
 		"credentialStatus": map[string]interface{}{
-			"id": "testStatus",
+			"id":   "testStatus",
+			"type": "someType",
 		},
 		"credentialSubject": cSubject,
 		"id":                "https://someURL/someschemaContext.jsonld",
