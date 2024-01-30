@@ -90,9 +90,7 @@ export function ConnectionsTable() {
           <Typography.Text strong>{userID.split(":").pop()}</Typography.Text>
         </Tooltip>
       ),
-      sorter: {
-        multiple: 1,
-      },
+      sorter: true,
       title: IDENTIFIER,
     },
     {
