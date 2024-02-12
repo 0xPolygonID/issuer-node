@@ -17,7 +17,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
-import { Sorter } from "src/adapters/api";
+import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
 import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import { tableSorterParser } from "src/adapters/parsers/view";
@@ -53,6 +53,7 @@ import {
   QUERY_SEARCH_PARAM,
   REVOCATION,
   REVOKE,
+  SORT_PARAM,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { notifyParseError, notifyParseErrors } from "src/utils/error";
@@ -73,18 +74,18 @@ export function CredentialsTable() {
 
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+  const paginationPageParam = searchParams.get(PAGINATION_PAGE_PARAM);
+  const paginationMaxResultsParam = searchParams.get(PAGINATION_MAX_RESULTS_PARAM);
+  const sortParam = searchParams.get(SORT_PARAM);
+
+  const sorters = parseSorters(sortParam);
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
-
-  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(
-    searchParams.get(PAGINATION_PAGE_PARAM)
-  );
-  const paginationMaxResultsParsed = positiveIntegerFromStringParser.safeParse(
-    searchParams.get(PAGINATION_MAX_RESULTS_PARAM)
-  );
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(paginationPageParam);
+  const paginationMaxResultsParsed =
+    positiveIntegerFromStringParser.safeParse(paginationMaxResultsParam);
 
   const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
-  const [sorters, setSorters] = useState<Sorter[]>();
 
   const paginationPage = paginationPageParsed.success
     ? paginationPageParsed.data
@@ -110,6 +111,7 @@ export function CredentialsTable() {
       sorter: {
         multiple: 1,
       },
+      sortOrder: sorters.find(({ field }) => field === "schemaType")?.order,
       title: "Credential",
     },
     {
@@ -121,6 +123,7 @@ export function CredentialsTable() {
       sorter: {
         multiple: 2,
       },
+      sortOrder: sorters.find(({ field }) => field === "createdAt")?.order,
       title: ISSUE_DATE,
     },
     {
@@ -140,6 +143,7 @@ export function CredentialsTable() {
       sorter: {
         multiple: 3,
       },
+      sortOrder: sorters.find(({ field }) => field === "expiresAt")?.order,
       title: EXPIRATION,
     },
     {
@@ -152,6 +156,7 @@ export function CredentialsTable() {
       sorter: {
         multiple: 4,
       },
+      sortOrder: sorters.find(({ field }) => field === "revoked")?.order,
       title: REVOCATION,
     },
     {
@@ -203,26 +208,29 @@ export function CredentialsTable() {
     },
   ];
 
-  const updatePaginationParams = useCallback(
-    (pagination: { maxResults?: number; page?: number }) => {
+  const updateUrlParams = useCallback(
+    ({ maxResults, page, sorters }: { maxResults?: number; page?: number; sorters?: Sorter[] }) => {
       setSearchParams((previousParams) => {
         const params = new URLSearchParams(previousParams);
         params.set(
           PAGINATION_PAGE_PARAM,
-          pagination.page !== undefined
-            ? pagination.page.toString()
-            : DEFAULT_PAGINATION_PAGE.toString()
+          page !== undefined ? page.toString() : DEFAULT_PAGINATION_PAGE.toString()
         );
         params.set(
           PAGINATION_MAX_RESULTS_PARAM,
-          pagination.maxResults !== undefined
-            ? pagination.maxResults.toString()
+          maxResults !== undefined
+            ? maxResults.toString()
             : DEFAULT_PAGINATION_MAX_RESULTS.toString()
         );
+        const newSorters = sorters || parseSorters(sortParam);
+        newSorters.length > 0
+          ? params.set(SORT_PARAM, serializeSorters(newSorters))
+          : params.delete(SORT_PARAM);
+
         return params;
       });
     },
-    [setSearchParams]
+    [setSearchParams, sortParam]
   );
 
   const fetchCredentials = useCallback(
@@ -239,7 +247,7 @@ export function CredentialsTable() {
           maxResults: paginationMaxResults,
           page: paginationPage,
           query: queryParam || undefined,
-          sorters,
+          sorters: parseSorters(sortParam),
           status: credentialStatus,
         },
         signal,
@@ -250,7 +258,7 @@ export function CredentialsTable() {
           status: "successful",
         });
         setPaginationTotal(response.data.meta.total);
-        updatePaginationParams({
+        updateUrlParams({
           maxResults: response.data.meta.max_results,
           page: response.data.meta.page,
         });
@@ -262,13 +270,13 @@ export function CredentialsTable() {
       }
     },
     [
+      credentialStatus,
       env,
       paginationMaxResults,
       paginationPage,
       queryParam,
-      sorters,
-      credentialStatus,
-      updatePaginationParams,
+      sortParam,
+      updateUrlParams,
     ]
   );
 
@@ -362,12 +370,13 @@ export function CredentialsTable() {
                 ),
             }}
             onChange={({ current, pageSize, total }, _, sorters) => {
-              const parsedSorters = tableSorterParser.safeParse(sorters);
-              if (parsedSorters.success) {
-                setSorters(parsedSorters.data);
-              }
               setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
-              updatePaginationParams({ maxResults: pageSize, page: current });
+              const parsedSorters = tableSorterParser.safeParse(sorters);
+              updateUrlParams({
+                maxResults: pageSize,
+                page: current,
+                sorters: parsedSorters.success ? parsedSorters.data : [],
+              });
             }}
             pagination={{
               current: paginationPage,
