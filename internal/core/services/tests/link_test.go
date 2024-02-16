@@ -121,13 +121,13 @@ func Test_link_issueClaim(t *testing.T) {
 			},
 		},
 		{
-			name:    "should return error",
+			name:    "should return status pending to publish for same link",
 			did:     *did,
 			userDID: *userDID1,
 			LinkID:  link2.ID,
 			expected: expected{
-				err:          services.ErrClaimAlreadyIssued,
-				status:       "",
+				err:          nil,
+				status:       "pendingPublish",
 				issuedClaims: 1,
 			},
 		},
