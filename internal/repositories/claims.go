@@ -527,7 +527,8 @@ func (c *claims) GetNonRevokedByConnectionAndIssuerID(ctx context.Context, conn 
 				   core_claim,
 				   revoked,
 				   mtp,
-				   claims.created_at
+				   claims.created_at,
+				   schema_type_description
 			FROM claims
 			JOIN connections ON connections.issuer_id = claims.issuer AND connections.user_id = claims.other_identifier
 			LEFT JOIN identity_states  ON claims.identity_state = identity_states.state
@@ -758,6 +759,7 @@ func processClaims(rows pgx.Rows) ([]*domain.Claim, error) {
 			&claim.Revoked,
 			&claim.MtProof,
 			&claim.CreatedAt,
+			&claim.SchemaTypeDescription,
 		)
 		if err != nil {
 			return nil, err
@@ -791,6 +793,7 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 		"revoked",
 		"mtp",
 		"claims.created_at",
+		"schema_type_description",
 	}
 	query = `SELECT ##QUERYFIELDS## FROM claims
 			LEFT JOIN identity_states ON claims.identity_state = identity_states.state 
