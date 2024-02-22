@@ -247,19 +247,19 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 	t.Run("should get one claim", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *issuerDID)
 		assert.NoError(t, err)
-		assert.Equal(t, len(r), 1)
+		assert.Equal(t, 1, len(r))
 	})
 
 	t.Run("should get no claims, issuerDID not found", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *userDID)
 		assert.NoError(t, err)
-		assert.Equal(t, len(r), 0)
+		assert.Equal(t, 0, len(r))
 	})
 
 	t.Run("should get no claims, connID not found", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, uuid.New(), *issuerDID)
 		assert.NoError(t, err)
-		assert.Equal(t, len(r), 0)
+		assert.Equal(t, 0, len(r))
 	})
 }
 
@@ -344,7 +344,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
 			require.NoError(t, err)
 			assert.Len(t, claims, tc.expected)
-			assert.Equal(t, total, uint(len(claims)))
+			assert.Equal(t, uint(len(claims)), total)
 		})
 	}
 }
