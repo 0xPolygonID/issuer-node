@@ -6,13 +6,13 @@ require (
 	github.com/alicebob/miniredis/v2 v2.31.0
 	github.com/deepmap/oapi-codegen v1.16.2
 	github.com/ethereum/go-ethereum v1.13.4
-	github.com/getkin/kin-openapi v0.120.0
+	github.com/getkin/kin-openapi v0.122.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/cors v1.2.1
 	github.com/go-redis/cache/v8 v8.4.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golangci/golangci-lint v1.55.2
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
@@ -39,11 +39,11 @@ require (
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/gommon v0.4.0
+	github.com/labstack/gommon v0.4.2
 	github.com/lib/pq v1.10.9
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mr-tron/base58 v1.2.0
-	github.com/oapi-codegen/runtime v1.0.0
+	github.com/oapi-codegen/runtime v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/piprate/json-gold v0.5.1-0.20230111113000-6ddbe6e6f19f
 	github.com/pkg/errors v0.9.1
@@ -111,6 +111,7 @@ require (
 	github.com/dchest/blake512 v1.0.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.3.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
+	github.com/deepmap/oapi-codegen/v2 v2.1.0 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustinxie/ecc v0.0.0-20210511000915-959544187564 // indirect
@@ -220,7 +221,7 @@ require (
 	github.com/maratori/testpackage v1.1.1 // indirect
 	github.com/matoous/godox v0.0.0-20230222163458-006bad1f9d26 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mbilski/exhaustivestruct v1.2.0 // indirect
@@ -320,11 +321,11 @@ require (
 	go.uber.org/zap v1.25.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.14.0 // indirect
-	golang.org/x/net v0.18.0 // indirect
+	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
