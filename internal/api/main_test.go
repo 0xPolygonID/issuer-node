@@ -38,6 +38,7 @@ const ipfsGatewayURL = "http://localhost:8080"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
+	log.Config(log.LevelDebug, log.OutputText, os.Stdout)
 	conn := lookupPostgresURL()
 	if conn == "" {
 		conn = "postgres://postgres:postgres@localhost:5435"

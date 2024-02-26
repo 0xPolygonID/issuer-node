@@ -387,7 +387,6 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *w3c.DID, 
 
 			return errIn
 		})
-
 	if err != nil {
 		return nil, nil, err
 	}

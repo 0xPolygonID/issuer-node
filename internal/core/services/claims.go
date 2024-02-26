@@ -534,7 +534,6 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 			return fmt.Errorf("failed set mtp proof: %w", err)
 		}
 		affected, err = c.icRepo.UpdateClaimMTP(ctx, c.storage.Pgx, &claims[i])
-
 		if err != nil {
 			return fmt.Errorf("can't update claim mtp:  %w", err)
 		}
@@ -576,7 +575,6 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 
 	var claims []*domain.Claim
 	claims, err = c.icRepo.GetByRevocationNonce(ctx, querier, did, domain.RevNonceUint64(nonce))
-
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 			return err
@@ -597,7 +595,6 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 
 			return c.icRepo.RevokeNonce(ctx, tx, &revocation)
 		})
-
 	if err != nil {
 		log.Error(ctx, "error saving the revoked claims", "err", err)
 		return err

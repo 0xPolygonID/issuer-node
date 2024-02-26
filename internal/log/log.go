@@ -1,13 +1,11 @@
+// Package log is a wrapper around go >1.21 slog package.
 package log
 
 import (
 	"context"
 	"io"
-
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
-
-type contextKey struct{}
 
 // Log configuration constants
 const (
@@ -20,8 +18,10 @@ const (
 	OutputText = 2 //  log output will be text format
 )
 
-// NewContext returns a context with an injected logger.
-func NewContext(ctx context.Context, level, format int, w io.Writer) context.Context {
+// Config configures the default logger.
+func Config(level, format int, w io.Writer) {
+	var handler slog.Handler
+
 	l := slog.LevelVar{}
 	l.Set(slog.Level(level))
 
@@ -29,51 +29,35 @@ func NewContext(ctx context.Context, level, format int, w io.Writer) context.Con
 		AddSource: false,
 		Level:     &l,
 	}
+	handler = slog.NewTextHandler(w, &opts)
 	if format == OutputJSON {
-		return newContext(ctx, slog.New(slog.NewJSONHandler(w, &opts)))
+		handler = slog.NewJSONHandler(w, &opts)
 	}
-	return newContext(ctx, slog.New(slog.NewTextHandler(w, &opts)))
+	slog.SetDefault(slog.New(handler))
 }
 
-// CopyFromContext is a helper function that extracts returns a new context from dest, adding
-// the log included in orig.
-func CopyFromContext(orig, dest context.Context) context.Context {
-	return newContext(dest, fromContext(orig))
-}
-
-// With changes the context logger with a new logger that will include  the extra attributes
+// With changes the default logger to include the extra attributes
 // from args parameters.
-func With(ctx context.Context, args ...any) context.Context {
-	return newContext(ctx, fromContext(ctx).With(args...))
+func With(args ...any) {
+	slog.With(args...)
 }
 
 // Debug logs a debug message  using context logger
 func Debug(ctx context.Context, msg string, args ...any) {
-	fromContext(ctx).Debug(msg, args...)
+	slog.DebugContext(ctx, msg, args...)
 }
 
 // Info logs an info using context logger
 func Info(ctx context.Context, msg string, args ...any) {
-	fromContext(ctx).Info(msg, args...)
+	slog.InfoContext(ctx, msg, args...)
 }
 
 // Warn logs a warning using context logger
 func Warn(ctx context.Context, msg string, args ...any) {
-	fromContext(ctx).Warn(msg, args...)
+	slog.WarnContext(ctx, msg, args...)
 }
 
 // Error logs an error using context logger
 func Error(ctx context.Context, msg string, args ...any) {
-	fromContext(ctx).Error(msg, args...)
-}
-
-func newContext(ctx context.Context, l *slog.Logger) context.Context {
-	return context.WithValue(ctx, contextKey{}, l)
-}
-
-func fromContext(ctx context.Context) *slog.Logger {
-	if l, ok := ctx.Value(contextKey{}).(*slog.Logger); ok {
-		return l
-	}
-	return slog.Default()
+	slog.ErrorContext(ctx, msg, args...)
 }

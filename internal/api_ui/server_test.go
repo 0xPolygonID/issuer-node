@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -31,7 +30,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/health"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
@@ -795,7 +793,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -1045,7 +1043,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -1156,7 +1154,7 @@ func TestServer_CreateCredential(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -1436,7 +1434,7 @@ func TestServer_GetCredential(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -1627,7 +1625,7 @@ func TestServer_GetCredentials(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -2096,7 +2094,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -2251,7 +2249,7 @@ func TestServer_GetConnection(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -2436,7 +2434,7 @@ func TestServer_GetConnections(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -3122,7 +3120,7 @@ func TestServer_RevokeCredential(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -3259,7 +3257,7 @@ func TestServer_CreateLink(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -3485,7 +3483,7 @@ func TestServer_ActivateLink(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -3634,7 +3632,7 @@ func TestServer_GetLink(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -3810,7 +3808,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 		sUrl       = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -4044,7 +4042,7 @@ func TestServer_DeleteLink(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	schemaRepository := repositories.NewSchema(*storage)
@@ -4159,7 +4157,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -4271,7 +4269,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -4424,7 +4422,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 		url        = "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 		schemaType = "KYCCountryOfResidenceCredential"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -4609,7 +4607,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -4758,7 +4756,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -4844,7 +4842,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
