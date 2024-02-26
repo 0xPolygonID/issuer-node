@@ -84,7 +84,7 @@ paths:
           description: >
             Type:
               * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
-              * `raw` - Return the raw QR code. (default value)
+              * `raw` - Return the raw QR code.
           schema:
             type: string
             enum: [ raw, link ]
@@ -503,7 +503,7 @@ paths:
           description: >
             Type:
               * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
-              * `raw` - Return the raw QR code. (default value)
+              * `raw` - Return the raw QR code.
         - $ref: '#/components/parameters/id'
 
       responses:
