@@ -557,8 +557,8 @@ github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e/go.mod h1:UEBifEzw62T6VzIHJeHuUgeLg2U/J9ttf7hOwQEqnYk=
 github.com/iden3/go-schema-processor v1.3.1 h1:LJfFInfYGMOp0bTKKC17R8q4XI+VtqhFLPTEqnOIvlM=
 github.com/iden3/go-schema-processor v1.3.1/go.mod h1:NwJ1nuGdRlCFaN1/V6mS0AOAdvpLcGf4KKq0mluLG7U=
-github.com/iden3/go-schema-processor/v2 v2.1.0 h1:8/fA7IVkyVmpbJij9Ar0X2zWPQJMlCaaPP4hfTZqbqU=
-github.com/iden3/go-schema-processor/v2 v2.1.0/go.mod h1:EogHwnFnxQKOGRVme6upCcisoAQeEIl+HuRAGa7w3+w=
+github.com/iden3/go-schema-processor/v2 v2.2.0 h1:sYPqLs72pEWXIfF0/MOv9AFm3+IGutRM3yClWRrjheg=
+github.com/iden3/go-schema-processor/v2 v2.2.0/go.mod h1:Ovsrk0839NZgHtoW4hVLAmHoOsHAQZuVNUXd7sIOkLQ=
 github.com/iden3/iden3comm/v2 v2.0.0 h1:cFDfF6aJ589ENg5zlTBEPK6Qqv4I11C/gliAWZORpyY=
 github.com/iden3/iden3comm/v2 v2.0.0/go.mod h1:wrXoxi8eoQSLopatRW5+hYF9lDRvzGL2As9ZE88q/kA=
 github.com/iden3/merkletree-proof v0.0.4 h1:o1XXws6zb7+BBDQYXlo0GPUH+jUY3+GxkT88U1C4Sb8=
@@ -805,8 +805,8 @@ github.com/multiformats/go-base32 v0.1.0 h1:pVx9xoSPqEIQG8o+UbAe7DNi51oej1NtK+aG
 github.com/multiformats/go-base32 v0.1.0/go.mod h1:Kj3tFY6zNr+ABYMqeUNeGvkIC/UYgtWibDcT0rExnbI=
 github.com/multiformats/go-base36 v0.2.0 h1:lFsAbNOGeKtuKozrtBsAkSVhv1p9D0/qedU9rQyccr0=
 github.com/multiformats/go-base36 v0.2.0/go.mod h1:qvnKE++v+2MWCfePClUEjE78Z7P2a1UV0xHgWc0hkp4=
-github.com/multiformats/go-multiaddr v0.12.0 h1:1QlibTFkoXJuDjjYsMHhE73TnzJQl8FSWatk/0gxGzE=
-github.com/multiformats/go-multiaddr v0.12.0/go.mod h1:WmZXgObOQOYp9r3cslLlppkrz1FYSHmE834dfz/lWu8=
+github.com/multiformats/go-multiaddr v0.12.1 h1:vm+BA/WZA8QZDp1pF1FWhi5CT3g1tbi5GJmqpb6wnlk=
+github.com/multiformats/go-multiaddr v0.12.1/go.mod h1:7mPkiBMmLeFipt+nNSq9pHZUeJSt8lHBgH6yhj0YQzE=
 github.com/multiformats/go-multibase v0.2.0 h1:isdYCVLvksgWlMW9OZRYJEa9pZETFivncJHmHnnd87g=
 github.com/multiformats/go-multibase v0.2.0/go.mod h1:bFBZX4lKCA/2lyOFSAoKH5SS6oPyjtnzK/XTFDPkNuk=
 github.com/multiformats/go-multicodec v0.9.0 h1:pb/dlPnzee/Sxv/j4PmkDRxCOi3hXTz3IbPKOXWJkmg=

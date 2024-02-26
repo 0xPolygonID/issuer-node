@@ -110,6 +110,23 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 				},
 			}, nil
 		}
+
+		if errors.Is(err, kms.ErrPermissionDenied) {
+			var message string
+			if s.cfg.VaultUserPassAuthEnabled {
+				message = "Issuer Node cannot connect with Vault. Please check the value of ISSUER_VAULT_USERPASS_AUTH_PASSWORD variable."
+			} else {
+				message = `Issuer Node cannot connect with Vault. Please check the value of ISSUER_KEY_STORE_TOKEN variable.`
+			}
+
+			log.Info(ctx, message+". More information in this link: https://devs.polygonid.com/docs/issuer/vault-auth")
+			return CreateIdentity403JSONResponse{
+				N403JSONResponse{
+					Message: message,
+				},
+			}, nil
+		}
+
 		return nil, err
 	}
 
@@ -143,7 +160,8 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce)
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -175,6 +193,15 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrDisplayMethodLacksURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedDisplayMethodType) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -352,6 +379,11 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 		}
 		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+
+	if !claim.ValidProof() {
+		return GetClaimQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credential"}}, nil
+	}
+
 	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
 }
 
@@ -546,6 +578,16 @@ func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
 	}
 }
 
+func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.DisplayMethod{
+		ID:   s.Id,
+		Type: verifiable.DisplayMethodType(s.Type),
+	}
+}
+
 func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
 	response := make(GetClaims200JSONResponse, len(claims))
 	for i := range claims {
@@ -572,6 +614,14 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		}
 	}
 
+	var displayMethod *DisplayMethod
+	if claim.DisplayMethod != nil {
+		displayMethod = &DisplayMethod{
+			Id:   claim.DisplayMethod.ID,
+			Type: DisplayMethodType(claim.DisplayMethod.Type),
+		}
+	}
+
 	return GetClaimResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
@@ -587,6 +637,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Proof:             claim.Proof,
 		Type:              claim.Type,
 		RefreshService:    refreshService,
+		DisplayMethod:     displayMethod,
 	}
 }
 

@@ -167,7 +167,7 @@ func (i *identity) HasUnprocessedAndFailedStatesByID(ctx context.Context, conn d
          (
              SELECT  issuer
              FROM claims
-             WHERE identity_state ISNULL AND identifier = issuer
+             WHERE identity_state ISNULL AND identifier = issuer AND (mtp = true OR revoked = true)
              UNION
              SELECT identifier FROM revocation where status = 0
          ), transacted_issuers AS

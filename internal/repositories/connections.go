@@ -157,6 +157,7 @@ func (c *connections) GetByUserID(ctx context.Context, conn db.Querier, issuerDI
 }
 
 func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]*domain.Connection, uint, error) {
+	var count uint
 	fields := []string{"id", "issuer_id", "user_id", "issuer_doc", "user_doc", "created_at", "modified_at"}
 	all := `SELECT ##QUERYFIELDS## 
 	FROM connections 
@@ -169,15 +170,14 @@ func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, iss
 		}
 	}
 
-	var count uint
-	if filter.Pagination != nil {
-		countQuery := strings.Replace(all, "##QUERYFIELDS##", "COUNT(*)", 1)
-		if err := conn.QueryRow(ctx, countQuery, issuerDID.String()).Scan(&count); err != nil {
-			return nil, 0, err
-		}
+	_ = filter.OrderBy.Add(ports.ConnectionsCreatedAt, true)
+	countQuery := strings.Replace(all, "##QUERYFIELDS##", "COUNT(*)", 1)
+	all += " ORDER BY " + filter.OrderBy.String()
 
-		all += fmt.Sprintf(" OFFSET %d LIMIT %d;", filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
+	if err := conn.QueryRow(ctx, countQuery, issuerDID.String()).Scan(&count); err != nil {
+		return nil, 0, err
 	}
+	all += fmt.Sprintf(" OFFSET %d LIMIT %d;", filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
 
 	all = strings.Replace(all, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 	rows, err := conn.Query(ctx, all, issuerDID.String())
@@ -199,21 +199,15 @@ func (c *connections) GetAllByIssuerID(ctx context.Context, conn db.Querier, iss
 		domainConns = append(domainConns, domainConn)
 	}
 
-	if filter.Pagination == nil {
-		count = uint(len(domainConns))
-	}
-
 	return domainConns, count, nil
 }
 
 func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.NewGetAllConnectionsRequest) ([]*domain.Connection, uint, error) {
+	var count uint
 	sqlQuery, countQuery, filters := buildGetAllWithCredentialsQueryAndFilters(issuerDID, filter)
 
-	var count uint
-	if filter.Pagination != nil {
-		if err := conn.QueryRow(ctx, countQuery, filters...).Scan(&count); err != nil {
-			return nil, 0, err
-		}
+	if err := conn.QueryRow(ctx, countQuery, filters...).Scan(&count); err != nil {
+		return nil, 0, err
 	}
 
 	rows, err := conn.Query(ctx, sqlQuery, filters...)
@@ -224,9 +218,6 @@ func (c *connections) GetAllWithCredentialsByIssuerID(ctx context.Context, conn 
 	defer rows.Close()
 
 	conns, err := toConnectionsWithCredentials(rows)
-	if filter.Pagination == nil {
-		count = uint(len(conns))
-	}
 
 	return conns, count, err
 }
@@ -289,10 +280,11 @@ func buildGetAllWithCredentialsQueryAndFilters(issuerDID w3c.DID, filter *ports.
 	countQuery := strings.Replace(sqlQuery, "##QUERYFIELDS##", "COUNT(*)", 1)
 	sqlQuery = strings.Replace(sqlQuery, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
 
-	sqlQuery += " ORDER BY claims.created_at DESC NULLS LAST, connections.created_at DESC"
-	if filter.Pagination != nil {
-		sqlQuery += fmt.Sprintf(" OFFSET %d LIMIT %d;", filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
-	}
+	_ = filter.OrderBy.AddWithNullsLast("claims.created_at", true)
+	_ = filter.OrderBy.Add(ports.ConnectionsCreatedAt, true)
+	sqlQuery += " ORDER BY " + filter.OrderBy.String()
+
+	sqlQuery += fmt.Sprintf(" OFFSET %d LIMIT %d;", filter.Pagination.GetOffset(), filter.Pagination.GetLimit())
 
 	return sqlQuery, countQuery, sqlArgs
 }

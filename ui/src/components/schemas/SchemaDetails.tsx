@@ -201,7 +201,7 @@ export function SchemaDetails() {
 
                   <Detail copyable label="Hash" text={hash} />
 
-                  <Detail copyable label="URL" text={url} />
+                  <Detail copyable href={url} label="URL" text={url} />
 
                   <Detail label="Import date" text={formatDate(createdAt)} />
 

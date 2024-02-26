@@ -7,6 +7,7 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/sqltools"
 	"github.com/polygonid/sh-id-platform/pkg/pagination"
 )
 
@@ -14,7 +15,26 @@ import (
 type NewGetAllConnectionsRequest struct {
 	WithCredentials bool
 	Query           string
-	Pagination      *pagination.Filter
+	Pagination      pagination.Filter
+	OrderBy         sqltools.OrderByFilters
+}
+
+// NewGetAllRequest returns the request object for obtaining all connections
+func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResults *uint, orderBy sqltools.OrderByFilters) *NewGetAllConnectionsRequest {
+	var connQuery string
+
+	if query != nil {
+		connQuery = *query
+	}
+
+	pagFilter := pagination.NewFilter(maxResults, page)
+
+	return &NewGetAllConnectionsRequest{
+		WithCredentials: withCredentials != nil && *withCredentials,
+		Query:           connQuery,
+		Pagination:      *pagFilter,
+		OrderBy:         orderBy,
+	}
 }
 
 // DeleteRequest struct
@@ -22,27 +42,6 @@ type DeleteRequest struct {
 	ConnID            uuid.UUID
 	DeleteCredentials bool
 	RevokeCredentials bool
-}
-
-// NewGetAllRequest returns the request object for obtaining all connections
-func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResults *uint) *NewGetAllConnectionsRequest {
-	var (
-		connQuery string
-		pagFilter *pagination.Filter
-	)
-	if query != nil {
-		connQuery = *query
-	}
-
-	if page != nil {
-		pagFilter = pagination.NewFilter(maxResults, page)
-	}
-
-	return &NewGetAllConnectionsRequest{
-		WithCredentials: withCredentials != nil && *withCredentials,
-		Query:           connQuery,
-		Pagination:      pagFilter,
-	}
 }
 
 // NewDeleteRequest creates a new DeleteRequest

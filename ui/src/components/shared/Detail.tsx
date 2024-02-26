@@ -6,19 +6,20 @@ import IconCopy from "src/assets/icons/copy-01.svg?react";
 export function Detail({
   copyable,
   ellipsisPosition,
+  href,
   label,
   tag,
   text,
 }: {
   copyable?: boolean;
   ellipsisPosition?: number;
+  href?: string;
   label: string;
   tag?: TagProps;
   text: string;
 }) {
   const { sm } = Grid.useBreakpoint();
   const value = ellipsisPosition ? text.slice(0, text.length - ellipsisPosition) : text;
-  const isUrl = text.startsWith("http://") || text.startsWith("https://");
   const element = (
     <Typography.Text
       copyable={
@@ -46,8 +47,8 @@ export function Detail({
         <Typography.Text type="secondary">{label}</Typography.Text>
       </Col>
       <Col sm={14} xs={24}>
-        {isUrl ? (
-          <Typography.Link ellipsis href={text} target="_blank">
+        {href ? (
+          <Typography.Link ellipsis href={href} target="_blank">
             {element}
           </Typography.Link>
         ) : (

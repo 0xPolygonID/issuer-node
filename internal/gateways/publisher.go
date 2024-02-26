@@ -146,6 +146,10 @@ func (p *publisher) publishState(ctx context.Context, identifier *w3c.DID) (*dom
 		return nil, err
 	}
 
+	if err = p.notificationPublisher.Publish(ctx, event.CreateStateEvent, &event.CreateState{State: *updatedState.State}); err != nil {
+		log.Error(ctx, "publish EventCreateState", "err", err.Error(), "state", *updatedState.State)
+	}
+
 	return &domain.PublishedState{
 		TxID:               txID,
 		ClaimsTreeRoot:     updatedState.ClaimsTreeRoot,

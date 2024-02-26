@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"math/big"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -190,6 +191,20 @@ func main() {
 			}
 		}
 	}(ctx)
+
+	go func() {
+		http.Handle("/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Error(ctx, "error writing response", "err", err)
+			}
+		}))
+		log.Info(ctx, "Starting server at port 3005")
+		err := http.ListenAndServe(":3005", nil)
+		if err != nil {
+			log.Error(ctx, "error starting server", "err", err)
+		}
+	}()
 
 	<-quit
 	log.Info(ctx, "finishing app")

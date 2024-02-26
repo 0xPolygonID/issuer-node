@@ -44,12 +44,12 @@ func (l link) Save(ctx context.Context, conn db.Querier, link *domain.Link) (*uu
 	}
 
 	var id uuid.UUID
-	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active, refresh_service)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) ON CONFLICT (id) DO
+	sql := `INSERT INTO links (id, issuer_id, max_issuance, valid_until, schema_id, credential_expiration, credential_signature_proof, credential_mtp_proof, credential_attributes, active, refresh_service, display_method)
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) ON CONFLICT (id) DO
 			UPDATE SET issuer_id=$2, max_issuance=$3, valid_until=$4, schema_id=$5, credential_expiration=$6, credential_signature_proof=$7, credential_mtp_proof=$8, credential_attributes=$9, active=$10 
 			RETURNING id`
 	err := conn.QueryRow(ctx, sql, link.ID, link.IssuerCoreDID().String(), link.MaxIssuance, link.ValidUntil, link.SchemaID, link.CredentialExpiration, link.CredentialSignatureProof,
-		link.CredentialMTPProof, pgAttrs, link.Active, link.RefreshService).Scan(&id)
+		link.CredentialMTPProof, pgAttrs, link.Active, link.RefreshService, link.DisplayMethod).Scan(&id)
 
 	if err != nil && strings.Contains(err.Error(), `table "links" violates foreign key constraint "links_schemas_id_key"`) {
 		return nil, errorShemaNotFound
@@ -71,6 +71,7 @@ SELECT links.id,
        links.credential_attributes, 
        links.active,
 	   links.refresh_service,
+	   links.display_method,
        count(claims.id) as issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
@@ -101,6 +102,7 @@ GROUP BY links.id, schemas.id
 		&credentialSubject,
 		&link.Active,
 		&link.RefreshService,
+		&link.DisplayMethod,
 		&link.IssuedClaims,
 		&s.ID,
 		&s.IssuerID,
@@ -143,6 +145,7 @@ SELECT links.id,
        links.credential_attributes, 
        links.active,
 	   links.refresh_service,
+	   links.display_method,
        count(claims.id) as issued_claims,
        schemas.id as schema_id,
        schemas.issuer_id as schema_issuer_id,
@@ -205,6 +208,7 @@ WHERE links.issuer_id = $1
 			&link.CredentialMTPProof, &credentialAttributes,
 			&link.Active,
 			&link.RefreshService,
+			&link.DisplayMethod,
 			&link.IssuedClaims,
 			&schema.ID,
 			&schema.IssuerID,

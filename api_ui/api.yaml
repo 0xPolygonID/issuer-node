@@ -239,6 +239,20 @@ paths:
             example: 50
             default: 50
           description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "createdAt", "-createdAt", "userID", "-userID" ]
+              default: "-createdAt"
+
+            description: >
+              The minus sign (-) before createdAt means descending order.
+
       responses:
         '200':
           description: ok
@@ -364,7 +378,6 @@ paths:
               default: "-createdAt"
 
             description: >
-              Sort by schemaType ascending and createdAt descending.
               The minus sign (-) before createdAt means descending order.
 
       responses:
@@ -504,6 +517,8 @@ paths:
           $ref: '#/components/responses/400'
         '404':
           $ref: '#/components/responses/404'
+        '409':
+          $ref: '#/components/responses/409'
         '500':
           $ref: '#/components/responses/500'
 
@@ -868,16 +883,6 @@ paths:
       summary: Create Authentication Link QRCode
       operationId: CreateLinkQrCode
       parameters:
-        - name: type
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [ raw, link ]
-          description: >
-            Type:
-              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
-              * `raw` - Return the raw QR code. (default value)
         - $ref: '#/components/parameters/id'
       tags:
         - Links
@@ -1141,19 +1146,21 @@ components:
           type: string
           example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld#KYCAgeCredential
 
-
     CredentialLinkQrCodeResponse:
       type: object
       required:
         - issuer
-        - qrCode
+        - qrCodeLink
+        - qrCodeRaw
         - sessionID
         - linkID
         - linkDetail
       properties:
         issuer:
           $ref: '#/components/schemas/IssuerDescription'
-        qrCode:
+        qrCodeRaw:
+          type: string
+        qrCodeLink:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
@@ -1284,11 +1291,10 @@ components:
         userID:
           type: string
           example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
-        schemaTypeDescription:
-          type: string
-          example: "KYC Age Credential"
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
 
     Link:
@@ -1351,6 +1357,8 @@ components:
           example: [ "BJJSignature2021" ]
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     LinkSimple:
       type: object
@@ -1502,9 +1510,10 @@ components:
           items:
             $ref: '#/components/schemas/Credential'
 
-        # refresh service
+    # refresh service
     RefreshService:
       type: object
+      x-omitempty: false
       required:
         - id
         - type
@@ -1517,6 +1526,22 @@ components:
           x-omitempty: false
           enum:
             - "Iden3RefreshService2023"
+
+    # display method
+    DisplayMethod:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+        type:
+          type: string
+          x-omitempty: false
+          enum:
+            - "Iden3BasicDisplayMethodV1"
 
     CreateCredentialRequest:
       type: object
@@ -1552,6 +1577,8 @@ components:
           example: true
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
     Schema:
       type: object
       required:
@@ -1643,8 +1670,8 @@ components:
           x-omitempty: false
         credentialExpiration:
           type: string
-          format: date
-          example: "2022-12-20"
+          format: date-time
+          example: 2025-04-17T11:40:43.681857-03:00
         expiration:
           type: string
           format: date-time
@@ -1663,6 +1690,8 @@ components:
           $ref: '#/components/schemas/CredentialSubject'
         refreshService:
           $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     CredentialSubject:
       type: object
@@ -1833,6 +1862,12 @@ components:
             $ref: '#/components/schemas/GenericErrorMessage'
     '404':
       description: 'Entity not found'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericErrorMessage'
+    '409':
+      description: 'Conflict'
       content:
         application/json:
           schema:

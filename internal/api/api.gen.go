@@ -27,6 +27,11 @@ const (
 	ETH CreateIdentityRequestDidMetadataType = "ETH"
 )
 
+// Defines values for DisplayMethodType.
+const (
+	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
+)
+
 // Defines values for RefreshServiceType.
 const (
 	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
@@ -50,6 +55,7 @@ type Config = []KeyValue
 type CreateClaimRequest struct {
 	CredentialSchema      string                 `json:"credentialSchema"`
 	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod         *DisplayMethod         `json:"displayMethod,omitempty"`
 	Expiration            *int64                 `json:"expiration,omitempty"`
 	MerklizedRootPosition *string                `json:"merklizedRootPosition,omitempty"`
 	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
@@ -90,6 +96,15 @@ type CredentialSchema struct {
 	Type string `json:"type"`
 }
 
+// DisplayMethod defines model for DisplayMethod.
+type DisplayMethod struct {
+	Id   string            `json:"id"`
+	Type DisplayMethodType `json:"type"`
+}
+
+// DisplayMethodType defines model for DisplayMethod.Type.
+type DisplayMethodType string
+
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
 	Message string `json:"message"`
@@ -118,6 +133,7 @@ type GetClaimResponse struct {
 	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
 	CredentialStatus  interface{}            `json:"credentialStatus"`
 	CredentialSubject map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
 	ExpirationDate    *TimeUTC               `json:"expirationDate"`
 	Id                string                 `json:"id"`
 	IssuanceDate      *TimeUTC               `json:"issuanceDate"`
@@ -223,8 +239,14 @@ type N400 = GenericErrorMessage
 // N401 defines model for 401.
 type N401 = GenericErrorMessage
 
+// N403 defines model for 403.
+type N403 = GenericErrorMessage
+
 // N404 defines model for 404.
 type N404 = GenericErrorMessage
+
+// N409 defines model for 409.
+type N409 = GenericErrorMessage
 
 // N422 defines model for 422.
 type N422 = GenericErrorMessage
@@ -1133,7 +1155,11 @@ type N400JSONResponse GenericErrorMessage
 
 type N401JSONResponse GenericErrorMessage
 
+type N403JSONResponse GenericErrorMessage
+
 type N404JSONResponse GenericErrorMessage
+
+type N409JSONResponse GenericErrorMessage
 
 type N422JSONResponse GenericErrorMessage
 
@@ -1340,6 +1366,15 @@ type CreateIdentity401JSONResponse struct{ N401JSONResponse }
 func (response CreateIdentity401JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateIdentity403JSONResponse struct{ N403JSONResponse }
+
+func (response CreateIdentity403JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -1716,6 +1751,15 @@ type GetClaimQrCode404JSONResponse struct{ N404JSONResponse }
 func (response GetClaimQrCode404JSONResponse) VisitGetClaimQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetClaimQrCode409JSONResponse struct{ N409JSONResponse }
+
+func (response GetClaimQrCode409JSONResponse) VisitGetClaimQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
 
 	return json.NewEncoder(w).Encode(response)
 }

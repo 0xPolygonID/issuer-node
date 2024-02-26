@@ -1,9 +1,21 @@
-import { Avatar, Card, Divider, Dropdown, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
-import { ColumnsType } from "antd/es/table";
+import {
+  Avatar,
+  Card,
+  Divider,
+  Dropdown,
+  Row,
+  Space,
+  Table,
+  TableColumnsType,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
 import { getConnections } from "src/adapters/api/connections";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
 import IconInfoCircle from "src/assets/icons/info-circle.svg?react";
@@ -21,11 +33,16 @@ import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/ut
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
   CONNECTIONS,
+  DEFAULT_PAGINATION_MAX_RESULTS,
+  DEFAULT_PAGINATION_PAGE,
+  DEFAULT_PAGINATION_TOTAL,
   DELETE,
   DETAILS,
   DID_SEARCH_PARAM,
   IDENTIFIER,
   ISSUED_CREDENTIALS,
+  PAGINATION_MAX_RESULTS_PARAM,
+  PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
 } from "src/utils/constants";
 import { notifyParseErrors } from "src/utils/error";
@@ -42,9 +59,25 @@ export function ConnectionsTable() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(
+    searchParams.get(PAGINATION_PAGE_PARAM)
+  );
+  const paginationMaxResultsParsed = positiveIntegerFromStringParser.safeParse(
+    searchParams.get(PAGINATION_MAX_RESULTS_PARAM)
+  );
+
+  const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
+
+  const paginationPage = paginationPageParsed.success
+    ? paginationPageParsed.data
+    : DEFAULT_PAGINATION_PAGE;
+  const paginationMaxResults = paginationMaxResultsParsed.success
+    ? paginationMaxResultsParsed.data
+    : DEFAULT_PAGINATION_MAX_RESULTS;
+
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
-  const tableColumns: ColumnsType<Connection> = [
+  const tableColumns: TableColumnsType<Connection> = [
     {
       dataIndex: "userID",
       ellipsis: { showTitle: false },
@@ -123,6 +156,28 @@ export function ConnectionsTable() {
     },
   ];
 
+  const updatePaginationParams = useCallback(
+    (pagination: { maxResults?: number; page?: number }) => {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(
+          PAGINATION_PAGE_PARAM,
+          pagination.page !== undefined
+            ? pagination.page.toString()
+            : DEFAULT_PAGINATION_PAGE.toString()
+        );
+        params.set(
+          PAGINATION_MAX_RESULTS_PARAM,
+          pagination.maxResults !== undefined
+            ? pagination.maxResults.toString()
+            : DEFAULT_PAGINATION_MAX_RESULTS.toString()
+        );
+        return params;
+      });
+    },
+    [setSearchParams]
+  );
+
   const fetchConnections = useCallback(
     async (signal?: AbortSignal) => {
       setConnections({ status: "loading" });
@@ -130,20 +185,30 @@ export function ConnectionsTable() {
         credentials: true,
         env,
         params: {
+          maxResults: paginationMaxResults,
+          page: paginationPage,
           query: queryParam || undefined,
         },
         signal,
       });
       if (response.success) {
-        setConnections({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        setConnections({
+          data: response.data.items.successful,
+          status: "successful",
+        });
+        setPaginationTotal(response.data.meta.total);
+        updatePaginationParams({
+          maxResults: response.data.meta.max_results,
+          page: response.data.meta.page,
+        });
+        notifyParseErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setConnections({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam]
+    [env, paginationMaxResults, paginationPage, queryParam, updatePaginationParams]
   );
 
   const onSearch = useCallback(
@@ -222,7 +287,17 @@ export function ConnectionsTable() {
                     <NoResults searchQuery={queryParam} />
                   ),
               }}
-              pagination={false}
+              onChange={({ current, pageSize, total }) => {
+                setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+                updatePaginationParams({ maxResults: pageSize, page: current });
+              }}
+              pagination={{
+                current: paginationPage,
+                hideOnSinglePage: true,
+                pageSize: paginationMaxResults,
+                position: ["bottomRight"],
+                total: paginationTotal,
+              }}
               rowKey="id"
               showSorterTooltip
               sortDirections={["ascend", "descend"]}

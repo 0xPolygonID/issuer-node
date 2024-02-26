@@ -219,6 +219,7 @@ func main() {
 
 	if !identifierExists(ctx, &cfg.APIUI.IssuerDID, identityService) {
 		log.Error(ctx, "issuer DID must exist", "did", cfg.APIUI.IssuerDID)
+		log.Info(ctx, "the issuer DID doesn't exist in the database. Please check ISSUER_API_UI_ISSUER_DID environment variable.\n ")
 		return
 	}
 

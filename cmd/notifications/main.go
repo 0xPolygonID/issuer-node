@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +29,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/http"
+	httpPkg "github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -104,7 +105,7 @@ func main() {
 		return
 	}
 
-	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
+	notificationGateway := gateways.NewPushNotificationClient(httpPkg.DefaultHTTPClientWithRetry)
 	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer func() {
@@ -117,9 +118,24 @@ func main() {
 
 	ps.Subscribe(ctxCancel, event.CreateCredentialEvent, notificationService.SendCreateCredentialNotification)
 	ps.Subscribe(ctxCancel, event.CreateConnectionEvent, notificationService.SendCreateConnectionNotification)
+	ps.Subscribe(ctxCancel, event.CreateStateEvent, notificationService.SendRevokeCredentialNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		http.Handle("/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Error(ctx, "error writing response", "err", err)
+			}
+		}))
+		log.Info(ctx, "Starting server at port 3004")
+		err := http.ListenAndServe(":3004", nil)
+		if err != nil {
+			log.Error(ctx, "error starting server", "err", err)
+		}
+	}()
 
 	<-gracefulShutdown
 }
