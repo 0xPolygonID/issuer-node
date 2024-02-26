@@ -47,7 +47,7 @@ test-race:
 
 $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API files.
 	go get github.com/deepmap/oapi-codegen/cmd/oapi-codegen
-	$(GO) install github.com/deepmap/oapi-codegen/cmd/oapi-codegen
+	$(GO) install github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen
 
 .PHONY: api
 api: $(BIN)/oapi-codegen
