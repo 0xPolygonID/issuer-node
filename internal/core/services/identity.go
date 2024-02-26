@@ -130,7 +130,6 @@ func (i *identity) Create(ctx context.Context, hostURL string, didOptions *ports
 			}
 			return err
 		})
-
 	if err != nil {
 		log.Error(ctx, "creating identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("cannot create identity: %w", err)

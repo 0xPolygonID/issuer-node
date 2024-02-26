@@ -30,9 +30,9 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.3.1
-	github.com/iden3/iden3comm/v2 v2.2.0
-	github.com/iden3/merkletree-proof v0.1.0
+	github.com/iden3/go-schema-processor/v2 v2.2.0
+	github.com/iden3/iden3comm/v2 v2.1.0
+	github.com/iden3/merkletree-proof v0.0.4
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.1
 	github.com/jackc/pgtype v1.14.0
