@@ -67,6 +67,8 @@ func main() {
 		return
 	}
 
+	services.RegisterCustomDIDMethods(cfg.CustomDIDMethods)
+
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
 		log.Error(ctx, "cannot connect to database", "err", err)

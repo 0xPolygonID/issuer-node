@@ -175,6 +175,12 @@ In order to make the UI work, we will need configure some env variables in the `
     ISSUER_API_UI_SERVER_URL={PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_API_UI_SERVER_PORT}
     ```
 
+    > **_NOTE:_**  It is possible to register custom did methods. This field accepts an array of objects in JSON format.</br>
+    > Example:
+        ```
+        ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
+        ```
+
 2. Generate Issuer DID:
 
     ```bash

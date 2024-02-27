@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
-	core "github.com/iden3/go-iden3-core/v2"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -54,7 +53,7 @@ func main() {
 		return
 	}
 
-	registerCustomDIDMethods(cfg)
+	services.RegisterCustomDIDMethods(cfg.CustomDIDMethods)
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
@@ -230,17 +229,5 @@ func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMid
 	return []api.StrictMiddlewareFunc{
 		api.LogMiddleware(ctx),
 		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
-	}
-}
-
-func registerCustomDIDMethods(cfg *config.Configuration) {
-	for _, network := range cfg.CustomDIDMethods {
-		params := core.DIDMethodNetworkParams{
-			Method:      core.DIDMethodPolygonID,
-			Blockchain:  core.Blockchain(network.Blockchain),
-			Network:     core.NetworkID(network.Network),
-			NetworkFlag: network.NetworkFlag,
-		}
-		core.RegisterDIDMethodNetwork(params, core.WithChainID(network.ChainID))
 	}
 }

@@ -47,6 +47,8 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
+	services.RegisterCustomDIDMethods(cfg.CustomDIDMethods)
+
 	if err := cfg.Sanitize(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
 		return
