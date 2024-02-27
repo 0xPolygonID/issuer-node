@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,6 +49,7 @@ type Configuration struct {
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
 	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
+	CustomNetworks               []CustomNetwork  `mapstructure:"-"`
 }
 
 // Database has the database configuration
@@ -88,6 +91,42 @@ type Ethereum struct {
 	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
 	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
 	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
+}
+
+// CustomNetwork struct
+type CustomNetwork struct {
+	Blockchain  string `tip:"Identity blockchain for custom network"`
+	Network     string `tip:"Identity network for custom network"`
+	NetworkFlag byte   `tip:"Identity network flag for custom network"`
+	ChainID     int    `tip:"Chain id for custom network"`
+}
+
+// UnmarshalJSON implements the Unmarshal interface for CustomNetwork
+func (cn *CustomNetwork) UnmarshalJSON(data []byte) error {
+	aux := struct {
+		Blockchain  string `json:"blockchain"`
+		Network     string `json:"network"`
+		NetworkFlag string `json:"networkFlag"`
+		ChainID     int    `json:"chainId"`
+	}{}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if len(aux.NetworkFlag) != 10 || aux.NetworkFlag[:2] != "0b" {
+		return errors.New("invalid NetworkFlag format")
+	}
+	flag, err := strconv.ParseUint(aux.NetworkFlag[2:], 2, 8)
+	if err != nil {
+		return err
+	}
+
+	cn.Blockchain = aux.Blockchain
+	cn.Network = aux.Network
+	cn.NetworkFlag = byte(flag)
+	cn.ChainID = aux.ChainID
+
+	return nil
 }
 
 // Prover struct
@@ -344,6 +383,17 @@ func Load(fileName string) (*Configuration, error) {
 	if err := viper.Unmarshal(config); err != nil {
 		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
+
+	jsonStr := viper.GetString("CUSTOM_NETWORKS")
+	var customNetworks []CustomNetwork
+	if jsonStr != "" {
+		if err := json.Unmarshal([]byte(jsonStr), &customNetworks); err != nil {
+			log.Error(ctx, "error unmarshalling custom networks", "err", err)
+			return nil, err
+		}
+	}
+	config.CustomNetworks = customNetworks
+
 	checkEnvVars(ctx, config)
 	return config, nil
 }
@@ -451,6 +501,8 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
 	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_UI_KEY_TYPE")
+
+	_ = viper.BindEnv("ISSUER_CUSTOM_NETWORKS")
 
 	viper.AutomaticEnv()
 }
