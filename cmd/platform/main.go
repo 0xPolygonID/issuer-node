@@ -54,7 +54,7 @@ func main() {
 		return
 	}
 
-	registerCustomNetworks(cfg)
+	registerCustomDIDMethods(cfg)
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
@@ -233,8 +233,8 @@ func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMid
 	}
 }
 
-func registerCustomNetworks(cfg *config.Configuration) {
-	for _, network := range cfg.CustomNetworks {
+func registerCustomDIDMethods(cfg *config.Configuration) {
+	for _, network := range cfg.CustomDIDMethods {
 		params := core.DIDMethodNetworkParams{
 			Method:      core.DIDMethodPolygonID,
 			Blockchain:  core.Blockchain(network.Blockchain),

@@ -48,8 +48,8 @@ type Configuration struct {
 	IPFS                         IPFS          `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
-	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
-	CustomNetworks               []CustomNetwork  `mapstructure:"-"`
+	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
+	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 }
 
 // Database has the database configuration
@@ -93,9 +93,9 @@ type Ethereum struct {
 	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
 }
 
-// CustomNetwork struct
-// Example: ISSUER_CUSTOM_NETWORKS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
-type CustomNetwork struct {
+// CustomDIDMethods struct
+// Example: ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
+type CustomDIDMethods struct {
 	Blockchain  string `tip:"Identity blockchain for custom network"`
 	Network     string `tip:"Identity network for custom network"`
 	NetworkFlag byte   `tip:"Identity network flag for custom network"`
@@ -103,7 +103,7 @@ type CustomNetwork struct {
 }
 
 // UnmarshalJSON implements the Unmarshal interface for CustomNetwork
-func (cn *CustomNetwork) UnmarshalJSON(data []byte) error {
+func (cn *CustomDIDMethods) UnmarshalJSON(data []byte) error {
 	aux := struct {
 		Blockchain  string `json:"blockchain"`
 		Network     string `json:"network"`
@@ -385,15 +385,15 @@ func Load(fileName string) (*Configuration, error) {
 		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
 
-	jsonStr := viper.GetString("CUSTOM_NETWORKS")
-	var customNetworks []CustomNetwork
+	jsonStr := viper.GetString("CUSTOM_DID_METHODS")
+	var customDIDMethods []CustomDIDMethods
 	if jsonStr != "" {
-		if err := json.Unmarshal([]byte(jsonStr), &customNetworks); err != nil {
+		if err := json.Unmarshal([]byte(jsonStr), &customDIDMethods); err != nil {
 			log.Error(ctx, "error unmarshalling custom networks", "err", err)
 			return nil, err
 		}
 	}
-	config.CustomNetworks = customNetworks
+	config.CustomDIDMethods = customDIDMethods
 
 	checkEnvVars(ctx, config)
 	return config, nil
@@ -503,7 +503,7 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
 	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_UI_KEY_TYPE")
 
-	_ = viper.BindEnv("ISSUER_CUSTOM_NETWORKS")
+	_ = viper.BindEnv("ISSUER_CUSTOM_DID_METHODS")
 
 	viper.AutomaticEnv()
 }
