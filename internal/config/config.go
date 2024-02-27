@@ -94,6 +94,7 @@ type Ethereum struct {
 }
 
 // CustomNetwork struct
+// Example: ISSUER_CUSTOM_NETWORKS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
 type CustomNetwork struct {
 	Blockchain  string `tip:"Identity blockchain for custom network"`
 	Network     string `tip:"Identity network for custom network"`
