@@ -53,6 +53,8 @@ func main() {
 		return
 	}
 
+	services.RegisterCustomDIDMethods(cfg.CustomDIDMethods)
+
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.Sanitize(ctx); err != nil {
