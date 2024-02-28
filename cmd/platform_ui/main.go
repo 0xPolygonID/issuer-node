@@ -67,7 +67,10 @@ func main() {
 		return
 	}
 
-	services.RegisterCustomDIDMethods(cfg.CustomDIDMethods)
+	if err := services.RegisterCustomDIDMethods(ctx, cfg.CustomDIDMethods); err != nil {
+		log.Error(ctx, "cannot register custom DID methods. Server cannot start", "err", err)
+		return
+	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
