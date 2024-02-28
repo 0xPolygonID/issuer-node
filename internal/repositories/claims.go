@@ -17,7 +17,6 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/lib/pq"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -918,7 +917,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claims) GetClaimsOfAConnection(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -940,12 +939,12 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 		FROM claims
 		WHERE claims.identifier = $1 
 		AND claims.other_identifier = $2
-		AND claims.link_id = $3
 	`
-	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
+	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String())
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	claims := make([]*domain.Claim, 0)
 
@@ -975,7 +974,66 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 		claims = append(claims, &claim)
 	}
 
+	return claims, nil
+}
+
+func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+		   issuer,
+		   schema_hash,
+		   schema_type,
+		   schema_url,
+		   other_identifier,
+		   expiration,
+		   updatable,
+		   claims.version,
+		   rev_nonce,
+		   mtp_proof,
+		   signature_proof,
+		   data,
+		   claims.identifier,
+		   identity_state,
+		   credential_status,
+		   revoked,
+		   core_claim
+		FROM claims
+		WHERE claims.identifier = $1 
+		AND claims.other_identifier = $2
+		AND claims.link_id = $3
+	`
+	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
+
+	claims := make([]*domain.Claim, 0)
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaType,
+			&claim.SchemaHash,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.MTPProof,
+			&claim.SignatureProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.CredentialStatus,
+			&claim.Revoked,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, &claim)
+	}
 	return claims, nil
 }
 
@@ -1038,71 +1096,4 @@ func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, 
 	}
 
 	return claims, nil
-}
-
-func toCredentialDomain(c *dbClaim) *domain.Claim {
-	if c.ID == nil {
-		return nil
-	}
-
-	credential := &domain.Claim{
-		ID: *c.ID,
-	}
-
-	if c.CoreClaim != nil {
-		credential.CoreClaim = *c.CoreClaim
-	}
-	if c.Data != nil {
-		credential.Data = *c.Data
-	}
-	if c.SignatureProof != nil {
-		credential.SignatureProof = *c.SignatureProof
-	}
-	if c.CredentialStatus != nil {
-		credential.CredentialStatus = *c.CredentialStatus
-	}
-	if c.Identifier.Valid {
-		credential.Identifier = common.ToPointer(c.Identifier.String)
-	}
-	if c.Issuer.Valid {
-		credential.Issuer = c.Issuer.String
-	}
-	if c.SchemaHash.Valid {
-		credential.SchemaHash = c.SchemaHash.String
-	}
-	if c.SchemaURL.Valid {
-		credential.SchemaURL = c.SchemaURL.String
-	}
-	if c.SchemaType.Valid {
-		credential.SchemaType = c.SchemaType.String
-	}
-	if c.OtherIdentifier.Valid {
-		credential.OtherIdentifier = c.OtherIdentifier.String
-	}
-	if c.Expiration != nil {
-		credential.Expiration = *c.Expiration
-	}
-	if c.Updatable.Valid {
-		credential.Updatable = c.Updatable.Bool
-	}
-	if c.RevNonce != nil {
-		credential.RevNonce = domain.RevNonceUint64(*c.RevNonce)
-	}
-	if c.Revoked.Valid {
-		credential.Revoked = c.Revoked.Bool
-	}
-	if c.IdentityState.Valid {
-		credential.IdentityState = common.ToPointer(c.IdentityState.String)
-	}
-	if c.Status.Valid {
-		credential.Status = common.ToPointer(domain.IdentityStatus(c.Status.String))
-	}
-	if c.HIndex.Valid {
-		credential.HIndex = c.HIndex.String
-	}
-	if c.MtProof.Valid {
-		credential.MtProof = c.MtProof.Bool
-	}
-
-	return credential
 }

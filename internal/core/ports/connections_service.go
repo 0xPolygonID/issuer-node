@@ -59,6 +59,6 @@ type ConnectionsService interface {
 	DeleteCredentials(ctx context.Context, id uuid.UUID, issuerID w3c.DID) error
 	GetByIDAndIssuerID(ctx context.Context, id uuid.UUID, issuerDID w3c.DID) (*domain.Connection, error)
 	GetByUserID(ctx context.Context, issuerDID w3c.DID, userID w3c.DID) (*domain.Connection, error)
-	GetAllByIssuerID(ctx context.Context, issuerDID w3c.DID, request *NewGetAllConnectionsRequest) ([]*domain.Connection, uint, error)
+	GetAllByIssuerID(ctx context.Context, issuerDID w3c.DID, request *NewGetAllConnectionsRequest) ([]domain.Connection, uint, error)
 	GetByUserSessionID(ctx context.Context, sessionID uuid.UUID) (*domain.Connection, error)
 }

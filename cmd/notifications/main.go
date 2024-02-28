@@ -72,6 +72,7 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
+	claimsRepository := repositories.NewClaims()
 
 	var vaultCli *vault.Client
 	var vaultErr error
@@ -98,7 +99,7 @@ func main() {
 		return
 	}
 
-	connectionsService := services.NewConnection(connectionsRepository, storage)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)

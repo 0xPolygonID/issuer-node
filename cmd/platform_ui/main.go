@@ -173,7 +173,7 @@ func main() {
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
-	connectionsService := services.NewConnection(connectionsRepository, storage)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
 
 	stateService, err := eth.NewStateService(eth.StateServiceConfig{

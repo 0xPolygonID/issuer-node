@@ -153,7 +153,7 @@ func getProofs(credential *domain.Claim) []string {
 	return proofs
 }
 
-func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, error) {
+func connectionsResponse(conns []domain.Connection) (GetConnectionsResponse, error) {
 	resp := make([]GetConnectionResponse, 0)
 	var err error
 	for _, conn := range conns {
@@ -166,13 +166,13 @@ func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, er
 				return nil, err
 			}
 		}
-		resp = append(resp, connectionResponse(conn, w3creds, connCreds))
+		resp = append(resp, connectionResponse(&conn, w3creds, connCreds))
 	}
 
 	return resp, nil
 }
 
-func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter pagination.Filter, total uint) (ConnectionsPaginated, error) {
+func connectionsPaginatedResponse(conns []domain.Connection, pagFilter pagination.Filter, total uint) (ConnectionsPaginated, error) {
 	resp, err := connectionsResponse(conns)
 	if err != nil {
 		return ConnectionsPaginated{}, err
