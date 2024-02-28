@@ -56,9 +56,9 @@ func (c *connections) Save(ctx context.Context, conn db.Querier, connection *dom
 
 // SaveUserAuthentication creates a new entry in the user_authentications table
 func (c *connections) SaveUserAuthentication(ctx context.Context, conn db.Querier, connID uuid.UUID, sessID uuid.UUID, mTime time.Time) error {
-	sql := `INSERT INTO user_authentications (connection_id,session_id,created_at) VALUES($1, $2,$3)`
+	sql := `INSERT INTO user_authentications (connection_id,session_id,created_at) VALUES($1, $2, $3) ON CONFLICT ON CONSTRAINT user_authentications_session_connection_key DO
+			UPDATE SET connection_id=$1, session_id=$2, updated_at=$3`
 	_, err := conn.Exec(ctx, sql, connID.String(), sessID.String(), mTime)
-
 	return err
 }
 
