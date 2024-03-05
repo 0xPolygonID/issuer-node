@@ -53,6 +53,7 @@ Ensure all existing tests pass and the linter reports no errors before submittin
 
 Run tests and linter locally with:
 ``` bash
+make up-test // To start the database used by tests
 make tests // run all tests
 make lint // run linter
 ``` 
