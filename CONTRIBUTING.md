@@ -47,7 +47,7 @@ Be responsive to feedback and address any review comments promptly.
 
 ## Testing Guidelines
 
-Write tests for new features or changes whenever possible.
+Write tests for new features or changes 
 
 Ensure all existing tests pass and the linter reports no errors before submitting your changes.
 
