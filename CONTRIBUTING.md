@@ -36,7 +36,7 @@ Provide detailed information and steps to reproduce when reporting bugs.
 Follow the issue template if available.
 
 ## Code Contribution Guidelines
-
+Before submitting a contribution, please consider whether it will be useful to the community and try to minimise breaking changes.  In general, a Pull Request with breaking changes is unlikely to be accepted immediately.
 Submit concise and focused pull requests with clear descriptions.
 
 Follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) specification both for the commits and PR names.
