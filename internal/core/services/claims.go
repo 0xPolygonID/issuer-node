@@ -376,7 +376,14 @@ func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Age
 		return nil, fmt.Errorf("cannot proceed with this identity, not found")
 	}
 
-	return c.getAgentCredential(ctx, req) // at this point the type is already validated
+	switch req.Type {
+	case protocol.CredentialFetchRequestMessageType:
+		return c.getAgentCredential(ctx, req)
+	case protocol.RevocationStatusRequestMessageType:
+		return c.getRevocationStatus(ctx, req)
+	default:
+		return nil, errors.New("invalid type")
+	}
 }
 
 func (c *claim) GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error) {
@@ -601,6 +608,29 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 	}
 
 	return nil
+}
+
+func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
+	revData := &protocol.RevocationStatusRequestMessageBody{}
+	err := json.Unmarshal(basicMessage.Body, revData)
+	if err != nil {
+		return nil, fmt.Errorf("invalid revocation request body: %w", err)
+	}
+
+	var revStatus *verifiable.RevocationStatus
+	revStatus, err = c.GetRevocationStatus(ctx, *basicMessage.IssuerDID, revData.RevocationNonce)
+	if err != nil {
+		return nil, fmt.Errorf("failed get revocation status: %w", err)
+	}
+
+	return &domain.Agent{
+		ID:       uuid.NewString(),
+		Type:     protocol.RevocationStatusResponseMessageType,
+		ThreadID: basicMessage.ThreadID,
+		Body:     protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus},
+		From:     basicMessage.IssuerDID.String(),
+		To:       basicMessage.UserDID.String(),
+	}, nil
 }
 
 func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
