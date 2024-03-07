@@ -27,6 +27,7 @@ func NewRevocationStatusResolver(credentialStatusSettings config.CredentialStatu
 	resolvers := make(map[verifiable.CredentialStatusType]revocationCredentialStatusResolver, resolversLength)
 	resolvers[verifiable.Iden3ReverseSparseMerkleTreeProof] = &iden3ReverseSparseMerkleTreeProofResolver{}
 	resolvers[verifiable.SparseMerkleTreeProof] = &sparseMerkleTreeProofResolver{}
+	resolvers[verifiable.Iden3commRevocationStatusV1] = &iden3CommRevocationStatusV1Resolver{}
 	resolvers[verifiable.Iden3OnchainSparseMerkleTreeProof2023] = &iden3OnChainSparseMerkleTreeProof2023Resolver{}
 	return &RevocationStatusResolver{
 		credentialStatusSettings: credentialStatusSettings,
@@ -39,7 +40,7 @@ func NewRevocationStatusResolver(credentialStatusSettings config.CredentialStatu
 // If status is supported, a way to check revocation status is returned.
 func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(_ context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, credentialStatusType verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
 	if credentialStatusType == "" {
-		credentialStatusType = verifiable.SparseMerkleTreeProof
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
 	}
 	resolver, ok := rsr.resolvers[credentialStatusType]
 	if !ok {

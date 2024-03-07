@@ -1,10 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -13,12 +15,16 @@ import (
 	"time"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/google/uuid"
 	abiOnchain "github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi"
 	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-merkletree-sql/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	proofHttp "github.com/iden3/merkletree-proof/http"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
@@ -73,6 +79,9 @@ func (r *Revocation) Status(ctx context.Context, credStatus interface{}, issuerD
 		return r.getRevocationStatusFromRHS(ctx, issuerDID, status, issuerData)
 	case verifiable.SparseMerkleTreeProof:
 		return getRevocationProofFromIssuer(ctx, status.ID)
+	case verifiable.Iden3commRevocationStatusV1:
+		return getRevocationStatusFromAgent(ctx, issuerDID.String(),
+			issuerDID.String(), status.ID, status.RevocationNonce)
 	case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
 		return r.getRevocationStatusFromOnchainCredStatusResolver(ctx, issuerDID, status)
 	default:
@@ -104,6 +113,73 @@ func convertCredentialStatus(credStatus interface{}) (verifiable.CredentialStatu
 	}
 
 	return verifiable.CredentialStatus{}, errors.New("failed cast credential status to verifiable.CredentialStatus")
+}
+
+func getRevocationStatusFromAgent(ctx context.Context, from, to, endpoint string, nonce uint64) (*verifiable.RevocationStatus, error) {
+	pkg := iden3comm.NewPackageManager()
+	if err := pkg.RegisterPackers(&packers.PlainMessagePacker{}); err != nil {
+		return nil, err
+	}
+
+	revocationBody := protocol.RevocationStatusRequestMessageBody{
+		RevocationNonce: nonce,
+	}
+	rawBody, err := json.Marshal(revocationBody)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := iden3comm.BasicMessage{
+		ID:       uuid.New().String(),
+		ThreadID: uuid.New().String(),
+		From:     from,
+		To:       to,
+		Type:     protocol.RevocationStatusRequestMessageType,
+		Body:     rawBody,
+	}
+	bytesMsg, err := json.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	iden3commMsg, err := pkg.Pack(packers.MediaTypePlainMessage, bytesMsg, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Post(endpoint, "application/json", bytes.NewBuffer(iden3commMsg))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Warn(ctx, "failed to close response body: %s", err)
+		}
+	}()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("bad status code: %d", resp.StatusCode)
+	}
+
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	basicMessage, _, err := pkg.Unpack(b)
+	if err != nil {
+		return nil, err
+	}
+
+	if basicMessage.Type != protocol.RevocationStatusResponseMessageType {
+		return nil, fmt.Errorf("unexpected message type: %s", basicMessage.Type)
+	}
+
+	var revocationStatus protocol.RevocationStatusResponseMessageBody
+	if err := json.Unmarshal(basicMessage.Body, &revocationStatus); err != nil {
+		return nil, err
+	}
+
+	return &revocationStatus.RevocationStatus, nil
 }
 
 func getRevocationProofFromIssuer(ctx context.Context, url string) (*verifiable.RevocationStatus, error) {
