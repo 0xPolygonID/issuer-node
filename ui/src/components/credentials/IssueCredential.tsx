@@ -11,7 +11,7 @@ import {
   credentialFormParser,
   serializeCredentialIssuance,
   serializeCredentialLinkIssuance,
-} from "src/adapters/parsers/forms";
+} from "src/adapters/parsers/view";
 import { IssuanceMethodForm } from "src/components/credentials/IssuanceMethodForm";
 import { IssueCredentialForm } from "src/components/credentials/IssueCredentialForm";
 import { Summary } from "src/components/credentials/Summary";

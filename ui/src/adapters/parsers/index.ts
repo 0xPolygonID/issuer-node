@@ -35,7 +35,7 @@ export function getListParser<Input, Output = Input>(
   );
 }
 
-const metaParser = getStrictParser<ResourceMeta>()(
+const resourceMetaParser = getStrictParser<ResourceMeta>()(
   z.object({
     max_results: z.number().int().min(1),
     page: z.number().int().min(1),
@@ -52,7 +52,7 @@ export function getResourceParser<Input, Output = Input>(
   >()(
     z.object({
       items: getListParser(parser),
-      meta: metaParser,
+      meta: resourceMetaParser,
     })
   );
 }
