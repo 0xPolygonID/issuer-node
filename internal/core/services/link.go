@@ -182,6 +182,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		Body: protocol.AuthorizationRequestMessageBody{
 			CallbackURL: fmt.Sprintf("%s/v1/credentials/links/callback?sessionID=%s&linkID=%s", serverURL, sessionID, linkID.String()),
 			Reason:      authReason,
+			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
 	}
 
