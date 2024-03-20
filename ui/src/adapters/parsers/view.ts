@@ -1,6 +1,7 @@
 import dayjs, { isDayjs } from "dayjs";
 import { z } from "zod";
 
+import { Sorter } from "src/adapters/api";
 import { CreateCredential, CreateLink } from "src/adapters/api/credentials";
 import { jsonParser } from "src/adapters/json";
 import { getStrictParser } from "src/adapters/parsers";
@@ -42,6 +43,47 @@ export type CredentialLinkIssuance = CredentialIssuance & {
 };
 
 // Parsers
+export type TableSorterInput = { field: string; order?: "ascend" | "descend" | undefined };
+
+const tableSorterInputParser = getStrictParser<TableSorterInput>()(
+  z.object({
+    field: z.string(),
+    order: z.union([z.literal("ascend"), z.literal("descend")]).optional(),
+  })
+);
+
+export const tableSorterParser = getStrictParser<TableSorterInput | unknown[], Sorter[]>()(
+  z.union([
+    z
+      .unknown()
+      .array()
+      .transform((unknowns): Sorter[] =>
+        unknowns.reduce((acc: Sorter[], curr): Sorter[] => {
+          const parsedSorter = tableSorterInputParser.safeParse(curr);
+          return parsedSorter.success && parsedSorter.data.order !== undefined
+            ? [
+                ...acc,
+                {
+                  field: parsedSorter.data.field,
+                  order: parsedSorter.data.order,
+                },
+              ]
+            : acc;
+        }, [])
+      ),
+    tableSorterInputParser.transform((sorter): Sorter[] =>
+      sorter.order !== undefined
+        ? [
+            {
+              field: sorter.field,
+              order: sorter.order,
+            },
+          ]
+        : []
+    ),
+  ])
+);
+
 export const dayjsInstanceParser = getStrictParser<dayjs.Dayjs>()(
   z.custom<dayjs.Dayjs>(isDayjs, {
     message: "The provided input is not a valid Dayjs instance",

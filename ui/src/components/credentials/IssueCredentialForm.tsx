@@ -27,7 +27,7 @@ import {
   IssueCredentialFormData,
   dayjsInstanceParser,
   serializeSchemaForm,
-} from "src/adapters/parsers/forms";
+} from "src/adapters/parsers/view";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
