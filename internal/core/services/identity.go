@@ -482,6 +482,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		Body: protocol.AuthorizationRequestMessageBody{
 			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
 			Reason:      authReason,
+			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
 	}
 	if err := i.sessionManager.Set(ctx, sessionID.String(), *qrCode); err != nil {
