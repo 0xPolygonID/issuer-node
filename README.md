@@ -61,7 +61,7 @@ In this section we will cover the installation of the Issuer Node API.
 
 1. Copy the config sample files:
 
-    ```bash
+    ```shell
     cp .env-issuer.sample .env-issuer
     cp .env-api.sample .env-api
     ```
@@ -69,12 +69,12 @@ In this section we will cover the installation of the Issuer Node API.
 2. Fill the .env-issuer config file with the proper variables:
 
    *.env-issuer*
-    ```bash
+    ```shell
     ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
     ```
 3. Start the infrastructure:
 
-    ```bash
+    ```shell
     make up
     ```
 
