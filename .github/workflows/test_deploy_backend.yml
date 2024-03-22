@@ -36,6 +36,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Create .env-api
+        run: |
+          touch .env-api
+
       - run: make build/docker
 
       - name: Configure AWS credentials
