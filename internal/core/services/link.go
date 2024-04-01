@@ -235,7 +235,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 	if err := ls.validate(ctx, link); err != nil {
 		setLinkError := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(err))
 		if setLinkError != nil {
-			log.Error(ctx, "cannot set the sate", "err", setLinkError)
+			log.Error(ctx, "cannot set the state", "err", setLinkError)
 			return setLinkError
 		}
 
