@@ -584,7 +584,8 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			core_claim 
 		FROM claims
 		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
-		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer AND (mtp = true OR revoked = true)
+		WHERE issuer = $1 AND ((identity_state IS NULL AND (mtp = true OR revoked = true) OR (identity_state = $2 AND mtp = true)))
+		AND claims.identifier = issuer 
 		`, did.String(), state.Hex())
 	}
 
