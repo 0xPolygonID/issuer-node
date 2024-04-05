@@ -310,7 +310,6 @@ func (i *identity) GetKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 }
 
 func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.IdentityState, error) {
-	const authBJJCredential = "https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential"
 	newState := &domain.IdentityState{
 		Identifier: did.String(),
 		Status:     domain.StatusCreated,
@@ -339,7 +338,7 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 			}
 
 			// Check if there are claims to process
-			if err := checkClaimsToAdd(lc, authBJJCredential); err != nil {
+			if err := checkClaimsToAdd(lc); err != nil {
 				return err
 			}
 
@@ -406,8 +405,12 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 
 // checkClaimsToAdd checks if there are claims to process
 // if the len of the claims is 0 or the len is 1 and the claim is the authBJJCredential then return an error
-func checkClaimsToAdd(lc []domain.Claim, authCoreClaim string) error {
-	if len(lc) == 0 || (len(lc) == 1 && lc[0].SchemaType == authCoreClaim) {
+func checkClaimsToAdd(lc []domain.Claim) error {
+	if len(lc) == 0 {
+		return ErrNoClaimsFoundToProcess
+	}
+
+	if len(lc) == 1 && lc[0].SchemaType == domain.AuthBJJCredentialTypeID {
 		return ErrNoClaimsFoundToProcess
 	}
 	return nil
