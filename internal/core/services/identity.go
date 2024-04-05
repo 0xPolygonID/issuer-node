@@ -327,19 +327,27 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error getting the identifier last state: %w", err)
 			}
 
-			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
+			var state *merkletree.Hash = nil
+			if previousState != nil {
+				state = previousState.TreeState().State
+			}
+
+			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, state)
 			if err != nil {
 				return fmt.Errorf("error getting the states: %w", err)
 			}
 
-			if len(lc) == 0 {
-				return ErrNoClaimsFoundToProcess
+			// Check if there are claims to process
+			if err := checkClaimsToAdd(lc); err != nil {
+				return err
 			}
 
 			for i := range lc {
-				err = iTrees.AddClaim(ctx, &lc[i])
-				if err != nil {
-					return err
+				if lc[i].IdentityState == nil {
+					err = iTrees.AddClaim(ctx, &lc[i])
+					if err != nil {
+						return err
+					}
 				}
 			}
 
@@ -393,6 +401,19 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 	}
 
 	return newState, err
+}
+
+// checkClaimsToAdd checks if there are claims to process
+// if the len of the claims is 0 or the len is 1 and the claim is the authBJJCredential then return an error
+func checkClaimsToAdd(lc []domain.Claim) error {
+	if len(lc) == 0 {
+		return ErrNoClaimsFoundToProcess
+	}
+
+	if len(lc) == 1 && lc[0].SchemaType == domain.AuthBJJCredentialTypeID {
+		return ErrNoClaimsFoundToProcess
+	}
+	return nil
 }
 
 func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error {
