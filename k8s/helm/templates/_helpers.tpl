@@ -138,7 +138,7 @@ Define RHS_CHAIN_ID
 {{- if eq .Values.mainnet true }}
 "137"
 {{- else }}
-"80001"
+"80002"
 {{- end }}
 {{- end }}
 
