@@ -88,7 +88,7 @@ type Ethereum struct {
 	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
+	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:amoy"`
 	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
 	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
 }
@@ -674,8 +674,8 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	}
 
 	if cfg.APIUI.IdentityNetwork == "" {
-		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as mumbai")
-		cfg.APIUI.IdentityNetwork = "mumbai"
+		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as amoy")
+		cfg.APIUI.IdentityNetwork = "amoy"
 	}
 }
 

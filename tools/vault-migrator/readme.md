@@ -16,7 +16,7 @@ the command above will export all keys from Vault to a file called **keys.json**
 
 Alternatively, you can specify **a did** to export only the keys that match the did
 ```bash
-go run ./tools/vault-migrator/main.go -operation=export -input-file=keys.json -vault-token=your-vault-token  -vault-addr=http://localhost:8200 -did=did:polygonid:polygon:mumbai:2qPHBiiu1wJN3rCMaaXwJpm9mNvuNqZZukzqS3V4Jg
+go run ./tools/vault-migrator/main.go -operation=export -input-file=keys.json -vault-token=your-vault-token  -vault-addr=http://localhost:8200 -did=did:polygonid:polygon:amoy:2qPHBiiu1wJN3rCMaaXwJpm9mNvuNqZZukzqS3V4Jg
 ```
 
 ### How to import keys to Vault

@@ -72,7 +72,7 @@ Define contract address
 {{- if eq .Values.mainnet true }}
 {{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMain }}
 {{- else }}
-{{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressMumbai }}
+{{ .Values.apiIssuerNode.configMap.issuerEthereumContractAddressAmoy }}
 {{- end }}
 {{- end }}
 
@@ -83,7 +83,7 @@ Define ethereum resolver prefix
 {{- if eq .Values.mainnet true }}
 {{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMain }}
 {{- else }}
-{{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixMumbai }}
+{{ .Values.apiIssuerNode.configMap.issuerEthereumResolverPrefixAmoy }}
 {{- end }}
 {{- end }}
 
@@ -94,7 +94,7 @@ Define network
 {{- if eq .Values.mainnet true }}
 {{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMain }}
 {{- else }}
-{{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkMumbai }}
+{{ .Values.apiUiIssuerNode.configMap.issuerApiIdentityNetworkAmoy }}
 {{- end }}
 {{- end }}
 
@@ -127,7 +127,7 @@ Define block explorer
 {{- if eq .Values.mainnet true }}
 {{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlMain }}
 {{- else }}
-{{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlMumbai }}
+{{ .Values.uiIssuerNode.configMap.issuerUiBlockExplorerUrlAmoy }}
 {{- end }}
 {{- end }}
 
