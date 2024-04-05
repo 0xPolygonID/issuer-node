@@ -404,8 +404,10 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 	return newState, err
 }
 
+// checkClaimsToAdd checks if there are claims to process
+// if the len of the claims is 0 or the len is 1 and the claim is the authBJJCredential then return an error
 func checkClaimsToAdd(lc []domain.Claim, authCoreClaim string) error {
-	if len(lc) == 0 || len(lc) == 1 && lc[0].SchemaType == authCoreClaim {
+	if len(lc) == 0 || (len(lc) == 1 && lc[0].SchemaType == authCoreClaim) {
 		return ErrNoClaimsFoundToProcess
 	}
 	return nil
