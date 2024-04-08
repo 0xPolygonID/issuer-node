@@ -262,7 +262,7 @@ paths:
           name: subject
           schema:
             type: string
-          description: Filter per subject. Example - did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
+          description: Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
         - in: query
           name: revoked
           schema:
@@ -519,7 +519,7 @@ components:
             network:
               type: string
               x-omitempty: false
-              example: "mumbai"
+              example: "amoy"
             type:
               type: string
               x-omitempty: false

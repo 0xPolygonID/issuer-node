@@ -330,7 +330,7 @@ paths:
           name: did
           schema:
             type: string
-            example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+            example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         - in: query
           name: status
           schema:
@@ -1085,7 +1085,7 @@ components:
               example: [ ]
         from:
           type: string
-          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+          example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
 
     QrCodeLinkShortResponse:
       type: object
@@ -1283,10 +1283,10 @@ components:
           example:
             birthday: 19960424
             documentType: 2
-            id: "did:polygonid:polygon:mumbai:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
+            id: "did:polygonid:polygon:amoy:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
         userID:
           type: string
-          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+          example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         refreshService:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
@@ -1493,11 +1493,11 @@ components:
         userID:
           type: string
           x-omitempty: false
-          example: did:polygonid:polygon:mumbai:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
+          example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
         issuerID:
           type: string
           x-omitempty: false
-          example: did:polygonid:polygon:mumbai:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+          example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
         createdAt:
           $ref: '#/components/schemas/TimeUTC'
         credentials:
