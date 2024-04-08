@@ -56,7 +56,7 @@ var (
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
 	// ErrNoClaimsFoundToProcess - means that there are no claims to process
-	ErrNoClaimsFoundToProcess = errors.New("no MTP claims found to process")
+	ErrNoClaimsFoundToProcess = errors.New("no MTP or revoked claims found to process")
 )
 
 type identity struct {
@@ -327,42 +327,35 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error getting the identifier last state: %w", err)
 			}
 
-			var state *merkletree.Hash = nil
-			if previousState != nil {
-				state = previousState.TreeState().State
-			}
-
-			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, state)
+			// Get all mtp claims with state == nil
+			claimsAddedToTree, err := i.processClaims(ctx, tx, did, iTrees)
 			if err != nil {
-				return fmt.Errorf("error getting the states: %w", err)
-			}
-
-			// Check if there are claims to process
-			if err := checkClaimsToAdd(lc); err != nil {
 				return err
 			}
 
-			for i := range lc {
-				if lc[i].IdentityState == nil {
-					err = iTrees.AddClaim(ctx, &lc[i])
-					if err != nil {
-						return err
-					}
-				}
+			// Get all revocations with domain.RevPending status
+			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, &did)
+			if err != nil {
+				log.Error(ctx, "updating revocation status", "err", err)
+				return err
+			}
+
+			log.Info(ctx, "updating revocation status", "revocations", len(updatedRevocations))
+
+			if len(updatedRevocations) == 0 && !claimsAddedToTree {
+				log.Info(ctx, "no claims or revocations found to process")
+				return ErrNoClaimsFoundToProcess
 			}
 
 			err = populateIdentityState(ctx, iTrees, newState, previousState)
 			if err != nil {
+				log.Error(ctx, "populating identity state", "err", err)
 				return err
 			}
 
 			err = i.update(ctx, tx, &did, *newState)
 			if err != nil {
-				return err
-			}
-
-			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, &did)
-			if err != nil {
+				log.Error(ctx, "updating claims", "err", err)
 				return err
 			}
 
@@ -403,17 +396,28 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 	return newState, err
 }
 
-// checkClaimsToAdd checks if there are claims to process
-// if the len of the claims is 0 or the len is 1 and the claim is the authBJJCredential then return an error
-func checkClaimsToAdd(lc []domain.Claim) error {
-	if len(lc) == 0 {
-		return ErrNoClaimsFoundToProcess
+func (i *identity) processClaims(ctx context.Context, tx pgx.Tx, did w3c.DID, iTrees *domain.IdentityMerkleTrees) (bool, error) {
+	lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
+	if err != nil {
+		return false, fmt.Errorf("error getting the states: %w", err)
 	}
 
-	if len(lc) == 1 && lc[0].SchemaType == domain.AuthBJJCredentialTypeID {
-		return ErrNoClaimsFoundToProcess
+	claimsAddedToTree := false
+	if len(lc) > 0 {
+		log.Info(ctx, "adding claims to tree", "claims", len(lc))
+		claimsAddedToTree = true
 	}
-	return nil
+
+	if claimsAddedToTree {
+		for i := range lc {
+			err = iTrees.AddClaim(ctx, &lc[i])
+			if err != nil {
+				log.Error(ctx, "adding claim to tree", "err", err)
+				return false, err
+			}
+		}
+	}
+	return claimsAddedToTree, nil
 }
 
 func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error {
