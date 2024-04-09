@@ -70,6 +70,7 @@ type ClaimsFilter struct {
 	Subject         string
 	QueryField      string
 	QueryFieldValue string
+	VCFuzzyQuery    string
 	FTSQuery        string
 	FTSAndCond      bool
 	Proofs          []verifiable.ProofType

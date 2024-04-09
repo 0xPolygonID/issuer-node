@@ -137,15 +137,15 @@ type CreateCredentialRequest struct {
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	CredentialExpiration *time.Time 		 `json:"credentialExpiration,omitempty"`
-	CredentialSubject    CredentialSubject   `json:"credentialSubject"`
-	DisplayMethod        *DisplayMethod      `json:"displayMethod,omitempty"`
-	Expiration           *time.Time          `json:"expiration,omitempty"`
-	LimitedClaims        *int                `json:"limitedClaims"`
-	MtProof              bool                `json:"mtProof"`
-	RefreshService       *RefreshService     `json:"refreshService,omitempty"`
-	SchemaID             uuid.UUID           `json:"schemaID"`
-	SignatureProof       bool                `json:"signatureProof"`
+	CredentialExpiration *time.Time        `json:"credentialExpiration,omitempty"`
+	CredentialSubject    CredentialSubject `json:"credentialSubject"`
+	DisplayMethod        *DisplayMethod    `json:"displayMethod,omitempty"`
+	Expiration           *time.Time        `json:"expiration,omitempty"`
+	LimitedClaims        *int              `json:"limitedClaims"`
+	MtProof              bool              `json:"mtProof"`
+	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
+	SchemaID             uuid.UUID         `json:"schemaID"`
+	SignatureProof       bool              `json:"signatureProof"`
 }
 
 // Credential defines model for Credential.
@@ -480,6 +480,9 @@ type GetCredentialsParams struct {
 
 	// Query Query string to do full text search
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
+
+	// VCFuzzyQuery fuzzy query all the content in the value of credentialSubject
+	VCFuzzyQuery *string `form:"query,omitempty" json:"query,omitempty"`
 
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
