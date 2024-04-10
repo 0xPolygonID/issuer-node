@@ -334,12 +334,7 @@ func (p *Proof) checkRevocationStatus(ctx context.Context, claim *domain.Claim) 
 		}
 
 		return &verifiable.RevocationStatus{
-			Issuer: struct {
-				State              *string `json:"state,omitempty"`
-				RootOfRoots        *string `json:"rootOfRoots,omitempty"`
-				ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
-				RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
-			}{
+			Issuer: verifiable.TreeState{
 				State:              bjp.IssuerData.State.Value,
 				RootOfRoots:        bjp.IssuerData.State.RootOfRoots,
 				ClaimsTreeRoot:     bjp.IssuerData.State.ClaimsTreeRoot,
@@ -514,12 +509,7 @@ func (p *Proof) callNonRevProof(ctx context.Context, issuerData verifiable.Issue
 				NodeAux:   nil,
 			},
 			TreeState: domain.RevocationStatusToTreeState(verifiable.RevocationStatus{
-				Issuer: struct {
-					State              *string `json:"state,omitempty"`
-					RootOfRoots        *string `json:"rootOfRoots,omitempty"`
-					ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
-					RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
-				}{
+				Issuer: verifiable.TreeState{
 					State:              issuerData.State.Value,
 					RootOfRoots:        issuerData.State.RootOfRoots,
 					ClaimsTreeRoot:     issuerData.State.ClaimsTreeRoot,

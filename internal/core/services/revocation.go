@@ -151,12 +151,7 @@ func getNonRevocationProofFromRHS(ctx context.Context, rhsURL string, data, issu
 	}
 
 	return &verifiable.RevocationStatus{
-		Issuer: struct {
-			State              *string `json:"state,omitempty"`
-			RootOfRoots        *string `json:"rootOfRoots,omitempty"`
-			ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
-			RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
-		}{
+		Issuer: verifiable.TreeState{
 			State:              &s,
 			ClaimsTreeRoot:     &CTR,
 			RevocationTreeRoot: &RTR,
@@ -240,12 +235,7 @@ func getRevocationStatusFromIssuerData(did *w3c.DID, issuerData *verifiable.Issu
 	}
 
 	return &verifiable.RevocationStatus{
-		Issuer: struct {
-			State              *string `json:"state,omitempty"`
-			RootOfRoots        *string `json:"rootOfRoots,omitempty"`
-			ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
-			RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
-		}{
+		Issuer: verifiable.TreeState{
 			State:              issuerData.State.Value,
 			RootOfRoots:        issuerData.State.RootOfRoots,
 			ClaimsTreeRoot:     issuerData.State.ClaimsTreeRoot,
@@ -351,12 +341,7 @@ func (r *Revocation) getRevocationStatusFromOnchainCredStatusResolver(ctx contex
 	rorHex := ror.Hex()
 
 	return &verifiable.RevocationStatus{
-		Issuer: struct {
-			State              *string `json:"state,omitempty"`
-			RootOfRoots        *string `json:"rootOfRoots,omitempty"`
-			ClaimsTreeRoot     *string `json:"claimsTreeRoot,omitempty"`
-			RevocationTreeRoot *string `json:"revocationTreeRoot,omitempty"`
-		}{
+		Issuer: verifiable.TreeState{
 			State:              &stateHex,
 			ClaimsTreeRoot:     &ctrHex,
 			RevocationTreeRoot: &rtrHex,
