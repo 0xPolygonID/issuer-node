@@ -802,6 +802,9 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) 
 	if req.Params.Query != nil {
 		filter.FTSQuery = *req.Params.Query
 	}
+	if req.Params.VCFuzzyQuery != nil {
+		filter.VCFuzzyQuery = *req.Params.VCFuzzyQuery
+	}
 
 	filter.MaxResults = 50
 	if req.Params.MaxResults != nil {

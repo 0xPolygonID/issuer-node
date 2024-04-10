@@ -817,6 +817,15 @@ func buildGetAllQueryAndFilters(issuerID w3c.DID, filter *ports.ClaimsFilter) (q
 		filters = append(filters, filter.QueryField, filter.QueryFieldValue)
 		query = fmt.Sprintf("%s and data -> 'credentialSubject'  ->>$%d = $%d ", query, len(filters)-1, len(filters))
 	}
+	/**
+	 * Used to fuzzy query all the content in the value of credentialSubject, case-insensitive
+	 */
+	if filter.VCFuzzyQuery != "" {
+		filters = append(filters, "%%%s%%", filter.VCFuzzyQuery)
+		query = fmt.Sprintf("%s AND EXISTS "+
+			"(SELECT 1 FROM jsonb_each_text(data->'credentialSubject') AS map(key, value) "+
+			"WHERE value ILIKE $%d", query, len(filters))
+	}
 	if filter.ExpiredOn != nil {
 		t := *filter.ExpiredOn
 		filters = append(filters, t.Unix())

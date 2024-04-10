@@ -480,6 +480,9 @@ type GetCredentialsParams struct {
 	// Query Query string to do full text search
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 
+	// VCFuzzyQuery fuzzy query all the content in the value of credentialSubject
+	VCFuzzyQuery *string `form:"query,omitempty" json:"query,omitempty"`
+
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
