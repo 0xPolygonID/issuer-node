@@ -54,7 +54,7 @@ apiIssuerNode:
     issuerEthereumContractAddressAmoy: "0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124"
     issuerEthereumContractAddressMain: "0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D"
     issuerEthereumDefaultGasLimit: "600000"
-    issuerEthereumMaxGasPrice: "1000000"
+    issuerEthereumMaxGasPrice: "2500000"
     issuerEthereumMinGasPrice: "0"
     issuerEthereumReceiptTimeout: 600s
     issuerEthereumResolverPrefixMumbai: polygon:mumbai
