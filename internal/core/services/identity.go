@@ -408,15 +408,15 @@ func (i *identity) processClaims(ctx context.Context, tx pgx.Tx, did w3c.DID, iT
 		claimsAddedToTree = true
 	}
 
-	if claimsAddedToTree {
-		for i := range lc {
-			err = iTrees.AddClaim(ctx, &lc[i])
-			if err != nil {
-				log.Error(ctx, "adding claim to tree", "err", err)
-				return false, err
-			}
+	for i := range lc {
+		err = iTrees.AddClaim(ctx, &lc[i])
+		if err != nil {
+			log.Error(ctx, "adding claim to tree", "err", err)
+			return false, err
 		}
+
 	}
+
 	return claimsAddedToTree, nil
 }
 
