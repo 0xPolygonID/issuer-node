@@ -136,6 +136,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *w3c.DID) (*dom
 
 	txID, err := p.publishProof(ctx, identifier, *updatedState)
 	if err != nil {
+		// TODO: Handle RHS status already published
 		log.Error(ctx, "Error during publishing proof:", "err", err, "did", identifier.String())
 		updatedState.Status = domain.StatusFailed
 		errUpdating := p.identityService.UpdateIdentityState(ctx, updatedState)

@@ -98,7 +98,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		assert.NotNil(t, identityState.RevocationTreeRoot)
 	})
 
-	t.Run("should return an error after revoke a credential", func(t *testing.T) {
+	t.Run("should return success after revoke a MTP credential", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
@@ -121,7 +121,56 @@ func Test_identity_UpdateState(t *testing.T) {
 
 		assert.NoError(t, claimsService.Revoke(ctx, *did, uint64(claim.RevNonce), ""))
 		_, err = identityService.UpdateState(ctx, *did)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should return pass after creating two credentials", func(t *testing.T) {
+		ctx := context.Background()
+		merklizedRootPosition := "index"
+		claimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
+			common.ToPointer(false), common.ToPointer(true), nil, false,
+			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+
+		assert.NoError(t, err)
+		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
+		identityState, err := identityService.UpdateState(ctx, *did)
+		assert.NoError(t, err)
+		assert.Equal(t, did.String(), identityState.Identifier)
+		assert.NotNil(t, identityState.State)
+		assert.Equal(t, domain.StatusCreated, identityState.Status)
+		assert.NotNil(t, identityState.StateID)
+		assert.Equal(t, previousStateIdentity.State, identityState.PreviousState)
+		assert.NotNil(t, identityState.RootOfRoots)
+		assert.NotNil(t, identityState.ClaimsTreeRoot)
+		assert.NotNil(t, identityState.RevocationTreeRoot)
+
+		assert.NoError(t, claimsService.Revoke(ctx, *did, uint64(claimMTP.RevNonce), ""))
+		_, err = identityService.UpdateState(ctx, *did)
+		assert.NoError(t, err)
+
+		claimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
+			common.ToPointer(true), common.ToPointer(false), nil, false,
+			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+
+		assert.NoError(t, err)
+		_, err = identityService.UpdateState(ctx, *did)
 		assert.Error(t, err)
+
+		assert.NoError(t, claimsService.Revoke(ctx, *did, uint64(claimSIG.RevNonce), ""))
+		identityState, err = identityService.UpdateState(ctx, *did)
+		assert.NoError(t, err)
+		previousStateIdentity, err = identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
+		assert.NoError(t, err)
+		assert.Equal(t, did.String(), identityState.Identifier)
+		assert.NotNil(t, identityState.State)
+		assert.Equal(t, domain.StatusCreated, identityState.Status)
+		assert.NotNil(t, identityState.StateID)
+		assert.Equal(t, previousStateIdentity.State, identityState.PreviousState)
+		assert.NotNil(t, identityState.RootOfRoots)
+		assert.NotNil(t, identityState.ClaimsTreeRoot)
+		assert.NotNil(t, identityState.RevocationTreeRoot)
 	})
 
 	t.Run("should get an error creating credential with sig proof", func(t *testing.T) {
