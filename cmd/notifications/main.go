@@ -37,16 +37,18 @@ import (
 var build = buildinfo.Revision()
 
 func main() {
-	log.Info(context.Background(), "starting issuer node...", "revision", build)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info(ctx, "starting issuer node...", "revision", build)
 
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", "err", err)
+		log.Error(ctx, "cannot load config", "err", err)
 		return
 	}
 
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
-	defer cancel()
+	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAPIUI(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -70,6 +72,7 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
+	claimsRepository := repositories.NewClaims()
 
 	var vaultCli *vault.Client
 	var vaultErr error
@@ -96,7 +99,7 @@ func main() {
 		return
 	}
 
-	connectionsService := services.NewConnection(connectionsRepository, storage)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)

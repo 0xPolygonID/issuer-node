@@ -169,7 +169,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
 		return nil, err
 	}
-	credentialType, err := merklize.TypeIDFromContext(jsonLD.BytesNoErr(), req.Type)
+	_, err = merklize.TypeIDFromContext(jsonLD.BytesNoErr(), req.Type)
 	if err != nil {
 		log.Error(ctx, "getting credential type", "err", err)
 		return nil, err
@@ -203,7 +203,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
+	claim, err := domain.FromClaimer(coreClaim, req.Schema, req.Type)
 	if err != nil {
 		log.Error(ctx, "cannot obtain the claim from claimer", "err", err)
 		return nil, err
@@ -213,7 +213,6 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	claim.Identifier = &issuerDIDString
 	claim.Issuer = issuerDIDString
 	claim.ID = vcID
-	claim.SchemaTypeDescription = &req.Type
 
 	if req.SignatureProof {
 		authClaim, err := c.GetAuthClaim(ctx, req.DID)
@@ -314,9 +313,6 @@ func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*dom
 // GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
 func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*ports.GetCredentialQrCodeResponse, error) {
 	getCredentialType := func(claim domain.Claim) string {
-		if claim.SchemaTypeDescription != nil {
-			return *claim.SchemaTypeDescription
-		}
 		credentialType := claim.SchemaType
 		const schemaParts = 2
 		parse := strings.Split(credentialType, "#")
@@ -538,7 +534,6 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 			return fmt.Errorf("failed set mtp proof: %w", err)
 		}
 		affected, err = c.icRepo.UpdateClaimMTP(ctx, c.storage.Pgx, &claims[i])
-
 		if err != nil {
 			return fmt.Errorf("can't update claim mtp:  %w", err)
 		}
@@ -580,7 +575,6 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 
 	var claims []*domain.Claim
 	claims, err = c.icRepo.GetByRevocationNonce(ctx, querier, did, domain.RevNonceUint64(nonce))
-
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 			return err
@@ -601,7 +595,6 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 
 			return c.icRepo.RevokeNonce(ctx, tx, &revocation)
 		})
-
 	if err != nil {
 		log.Error(ctx, "error saving the revoked claims", "err", err)
 		return err

@@ -27,7 +27,7 @@ import {
   IssueCredentialFormData,
   dayjsInstanceParser,
   serializeSchemaForm,
-} from "src/adapters/parsers/forms";
+} from "src/adapters/parsers/view";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import IconCheckMark from "src/assets/icons/check.svg?react";
@@ -109,6 +109,22 @@ export function IssueCredentialForm({
 
   const [refreshServiceChecked, setRefreshServiceChecked] = useState(false);
 
+  const isPositiveBigInt = (x: string) => {
+    try {
+      return BigInt(x).toString() === x && BigInt(x) > 0;
+    } catch {
+      return false;
+    }
+  };
+
+  const isNonNegativeBigInt = (x: string) => {
+    try {
+      return BigInt(x).toString() === x && BigInt(x) >= 0;
+    } catch {
+      return false;
+    }
+  };
+
   function isFormValid(value: Record<string, unknown>, objectAttribute: ObjectAttribute): boolean {
     if (isAsyncTaskDataAvailable(jsonSchema)) {
       const serializedSchemaForm = serializeSchemaForm({
@@ -126,6 +142,14 @@ export function IssueCredentialForm({
               ? new Ajv2020({ allErrors: true })
               : new Ajv({ allErrors: true });
           addFormats(ajv);
+          ajv.addFormat("positive-integer", {
+            type: "string",
+            validate: isPositiveBigInt,
+          });
+          ajv.addFormat("non-negative-integer", {
+            type: "string",
+            validate: isNonNegativeBigInt,
+          });
           ajv.addVocabulary(["$metadata"]);
           applyDraft2019Formats(ajv);
 

@@ -56,7 +56,7 @@ var (
 	// ErrAssigningMTPProof - represents an error in the identity metadata
 	ErrAssigningMTPProof = errors.New("error assigning the MTP Proof from Auth Claim. If this identity has keyType=ETH you must to publish the state first")
 	// ErrNoClaimsFoundToProcess - means that there are no claims to process
-	ErrNoClaimsFoundToProcess = errors.New("no MTP claims found to process")
+	ErrNoClaimsFoundToProcess = errors.New("no MTP or revoked claims found to process")
 )
 
 type identity struct {
@@ -130,7 +130,6 @@ func (i *identity) Create(ctx context.Context, hostURL string, didOptions *ports
 			}
 			return err
 		})
-
 	if err != nil {
 		log.Error(ctx, "creating identity", "err", err, "id", identifier)
 		return nil, fmt.Errorf("cannot create identity: %w", err)
@@ -328,34 +327,35 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error getting the identifier last state: %w", err)
 			}
 
-			lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
+			// Get all mtp claims with state == nil
+			claimsAddedToTree, err := i.processClaims(ctx, tx, did, iTrees)
 			if err != nil {
-				return fmt.Errorf("error getting the states: %w", err)
+				return err
 			}
 
-			if len(lc) == 0 {
+			// Get all revocations with domain.RevPending status
+			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, &did)
+			if err != nil {
+				log.Error(ctx, "updating revocation status", "err", err)
+				return err
+			}
+
+			log.Info(ctx, "updating revocation status", "revocations", len(updatedRevocations))
+
+			if len(updatedRevocations) == 0 && !claimsAddedToTree {
+				log.Info(ctx, "no claims or revocations found to process")
 				return ErrNoClaimsFoundToProcess
-			}
-
-			for i := range lc {
-				err = iTrees.AddClaim(ctx, &lc[i])
-				if err != nil {
-					return err
-				}
 			}
 
 			err = populateIdentityState(ctx, iTrees, newState, previousState)
 			if err != nil {
+				log.Error(ctx, "populating identity state", "err", err)
 				return err
 			}
 
 			err = i.update(ctx, tx, &did, *newState)
 			if err != nil {
-				return err
-			}
-
-			updatedRevocations, err := i.revocationRepository.UpdateStatus(ctx, tx, &did)
-			if err != nil {
+				log.Error(ctx, "updating claims", "err", err)
 				return err
 			}
 
@@ -394,6 +394,30 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 	}
 
 	return newState, err
+}
+
+func (i *identity) processClaims(ctx context.Context, tx pgx.Tx, did w3c.DID, iTrees *domain.IdentityMerkleTrees) (bool, error) {
+	lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
+	if err != nil {
+		return false, fmt.Errorf("error getting the states: %w", err)
+	}
+
+	claimsAddedToTree := false
+	if len(lc) > 0 {
+		log.Info(ctx, "adding claims to tree", "claims", len(lc))
+		claimsAddedToTree = true
+	}
+
+	for i := range lc {
+		err = iTrees.AddClaim(ctx, &lc[i])
+		if err != nil {
+			log.Error(ctx, "adding claim to tree", "err", err)
+			return false, err
+		}
+
+	}
+
+	return claimsAddedToTree, nil
 }
 
 func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error {
@@ -483,6 +507,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		Body: protocol.AuthorizationRequestMessageBody{
 			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
 			Reason:      authReason,
+			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
 	}
 	if err := i.sessionManager.Set(ctx, sessionID.String(), *qrCode); err != nil {

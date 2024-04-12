@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,7 +48,8 @@ type Configuration struct {
 	IPFS                         IPFS          `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
-	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
+	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
+	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 }
 
 // Database has the database configuration
@@ -85,9 +88,46 @@ type Ethereum struct {
 	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
+	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:amoy"`
 	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
 	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
+}
+
+// CustomDIDMethods struct
+// Example: ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
+type CustomDIDMethods struct {
+	Blockchain  string `tip:"Identity blockchain for custom network"`
+	Network     string `tip:"Identity network for custom network"`
+	NetworkFlag byte   `tip:"Identity network flag for custom network"`
+	ChainID     int    `tip:"Chain id for custom network"`
+}
+
+// UnmarshalJSON implements the Unmarshal interface for CustomNetwork
+func (cn *CustomDIDMethods) UnmarshalJSON(data []byte) error {
+	aux := struct {
+		Blockchain  string `json:"blockchain"`
+		Network     string `json:"network"`
+		NetworkFlag string `json:"networkFlag"`
+		ChainID     int    `json:"chainId"`
+	}{}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if len(aux.NetworkFlag) != 10 || aux.NetworkFlag[:2] != "0b" {
+		return errors.New("invalid NetworkFlag format")
+	}
+	flag, err := strconv.ParseUint(aux.NetworkFlag[2:], 2, 8)
+	if err != nil {
+		return err
+	}
+
+	cn.Blockchain = aux.Blockchain
+	cn.Network = aux.Network
+	cn.NetworkFlag = byte(flag)
+	cn.ChainID = aux.ChainID
+
+	return nil
 }
 
 // Prover struct
@@ -344,6 +384,17 @@ func Load(fileName string) (*Configuration, error) {
 	if err := viper.Unmarshal(config); err != nil {
 		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
+
+	jsonStr := viper.GetString("CUSTOM_DID_METHODS")
+	var customDIDMethods []CustomDIDMethods
+	if jsonStr != "" {
+		if err := json.Unmarshal([]byte(jsonStr), &customDIDMethods); err != nil {
+			log.Error(ctx, "error unmarshalling custom networks", "err", err)
+			return nil, err
+		}
+	}
+	config.CustomDIDMethods = customDIDMethods
+
 	checkEnvVars(ctx, config)
 	return config, nil
 }
@@ -451,6 +502,8 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityBlockchain", "ISSUER_API_IDENTITY_BLOCKCHAIN")
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
 	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_UI_KEY_TYPE")
+
+	_ = viper.BindEnv("ISSUER_CUSTOM_DID_METHODS")
 
 	viper.AutomaticEnv()
 }
@@ -621,8 +674,8 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	}
 
 	if cfg.APIUI.IdentityNetwork == "" {
-		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as mumbai")
-		cfg.APIUI.IdentityNetwork = "mumbai"
+		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as amoy")
+		cfg.APIUI.IdentityNetwork = "amoy"
 	}
 }
 

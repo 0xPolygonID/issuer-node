@@ -2,7 +2,15 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
-import { ID, IDParser, Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
+import {
+  ID,
+  IDParser,
+  Message,
+  Sorter,
+  buildAuthorizationHeader,
+  messageParser,
+  serializeSorters,
+} from "src/adapters/api";
 import {
   datetimeParser,
   getListParser,
@@ -103,7 +111,7 @@ export async function getCredential({
 
 export async function getCredentials({
   env,
-  params: { did, maxResults, page, query, status },
+  params: { did, maxResults, page, query, sorters, status },
   signal,
 }: {
   env: Env;
@@ -112,6 +120,7 @@ export async function getCredentials({
     maxResults?: number;
     page?: number;
     query?: string;
+    sorters?: Sorter[];
     status?: CredentialStatus;
   };
   signal?: AbortSignal;
@@ -129,6 +138,7 @@ export async function getCredentials({
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
         ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
         ...(page !== undefined ? { page: page.toString() } : {}),
+        ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
       url: `${API_VERSION}/credentials`,

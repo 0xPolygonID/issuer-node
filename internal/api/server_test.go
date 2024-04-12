@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	commonEth "github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2/packers"
@@ -28,7 +28,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
@@ -77,6 +76,38 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "should create a BJJ identity for amoy network",
+			auth: authOk,
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
+			},
+			expected: expected{
+				httpCode: 201,
+				message:  nil,
+			},
+		},
+		{
+			name: "should create a ETH identity for amoy network",
+			auth: authOk,
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
+			},
+			expected: expected{
+				httpCode: 201,
+				message:  nil,
 			},
 		},
 		{
@@ -187,11 +218,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			case http.StatusCreated:
 				var response CreateIdentityResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				require.NotNil(t, response.Identifier)
+				assert.Contains(t, *response.Identifier, tc.input.DidMetadata.Network)
 				assert.NotNil(t, response.State.CreatedAt)
 				assert.NotNil(t, response.State.ModifiedAt)
 				assert.NotNil(t, response.State.State)
 				assert.NotNil(t, response.State.Status)
-				assert.NotNil(t, *response.Identifier)
 				if tc.input.DidMetadata.Type == BJJ {
 					assert.NotNil(t, *response.State.ClaimsTreeRoot)
 				}
@@ -356,7 +388,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		network    = "mumbai"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()

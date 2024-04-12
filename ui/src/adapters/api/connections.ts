@@ -2,7 +2,13 @@ import axios from "axios";
 import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
-import { Message, buildAuthorizationHeader, messageParser } from "src/adapters/api";
+import {
+  Message,
+  Sorter,
+  buildAuthorizationHeader,
+  messageParser,
+  serializeSorters,
+} from "src/adapters/api";
 import { credentialParser } from "src/adapters/api/credentials";
 import {
   datetimeParser,
@@ -57,7 +63,7 @@ export async function getConnection({
 export async function getConnections({
   credentials,
   env,
-  params: { maxResults, page, query },
+  params: { maxResults, page, query, sorters },
   signal,
 }: {
   credentials: boolean;
@@ -66,6 +72,7 @@ export async function getConnections({
     maxResults?: number;
     page?: number;
     query?: string;
+    sorters?: Sorter[];
   };
   signal?: AbortSignal;
 }): Promise<Response<Resource<Connection>>> {
@@ -81,6 +88,7 @@ export async function getConnections({
         ...(credentials ? { credentials: "true" } : {}),
         ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),
         ...(page !== undefined ? { page: page.toString() } : {}),
+        ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
       url: `${API_VERSION}/connections`,

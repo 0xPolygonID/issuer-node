@@ -17,7 +17,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
 import { getConnections } from "src/adapters/api/connections";
-import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
+import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/view";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Connection } from "src/domain";
