@@ -260,7 +260,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 					Body: protocol.AuthorizationRequestMessageBody{
 						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
 						Reason:      "authentication",
-						Scope:       nil,
+						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
 					From: issuerDID.String(),
 					Typ:  "application/iden3comm-plain-json",
@@ -278,7 +278,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 					Body: protocol.AuthorizationRequestMessageBody{
 						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
 						Reason:      "authentication",
-						Scope:       nil,
+						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
 					From: issuerDID.String(),
 					Typ:  "application/iden3comm-plain-json",
@@ -296,7 +296,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 					Body: protocol.AuthorizationRequestMessageBody{
 						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
 						Reason:      "authentication",
-						Scope:       nil,
+						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
 					From: issuerDID.String(),
 					Typ:  "application/iden3comm-plain-json",
