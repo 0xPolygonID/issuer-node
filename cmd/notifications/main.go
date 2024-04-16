@@ -165,6 +165,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
 		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
 		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		GasLess:                cfg.Ethereum.GasLess,
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
