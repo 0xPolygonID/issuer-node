@@ -56,7 +56,7 @@ apiIssuerNode:
     issuerEthereumDefaultGasLimit: "600000"
     issuerEthereumMaxGasPrice: "2500000"
     issuerEthereumMinGasPrice: "0"
-		issuerEthereumGasLess: "false"
+    issuerEthereumGasLess: "false"
     issuerEthereumReceiptTimeout: 600s
     issuerEthereumResolverPrefixMumbai: polygon:mumbai
     issuerEthereumResolverPrefixAmoy: polygon:amoy
