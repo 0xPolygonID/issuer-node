@@ -85,6 +85,7 @@ type Ethereum struct {
 	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
 	MinGasPrice               int           `tip:"Minimum Gas Price"`
 	MaxGasPrice               int           `tip:"The Datasource name locator"`
+	GasLess                   bool          `tip:"Gasless transactions"`
 	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
@@ -464,6 +465,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "ISSUER_ETHEREUM_RECEIPT_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.MinGasPrice", "ISSUER_ETHEREUM_MIN_GAS_PRICE")
 	_ = viper.BindEnv("Ethereum.MaxGasPrice", "ISSUER_ETHEREUM_MAX_GAS_PRICE")
+	_ = viper.BindEnv("Ethereum.GasLess", "ISSUER_ETHEREUM_GASLESS")
 	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
