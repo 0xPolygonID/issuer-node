@@ -142,11 +142,11 @@ func main() {
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
 	}, keyStore)
 
+	// this is needed to create the did with the correct auth core claim revocation status URL
+	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	cfg.CredentialStatus.SingleIssuer = true
-	// this is needed to create the did with the correct auth core claim revocation status URL
-	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 
 	didCreationOptions := &ports.DIDCreationOptions{
