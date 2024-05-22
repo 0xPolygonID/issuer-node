@@ -49,6 +49,10 @@ var (
 	ErrInvalidCredentialSubject          = errors.New("credential subject does not match the provided schema")         // ErrInvalidCredentialSubject means the credentialSubject does not match the schema provided
 	ErrUnsupportedRefreshServiceType     = errors.New("unsupported refresh service type")                              // ErrUnsupportedRefreshServiceType means the refresh service type is not supported
 	ErrRefreshServiceLacksExpirationTime = errors.New("credential request with refresh service lacks expiration time") // ErrRefreshServiceLacksExpirationTime means the credential request includes a refresh service, but the expiration time is not set
+	ErrRefreshServiceLacksURL            = errors.New("credential request with refresh service lacks url")             // ErrRefreshServiceLacksURL means the credential request includes a refresh service, but the url is not set
+	ErrDisplayMethodLacksURL             = errors.New("credential request with display method lacks url")              // ErrDisplayMethodLacksURL means the credential request includes a display method, but the url is not set
+	ErrUnsupportedDisplayMethodType      = errors.New("unsupported display method type")                               // ErrUnsupportedDisplayMethodType means the display method type is not supported
+	ErrEmptyMTPProof                     = errors.New("mtp credentials must have a mtp proof to be fetched")           // ErrEmptyMTPProof means that a credential of MTP type can not be fetched if it does not contain the proof
 )
 
 type claim struct {
@@ -108,6 +112,11 @@ func (c *claim) Save(ctx context.Context, req *ports.CreateClaimRequest) (*domai
 	return claim, nil
 }
 
+// GetRevoked returns all the revoked credentials for the given state
+func (c *claim) GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error) {
+	return c.icRepo.GetRevoked(ctx, c.storage.Pgx, currentState)
+}
+
 // CreateCredential - Create a new Credential, but this method doesn't save it in the repository.
 func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequest) (*domain.Claim, error) {
 	if err := c.guardCreateClaimRequest(req); err != nil {
@@ -160,7 +169,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		log.Error(ctx, "loading jsonLdContext", "err", err, "url", jsonLdContext)
 		return nil, err
 	}
-	credentialType, err := merklize.TypeIDFromContext(jsonLD.BytesNoErr(), req.Type)
+	_, err = merklize.TypeIDFromContext(jsonLD.BytesNoErr(), req.Type)
 	if err != nil {
 		log.Error(ctx, "getting credential type", "err", err)
 		return nil, err
@@ -194,7 +203,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, err
 	}
 
-	claim, err := domain.FromClaimer(coreClaim, req.Schema, credentialType)
+	claim, err := domain.FromClaimer(coreClaim, req.Schema, req.Type)
 	if err != nil {
 		log.Error(ctx, "cannot obtain the claim from claimer", "err", err)
 		return nil, err
@@ -204,7 +213,6 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 	claim.Identifier = &issuerDIDString
 	claim.Issuer = issuerDIDString
 	claim.ID = vcID
-	claim.SchemaTypeDescription = &req.Type
 
 	if req.SignatureProof {
 		authClaim, err := c.GetAuthClaim(ctx, req.DID)
@@ -305,9 +313,6 @@ func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*dom
 // GetCredentialQrCode creates a credential QR code for the given credential and returns the QR Link to be used
 func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*ports.GetCredentialQrCodeResponse, error) {
 	getCredentialType := func(claim domain.Claim) string {
-		if claim.SchemaTypeDescription != nil {
-			return *claim.SchemaTypeDescription
-		}
 		credentialType := claim.SchemaType
 		const schemaParts = 2
 		parse := strings.Split(credentialType, "#")
@@ -320,6 +325,10 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	claim, err := c.GetByID(ctx, issID, id)
 	if err != nil {
 		return nil, err
+	}
+
+	if !claim.ValidProof() {
+		return nil, ErrEmptyMTPProof
 	}
 	credID := uuid.New()
 	qrCode := protocol.CredentialsOfferMessage{
@@ -532,7 +541,6 @@ func (c *claim) UpdateClaimsMTPAndState(ctx context.Context, currentState *domai
 			return fmt.Errorf("failed set mtp proof: %w", err)
 		}
 		affected, err = c.icRepo.UpdateClaimMTP(ctx, c.storage.Pgx, &claims[i])
-
 		if err != nil {
 			return fmt.Errorf("can't update claim mtp:  %w", err)
 		}
@@ -574,7 +582,6 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 
 	var claims []*domain.Claim
 	claims, err = c.icRepo.GetByRevocationNonce(ctx, querier, did, domain.RevNonceUint64(nonce))
-
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
 			return err
@@ -595,7 +602,6 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 
 			return c.icRepo.RevokeNonce(ctx, tx, &revocation)
 		})
-
 	if err != nil {
 		log.Error(ctx, "error saving the revoked claims", "err", err)
 		return err
@@ -698,11 +704,49 @@ func (c *claim) guardCreateClaimRequest(req *ports.CreateClaimRequest) error {
 			if req.Expiration == nil {
 				return ErrRefreshServiceLacksExpirationTime
 			}
-			if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
+			if req.RefreshService.ID == "" {
+				return ErrRefreshServiceLacksURL
+			}
+			_, err := url.ParseRequestURI(req.RefreshService.ID)
+			if err != nil {
+				return ErrRefreshServiceLacksURL
+			}
+
+			switch req.RefreshService.Type {
+			case verifiable.Iden3RefreshService2023:
+				return nil
+			default:
 				return ErrUnsupportedRefreshServiceType
 			}
-			return nil
 		},
+		// check display method in correct uri
+		func() error {
+			if req.DisplayMethod == nil {
+				return nil
+			}
+			if req.DisplayMethod.ID == "" {
+				return ErrDisplayMethodLacksURL
+			}
+			_, err := url.ParseRequestURI(req.DisplayMethod.ID)
+			if err != nil {
+				return ErrDisplayMethodLacksURL
+			}
+
+			switch req.DisplayMethod.Type {
+			case verifiable.Iden3BasicDisplayMethodV1:
+				return nil
+			default:
+				return ErrUnsupportedDisplayMethodType
+			}
+		},
+	}
+	if req.RefreshService != nil {
+		if req.Expiration == nil {
+			return ErrRefreshServiceLacksExpirationTime
+		}
+		if req.RefreshService.Type != verifiable.Iden3RefreshService2023 {
+			return ErrUnsupportedRefreshServiceType
+		}
 	}
 
 	for _, guard := range guards {
@@ -741,6 +785,10 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 		return verifiable.W3CCredential{}, err
 	}
 
+	if claimReq.DisplayMethod != nil {
+		credentialCtx = append(credentialCtx, verifiable.JSONLDSchemaIden3DisplayMethod)
+	}
+
 	issuanceDate := time.Now().UTC()
 	return verifiable.W3CCredential{
 		ID:                c.buildCredentialID(*claimReq.DID, vcID, claimReq.SingleIssuer),
@@ -756,6 +804,7 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 		},
 		CredentialStatus: cs,
 		RefreshService:   claimReq.RefreshService,
+		DisplayMethod:    claimReq.DisplayMethod,
 	}, nil
 }
 

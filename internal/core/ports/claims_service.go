@@ -35,6 +35,7 @@ type CreateClaimRequest struct {
 	SchemaTypeDescription string
 	RefreshService        *verifiable.RefreshService
 	RevNonce              *uint64
+	DisplayMethod         *verifiable.DisplayMethod
 }
 
 // AgentRequest struct
@@ -110,7 +111,7 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64) *CreateClaimRequest {
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod) *CreateClaimRequest {
 	if sigProof == nil {
 		sigProof = common.ToPointer(false)
 	}
@@ -127,6 +128,7 @@ func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubj
 		SignatureProof:    *sigProof,
 		MTProof:           *mtProof,
 		RefreshService:    refreshService,
+		DisplayMethod:     displayMethod,
 	}
 	if expiration != nil {
 		req.Expiration = expiration
@@ -207,6 +209,7 @@ type GetCredentialQrCodeResponse struct {
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
+	GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error)
 	CreateCredential(ctx context.Context, req *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error
 	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, uint, error)

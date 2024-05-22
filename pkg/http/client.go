@@ -69,7 +69,7 @@ func addRequestIDToHeader(ctx context.Context, r *http.Request) {
 
 // executeRequest contains common logic of request execution
 func executeRequest(ctx context.Context, c *Client, r *http.Request) ([]byte, error) {
-	ctx = log.With(ctx, "method", r.Method, "uri", r.RequestURI)
+	log.With("method", r.Method, "uri", r.RequestURI)
 	resp, err := c.base.Do(r)
 	if err != nil {
 		log.Error(ctx, "http request", "err", err)

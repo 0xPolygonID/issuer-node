@@ -76,6 +76,7 @@ type Link struct {
 	Schema                   *Schema
 	IssuedClaims             int // TODO: Give a value when link redemption is implemented
 	RefreshService           *verifiable.RefreshService
+	DisplayMethod            *verifiable.DisplayMethod
 }
 
 // NewLink - Constructor
@@ -89,6 +90,7 @@ func NewLink(
 	credentialMTPProof bool,
 	credentialSubject CredentialSubject,
 	refreshService *verifiable.RefreshService,
+	displayMethod *verifiable.DisplayMethod,
 ) *Link {
 	return &Link{
 		ID:                       uuid.New(),
@@ -103,6 +105,7 @@ func NewLink(
 		Active:                   true,
 		IssuedClaims:             0,
 		RefreshService:           refreshService,
+		DisplayMethod:            displayMethod,
 	}
 }
 

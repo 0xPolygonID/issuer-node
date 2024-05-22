@@ -7,16 +7,20 @@ import {
   RadioChangeEvent,
   Row,
   Space,
+  Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
 } from "antd";
-import Table, { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useNavigate, useSearchParams } from "react-router-dom";
 
+import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 import { credentialStatusParser, getCredentials } from "src/adapters/api/credentials";
+import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { tableSorterParser } from "src/adapters/parsers/view";
 import IconCreditCardPlus from "src/assets/icons/credit-card-plus.svg?react";
 import IconCreditCardRefresh from "src/assets/icons/credit-card-refresh.svg?react";
 import IconDots from "src/assets/icons/dots-vertical.svg?react";
@@ -34,6 +38,9 @@ import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import {
+  DEFAULT_PAGINATION_MAX_RESULTS,
+  DEFAULT_PAGINATION_PAGE,
+  DEFAULT_PAGINATION_TOTAL,
   DELETE,
   DETAILS,
   DOTS_DROPDOWN_WIDTH,
@@ -41,9 +48,12 @@ import {
   ISSUED,
   ISSUE_CREDENTIAL,
   ISSUE_DATE,
+  PAGINATION_MAX_RESULTS_PARAM,
+  PAGINATION_PAGE_PARAM,
   QUERY_SEARCH_PARAM,
   REVOCATION,
   REVOKE,
+  SORT_PARAM,
   STATUS_SEARCH_PARAM,
 } from "src/utils/constants";
 import { notifyParseError, notifyParseErrors } from "src/utils/error";
@@ -64,14 +74,31 @@ export function CredentialsTable() {
 
   const statusParam = searchParams.get(STATUS_SEARCH_PARAM);
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
+  const paginationPageParam = searchParams.get(PAGINATION_PAGE_PARAM);
+  const paginationMaxResultsParam = searchParams.get(PAGINATION_MAX_RESULTS_PARAM);
+  const sortParam = searchParams.get(SORT_PARAM);
+
+  const sorters = parseSorters(sortParam);
   const parsedStatusParam = credentialStatusParser.safeParse(statusParam);
   const credentialStatus = parsedStatusParam.success ? parsedStatusParam.data : "all";
+  const paginationPageParsed = positiveIntegerFromStringParser.safeParse(paginationPageParam);
+  const paginationMaxResultsParsed =
+    positiveIntegerFromStringParser.safeParse(paginationMaxResultsParam);
+
+  const [paginationTotal, setPaginationTotal] = useState<number>(DEFAULT_PAGINATION_TOTAL);
+
+  const paginationPage = paginationPageParsed.success
+    ? paginationPageParsed.data
+    : DEFAULT_PAGINATION_PAGE;
+  const paginationMaxResults = paginationMaxResultsParsed.success
+    ? paginationMaxResultsParsed.data
+    : DEFAULT_PAGINATION_MAX_RESULTS;
 
   const credentialsList = isAsyncTaskDataAvailable(credentials) ? credentials.data : [];
   const showDefaultContent =
     credentials.status === "successful" && credentialsList.length === 0 && queryParam === null;
 
-  const tableColumns: ColumnsType<Credential> = [
+  const tableColumns: TableColumnsType<Credential> = [
     {
       dataIndex: "schemaType",
       ellipsis: { showTitle: false },
@@ -81,7 +108,10 @@ export function CredentialsTable() {
           <Typography.Text strong>{schemaType}</Typography.Text>
         </Tooltip>
       ),
-      sorter: ({ schemaType: a }, { schemaType: b }) => a.localeCompare(b),
+      sorter: {
+        multiple: 1,
+      },
+      sortOrder: sorters.find(({ field }) => field === "schemaType")?.order,
       title: "Credential",
     },
     {
@@ -90,7 +120,10 @@ export function CredentialsTable() {
       render: (createdAt: Credential["createdAt"]) => (
         <Typography.Text>{formatDate(createdAt)}</Typography.Text>
       ),
-      sorter: ({ createdAt: a }, { createdAt: b }) => a.getTime() - b.getTime(),
+      sorter: {
+        multiple: 2,
+      },
+      sortOrder: sorters.find(({ field }) => field === "createdAt")?.order,
       title: ISSUE_DATE,
     },
     {
@@ -107,15 +140,10 @@ export function CredentialsTable() {
           "-"
         ),
       responsive: ["md"],
-      sorter: ({ expiresAt: a }, { expiresAt: b }) => {
-        if (a && b) {
-          return a.getTime() - b.getTime();
-        } else if (a) {
-          return -1;
-        } else {
-          return 1;
-        }
+      sorter: {
+        multiple: 3,
       },
+      sortOrder: sorters.find(({ field }) => field === "expiresAt")?.order,
       title: EXPIRATION,
     },
     {
@@ -125,7 +153,10 @@ export function CredentialsTable() {
         <Typography.Text>{revoked ? "Revoked" : "-"}</Typography.Text>
       ),
       responsive: ["sm"],
-      sorter: ({ revoked: a }, { revoked: b }) => (a === b ? 0 : a ? 1 : -1),
+      sorter: {
+        multiple: 4,
+      },
+      sortOrder: sorters.find(({ field }) => field === "revoked")?.order,
       title: REVOCATION,
     },
     {
@@ -177,6 +208,31 @@ export function CredentialsTable() {
     },
   ];
 
+  const updateUrlParams = useCallback(
+    ({ maxResults, page, sorters }: { maxResults?: number; page?: number; sorters?: Sorter[] }) => {
+      setSearchParams((previousParams) => {
+        const params = new URLSearchParams(previousParams);
+        params.set(
+          PAGINATION_PAGE_PARAM,
+          page !== undefined ? page.toString() : DEFAULT_PAGINATION_PAGE.toString()
+        );
+        params.set(
+          PAGINATION_MAX_RESULTS_PARAM,
+          maxResults !== undefined
+            ? maxResults.toString()
+            : DEFAULT_PAGINATION_MAX_RESULTS.toString()
+        );
+        const newSorters = sorters || parseSorters(sortParam);
+        newSorters.length > 0
+          ? params.set(SORT_PARAM, serializeSorters(newSorters))
+          : params.delete(SORT_PARAM);
+
+        return params;
+      });
+    },
+    [setSearchParams, sortParam]
+  );
+
   const fetchCredentials = useCallback(
     async (signal?: AbortSignal) => {
       setCredentials((previousCredentials) =>
@@ -188,24 +244,40 @@ export function CredentialsTable() {
       const response = await getCredentials({
         env,
         params: {
+          maxResults: paginationMaxResults,
+          page: paginationPage,
           query: queryParam || undefined,
+          sorters: parseSorters(sortParam),
           status: credentialStatus,
         },
         signal,
       });
       if (response.success) {
         setCredentials({
-          data: response.data.successful,
+          data: response.data.items.successful,
           status: "successful",
         });
-        notifyParseErrors(response.data.failed);
+        setPaginationTotal(response.data.meta.total);
+        updateUrlParams({
+          maxResults: response.data.meta.max_results,
+          page: response.data.meta.page,
+        });
+        notifyParseErrors(response.data.items.failed);
       } else {
         if (!isAbortedError(response.error)) {
           setCredentials({ error: response.error, status: "failed" });
         }
       }
     },
-    [env, queryParam, credentialStatus]
+    [
+      credentialStatus,
+      env,
+      paginationMaxResults,
+      paginationPage,
+      queryParam,
+      sortParam,
+      updateUrlParams,
+    ]
   );
 
   const onSearch = useCallback(
@@ -288,6 +360,7 @@ export function CredentialsTable() {
               ...column,
             }))}
             dataSource={credentialsList}
+            loading={credentials.status === "reloading"}
             locale={{
               emptyText:
                 credentials.status === "failed" ? (
@@ -296,7 +369,22 @@ export function CredentialsTable() {
                   <NoResults searchQuery={queryParam} />
                 ),
             }}
-            pagination={false}
+            onChange={({ current, pageSize, total }, _, sorters) => {
+              setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+              const parsedSorters = tableSorterParser.safeParse(sorters);
+              updateUrlParams({
+                maxResults: pageSize,
+                page: current,
+                sorters: parsedSorters.success ? parsedSorters.data : [],
+              });
+            }}
+            pagination={{
+              current: paginationPage,
+              hideOnSinglePage: true,
+              pageSize: paginationMaxResults,
+              position: ["bottomRight"],
+              total: paginationTotal,
+            }}
             rowKey="id"
             showSorterTooltip
             sortDirections={["ascend", "descend"]}
@@ -307,7 +395,7 @@ export function CredentialsTable() {
             <Space size="middle">
               <Card.Meta title={ISSUED} />
 
-              <Tag color="blue">{credentialsList.length}</Tag>
+              <Tag color="blue">{paginationTotal}</Tag>
             </Space>
 
             {(!showDefaultContent || credentialStatus !== "all") && (

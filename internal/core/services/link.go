@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/google/uuid"
@@ -84,6 +85,7 @@ func (ls *Link) Save(
 	credentialMTPProof bool,
 	credentialSubject domain.CredentialSubject,
 	refreshService *verifiable.RefreshService,
+	displayMethod *verifiable.DisplayMethod,
 ) (*domain.Link, error) {
 	schemaDB, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
@@ -98,8 +100,12 @@ func (ls *Link) Save(
 		log.Error(ctx, "validating refresh service", "err", err)
 		return nil, err
 	}
+	if err = ls.validateDisplayMethod(displayMethod); err != nil {
+		log.Error(ctx, "validating display method", "err", err)
+		return nil, err
+	}
 
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService)
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod)
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -176,6 +182,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		Body: protocol.AuthorizationRequestMessageBody{
 			CallbackURL: fmt.Sprintf("%s/v1/credentials/links/callback?sessionID=%s&linkID=%s", serverURL, sessionID, linkID.String()),
 			Reason:      authReason,
+			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
 	}
 
@@ -221,11 +228,6 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		return err
 	}
 
-	if len(issuedByUser) > 0 {
-		log.Info(ctx, "the claim was already issued for the user", "user DID", userDID.String())
-		return ErrClaimAlreadyIssued
-	}
-
 	if err := ls.validate(ctx, link); err != nil {
 		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(err))
 		if err != nil {
@@ -236,62 +238,70 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		return err
 	}
 
+	var credentialIssuedID uuid.UUID
+	var credentialIssued *domain.Claim
+
 	schema, err := ls.schemaRepository.GetByID(ctx, issuerDID, link.SchemaID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the schema", "err", err)
 		return err
 	}
+	if len(issuedByUser) == 0 {
+		link.CredentialSubject["id"] = userDID.String()
 
-	link.CredentialSubject["id"] = userDID.String()
+		claimReq := ports.NewCreateClaimRequest(&issuerDID,
+			schema.URL,
+			link.CredentialSubject,
+			link.CredentialExpiration,
+			schema.Type,
+			nil, nil, nil,
+			common.ToPointer(link.CredentialSignatureProof),
+			common.ToPointer(link.CredentialMTPProof),
+			&linkID,
+			true,
+			credentialStatusType,
+			link.RefreshService,
+			nil,
+			link.DisplayMethod,
+		)
 
-	claimReq := ports.NewCreateClaimRequest(&issuerDID,
-		schema.URL,
-		link.CredentialSubject,
-		link.CredentialExpiration,
-		schema.Type,
-		nil, nil, nil,
-		common.ToPointer(link.CredentialSignatureProof),
-		common.ToPointer(link.CredentialMTPProof),
-		&linkID,
-		true,
-		credentialStatusType,
-		link.RefreshService,
-		nil,
-	)
+		credentialIssued, err = ls.claimsService.CreateCredential(ctx, claimReq)
+		if err != nil {
+			log.Error(ctx, "cannot create the claim", "err", err.Error())
+			return err
+		}
 
-	credentialIssued, err := ls.claimsService.CreateCredential(ctx, claimReq)
-	if err != nil {
-		log.Error(ctx, "cannot create the claim", "err", err.Error())
-		return err
-	}
-
-	var credentialIssuedID uuid.UUID
-	err = ls.storage.Pgx.BeginFunc(ctx,
-		func(tx pgx.Tx) error {
-			link.IssuedClaims += 1
-			_, err := ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
-			if err != nil {
-				return err
-			}
-
-			credentialIssuedID, err = ls.claimRepository.Save(ctx, ls.storage.Pgx, credentialIssued)
-			if err != nil {
-				return err
-			}
-
-			if link.CredentialSignatureProof {
-				err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{credentialIssued.ID.String()}, IssuerID: issuerDID.String()})
+		err = ls.storage.Pgx.BeginFunc(ctx,
+			func(tx pgx.Tx) error {
+				link.IssuedClaims += 1
+				_, err := ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 				if err != nil {
-					log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", credentialIssued.ID.String())
+					return err
 				}
-			}
 
-			return nil
-		})
-	if err != nil {
-		return err
+				credentialIssuedID, err = ls.claimRepository.Save(ctx, ls.storage.Pgx, credentialIssued)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			})
+		if err != nil {
+			return err
+		}
+	} else {
+		credentialIssuedID = issuedByUser[0].ID
+		credentialIssued = issuedByUser[0]
 	}
+
 	credentialIssued.ID = credentialIssuedID
+
+	if link.CredentialSignatureProof {
+		err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{credentialIssued.ID.String()}, IssuerID: issuerDID.String()})
+		if err != nil {
+			log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", credentialIssued.ID.String())
+		}
+	}
 
 	r := &linkState.QRCodeMessage{
 		ID:       uuid.NewString(),
@@ -384,8 +394,39 @@ func (ls *Link) validateRefreshService(rs *verifiable.RefreshService, expiration
 	if expiration == nil {
 		return ErrRefreshServiceLacksExpirationTime
 	}
-	if rs.Type != verifiable.Iden3RefreshService2023 {
+
+	if rs.ID == "" {
+		return ErrRefreshServiceLacksURL
+	}
+	_, err := url.ParseRequestURI(rs.ID)
+	if err != nil {
+		return ErrRefreshServiceLacksURL
+	}
+
+	switch rs.Type {
+	case verifiable.Iden3RefreshService2023:
+		return nil
+	default:
 		return ErrUnsupportedRefreshServiceType
 	}
-	return nil
+}
+
+func (ls *Link) validateDisplayMethod(dm *verifiable.DisplayMethod) error {
+	if dm == nil {
+		return nil
+	}
+
+	if dm.ID == "" {
+		return ErrDisplayMethodLacksURL
+	}
+	if _, err := url.ParseRequestURI(dm.ID); err != nil {
+		return ErrDisplayMethodLacksURL
+	}
+
+	switch dm.Type {
+	case verifiable.Iden3BasicDisplayMethodV1:
+		return nil
+	default:
+		return ErrUnsupportedDisplayMethodType
+	}
 }

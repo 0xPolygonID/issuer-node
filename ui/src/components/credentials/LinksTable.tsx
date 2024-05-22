@@ -10,12 +10,13 @@ import {
   Space,
   Switch,
   Table,
+  TableColumnsType,
   Tag,
   Tooltip,
   Typography,
   message,
 } from "antd";
-import { ColumnsType } from "antd/es/table";
+
 import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 import { generatePath, useNavigate, useSearchParams } from "react-router-dom";
@@ -70,7 +71,7 @@ export function LinksTable() {
 
   const status = parsedStatusParam.success ? parsedStatusParam.data : undefined;
 
-  const tableColumns: ColumnsType<Link> = [
+  const tableColumns: TableColumnsType<Link> = [
     {
       dataIndex: "active",
       ellipsis: true,

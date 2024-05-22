@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"math/big"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -35,17 +36,18 @@ import (
 var build = buildinfo.Revision()
 
 func main() {
-	log.Info(context.Background(), "starting issuer node...", "revision", build)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info(ctx, "starting pending publisher...", "revision", build)
 
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", "err", err)
+		log.Error(ctx, "cannot load config", "err", err)
 		panic(err)
 	}
 
-	// Context with log
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
-	defer cancel()
+	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAPIUI(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -149,6 +151,7 @@ func main() {
 		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
 		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
 		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		GasLess:                cfg.Ethereum.GasLess,
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
@@ -189,6 +192,20 @@ func main() {
 			}
 		}
 	}(ctx)
+
+	go func() {
+		http.Handle("/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Error(ctx, "error writing response", "err", err)
+			}
+		}))
+		log.Info(ctx, "Starting server at port 3005")
+		err := http.ListenAndServe(":3005", nil)
+		if err != nil {
+			log.Error(ctx, "error starting server", "err", err)
+		}
+	}()
 
 	<-quit
 	log.Info(ctx, "finishing app")

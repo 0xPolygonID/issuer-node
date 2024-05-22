@@ -216,7 +216,7 @@ export function LinkDetails() {
 
                     <Detail copyable label="Schema hash" text={schemaHash} />
 
-                    <Detail copyable label="Link" text={linkURL} />
+                    <Detail copyable href={linkURL} label="Link" text={linkURL} />
                   </Space>
                 </Card>
                 <Card className="background-grey">
