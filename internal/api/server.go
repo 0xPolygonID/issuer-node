@@ -407,7 +407,6 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Debug(ctx, "agent empty request")
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
-	fmt.Println(request.Body)
 	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
