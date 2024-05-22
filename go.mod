@@ -12,17 +12,17 @@ require (
 	github.com/go-redis/cache/v8 v8.4.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golangci/golangci-lint v1.55.2
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20230911113809-c58b7e7a69b0
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
-	github.com/iden3/go-circuits/v2 v2.0.0
-	github.com/iden3/go-iden3-auth/v2 v2.0.0-beta.2
-	github.com/iden3/go-iden3-core/v2 v2.0.0
-	github.com/iden3/go-iden3-crypto v0.0.15
-	github.com/iden3/go-jwz/v2 v2.0.0
+	github.com/iden3/go-circuits/v2 v2.2.0
+	github.com/iden3/go-iden3-auth/v2 v2.2.2
+	github.com/iden3/go-iden3-core/v2 v2.1.0
+	github.com/iden3/go-iden3-crypto v0.0.16
+	github.com/iden3/go-jwz/v2 v2.0.2
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6
 	github.com/iden3/go-rapidsnark/prover v0.0.10
@@ -30,8 +30,8 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.1.0
-	github.com/iden3/iden3comm/v2 v2.0.0
+	github.com/iden3/go-schema-processor/v2 v2.3.3
+	github.com/iden3/iden3comm/v2 v2.3.2
 	github.com/iden3/merkletree-proof v0.0.4
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.1
