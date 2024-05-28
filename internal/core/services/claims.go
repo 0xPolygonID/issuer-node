@@ -630,6 +630,7 @@ func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.Age
 		Body:     protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus},
 		From:     basicMessage.IssuerDID.String(),
 		To:       basicMessage.UserDID.String(),
+		Typ:      packers.MediaTypePlainMessage,
 	}, nil
 }
 

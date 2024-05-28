@@ -37,7 +37,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
@@ -181,19 +180,6 @@ func main() {
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
 
-	stateService, err := eth.NewStateService(eth.StateServiceConfig{
-		EthClient:       ethConn,
-		StateAddress:    common.HexToAddress(cfg.Ethereum.ContractAddress),
-		ResponseTimeout: cfg.Ethereum.RPCResponseTimeout,
-	})
-	if err != nil {
-		log.Error(ctx, "failed init state service", "err", err)
-		return
-	}
-
-	onChainCredentialStatusResolverService := gateways.NewOnChainCredStatusResolverService(ethConn, cfg.Ethereum.RPCResponseTimeout)
-	revocationService := services.NewRevocationService(common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
-	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateService, schemaLoader)
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
@@ -208,7 +194,7 @@ func main() {
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout, ps)
 
-	packageManager, err := protocol.InitPackageManager(ctx, stateContract, zkProofService, cfg.Circuit.Path)
+	packageManager, err := protocol.InitPackageManager(stateContract, cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
 		return
