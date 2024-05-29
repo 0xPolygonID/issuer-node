@@ -1333,7 +1333,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {

@@ -100,7 +100,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		Network:                 core.NetworkID(network),
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: s.cfg.CredentialStatus.CredentialStatusType,
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -160,7 +160,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
 		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)

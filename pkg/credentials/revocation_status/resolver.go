@@ -26,7 +26,6 @@ type RevocationStatusResolver struct {
 func NewRevocationStatusResolver(credentialStatusSettings config.CredentialStatus) *RevocationStatusResolver {
 	resolvers := make(map[verifiable.CredentialStatusType]revocationCredentialStatusResolver, resolversLength)
 	resolvers[verifiable.Iden3ReverseSparseMerkleTreeProof] = &iden3ReverseSparseMerkleTreeProofResolver{}
-	resolvers[verifiable.SparseMerkleTreeProof] = &sparseMerkleTreeProofResolver{}
 	resolvers[verifiable.Iden3commRevocationStatusV1] = &iden3CommRevocationStatusV1Resolver{}
 	resolvers[verifiable.Iden3OnchainSparseMerkleTreeProof2023] = &iden3OnChainSparseMerkleTreeProof2023Resolver{}
 	return &RevocationStatusResolver{

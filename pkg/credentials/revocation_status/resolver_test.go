@@ -32,48 +32,6 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name: "SparseMerkleTreeProof for single issuer",
-			credentialStatusSettings: config.CredentialStatus{
-				RHSMode: config.RHSMode("none"),
-				Iden3CommAgentStatus: config.Iden3CommAgentStatus{
-					URL: "https://issuernode",
-				},
-				SingleIssuer: true,
-			},
-			credentialStatusType: verifiable.SparseMerkleTreeProof,
-			nonce:                12345,
-			issuerState:          "issuer-state",
-			expected: expected{
-				err: nil,
-				CredentialStatus: &verifiable.CredentialStatus{
-					Type:            verifiable.SparseMerkleTreeProof,
-					ID:              "https://issuernode/v1/agent",
-					RevocationNonce: 12345,
-				},
-			},
-		},
-		{
-			name: "SparseMerkleTreeProof for multiples issuers",
-			credentialStatusSettings: config.CredentialStatus{
-				RHSMode: config.RHSMode("none"),
-				Iden3CommAgentStatus: config.Iden3CommAgentStatus{
-					URL: "https://issuernode",
-				},
-				SingleIssuer: false,
-			},
-			credentialStatusType: verifiable.SparseMerkleTreeProof,
-			nonce:                12345,
-			issuerState:          "issuer-state",
-			expected: expected{
-				err: nil,
-				CredentialStatus: &verifiable.CredentialStatus{
-					Type:            verifiable.SparseMerkleTreeProof,
-					ID:              "https://issuernode/v1/agent",
-					RevocationNonce: 12345,
-				},
-			},
-		},
-		{
 			name: "Iden3ReverseSparseMerkleTreeProof for single issuer",
 			credentialStatusSettings: config.CredentialStatus{
 				RHSMode: config.RHSMode("OffChain"),

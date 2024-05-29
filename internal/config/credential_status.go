@@ -2,11 +2,12 @@ package config
 
 import (
 	"strings"
+
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 )
 
 const (
-	sparseMerkleTreeProof                 = "SparseMerkleTreeProof"
-	iden3commRevocationStatusV1           = "Iden3commRevocationStatusV1.0"
+	iden3commRevocationStatusV1           = verifiable.Iden3commRevocationStatusV1
 	iden3ReverseSparseMerkleTreeProof     = "Iden3ReverseSparseMerkleTreeProof"
 	iden3OnchainSparseMerkleTreeProof2023 = "Iden3OnchainSparseMerkleTreeProof2023"
 	onChain                               = "OnChain"
@@ -24,7 +25,7 @@ type CredentialStatus struct {
 	OnchainTreeStore     OnchainTreeStore `mapstructure:"OnchainTreeStore"`
 	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
 	SingleIssuer         bool
-	CredentialStatusType string `mapstructure:"CredentialStatusType" default:"Iden3commRevocationStatusV1"`
+	CredentialStatusType verifiable.CredentialStatusType `mapstructure:"CredentialStatusType" default:"Iden3commRevocationStatusV1"`
 }
 
 // Iden3CommAgentStatus is the type of direct status

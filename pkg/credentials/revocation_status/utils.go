@@ -14,10 +14,6 @@ func buildRHSRevocationURL(host, issuerState string) string {
 	return fmt.Sprintf("%s/node?state=%s", host, issuerState)
 }
 
-func buildDirectRevocationURL(host string) string {
-	return fmt.Sprintf("%s/v1/agent", host)
-}
-
 func buildIden3OnchainSMTProofURL(issuerDID w3c.DID, nonce uint64, contractAddress ethcommon.Address, chainID string, stateHex string) string {
 	return fmt.Sprintf("%s/credentialStatus?revocationNonce=%v&contractAddress=%s:%s&state=%s", issuerDID.String(), nonce, chainID, contractAddress.Hex(), stateHex)
 }

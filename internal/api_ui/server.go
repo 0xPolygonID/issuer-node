@@ -343,7 +343,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), nil,
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
 		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -670,7 +670,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, s.cfg.CredentialStatus.CredentialStatusType)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil

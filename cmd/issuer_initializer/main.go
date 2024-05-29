@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
-	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -155,7 +154,7 @@ func main() {
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: cfg.CredentialStatus.CredentialStatusType,
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)
