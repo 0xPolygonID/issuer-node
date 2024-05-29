@@ -11,7 +11,7 @@ type iden3CommRevocationStatusV1Resolver struct{}
 
 func (r *iden3CommRevocationStatusV1Resolver) resolve(credentialStatusSettings config.CredentialStatus, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus {
 	return &verifiable.CredentialStatus{
-		ID:              credentialStatusSettings.DirectStatus.GetAgentURL(),
+		ID:              buildDirectRevocationURL(credentialStatusSettings.Iden3CommAgentStatus.GetURL()),
 		Type:            verifiable.Iden3commRevocationStatusV1,
 		RevocationNonce: nonce,
 	}

@@ -264,7 +264,7 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 	}
 
 	if c.CredentialStatus.RHSMode == none {
-		c.CredentialStatus.DirectStatus.URL = host
+		c.CredentialStatus.Iden3CommAgentStatus.URL = host
 		c.CredentialStatus.CredentialStatusType = iden3commRevocationStatusV1
 	}
 
@@ -273,7 +273,7 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
 		}
 		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
-		c.CredentialStatus.DirectStatus.URL = host
+		c.CredentialStatus.Iden3CommAgentStatus.URL = host
 	}
 
 	if c.CredentialStatus.RHSMode == onChain {
@@ -473,7 +473,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
-	_ = viper.BindEnv("CredentialStatus.DirectStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
+	_ = viper.BindEnv("CredentialStatus.Iden3CommAgentStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
 	_ = viper.BindEnv("CredentialStatus.RHS.URL", "ISSUER_CREDENTIAL_STATUS_RHS_URL")
 	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract", "ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT")
 	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.PublishingKeyPath", "ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH")

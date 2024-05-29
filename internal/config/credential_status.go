@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -20,7 +19,7 @@ type RHSMode string
 
 // CredentialStatus is the type of credential status
 type CredentialStatus struct {
-	DirectStatus         DirectStatus
+	Iden3CommAgentStatus Iden3CommAgentStatus
 	RHS                  RHS
 	OnchainTreeStore     OnchainTreeStore `mapstructure:"OnchainTreeStore"`
 	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
@@ -28,19 +27,14 @@ type CredentialStatus struct {
 	CredentialStatusType string `mapstructure:"CredentialStatusType" default:"Iden3commRevocationStatusV1"`
 }
 
-// DirectStatus is the type of direct status
-type DirectStatus struct {
+// Iden3CommAgentStatus is the type of direct status
+type Iden3CommAgentStatus struct {
 	URL string `mapstructure:"URL"`
 }
 
 // GetURL returns the URL of the direct status
-func (r *DirectStatus) GetURL() string {
+func (r *Iden3CommAgentStatus) GetURL() string {
 	return strings.TrimSuffix(r.URL, "/")
-}
-
-// GetAgentURL returns the URL of the agent endpoint
-func (r *DirectStatus) GetAgentURL() string {
-	return fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(r.URL, "/"))
 }
 
 // RHS is the type of RHS

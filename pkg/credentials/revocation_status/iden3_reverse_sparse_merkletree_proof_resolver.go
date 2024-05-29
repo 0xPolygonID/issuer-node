@@ -15,8 +15,8 @@ func (r *iden3ReverseSparseMerkleTreeProofResolver) resolve(credentialStatusSett
 		Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
 		RevocationNonce: nonce,
 		StatusIssuer: &verifiable.CredentialStatus{
-			ID:              buildDirectRevocationURL(credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, credentialStatusSettings.SingleIssuer),
-			Type:            verifiable.SparseMerkleTreeProof,
+			ID:              buildDirectRevocationURL(credentialStatusSettings.Iden3CommAgentStatus.GetURL()),
+			Type:            verifiable.Iden3commRevocationStatusV1,
 			RevocationNonce: nonce,
 		},
 	}

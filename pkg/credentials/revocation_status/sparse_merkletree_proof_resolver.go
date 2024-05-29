@@ -9,9 +9,9 @@ import (
 
 type sparseMerkleTreeProofResolver struct{}
 
-func (r *sparseMerkleTreeProofResolver) resolve(credentialStatusSettings config.CredentialStatus, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus {
+func (r *sparseMerkleTreeProofResolver) resolve(credentialStatusSettings config.CredentialStatus, _ w3c.DID, nonce uint64, _ string) *verifiable.CredentialStatus {
 	return &verifiable.CredentialStatus{
-		ID:              buildDirectRevocationURL(credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, credentialStatusSettings.SingleIssuer),
+		ID:              buildDirectRevocationURL(credentialStatusSettings.Iden3CommAgentStatus.GetURL()),
 		Type:            verifiable.SparseMerkleTreeProof,
 		RevocationNonce: nonce,
 	}
