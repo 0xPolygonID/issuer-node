@@ -36,8 +36,10 @@ var (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), -4, 1, os.Stdout))
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	log.Config(log.LevelDebug, log.OutputJSON, os.Stdout)
 	flag.Parse()
 	if fVaultAddr == nil || fVaultToken == nil {
 		log.Error(ctx, "vault-addr and vault-token are required")

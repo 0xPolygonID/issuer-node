@@ -42,7 +42,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 - [Docker Engine](https://docs.docker.com/engine/) `1.27+`
 - Makefile toolchain `GNU Make 3.81`
 - Publicly accessible URL - The issuer node API must be publicly reachable. Please make sure you properly configure your proxy or use a tool like [Localtunnel](https://theboroer.github.io/localtunnel-www/) for testing purposes.
-- Polygon Mumbai or Main RPC - You can get one in any of the providers of this list
+- Polygon Amoy or Main RPC - You can get one in any of the providers of this list
     - [Chainstack](https://chainstack.com/)
     - [Ankr](https://ankr.com/)
     - [QuickNode](https://quicknode.com/)
@@ -54,14 +54,14 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 In this section we will cover the installation of the Issuer Node API.
 
 > [!NOTE]
-> This Quick Installation Guide is prepared for Polygon Mumbai (Testnet) both for the state contract and issuer dids. If you want to deploy the node with Polygon Main configuration, please visit our [advanced Issuer Node configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/)).
+> This Quick Installation Guide is prepared for Polygon Amoy (Testnet) both for the state contract and issuer dids. If you want to deploy the node with Polygon Main configuration, please visit our [advanced Issuer Node configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/)).
 
 
 #### Deploy Issuer Node Infrastructure
 
 1. Copy the config sample files:
 
-    ```bash
+    ```shell
     cp .env-issuer.sample .env-issuer
     cp .env-api.sample .env-api
     ```
@@ -84,7 +84,7 @@ In this section we will cover the installation of the Issuer Node API.
     make add-vault-token
     ```
 
-5. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. For Mumbai network you can request some testing Matic [here](https://mumbaifaucet.com/).
+5. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
 
     ```bash
     make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
@@ -174,6 +174,12 @@ In order to make the UI work, we will need configure some env variables in the `
     ```bash
     ISSUER_API_UI_SERVER_URL={PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_API_UI_SERVER_PORT}
     ```
+
+    > **_NOTE:_**  It is possible to register custom did methods. This field accepts an array of objects in JSON format.</br>
+    > Example:
+        ```
+        ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
+        ```
 
 2. Generate Issuer DID:
 

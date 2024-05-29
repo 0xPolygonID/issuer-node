@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,7 +29,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/http"
+	httpPkg "github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -36,16 +37,18 @@ import (
 var build = buildinfo.Revision()
 
 func main() {
-	log.Info(context.Background(), "starting issuer node...", "revision", build)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info(ctx, "starting issuer node...", "revision", build)
 
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", "err", err)
+		log.Error(ctx, "cannot load config", "err", err)
 		return
 	}
 
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
-	defer cancel()
+	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAPIUI(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -69,6 +72,7 @@ func main() {
 	cachex := cache.NewRedisCache(rdb)
 
 	connectionsRepository := repositories.NewConnections()
+	claimsRepository := repositories.NewClaims()
 
 	var vaultCli *vault.Client
 	var vaultErr error
@@ -95,14 +99,14 @@ func main() {
 		return
 	}
 
-	connectionsService := services.NewConnection(connectionsRepository, storage)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, vaultCli)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)
 		return
 	}
 
-	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
+	notificationGateway := gateways.NewPushNotificationClient(httpPkg.DefaultHTTPClientWithRetry)
 	notificationService := services.NewNotification(notificationGateway, connectionsService, credentialsService)
 	ctxCancel, cancel := context.WithCancel(ctx)
 	defer func() {
@@ -115,9 +119,24 @@ func main() {
 
 	ps.Subscribe(ctxCancel, event.CreateCredentialEvent, notificationService.SendCreateCredentialNotification)
 	ps.Subscribe(ctxCancel, event.CreateConnectionEvent, notificationService.SendCreateConnectionNotification)
+	ps.Subscribe(ctxCancel, event.CreateStateEvent, notificationService.SendRevokeCredentialNotification)
 
 	gracefulShutdown := make(chan os.Signal, 1)
 	signal.Notify(gracefulShutdown, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		http.Handle("/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Error(ctx, "error writing response", "err", err)
+			}
+		}))
+		log.Info(ctx, "Starting server at port 3004")
+		err := http.ListenAndServe(":3004", nil)
+		if err != nil {
+			log.Error(ctx, "error starting server", "err", err)
+		}
+	}()
 
 	<-gracefulShutdown
 }
@@ -146,6 +165,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
 		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
 		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		GasLess:                cfg.Ethereum.GasLess,
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,

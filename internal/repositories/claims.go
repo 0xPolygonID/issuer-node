@@ -17,7 +17,6 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/lib/pq"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -65,6 +64,46 @@ func NewClaims() ports.ClaimsRepository {
 	return &claims{}
 }
 
+// GetRevoked returns all the revoked claims from the given state
+func (c *claims) GetRevoked(ctx context.Context, conn db.Querier, currentState string) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+		issuer,
+		schema_hash,
+		schema_url,
+		schema_type,
+		other_identifier,
+		expiration,
+		updatable,
+		claims.version,
+		rev_nonce,
+		signature_proof,
+		mtp_proof,
+		data,
+		claims.identifier,
+		identity_state,
+		claims.metadata,
+		credential_status,
+		core_claim,
+		revoked,
+		mtp,
+		claims.created_at
+	FROM claims
+	LEFT JOIN revocation ON claims.rev_nonce = revocation.nonce AND claims.issuer = revocation.identifier
+	WHERE claims.identity_state = $1`
+
+	rows, err := conn.Query(ctx, query, currentState)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, err := processClaims(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return claims, nil
+}
+
 func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim) (uuid.UUID, error) {
 	var err error
 	id := claim.ID
@@ -103,9 +142,8 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     index_hash,
 					mtp, 
 					link_id,
-                    created_at, 
-					schema_type_description)
-		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+                    created_at)
+		VALUES ($1,  $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
 		RETURNING id`
 
 		err = conn.QueryRow(ctx, s,
@@ -129,8 +167,7 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.HIndex,
 			claim.MtProof,
 			claim.LinkID,
-			claim.CreatedAt,
-			claim.SchemaTypeDescription).Scan(&id)
+			claim.CreatedAt).Scan(&id)
 	} else {
 		s := `INSERT INTO claims (
 					id,
@@ -154,19 +191,18 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
                     index_hash,
 					mtp,
 					link_id,
-                    created_at,
-					schema_type_description
+                    created_at
 		)
 		VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
 		)
 		ON CONFLICT ON CONSTRAINT claims_pkey 
 		DO UPDATE SET 
 			( expiration, updatable, version, rev_nonce, signature_proof, mtp_proof, data, identity_state, 
-			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp, link_id, created_at, schema_type_description)
+			other_identifier, schema_hash, schema_url, schema_type, issuer, credential_status, revoked, core_claim, mtp, link_id, created_at)
 			= (EXCLUDED.expiration, EXCLUDED.updatable, EXCLUDED.version, EXCLUDED.rev_nonce, EXCLUDED.signature_proof,
 		EXCLUDED.mtp_proof, EXCLUDED.data, EXCLUDED.identity_state, EXCLUDED.other_identifier, EXCLUDED.schema_hash, 
-		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp, EXCLUDED.link_id, EXCLUDED.created_at, EXCLUDED.schema_type_description)
+		EXCLUDED.schema_url, EXCLUDED.schema_type, EXCLUDED.issuer, EXCLUDED.credential_status, EXCLUDED.revoked, EXCLUDED.core_claim, EXCLUDED.mtp, EXCLUDED.link_id, EXCLUDED.created_at)
 			RETURNING id`
 		err = conn.QueryRow(ctx, s,
 			claim.ID,
@@ -190,8 +226,7 @@ func (c *claims) Save(ctx context.Context, conn db.Querier, claim *domain.Claim)
 			claim.HIndex,
 			claim.MtProof,
 			claim.LinkID,
-			claim.CreatedAt,
-			claim.SchemaTypeDescription).Scan(&id)
+			claim.CreatedAt).Scan(&id)
 	}
 
 	if err == nil {
@@ -257,8 +292,7 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 				   identity_state,
 				   credential_status,
 				   core_claim,
-				   mtp,
-				   schema_type_description
+				   mtp
 			FROM claims
 			LEFT JOIN identity_states ON claims.identity_state = identity_states.state
 			WHERE claims.identifier = $1
@@ -298,8 +332,7 @@ func (c *claims) GetByRevocationNonce(ctx context.Context, conn db.Querier, iden
 			&claim.IdentityState,
 			&claim.CredentialStatus,
 			&claim.CoreClaim,
-			&claim.MtProof,
-			&claim.SchemaTypeDescription)
+			&claim.MtProof)
 		if err != nil {
 			return nil, err
 		}
@@ -333,8 +366,7 @@ func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, 
 		   identity_state,
 		   credential_status,
 		   revoked,
-		   core_claim,
-           schema_type_description
+		   core_claim
 		FROM claims
 		WHERE claims.identifier=$1  
 				AND ( claims.other_identifier = $1 or claims.other_identifier = '') 
@@ -358,8 +390,7 @@ func (c *claims) FindOneClaimBySchemaHash(ctx context.Context, conn db.Querier, 
 		&claim.IdentityState,
 		&claim.CredentialStatus,
 		&claim.Revoked,
-		&claim.CoreClaim,
-		&claim.SchemaTypeDescription)
+		&claim.CoreClaim)
 
 	if err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -403,8 +434,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
        				core_claim,
 					mtp,
 					revoked,
-					link_id,
-					schema_type_description
+					link_id
         FROM claims
         WHERE claims.identifier = $1 AND claims.id = $2`, identifier.String(), claimID).Scan(
 		&claim.ID,
@@ -426,8 +456,7 @@ func (c *claims) GetByIdAndIssuer(ctx context.Context, conn db.Querier, identifi
 		&claim.CoreClaim,
 		&claim.MtProof,
 		&claim.Revoked,
-		&claim.LinkID,
-		&claim.SchemaTypeDescription)
+		&claim.LinkID)
 
 	if err != nil && err == pgx.ErrNoRows {
 		return nil, ErrClaimDoesNotExist
@@ -530,7 +559,7 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			credential_status,
 			core_claim 
 		FROM claims
-		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer
+		WHERE issuer = $1 AND identity_state IS NULL AND identifier = issuer AND mtp = true
 		`, did.String())
 	} else {
 		rows, err = conn.Query(ctx, `
@@ -555,7 +584,8 @@ func (c *claims) GetAllByState(ctx context.Context, conn db.Querier, did *w3c.DI
 			core_claim 
 		FROM claims
 		  LEFT OUTER JOIN identity_states ON claims.identity_state = identity_states.state
-		WHERE issuer = $1 AND identity_state = $2 AND claims.identifier = issuer
+		WHERE issuer = $1 AND ((identity_state IS NULL AND (mtp = true OR revoked = true) OR (identity_state = $2 AND mtp = true)))
+		AND claims.identifier = issuer 
 		`, did.String(), state.Hex())
 	}
 
@@ -888,7 +918,7 @@ func (c *claims) GetAuthClaimsForPublishing(ctx context.Context, conn db.Querier
 	return claims, nil
 }
 
-func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+func (c *claims) GetClaimsOfAConnection(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID) ([]*domain.Claim, error) {
 	query := `SELECT claims.id,
 		   issuer,
 		   schema_hash,
@@ -910,12 +940,12 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 		FROM claims
 		WHERE claims.identifier = $1 
 		AND claims.other_identifier = $2
-		AND claims.link_id = $3
 	`
-	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
+	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String())
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	claims := make([]*domain.Claim, 0)
 
@@ -945,7 +975,66 @@ func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, id
 		claims = append(claims, &claim)
 	}
 
+	return claims, nil
+}
+
+func (c *claims) GetClaimsIssuedForUser(ctx context.Context, conn db.Querier, identifier w3c.DID, userDID w3c.DID, linkID uuid.UUID) ([]*domain.Claim, error) {
+	query := `SELECT claims.id,
+		   issuer,
+		   schema_hash,
+		   schema_type,
+		   schema_url,
+		   other_identifier,
+		   expiration,
+		   updatable,
+		   claims.version,
+		   rev_nonce,
+		   mtp_proof,
+		   signature_proof,
+		   data,
+		   claims.identifier,
+		   identity_state,
+		   credential_status,
+		   revoked,
+		   core_claim
+		FROM claims
+		WHERE claims.identifier = $1 
+		AND claims.other_identifier = $2
+		AND claims.link_id = $3
+	`
+	rows, err := conn.Query(ctx, query, identifier.String(), userDID.String(), linkID)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
+
+	claims := make([]*domain.Claim, 0)
+
+	for rows.Next() {
+		var claim domain.Claim
+		err := rows.Scan(&claim.ID,
+			&claim.Issuer,
+			&claim.SchemaHash,
+			&claim.SchemaType,
+			&claim.SchemaHash,
+			&claim.OtherIdentifier,
+			&claim.Expiration,
+			&claim.Updatable,
+			&claim.Version,
+			&claim.RevNonce,
+			&claim.MTPProof,
+			&claim.SignatureProof,
+			&claim.Data,
+			&claim.Identifier,
+			&claim.IdentityState,
+			&claim.CredentialStatus,
+			&claim.Revoked,
+			&claim.CoreClaim)
+		if err != nil {
+			return nil, err
+		}
+		claims = append(claims, &claim)
+	}
 	return claims, nil
 }
 
@@ -1008,71 +1097,4 @@ func (c *claims) GetByStateIDWithMTPProof(ctx context.Context, conn db.Querier, 
 	}
 
 	return claims, nil
-}
-
-func toCredentialDomain(c *dbClaim) *domain.Claim {
-	if c.ID == nil {
-		return nil
-	}
-
-	credential := &domain.Claim{
-		ID: *c.ID,
-	}
-
-	if c.CoreClaim != nil {
-		credential.CoreClaim = *c.CoreClaim
-	}
-	if c.Data != nil {
-		credential.Data = *c.Data
-	}
-	if c.SignatureProof != nil {
-		credential.SignatureProof = *c.SignatureProof
-	}
-	if c.CredentialStatus != nil {
-		credential.CredentialStatus = *c.CredentialStatus
-	}
-	if c.Identifier.Valid {
-		credential.Identifier = common.ToPointer(c.Identifier.String)
-	}
-	if c.Issuer.Valid {
-		credential.Issuer = c.Issuer.String
-	}
-	if c.SchemaHash.Valid {
-		credential.SchemaHash = c.SchemaHash.String
-	}
-	if c.SchemaURL.Valid {
-		credential.SchemaURL = c.SchemaURL.String
-	}
-	if c.SchemaType.Valid {
-		credential.SchemaType = c.SchemaType.String
-	}
-	if c.OtherIdentifier.Valid {
-		credential.OtherIdentifier = c.OtherIdentifier.String
-	}
-	if c.Expiration != nil {
-		credential.Expiration = *c.Expiration
-	}
-	if c.Updatable.Valid {
-		credential.Updatable = c.Updatable.Bool
-	}
-	if c.RevNonce != nil {
-		credential.RevNonce = domain.RevNonceUint64(*c.RevNonce)
-	}
-	if c.Revoked.Valid {
-		credential.Revoked = c.Revoked.Bool
-	}
-	if c.IdentityState.Valid {
-		credential.IdentityState = common.ToPointer(c.IdentityState.String)
-	}
-	if c.Status.Valid {
-		credential.Status = common.ToPointer(domain.IdentityStatus(c.Status.String))
-	}
-	if c.HIndex.Valid {
-		credential.HIndex = c.HIndex.String
-	}
-	if c.MtProof.Valid {
-		credential.MtProof = c.MtProof.Bool
-	}
-
-	return credential
 }
