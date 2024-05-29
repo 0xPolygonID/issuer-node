@@ -14,8 +14,6 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
-	"github.com/iden3/iden3comm/v2/packers"
-
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -709,7 +707,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Debug(ctx, "agent empty request")
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
-	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
+	basicMessage, _, err := s.packageManager.Unpack([]byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
