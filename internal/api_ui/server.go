@@ -14,7 +14,6 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
-	"github.com/iden3/iden3comm/v2/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -344,7 +343,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), nil,
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
 		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -671,7 +670,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, s.cfg.CredentialStatus.CredentialStatusType)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -709,7 +708,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Debug(ctx, "agent empty request")
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
-	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
+	basicMessage, _, err := s.packageManager.Unpack([]byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil

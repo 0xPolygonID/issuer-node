@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
-	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -144,7 +143,7 @@ func main() {
 	}, keyStore)
 
 	// this is needed to create the did with the correct auth core claim revocation status URL
-	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
+	cfg.CredentialStatus.Iden3CommAgentStatus.URL = cfg.APIUI.ServerURL
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	cfg.CredentialStatus.SingleIssuer = true
@@ -155,7 +154,7 @@ func main() {
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: cfg.CredentialStatus.CredentialStatusType,
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)

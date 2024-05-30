@@ -1,6 +1,8 @@
 package revocation_status
 
 import (
+	"fmt"
+
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
@@ -15,8 +17,8 @@ func (r *iden3ReverseSparseMerkleTreeProofResolver) resolve(credentialStatusSett
 		Type:            verifiable.Iden3ReverseSparseMerkleTreeProof,
 		RevocationNonce: nonce,
 		StatusIssuer: &verifiable.CredentialStatus{
-			ID:              buildDirectRevocationURL(credentialStatusSettings.DirectStatus.GetURL(), issuerDID.String(), nonce, credentialStatusSettings.SingleIssuer),
-			Type:            verifiable.SparseMerkleTreeProof,
+			ID:              fmt.Sprintf("%s/v1/agent", credentialStatusSettings.Iden3CommAgentStatus.GetURL()),
+			Type:            verifiable.Iden3commRevocationStatusV1,
 			RevocationNonce: nonce,
 		},
 	}

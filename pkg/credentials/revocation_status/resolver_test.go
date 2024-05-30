@@ -32,55 +32,13 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name: "SparseMerkleTreeProof for single issuer",
-			credentialStatusSettings: config.CredentialStatus{
-				RHSMode: config.RHSMode("none"),
-				DirectStatus: config.DirectStatus{
-					URL: "https://issuernode",
-				},
-				SingleIssuer: true,
-			},
-			credentialStatusType: verifiable.SparseMerkleTreeProof,
-			nonce:                12345,
-			issuerState:          "issuer-state",
-			expected: expected{
-				err: nil,
-				CredentialStatus: &verifiable.CredentialStatus{
-					Type:            verifiable.SparseMerkleTreeProof,
-					ID:              "https://issuernode/v1/credentials/revocation/status/12345",
-					RevocationNonce: 12345,
-				},
-			},
-		},
-		{
-			name: "SparseMerkleTreeProof for multiples issuers",
-			credentialStatusSettings: config.CredentialStatus{
-				RHSMode: config.RHSMode("none"),
-				DirectStatus: config.DirectStatus{
-					URL: "https://issuernode",
-				},
-				SingleIssuer: false,
-			},
-			credentialStatusType: verifiable.SparseMerkleTreeProof,
-			nonce:                12345,
-			issuerState:          "issuer-state",
-			expected: expected{
-				err: nil,
-				CredentialStatus: &verifiable.CredentialStatus{
-					Type:            verifiable.SparseMerkleTreeProof,
-					ID:              "https://issuernode/v1/did%3Apolygonid%3Apolygon%3Amumbai%3A2qFbNk3Vz7Uy3ryq6zjwkC7p7RbLTfRpMsy6axjxeG/claims/revocation/status/12345",
-					RevocationNonce: 12345,
-				},
-			},
-		},
-		{
 			name: "Iden3ReverseSparseMerkleTreeProof for single issuer",
 			credentialStatusSettings: config.CredentialStatus{
 				RHSMode: config.RHSMode("OffChain"),
 				RHS: config.RHS{
 					URL: "https://rhs",
 				},
-				DirectStatus: config.DirectStatus{
+				Iden3CommAgentStatus: config.Iden3CommAgentStatus{
 					URL: "https://issuernode",
 				},
 				SingleIssuer: true,
@@ -95,8 +53,8 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 					ID:              "https://rhs/node?state=issuer-state",
 					RevocationNonce: 12345,
 					StatusIssuer: &verifiable.CredentialStatus{
-						Type:            verifiable.SparseMerkleTreeProof,
-						ID:              "https://issuernode/v1/credentials/revocation/status/12345",
+						Type:            verifiable.Iden3commRevocationStatusV1,
+						ID:              "https://issuernode/v1/agent",
 						RevocationNonce: 12345,
 					},
 				},
@@ -109,7 +67,7 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 				RHS: config.RHS{
 					URL: "https://rhs",
 				},
-				DirectStatus: config.DirectStatus{
+				Iden3CommAgentStatus: config.Iden3CommAgentStatus{
 					URL: "https://issuernode",
 				},
 				SingleIssuer: false,
@@ -124,8 +82,8 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 					ID:              "https://rhs/node?state=issuer-state",
 					RevocationNonce: 12345,
 					StatusIssuer: &verifiable.CredentialStatus{
-						Type:            verifiable.SparseMerkleTreeProof,
-						ID:              "https://issuernode/v1/did%3Apolygonid%3Apolygon%3Amumbai%3A2qFbNk3Vz7Uy3ryq6zjwkC7p7RbLTfRpMsy6axjxeG/claims/revocation/status/12345",
+						Type:            verifiable.Iden3commRevocationStatusV1,
+						ID:              "https://issuernode/v1/agent",
 						RevocationNonce: 12345,
 					},
 				},
@@ -138,7 +96,7 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 				RHS: config.RHS{
 					URL: "https://rhs",
 				},
-				DirectStatus: config.DirectStatus{
+				Iden3CommAgentStatus: config.Iden3CommAgentStatus{
 					URL: "https://issuernode",
 				},
 				SingleIssuer: false,
@@ -167,7 +125,7 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 				RHS: config.RHS{
 					URL: "https://rhs",
 				},
-				DirectStatus: config.DirectStatus{
+				Iden3CommAgentStatus: config.Iden3CommAgentStatus{
 					URL: "https://issuernode",
 				},
 				SingleIssuer: false,

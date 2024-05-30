@@ -806,7 +806,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -1168,7 +1168,7 @@ func TestServer_CreateCredential(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	pubSub := pubsub.NewMock()
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
@@ -1447,7 +1447,7 @@ func TestServer_GetCredential(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
@@ -1465,13 +1465,13 @@ func TestServer_GetCredential(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	createdClaim1, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
-	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	createdClaim2, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
-	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	createdClaim3, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -1640,7 +1640,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -1665,19 +1665,19 @@ func TestServer_GetCredentials(t *testing.T) {
 	_, err = schemaService.ImportSchema(ctx, *did, iReq)
 	require.NoError(t, err)
 	// Never expires
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	// Expires in future
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	// Expired
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	// non expired, but revoked
-	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	id, err := w3c.ParseDID(*revoked.Identifier)
@@ -2108,7 +2108,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
@@ -2127,9 +2127,9 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdSIGClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	createdSIGClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
-	createdMTPClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	createdMTPClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(false), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	type expected struct {
@@ -2262,7 +2262,7 @@ func TestServer_GetConnection(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -2447,7 +2447,7 @@ func TestServer_GetConnections(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -2486,9 +2486,9 @@ func TestServer_GetConnections(t *testing.T) {
 	}
 
 	merklizedRootPosition := "index"
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schemaURL, credentialSubject2, nil, schemaType, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	usrDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
@@ -3125,7 +3125,7 @@ func TestServer_RevokeCredential(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 
 	fixture := tests.NewFixture(storage)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
@@ -3266,7 +3266,7 @@ func TestServer_CreateLink(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	pubSub := pubsub.NewMock()
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRespository, schemaLoader, sessionRepository, pubSub, ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -3491,7 +3491,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -3640,7 +3640,7 @@ func TestServer_GetLink(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -3715,7 +3715,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaType:           link.Schema.Type,
 					SchemaUrl:            link.Schema.URL,
 					Status:               LinkStatusActive,
-					ProofTypes:           []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					ProofTypes:           []string{"Iden3commRevocationStatusV1", "BJJSignature2021"},
 					CreatedAt:            TimeUTC(link.CreatedAt),
 					SchemaHash:           string(hash),
 					CredentialExpiration: common.ToPointer(TimeUTC(tomorrow)),
@@ -3738,7 +3738,7 @@ func TestServer_GetLink(t *testing.T) {
 					SchemaType:           linkExpired.Schema.Type,
 					SchemaUrl:            linkExpired.Schema.URL,
 					Status:               LinkStatusExceeded,
-					ProofTypes:           []string{"SparseMerkleTreeProof", "BJJSignature2021"},
+					ProofTypes:           []string{"Iden3commRevocationStatusV1", "BJJSignature2021"},
 					CredentialExpiration: nil,
 				},
 			},
@@ -3816,7 +3816,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -4050,7 +4050,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -4165,7 +4165,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, nil, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -4278,7 +4278,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -4431,7 +4431,7 @@ func TestServer_GetLinkQRCode(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	qrService := services.NewQrStoreService(cachex)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, schemaLoader, sessionRepository, pubsub.NewMock(), ipfsGatewayURL)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -4612,7 +4612,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
 	credentialSubject := map[string]any{
@@ -4636,7 +4636,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	}
 
 	serverWithSignatureClaim := NewServer(cfg1, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didSignatureClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didSignatureClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 	handlerWithSignatureClaim := getHandler(ctx, serverWithSignatureClaim)
 
@@ -4652,7 +4652,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 		},
 	}
 	serverWithMTPClaim := NewServer(cfgWithMTPClaim, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
-	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithMTPClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithMTPClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 	handlerWithMTPClaim := getHandler(ctx, serverWithMTPClaim)
 
@@ -4668,7 +4668,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 		},
 	}
 	serverWithRevokedClaim := NewServer(cfgWithRevokedClaim, identityService, claimsService, NewSchemaMock(), connectionsService, NewLinkMock(), nil, NewPublisherMock(), NewPackageManagerMock(), nil)
-	cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	cred, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(false), nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 	require.NoError(t, claimsService.Revoke(ctx, cfgWithRevokedClaim.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
 	handlerWithRevokedClaim := getHandler(ctx, serverWithRevokedClaim)
@@ -4761,7 +4761,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
@@ -4848,7 +4848,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 	pubSub := pubsub.NewMock()
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
@@ -4867,7 +4867,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 	merklizedRootPosition := "index"
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
-	createdCredential, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil, nil))
+	createdCredential, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)

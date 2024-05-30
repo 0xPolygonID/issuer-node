@@ -41,7 +41,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver)
 
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(true), common.ToPointer(true), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -82,7 +82,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(false), common.ToPointer(true), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -104,7 +104,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(false), common.ToPointer(true), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -130,7 +130,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(false), common.ToPointer(true), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		previousStateIdentity, _ := identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -152,7 +152,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(true), common.ToPointer(false), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		_, err = identityService.UpdateState(ctx, *did)
@@ -179,7 +179,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(true), common.ToPointer(false), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		_, err = identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
@@ -194,7 +194,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			common.ToPointer(true), common.ToPointer(false), nil, false,
-			verifiable.SparseMerkleTreeProof, nil, nil, nil))
+			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
 		_, err = identityStateRepo.GetLatestStateByIdentifier(ctx, storage.Pgx, did)
