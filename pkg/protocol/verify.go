@@ -46,9 +46,9 @@ func authV2CircuitStateVerification(contract *abi.State, pubsignals []string) er
 	if err != nil {
 		return err
 	}
-	if (big.NewInt(0)).Cmp(globalStateInfo.CreatedAtTimestamp) == 0 {
-		return errors.Errorf("root %s doesn't exist in smart contract", globalState.String())
-	}
+	// if (big.NewInt(0)).Cmp(globalStateInfo.CreatedAtTimestamp) == 0 {
+	// 	return errors.Errorf("root %s doesn't exist in smart contract", globalState.String())
+	// }
 	if globalState.Cmp(globalStateInfo.Root) != 0 {
 		return errors.Errorf("invalid global state info in the smart contract, expected root %s, got %s", globalState.String(), globalStateInfo.Root.String())
 	}
