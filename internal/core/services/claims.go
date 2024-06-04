@@ -230,6 +230,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		authCs, err := authClaim.GetCredentialStatus()
 		if err != nil {
 			log.Error(ctx, "cannot get the auth claim credential status", "err", err)
+			return nil, err
 		}
 
 		proof.IssuerData.CredentialStatus = authCs
