@@ -264,7 +264,7 @@ export function ConnectionsTable() {
         <TableCard
           defaultContents={
             <>
-              <Avatar className="avatar-color-cyan" icon={<IconUsers />} size={48} />
+              <Avatar className="avatar-color-icon" icon={<IconUsers />} size={48} />
 
               <Typography.Text strong>No connections</Typography.Text>
 
@@ -327,7 +327,7 @@ export function ConnectionsTable() {
               <Space size="middle">
                 <Card.Meta title={CONNECTIONS} />
 
-                <Tag color="blue">{connectionsList.length}</Tag>
+                <Tag>{connectionsList.length}</Tag>
               </Space>
             </Row>
           }

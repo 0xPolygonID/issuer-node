@@ -28,7 +28,7 @@ export function Schemas() {
                 Explore a wide range of existing schemas or create custom schemas using
               </Typography.Text>{" "}
               <Typography.Link href={env.schemaExplorerAndBuilderUrl} target="_blank">
-                Polygon ID&apos;s schema explorer and builder.
+                Privado iD&apos;s schema explorer and builder.
               </Typography.Link>
             </>
           )}

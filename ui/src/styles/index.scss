@@ -1,13 +1,13 @@
 @import "variables.module";
 
 @font-face {
-  font-family: ModernEra-Regular;
+  font-family: Matter-Regular;
   font-style: normal;
   font-weight: normal;
   src:
-    local("ModernEra-Regular"),
-    url("/fonts/ModernEra-Regular.woff2") format("woff2"),
-    url("/fonts/ModernEra-Regular.woff") format("woff");
+    local("Matter-Regular"),
+    url("/fonts/Matter-Regular.woff2") format("woff2"),
+    url("/fonts/Matter-Regular.woff") format("woff");
 }
 
 /* OVERRIDES */
@@ -80,8 +80,8 @@
   }
 
   &.selected {
-    border: 1px solid $primary-color;
-    background: $bg-light;
+    border: 1px solid $selected-color;
+    background: $success-bg;
   }
 
   .ant-card-type-inner {
@@ -115,12 +115,12 @@
   }
 }
 
-.avatar-color-cyan {
-  background-color: $cyan-bg;
-  color: $cyan-color;
+.avatar-color-icon {
+  background-color: $icon-bg;
+  color: $icon-color;
 
   path {
-    stroke: $cyan-color;
+    stroke: $icon-color;
   }
 }
 
@@ -252,8 +252,10 @@
 }
 
 .ant-tag {
-  font-weight: bold;
-  padding-top: 2px;
+  padding: 2px 10px;
+  border-radius: 16px;
+  border: 0;
+  background-color: $tag-bg;
 
   &.ant-tag-success {
     background-color: $tag-bg-success;
@@ -279,6 +281,63 @@
 
 .ant-notification-notice-content {
   padding-inline-end: 24px;
+}
+
+.ant-btn-primary {
+  border: 1px solid #54db06;
+
+  &:not(:disabled .ant-btn-disable) {
+    &:hover {
+      color: $text-color;
+    }
+
+    &:active {
+      border: 1px solid #74f526;
+      color: $text-color;
+      background: $primary-color;
+      box-shadow: 0 0 0 4px #dfffc7;
+    }
+  }
+}
+
+.ant-radio-wrapper .ant-radio-checked .ant-radio-inner {
+  background-color: $success-bg;
+  border-color: $selected-color;
+}
+
+.ant-radio-wrapper .ant-radio-checked .ant-radio-inner::after {
+  background-color: $selected-color;
+}
+
+.ant-checkbox-wrapper {
+  .ant-checkbox-checked .ant-checkbox-inner {
+    border-color: $selected-color;
+  }
+
+  &:not(.ant-checkbox:not(.ant-checkbox-wrapper-disabled)):hover .ant-checkbox-inner {
+    border-color: $selected-color;
+  }
+}
+
+.ant-checkbox:not(.ant-checkbox-disabled):hover .ant-checkbox-inner {
+  border-color: $selected-color;
+}
+
+.ant-input-number-outlined:hover {
+  border-color: $selected-color;
+}
+
+.ant-input-number .ant-input-number-handler:hover {
+  .ant-input-number-handler-up-inner {
+    color: $selected-color;
+  }
+  .ant-input-number-handler-down-inner {
+    color: $selected-color;
+  }
+}
+
+.ant-typography.ant-typography-secondary {
+  color: $text-color-secondary;
 }
 
 /* CUSTOM */

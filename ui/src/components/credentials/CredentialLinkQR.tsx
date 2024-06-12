@@ -244,7 +244,7 @@ export function CredentialLinkQR() {
               schemaType={authQRCode.data.linkDetail.schemaType}
               subTitle={
                 <>
-                  Scan the QR code with your Polygon ID wallet to accept it.
+                  Scan the QR code with your Privado iD wallet to accept it.
                   <br />
                   {PUSH_NOTIFICATIONS_REMINDER}
                 </>
