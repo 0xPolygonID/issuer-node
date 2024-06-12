@@ -50,6 +50,7 @@ const parsedStyleVariables = getStrictParser<StyleVariables>()(
 
 const {
   avatarBg,
+  bgLight,
   borderColor,
   errorColor,
   primaryColor,
@@ -98,9 +99,19 @@ export const theme: ThemeConfig = {
       subMenuItemBg: "white",
     },
     Message: { fontSize: 18 },
-    Radio: { controlHeight: 40, size: 20 },
+    Radio: {
+      buttonCheckedBg: bgLight,
+      colorPrimary: successColor,
+      colorPrimaryHover: successColor,
+      controlHeight: 40,
+      size: 20,
+    },
     Select: { colorBorder: successColor, controlHeight: 40 },
     Table: { fontSize: 14, fontWeightStrong: 400 },
+    Tabs: {
+      colorPrimary: successColor,
+      itemHoverColor: successColor,
+    },
     Tag: {
       colorBgBase: tagBg,
       colorTextBase: tagColor,
