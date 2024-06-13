@@ -1,9 +1,9 @@
-# Privado iD Issuer Node
+# Privado ID Issuer Node
 
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
 
-Streamline the **Verifiable Credentials issuance** process with the user-friendly API and UI of the Issuer Node within the Privado iD ecosystem. The on-premise (self-hosted) Issuer Node, seamlessly integrated with a robust suite of tools including the mobile Wallet, Schema Builder, and Credential Marketplace, guarantees a frictionless experience for effortlessly issuing and verifying credentials.
+Streamline the **Verifiable Credentials issuance** process with the user-friendly API and UI of the Issuer Node within the Privado ID ecosystem. The on-premise (self-hosted) Issuer Node, seamlessly integrated with a robust suite of tools including the mobile Wallet, Schema Builder, and Credential Marketplace, guarantees a frictionless experience for effortlessly issuing and verifying credentials.
 
 ![Triagle-of-trust](docs/assets/img/triangle-of-trust.png)
 
@@ -21,7 +21,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 
 ## Table of Contents
 
-- [Privado iD Issuer Node](#privado-id-issuer-node)
+- [Privado ID Issuer Node](#privado-id-issuer-node)
   - [Table of Contents](#table-of-contents)
   - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#prerequisites)
@@ -219,7 +219,7 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 ## Documentation
 
 * [Issuer Node resources](https://devs.polygonid.com/docs/category/issuer/)
-* [Privado iD core concepts](https://devs.polygonid.com/docs/introduction/)
+* [Privado ID core concepts](https://devs.polygonid.com/docs/introduction/)
 
 ## Tools
 > [!WARNING]
@@ -229,8 +229,8 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 * [Schema Builder](https://schema-builder.polygonid.me/) - Create your custom schemas to issue VC.
 * [Demo Issuer UI](https://user-ui:password-ui@issuer-ui.polygonid.me/) - Test our Issuer Node UI.
 * [Verifier Demo](https://verifier-demo.polygonid.me/) - Verify your VCs.
-* [Privado iD Android Mobile App](https://play.google.com/store/apps/details?id=com.polygonid.wallet&hl=en&gl=US)
-* [Privado iD IOS Mobile App](https://apps.apple.com/us/app/polygon-id/id1629870183)
+* [Poylgon ID Android Mobile App](https://play.google.com/store/apps/details?id=com.polygonid.wallet&hl=en&gl=US)
+* [Polygon ID IOS Mobile App](https://apps.apple.com/us/app/polygon-id/id1629870183)
 * [Marketplace](https://marketplace.polygonid.me/) - Explore credentials submitted by trusted issuers.
 
 ## License

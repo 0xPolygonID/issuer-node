@@ -71,7 +71,7 @@ export function CredentialIssuedQR() {
       qrCodeLink={issuedQRCodeLink.qrCode}
       qrCodeRaw={issuedQRCodeRaw.qrCode}
       schemaType={issuedQRCodeLink.schemaType}
-      subTitle="Scan the QR code with your Privado iD wallet to add the credential."
+      subTitle="Scan the QR code with your Polygon ID wallet to add the credential."
     />
   );
 }

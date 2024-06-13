@@ -1,6 +1,6 @@
-# Privado iD Issuer Node UI
+# Privado ID Issuer Node UI
 
-The frontend application of the [Privado iD Issuer Node](../README.md).
+The frontend application of the [Privado ID Issuer Node](../README.md).
 
 ## Installation
 
