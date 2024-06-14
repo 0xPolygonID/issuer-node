@@ -21,11 +21,18 @@ echo "VITE_SCHEMA_EXPLORER_AND_BUILDER_URL=$ISSUER_UI_SCHEMA_EXPLORER_AND_BUILDE
 cd /app && npm run build
 
 # Copy nginx config
-cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
 echo $ISSUER_UI_AUTH_USERNAME
 echo $ISSUER_UI_AUTH_PASSWORD
-htpasswd -c -b /etc/nginx/.htpasswd $ISSUER_UI_AUTH_USERNAME $ISSUER_UI_AUTH_PASSWORD
-cat /etc/nginx/.htpasswd
+
+# shellcheck disable=SC2039
+if [ "${ISSUER_UI_INSECURE}" == "true" ]; then
+  cp deployment/nginx_insecure.conf /etc/nginx/conf.d/default.conf
+else
+  cp deployment/nginx.conf /etc/nginx/conf.d/default.conf
+  htpasswd -c -b /etc/nginx/.htpasswd $ISSUER_UI_AUTH_USERNAME $ISSUER_UI_AUTH_PASSWORD
+  cat /etc/nginx/.htpasswd
+fi
+
 
 # Copy app dist
 cp -r /app/dist/. /usr/share/nginx/html
