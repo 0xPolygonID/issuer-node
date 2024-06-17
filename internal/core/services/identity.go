@@ -751,13 +751,13 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 
 	if len(rhsPublishers) > 0 {
 		if rhsMode == reverse_hash.RHSModeOnChain && !i.autoPublishingToOnChainRHS {
-			log.Info(ctx, `
-			state info (hashes):
-				root: '%s',
-				ClaimsTreeRoot: '%s',
-				RevocationsTreeRoot: '%s',
-				RootOfRootsTreeRoot: '%s',
-		`, identity.State.TreeState().State, claimsTree.Root(), &merkletree.HashZero, &merkletree.HashZero)
+			log.Info(ctx,
+				"state info (bigints):",
+				"root:", identity.State.TreeState().State.BigInt().String(),
+				"claimsTreeRoot:", claimsTree.Root().BigInt().String(),
+				"revocationsTreeRoot:", merkletree.HashZero.BigInt().String(),
+				"rootOfRootsTreeRoot:", merkletree.HashZero.BigInt().String(),
+			)
 		} else {
 			log.Info(ctx, "publishing state to RHS", "publishers", len(rhsPublishers))
 			for _, rhsPublisher := range rhsPublishers {

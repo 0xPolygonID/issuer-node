@@ -31,10 +31,7 @@ func NewMediaTypeManager(allowList map[iden3comm.ProtocolMessage][]string, stric
 }
 
 // AllowMediaType check if the protocol message supports the mediaType type
-func (m *MediaTypeManager) AllowMediaType(
-	protoclMessage iden3comm.ProtocolMessage,
-	mediaType iden3comm.MediaType,
-) bool {
+func (m *MediaTypeManager) AllowMediaType(protoclMessage iden3comm.ProtocolMessage, mediaType iden3comm.MediaType) bool {
 	al, ok := m.allowList[protoclMessage]
 	if !ok {
 		return !m.strictMode
