@@ -204,7 +204,7 @@ uiIssuerNode:
     issuerApiUiIssuerName: my issuer k8s
     issuerUiAuthUsername: user-ui
     issuerUiBlockExplorerUrlMumbai: https://mumbai.polygonscan.com
-    issuerUiBlockExplorerUrlAmoy: https://www.oklink.com/amoy‍
+    issuerUiBlockExplorerUrlAmoy: https://www.oklink.com/amoy
     issuerUiBlockExplorerUrlMain: https://polygonscan.com/
     issuerUiIpfsGatewayUrl: https://ipfs.io
     issuerApiUiName: issuer-node-ui-configmap
