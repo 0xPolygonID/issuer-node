@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
@@ -217,7 +218,7 @@ type ClaimsService interface {
 	GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error)
 	GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*GetCredentialQrCodeResponse, error)
-	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
+	Agent(ctx context.Context, req *AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
 	GetAuthClaimForPublishing(ctx context.Context, did *w3c.DID, state string) (*domain.Claim, error)
 	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error

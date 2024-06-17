@@ -17,6 +17,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/merklize"
 	"github.com/iden3/go-schema-processor/v2/processor"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
@@ -67,10 +68,11 @@ type claim struct {
 	publisher                pubsub.Publisher
 	ipfsClient               *shell.Shell
 	revocationStatusResolver *revocation_status.RevocationStatusResolver
+	mediatypeManager         ports.MediatypeManager
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager) ports.ClaimsService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
@@ -82,6 +84,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrServ
 		loader:                   ld,
 		publisher:                ps,
 		revocationStatusResolver: revocationStatusResolver,
+		mediatypeManager:         mediatypeManager,
 	}
 	if ipfsGatewayURL != "" {
 		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
@@ -365,7 +368,13 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	}, nil
 }
 
-func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
+func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error) {
+	if !c.mediatypeManager.AllowMediaType(req.Type, mediatype) {
+		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", req.Typ, req.Type)
+		log.Error(ctx, "agent: unsupported media type", "err", err)
+		return nil, err
+	}
+
 	exists, err := c.identitySrv.Exists(ctx, *req.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "loading issuer identity", "err", err, "issuerDID", req.IssuerDID)

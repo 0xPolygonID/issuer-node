@@ -142,6 +142,10 @@ db/migrate: $(BIN)/install-goose $(BIN)/godotenv $(BIN)/platformid-migrate ## In
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
 
+.PHONY: lint-fix
+lint-fix: $(BIN)/golangci-lint
+		  $(BIN)/golangci-lint run --fix
+
 # usage: make private_key=xxx add-private-key
 .PHONY: add-private-key
 add-private-key:

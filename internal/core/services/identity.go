@@ -73,34 +73,36 @@ type identity struct {
 	kms                     kms.KMSType
 	verifier                *auth.Verifier
 
-	ignoreRHSErrors          bool
-	pubsub                   pubsub.Publisher
-	revocationStatusResolver *revocation_status.RevocationStatusResolver
-	credentialStatusSettings config.CredentialStatus
-	rhsFactory               reverse_hash.Factory
+	ignoreRHSErrors            bool
+	pubsub                     pubsub.Publisher
+	revocationStatusResolver   *revocation_status.RevocationStatusResolver
+	credentialStatusSettings   config.CredentialStatus
+	rhsFactory                 reverse_hash.Factory
+	autoPublishingToOnChainRHS bool
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver, autoPublishingToOnChainRHS bool) ports.IdentityService {
 	return &identity{
-		identityRepository:       identityRepository,
-		imtRepository:            imtRepository,
-		identityStateRepository:  identityStateRepository,
-		claimsRepository:         claimsRepository,
-		revocationRepository:     revocationRepository,
-		connectionsRepository:    connectionsRepository,
-		sessionManager:           sessionRepository,
-		storage:                  storage,
-		mtService:                mtservice,
-		qrService:                qrService,
-		kms:                      kms,
-		ignoreRHSErrors:          false,
-		verifier:                 verifier,
-		pubsub:                   ps,
-		credentialStatusSettings: credentialStatusSettings,
-		rhsFactory:               rhsFactory,
-		revocationStatusResolver: revocationStatusResolver,
+		identityRepository:         identityRepository,
+		imtRepository:              imtRepository,
+		identityStateRepository:    identityStateRepository,
+		claimsRepository:           claimsRepository,
+		revocationRepository:       revocationRepository,
+		connectionsRepository:      connectionsRepository,
+		sessionManager:             sessionRepository,
+		storage:                    storage,
+		mtService:                  mtservice,
+		qrService:                  qrService,
+		kms:                        kms,
+		ignoreRHSErrors:            false,
+		verifier:                   verifier,
+		pubsub:                     ps,
+		credentialStatusSettings:   credentialStatusSettings,
+		rhsFactory:                 rhsFactory,
+		revocationStatusResolver:   revocationStatusResolver,
+		autoPublishingToOnChainRHS: autoPublishingToOnChainRHS,
 	}
 }
 
@@ -735,30 +737,44 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
-		Type: kms.KeyTypeEthereum,
-		ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
-	})
+	rhsMode := reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode)
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(
+		ctx,
+		rhsMode,
+		&kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+		})
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create RHS publisher: %w", err)
 	}
 
 	if len(rhsPublishers) > 0 {
-		log.Info(ctx, "publishing state to RHS", "publishers", len(rhsPublishers))
-		for _, rhsPublisher := range rhsPublishers {
-			err := rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
-				{
-					Hash: identity.State.TreeState().State,
-					Children: []*merkletree.Hash{
-						claimsTree.Root(),
-						&merkletree.HashZero,
-						&merkletree.HashZero,
+		if rhsMode == reverse_hash.RHSModeOnChain && !i.autoPublishingToOnChainRHS {
+			log.Info(ctx, `
+			state info (hashes):
+				root: '%s',
+				ClaimsTreeRoot: '%s',
+				RevocationsTreeRoot: '%s',
+				RootOfRootsTreeRoot: '%s',
+		`, identity.State.TreeState().State, claimsTree.Root(), &merkletree.HashZero, &merkletree.HashZero)
+		} else {
+			log.Info(ctx, "publishing state to RHS", "publishers", len(rhsPublishers))
+			for _, rhsPublisher := range rhsPublishers {
+				err := rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
+					{
+						Hash: identity.State.TreeState().State,
+						Children: []*merkletree.Hash{
+							claimsTree.Root(),
+							&merkletree.HashZero,
+							&merkletree.HashZero,
+						},
 					},
-				},
-			})
-			if err != nil {
-				log.Error(ctx, "publishing state to RHS", "err", err)
-				return nil, nil, err
+				})
+				if err != nil {
+					log.Error(ctx, "publishing state to RHS", "err", err)
+					return nil, nil, err
+				}
 			}
 		}
 	}

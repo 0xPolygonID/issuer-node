@@ -23,7 +23,7 @@ type CredentialStatus struct {
 	Iden3CommAgentStatus Iden3CommAgentStatus
 	RHS                  RHS
 	OnchainTreeStore     OnchainTreeStore `mapstructure:"OnchainTreeStore"`
-	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
+	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, None)"`
 	SingleIssuer         bool
 	CredentialStatusType verifiable.CredentialStatusType `mapstructure:"CredentialStatusType" default:"Iden3commRevocationStatusV1"`
 }
