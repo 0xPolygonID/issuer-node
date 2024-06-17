@@ -408,7 +408,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
 
-	basicMessage, _, err := s.packageManager.Unpack([]byte(*request.Body))
+	basicMessage, mediatype, err := s.packageManager.Unpack([]byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
@@ -420,7 +420,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
-	agent, err := s.claimService.Agent(ctx, req)
+	agent, err := s.claimService.Agent(ctx, req, mediatype)
 	if err != nil {
 		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil

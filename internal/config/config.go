@@ -50,6 +50,7 @@ type Configuration struct {
 	VaultUserPassAuthPassword    string
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
+	AutoPublishingToOnChainRHS   *bool              `mapstructure:"AutoPublishingToOnChainRHS"`
 }
 
 // Database has the database configuration
@@ -507,10 +508,12 @@ func bindEnv() {
 
 	_ = viper.BindEnv("ISSUER_CUSTOM_DID_METHODS")
 
+	_ = viper.BindEnv("AutoPublishingToOnChainRHS", "ISSUER_AUTO_PUBLISHING_TO_ON_CHAIN_RHS")
+
 	viper.AutomaticEnv()
 }
 
-// nolint:gocyclo
+// nolint:gocyclo,gocognit
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
@@ -624,6 +627,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.AutoPublishingToOnChainRHS == nil {
+		log.Info(ctx, "AutoPublishingToOnChainRHS is missing and the server set up it as true")
+		cfg.AutoPublishingToOnChainRHS = common.ToPointer(true)
 	}
 
 	if cfg.CredentialStatus.RHSMode == "" {
