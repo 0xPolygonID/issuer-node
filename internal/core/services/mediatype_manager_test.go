@@ -19,6 +19,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 		targetMediatype       iden3comm.MediaType
 		expected              bool
 		strictMode            bool
+		disable               bool
 	}
 	testcases := []testcase{
 		{
@@ -30,6 +31,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypeZKPMessage,
 			expected:              false,
 			strictMode:            true,
+			disable:               false,
 		},
 		{
 			name: "strictMode = false. Protocol message not in the allow list",
@@ -40,6 +42,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypeZKPMessage,
 			expected:              true,
 			strictMode:            false,
+			disable:               false,
 		},
 		{
 			name: "Protocol message on the allow list with '*'",
@@ -50,6 +53,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypePlainMessage,
 			expected:              true,
 			strictMode:            true,
+			disable:               false,
 		},
 		{
 			name: "Protocol message on the allow list with allow media type",
@@ -60,6 +64,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypeZKPMessage,
 			expected:              true,
 			strictMode:            true,
+			disable:               false,
 		},
 		{
 			name: "Protocol message on the allow list with NOT allow media type",
@@ -70,6 +75,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypePlainMessage,
 			expected:              false,
 			strictMode:            true,
+			disable:               false,
 		},
 		{
 			name:                  "strictMode = true. Empty allow list",
@@ -78,6 +84,7 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypePlainMessage,
 			expected:              false,
 			strictMode:            true,
+			disable:               false,
 		},
 		{
 			name:                  "strictMode = false. Empty allow list",
@@ -86,59 +93,27 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 			targetMediatype:       packers.MediaTypePlainMessage,
 			expected:              true,
 			strictMode:            false,
+			disable:               false,
+		},
+		{
+			name:                  "strictMode = true. Disable = true",
+			allowList:             map[iden3comm.ProtocolMessage][]string{},
+			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
+			targetMediatype:       packers.MediaTypePlainMessage,
+			expected:              true,
+			strictMode:            true,
+			disable:               true,
 		},
 	}
 
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
 			mdm := services.NewMediaTypeManager(
-				tt.allowList, tt.strictMode,
+				tt.allowList, tt.strictMode, tt.disable,
 			)
 			actual := mdm.AllowMediaType(
 				tt.targetProtocolMessage, tt.targetMediatype,
 			)
-			require.Equal(t, tt.expected, actual)
-		})
-	}
-}
-
-func TestMediatypeManager_DefaultPacker(t *testing.T) {
-	type testcase struct {
-		name                  string
-		targetProtocolMessage iden3comm.ProtocolMessage
-		targetMediatype       iden3comm.MediaType
-		expected              bool
-	}
-	testcases := []testcase{
-		{
-			name:                  "call CredentialFetchRequestMessageType with MediaTypePlainMessage",
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              false,
-		},
-		{
-			name:                  "call CredentialFetchRequestMessageType with MediaTypeZKPMessage",
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypeZKPMessage,
-			expected:              true,
-		},
-		{
-			name:                  "call RevocationStatusRequestMessageType with MediaTypePlainMessage",
-			targetProtocolMessage: protocol.RevocationStatusRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              true,
-		},
-		{
-			name:                  "call RevocationStatusRequestMessageType with MediaTypeZKPMessage",
-			targetProtocolMessage: protocol.RevocationStatusRequestMessageType,
-			targetMediatype:       packers.MediaTypeZKPMessage,
-			expected:              true,
-		},
-	}
-
-	for _, tt := range testcases {
-		t.Run(tt.name, func(t *testing.T) {
-			actual := services.DefaultMediaTypeManager.AllowMediaType(tt.targetProtocolMessage, tt.targetMediatype)
 			require.Equal(t, tt.expected, actual)
 		})
 	}

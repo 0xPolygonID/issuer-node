@@ -51,6 +51,7 @@ type Configuration struct {
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 	AutoPublishingToOnChainRHS   *bool              `mapstructure:"AutoPublishingToOnChainRHS"`
+	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
 }
 
 // Database has the database configuration
@@ -199,6 +200,12 @@ type APIUI struct {
 type APIUIAuth struct {
 	User     string `mapstructure:"User" tip:"Server UI APIBasic auth username"`
 	Password string `mapstructure:"Password" tip:"Server UI API Basic auth password"`
+}
+
+// MediaTypeManager enables or disables the media types manager
+type MediaTypeManager struct {
+	StrictMode *bool `mapstructure:"StrictMode" tip:"Enable/Disable strict mode"`
+	Disable    bool  `mapstructure:"Disable" tip:"Enable/Disable media type manager"`
 }
 
 // Sanitize perform some basic checks and sanitizations in the configuration.
@@ -510,6 +517,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("AutoPublishingToOnChainRHS", "ISSUER_AUTO_PUBLISHING_TO_ON_CHAIN_RHS")
 
+	_ = viper.BindEnv("MediaTypeManager.StrictMode", "ISSUER_MEDIA_TYPE_MANAGER_STRICT_MODE")
+	_ = viper.BindEnv("MediaTypeManager.Disable", "ISSUER_MEDIA_TYPE_MANAGER_DISABLE")
+
 	viper.AutomaticEnv()
 }
 
@@ -632,6 +642,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.AutoPublishingToOnChainRHS == nil {
 		log.Info(ctx, "AutoPublishingToOnChainRHS is missing and the server set up it as true")
 		cfg.AutoPublishingToOnChainRHS = common.ToPointer(true)
+	}
+
+	if cfg.MediaTypeManager.StrictMode == nil {
+		log.Info(ctx, "ISSUER_MEDIA_TYPE_MANAGER_STRICT_MODE is missing and the server set up it as true")
+		cfg.MediaTypeManager.StrictMode = common.ToPointer(true)
 	}
 
 	if cfg.CredentialStatus.RHSMode == "" {
