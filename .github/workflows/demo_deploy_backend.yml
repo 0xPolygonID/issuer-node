@@ -1,4 +1,4 @@
-name: Deploy Issuer Node Backend to Testing AWS Environment
+name: Deploy Issuer Node Backend to Demo AWS Environment
 
 on:
   workflow_run:
@@ -14,7 +14,7 @@ env:
 
 jobs:
   build-backend:
-    name: Build and push latest image to AWS Testing Environment
+    name: Build and push latest image to AWS Demo Environment
     permissions:
       id-token: write
       contents: write

@@ -1,4 +1,4 @@
-name: Deploy Issuer Node UI to Testing AWS Environment
+name: Deploy Issuer Node UI to Demo AWS Environment
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 
 jobs:
   deploy:
-    name: Build and Deploy UI to Testing AWS Environment
+    name: Build and Deploy UI to Demo AWS Environment
     runs-on: ubuntu-latest
     permissions:
       id-token: write
