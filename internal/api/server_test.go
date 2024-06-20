@@ -61,7 +61,6 @@ func TestServer_CreateIdentity(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
@@ -266,7 +265,6 @@ func TestServer_RevokeClaim(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
@@ -421,7 +419,6 @@ func TestServer_CreateClaim(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
@@ -612,7 +609,6 @@ func TestServer_GetIdentities(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
@@ -697,7 +693,6 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
@@ -847,7 +842,6 @@ func TestServer_GetClaim(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
@@ -1031,7 +1025,6 @@ func TestServer_GetClaims(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
@@ -1390,7 +1383,6 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)

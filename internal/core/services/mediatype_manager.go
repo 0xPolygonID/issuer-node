@@ -7,29 +7,27 @@ import (
 // MediaTypeManager manages the list of allowed media types for the protocol message type
 // if strictMode is true, then all messages that do not exist in the allowed list will be rejected
 type MediaTypeManager struct {
-	strictMode bool
-	disable    bool
-	allowList  map[iden3comm.ProtocolMessage][]string
+	enabled   bool
+	allowList map[iden3comm.ProtocolMessage][]string
 }
 
 // NewMediaTypeManager create instance of MediaTypeManager
-func NewMediaTypeManager(allowList map[iden3comm.ProtocolMessage][]string, strictMode, disable bool) *MediaTypeManager {
+func NewMediaTypeManager(allowList map[iden3comm.ProtocolMessage][]string, enabled bool) *MediaTypeManager {
 	return &MediaTypeManager{
-		strictMode: strictMode,
-		disable:    disable,
-		allowList:  allowList,
+		enabled:   enabled,
+		allowList: allowList,
 	}
 }
 
 // AllowMediaType check if the protocol message supports the mediaType type
 func (m *MediaTypeManager) AllowMediaType(protoclMessage iden3comm.ProtocolMessage, mediaType iden3comm.MediaType) bool {
-	if m.disable {
+	if !m.enabled {
 		return true
 	}
 
 	al, ok := m.allowList[protoclMessage]
 	if !ok {
-		return !m.strictMode
+		return false
 	}
 	for _, v := range al {
 		if v == "*" || v == string(mediaType) {

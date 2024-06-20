@@ -182,8 +182,7 @@ func main() {
 			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			iden3commProtocol.RevocationStatusRequestMessageType: {"*"},
 		},
-		*cfg.MediaTypeManager.StrictMode,
-		cfg.MediaTypeManager.Disable,
+		*cfg.MediaTypeManager.Enabled,
 	)
 
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)

@@ -187,8 +187,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
-		*cfg.MediaTypeManager.StrictMode,
-		cfg.MediaTypeManager.Disable,
+		*cfg.MediaTypeManager.Enabled,
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver, *cfg.AutoPublishingToOnChainRHS)

@@ -168,8 +168,7 @@ func main() {
 			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
-		*cfg.MediaTypeManager.StrictMode,
-		cfg.MediaTypeManager.Disable,
+		*cfg.MediaTypeManager.Enabled,
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver, *cfg.AutoPublishingToOnChainRHS)

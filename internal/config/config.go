@@ -204,8 +204,7 @@ type APIUIAuth struct {
 
 // MediaTypeManager enables or disables the media types manager
 type MediaTypeManager struct {
-	StrictMode *bool `mapstructure:"StrictMode" tip:"Enable/Disable strict mode"`
-	Disable    bool  `mapstructure:"Disable" tip:"Enable/Disable media type manager"`
+	Enabled *bool `mapstructure:"Enabled" tip:"Enable or disable the media type manager"`
 }
 
 // Sanitize perform some basic checks and sanitizations in the configuration.
@@ -517,8 +516,7 @@ func bindEnv() {
 
 	_ = viper.BindEnv("AutoPublishingToOnChainRHS", "ISSUER_AUTO_PUBLISHING_TO_ON_CHAIN_RHS")
 
-	_ = viper.BindEnv("MediaTypeManager.StrictMode", "ISSUER_MEDIA_TYPE_MANAGER_STRICT_MODE")
-	_ = viper.BindEnv("MediaTypeManager.Disable", "ISSUER_MEDIA_TYPE_MANAGER_DISABLE")
+	_ = viper.BindEnv("MediaTypeManager.Enabled", "ISSUER_MEDIA_TYPE_MANAGER_ENABLED")
 
 	viper.AutomaticEnv()
 }
@@ -644,9 +642,9 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.AutoPublishingToOnChainRHS = common.ToPointer(true)
 	}
 
-	if cfg.MediaTypeManager.StrictMode == nil {
-		log.Info(ctx, "ISSUER_MEDIA_TYPE_MANAGER_STRICT_MODE is missing and the server set up it as true")
-		cfg.MediaTypeManager.StrictMode = common.ToPointer(true)
+	if cfg.MediaTypeManager.Enabled == nil {
+		log.Info(ctx, "ISSUER_MEDIA_TYPE_MANAGER_ENABLED is missing and the server set up it as true")
+		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
 	if cfg.CredentialStatus.RHSMode == "" {

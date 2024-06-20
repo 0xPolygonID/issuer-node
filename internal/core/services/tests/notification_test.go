@@ -51,7 +51,6 @@ func TestNotification_SendNotification(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	credentialsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)

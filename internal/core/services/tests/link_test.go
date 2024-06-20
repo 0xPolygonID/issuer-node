@@ -49,7 +49,6 @@ func Test_link_issueClaim(t *testing.T) {
 			protocol.RevocationStatusRequestMessageType: {"*"},
 		},
 		true,
-		false,
 	)
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
