@@ -370,7 +370,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 
 func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error) {
 	if !c.mediatypeManager.AllowMediaType(req.Type, mediatype) {
-		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", req.Typ, req.Type)
+		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", mediatype, req.Type)
 		log.Error(ctx, "agent: unsupported media type", "err", err)
 		return nil, err
 	}
