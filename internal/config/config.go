@@ -51,6 +51,7 @@ type Configuration struct {
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 	AutoPublishingToOnChainRHS   *bool              `mapstructure:"AutoPublishingToOnChainRHS"`
+	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
 }
 
 // Database has the database configuration
@@ -199,6 +200,11 @@ type APIUI struct {
 type APIUIAuth struct {
 	User     string `mapstructure:"User" tip:"Server UI APIBasic auth username"`
 	Password string `mapstructure:"Password" tip:"Server UI API Basic auth password"`
+}
+
+// MediaTypeManager enables or disables the media types manager
+type MediaTypeManager struct {
+	Enabled *bool `mapstructure:"Enabled" tip:"Enable or disable the media type manager"`
 }
 
 // Sanitize perform some basic checks and sanitizations in the configuration.
@@ -510,6 +516,8 @@ func bindEnv() {
 
 	_ = viper.BindEnv("AutoPublishingToOnChainRHS", "ISSUER_AUTO_PUBLISHING_TO_ON_CHAIN_RHS")
 
+	_ = viper.BindEnv("MediaTypeManager.Enabled", "ISSUER_MEDIA_TYPE_MANAGER_ENABLED")
+
 	viper.AutomaticEnv()
 }
 
@@ -632,6 +640,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.AutoPublishingToOnChainRHS == nil {
 		log.Info(ctx, "AutoPublishingToOnChainRHS is missing and the server set up it as true")
 		cfg.AutoPublishingToOnChainRHS = common.ToPointer(true)
+	}
+
+	if cfg.MediaTypeManager.Enabled == nil {
+		log.Info(ctx, "ISSUER_MEDIA_TYPE_MANAGER_ENABLED is missing and the server set up it as true")
+		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
 	if cfg.CredentialStatus.RHSMode == "" {

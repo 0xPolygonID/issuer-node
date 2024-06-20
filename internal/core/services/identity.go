@@ -749,32 +749,22 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't create RHS publisher: %w", err)
 	}
 
-	if len(rhsPublishers) > 0 {
-		if rhsMode == reverse_hash.RHSModeOnChain && !i.autoPublishingToOnChainRHS {
-			log.Info(ctx,
-				"state info (bigints):",
-				"root:", identity.State.TreeState().State.BigInt().String(),
-				"claimsTreeRoot:", claimsTree.Root().BigInt().String(),
-				"revocationsTreeRoot:", merkletree.HashZero.BigInt().String(),
-				"rootOfRootsTreeRoot:", merkletree.HashZero.BigInt().String(),
-			)
-		} else {
-			log.Info(ctx, "publishing state to RHS", "publishers", len(rhsPublishers))
-			for _, rhsPublisher := range rhsPublishers {
-				err := rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
-					{
-						Hash: identity.State.TreeState().State,
-						Children: []*merkletree.Hash{
-							claimsTree.Root(),
-							&merkletree.HashZero,
-							&merkletree.HashZero,
-						},
+	if len(rhsPublishers) > 0 && !(rhsMode == reverse_hash.RHSModeOnChain && !i.autoPublishingToOnChainRHS) {
+		log.Info(ctx, "publishing state to RHS", "publishers", len(rhsPublishers))
+		for _, rhsPublisher := range rhsPublishers {
+			err := rhsPublisher.PublishNodesToRHS(ctx, []mtproof.Node{
+				{
+					Hash: identity.State.TreeState().State,
+					Children: []*merkletree.Hash{
+						claimsTree.Root(),
+						&merkletree.HashZero,
+						&merkletree.HashZero,
 					},
-				})
-				if err != nil {
-					log.Error(ctx, "publishing state to RHS", "err", err)
-					return nil, nil, err
-				}
+				},
+			})
+			if err != nil {
+				log.Error(ctx, "publishing state to RHS", "err", err)
+				return nil, nil, err
 			}
 		}
 	}

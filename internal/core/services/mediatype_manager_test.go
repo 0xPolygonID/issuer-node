@@ -18,127 +18,69 @@ func TestMediatypeManager_AllowList(t *testing.T) {
 		targetProtocolMessage iden3comm.ProtocolMessage
 		targetMediatype       iden3comm.MediaType
 		expected              bool
-		strictMode            bool
+		enabled               bool
 	}
 	testcases := []testcase{
 		{
-			name: "strictMode = true. Protocol message not in the allow list",
+			name: "AllowList enabled. Type in the list",
 			allowList: map[iden3comm.ProtocolMessage][]string{
-				protocol.RevocationStatusRequestMessageType: {"*"},
-			},
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypeZKPMessage,
-			expected:              false,
-			strictMode:            true,
-		},
-		{
-			name: "strictMode = false. Protocol message not in the allow list",
-			allowList: map[iden3comm.ProtocolMessage][]string{
-				protocol.RevocationStatusRequestMessageType: {"*"},
+				protocol.CredentialFetchRequestMessageType: {string(packers.MediaTypeZKPMessage)},
 			},
 			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
 			targetMediatype:       packers.MediaTypeZKPMessage,
 			expected:              true,
-			strictMode:            false,
+			enabled:               true,
 		},
 		{
-			name: "Protocol message on the allow list with '*'",
+			name: "AllowList enabled. Type in the list with wildcard",
 			allowList: map[iden3comm.ProtocolMessage][]string{
 				protocol.CredentialFetchRequestMessageType: {"*"},
 			},
 			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
+			targetMediatype:       packers.MediaTypeZKPMessage,
 			expected:              true,
-			strictMode:            true,
+			enabled:               true,
 		},
 		{
-			name: "Protocol message on the allow list with allow media type",
+			name: "AllowList enabled. Type not in the list",
 			allowList: map[iden3comm.ProtocolMessage][]string{
-				protocol.CredentialFetchRequestMessageType: {string(packers.MediaTypeZKPMessage)},
+				protocol.RevocationStatusRequestMessageType: {"*"},
+			},
+			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
+			targetMediatype:       packers.MediaTypeZKPMessage,
+			expected:              false,
+			enabled:               true,
+		},
+		{
+			name: "AllowList enabled. Type does not exist",
+			allowList: map[iden3comm.ProtocolMessage][]string{
+				protocol.CredentialFetchRequestMessageType: {string(packers.MediaTypePlainMessage)},
+			},
+			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
+			targetMediatype:       packers.MediaTypeZKPMessage,
+			expected:              false,
+			enabled:               true,
+		},
+		{
+			name: "AllowList disabled. Type does not exist",
+			allowList: map[iden3comm.ProtocolMessage][]string{
+				protocol.CredentialFetchRequestMessageType: {string(packers.MediaTypePlainMessage)},
 			},
 			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
 			targetMediatype:       packers.MediaTypeZKPMessage,
 			expected:              true,
-			strictMode:            true,
-		},
-		{
-			name: "Protocol message on the allow list with NOT allow media type",
-			allowList: map[iden3comm.ProtocolMessage][]string{
-				protocol.CredentialFetchRequestMessageType: {string(packers.MediaTypeZKPMessage)},
-			},
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              false,
-			strictMode:            true,
-		},
-		{
-			name:                  "strictMode = true. Empty allow list",
-			allowList:             map[iden3comm.ProtocolMessage][]string{},
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              false,
-			strictMode:            true,
-		},
-		{
-			name:                  "strictMode = false. Empty allow list",
-			allowList:             map[iden3comm.ProtocolMessage][]string{},
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              true,
-			strictMode:            false,
+			enabled:               false,
 		},
 	}
 
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
 			mdm := services.NewMediaTypeManager(
-				tt.allowList, tt.strictMode,
+				tt.allowList, tt.enabled,
 			)
 			actual := mdm.AllowMediaType(
 				tt.targetProtocolMessage, tt.targetMediatype,
 			)
-			require.Equal(t, tt.expected, actual)
-		})
-	}
-}
-
-func TestMediatypeManager_DefaultPacker(t *testing.T) {
-	type testcase struct {
-		name                  string
-		targetProtocolMessage iden3comm.ProtocolMessage
-		targetMediatype       iden3comm.MediaType
-		expected              bool
-	}
-	testcases := []testcase{
-		{
-			name:                  "call CredentialFetchRequestMessageType with MediaTypePlainMessage",
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              false,
-		},
-		{
-			name:                  "call CredentialFetchRequestMessageType with MediaTypeZKPMessage",
-			targetProtocolMessage: protocol.CredentialFetchRequestMessageType,
-			targetMediatype:       packers.MediaTypeZKPMessage,
-			expected:              true,
-		},
-		{
-			name:                  "call RevocationStatusRequestMessageType with MediaTypePlainMessage",
-			targetProtocolMessage: protocol.RevocationStatusRequestMessageType,
-			targetMediatype:       packers.MediaTypePlainMessage,
-			expected:              true,
-		},
-		{
-			name:                  "call RevocationStatusRequestMessageType with MediaTypeZKPMessage",
-			targetProtocolMessage: protocol.RevocationStatusRequestMessageType,
-			targetMediatype:       packers.MediaTypeZKPMessage,
-			expected:              true,
-		},
-	}
-
-	for _, tt := range testcases {
-		t.Run(tt.name, func(t *testing.T) {
-			actual := services.DefaultMediaTypeManager.AllowMediaType(tt.targetProtocolMessage, tt.targetMediatype)
 			require.Equal(t, tt.expected, actual)
 		})
 	}

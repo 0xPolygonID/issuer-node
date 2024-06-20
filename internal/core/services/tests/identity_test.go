@@ -8,6 +8,9 @@ import (
 	commonEth "github.com/ethereum/go-ethereum/common"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,7 +44,16 @@ func Test_identity_UpdateState(t *testing.T) {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver, *cfg.AutoPublishingToOnChainRHS)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver, &services.DefaultMediaTypeManager)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
 
 	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)

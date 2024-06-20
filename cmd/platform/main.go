@@ -14,6 +14,9 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	iden3commProtocol "github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -141,9 +144,18 @@ func main() {
 	qrService := services.NewQrStoreService(cachex)
 
 	cfg.CredentialStatus.SingleIssuer = false
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			iden3commProtocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		*cfg.MediaTypeManager.Enabled,
+	)
+
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver, *cfg.AutoPublishingToOnChainRHS)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, &services.DefaultMediaTypeManager)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)

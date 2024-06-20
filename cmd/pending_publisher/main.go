@@ -12,6 +12,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -160,8 +163,16 @@ func main() {
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), cl, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		*cfg.MediaTypeManager.Enabled,
+	)
+
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver, *cfg.AutoPublishingToOnChainRHS)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, &services.DefaultMediaTypeManager)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := initProofService(ctx, cfg, circuitsLoaderService)
