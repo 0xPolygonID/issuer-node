@@ -39,6 +39,7 @@ export INGRESS_ENABLED=true                             # If this value is false
 export VAULT_PWD=password                               # Vault password.
 export RHS_MODE=None                                    # Reverse Hash Service mode. Options: None, OnChain, OffChain
 export RHS_URL="https://reverse-hash-service.com"       # Reverse Hash Service URL. Required if RHS_MODE is OffChain
+export ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"camino","network":"columbus","networkFlag":"0b10000011","chainID":501}]' # Custom DID methods
 ```
 
 ## Install the helm chart with ingress and domain names
@@ -59,7 +60,8 @@ helm install "$APP_INSTANCE_NAME" . \
 --set privateKey="$PRIVATE_KEY" \
 --set vaultpwd="$VAULT_PWD" \
 --set rhsMode="$RHS_MODE" \
---set rhsUrl="$RHS_URL"
+--set rhsUrl="$RHS_URL" \
+--set issuerCustomDidMethods="$ISSUER_CUSTOM_DID_METHODS"
 ```
 
 In the code above, the PUBLIC_IP is not provided because is not needed when the ingress is enabled.
@@ -82,7 +84,8 @@ helm install "$APP_INSTANCE_NAME" . \
 --set privateKey="$PRIVATE_KEY" \
 --set vaultpwd="$VAULT_PWD" \
 --set rhsMode="$RHS_MODE" \
---set rhsUrl="$RHS_URL"
+--set rhsUrl="$RHS_URL" \
+--set issuerCustomDidMethods="$ISSUER_CUSTOM_DID_METHODS"
 ```
 
 In the code above, the publicIP is provided because is needed when the ingress is not enabled. In this case `$APP_DOMAIN`, `$UI_DOMAIN` and `$API_DOMAIN` are not used.

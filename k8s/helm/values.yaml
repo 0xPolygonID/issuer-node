@@ -208,7 +208,7 @@ uiIssuerNode:
     issuerUiBlockExplorerUrlMain: https://polygonscan.com/
     issuerUiIpfsGatewayUrl: https://ipfs.io
     issuerApiUiName: issuer-node-ui-configmap
-    issuerUiSchemaExplorerAndBuilderUrl: https://schema-builder.polygonid.me
+    issuerUiSchemaExplorerAndBuilderUrl: https://tools.privado.id
 
 postgresIssuerNode:
   deployment:
@@ -475,3 +475,4 @@ issuerKeyType: BJJ
 rhsMode: None
 rhsUrl: nil
 
+issuerCustomDidMethods: ""
