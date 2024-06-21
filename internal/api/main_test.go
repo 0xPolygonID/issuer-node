@@ -12,7 +12,6 @@ import (
 	"github.com/iden3/iden3comm/v2"
 	"github.com/piprate/json-gold/ld"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -108,8 +107,6 @@ func TestMain(m *testing.M) {
 			URL: "http://localhost:3001",
 		},
 	}
-	cfg.AutoPublishingToOnChainRHS = common.ToPointer[bool](true)
-
 	m.Run()
 }
 
