@@ -50,7 +50,6 @@ type Configuration struct {
 	VaultUserPassAuthPassword    string
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
-	AutoPublishingToOnChainRHS   *bool              `mapstructure:"AutoPublishingToOnChainRHS"`
 	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
 }
 
@@ -514,8 +513,6 @@ func bindEnv() {
 
 	_ = viper.BindEnv("ISSUER_CUSTOM_DID_METHODS")
 
-	_ = viper.BindEnv("AutoPublishingToOnChainRHS", "ISSUER_AUTO_PUBLISHING_TO_ON_CHAIN_RHS")
-
 	_ = viper.BindEnv("MediaTypeManager.Enabled", "ISSUER_MEDIA_TYPE_MANAGER_ENABLED")
 
 	viper.AutomaticEnv()
@@ -635,11 +632,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
-	}
-
-	if cfg.AutoPublishingToOnChainRHS == nil {
-		log.Info(ctx, "AutoPublishingToOnChainRHS is missing and the server set up it as true")
-		cfg.AutoPublishingToOnChainRHS = common.ToPointer(true)
 	}
 
 	if cfg.MediaTypeManager.Enabled == nil {

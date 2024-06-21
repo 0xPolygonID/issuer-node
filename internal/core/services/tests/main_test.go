@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/vault/api"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
@@ -93,7 +92,6 @@ func TestMain(m *testing.M) {
 
 	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
-	cfg.AutoPublishingToOnChainRHS = common.ToPointer[bool](true)
 	cfg.CredentialStatus = config.CredentialStatus{
 		RHSMode: "None",
 		Iden3CommAgentStatus: config.Iden3CommAgentStatus{
