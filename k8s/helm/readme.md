@@ -33,6 +33,7 @@ export PRIVATE_KEY='YOUR PRIVATE KEY'                   # Private key of the wal
 export PUBLIC_IP='YOUR PUBLIC IP'                       # Provide the PUBLIC IP if you have any otherwise leave this field.
 export MAINNET=false                                    # Specify if the network is main, if this value is false issuer node will use amoy
 export UIPASSWORD="my ui password"                      # Password for user: ui-user. This password is used when the user visit the ui.
+export UI_INSECURE=true                                         # Set as true if the ui doesn't require basic auth. If this value true UIPASSWORD can be blank
 export ISSUERNAME="My Issuer"                           # Issuer Name. This value is shown in the UI
 export ISSUER_ETHERUM_URL="https://polygon-amoy.XXXX" # Blockchain RPC.
 export INGRESS_ENABLED=true                             # If this value is false you must provide a STATIC_IP
@@ -61,7 +62,8 @@ helm install "$APP_INSTANCE_NAME" . \
 --set vaultpwd="$VAULT_PWD" \
 --set rhsMode="$RHS_MODE" \
 --set rhsUrl="$RHS_URL" \
---set issuerCustomDidMethods="$ISSUER_CUSTOM_DID_METHODS"
+--set-json issuerCustomDidMethods="$ISSUER_CUSTOM_DID_METHODS" \
+--set issuerUiInsecure=$UI_INSECURE
 ```
 
 In the code above, the PUBLIC_IP is not provided because is not needed when the ingress is enabled.

@@ -15,3 +15,4 @@ data:
   ISSUER_API_UI_ISSUER_NAME: {{ .Values.issuerName }}
   ISSUER_UI_IPFS_GATEWAY_URL: {{ .Values.uiIssuerNode.configMap.issuerUiIpfsGatewayUrl }}
   ISSUER_UI_SCHEMA_EXPLORER_AND_BUILDER_URL: {{ .Values.uiIssuerNode.configMap.issuerUiSchemaExplorerAndBuilderUrl }}
+  ISSUER_UI_INSECURE: {{ .Values.issuerUiInsecure | quote }}

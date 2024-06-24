@@ -464,6 +464,7 @@ issuerEthereumUrl: https://polygon-amoy.g.alchemy.com/v2/
 mainnet: false
 publicIP: nil
 uiPassword: password
+issuerUiInsecure: false
 issuerName: "My Issuer!"
 ingressEnabled: false
 privateKey: metamask private key
