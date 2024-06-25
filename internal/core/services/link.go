@@ -15,7 +15,6 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -246,6 +245,11 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		log.Error(ctx, "cannot fetch the schema", "err", err)
 		return err
 	}
+
+	claimRequestProofs := ports.ClaimRequestProofs{
+		BJJSignatureProof2021:      link.CredentialSignatureProof,
+		Iden3SparseMerkleTreeProof: link.CredentialMTPProof,
+	}
 	if len(issuedByUser) == 0 {
 		link.CredentialSubject["id"] = userDID.String()
 
@@ -255,8 +259,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 			link.CredentialExpiration,
 			schema.Type,
 			nil, nil, nil,
-			common.ToPointer(link.CredentialSignatureProof),
-			common.ToPointer(link.CredentialMTPProof),
+			claimRequestProofs,
 			&linkID,
 			true,
 			credentialStatusType,

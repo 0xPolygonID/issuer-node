@@ -151,6 +151,9 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 // CreateClaim is claim creation controller
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
+	const BJJSignatureProof2021 = "BJJSignatureProof2021"
+	const Iden3SparseMerkleTreeProof = "Iden3SparseMerkleTreeProof"
+
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
@@ -160,7 +163,25 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+	claimRequestProofs := ports.ClaimRequestProofs{}
+	if request.Body.Proofs == nil {
+		claimRequestProofs.BJJSignatureProof2021 = true
+		claimRequestProofs.Iden3SparseMerkleTreeProof = true
+	} else {
+		for _, proof := range *request.Body.Proofs {
+			if string(proof) == BJJSignatureProof2021 {
+				claimRequestProofs.BJJSignatureProof2021 = true
+				continue
+			}
+			if string(proof) == Iden3SparseMerkleTreeProof {
+				claimRequestProofs.Iden3SparseMerkleTreeProof = true
+				continue
+			}
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unsupported proof type: %s", proof)}}, nil
+		}
+	}
+
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
 		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)

@@ -675,6 +675,13 @@ components:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
           $ref: '#/components/schemas/DisplayMethod'
+        proofs:
+          type: array
+          items:
+            type: string
+            x-omitempty: false
+            example: "[ BJJSignatureProof2021, Iden3SparseMerkleTreeProof]"
+            enum: [ BJJSignatureProof2021, Iden3SparseMerkleTreeProof]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"

@@ -556,6 +556,26 @@ func TestServer_CreateClaim(t *testing.T) {
 				httpCode: http.StatusUnprocessableEntity,
 			},
 		},
+		{
+			name: "Wrong proof type",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs:     &[]CreateClaimRequestProofs{"wrong proof"},
+			},
+			expected: expected{
+				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			pubSub.Clear(event.CreateCredentialEvent)
@@ -1400,7 +1420,11 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	claimRequestProofs := ports.ClaimRequestProofs{
+		BJJSignatureProof2021:      true,
+		Iden3SparseMerkleTreeProof: true,
+	}
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {

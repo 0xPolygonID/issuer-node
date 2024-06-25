@@ -21,6 +21,12 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for CreateClaimRequestProofs.
+const (
+	BJJSignatureProof2021      CreateClaimRequestProofs = "BJJSignatureProof2021"
+	Iden3SparseMerkleTreeProof CreateClaimRequestProofs = "Iden3SparseMerkleTreeProof"
+)
+
 // Defines values for CreateIdentityRequestDidMetadataType.
 const (
 	BJJ CreateIdentityRequestDidMetadataType = "BJJ"
@@ -53,17 +59,21 @@ type Config = []KeyValue
 
 // CreateClaimRequest defines model for CreateClaimRequest.
 type CreateClaimRequest struct {
-	CredentialSchema      string                 `json:"credentialSchema"`
-	CredentialSubject     map[string]interface{} `json:"credentialSubject"`
-	DisplayMethod         *DisplayMethod         `json:"displayMethod,omitempty"`
-	Expiration            *int64                 `json:"expiration,omitempty"`
-	MerklizedRootPosition *string                `json:"merklizedRootPosition,omitempty"`
-	RefreshService        *RefreshService        `json:"refreshService,omitempty"`
-	RevNonce              *uint64                `json:"revNonce,omitempty"`
-	SubjectPosition       *string                `json:"subjectPosition,omitempty"`
-	Type                  string                 `json:"type"`
-	Version               *uint32                `json:"version,omitempty"`
+	CredentialSchema      string                      `json:"credentialSchema"`
+	CredentialSubject     map[string]interface{}      `json:"credentialSubject"`
+	DisplayMethod         *DisplayMethod              `json:"displayMethod,omitempty"`
+	Expiration            *int64                      `json:"expiration,omitempty"`
+	MerklizedRootPosition *string                     `json:"merklizedRootPosition,omitempty"`
+	Proofs                *[]CreateClaimRequestProofs `json:"proofs,omitempty"`
+	RefreshService        *RefreshService             `json:"refreshService,omitempty"`
+	RevNonce              *uint64                     `json:"revNonce,omitempty"`
+	SubjectPosition       *string                     `json:"subjectPosition,omitempty"`
+	Type                  string                      `json:"type"`
+	Version               *uint32                     `json:"version,omitempty"`
 }
+
+// CreateClaimRequestProofs defines model for CreateClaimRequest.Proofs.
+type CreateClaimRequestProofs string
 
 // CreateClaimResponse defines model for CreateClaimResponse.
 type CreateClaimResponse struct {
