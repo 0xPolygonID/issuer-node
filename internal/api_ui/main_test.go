@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -93,8 +92,6 @@ func TestMain(m *testing.M) {
 			URL: "http://localhost:3001",
 		},
 	}
-	cfg.AutoPublishingToOnChainRHS = common.ToPointer[bool](true)
-
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()
