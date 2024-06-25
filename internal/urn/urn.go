@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// URN represents a Uniform Resource Name.
 type URN string
 
 // FromUUID creates a URN from a UUID.
