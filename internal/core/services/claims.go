@@ -22,6 +22,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
 	"github.com/jackc/pgx/v4"
+	"github.com/polygonid/sh-id-platform/internal/urn"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
@@ -652,10 +653,13 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
-	claimID, err := uuid.Parse(fetchRequestBody.ID)
+	claimID, err := urn.Parse(urn.URN(fetchRequestBody.ID))
 	if err != nil {
-		log.Error(ctx, "wrong claimID in agent request body", "err", err)
-		return nil, fmt.Errorf("invalid claim ID")
+		claimID, err = uuid.Parse(fetchRequestBody.ID)
+		if err != nil {
+			log.Error(ctx, "wrong claimID in agent request body", "err", err)
+			return nil, fmt.Errorf("invalid claim ID")
+		}
 	}
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
@@ -802,7 +806,7 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 
 	issuanceDate := time.Now().UTC()
 	return verifiable.W3CCredential{
-		ID:                c.buildCredentialID(*claimReq.DID, vcID, claimReq.SingleIssuer),
+		ID:                string(c.buildCredentialID(vcID)),
 		Context:           credentialCtx,
 		Type:              credentialType,
 		Expiration:        claimReq.Expiration,
@@ -819,10 +823,6 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 	}, nil
 }
 
-func (c *claim) buildCredentialID(issuerDID w3c.DID, credID uuid.UUID, singleIssuer bool) string {
-	// TODO: review how to build the credential ID
-	if singleIssuer {
-		return fmt.Sprintf("%s/v1/credentials/%s", strings.TrimSuffix(c.host, "/"), credID.String())
-	}
-	return fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(c.host, "/"), issuerDID.String(), credID.String())
+func (c *claim) buildCredentialID(credID uuid.UUID) urn.URN {
+	return urn.FromUUID(credID)
 }
