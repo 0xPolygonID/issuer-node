@@ -680,7 +680,7 @@ components:
           items:
             type: string
             x-omitempty: false
-            example: "[ BJJSignatureProof2021, Iden3SparseMerkleTreeProof]"
+            example: "BJJSignatureProof2021"
             enum: [ BJJSignatureProof2021, Iden3SparseMerkleTreeProof]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
