@@ -5,12 +5,14 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+
 	"github.com/polygonid/sh-id-platform/internal/db/schema"
 	"github.com/polygonid/sh-id-platform/internal/log"
 
 	_ "github.com/lib/pq"
 )
 
+// IssuerDatabaseUrl is the environment variable for the issuer database URL
 const IssuerDatabaseUrl = "ISSUER_DATABASE_URL"
 
 func main() {
