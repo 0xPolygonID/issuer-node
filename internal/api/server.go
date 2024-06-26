@@ -160,7 +160,25 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+	claimRequestProofs := ports.ClaimRequestProofs{}
+	if request.Body.Proofs == nil {
+		claimRequestProofs.BJJSignatureProof2021 = true
+		claimRequestProofs.Iden3SparseMerkleTreeProof = true
+	} else {
+		for _, proof := range *request.Body.Proofs {
+			if string(proof) == string(verifiable.BJJSignatureProofType) {
+				claimRequestProofs.BJJSignatureProof2021 = true
+				continue
+			}
+			if string(proof) == string(verifiable.Iden3SparseMerkleTreeProofType) {
+				claimRequestProofs.Iden3SparseMerkleTreeProof = true
+				continue
+			}
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unsupported proof type: %s", proof)}}, nil
+		}
+	}
+
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
 		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)

@@ -71,7 +71,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		merklizedRootPosition := "index"
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(true), common.ToPointer(true), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
@@ -93,7 +93,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		merklizedRootPosition := "index"
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(false), common.ToPointer(true), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
@@ -115,7 +115,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		merklizedRootPosition := "index"
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(false), common.ToPointer(true), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
@@ -141,7 +141,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		merklizedRootPosition := "index"
 		claimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(false), common.ToPointer(true), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
@@ -163,7 +163,7 @@ func Test_identity_UpdateState(t *testing.T) {
 
 		claimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(true), common.ToPointer(false), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
@@ -190,7 +190,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		merklizedRootPosition := "index"
 		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(true), common.ToPointer(false), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)
@@ -205,7 +205,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		merklizedRootPosition := "index"
 		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
-			common.ToPointer(true), common.ToPointer(false), nil, false,
+			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 
 		assert.NoError(t, err)

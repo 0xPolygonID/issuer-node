@@ -477,6 +477,76 @@ func TestServer_CreateClaim(t *testing.T) {
 			},
 		},
 		{
+			name: "Happy path with two proofs",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"BJJSignature2021",
+					"Iden3SparseMerkleTreeProof",
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
+			name: "Happy path with bjjSignature proof",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"BJJSignature2021",
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
+			name: "Happy path with Iden3SparseMerkleTreeProof proof",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"Iden3SparseMerkleTreeProof",
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 0,
+			},
+		},
+		{
 			name: "Happy path with ipfs schema",
 			auth: authOk,
 			did:  did,
@@ -554,6 +624,26 @@ func TestServer_CreateClaim(t *testing.T) {
 			expected: expected{
 				response: CreateClaim422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
 				httpCode: http.StatusUnprocessableEntity,
+			},
+		},
+		{
+			name: "Wrong proof type",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs:     &[]CreateClaimRequestProofs{"wrong proof"},
+			},
+			expected: expected{
+				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
+				httpCode: http.StatusBadRequest,
 			},
 		},
 	} {
@@ -1400,7 +1490,11 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	claimRequestProofs := ports.ClaimRequestProofs{
+		BJJSignatureProof2021:      true,
+		Iden3SparseMerkleTreeProof: true,
+	}
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {

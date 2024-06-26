@@ -13,10 +13,15 @@ import (
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
+
+// ClaimRequestProofs - defines the proofs that can be requested for a claim
+type ClaimRequestProofs struct {
+	BJJSignatureProof2021      bool
+	Iden3SparseMerkleTreeProof bool
+}
 
 // CreateClaimRequest struct
 type CreateClaimRequest struct {
@@ -112,22 +117,14 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod) *CreateClaimRequest {
-	if sigProof == nil {
-		sigProof = common.ToPointer(false)
-	}
-
-	if mtProof == nil {
-		mtProof = common.ToPointer(false)
-	}
-
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, claimRequestProofs ClaimRequestProofs, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod) *CreateClaimRequest {
 	req := &CreateClaimRequest{
 		DID:               did,
 		Schema:            credentialSchema,
 		CredentialSubject: credentialSubject,
 		Type:              typ,
-		SignatureProof:    *sigProof,
-		MTProof:           *mtProof,
+		SignatureProof:    claimRequestProofs.BJJSignatureProof2021,
+		MTProof:           claimRequestProofs.Iden3SparseMerkleTreeProof,
 		RefreshService:    refreshService,
 		DisplayMethod:     displayMethod,
 	}
