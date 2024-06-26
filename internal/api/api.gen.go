@@ -23,7 +23,7 @@ const (
 
 // Defines values for CreateClaimRequestProofs.
 const (
-	BJJSignatureProof2021      CreateClaimRequestProofs = "BJJSignatureProof2021"
+	BJJSignature2021           CreateClaimRequestProofs = "BJJSignature2021"
 	Iden3SparseMerkleTreeProof CreateClaimRequestProofs = "Iden3SparseMerkleTreeProof"
 )
 

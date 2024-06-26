@@ -151,9 +151,6 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 // CreateClaim is claim creation controller
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
-	const BJJSignatureProof2021 = "BJJSignatureProof2021"
-	const Iden3SparseMerkleTreeProof = "Iden3SparseMerkleTreeProof"
-
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
@@ -169,11 +166,11 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		claimRequestProofs.Iden3SparseMerkleTreeProof = true
 	} else {
 		for _, proof := range *request.Body.Proofs {
-			if string(proof) == BJJSignatureProof2021 {
+			if string(proof) == string(verifiable.BJJSignatureProofType) {
 				claimRequestProofs.BJJSignatureProof2021 = true
 				continue
 			}
-			if string(proof) == Iden3SparseMerkleTreeProof {
+			if string(proof) == string(verifiable.Iden3SparseMerkleTreeProofType) {
 				claimRequestProofs.Iden3SparseMerkleTreeProof = true
 				continue
 			}
