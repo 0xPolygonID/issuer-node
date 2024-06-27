@@ -52,7 +52,7 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	if err := cfg.SanitizeAPIUI(ctx); err != nil {
+	if err := cfg.Sanitize(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
 		return
 	}
@@ -124,12 +124,6 @@ func main() {
 	if err != nil {
 		log.Error(ctx, "cannot register Ethereum key provider", "err", err)
 		panic(err)
-	}
-
-	err = config.CheckDID(ctx, cfg, vaultCli)
-	if err != nil {
-		log.Error(ctx, "cannot initialize did", "err", err)
-		return
 	}
 
 	identityRepo := repositories.NewIdentity()
