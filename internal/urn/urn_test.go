@@ -14,7 +14,7 @@ func TestFromUUID(t *testing.T) {
 	assert.Equal(t, "urn:uuid:"+id.String(), string(urn))
 }
 
-func TestParse(t *testing.T) {
+func TestUUIDFromURNString(t *testing.T) {
 	for _, ts := range []struct {
 		urn string
 		err error
@@ -25,7 +25,7 @@ func TestParse(t *testing.T) {
 		{"urn:uuid:123e4567-e89b-12d3-a456-426614174000", nil},
 	} {
 		t.Run(ts.urn, func(t *testing.T) {
-			u, err := Parse(URN(ts.urn))
+			u, err := UUIDFromURNString(ts.urn)
 			if err == nil {
 				assert.Equal(t, ts.urn[9:], u.String())
 			} else {

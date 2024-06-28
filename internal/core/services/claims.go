@@ -653,7 +653,7 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
-	claimID, err := urn.Parse(urn.URN(fetchRequestBody.ID))
+	claimID, err := urn.UUIDFromURNString(fetchRequestBody.ID)
 	if err != nil {
 		claimID, err = uuid.Parse(fetchRequestBody.ID)
 		if err != nil {
