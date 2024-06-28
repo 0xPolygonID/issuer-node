@@ -278,3 +278,9 @@ Define custom service selectorLabels for vault
 {{- define "polygon-id-issuer.vaultIssuerNode.Labels" -}}
 app: {{ .Values.vaultIssuerNode.service.selector }}
 {{- end }}
+
+
+
+{{- define "helpers.serviceAccountName" -}}
+{{- printf "%s-%s%s" .Release.Name .Release.Namespace "-service-account" -}}
+{{- end -}}

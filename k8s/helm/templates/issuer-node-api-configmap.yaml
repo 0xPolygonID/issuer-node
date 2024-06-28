@@ -48,6 +48,8 @@ data:
   ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID : {{ include "helpers.api-rsh-chain-id" . | nindent 4 }}
   ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT : {{ include "helpers.api-rsh-contract" . | nindent 4 }}
   ISSUER_IPFS_GATEWAY_URL : {{ .Values.apiIssuerNode.configMap.issuerIpfsGatewayUrl | quote }}
+  ISSUER_CUSTOM_DID_METHODS : {{ .Values.issuerCustomDidMethods | toJson | quote }}
+
   
 
   

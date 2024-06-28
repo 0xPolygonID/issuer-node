@@ -18,7 +18,7 @@ spec:
         {{- include "polygon-id-issuer.vaultIssuerNode.Labels" . | nindent 8 }}
         {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: issuer-node-service-account
+      serviceAccountName: {{ include "helpers.serviceAccountName" . }}
       containers:
         - name: {{ .Values.vaultIssuerNode.deployment.containerName }}
           securityContext: 
