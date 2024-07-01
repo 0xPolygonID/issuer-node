@@ -47,7 +47,10 @@ export function Explainer({
           {localStorageKey && (
             <Button
               onClick={() => setShowing(setStorageByKey({ key: localStorageKey, value: false }))}
-              type="primary"
+              style={{
+                color: "white",
+              }}
+              type="text"
             >
               Dismiss
             </Button>
