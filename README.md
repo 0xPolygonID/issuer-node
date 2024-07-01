@@ -20,7 +20,6 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 ---
 
 ## Table of Contents
-
 - [Privado ID Issuer Node](#privado-id-issuer-node)
   - [Table of Contents](#table-of-contents)
   - [Quick Start Installation](#quick-start-installation)
@@ -229,7 +228,7 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 * [Schema Builder](https://schema-builder.polygonid.me/) - Create your custom schemas to issue VC.
 * [Demo Issuer UI](https://user-ui:password-ui@issuer-ui.polygonid.me/) - Test our Issuer Node UI.
 * [Verifier Demo](https://verifier-demo.polygonid.me/) - Verify your VCs.
-* [Poylgon ID Android Mobile App](https://play.google.com/store/apps/details?id=com.polygonid.wallet&hl=en&gl=US)
+* [Polygon ID Android Mobile App](https://play.google.com/store/apps/details?id=com.polygonid.wallet&hl=en&gl=US)
 * [Polygon ID IOS Mobile App](https://apps.apple.com/us/app/polygon-id/id1629870183)
 * [Marketplace](https://marketplace.polygonid.me/) - Explore credentials submitted by trusted issuers.
 
