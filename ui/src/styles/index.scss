@@ -110,6 +110,14 @@
   }
 }
 
+.ant-select-dropdown {
+  .rc-virtual-list {
+    .ant-select-item-option-selected {
+      background-color: $selected-bg;
+    }
+  }
+}
+
 .ant-select-selection-search-input {
   &.hidden-suffix {
     .ant-input-suffix {
@@ -262,6 +270,7 @@
 }
 
 .ant-tag {
+  margin-right: auto;
   padding: 2px 10px;
   border-radius: 16px;
   border: 0;
@@ -295,6 +304,7 @@
 
 .ant-btn-primary {
   border: 1px solid #54db06;
+  box-shadow: none;
 
   &:not(:disabled .ant-btn-disable) {
     background: $primary-color-light;
