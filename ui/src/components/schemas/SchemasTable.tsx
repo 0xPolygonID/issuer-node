@@ -174,7 +174,7 @@ export function SchemasTable() {
     <TableCard
       defaultContents={
         <>
-          <Avatar className="avatar-color-cyan" icon={<IconSchema />} size={48} />
+          <Avatar className="avatar-color-icon" icon={<IconSchema />} size={48} />
 
           <Typography.Text strong>No schemas</Typography.Text>
 
@@ -224,7 +224,7 @@ export function SchemasTable() {
           <Space size="middle">
             <Card.Meta title={SCHEMAS} />
 
-            <Tag color="blue">{schemaList.length}</Tag>
+            <Tag>{schemaList.length}</Tag>
           </Space>
         </Row>
       }

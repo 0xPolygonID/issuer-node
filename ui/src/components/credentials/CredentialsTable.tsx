@@ -327,7 +327,7 @@ export function CredentialsTable() {
       <TableCard
         defaultContents={
           <>
-            <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
+            <Avatar className="avatar-color-icon" icon={<IconCreditCardRefresh />} size={48} />
 
             <Typography.Text strong>No credentials</Typography.Text>
 
@@ -395,7 +395,7 @@ export function CredentialsTable() {
             <Space size="middle">
               <Card.Meta title={ISSUED} />
 
-              <Tag color="blue">{paginationTotal}</Tag>
+              <Tag>{paginationTotal}</Tag>
             </Space>
 
             {(!showDefaultContent || credentialStatus !== "all") && (

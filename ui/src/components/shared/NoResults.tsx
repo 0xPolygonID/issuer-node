@@ -5,7 +5,7 @@ import SearchIcon from "src/assets/icons/search-lg.svg?react";
 export function NoResults({ searchQuery }: { searchQuery: string | null }) {
   return (
     <Space direction="vertical" size="middle" style={{ padding: 24 }}>
-      <Avatar className="avatar-color-cyan" icon={<SearchIcon />} size={48} />
+      <Avatar className="avatar-color-icon" icon={<SearchIcon />} size={48} />
 
       <Typography.Text strong>No results found</Typography.Text>
 

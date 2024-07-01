@@ -136,9 +136,7 @@ export function SiderMenu({
                   isAsyncTaskDataAvailable(status) && status.data ? (
                     <Space>
                       {ISSUER_STATE}
-                      <Tag color="purple" style={{ fontSize: 12 }}>
-                        Pending actions
-                      </Tag>
+                      <Tag style={{ fontSize: 12 }}>Pending actions</Tag>
                     </Space>
                   ) : (
                     ISSUER_STATE

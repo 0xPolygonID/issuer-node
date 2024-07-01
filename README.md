@@ -1,9 +1,9 @@
-# Polygon ID Issuer Node
+# Privado ID Issuer Node
 
 [![Checks](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/checks.yml)
 [![golangci-lint](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml/badge.svg)](https://github.com/0xPolygonID/sh-id-platform/actions/workflows/golangci-lint.yml)
 
-Streamline the **Verifiable Credentials issuance** process with the user-friendly API and UI of the Issuer Node within the Polygon ID ecosystem. The on-premise (self-hosted) Issuer Node, seamlessly integrated with a robust suite of tools including the mobile Wallet, Schema Builder, and Credential Marketplace, guarantees a frictionless experience for effortlessly issuing and verifying credentials.
+Streamline the **Verifiable Credentials issuance** process with the user-friendly API and UI of the Issuer Node within the Privado ID ecosystem. The on-premise (self-hosted) Issuer Node, seamlessly integrated with a robust suite of tools including the mobile Wallet, Schema Builder, and Credential Marketplace, guarantees a frictionless experience for effortlessly issuing and verifying credentials.
 
 ![Triagle-of-trust](docs/assets/img/triangle-of-trust.png)
 
@@ -20,15 +20,18 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 ---
 
 ## Table of Contents
-
-- [Quick Start Installation](#quick-start-installation)
-    - [Prerequisites](#Prerequisites)
-    - [Issuer Node Api](#issuer-node-api)
+- [Privado ID Issuer Node](#privado-id-issuer-node)
+  - [Table of Contents](#table-of-contents)
+  - [Quick Start Installation](#quick-start-installation)
+    - [Prerequisites](#prerequisites)
+    - [Issuer Node API](#issuer-node-api)
+      - [Deploy Issuer Node Infrastructure](#deploy-issuer-node-infrastructure)
+      - [Run Issuer Node API](#run-issuer-node-api)
     - [Issuer Node UI](#issuer-node-ui)
-- [Quick Start Demo](#quick-start-demo)
-- [Documentation](#documentation)
-- [Tools](#tools)
-- [License](#license)
+  - [Quick Start Demo](#quick-start-demo)
+  - [Documentation](#documentation)
+  - [Tools](#tools)
+  - [License](#license)
 
 ## Quick Start Installation
 > [!NOTE]
@@ -215,7 +218,7 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 ## Documentation
 
 * [Issuer Node resources](https://devs.polygonid.com/docs/category/issuer/)
-* [Polygon ID core concepts](https://devs.polygonid.com/docs/introduction/)
+* [Privado ID core concepts](https://devs.polygonid.com/docs/introduction/)
 
 ## Tools
 > [!WARNING]

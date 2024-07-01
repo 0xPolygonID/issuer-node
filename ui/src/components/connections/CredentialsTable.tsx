@@ -232,7 +232,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
       <TableCard
         defaultContents={
           <>
-            <Avatar className="avatar-color-cyan" icon={<IconCreditCardRefresh />} size={48} />
+            <Avatar className="avatar-color-icon" icon={<IconCreditCardRefresh />} size={48} />
 
             <Typography.Text strong>
               No {credentialStatus !== "all" && credentialStatus} credentials issued
@@ -279,7 +279,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
             <Space size="middle">
               <Card.Meta title={ISSUED_CREDENTIALS} />
 
-              <Tag color="blue">{credentialsList.length}</Tag>
+              <Tag>{credentialsList.length}</Tag>
             </Space>
             {showDefaultContent && credentialStatus === "all" ? (
               <IssueDirectlyButton onClick={navigateToDirectIssue} />
