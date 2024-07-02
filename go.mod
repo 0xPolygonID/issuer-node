@@ -17,11 +17,11 @@ require (
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20231116131043-966af42c9b58
 	github.com/iden3/contracts-abi/state/go/abi v1.0.2-0.20231006071010-f511d08ca36f
-	github.com/iden3/go-circuits/v2 v2.2.0
-	github.com/iden3/go-iden3-auth/v2 v2.2.2
-	github.com/iden3/go-iden3-core/v2 v2.1.0
+	github.com/iden3/go-circuits/v2 v2.3.0
+	github.com/iden3/go-iden3-auth/v2 v2.4.1
+	github.com/iden3/go-iden3-core/v2 v2.2.0
 	github.com/iden3/go-iden3-crypto v0.0.16
-	github.com/iden3/go-jwz/v2 v2.0.2
+	github.com/iden3/go-jwz/v2 v2.1.1
 	github.com/iden3/go-merkletree-sql/db/pgx/v2 v2.0.5
 	github.com/iden3/go-merkletree-sql/v2 v2.0.6
 	github.com/iden3/go-rapidsnark/prover v0.0.10
@@ -29,9 +29,9 @@ require (
 	github.com/iden3/go-rapidsnark/witness/v2 v2.0.0
 	github.com/iden3/go-rapidsnark/witness/wazero v0.0.0-20230524142950-0986cf057d4e
 	github.com/iden3/go-schema-processor v1.3.1
-	github.com/iden3/go-schema-processor/v2 v2.3.3
-	github.com/iden3/iden3comm/v2 v2.3.2
-	github.com/iden3/merkletree-proof v0.0.4
+	github.com/iden3/go-schema-processor/v2 v2.4.0
+	github.com/iden3/iden3comm/v2 v2.5.1
+	github.com/iden3/merkletree-proof v0.2.0
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/jackc/pgconn v1.14.1
 	github.com/jackc/pgtype v1.14.0
@@ -52,6 +52,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.23.0
 	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
@@ -334,7 +335,6 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.4.6 // indirect
 	lukechampine.com/blake3 v1.2.2 // indirect
 	mvdan.cc/gofumpt v0.6.0 // indirect

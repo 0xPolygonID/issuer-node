@@ -100,6 +100,7 @@ func (f *Factory) initOnChainRHSCli(ctx context.Context, resolverPrefix string, 
 
 	txOpts, err := ethClient.CreateTxOpts(ctx, *kmsKey)
 	if err != nil {
+		log.Error(ctx, "failed to create tx opts", "err", err)
 		return nil, err
 	}
 
@@ -108,8 +109,9 @@ func (f *Factory) initOnChainRHSCli(ctx context.Context, resolverPrefix string, 
 	}
 
 	contractAddress := ethCommon.HexToAddress(*rhsSettings.ContractAddress)
-	cli, err := proofEth.NewReverseHashCli(contractAddress, ethClient.GetEthereumClient(), txOpts, f.responseTimeout)
+	cli, err := proofEth.NewReverseHashCli(ethClient.GetEthereumClient(), contractAddress, txOpts.From, txOpts.Signer)
 	if err != nil {
+		log.Error(ctx, "failed to create on-chain rhs client", "err", err)
 		return nil, err
 	}
 	return cli, nil
