@@ -80,7 +80,8 @@ type ResolverSettings map[string]map[string]struct {
 	Method                 string        `yaml:"method"`
 }
 
-// NewResolver returns a new Resolver
+// NewResolver returns a new Network Resolver
+// It reads the resolver settings from the reader and initializes the Network connection
 func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, reader io.Reader) (*Resolver, error) {
 	rs, err := parseResolversSettings(ctx, reader)
 	if err != nil {
@@ -93,15 +94,17 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 	log.Info(ctx, "resolver settings file found", "path", cfg.NetworkResolverPath)
 	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
+	var printer strings.Builder
 	for chainName, chainSettings := range rs {
+		printer.WriteString(fmt.Sprintf("chainName: %s", chainName))
 		for networkName, networkSettings := range chainSettings {
+			printer.WriteString(fmt.Sprintf(", networkName: %s", networkName))
 			if networkSettings.NetworkFlag != 0 {
 				if err := registerCustomDIDMethod(ctx, chainName, networkName, networkSettings.ChainID, networkSettings.Method, networkSettings.NetworkFlag); err != nil {
 					return nil, fmt.Errorf("failed to register custom DID method: %w", err)
 				}
 			}
-
-			resolverPrefixKey := fmt.Sprintf("%s:%s", chainName, networkName)
+			resolverPrefixKey := getResolverPrefixKey(chainName, networkName)
 			ethClient, err := ethclient.Dial(networkSettings.NetworkURL)
 			if err != nil {
 				log.Error(ctx, "cannot connect to ethereum network", "err", err, "networkURL", networkSettings.NetworkURL)
@@ -164,6 +167,8 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 			supportedContracts[resolverPrefixKey] = stateContract
 		}
 	}
+
+	log.Info(ctx, "resolver settings", "settings:", printer.String())
 
 	return &Resolver{
 		ethereumClients:    ethereumClients,
@@ -237,6 +242,10 @@ func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
 	return r.supportedContracts
 }
 
+func getResolverPrefixKey(blockchain, network string) string {
+	return fmt.Sprintf("%s:%s", blockchain, network)
+}
+
 func parseResolversSettings(_ context.Context, reader io.Reader) (ResolverSettings, error) {
 	settings := ResolverSettings{}
 	if err := yaml.NewDecoder(reader).Decode(&settings); err != nil {
@@ -261,5 +270,6 @@ func registerCustomDIDMethod(ctx context.Context, blockchain string, network str
 		log.Error(ctx, "cannot register custom DID method", "err", err, "customDID", chainID)
 		return err
 	}
+	log.Info(ctx, "custom DID method registered", "customDID", chainID)
 	return nil
 }

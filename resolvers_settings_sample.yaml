@@ -1,6 +1,6 @@
 polygon:
-  mumbai:
-    contractAddress: 0x134B1BE34911E39A8397ec6289782989729807a4
+  amoy:
+    contractAddress: 0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124
     networkURL: https://polygon-mumbai.g.alchemy.com/v2/x
     defaultGasLimit: 600000
     confirmationTimeout: 10s
