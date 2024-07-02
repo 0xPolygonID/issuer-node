@@ -67,7 +67,7 @@ type ClientConfig struct {
 	MaxGasPrice            *big.Int      `json:"max_gas_price"`
 	GasLess                bool          `json:"gas_less"`
 	RPCResponseTimeout     time.Duration `json:"rpc_response_time_out"`
-	WaitReceiptCycleTime   time.Duration `json:"wait_receipt_cycle_time_out"`
+	WaitReceiptCycleTime   time.Duration `json:"wait_receipt*eth.Client_cycle_time_out"`
 	WaitBlockCycleTime     time.Duration `json:"wait_block_cycle_time_out"`
 }
 
@@ -83,6 +83,16 @@ func NewClient(client *ethclient.Client, c *ClientConfig, kms *kms.KMS) *Client 
 // GetEthereumClient returns the underlying ethereum client
 func (c *Client) GetEthereumClient() *ethclient.Client {
 	return c.client
+}
+
+// GetConfirmationBlockCount returns the number of blocks to wait for confirmation
+func (c *Client) GetConfirmationBlockCount() int64 {
+	return c.Config.ConfirmationBlockCount
+}
+
+// GetConfirmationConfirmationTimeout returns the timeout for confirmation
+func (c *Client) GetConfirmationConfirmationTimeout() time.Duration {
+	return c.Config.ConfirmationTimeout
 }
 
 // BalanceAt retrieves information about the default account

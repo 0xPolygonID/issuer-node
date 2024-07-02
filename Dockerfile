@@ -10,6 +10,8 @@ COPY ./internal ./internal
 COPY ./pkg ./pkg
 COPY ./go.mod ./
 COPY ./go.sum ./
+COPY ./resolvers_settings.yaml ./
+
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./tools/...
 
@@ -28,3 +30,4 @@ COPY --from=base ./service/api ./api
 COPY --from=base ./service/api_ui ./api_ui
 COPY --from=base ./service/bin/* ./
 COPY --from=base ./service/pkg/credentials ./pkg/credentials
+COPY --from=base ./service/resolvers_settings.yaml ./

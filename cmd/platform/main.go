@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -30,12 +29,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -58,11 +57,6 @@ func main() {
 
 	if err := cfg.Sanitize(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
-
-	if err := services.RegisterCustomDIDMethods(ctx, cfg.CustomDIDMethods); err != nil {
-		log.Error(ctx, "cannot register custom DID methods. Server cannot start", "err", err)
 		return
 	}
 
@@ -110,28 +104,21 @@ func main() {
 		return
 	}
 
-	ethereumClient, err := blockchain.Open(cfg, keyStore)
-	if err != nil {
-		log.Error(ctx, "error dialing with ethereum client", "err", err)
-		return
-	}
-
-	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
-	if err != nil {
-		log.Error(ctx, "failed init ethereum client", "err", err)
-		return
-	}
-
-	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum, keyStore)
-	if err != nil {
-		log.Error(ctx, "failed init ethereum connect", "err", err)
-		return
-	}
-
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+	cfg.CredentialStatus.SingleIssuer = false
+	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	if err != nil {
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
+	if err != nil {
+		log.Error(ctx, "failed initialize network resolver", "err", err)
+		return
+	}
 
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
@@ -143,8 +130,6 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	cfg.CredentialStatus.SingleIssuer = false
-
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
 			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
@@ -153,32 +138,31 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 
-	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
+	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
 		return
 	}
+	accountService := services.NewAccountService(*networkResolver)
 
-	publisherGateway, err := gateways.NewPublisherEthGateway(ethereumClient, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
+	publisherGateway, err := gateways.NewPublisherEthGateway(*networkResolver, keyStore, cfg.PublishingKeyPath)
 	if err != nil {
 		log.Error(ctx, "error creating publish gateway", "err", err)
 		return
 	}
 
-	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout, ps)
-
-	packageManager, err := protocol.InitPackageManager(stateContract, cfg.Circuit.Path)
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, ps)
+	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
 		return
 	}
 
-	accountService := services.NewAccountService(cfg.Ethereum, keyStore)
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
 		"redis": func(rdb *redis2.Client) health.Pinger {
@@ -197,7 +181,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, serverHealth),
+			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

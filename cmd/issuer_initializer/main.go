@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -22,8 +20,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
@@ -48,11 +46,6 @@ func main() {
 
 	if err := cfg.Sanitize(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
-
-	if err := services.RegisterCustomDIDMethods(ctx, cfg.CustomDIDMethods); err != nil {
-		log.Error(ctx, "cannot register custom DID methods. Server cannot start", "err", err)
 		return
 	}
 
@@ -123,38 +116,29 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 
-	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
 	if err != nil {
-		log.Error(ctx, "error dialing with ethclient", "err", err, "rth-url", cfg.Ethereum.URL)
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
+	if err != nil {
+		log.Error(ctx, "failed init eth resolver", "err", err)
 		return
 	}
 
-	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
-		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
-		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
-		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
-		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
-		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
-		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
-		GasLess:                cfg.Ethereum.GasLess,
-		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
-		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
-		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-	}, keyStore)
-
-	// this is needed to create the did with the correct auth core claim revocation status URL
-	cfg.CredentialStatus.Iden3CommAgentStatus.URL = cfg.APIUI.ServerURL
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	cfg.CredentialStatus.SingleIssuer = false
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	cfg.CredentialStatus.SingleIssuer = true
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, *networkResolver, rhsFactory, revocationStatusResolver)
 
 	didCreationOptions := &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: cfg.CredentialStatus.CredentialStatusType,
+		AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1, // TODO: change to config
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)

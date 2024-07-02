@@ -17,12 +17,14 @@ import (
 	rstypes "github.com/iden3/go-rapidsnark/types"
 	"github.com/jackc/pgx/v4"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/sync_ttl_map"
 )
@@ -56,7 +58,7 @@ type publisher struct {
 	mtService             ports.MtService
 	kms                   kms.KMSType
 	transactionService    ports.TransactionService
-	confirmationTimeout   time.Duration
+	networkResolver       *network.Resolver
 	zkService             ports.ZKGenerator
 	publisherGateway      PublisherGateway
 	pendingTransactions   *sync_ttl_map.TTLMap
@@ -64,7 +66,7 @@ type publisher struct {
 }
 
 // NewPublisher - Constructor
-func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, confirmationTimeout time.Duration, notificationPublisher pubsub.Publisher) *publisher {
+func NewPublisher(storage *db.Storage, identityService ports.IdentityService, claimService ports.ClaimsService, mtService ports.MtService, kms kms.KMSType, transactionService ports.TransactionService, zkService ports.ZKGenerator, publisherGateway PublisherGateway, networkResolver *network.Resolver, notificationPublisher pubsub.Publisher) *publisher {
 	pendingTransactions := sync_ttl_map.New(ttl)
 	pendingTransactions.CleaningBackground(transactionCleanup)
 
@@ -77,7 +79,7 @@ func NewPublisher(storage *db.Storage, identityService ports.IdentityService, cl
 		transactionService:    transactionService,
 		zkService:             zkService,
 		publisherGateway:      publisherGateway,
-		confirmationTimeout:   confirmationTimeout,
+		networkResolver:       networkResolver,
 		pendingTransactions:   pendingTransactions,
 		notificationPublisher: notificationPublisher,
 	}
@@ -107,7 +109,7 @@ func (p *publisher) RetryPublishState(ctx context.Context, identifier *w3c.DID) 
 	}
 
 	p.pendingTransactions.Store(idStr, true)
-	newState, err := p.retrypublishFailedState(ctx, identifier)
+	newState, err := p.retryPublishFailedState(ctx, identifier)
 	if err != nil {
 		p.pendingTransactions.Delete(idStr)
 	}
@@ -160,7 +162,7 @@ func (p *publisher) publishState(ctx context.Context, identifier *w3c.DID) (*dom
 	}, nil
 }
 
-func (p *publisher) retrypublishFailedState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error) {
+func (p *publisher) retryPublishFailedState(ctx context.Context, identifier *w3c.DID) (*domain.PublishedState, error) {
 	failedState, err := p.identityService.GetFailedState(ctx, *identifier)
 	if err != nil {
 		log.Error(ctx, "error fetching failed state", "err", err)
@@ -199,7 +201,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *w3c.DID, newSt
 		return nil, err
 	}
 
-	// 1. Get latest transacted state
+	// 1. GetEthClient latest transacted state
 	latestState, err := p.identityService.GetLatestStateByID(ctx, *did)
 	if err != nil {
 		return nil, err
@@ -316,7 +318,7 @@ func (p *publisher) publishProof(ctx context.Context, identifier *w3c.DID, newSt
 	// add go routine that will listen for transaction status update
 
 	go func(ctx context.Context) {
-		if err := p.updateTransactionStatus(ctx, newState, *txID); err != nil {
+		if err := p.updateTransactionStatus(ctx, identity, newState, *txID); err != nil {
 			log.Error(ctx, "cannot update transaction status", "err", err)
 		}
 		p.pendingTransactions.Delete(identifier.String())
@@ -395,8 +397,8 @@ func (p *publisher) fillAuthClaimData(ctx context.Context, identifier *w3c.DID, 
 }
 
 // updateTransactionStatus update identity state with transaction status
-func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.IdentityState, txID string) error {
-	receipt, err := p.transactionService.WaitForTransactionReceipt(ctx, txID)
+func (p *publisher) updateTransactionStatus(ctx context.Context, identity *domain.Identity, state domain.IdentityState, txID string) error {
+	receipt, err := p.transactionService.WaitForTransactionReceipt(ctx, identity, txID)
 	if err != nil {
 		log.Error(ctx, "error during receipt receiving: ", "err", err, "txID", txID)
 		return err
@@ -405,7 +407,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 	if receipt.Status == types.ReceiptStatusSuccessful {
 		// wait until transaction will be confirmed if transaction has enough confirmation blocks
 		log.Debug(ctx, "Waiting for confirmation", "tx", receipt.TxHash.Hex())
-		confirmed, rErr := p.transactionService.WaitForConfirmation(ctx, receipt)
+		confirmed, rErr := p.transactionService.WaitForConfirmation(ctx, identity, receipt)
 		if rErr != nil {
 			return fmt.Errorf("transaction receipt is found, but not confirmed - %s", *state.TxID)
 		}
@@ -417,7 +419,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 		log.Info(ctx, "transaction failed", "tx", *state.TxID)
 	}
 
-	err = p.updateIdentityStateTxStatus(ctx, &state, receipt)
+	err = p.updateIdentityStateTxStatus(ctx, identity, &state, receipt)
 	if err != nil {
 		log.Error(ctx, "updating identity state", "err", err, "txID", txID)
 		return err
@@ -427,8 +429,8 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, state domain.Id
 	return nil
 }
 
-func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, state *domain.IdentityState, receipt *types.Receipt) error {
-	header, err := p.transactionService.GetHeaderByNumber(ctx, receipt.BlockNumber)
+func (p *publisher) updateIdentityStateTxStatus(ctx context.Context, identity *domain.Identity, state *domain.IdentityState, receipt *types.Receipt) error {
+	header, err := p.transactionService.GetHeaderByNumber(ctx, identity, receipt.BlockNumber)
 	if err != nil {
 		log.Error(ctx, "couldn't find receipt block: ", "err", err, "block", receipt.BlockNumber)
 		return err
@@ -486,7 +488,7 @@ func groupByUserId(claims []*domain.Claim) map[string][]string {
 }
 
 // CheckTransactionStatus - checks transaction status
-func (p *publisher) CheckTransactionStatus(ctx context.Context) {
+func (p *publisher) CheckTransactionStatus(ctx context.Context, identity *domain.Identity) {
 	jobIDValue, err := uuid.NewUUID()
 	if err != nil {
 		log.Error(ctx, "Check transaction status", "err", err)
@@ -494,7 +496,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	}
 	ctx = context.WithValue(ctx, jobID, jobIDValue.String())
 	log.Info(ctx, "checker status job started", "job-id", jobIDValue.String())
-	// Get all issuers that have claims not included in any state
+	// GetEthClient all issuers that have claims not included in any state
 	states, err := p.identityService.GetTransactedStates(ctx)
 	if err != nil {
 		log.Error(ctx, "Error during get transacted states", "err", err)
@@ -505,7 +507,26 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	var toCheck []domain.IdentityState
 	for i, state := range states {
 		log.Debug(ctx, "examining state", "id", state.StateID, "identifier", state.Identifier, "prev", state.PreviousState, "created_at", state.CreatedAt, "updated_at", state.ModifiedAt)
-		if time.Now().Unix() > states[i].ModifiedAt.Add(p.confirmationTimeout).Unix() {
+
+		did, err := w3c.ParseDID(state.Identifier)
+		if err != nil {
+			log.Error(ctx, "error getting did from state: ", "err", err, "state", state.StateID)
+			continue
+		}
+
+		resolverPrefix, err := common.ResolverPrefix(did)
+		if err != nil {
+			log.Error(ctx, "error getting resolver prefix: ", "err", err, "state", state.StateID)
+			continue
+		}
+
+		confirmationTimeout, err := p.networkResolver.GetConfirmationTimeout(resolverPrefix)
+		if err != nil {
+			log.Error(ctx, "failed to get confirmation timeout", "err", err)
+			continue
+		}
+
+		if time.Now().Unix() > states[i].ModifiedAt.Add(confirmationTimeout).Unix() {
 			toCheck = append(toCheck, states[i])
 			log.Debug(ctx, "considering state", "id", state.StateID, "identifier", state.Identifier, "prev", state.PreviousState, "created_at", state.CreatedAt, "updated_at", state.ModifiedAt)
 		}
@@ -513,7 +534,7 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 
 	// 4. Calculate new states and publish them synchronously
 	for i := range toCheck {
-		err := p.checkStatus(ctx, &toCheck[i])
+		err := p.checkStatus(ctx, identity, &toCheck[i])
 		if err != nil {
 			log.Error(ctx, "transaction check status", "err", err, "state id", *states[i].State)
 			continue
@@ -523,16 +544,40 @@ func (p *publisher) CheckTransactionStatus(ctx context.Context) {
 	log.Info(ctx, "checker status job finished", "job-id", jobIDValue.String())
 }
 
-func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState) error {
-	// Get receipt and check status
-	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, *state.TxID)
+func (p *publisher) checkStatus(ctx context.Context, identity *domain.Identity, state *domain.IdentityState) error {
+	if identity == nil {
+		did, err := w3c.ParseDID(state.Identifier)
+		if err != nil {
+			log.Error(ctx, "error getting did from state: ", "err", err, "state", state.StateID)
+		}
+		identity, err = domain.NewIdentityFromIdentifier(did, "")
+		if err != nil {
+			log.Error(ctx, "error getting identity from state: ", "err", err, "state", state.StateID)
+			return err
+		}
+	}
+
+	// GetEthClient receipt and check status
+	receipt, err := p.transactionService.GetTransactionReceiptByID(ctx, identity, *state.TxID)
 	if err != nil {
 		log.Error(ctx, "error during receipt receiving:", "err", err, "state-id", *state.TxID)
 		return fmt.Errorf("error during receipt receiving::%s: %w", *state.TxID, err)
 	}
 
+	resolverPrefix, err := identity.GetResolverPrefix()
+	if err != nil {
+		log.Error(ctx, "failed to get networkResolver prefix", "err", err)
+		return err
+	}
+
+	confirmationBlockCount, err := p.networkResolver.GetConfirmationBlockCount(resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "failed to get confirmation block count", "err", err)
+		return err
+	}
+
 	// Check if transaction has enough confirmation blocks
-	confirmed, err := p.transactionService.CheckConfirmation(ctx, receipt)
+	confirmed, err := p.transactionService.CheckConfirmation(ctx, identity, receipt, confirmationBlockCount)
 	if err != nil {
 		log.Error(ctx, fmt.Sprintf("transaction receipt is found, but confirmation is not checked - %s", *state.TxID), "err", err)
 		return fmt.Errorf("transaction receipt is found, but confirmation is not checked:%s - %w", *state.TxID, err)
@@ -543,7 +588,7 @@ func (p *publisher) checkStatus(ctx context.Context, state *domain.IdentityState
 		return ErrStateIsBeingProcessed
 	}
 
-	err = p.updateIdentityStateTxStatus(ctx, state, receipt)
+	err = p.updateIdentityStateTxStatus(ctx, identity, state, receipt)
 	if err != nil {
 		log.Error(ctx, "error during identity state update: ", "err", err)
 		return err

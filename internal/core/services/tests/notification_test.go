@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	commonEth "github.com/ethereum/go-ethereum/common"
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2"
@@ -22,7 +21,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/helpers"
 	"github.com/polygonid/sh-id-platform/pkg/http"
+	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -31,7 +32,7 @@ func TestNotification_SendNotification(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
-		network    = "mumbai"
+		network    = "amoy"
 	)
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
@@ -41,9 +42,14 @@ func TestNotification_SendNotification(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, nil, commonEth.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+
+	reader := helpers.CreateFile(t)
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
+	require.NoError(t, err)
+
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -53,7 +59,7 @@ func TestNotification_SendNotification(t *testing.T) {
 		true,
 	)
 
-	credentialsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.CredentialStatus.Iden3CommAgentStatus.GetURL(), pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
+	credentialsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.APIUI.ServerURL, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)

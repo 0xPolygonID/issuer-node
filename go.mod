@@ -52,6 +52,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.23.0
 	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
@@ -334,7 +335,6 @@ require (
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.4.6 // indirect
 	lukechampine.com/blake3 v1.2.2 // indirect
 	mvdan.cc/gofumpt v0.6.0 // indirect

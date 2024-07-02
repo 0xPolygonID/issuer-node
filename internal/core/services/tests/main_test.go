@@ -44,6 +44,10 @@ func TestMain(m *testing.M) {
 			URL: conn,
 		},
 		KeyStore: config.VaultTest(),
+		Ethereum: config.Ethereum{
+			URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+			ResolverPrefix: "polygon:mumbai",
+		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
@@ -91,13 +95,8 @@ func TestMain(m *testing.M) {
 	cachex = cache.NewMemoryCache()
 
 	docLoader = loader.NewDocumentLoader(ipfsGatewayURL)
-
-	cfg.CredentialStatus = config.CredentialStatus{
-		RHSMode: "None",
-		Iden3CommAgentStatus: config.Iden3CommAgentStatus{
-			URL: "http://localhost:3001",
-		},
-	}
+	cfg.Ethereum = cfgForTesting.Ethereum
+	cfg.ServerUrl = "http://localhost:3001"
 	m.Run()
 }
 

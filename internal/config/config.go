@@ -51,6 +51,7 @@ type Configuration struct {
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
+	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
 }
 
 // Database has the database configuration
@@ -219,12 +220,6 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
 
-	err = c.sanitizeCredentialStatus(ctx, c.ServerUrl)
-	if err != nil {
-		log.Error(ctx, "error sanitizing credential status", "error", err)
-		return err
-	}
-
 	return nil
 }
 
@@ -256,46 +251,11 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
-	err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
-	if err != nil {
-		log.Error(ctx, "error sanitizing credential status", "error", err)
-		return err
-	}
-	return nil
-}
-
-func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
-	if c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
-		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
-	}
-
-	if c.CredentialStatus.RHSMode == none {
-		c.CredentialStatus.Iden3CommAgentStatus.URL = host
-		c.CredentialStatus.CredentialStatusType = iden3commRevocationStatusV1
-	}
-
-	if c.CredentialStatus.RHSMode == offChain {
-		if c.CredentialStatus.RHS.URL == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
-		}
-		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
-		c.CredentialStatus.Iden3CommAgentStatus.URL = host
-	}
-
-	if c.CredentialStatus.RHSMode == onChain {
-		if c.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT value is missing")
-		}
-
-		if c.CredentialStatus.OnchainTreeStore.PublishingKeyPath == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH value is missing")
-		}
-
-		if c.CredentialStatus.OnchainTreeStore.ChainID == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID value is missing")
-		}
-		c.CredentialStatus.CredentialStatusType = iden3OnchainSparseMerkleTreeProof2023
-	}
+	//err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
+	//if err != nil {
+	//	log.Error(ctx, "error sanitizing credential status", "error", err)
+	//	return err
+	//}
 	return nil
 }
 
@@ -465,18 +425,6 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
-	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT")
-	_ = viper.BindEnv("Ethereum.ConfirmationTimeout", "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT")
-	_ = viper.BindEnv("Ethereum.ConfirmationBlockCount", "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT")
-	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "ISSUER_ETHEREUM_RECEIPT_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.MinGasPrice", "ISSUER_ETHEREUM_MIN_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.MaxGasPrice", "ISSUER_ETHEREUM_MAX_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.GasLess", "ISSUER_ETHEREUM_GASLESS")
-	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
-	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
 	_ = viper.BindEnv("CredentialStatus.Iden3CommAgentStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
@@ -497,6 +445,7 @@ func bindEnv() {
 
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -569,50 +518,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
 	}
 
-	if cfg.Ethereum.ContractAddress == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONTRACT_ADDRESS value is missing")
-	}
-
-	if cfg.Ethereum.URL == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
-	}
-
-	if cfg.Ethereum.DefaultGasLimit == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
-	}
-
-	if cfg.Ethereum.ConfirmationTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
-	}
-
-	if cfg.Ethereum.ConfirmationBlockCount == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
-	}
-
-	if cfg.Ethereum.ReceiptTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_RECEIPT_TIMEOUT value is missing")
-	}
-
-	if cfg.Ethereum.MaxGasPrice == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
-	}
-
-	if cfg.Ethereum.RPCResponseTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
-	}
-
-	if cfg.Ethereum.WaitReceiptCycleTime == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
-	}
-
-	if cfg.Ethereum.WaitBlockCycleTime == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
-	}
-
-	if cfg.Ethereum.ResolverPrefix == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_RESOLVER_PREFIX value is missing")
-	}
-
 	if cfg.Prover.ServerURL == "" {
 		log.Info(ctx, "ISSUER_PROVER_SERVER_URL value is missing")
 	}
@@ -639,9 +544,9 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
-	if cfg.CredentialStatus.RHSMode == "" {
-		log.Info(ctx, "ISSUER_CREDENTIAL_STATUS_RHS_MODE value is missing and the server set up it as None")
-		cfg.CredentialStatus.RHSMode = "None"
+	if cfg.NetworkResolverPath == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing")
+		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
 	}
 
 	if cfg.APIUI.KeyType == "" {

@@ -65,8 +65,11 @@ up:
 run:
 	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
 	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
+	@if [ -f ./resolvers_settings.yaml ]; then echo "true"; else touch ./resolvers_settings.yaml; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
 	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
+
+
 
 .PHONY: run-arm
 run-arm:
@@ -75,6 +78,7 @@ run-arm:
 
 .PHONY: run-ui
 run-ui: add-host-url-swagger
+	@if [ -f ./resolvers_settings.yaml ]; then echo "true"; else touch ./resolvers_settings.yaml; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
 
 .PHONY: run-ui-arm
@@ -166,6 +170,7 @@ add-vault-token:
 
 .PHONY: run-initializer
 run-initializer:
+	@if [ -f ./resolvers_settings.yaml ]; then echo "true"; else touch ./resolvers_settings.yaml; fi
 	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d initializer
 	sleep 5
 
