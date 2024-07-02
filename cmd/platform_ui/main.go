@@ -20,6 +20,9 @@ import (
 	"github.com/iden3/go-iden3-auth/v2/pubsignals"
 	"github.com/iden3/go-iden3-auth/v2/state"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	iden3commProtocol "github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/api_ui"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
@@ -34,10 +37,8 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
@@ -50,16 +51,18 @@ import (
 var build = buildinfo.Revision()
 
 func main() {
-	log.Info(context.Background(), "starting issuer node...", "revision", build)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info(ctx, "starting issuer node...", "revision", build)
 
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", "err", err)
+		log.Error(ctx, "cannot load config", "err", err)
 		return
 	}
 
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
-	defer cancel()
+	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAPIUI(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -116,12 +119,6 @@ func main() {
 		return
 	}
 
-	stateContracts, err := blockchain.InitEthClients(ctx, *cfg)
-	if err != nil {
-		log.Error(ctx, "failed init ethereum client", "err", err)
-		return
-	}
-
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
 	resolvers := map[string]pubsignals.StateResolver{
 		cfg.Ethereum.ResolverPrefix: state.ETHResolver{
@@ -140,7 +137,12 @@ func main() {
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 
 	cfg.CredentialStatus.SingleIssuer = true
-	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore)
+	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	if err != nil {
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
 	if err != nil {
 		log.Error(ctx, "failed initialize network resolver", "err", err)
 		return
@@ -163,22 +165,21 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			iden3commProtocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		*cfg.MediaTypeManager.Enabled,
+	)
+
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
-	connectionsService := services.NewConnection(connectionsRepository, storage)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
 
-	stateService, err := eth.NewStateService(stateContracts)
-	if err != nil {
-		log.Error(ctx, "failed init state service", "err", err)
-		return
-	}
-
-	onChainCredentialStatusResolverService := gateways.NewOnChainCredStatusResolverService(networkResolver)
-	revocationService := services.NewRevocationService(common.HexToAddress(cfg.Ethereum.ContractAddress), stateService, onChainCredentialStatusResolverService)
-	zkProofService := services.NewProofService(claimsService, revocationService, identityService, mtService, claimsRepository, keyStore, storage, stateService, schemaLoader)
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
@@ -193,7 +194,7 @@ func main() {
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, ps)
 
-	packageManager, err := protocol.InitPackageManager(ctx, stateContracts, zkProofService, cfg.Circuit.Path)
+	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
 		return
@@ -223,7 +224,7 @@ func main() {
 	)
 	api_ui.HandlerWithOptions(
 		api_ui.NewStrictHandlerWithOptions(
-			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, qrService, publisher, packageManager, serverHealth),
+			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, qrService, publisher, packageManager, serverHealth, *networkResolver),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_ui.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

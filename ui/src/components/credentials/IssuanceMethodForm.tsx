@@ -17,7 +17,7 @@ import dayjs from "dayjs";
 import { useCallback, useEffect, useState } from "react";
 
 import { getConnections } from "src/adapters/api/connections";
-import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/forms";
+import { IssuanceMethodFormData, issuanceMethodFormDataParser } from "src/adapters/parsers/view";
 import IconRight from "src/assets/icons/arrow-narrow-right.svg?react";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError, Connection } from "src/domain";
@@ -52,11 +52,16 @@ export function IssuanceMethodForm({
 
   const fetchConnections = useCallback(
     async (signal: AbortSignal) => {
-      const response = await getConnections({ credentials: false, env, signal });
+      const response = await getConnections({
+        credentials: false,
+        env,
+        params: {},
+        signal,
+      });
 
       if (response.success) {
-        setConnections({ data: response.data.successful, status: "successful" });
-        notifyParseErrors(response.data.failed);
+        setConnections({ data: response.data.items.successful, status: "successful" });
+        notifyParseErrors(response.data.items.failed);
       } else {
         setConnections({ error: response.error, status: "failed" });
       }

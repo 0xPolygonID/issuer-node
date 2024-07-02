@@ -51,12 +51,15 @@ apiIssuerNode:
     issuerEthereumConfirmationBlockCount: "10"
     issuerEthereumConfirmationTimeOut: 10s
     issuerEthereumContractAddressMumbai: "0x134B1BE34911E39A8397ec6289782989729807a4"
+    issuerEthereumContractAddressAmoy: "0x1a4cC30f2aA0377b0c3bc9848766D90cb4404124"
     issuerEthereumContractAddressMain: "0x624ce98D2d27b20b8f8d521723Df8fC4db71D79D"
     issuerEthereumDefaultGasLimit: "600000"
-    issuerEthereumMaxGasPrice: "1000000"
+    issuerEthereumMaxGasPrice: "2500000"
     issuerEthereumMinGasPrice: "0"
+    issuerEthereumGasLess: "false"
     issuerEthereumReceiptTimeout: 600s
     issuerEthereumResolverPrefixMumbai: polygon:mumbai
+    issuerEthereumResolverPrefixAmoy: polygon:amoy
     issuerEthereumResolverPrefixMain: polygon:main
     issuerEthereumRpcResponseTimeout: 5s
     issuerEthereumWaitBlockCycleTime: 30s
@@ -79,6 +82,10 @@ apiIssuerNode:
     issuerVaultUserpassAuthEnabled: "true"
     issuerCredentialStatusPublishingKeyPath: pbkey
     issuerIpfsGatewayUrl: https://gateway.pinata.cloud
+    issuerRshContractAmoy: 0x3d3763eC0a50CE1AdF83d0b5D99FBE0e3fEB43fb
+    issuerRshContractMain: 0xbEeB6bB53504E8C872023451fd0D23BeF01d320B
+    issuerRshChainIDMain: 137
+    issuerRshChainIDAmoy: 80002
   
 apiUiIssuerNode:
   deployment:
@@ -131,6 +138,7 @@ apiUiIssuerNode:
     issuerApiIdentityBlockchain: polygon
     issuerApiIdentityMethod: polygonid
     issuerApiIdentityNetworkMumbai: mumbai
+    issuerApiIdentityNetworkAmoy: amoy
     issuerApiIdentityNetworkMain: main
     issuerApiUiAuthPassword: password-api
     issuerApiUiAuthUser: user-api
@@ -196,10 +204,11 @@ uiIssuerNode:
     issuerApiUiIssuerName: my issuer k8s
     issuerUiAuthUsername: user-ui
     issuerUiBlockExplorerUrlMumbai: https://mumbai.polygonscan.com
+    issuerUiBlockExplorerUrlAmoy: https://www.oklink.com/amoy
     issuerUiBlockExplorerUrlMain: https://polygonscan.com/
     issuerUiIpfsGatewayUrl: https://ipfs.io
     issuerApiUiName: issuer-node-ui-configmap
-    issuerUiSchemaExplorerAndBuilderUrl: https://schema-builder.polygonid.me
+    issuerUiSchemaExplorerAndBuilderUrl: https://tools.privado.id
 
 postgresIssuerNode:
   deployment:
@@ -451,10 +460,11 @@ uidomain: ui.issuernode.polygonid.me
 appdomain: app.issuernode.polygonid.me
 apidomain: api.issuernode.polygonid.me
 
-issuerEthereumUrl: https://polygon-mumbai.g.alchemy.com/v2/
+issuerEthereumUrl: https://polygon-amoy.g.alchemy.com/v2/
 mainnet: false
 publicIP: nil
 uiPassword: password
+issuerUiInsecure: false
 issuerName: "My Issuer!"
 ingressEnabled: false
 privateKey: metamask private key
@@ -466,3 +476,4 @@ issuerKeyType: BJJ
 rhsMode: None
 rhsUrl: nil
 
+issuerCustomDidMethods: ""

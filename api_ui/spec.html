@@ -8,6 +8,7 @@
 </head>
 <body>
   <rapi-doc
+    id = "the-doc"
     spec-url="/static/docs/api_ui/api.yaml"
     theme = "light"
     regular-font = "Nunito"
@@ -26,5 +27,14 @@
   >
 <!--    <img slot="nav-logo" src="{logo}" style="width:50px; height:50px"/>-->
   </rapi-doc>
+  <script>
+      window.addEventListener('DOMContentLoaded', () => {
+          const rapidocEl = document.getElementById('the-doc');
+          rapidocEl["server-url"] = globalThis.origin;
+          rapidocEl.addEventListener('spec-loaded', () => {
+              rapidocEl.setApiServer(globalThis.origin);
+          });
+      });
+  </script>
 </body>
 </html>

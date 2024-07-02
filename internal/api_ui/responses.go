@@ -105,21 +105,29 @@ func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim)
 		}
 	}
 
+	var displayService *DisplayMethod
+	if w3c.DisplayMethod != nil {
+		displayService = &DisplayMethod{
+			Id:   w3c.DisplayMethod.ID,
+			Type: DisplayMethodType(w3c.DisplayMethod.Type),
+		}
+	}
+
 	return Credential{
-		CredentialSubject:     w3c.CredentialSubject,
-		CreatedAt:             TimeUTC(*w3c.IssuanceDate),
-		Expired:               expired,
-		ExpiresAt:             expiresAt,
-		Id:                    credential.ID,
-		ProofTypes:            proofs,
-		RevNonce:              uint64(credential.RevNonce),
-		Revoked:               credential.Revoked,
-		SchemaHash:            credential.SchemaHash,
-		SchemaType:            shortType(credential.SchemaType),
-		SchemaUrl:             credential.SchemaURL,
-		UserID:                credential.OtherIdentifier,
-		SchemaTypeDescription: credential.SchemaTypeDescription,
-		RefreshService:        refreshService,
+		CredentialSubject: w3c.CredentialSubject,
+		CreatedAt:         TimeUTC(*w3c.IssuanceDate),
+		Expired:           expired,
+		ExpiresAt:         expiresAt,
+		Id:                credential.ID,
+		ProofTypes:        proofs,
+		RevNonce:          uint64(credential.RevNonce),
+		Revoked:           credential.Revoked,
+		SchemaHash:        credential.SchemaHash,
+		SchemaType:        shortType(credential.SchemaType),
+		SchemaUrl:         credential.SchemaURL,
+		UserID:            credential.OtherIdentifier,
+		RefreshService:    refreshService,
+		DisplayMethod:     displayService,
 	}
 }
 
@@ -145,7 +153,7 @@ func getProofs(credential *domain.Claim) []string {
 	return proofs
 }
 
-func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, error) {
+func connectionsResponse(conns []domain.Connection) (GetConnectionsResponse, error) {
 	resp := make([]GetConnectionResponse, 0)
 	var err error
 	for _, conn := range conns {
@@ -158,13 +166,13 @@ func connectionsResponse(conns []*domain.Connection) (GetConnectionsResponse, er
 				return nil, err
 			}
 		}
-		resp = append(resp, connectionResponse(conn, w3creds, connCreds))
+		resp = append(resp, connectionResponse(&conn, w3creds, connCreds))
 	}
 
 	return resp, nil
 }
 
-func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter *pagination.Filter, total uint) (ConnectionsPaginated, error) {
+func connectionsPaginatedResponse(conns []domain.Connection, pagFilter pagination.Filter, total uint) (ConnectionsPaginated, error) {
 	resp, err := connectionsResponse(conns)
 	if err != nil {
 		return ConnectionsPaginated{}, err
@@ -173,13 +181,13 @@ func connectionsPaginatedResponse(conns []*domain.Connection, pagFilter *paginat
 	connsPag := ConnectionsPaginated{
 		Items: resp,
 		Meta: PaginatedMetadata{
-			Page:  1, // default
-			Total: total,
+			MaxResults: pagFilter.MaxResults,
+			Page:       1, // default
+			Total:      total,
 		},
 	}
-	if pagFilter != nil {
+	if pagFilter.Page != nil {
 		connsPag.Meta.Page = *pagFilter.Page
-		connsPag.Meta.MaxResults = pagFilter.MaxResults
 	}
 
 	return connsPag, nil
@@ -285,6 +293,14 @@ func getLinkResponse(link domain.Link) Link {
 		}
 	}
 
+	var displayMethod *DisplayMethod
+	if link.DisplayMethod != nil {
+		displayMethod = &DisplayMethod{
+			Id:   link.DisplayMethod.ID,
+			Type: DisplayMethodType(link.DisplayMethod.Type),
+		}
+	}
+
 	return Link{
 		Id:                   link.ID,
 		Active:               link.Active,
@@ -300,6 +316,7 @@ func getLinkResponse(link domain.Link) Link {
 		Expiration:           validUntil,
 		CredentialExpiration: credentialExpiration,
 		RefreshService:       refreshService,
+		DisplayMethod:        displayMethod,
 	}
 }
 

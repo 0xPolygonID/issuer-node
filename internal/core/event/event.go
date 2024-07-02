@@ -9,7 +9,23 @@ import (
 const (
 	CreateCredentialEvent = "createCredentialEvent" // CreateCredentialEvent create credential event
 	CreateConnectionEvent = "createConnectionEvent" // CreateConnectionEvent create connection MyEvent
+	CreateStateEvent      = "createStateEvent"      // CreateStateEvent create state event
 )
+
+// CreateState defines the createState data
+type CreateState struct {
+	State string `json:"state"`
+}
+
+// Marshal marshals the event into a pubsub.Message
+func (ev *CreateState) Marshal() (msg pubsub.Message, err error) {
+	return json.Marshal(ev)
+}
+
+// Unmarshal creates an event from that message
+func (ev *CreateState) Unmarshal(msg pubsub.Message) error {
+	return json.Unmarshal(msg, &ev)
+}
 
 // CreateCredential defines the createCredential data
 type CreateCredential struct {

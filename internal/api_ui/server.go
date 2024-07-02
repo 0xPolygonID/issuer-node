@@ -14,7 +14,6 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2"
-	"github.com/iden3/iden3comm/v2/packers"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -27,6 +26,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -43,10 +43,11 @@ type Server struct {
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
+	networkResolver    network.Resolver
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, networkResolver network.Resolver) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -58,6 +59,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
+		networkResolver:    networkResolver,
 	}
 }
 
@@ -344,7 +346,28 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	if request.Body.SignatureProof == nil && request.Body.MtProof == nil {
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "you must to provide at least one proof type"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, request.Body.SignatureProof, request.Body.MtProof, nil, true, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), nil)
+
+	claimRequestProofs := ports.ClaimRequestProofs{}
+	if request.Body.SignatureProof != nil && *request.Body.SignatureProof {
+		claimRequestProofs.BJJSignatureProof2021 = true
+	}
+
+	if request.Body.MtProof != nil && *request.Body.MtProof {
+		claimRequestProofs.Iden3SparseMerkleTreeProof = true
+	}
+
+	resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
+	if err != nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	}
+
+	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
+		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrJSONLdContext) {
@@ -372,6 +395,15 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrDisplayMethodLacksURL) {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedDisplayMethodType) {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -412,6 +444,11 @@ func (s *Server) PublishState(ctx context.Context, request PublishStateRequestOb
 	publishedState, err := s.publisherGateway.PublishState(ctx, &s.cfg.APIUI.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "error publishing the state", "err", err)
+
+		if errors.Is(err, services.ErrNoClaimsFoundToProcess) {
+			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+
 		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoStatesToProcess) {
 			return PublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
@@ -506,10 +543,10 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 
 	var expirationDate *time.Time
 	if request.Body.CredentialExpiration != nil {
-		expirationDate = &request.Body.CredentialExpiration.Time
+		expirationDate = request.Body.CredentialExpiration
 	}
 
-	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService))
+	createdLink, err := s.linkService.Save(ctx, s.cfg.APIUI.IssuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService), toDisplayMethodService(request.Body.DisplayMethod))
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
@@ -590,22 +627,20 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
 
-	qrContent := createLinkQrCodeResponse.QrCode
 	// Backward compatibility. If the type is raw, we return the raw qr code
-	if req.Params.Type != nil && *req.Params.Type == CreateLinkQrCodeParamsTypeRaw {
-		rawQrCode, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
-		if err != nil {
-			log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
-			return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
-		}
-		qrContent = string(rawQrCode)
+	qrCodeRaw, err := s.qrService.Find(ctx, createLinkQrCodeResponse.QrID)
+	if err != nil {
+		log.Error(ctx, "qr store. Finding qr", "err", err, "id", createLinkQrCodeResponse.QrID)
+		return CreateLinkQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
 	}
+
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
 			DisplayName: s.cfg.APIUI.IssuerName,
 			Logo:        s.cfg.APIUI.IssuerLogo,
 		},
-		QrCode:     qrContent,
+		QrCodeLink: createLinkQrCodeResponse.QrCode,
+		QrCodeRaw:  string(qrCodeRaw),
 		SessionID:  createLinkQrCodeResponse.SessionID,
 		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
@@ -617,6 +652,9 @@ func (s *Server) GetCredentialQrCode(ctx context.Context, req GetCredentialQrCod
 	if err != nil {
 		if errors.Is(err, services.ErrClaimNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
+		}
+		if errors.Is(err, services.ErrEmptyMTPProof) {
+			return GetCredentialQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credentials"}}, nil
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
@@ -655,7 +693,17 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType))
+	resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
+	if err != nil {
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	}
+
+	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, rhsSettings.CredentialStatusType)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -693,7 +741,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Debug(ctx, "agent empty request")
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
-	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
+	basicMessage, mediatype, err := s.packageManager.Unpack([]byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
@@ -705,7 +753,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
-	agent, err := s.claimService.Agent(ctx, req)
+	agent, err := s.claimService.Agent(ctx, req, mediatype)
 	if err != nil {
 		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
@@ -868,5 +916,15 @@ func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
 	return &verifiable.RefreshService{
 		ID:   s.Id,
 		Type: verifiable.RefreshServiceType(s.Type),
+	}
+}
+
+func toDisplayMethodService(s *DisplayMethod) *verifiable.DisplayMethod {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.DisplayMethod{
+		ID:   s.Id,
+		Type: verifiable.DisplayMethodType(s.Type),
 	}
 }

@@ -32,15 +32,17 @@ const (
 )
 
 func main() {
-	log.Info(context.Background(), "starting issuer node...", "revision", build)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info(ctx, "starting issuer node...", "revision", build)
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", "err", err)
+		log.Error(ctx, "cannot load config", "err", err)
 		return
 	}
 
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
-	defer cancel()
+	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.Sanitize(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -113,33 +115,30 @@ func main() {
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
-	cfg.CredentialStatus.SingleIssuer = true
 
-	// this is needed to create the did with the correct auth core claim revocation status URL
-	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
-	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore)
+	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	if err != nil {
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
 	if err != nil {
 		log.Error(ctx, "failed init eth resolver", "err", err)
 		return
 	}
 
+	cfg.CredentialStatus.SingleIssuer = false
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	cfg.CredentialStatus.SingleIssuer = true
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, *networkResolver, rhsFactory, revocationStatusResolver)
-
-	resolverPrefix := fmt.Sprintf("%s:%s", cfg.APIUI.IdentityBlockchain, cfg.APIUI.IdentityNetwork)
-	rhsSettings, err := networkResolver.GetRhsSettings(resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "error getting rhs settings", "err", err)
-		return
-	}
 
 	didCreationOptions := &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(rhsSettings.CredentialStatusType),
+		AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1, // TODO: change to config
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)

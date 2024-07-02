@@ -65,6 +65,7 @@ type ClientConfig struct {
 	DefaultGasLimit        int           `json:"default_gas_limit"`
 	MinGasPrice            *big.Int      `json:"min_gas_price"`
 	MaxGasPrice            *big.Int      `json:"max_gas_price"`
+	GasLess                bool          `json:"gas_less"`
 	RPCResponseTimeout     time.Duration `json:"rpc_response_time_out"`
 	WaitReceiptCycleTime   time.Duration `json:"wait_receipt*eth.Client_cycle_time_out"`
 	WaitBlockCycleTime     time.Duration `json:"wait_block_cycle_time_out"`
@@ -327,18 +328,25 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 
 	sigFn := c.signerFnFactory(ctx, kmsKey)
 
-	tip, err := c.suggestGasTipCap(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// tip := big.NewInt(0)
+	gasLimit := uint64(c.Config.DefaultGasLimit)
 
 	opts := &bind.TransactOpts{
-		From:      addr,
-		Signer:    sigFn,
-		GasTipCap: tip, // The only option we need to set is gasTipCap as some Ethereum nodes don't support eth_maxPriorityFeePerGas
-		GasLimit:  0,   // go-ethereum library will estimate gas limit automatically if it is 0
-		Context:   ctx,
-		NoSend:    false,
+		From:     addr,
+		Signer:   sigFn,
+		GasLimit: gasLimit, // go-ethereum library will estimate gas limit automatically if it is 0
+		Context:  ctx,
+		NoSend:   false,
+	}
+
+	if !c.Config.GasLess { // Some Ethereum nodes don't support eth_maxPriorityFeePerGas so we set GasLess = true
+		tip, err := c.suggestGasTipCap(ctx)
+		if err != nil {
+			return nil, err
+		}
+		gasLimit = uint64(0)
+		opts.GasLimit = gasLimit
+		opts.GasTipCap = tip
 	}
 
 	return opts, nil
@@ -367,63 +375,72 @@ func (c *Client) CreateRawTx(ctx context.Context, txParams TransactionParams) (*
 		txParams.Nonce = &nonce
 	}
 
-	_ctx2, cancel2 := context.WithTimeout(ctx, c.Config.RPCResponseTimeout)
-	defer cancel2()
 	if txParams.Value == nil {
 		txParams.Value = big.NewInt(0)
 	}
-	gasLimit, err := c.client.EstimateGas(_ctx2, ethereum.CallMsg{
-		From:  txParams.FromAddress, // the sender of the 'transaction'
-		To:    &txParams.ToAddress,
-		Gas:   0,              // wei <-> gas exchange ratio
-		Value: txParams.Value, // amount of wei sent along with the call
-		Data:  txParams.Payload,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to estimate gas: %v", err)
-	}
 
-	latestBlockHeader, err := c.HeaderByNumber(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if txParams.BaseFee == nil {
-		// since ETH and Polygon blockchain already supports London fork.
-		// no need set special block.
-		baseFee := eip1559.CalcBaseFee(&params.ChainConfig{LondonBlock: big.NewInt(1)}, latestBlockHeader)
-
-		// add 25% to baseFee. baseFee always small value.
-		// since we use dynamic fee transactions we will get not used gas back.
-		b := math.Round(float64(baseFee.Int64()) * feeIncrement)
-		baseFee = big.NewInt(int64(b))
-		txParams.BaseFee = baseFee
-	}
-
-	if txParams.GasTips == nil {
-		_ctx3, cancel3 := context.WithTimeout(ctx, c.Config.RPCResponseTimeout)
-		defer cancel3()
-		gasTip, err := c.client.SuggestGasTipCap(_ctx3)
-		// since hardhad doesn't support 'eth_maxPriorityFeePerGas' rpc call.
-		// we should hardcode 0 as a mainer tips. More information: https://github.com/NomicFoundation/hardhat/issues/1664#issuecomment-1149006010
-		if err != nil && strings.Contains(err.Error(), "eth_maxPriorityFeePerGas not found") {
-			log.Error(ctx, "failed get suggest gas tip: %s. use 0 instead", "err", err)
-			gasTip = big.NewInt(0)
-		} else if err != nil {
-			return nil, fmt.Errorf("failed get suggest gas tip: %v", err)
-		}
-		txParams.GasTips = gasTip
-	}
-
-	maxGasPricePerFee := big.NewInt(0).Add(txParams.BaseFee, txParams.GasTips)
 	baseTx := &types.DynamicFeeTx{
-		To:        &txParams.ToAddress,
-		Nonce:     *txParams.Nonce,
-		Gas:       gasLimit,
-		Value:     txParams.Value,
-		Data:      txParams.Payload,
-		GasTipCap: txParams.GasTips,
-		GasFeeCap: maxGasPricePerFee,
+		To:    &txParams.ToAddress,
+		Nonce: *txParams.Nonce,
+		Gas:   uint64(c.Config.DefaultGasLimit),
+		Value: txParams.Value,
+		Data:  txParams.Payload,
+	}
+
+	if !c.Config.GasLess {
+		_ctx2, cancel2 := context.WithTimeout(ctx, c.Config.RPCResponseTimeout)
+		defer cancel2()
+		gasLimit, err := c.client.EstimateGas(_ctx2, ethereum.CallMsg{
+			From:  txParams.FromAddress, // the sender of the 'transaction'
+			To:    &txParams.ToAddress,
+			Gas:   0,              // wei <-> gas exchange ratio
+			Value: txParams.Value, // amount of wei sent along with the call
+			Data:  txParams.Payload,
+		})
+
+		baseTx.Gas = gasLimit
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to estimate gas: %v", err)
+		}
+
+		latestBlockHeader, err := c.HeaderByNumber(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if txParams.BaseFee == nil {
+			// since ETH and Polygon blockchain already supports London fork.
+			// no need set special block.
+			baseFee := eip1559.CalcBaseFee(&params.ChainConfig{LondonBlock: big.NewInt(1)}, latestBlockHeader)
+
+			// add 25% to baseFee. baseFee always small value.
+			// since we use dynamic fee transactions we will get not used gas back.
+			b := math.Round(float64(baseFee.Int64()) * feeIncrement)
+			baseFee = big.NewInt(int64(b))
+			txParams.BaseFee = baseFee
+		}
+
+		if txParams.GasTips == nil {
+			_ctx3, cancel3 := context.WithTimeout(ctx, c.Config.RPCResponseTimeout)
+			defer cancel3()
+			gasTip, err := c.client.SuggestGasTipCap(_ctx3)
+			// since hardhad doesn't support 'eth_maxPriorityFeePerGas' rpc call.
+			// we should hardcode 0 as a mainer tips. More information: https://github.com/NomicFoundation/hardhat/issues/1664#issuecomment-1149006010
+			if err != nil && strings.Contains(err.Error(), "eth_maxPriorityFeePerGas not found") {
+				log.Error(ctx, "failed get suggest gas tip: %s. use 0 instead", "err", err)
+				gasTip = big.NewInt(0)
+			} else if err != nil {
+				return nil, fmt.Errorf("failed get suggest gas tip: %v", err)
+			}
+			txParams.GasTips = gasTip
+		}
+
+		maxGasPricePerFee := big.NewInt(0).Add(txParams.BaseFee, txParams.GasTips)
+
+		baseTx.GasTipCap = txParams.GasTips
+		baseTx.GasFeeCap = maxGasPricePerFee
+
 	}
 
 	tx := types.NewTx(baseTx)

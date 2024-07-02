@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/mitchellh/mapstructure"
@@ -27,9 +28,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/helpers"
 	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -39,7 +40,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
-		network    = "mumbai"
+		network    = "amoy"
 		BJJ        = "BJJ"
 		ETH        = "ETH"
 	)
@@ -51,14 +52,23 @@ func TestServer_CreateIdentity(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	reader := helpers.CreateFile(t)
+
+	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, reader)
 	require.NoError(t, err)
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
@@ -80,6 +90,38 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "should create a BJJ identity for amoy network",
+			auth: authOk,
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
+			},
+			expected: expected{
+				httpCode: 201,
+				message:  nil,
+			},
+		},
+		{
+			name: "should create a ETH identity for amoy network",
+			auth: authOk,
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
+			},
+			expected: expected{
+				httpCode: 201,
+				message:  nil,
 			},
 		},
 		{
@@ -127,7 +169,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: 400,
-				message:  common.ToPointer("error getting reverse hash service settings"),
+				message:  common.ToPointer("error getting reverse hash service settings: rhsSettings not found for polygon:mynetwork"),
 			},
 		},
 		{
@@ -159,7 +201,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: 400,
-				message:  common.ToPointer("error getting reverse hash service settings"),
+				message:  common.ToPointer("error getting reverse hash service settings: rhsSettings not found for my blockchain:amoy"),
 			},
 		},
 		{
@@ -190,11 +232,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			case http.StatusCreated:
 				var response CreateIdentityResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				require.NotNil(t, response.Identifier)
+				assert.Contains(t, *response.Identifier, tc.input.DidMetadata.Network)
 				assert.NotNil(t, response.State.CreatedAt)
 				assert.NotNil(t, response.State.ModifiedAt)
 				assert.NotNil(t, response.State.State)
 				assert.NotNil(t, response.State.Status)
-				assert.NotNil(t, *response.Identifier)
 				if tc.input.DidMetadata.Type == BJJ {
 					assert.NotNil(t, *response.State.ClaimsTreeRoot)
 				}
@@ -219,14 +262,22 @@ func TestServer_RevokeClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	reader := helpers.CreateFile(t)
+	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, reader)
 	require.NoError(t, err)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 
@@ -360,10 +411,10 @@ func TestServer_CreateClaim(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
-		network    = "mumbai"
+		network    = "amoy"
 		BJJ        = "BJJ"
 	)
-	ctx := log.NewContext(context.Background(), log.LevelDebug, log.OutputText, os.Stdout)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -373,14 +424,24 @@ func TestServer_CreateClaim(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	reader := helpers.CreateFile(t)
+
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	pubSub := pubsub.NewMock()
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubSub, ipfsGatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(ctx, server)
@@ -429,6 +490,76 @@ func TestServer_CreateClaim(t *testing.T) {
 				response:                    CreateClaim201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 1,
+			},
+		},
+		{
+			name: "Happy path with two proofs",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"BJJSignature2021",
+					"Iden3SparseMerkleTreeProof",
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
+			name: "Happy path with bjjSignature proof",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"BJJSignature2021",
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
+			name: "Happy path with Iden3SparseMerkleTreeProof proof",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"Iden3SparseMerkleTreeProof",
+				},
+			},
+			expected: expected{
+				response:                    CreateClaim201JSONResponse{},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 0,
 			},
 		},
 		{
@@ -511,6 +642,26 @@ func TestServer_CreateClaim(t *testing.T) {
 				httpCode: http.StatusUnprocessableEntity,
 			},
 		},
+		{
+			name: "Wrong proof type",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+					"birthday":     19960424,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs:     &[]CreateClaimRequestProofs{"wrong proof"},
+			},
+			expected: expected{
+				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
+				httpCode: http.StatusBadRequest,
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			pubSub.Clear(event.CreateCredentialEvent)
@@ -547,6 +698,7 @@ func TestServer_CreateClaim(t *testing.T) {
 }
 
 func TestServer_GetIdentities(t *testing.T) {
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -555,14 +707,23 @@ func TestServer_GetIdentities(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	reader := helpers.CreateFile(t)
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
@@ -623,6 +784,7 @@ func TestServer_GetIdentities(t *testing.T) {
 }
 
 func TestServer_GetClaimQrCode(t *testing.T) {
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -630,10 +792,10 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
+	reader := helpers.CreateFile(t)
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
-
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
@@ -641,7 +803,16 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
 	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
 	accountService := services.NewAccountService(*networkResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	identity := &domain.Identity{
 		Identifier: idStr,
@@ -771,6 +942,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 }
 
 func TestServer_GetClaim(t *testing.T) {
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -778,14 +950,23 @@ func TestServer_GetClaim(t *testing.T) {
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
+	reader := helpers.CreateFile(t)
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
-
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
@@ -946,9 +1127,10 @@ func TestServer_GetClaims(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
-		network    = "mumbai"
+		network    = "amoy"
 		BJJ        = "BJJ"
 	)
+	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
 	identityStateRepo := repositories.NewIdentityState()
@@ -956,21 +1138,28 @@ func TestServer_GetClaims(t *testing.T) {
 	mtRepo := repositories.NewIdentityMerkleTreeRepository()
 	mtService := services.NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
+	reader := helpers.CreateFile(t)
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
-
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	fixture := tests.NewFixture(storage)
 
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
-
-	ctx := context.Background()
 	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
@@ -1295,7 +1484,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
-		network    = "mumbai"
+		network    = "amoy"
 		BJJ        = "BJJ"
 	)
 	ctx := context.Background()
@@ -1307,7 +1496,9 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	revocationRepository := repositories.NewRevocation()
 	connectionsRepository := repositories.NewConnections()
 
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore)
+	reader := helpers.CreateFile(t)
+
+	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
 	require.NoError(t, err)
 
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
@@ -1316,7 +1507,16 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 
 	identity, err := identityService.Create(ctx, "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	assert.NoError(t, err)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.CredentialStatus.DirectStatus.GetURL(), pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
 	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
@@ -1331,7 +1531,11 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	typeC := "KYCAgeCredential"
 
 	merklizedRootPosition := "value"
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.SparseMerkleTreeProof, nil, nil))
+	claimRequestProofs := ports.ClaimRequestProofs{
+		BJJSignatureProof2021:      true,
+		Iden3SparseMerkleTreeProof: true,
+	}
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {

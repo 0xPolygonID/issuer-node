@@ -46,8 +46,7 @@ test-race:
 	$(GO) test -v --race ./...
 
 $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API files.
-	go get github.com/deepmap/oapi-codegen/cmd/oapi-codegen
-	$(GO) install github.com/deepmap/oapi-codegen/cmd/oapi-codegen
+	$(GO) install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest
 
 .PHONY: api
 api: $(BIN)/oapi-codegen
@@ -145,6 +144,10 @@ db/migrate: $(BIN)/install-goose $(BIN)/godotenv $(BIN)/platformid-migrate ## In
 .PHONY: lint
 lint: $(BIN)/golangci-lint
 	  $(BIN)/golangci-lint run
+
+.PHONY: lint-fix
+lint-fix: $(BIN)/golangci-lint
+		  $(BIN)/golangci-lint run --fix
 
 # usage: make private_key=xxx add-private-key
 .PHONY: add-private-key

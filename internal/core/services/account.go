@@ -18,7 +18,7 @@ type AccountService struct {
 	networkResolver network.Resolver
 }
 
-// NewAccountService returns new account service
+// NewAccountService creates a new instance of AccountService
 func NewAccountService(networkResolver network.Resolver) *AccountService {
 	return &AccountService{
 		networkResolver: networkResolver,

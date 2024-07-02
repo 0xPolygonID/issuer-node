@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
+	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -32,17 +36,18 @@ import (
 var build = buildinfo.Revision()
 
 func main() {
-	log.Info(context.Background(), "starting issuer node...", "revision", build)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	log.Info(ctx, "starting pending publisher...", "revision", build)
 
 	cfg, err := config.Load("")
 	if err != nil {
-		log.Error(context.Background(), "cannot load config", "err", err)
+		log.Error(ctx, "cannot load config", "err", err)
 		panic(err)
 	}
 
-	// Context with log
-	ctx, cancel := context.WithCancel(log.NewContext(context.Background(), cfg.Log.Level, cfg.Log.Mode, os.Stdout))
-	defer cancel()
+	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
 	if err := cfg.SanitizeAPIUI(ctx); err != nil {
 		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
@@ -124,7 +129,12 @@ func main() {
 		return
 	}
 
-	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore)
+	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	if err != nil {
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
 	if err != nil {
 		log.Error(ctx, "failed init eth resolver", "err", err)
 		return
@@ -143,8 +153,16 @@ func main() {
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		*cfg.MediaTypeManager.Enabled,
+	)
+
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := initProofService(ctx, cfg, circuitsLoaderService)
@@ -176,6 +194,20 @@ func main() {
 			}
 		}
 	}(ctx)
+
+	go func() {
+		http.Handle("/status", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Error(ctx, "error writing response", "err", err)
+			}
+		}))
+		log.Info(ctx, "Starting server at port 3005")
+		err := http.ListenAndServe(":3005", nil)
+		if err != nil {
+			log.Error(ctx, "error starting server", "err", err)
+		}
+	}()
 
 	<-quit
 	log.Info(ctx, "finishing app")

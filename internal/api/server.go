@@ -98,10 +98,9 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		}, nil
 	}
 
-	resolverPrefix := fmt.Sprintf("%s:%s", blockchain, network)
-	rhsSettings, err := s.networkResolver.GetRhsSettings(resolverPrefix)
+	rhsSettings, err := s.networkResolver.GetRhsSettingsForBlockchainAndNetwork(ctx, blockchain, network)
 	if err != nil {
-		return CreateIdentity400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
 	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
@@ -109,7 +108,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		Network:                 core.NetworkID(network),
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(rhsSettings.CredentialStatusType),
+		AuthBJJCredentialStatus: rhsSettings.CredentialStatusType,
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -169,16 +168,36 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
+	claimRequestProofs := ports.ClaimRequestProofs{}
+	if request.Body.Proofs == nil {
+		claimRequestProofs.BJJSignatureProof2021 = true
+		claimRequestProofs.Iden3SparseMerkleTreeProof = true
+	} else {
+		for _, proof := range *request.Body.Proofs {
+			if string(proof) == string(verifiable.BJJSignatureProofType) {
+				claimRequestProofs.BJJSignatureProof2021 = true
+				continue
+			}
+			if string(proof) == string(verifiable.Iden3SparseMerkleTreeProofType) {
+				claimRequestProofs.Iden3SparseMerkleTreeProof = true
+				continue
+			}
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unsupported proof type: %s", proof)}}, nil
+		}
+	}
+
 	resolverPrefix, err := common.ResolverPrefix(did)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
 	}
 
-	rhsSettings, err := s.networkResolver.GetRhsSettings(resolverPrefix)
+	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 	}
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(rhsSettings.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce)
+
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -210,6 +229,15 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		if errors.Is(err, services.ErrRefreshServiceLacksExpirationTime) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrRefreshServiceLacksURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrDisplayMethodLacksURL) {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		}
+		if errors.Is(err, services.ErrUnsupportedDisplayMethodType) {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 		}
 		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -387,6 +415,11 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 		}
 		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
+
+	if !claim.ValidProof() {
+		return GetClaimQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credential"}}, nil
+	}
+
 	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
 }
 
@@ -410,7 +443,8 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Debug(ctx, "agent empty request")
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
-	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
+
+	basicMessage, mediatype, err := s.packageManager.Unpack([]byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
@@ -422,7 +456,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
-	agent, err := s.claimService.Agent(ctx, req)
+	agent, err := s.claimService.Agent(ctx, req, mediatype)
 	if err != nil {
 		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
@@ -581,6 +615,16 @@ func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
 	}
 }
 
+func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
+	if s == nil {
+		return nil
+	}
+	return &verifiable.DisplayMethod{
+		ID:   s.Id,
+		Type: verifiable.DisplayMethodType(s.Type),
+	}
+}
+
 func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
 	response := make(GetClaims200JSONResponse, len(claims))
 	for i := range claims {
@@ -607,6 +651,14 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		}
 	}
 
+	var displayMethod *DisplayMethod
+	if claim.DisplayMethod != nil {
+		displayMethod = &DisplayMethod{
+			Id:   claim.DisplayMethod.ID,
+			Type: DisplayMethodType(claim.DisplayMethod.Type),
+		}
+	}
+
 	return GetClaimResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
@@ -622,6 +674,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Proof:             claim.Proof,
 		Type:              claim.Type,
 		RefreshService:    refreshService,
+		DisplayMethod:     displayMethod,
 	}
 }
 

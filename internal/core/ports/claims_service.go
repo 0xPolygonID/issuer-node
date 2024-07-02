@@ -9,13 +9,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
 	comm "github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/protocol"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
+
+// ClaimRequestProofs - defines the proofs that can be requested for a claim
+type ClaimRequestProofs struct {
+	BJJSignatureProof2021      bool
+	Iden3SparseMerkleTreeProof bool
+}
 
 // CreateClaimRequest struct
 type CreateClaimRequest struct {
@@ -35,6 +41,7 @@ type CreateClaimRequest struct {
 	SchemaTypeDescription string
 	RefreshService        *verifiable.RefreshService
 	RevNonce              *uint64
+	DisplayMethod         *verifiable.DisplayMethod
 }
 
 // AgentRequest struct
@@ -110,23 +117,16 @@ func NewClaimsFilter(schemaHash, schemaType, subject, queryField, queryValue *st
 }
 
 // NewCreateClaimRequest returns a new claim object with the given parameters
-func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, sigProof *bool, mtProof *bool, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64) *CreateClaimRequest {
-	if sigProof == nil {
-		sigProof = common.ToPointer(false)
-	}
-
-	if mtProof == nil {
-		mtProof = common.ToPointer(false)
-	}
-
+func NewCreateClaimRequest(did *w3c.DID, credentialSchema string, credentialSubject map[string]any, expiration *time.Time, typ string, cVersion *uint32, subjectPos *string, merklizedRootPosition *string, claimRequestProofs ClaimRequestProofs, linkID *uuid.UUID, singleIssuer bool, credentialStatusType verifiable.CredentialStatusType, refreshService *verifiable.RefreshService, revNonce *uint64, displayMethod *verifiable.DisplayMethod) *CreateClaimRequest {
 	req := &CreateClaimRequest{
 		DID:               did,
 		Schema:            credentialSchema,
 		CredentialSubject: credentialSubject,
 		Type:              typ,
-		SignatureProof:    *sigProof,
-		MTProof:           *mtProof,
+		SignatureProof:    claimRequestProofs.BJJSignatureProof2021,
+		MTProof:           claimRequestProofs.Iden3SparseMerkleTreeProof,
 		RefreshService:    refreshService,
+		DisplayMethod:     displayMethod,
 	}
 	if expiration != nil {
 		req.Expiration = expiration
@@ -207,6 +207,7 @@ type GetCredentialQrCodeResponse struct {
 // ClaimsService is the interface implemented by the claim service
 type ClaimsService interface {
 	Save(ctx context.Context, claimReq *CreateClaimRequest) (*domain.Claim, error)
+	GetRevoked(ctx context.Context, currentState string) ([]*domain.Claim, error)
 	CreateCredential(ctx context.Context, req *CreateClaimRequest) (*domain.Claim, error)
 	Revoke(ctx context.Context, id w3c.DID, nonce uint64, description string) error
 	GetAll(ctx context.Context, did w3c.DID, filter *ClaimsFilter) ([]*domain.Claim, uint, error)
@@ -214,7 +215,7 @@ type ClaimsService interface {
 	GetRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64) (*verifiable.RevocationStatus, error)
 	GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*domain.Claim, error)
 	GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid.UUID, hostURL string) (*GetCredentialQrCodeResponse, error)
-	Agent(ctx context.Context, req *AgentRequest) (*domain.Agent, error)
+	Agent(ctx context.Context, req *AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error)
 	GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error)
 	GetAuthClaimForPublishing(ctx context.Context, did *w3c.DID, state string) (*domain.Claim, error)
 	UpdateClaimsMTPAndState(ctx context.Context, currentState *domain.IdentityState) error

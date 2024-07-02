@@ -24,7 +24,7 @@ type cached struct {
 // and caches it.
 // TTL for cached items is forever
 func (c *cached) Load(ctx context.Context) (schema []byte, extension string, err error) {
-	ctx = log.With(ctx, "key", c.key(c.url))
+	log.With("key", c.key(c.url))
 	d := schemaData{}
 	if found := c.cache.Get(ctx, c.key(c.url), &d); found {
 		log.Debug(ctx, "schema found in cache")

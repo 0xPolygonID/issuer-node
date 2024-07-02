@@ -14,6 +14,7 @@ import (
 type NotificationService interface {
 	SendCreateCredentialNotification(ctx context.Context, payload pubsub.Message) error
 	SendCreateConnectionNotification(ctx context.Context, payload pubsub.Message) error
+	SendRevokeCredentialNotification(ctx context.Context, payload pubsub.Message) error
 }
 
 // NotificationGateway represents the notification interface

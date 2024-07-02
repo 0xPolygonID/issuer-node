@@ -247,19 +247,19 @@ func TestGetAllByConnectionAndIssuerID(t *testing.T) {
 	t.Run("should get one claim", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *issuerDID)
 		assert.NoError(t, err)
-		assert.Equal(t, len(r), 1)
+		assert.Equal(t, 1, len(r))
 	})
 
 	t.Run("should get no claims, issuerDID not found", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, conn, *userDID)
 		assert.NoError(t, err)
-		assert.Equal(t, len(r), 0)
+		assert.Equal(t, 0, len(r))
 	})
 
 	t.Run("should get no claims, connID not found", func(t *testing.T) {
 		r, err := claimsRepo.GetNonRevokedByConnectionAndIssuerID(context.Background(), storage.Pgx, uuid.New(), *issuerDID)
 		assert.NoError(t, err)
-		assert.Equal(t, len(r), 0)
+		assert.Equal(t, 0, len(r))
 	})
 }
 
@@ -344,7 +344,7 @@ func TestGetAllByIssuerID(t *testing.T) {
 			claims, total, err := claimsRepo.GetAllByIssuerID(ctx, storage.Pgx, *issuerDID, &tc.filter)
 			require.NoError(t, err)
 			assert.Len(t, claims, tc.expected)
-			assert.Equal(t, total, uint(len(claims)))
+			assert.Equal(t, uint(len(claims)), total)
 		})
 	}
 }
@@ -602,7 +602,7 @@ func TestGetClaimsIssuedForUserID(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 
-	link := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil)
+	link := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil)
 	link.MaxIssuance = common.ToPointer(100)
 
 	linkID, err := linkStore.Save(ctx, storage.Pgx, link)

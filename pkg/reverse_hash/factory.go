@@ -43,14 +43,14 @@ func NewFactory(networkResolver network.Resolver, rpcTimeout time.Duration) Fact
 
 // BuildPublishers creates new instance of RhsPublisher
 func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
-	rhsSettings, err := f.networkResolver.GetRhsSettings(resolverPrefix)
+	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
 	}
 	rhsMode := RHSMode(rhsSettings.Mode)
 	switch rhsMode {
 	case RHSModeOffChain:
-		rhsCli, err := f.initOffChainRHS(resolverPrefix)
+		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -68,8 +68,8 @@ func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, km
 	}
 }
 
-func (f *Factory) initOffChainRHS(resolverPrefix string) (proof.ReverseHashCli, error) {
-	rhsSettings, err := f.networkResolver.GetRhsSettings(resolverPrefix)
+func (f *Factory) initOffChainRHS(ctx context.Context, resolverPrefix string) (proof.ReverseHashCli, error) {
+	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (f *Factory) initOnChainRHSCli(ctx context.Context, resolverPrefix string, 
 	// This can be a  problem in the future.
 	// Since between counting the miner tip and using this transaction option can be a big time gap.
 	// And while executing a transaction, we can have bigger tips on the network than we counted.
-	rhsSettings, err := f.networkResolver.GetRhsSettings(resolverPrefix)
+	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
 	}

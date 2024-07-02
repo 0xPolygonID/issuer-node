@@ -31,14 +31,16 @@ export UI_DOMAIN=ui.example.com                         # Domain for the UI. To 
 export API_DOMAIN=api.example.com                       # Domain for the API.To use this INGRESS_ENABLED must be true
 export PRIVATE_KEY='YOUR PRIVATE KEY'                   # Private key of the wallet (Metamask private key wallet).
 export PUBLIC_IP='YOUR PUBLIC IP'                       # Provide the PUBLIC IP if you have any otherwise leave this field.
-export MAINNET=false                                    # Specify if the network is main, if this value is false issuer node will use mumbai
+export MAINNET=false                                    # Specify if the network is main, if this value is false issuer node will use amoy
 export UIPASSWORD="my ui password"                      # Password for user: ui-user. This password is used when the user visit the ui.
+export UI_INSECURE=true                                         # Set as true if the ui doesn't require basic auth. If this value true UIPASSWORD can be blank
 export ISSUERNAME="My Issuer"                           # Issuer Name. This value is shown in the UI
-export ISSUER_ETHERUM_URL="https://polygon-mumbai.XXXX" # Blockchain RPC.
+export ISSUER_ETHERUM_URL="https://polygon-amoy.XXXX" # Blockchain RPC.
 export INGRESS_ENABLED=true                             # If this value is false you must provide a STATIC_IP
 export VAULT_PWD=password                               # Vault password.
 export RHS_MODE=None                                    # Reverse Hash Service mode. Options: None, OnChain, OffChain
 export RHS_URL="https://reverse-hash-service.com"       # Reverse Hash Service URL. Required if RHS_MODE is OffChain
+export ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"camino","network":"columbus","networkFlag":"0b10000011","chainID":501}]' # Custom DID methods
 ```
 
 ## Install the helm chart with ingress and domain names
@@ -59,7 +61,9 @@ helm install "$APP_INSTANCE_NAME" . \
 --set privateKey="$PRIVATE_KEY" \
 --set vaultpwd="$VAULT_PWD" \
 --set rhsMode="$RHS_MODE" \
---set rhsUrl="$RHS_URL"
+--set rhsUrl="$RHS_URL" \
+--set-json issuerCustomDidMethods="$ISSUER_CUSTOM_DID_METHODS" \
+--set issuerUiInsecure=$UI_INSECURE
 ```
 
 In the code above, the PUBLIC_IP is not provided because is not needed when the ingress is enabled.
@@ -82,7 +86,8 @@ helm install "$APP_INSTANCE_NAME" . \
 --set privateKey="$PRIVATE_KEY" \
 --set vaultpwd="$VAULT_PWD" \
 --set rhsMode="$RHS_MODE" \
---set rhsUrl="$RHS_URL"
+--set rhsUrl="$RHS_URL" \
+--set issuerCustomDidMethods="$ISSUER_CUSTOM_DID_METHODS"
 ```
 
 In the code above, the publicIP is provided because is needed when the ingress is not enabled. In this case `$APP_DOMAIN`, `$UI_DOMAIN` and `$API_DOMAIN` are not used.

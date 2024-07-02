@@ -44,10 +44,9 @@ type Claim struct {
 	CredentialStatus pgtype.JSONB    `json:"credential_status"`
 	HIndex           string          `json:"-"`
 
-	MtProof               bool       `json:"mt_poof"`
-	LinkID                *uuid.UUID `json:"-"`
-	CreatedAt             time.Time  `json:"-"`
-	SchemaTypeDescription *string    `json:"schema_type_description"`
+	MtProof   bool       `json:"mt_poof"`
+	LinkID    *uuid.UUID `json:"-"`
+	CreatedAt time.Time  `json:"-"`
 }
 
 // Credentials is the type of array of credential
@@ -123,6 +122,15 @@ func (c *CoreClaim) Scan(value interface{}) error {
 // Get returns the value of the core claim
 func (c *CoreClaim) Get() *core.Claim {
 	return (*core.Claim)(c)
+}
+
+// ValidProof returns true if the claim has a valid proof
+func (c *Claim) ValidProof() bool {
+	if !c.MtProof || c.SignatureProof.Status != pgtype.Null { // this second condition is for credentials that has both types of proofs
+		return true
+	}
+
+	return c.MTPProof.Status != pgtype.Null
 }
 
 // BuildTreeState returns circuits.TreeState structure

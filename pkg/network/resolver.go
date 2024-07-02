@@ -4,20 +4,32 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
-	"os"
-	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/iden3/contracts-abi/state/go/abi"
+	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"gopkg.in/yaml.v3"
 
-	com "github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+)
+
+const (
+	// OnChain is the type for revocation status on chain
+	OnChain = "OnChain"
+	// OffChain is the type for revocation status off chain
+	OffChain = "OffChain"
+	// None is the type for revocation status None
+	None = "None"
 )
 
 type resolverPrefix string
@@ -30,20 +42,21 @@ type ResolverClientConfig struct {
 
 // Resolver holds the resolver
 type Resolver struct {
-	ethereumClients map[resolverPrefix]ResolverClientConfig
-	rhsSettings     map[resolverPrefix]RhsSettings
+	ethereumClients    map[resolverPrefix]ResolverClientConfig
+	rhsSettings        map[resolverPrefix]RhsSettings
+	supportedContracts map[string]*abi.State
 }
 
 // RhsSettings holds the rhs settings
 type RhsSettings struct {
-	DirectUrl            string  `yaml:"directUrl"`
+	Iden3CommAgentStatus string  `yaml:"directUrl"`
 	Mode                 string  `yaml:"mode"`
 	ContractAddress      *string `yaml:"contractAddress"`
 	RhsUrl               *string `yaml:"rhsUrl"`
 	ChainID              *string `yaml:"chainID"`
 	PublishingKey        string  `yaml:"publishingKey"`
 	SingleIssuer         bool
-	CredentialStatusType string
+	CredentialStatusType verifiable.CredentialStatusType
 }
 
 // ResolverSettings holds the resolver settings
@@ -59,69 +72,33 @@ type ResolverSettings map[string]map[string]struct {
 	RPCResponseTimeout     time.Duration `yaml:"rpcResponseTimeout"`
 	WaitReceiptCycleTime   time.Duration `yaml:"waitReceiptCycleTime"`
 	WaitBlockCycleTime     time.Duration `yaml:"waitBlockCycleTime"`
+	GasLess                bool          `yaml:"gasLess"`
+	TransferAmountWei      *big.Int      `yaml:"transferAmountWei"`
 	RhsSettings            RhsSettings   `yaml:"rhsSettings"`
+	NetworkFlag            byte          `yaml:"networkFlag"`
+	ChainID                string        `yaml:"chainID"`
+	Method                 string        `yaml:"method"`
 }
 
 // NewResolver returns a new Resolver
-func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS) (*Resolver, error) {
-	rs, err := parseResolversSettings(ctx, cfg.NetworkResolverPath)
+func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, reader io.Reader) (*Resolver, error) {
+	rs, err := parseResolversSettings(ctx, reader)
+	if err != nil {
+		return nil, errors.New("failed to parse resolver settings")
+	}
 
 	ethereumClients := make(map[resolverPrefix]ResolverClientConfig)
 	rhsSettings := make(map[resolverPrefix]RhsSettings)
-
-	if err != nil {
-		resolverPrefixEnv := cfg.Ethereum.ResolverPrefix
-		if resolverPrefixEnv == "" {
-			log.Error(ctx, "resolver prefix not found")
-			return nil, err
-		}
-
-		ethClient, err := ethclient.Dial(cfg.Ethereum.URL)
-		if err != nil {
-			log.Error(ctx, "cannot connect to ethereum network", "err", err)
-			return nil, err
-		}
-
-		c := eth.NewClient(ethClient, &eth.ClientConfig{
-			DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
-			ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
-			ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
-			ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
-			MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
-			MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
-			RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
-			WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
-			WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-		}, kms)
-
-		resolverClientConfig := &ResolverClientConfig{
-			client:          c,
-			contractAddress: cfg.Ethereum.ContractAddress,
-		}
-		ethereumClients[resolverPrefix(resolverPrefixEnv)] = *resolverClientConfig
-
-		settings := RhsSettings{
-			DirectUrl:            cfg.CredentialStatus.DirectStatus.URL,
-			Mode:                 string(cfg.CredentialStatus.RHSMode),
-			SingleIssuer:         cfg.CredentialStatus.SingleIssuer,
-			ContractAddress:      com.ToPointer(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract),
-			RhsUrl:               com.ToPointer(cfg.CredentialStatus.RHS.URL),
-			ChainID:              com.ToPointer(cfg.CredentialStatus.OnchainTreeStore.ChainID),
-			CredentialStatusType: cfg.CredentialStatus.CredentialStatusType,
-		}
-		rhsSettings[resolverPrefix(resolverPrefixEnv)] = settings
-		return &Resolver{
-			ethereumClients: ethereumClients,
-			rhsSettings:     rhsSettings,
-		}, nil
-	}
+	supportedContracts := make(map[string]*abi.State)
 
 	log.Info(ctx, "resolver settings file found", "path", cfg.NetworkResolverPath)
 	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
 	for chainName, chainSettings := range rs {
 		for networkName, networkSettings := range chainSettings {
-			if err != nil {
-				return nil, err
+			if networkSettings.NetworkFlag != 0 {
+				if err := registerCustomDIDMethod(ctx, chainName, networkName, networkSettings.ChainID, networkSettings.Method, networkSettings.NetworkFlag); err != nil {
+					return nil, fmt.Errorf("failed to register custom DID method: %w", err)
+				}
 			}
 
 			resolverPrefixKey := fmt.Sprintf("%s:%s", chainName, networkName)
@@ -136,6 +113,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS) (*
 				ConfirmationTimeout:    networkSettings.ConfirmationTimeout,
 				ConfirmationBlockCount: networkSettings.ConfirmationBlockCount,
 				ReceiptTimeout:         networkSettings.ReceiptTimeout,
+				GasLess:                networkSettings.GasLess,
 				MinGasPrice:            big.NewInt(int64(networkSettings.MinGasPrice)),
 				MaxGasPrice:            big.NewInt(int64(networkSettings.MaxGasPrice)),
 				RPCResponseTimeout:     networkSettings.RPCResponseTimeout,
@@ -149,36 +127,48 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS) (*
 			}
 
 			ethereumClients[resolverPrefix(resolverPrefixKey)] = *resolverClientConfig
-
 			settings := networkSettings.RhsSettings
-			settings.DirectUrl = cfg.CredentialStatus.DirectStatus.URL
-			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
 
-			if settings.Mode == config.None {
-				settings.CredentialStatusType = config.SparseMerkleTreeProof
+			// TODO: Change this when two apis are merged
+			if cfg.CredentialStatus.SingleIssuer {
+				settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.APIUI.ServerURL, "/")
+			} else {
+				settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.ServerUrl, "/")
 			}
 
-			if settings.Mode == config.OffChain {
+			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
+
+			if settings.Mode == None {
+				settings.CredentialStatusType = verifiable.Iden3commRevocationStatusV1
+			}
+
+			if settings.Mode == OffChain {
 				if settings.RhsUrl == nil {
 					return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
 				}
-				settings.CredentialStatusType = config.Iden3ReverseSparseMerkleTreeProof
+				settings.CredentialStatusType = verifiable.Iden3ReverseSparseMerkleTreeProof
 			}
 
-			if settings.Mode == config.OnChain {
+			if settings.Mode == OnChain {
 				if settings.ContractAddress == nil {
 					return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
 				}
-				settings.CredentialStatusType = config.Iden3OnchainSparseMerkleTreeProof2023
+				settings.CredentialStatusType = verifiable.Iden3OnchainSparseMerkleTreeProof2023
 			}
 
 			rhsSettings[resolverPrefix(resolverPrefixKey)] = settings
+			stateContract, err := abi.NewState(common.HexToAddress(networkSettings.ContractAddress), ethClient)
+			if err != nil {
+				return nil, fmt.Errorf("error failed create state contract client: %s", err.Error())
+			}
+			supportedContracts[resolverPrefixKey] = stateContract
 		}
 	}
 
 	return &Resolver{
-		ethereumClients: ethereumClients,
-		rhsSettings:     rhsSettings,
+		ethereumClients:    ethereumClients,
+		rhsSettings:        rhsSettings,
+		supportedContracts: supportedContracts,
 	}, nil
 }
 
@@ -203,12 +193,23 @@ func (r *Resolver) GetContractAddress(resolverPrefixKey string) (*common.Address
 }
 
 // GetRhsSettings returns the rhs settings
-func (r *Resolver) GetRhsSettings(resolverPrefixKey string) (*RhsSettings, error) {
+func (r *Resolver) GetRhsSettings(ctx context.Context, resolverPrefixKey string) (*RhsSettings, error) {
 	rhsSettings, ok := r.rhsSettings[resolverPrefix(resolverPrefixKey)]
 	if !ok {
+		log.Error(ctx, "rhsSettings not found", "resolverPrefixKey", resolverPrefixKey)
 		return nil, fmt.Errorf("rhsSettings not found for %s", resolverPrefixKey)
 	}
 	return &rhsSettings, nil
+}
+
+// GetRhsSettingsForBlockchainAndNetwork returns the rhs settings for blockchain and network
+func (r *Resolver) GetRhsSettingsForBlockchainAndNetwork(ctx context.Context, blockchain, network string) (*RhsSettings, error) {
+	resolverPrefixKey := fmt.Sprintf("%s:%s", blockchain, network)
+	rhsSettings, err := r.GetRhsSettings(ctx, resolverPrefixKey)
+	if err != nil {
+		return nil, err
+	}
+	return rhsSettings, nil
 }
 
 // GetConfirmationBlockCount returns the confirmation block count
@@ -231,31 +232,34 @@ func (r *Resolver) GetConfirmationTimeout(resolverPrefixKey string) (time.Durati
 	return confirmationTimeout, nil
 }
 
-func parseResolversSettings(ctx context.Context, resolverSettingsPath string) (ResolverSettings, error) {
-	if _, err := os.Stat(resolverSettingsPath); errors.Is(err, os.ErrNotExist) {
-		log.Info(ctx, "resolver settings file not found", "path", resolverSettingsPath)
-		log.Info(ctx, "issuer node wil not run supporting multi chain feature")
-		return nil, fmt.Errorf("resolver settings file not found: %s", resolverSettingsPath)
-	}
+// GetSupportedContracts returns the supported contracts
+func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
+	return r.supportedContracts
+}
 
-	if info, _ := os.Stat(resolverSettingsPath); info.Size() == 0 {
-		log.Info(ctx, "resolver settings file is empty")
-		return nil, fmt.Errorf("resolver settings file is empty: %s", resolverSettingsPath)
-	}
-
-	f, err := os.Open(filepath.Clean(resolverSettingsPath))
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			log.Error(ctx, "failed to close setting file:", "err", err)
-		}
-	}()
-
+func parseResolversSettings(_ context.Context, reader io.Reader) (ResolverSettings, error) {
 	settings := ResolverSettings{}
-	if err := yaml.NewDecoder(f).Decode(&settings); err != nil {
+	if err := yaml.NewDecoder(reader).Decode(&settings); err != nil {
 		return nil, fmt.Errorf("invalid yaml file: %v", settings)
 	}
 	return settings, nil
+}
+
+// registerCustomDIDMethod registers custom DID methods
+func registerCustomDIDMethod(ctx context.Context, blockchain string, network string, chainID string, method string, networkFlag byte) error {
+	customChainID, err := strconv.Atoi(chainID)
+	if err != nil {
+		return fmt.Errorf("cannot convert chainID to int: %w", err)
+	}
+	params := core.DIDMethodNetworkParams{
+		Method:      core.DIDMethod(method),
+		Blockchain:  core.Blockchain(blockchain),
+		Network:     core.NetworkID(network),
+		NetworkFlag: networkFlag,
+	}
+	if err := core.RegisterDIDMethodNetwork(params, core.WithChainID(customChainID)); err != nil {
+		log.Error(ctx, "cannot register custom DID method", "err", err, "customDID", chainID)
+		return err
+	}
+	return nil
 }

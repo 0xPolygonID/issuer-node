@@ -38,6 +38,7 @@ const ipfsGatewayURL = "http://localhost:8080"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
+	log.Config(log.LevelDebug, log.OutputText, os.Stdout)
 	conn := lookupPostgresURL()
 	if conn == "" {
 		conn = "postgres://postgres:postgres@localhost:5435"
@@ -100,14 +101,6 @@ func TestMain(m *testing.M) {
 	cfg.ServerUrl = "https://testing.env/"
 	cfg.Ethereum = cfgForTesting.Ethereum
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
-
-	cfg.CredentialStatus = config.CredentialStatus{
-		RHSMode: "None",
-		DirectStatus: config.DirectStatus{
-			URL: "http://localhost:3001",
-		},
-	}
-
 	m.Run()
 }
 

@@ -17,7 +17,7 @@ spec:
         {{- include "polygon-id-issuer.apiIssuerNode.Labels" . | nindent 8 }}
         {{- include "polygon-id-issuer.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: issuer-node-service-account
+      serviceAccountName: {{ include "helpers.serviceAccountName" . }}
       containers:
         - name: {{ .Values.apiIssuerNode.deployment.containerName }}
           image: {{ .Values.issuernode_repository_image }}:{{ .Values.issuernode_repository_tag }}

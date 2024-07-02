@@ -1,5 +1,17 @@
-import { Avatar, Button, Card, Grid, Row, Space, Table, Tag, Tooltip, Typography } from "antd";
-import { ColumnsType } from "antd/es/table";
+import {
+  Avatar,
+  Button,
+  Card,
+  Grid,
+  Row,
+  Space,
+  Table,
+  TableColumnsType,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+
 import { useCallback, useEffect, useState } from "react";
 import { Link, generatePath, useSearchParams } from "react-router-dom";
 
@@ -36,7 +48,7 @@ export function SchemasTable() {
 
   const queryParam = searchParams.get(QUERY_SEARCH_PARAM);
 
-  const tableColumns: ColumnsType<ApiSchema> = [
+  const tableColumns: TableColumnsType<ApiSchema> = [
     {
       dataIndex: "type",
       ellipsis: { showTitle: false },

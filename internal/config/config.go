@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,8 +48,10 @@ type Configuration struct {
 	IPFS                         IPFS          `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
-	CredentialStatus             CredentialStatus `mapstructure:"CredentialStatus"`
-	NetworkResolverPath          string           `mapstructure:"NetworkResolverPath"`
+	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
+	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
+	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
+	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
 }
 
 // Database has the database configuration
@@ -83,12 +87,50 @@ type Ethereum struct {
 	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
 	MinGasPrice               int           `tip:"Minimum Gas Price"`
 	MaxGasPrice               int           `tip:"The Datasource name locator"`
+	GasLess                   bool          `tip:"Gasless transactions"`
 	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:mumbai"`
+	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:amoy"`
 	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
 	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
+}
+
+// CustomDIDMethods struct
+// Example: ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
+type CustomDIDMethods struct {
+	Blockchain  string `tip:"Identity blockchain for custom network"`
+	Network     string `tip:"Identity network for custom network"`
+	NetworkFlag byte   `tip:"Identity network flag for custom network"`
+	ChainID     int    `tip:"Chain id for custom network"`
+}
+
+// UnmarshalJSON implements the Unmarshal interface for CustomNetwork
+func (cn *CustomDIDMethods) UnmarshalJSON(data []byte) error {
+	aux := struct {
+		Blockchain  string `json:"blockchain"`
+		Network     string `json:"network"`
+		NetworkFlag string `json:"networkFlag"`
+		ChainID     int    `json:"chainId"`
+	}{}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if len(aux.NetworkFlag) != 10 || aux.NetworkFlag[:2] != "0b" {
+		return errors.New("invalid NetworkFlag format")
+	}
+	flag, err := strconv.ParseUint(aux.NetworkFlag[2:], 2, 8)
+	if err != nil {
+		return err
+	}
+
+	cn.Blockchain = aux.Blockchain
+	cn.Network = aux.Network
+	cn.NetworkFlag = byte(flag)
+	cn.ChainID = aux.ChainID
+
+	return nil
 }
 
 // Prover struct
@@ -160,6 +202,11 @@ type APIUIAuth struct {
 	Password string `mapstructure:"Password" tip:"Server UI API Basic auth password"`
 }
 
+// MediaTypeManager enables or disables the media types manager
+type MediaTypeManager struct {
+	Enabled *bool `mapstructure:"Enabled" tip:"Enable or disable the media type manager"`
+}
+
 // Sanitize perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) Sanitize(ctx context.Context) error {
@@ -171,12 +218,6 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
 		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
-	}
-
-	err = c.sanitizeCredentialStatus(ctx, c.ServerUrl)
-	if err != nil {
-		log.Error(ctx, "error sanitizing credential status", "error", err)
-		return err
 	}
 
 	return nil
@@ -210,46 +251,11 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
-	err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
-	if err != nil {
-		log.Error(ctx, "error sanitizing credential status", "error", err)
-		return err
-	}
-	return nil
-}
-
-func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
-	if c.CredentialStatus.RHSMode != OnChain && c.CredentialStatus.RHSMode != OffChain && c.CredentialStatus.RHSMode != None {
-		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
-	}
-
-	if c.CredentialStatus.RHSMode == None {
-		c.CredentialStatus.DirectStatus.URL = host
-		c.CredentialStatus.CredentialStatusType = SparseMerkleTreeProof
-	}
-
-	if c.CredentialStatus.RHSMode == OffChain {
-		if c.CredentialStatus.RHS.URL == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
-		}
-		c.CredentialStatus.CredentialStatusType = Iden3ReverseSparseMerkleTreeProof
-		c.CredentialStatus.DirectStatus.URL = host
-	}
-
-	if c.CredentialStatus.RHSMode == OnChain {
-		if c.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT value is missing")
-		}
-
-		if c.CredentialStatus.OnchainTreeStore.PublishingKeyPath == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH value is missing")
-		}
-
-		if c.CredentialStatus.OnchainTreeStore.ChainID == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID value is missing")
-		}
-		c.CredentialStatus.CredentialStatusType = Iden3OnchainSparseMerkleTreeProof2023
-	}
+	//err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
+	//if err != nil {
+	//	log.Error(ctx, "error sanitizing credential status", "error", err)
+	//	return err
+	//}
 	return nil
 }
 
@@ -345,6 +351,17 @@ func Load(fileName string) (*Configuration, error) {
 	if err := viper.Unmarshal(config); err != nil {
 		log.Error(ctx, "error unmarshalling configuration", "err", err)
 	}
+
+	jsonStr := viper.GetString("CUSTOM_DID_METHODS")
+	var customDIDMethods []CustomDIDMethods
+	if jsonStr != "" {
+		if err := json.Unmarshal([]byte(jsonStr), &customDIDMethods); err != nil {
+			log.Error(ctx, "error unmarshalling custom networks", "err", err)
+			return nil, err
+		}
+	}
+	config.CustomDIDMethods = customDIDMethods
+
 	checkEnvVars(ctx, config)
 	return config, nil
 }
@@ -408,20 +425,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
-	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT")
-	_ = viper.BindEnv("Ethereum.ConfirmationTimeout", "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT")
-	_ = viper.BindEnv("Ethereum.ConfirmationBlockCount", "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT")
-	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "ISSUER_ETHEREUM_RECEIPT_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.MinGasPrice", "ISSUER_ETHEREUM_MIN_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.MaxGasPrice", "ISSUER_ETHEREUM_MAX_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
-	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
-	_ = viper.BindEnv("CredentialStatus.DirectStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
+	_ = viper.BindEnv("CredentialStatus.Iden3CommAgentStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
 	_ = viper.BindEnv("CredentialStatus.RHS.URL", "ISSUER_CREDENTIAL_STATUS_RHS_URL")
 	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract", "ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT")
 	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.PublishingKeyPath", "ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH")
@@ -454,10 +460,14 @@ func bindEnv() {
 	_ = viper.BindEnv("APIUI.IdentityNetwork", "ISSUER_API_IDENTITY_NETWORK")
 	_ = viper.BindEnv("APIUI.KeyType", "ISSUER_API_UI_KEY_TYPE")
 
+	_ = viper.BindEnv("ISSUER_CUSTOM_DID_METHODS")
+
+	_ = viper.BindEnv("MediaTypeManager.Enabled", "ISSUER_MEDIA_TYPE_MANAGER_ENABLED")
+
 	viper.AutomaticEnv()
 }
 
-// nolint:gocyclo
+// nolint:gocyclo,gocognit
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
@@ -508,50 +518,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
 	}
 
-	if cfg.Ethereum.ContractAddress == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONTRACT_ADDRESS value is missing")
-	}
-
-	if cfg.Ethereum.URL == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
-	}
-
-	if cfg.Ethereum.DefaultGasLimit == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
-	}
-
-	if cfg.Ethereum.ConfirmationTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
-	}
-
-	if cfg.Ethereum.ConfirmationBlockCount == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
-	}
-
-	if cfg.Ethereum.ReceiptTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_RECEIPT_TIMEOUT value is missing")
-	}
-
-	if cfg.Ethereum.MaxGasPrice == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
-	}
-
-	if cfg.Ethereum.RPCResponseTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
-	}
-
-	if cfg.Ethereum.WaitReceiptCycleTime == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
-	}
-
-	if cfg.Ethereum.WaitBlockCycleTime == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
-	}
-
-	if cfg.Ethereum.ResolverPrefix == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_RESOLVER_PREFIX value is missing")
-	}
-
 	if cfg.Prover.ServerURL == "" {
 		log.Info(ctx, "ISSUER_PROVER_SERVER_URL value is missing")
 	}
@@ -573,14 +539,14 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.SchemaCache = common.ToPointer(false)
 	}
 
+	if cfg.MediaTypeManager.Enabled == nil {
+		log.Info(ctx, "ISSUER_MEDIA_TYPE_MANAGER_ENABLED is missing and the server set up it as true")
+		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
+	}
+
 	if cfg.NetworkResolverPath == "" {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing")
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
-	}
-
-	if cfg.CredentialStatus.RHSMode == "" {
-		log.Info(ctx, "ISSUER_CREDENTIAL_STATUS_RHS_MODE value is missing and the server set up it as None")
-		cfg.CredentialStatus.RHSMode = "None"
 	}
 
 	if cfg.APIUI.KeyType == "" {
@@ -628,8 +594,8 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	}
 
 	if cfg.APIUI.IdentityNetwork == "" {
-		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as mumbai")
-		cfg.APIUI.IdentityNetwork = "mumbai"
+		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as amoy")
+		cfg.APIUI.IdentityNetwork = "amoy"
 	}
 }
 

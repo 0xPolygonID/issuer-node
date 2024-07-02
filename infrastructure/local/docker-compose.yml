@@ -52,6 +52,8 @@ services:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
+    ports:
+      - "3004:3004"
     env_file:
       - ../../.env-api
       - ../../.env-issuer
@@ -61,6 +63,8 @@ services:
     build:
       context: ../../
       dockerfile: ${DOCKER_FILE}
+    ports:
+      - "3005:3005"
     env_file:
       - ../../.env-api
       - ../../.env-issuer

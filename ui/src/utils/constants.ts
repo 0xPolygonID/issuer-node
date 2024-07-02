@@ -34,6 +34,13 @@ export const DID_SEARCH_PARAM = "did";
 export const QUERY_SEARCH_PARAM = "query";
 export const SCHEMA_SEARCH_PARAM = "schema";
 export const STATUS_SEARCH_PARAM = "status";
+export const PAGINATION_PAGE_PARAM = "page";
+export const PAGINATION_MAX_RESULTS_PARAM = "max_results";
+export const SORT_PARAM = "sort";
+
+export const DEFAULT_PAGINATION_PAGE = 1;
+export const DEFAULT_PAGINATION_MAX_RESULTS = 10;
+export const DEFAULT_PAGINATION_TOTAL = 0;
 
 export const API_VERSION = "v1";
 

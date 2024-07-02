@@ -27,7 +27,7 @@ type RevocationStatusResolver struct {
 func NewRevocationStatusResolver(networkResolver network.Resolver) *RevocationStatusResolver {
 	resolvers := make(map[verifiable.CredentialStatusType]revocationCredentialStatusResolver, resolversLength)
 	resolvers[verifiable.Iden3ReverseSparseMerkleTreeProof] = &iden3ReverseSparseMerkleTreeProofResolver{}
-	resolvers[verifiable.SparseMerkleTreeProof] = &sparseMerkleTreeProofResolver{}
+	resolvers[verifiable.Iden3commRevocationStatusV1] = &iden3CommRevocationStatusV1Resolver{}
 	resolvers[verifiable.Iden3OnchainSparseMerkleTreeProof2023] = &iden3OnChainSparseMerkleTreeProof2023Resolver{}
 	return &RevocationStatusResolver{
 		networkResolver: networkResolver,
@@ -38,9 +38,9 @@ func NewRevocationStatusResolver(networkResolver network.Resolver) *RevocationSt
 // GetCredentialRevocationStatus - return a way to check credential revocation status.
 // If status is not supported, an error is returned.
 // If status is supported, a way to check revocation status is returned.
-func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(_ context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, credentialStatusType verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
+func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, credentialStatusType verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
 	if credentialStatusType == "" {
-		credentialStatusType = verifiable.SparseMerkleTreeProof
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
 	}
 	resolver, ok := rsr.resolvers[credentialStatusType]
 	if !ok {
@@ -52,7 +52,7 @@ func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(_ context.Con
 		return nil, err
 	}
 
-	settings, err := rsr.networkResolver.GetRhsSettings(resolverPrefix)
+	settings, err := rsr.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
 	}
