@@ -735,10 +735,14 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
-		Type: kms.KeyTypeEthereum,
-		ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
-	})
+	rhsMode := reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode)
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(
+		ctx,
+		rhsMode,
+		&kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+		})
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create RHS publisher: %w", err)
 	}

@@ -15,7 +15,6 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -229,10 +228,10 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 	}
 
 	if err := ls.validate(ctx, link); err != nil {
-		err := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(err))
-		if err != nil {
-			log.Error(ctx, "cannot set the sate", "err", err)
-			return err
+		setLinkError := ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateError(err))
+		if setLinkError != nil {
+			log.Error(ctx, "cannot set the state", "err", setLinkError)
+			return setLinkError
 		}
 
 		return err
@@ -246,6 +245,11 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		log.Error(ctx, "cannot fetch the schema", "err", err)
 		return err
 	}
+
+	claimRequestProofs := ports.ClaimRequestProofs{
+		BJJSignatureProof2021:      link.CredentialSignatureProof,
+		Iden3SparseMerkleTreeProof: link.CredentialMTPProof,
+	}
 	if len(issuedByUser) == 0 {
 		link.CredentialSubject["id"] = userDID.String()
 
@@ -255,8 +259,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 			link.CredentialExpiration,
 			schema.Type,
 			nil, nil, nil,
-			common.ToPointer(link.CredentialSignatureProof),
-			common.ToPointer(link.CredentialMTPProof),
+			claimRequestProofs,
 			&linkID,
 			true,
 			credentialStatusType,

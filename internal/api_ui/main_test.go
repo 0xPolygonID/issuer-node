@@ -88,11 +88,10 @@ func TestMain(m *testing.M) {
 	cfg.ServerUrl = "https://testing.env/"
 	cfg.CredentialStatus = config.CredentialStatus{
 		RHSMode: "None",
-		DirectStatus: config.DirectStatus{
+		Iden3CommAgentStatus: config.Iden3CommAgentStatus{
 			URL: "http://localhost:3001",
 		},
 	}
-
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()

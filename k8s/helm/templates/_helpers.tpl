@@ -136,9 +136,9 @@ Define RHS_CHAIN_ID
 */}}
 {{- define "helpers.api-rsh-chain-id" -}}
 {{- if eq .Values.mainnet true }}
-"137"
+{{ .Values.apiIssuerNode.configMap.issuerRshChainIDMain  | quote }}
 {{- else }}
-"80002"
+{{ .Values.apiIssuerNode.configMap.issuerRshChainIDAmoy  | quote }}
 {{- end }}
 {{- end }}
 
@@ -147,9 +147,9 @@ Define Rhs contract
 */}}
 {{- define "helpers.api-rsh-contract" -}}
 {{- if eq .Values.mainnet true }}
-"0xbEeB6bB53504E8C872023451fd0D23BeF01d320B"
+{{ .Values.apiIssuerNode.configMap.issuerRshContractMain | quote }}
 {{- else }}
-"0x16A1ae4c460C0a42f0a87e69c526c61599B28BC9"
+{{ .Values.apiIssuerNode.configMap.issuerRshContractAmoy | quote }}
 {{- end }}
 {{- end }}
 
@@ -278,3 +278,9 @@ Define custom service selectorLabels for vault
 {{- define "polygon-id-issuer.vaultIssuerNode.Labels" -}}
 app: {{ .Values.vaultIssuerNode.service.selector }}
 {{- end }}
+
+
+
+{{- define "helpers.serviceAccountName" -}}
+{{- printf "%s-%s%s" .Release.Name .Release.Namespace "-service-account" -}}
+{{- end -}}

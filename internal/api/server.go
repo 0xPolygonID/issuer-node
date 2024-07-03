@@ -100,7 +100,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		Network:                 core.NetworkID(network),
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: s.cfg.CredentialStatus.CredentialStatusType,
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -160,7 +160,25 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		expiration = common.ToPointer(time.Unix(*request.Body.Expiration, 0))
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, common.ToPointer(true), common.ToPointer(true), nil, false, verifiable.CredentialStatusType(s.cfg.CredentialStatus.CredentialStatusType), toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+	claimRequestProofs := ports.ClaimRequestProofs{}
+	if request.Body.Proofs == nil {
+		claimRequestProofs.BJJSignatureProof2021 = true
+		claimRequestProofs.Iden3SparseMerkleTreeProof = true
+	} else {
+		for _, proof := range *request.Body.Proofs {
+			if string(proof) == string(verifiable.BJJSignatureProofType) {
+				claimRequestProofs.BJJSignatureProof2021 = true
+				continue
+			}
+			if string(proof) == string(verifiable.Iden3SparseMerkleTreeProofType) {
+				claimRequestProofs.Iden3SparseMerkleTreeProof = true
+				continue
+			}
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unsupported proof type: %s", proof)}}, nil
+		}
+	}
+
+	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
 		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)
@@ -407,7 +425,8 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		log.Debug(ctx, "agent empty request")
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with an empty request"}}, nil
 	}
-	basicMessage, err := s.packageManager.UnpackWithType(packers.MediaTypeZKPMessage, []byte(*request.Body))
+
+	basicMessage, mediatype, err := s.packageManager.Unpack([]byte(*request.Body))
 	if err != nil {
 		log.Debug(ctx, "agent bad request", "err", err, "body", *request.Body)
 		return Agent400JSONResponse{N400JSONResponse{"cannot proceed with the given request"}}, nil
@@ -419,7 +438,7 @@ func (s *Server) Agent(ctx context.Context, request AgentRequestObject) (AgentRe
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
-	agent, err := s.claimService.Agent(ctx, req)
+	agent, err := s.claimService.Agent(ctx, req, mediatype)
 	if err != nil {
 		log.Error(ctx, "agent error", "err", err)
 		return Agent400JSONResponse{N400JSONResponse{err.Error()}}, nil

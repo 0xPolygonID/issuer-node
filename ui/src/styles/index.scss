@@ -1,13 +1,13 @@
 @import "variables.module";
 
 @font-face {
-  font-family: ModernEra-Regular;
+  font-family: Matter-Regular;
   font-style: normal;
   font-weight: normal;
   src:
-    local("ModernEra-Regular"),
-    url("/fonts/ModernEra-Regular.woff2") format("woff2"),
-    url("/fonts/ModernEra-Regular.woff") format("woff");
+    local("Matter-Regular"),
+    url("/fonts/Matter-Regular.woff2") format("woff2"),
+    url("/fonts/Matter-Regular.woff") format("woff");
 }
 
 /* OVERRIDES */
@@ -29,6 +29,16 @@
 
   svg {
     width: 20px;
+  }
+}
+
+.ant-pagination {
+  .ant-pagination-options {
+    margin-right: 16px;
+
+    .ant-select-selector {
+      border-color: $border-color;
+    }
   }
 }
 
@@ -100,6 +110,14 @@
   }
 }
 
+.ant-select-dropdown {
+  .rc-virtual-list {
+    .ant-select-item-option-selected {
+      background-color: $selected-bg;
+    }
+  }
+}
+
 .ant-select-selection-search-input {
   &.hidden-suffix {
     .ant-input-suffix {
@@ -115,12 +133,12 @@
   }
 }
 
-.avatar-color-cyan {
-  background-color: $cyan-bg;
-  color: $cyan-color;
+.avatar-color-icon {
+  background-color: $icon-bg;
+  color: $icon-color;
 
   path {
-    stroke: $cyan-color;
+    stroke: $icon-color;
   }
 }
 
@@ -252,8 +270,11 @@
 }
 
 .ant-tag {
-  font-weight: bold;
-  padding-top: 2px;
+  margin-right: auto;
+  padding: 2px 10px;
+  border-radius: 16px;
+  border: 0;
+  background-color: $tag-bg;
 
   &.ant-tag-success {
     background-color: $tag-bg-success;
@@ -279,6 +300,28 @@
 
 .ant-notification-notice-content {
   padding-inline-end: 24px;
+}
+
+.ant-btn-primary {
+  border: 1px solid #54db06;
+  box-shadow: none;
+
+  &:not(:disabled .ant-btn-disable) {
+    background: $primary-color-light;
+
+    &:hover {
+      color: $text-color;
+    }
+
+    &:active {
+      color: $text-color;
+      background: $primary-color-light;
+    }
+  }
+}
+
+.ant-typography.ant-typography-secondary {
+  color: $text-color-secondary;
 }
 
 /* CUSTOM */

@@ -2,10 +2,12 @@ package config
 
 import (
 	"strings"
+
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 )
 
 const (
-	sparseMerkleTreeProof                 = "SparseMerkleTreeProof"
+	iden3commRevocationStatusV1           = verifiable.Iden3commRevocationStatusV1
 	iden3ReverseSparseMerkleTreeProof     = "Iden3ReverseSparseMerkleTreeProof"
 	iden3OnchainSparseMerkleTreeProof2023 = "Iden3OnchainSparseMerkleTreeProof2023"
 	onChain                               = "OnChain"
@@ -18,21 +20,21 @@ type RHSMode string
 
 // CredentialStatus is the type of credential status
 type CredentialStatus struct {
-	DirectStatus         DirectStatus
+	Iden3CommAgentStatus Iden3CommAgentStatus
 	RHS                  RHS
 	OnchainTreeStore     OnchainTreeStore `mapstructure:"OnchainTreeStore"`
-	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
+	RHSMode              RHSMode          `tip:"Reverse hash service mode (OffChain, OnChain, None)"`
 	SingleIssuer         bool
-	CredentialStatusType string `mapstructure:"CredentialStatusType" default:"SparseMerkleTreeProof"`
+	CredentialStatusType verifiable.CredentialStatusType `mapstructure:"CredentialStatusType" default:"Iden3commRevocationStatusV1"`
 }
 
-// DirectStatus is the type of direct status
-type DirectStatus struct {
+// Iden3CommAgentStatus is the type of direct status
+type Iden3CommAgentStatus struct {
 	URL string `mapstructure:"URL"`
 }
 
 // GetURL returns the URL of the direct status
-func (r *DirectStatus) GetURL() string {
+func (r *Iden3CommAgentStatus) GetURL() string {
 	return strings.TrimSuffix(r.URL, "/")
 }
 

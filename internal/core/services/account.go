@@ -35,6 +35,7 @@ func NewAccountService(ethConfig config.Ethereum, keyStore *kms.KMS) *AccountSer
 		ReceiptTimeout:         ethConfig.ReceiptTimeout,
 		MinGasPrice:            big.NewInt(int64(ethConfig.MinGasPrice)),
 		MaxGasPrice:            big.NewInt(int64(ethConfig.MaxGasPrice)),
+		GasLess:                ethConfig.GasLess,
 		RPCResponseTimeout:     ethConfig.RPCResponseTimeout,
 		WaitReceiptCycleTime:   ethConfig.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     ethConfig.WaitBlockCycleTime,

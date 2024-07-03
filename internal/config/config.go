@@ -50,6 +50,7 @@ type Configuration struct {
 	VaultUserPassAuthPassword    string
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
+	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
 }
 
 // Database has the database configuration
@@ -85,6 +86,7 @@ type Ethereum struct {
 	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
 	MinGasPrice               int           `tip:"Minimum Gas Price"`
 	MaxGasPrice               int           `tip:"The Datasource name locator"`
+	GasLess                   bool          `tip:"Gasless transactions"`
 	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
 	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
 	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
@@ -199,6 +201,11 @@ type APIUIAuth struct {
 	Password string `mapstructure:"Password" tip:"Server UI API Basic auth password"`
 }
 
+// MediaTypeManager enables or disables the media types manager
+type MediaTypeManager struct {
+	Enabled *bool `mapstructure:"Enabled" tip:"Enable or disable the media type manager"`
+}
+
 // Sanitize perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
 func (c *Configuration) Sanitize(ctx context.Context) error {
@@ -263,8 +270,8 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 	}
 
 	if c.CredentialStatus.RHSMode == none {
-		c.CredentialStatus.DirectStatus.URL = host
-		c.CredentialStatus.CredentialStatusType = sparseMerkleTreeProof
+		c.CredentialStatus.Iden3CommAgentStatus.URL = host
+		c.CredentialStatus.CredentialStatusType = iden3commRevocationStatusV1
 	}
 
 	if c.CredentialStatus.RHSMode == offChain {
@@ -272,7 +279,7 @@ func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string)
 			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
 		}
 		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
-		c.CredentialStatus.DirectStatus.URL = host
+		c.CredentialStatus.Iden3CommAgentStatus.URL = host
 	}
 
 	if c.CredentialStatus.RHSMode == onChain {
@@ -464,6 +471,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "ISSUER_ETHEREUM_RECEIPT_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.MinGasPrice", "ISSUER_ETHEREUM_MIN_GAS_PRICE")
 	_ = viper.BindEnv("Ethereum.MaxGasPrice", "ISSUER_ETHEREUM_MAX_GAS_PRICE")
+	_ = viper.BindEnv("Ethereum.GasLess", "ISSUER_ETHEREUM_GASLESS")
 	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
 	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
 	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
@@ -471,7 +479,7 @@ func bindEnv() {
 	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
-	_ = viper.BindEnv("CredentialStatus.DirectStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
+	_ = viper.BindEnv("CredentialStatus.Iden3CommAgentStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
 	_ = viper.BindEnv("CredentialStatus.RHS.URL", "ISSUER_CREDENTIAL_STATUS_RHS_URL")
 	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract", "ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT")
 	_ = viper.BindEnv("CredentialStatus.OnchainTreeStore.PublishingKeyPath", "ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH")
@@ -505,10 +513,12 @@ func bindEnv() {
 
 	_ = viper.BindEnv("ISSUER_CUSTOM_DID_METHODS")
 
+	_ = viper.BindEnv("MediaTypeManager.Enabled", "ISSUER_MEDIA_TYPE_MANAGER_ENABLED")
+
 	viper.AutomaticEnv()
 }
 
-// nolint:gocyclo
+// nolint:gocyclo,gocognit
 func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
@@ -622,6 +632,11 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.SchemaCache == nil {
 		log.Info(ctx, "ISSUER_SCHEMA_CACHE is missing and the server set up it as false")
 		cfg.SchemaCache = common.ToPointer(false)
+	}
+
+	if cfg.MediaTypeManager.Enabled == nil {
+		log.Info(ctx, "ISSUER_MEDIA_TYPE_MANAGER_ENABLED is missing and the server set up it as true")
+		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
 	if cfg.CredentialStatus.RHSMode == "" {

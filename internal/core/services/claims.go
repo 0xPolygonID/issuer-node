@@ -17,6 +17,7 @@ import (
 	"github.com/iden3/go-schema-processor/v2/merklize"
 	"github.com/iden3/go-schema-processor/v2/processor"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 	shell "github.com/ipfs/go-ipfs-api"
@@ -31,6 +32,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/internal/urn"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/rand"
@@ -67,10 +69,11 @@ type claim struct {
 	publisher                pubsub.Publisher
 	ipfsClient               *shell.Shell
 	revocationStatusResolver *revocation_status.RevocationStatusResolver
+	mediatypeManager         ports.MediatypeManager
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager) ports.ClaimsService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
@@ -82,6 +85,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrServ
 		loader:                   ld,
 		publisher:                ps,
 		revocationStatusResolver: revocationStatusResolver,
+		mediatypeManager:         mediatypeManager,
 	}
 	if ipfsGatewayURL != "" {
 		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
@@ -230,6 +234,7 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		authCs, err := authClaim.GetCredentialStatus()
 		if err != nil {
 			log.Error(ctx, "cannot get the auth claim credential status", "err", err)
+			return nil, err
 		}
 
 		proof.IssuerData.CredentialStatus = authCs
@@ -364,7 +369,13 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 	}, nil
 }
 
-func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Agent, error) {
+func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest, mediatype iden3comm.MediaType) (*domain.Agent, error) {
+	if !c.mediatypeManager.AllowMediaType(req.Type, mediatype) {
+		err := fmt.Errorf("unsupported media type '%s' for message type '%s'", mediatype, req.Type)
+		log.Error(ctx, "agent: unsupported media type", "err", err)
+		return nil, err
+	}
+
 	exists, err := c.identitySrv.Exists(ctx, *req.IssuerDID)
 	if err != nil {
 		log.Error(ctx, "loading issuer identity", "err", err, "issuerDID", req.IssuerDID)
@@ -376,7 +387,14 @@ func (c *claim) Agent(ctx context.Context, req *ports.AgentRequest) (*domain.Age
 		return nil, fmt.Errorf("cannot proceed with this identity, not found")
 	}
 
-	return c.getAgentCredential(ctx, req) // at this point the type is already validated
+	switch req.Type {
+	case protocol.CredentialFetchRequestMessageType:
+		return c.getAgentCredential(ctx, req)
+	case protocol.RevocationStatusRequestMessageType:
+		return c.getRevocationStatus(ctx, req)
+	default:
+		return nil, errors.New("invalid type")
+	}
 }
 
 func (c *claim) GetAuthClaim(ctx context.Context, did *w3c.DID) (*domain.Claim, error) {
@@ -603,6 +621,30 @@ func (c *claim) revoke(ctx context.Context, did *w3c.DID, nonce uint64, descript
 	return nil
 }
 
+func (c *claim) getRevocationStatus(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
+	revData := &protocol.RevocationStatusRequestMessageBody{}
+	err := json.Unmarshal(basicMessage.Body, revData)
+	if err != nil {
+		return nil, fmt.Errorf("invalid revocation request body: %w", err)
+	}
+
+	var revStatus *verifiable.RevocationStatus
+	revStatus, err = c.GetRevocationStatus(ctx, *basicMessage.IssuerDID, revData.RevocationNonce)
+	if err != nil {
+		return nil, fmt.Errorf("failed get revocation status: %w", err)
+	}
+
+	return &domain.Agent{
+		ID:       uuid.NewString(),
+		Type:     protocol.RevocationStatusResponseMessageType,
+		ThreadID: basicMessage.ThreadID,
+		Body:     protocol.RevocationStatusResponseMessageBody{RevocationStatus: *revStatus},
+		From:     basicMessage.IssuerDID.String(),
+		To:       basicMessage.UserDID.String(),
+		Typ:      packers.MediaTypePlainMessage,
+	}, nil
+}
+
 func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.AgentRequest) (*domain.Agent, error) {
 	fetchRequestBody := &protocol.CredentialFetchRequestMessageBody{}
 	err := json.Unmarshal(basicMessage.Body, fetchRequestBody)
@@ -611,10 +653,13 @@ func (c *claim) getAgentCredential(ctx context.Context, basicMessage *ports.Agen
 		return nil, fmt.Errorf("invalid credential fetch request body: %w", err)
 	}
 
-	claimID, err := uuid.Parse(fetchRequestBody.ID)
+	claimID, err := urn.UUIDFromURNString(fetchRequestBody.ID)
 	if err != nil {
-		log.Error(ctx, "wrong claimID in agent request body", "err", err)
-		return nil, fmt.Errorf("invalid claim ID")
+		claimID, err = uuid.Parse(fetchRequestBody.ID)
+		if err != nil {
+			log.Error(ctx, "wrong claimID in agent request body", "err", err)
+			return nil, fmt.Errorf("invalid claim ID")
+		}
 	}
 
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, basicMessage.IssuerDID, claimID)
@@ -761,7 +806,7 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 
 	issuanceDate := time.Now().UTC()
 	return verifiable.W3CCredential{
-		ID:                c.buildCredentialID(*claimReq.DID, vcID, claimReq.SingleIssuer),
+		ID:                string(c.buildCredentialID(vcID)),
 		Context:           credentialCtx,
 		Type:              credentialType,
 		Expiration:        claimReq.Expiration,
@@ -778,10 +823,6 @@ func (c *claim) newVerifiableCredential(ctx context.Context, claimReq *ports.Cre
 	}, nil
 }
 
-func (c *claim) buildCredentialID(issuerDID w3c.DID, credID uuid.UUID, singleIssuer bool) string {
-	// TODO: review how to build the credential ID
-	if singleIssuer {
-		return fmt.Sprintf("%s/v1/credentials/%s", strings.TrimSuffix(c.host, "/"), credID.String())
-	}
-	return fmt.Sprintf("%s/v1/%s/claims/%s", strings.TrimSuffix(c.host, "/"), issuerDID.String(), credID.String())
+func (c *claim) buildCredentialID(credID uuid.UUID) urn.URN {
+	return urn.FromUUID(credID)
 }

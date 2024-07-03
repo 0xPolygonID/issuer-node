@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
   title: Polygon ID - Issuer
   description: |
@@ -675,6 +675,13 @@ components:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
           $ref: '#/components/schemas/DisplayMethod'
+        proofs:
+          type: array
+          items:
+            type: string
+            x-omitempty: false
+            example: "BJJSignature2021"
+            enum: [ BJJSignature2021, Iden3SparseMerkleTreeProof]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"

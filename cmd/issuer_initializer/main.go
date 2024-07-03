@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
-	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -137,16 +136,17 @@ func main() {
 		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
 		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
 		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
+		GasLess:                cfg.Ethereum.GasLess,
 		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
 		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
 		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
 	}, keyStore)
 
+	// this is needed to create the did with the correct auth core claim revocation status URL
+	cfg.CredentialStatus.Iden3CommAgentStatus.URL = cfg.APIUI.ServerURL
 	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
 	cfg.CredentialStatus.SingleIssuer = true
-	// this is needed to create the did with the correct auth core claim revocation status URL
-	cfg.CredentialStatus.DirectStatus.URL = cfg.APIUI.ServerURL
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
 
 	didCreationOptions := &ports.DIDCreationOptions{
@@ -154,7 +154,7 @@ func main() {
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: verifiable.CredentialStatusType(cfg.CredentialStatus.CredentialStatusType),
+		AuthBJJCredentialStatus: cfg.CredentialStatus.CredentialStatusType,
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)

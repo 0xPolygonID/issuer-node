@@ -94,7 +94,7 @@ func TestMain(m *testing.M) {
 
 	cfg.CredentialStatus = config.CredentialStatus{
 		RHSMode: "None",
-		DirectStatus: config.DirectStatus{
+		Iden3CommAgentStatus: config.Iden3CommAgentStatus{
 			URL: "http://localhost:3001",
 		},
 	}
