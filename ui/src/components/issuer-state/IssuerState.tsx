@@ -228,7 +228,7 @@ export function IssuerState() {
           <TableCard
             defaultContents={
               <>
-                <Avatar className="avatar-color-cyan" icon={<IconSwitch />} size={48} />
+                <Avatar className="avatar-color-icon" icon={<IconSwitch />} size={48} />
 
                 <Typography.Text strong>No transactions</Typography.Text>
 
@@ -268,7 +268,7 @@ export function IssuerState() {
                 <Space align="end" size="middle">
                   <Card.Meta title="Published states" />
 
-                  <Tag color="blue">{transactionsList.length}</Tag>
+                  <Tag>{transactionsList.length}</Tag>
                 </Space>
               </Row>
             }

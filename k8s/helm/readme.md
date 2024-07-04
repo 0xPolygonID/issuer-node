@@ -1,7 +1,7 @@
 # Overview
 
-This is a helm chart for deploying Polygon ID issuer node on Kubernetes.
-To learn more about Polygon ID issuer, see [this](https://0xpolygonid.github.io/tutorials/issuer/issuer-overview).
+This is a helm chart for deploying Privado ID issuer node on Kubernetes.
+To learn more about Privado ID issuer, see [this](https://0xpolygonid.github.io/tutorials/issuer/issuer-overview).
 
 ## Architecture
 

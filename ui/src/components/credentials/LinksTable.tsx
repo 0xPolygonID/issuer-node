@@ -334,7 +334,7 @@ export function LinksTable() {
       <TableCard
         defaultContents={
           <>
-            <Avatar className="avatar-color-cyan" icon={<IconLink />} size={48} />
+            <Avatar className="avatar-color-icon" icon={<IconLink />} size={48} />
 
             <Typography.Text strong>No links</Typography.Text>
 
@@ -388,7 +388,7 @@ export function LinksTable() {
             <Space size="middle">
               <Card.Meta title={LINKS} />
 
-              <Tag color="blue">{linksList.length}</Tag>
+              <Tag>{linksList.length}</Tag>
             </Space>
 
             {(!showDefaultContent || status !== undefined) && (
