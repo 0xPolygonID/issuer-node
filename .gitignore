@@ -10,6 +10,7 @@ bin/
 .env-api
 .env-issuer
 .env-ui
+resolvers_settings.yaml
 
 infrastructure/local/.vault/data
 infrastructure/local/.vault/plugins

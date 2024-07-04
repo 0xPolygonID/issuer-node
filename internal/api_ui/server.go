@@ -26,6 +26,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
 	link_state "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
@@ -42,10 +43,11 @@ type Server struct {
 	publisherGateway   ports.Publisher
 	packageManager     *iden3comm.PackageManager
 	health             *health.Status
+	networkResolver    network.Resolver
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, claimsService ports.ClaimsService, schemaService ports.SchemaService, connectionsService ports.ConnectionsService, linkService ports.LinkService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, health *health.Status, networkResolver network.Resolver) *Server {
 	return &Server{
 		cfg:                cfg,
 		identityService:    identityService,
@@ -57,6 +59,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		health:             health,
+		networkResolver:    networkResolver,
 	}
 }
 
@@ -353,7 +356,17 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		claimRequestProofs.Iden3SparseMerkleTreeProof = true
 	}
 
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, s.cfg.CredentialStatus.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
+	resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
+	if err != nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	}
+
+	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
 		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -680,7 +693,17 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, s.cfg.CredentialStatus.CredentialStatusType)
+	resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
+	if err != nil {
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	}
+
+	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+	}
+
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, rhsSettings.CredentialStatusType)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil

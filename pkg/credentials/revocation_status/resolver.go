@@ -7,37 +7,38 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
+	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 )
 
 const resolversLength = 3
 
 type revocationCredentialStatusResolver interface {
-	resolve(credentialStatusSettings config.CredentialStatus, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus
+	resolve(credentialStatusSettings network.RhsSettings, issuerDID w3c.DID, nonce uint64, issuerState string) *verifiable.CredentialStatus
 }
 
 // RevocationStatusResolver resolves credential status.
 type RevocationStatusResolver struct {
-	credentialStatusSettings config.CredentialStatus
-	resolvers                map[verifiable.CredentialStatusType]revocationCredentialStatusResolver
+	networkResolver network.Resolver
+	resolvers       map[verifiable.CredentialStatusType]revocationCredentialStatusResolver
 }
 
 // NewRevocationStatusResolver - constructor
-func NewRevocationStatusResolver(credentialStatusSettings config.CredentialStatus) *RevocationStatusResolver {
+func NewRevocationStatusResolver(networkResolver network.Resolver) *RevocationStatusResolver {
 	resolvers := make(map[verifiable.CredentialStatusType]revocationCredentialStatusResolver, resolversLength)
 	resolvers[verifiable.Iden3ReverseSparseMerkleTreeProof] = &iden3ReverseSparseMerkleTreeProofResolver{}
 	resolvers[verifiable.Iden3commRevocationStatusV1] = &iden3CommRevocationStatusV1Resolver{}
 	resolvers[verifiable.Iden3OnchainSparseMerkleTreeProof2023] = &iden3OnChainSparseMerkleTreeProof2023Resolver{}
 	return &RevocationStatusResolver{
-		credentialStatusSettings: credentialStatusSettings,
-		resolvers:                resolvers,
+		networkResolver: networkResolver,
+		resolvers:       resolvers,
 	}
 }
 
 // GetCredentialRevocationStatus - return a way to check credential revocation status.
 // If status is not supported, an error is returned.
 // If status is supported, a way to check revocation status is returned.
-func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(_ context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, credentialStatusType verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
+func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(ctx context.Context, issuerDID w3c.DID, nonce uint64, issuerState string, credentialStatusType verifiable.CredentialStatusType) (*verifiable.CredentialStatus, error) {
 	if credentialStatusType == "" {
 		credentialStatusType = verifiable.Iden3commRevocationStatusV1
 	}
@@ -45,5 +46,16 @@ func (rsr *RevocationStatusResolver) GetCredentialRevocationStatus(_ context.Con
 	if !ok {
 		return nil, errors.New("unsupported credential credentialStatusType type")
 	}
-	return resolver.resolve(rsr.credentialStatusSettings, issuerDID, nonce, issuerState), nil
+
+	resolverPrefix, err := common.ResolverPrefix(&issuerDID)
+	if err != nil {
+		return nil, err
+	}
+
+	settings, err := rsr.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	return resolver.resolve(*settings, issuerDID, nonce, issuerState), nil
 }

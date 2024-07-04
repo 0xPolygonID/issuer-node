@@ -27,7 +27,6 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -38,6 +37,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/primitive"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -76,13 +76,13 @@ type identity struct {
 	ignoreRHSErrors          bool
 	pubsub                   pubsub.Publisher
 	revocationStatusResolver *revocation_status.RevocationStatusResolver
-	credentialStatusSettings config.CredentialStatus
+	networkResolver          network.Resolver
 	rhsFactory               reverse_hash.Factory
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
 	return &identity{
 		identityRepository:       identityRepository,
 		imtRepository:            imtRepository,
@@ -98,7 +98,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		ignoreRHSErrors:          false,
 		verifier:                 verifier,
 		pubsub:                   ps,
-		credentialStatusSettings: credentialStatusSettings,
+		networkResolver:          networkResolver,
 		rhsFactory:               rhsFactory,
 		revocationStatusResolver: revocationStatusResolver,
 	}
@@ -315,7 +315,12 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 		Status:     domain.StatusCreated,
 	}
 
-	err := i.storage.Pgx.BeginFunc(ctx,
+	resolverPrefix, err := common.ResolverPrefix(&did)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
 			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, &did)
 			if err != nil {
@@ -364,9 +369,14 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error saving new identity state: %w", err)
 			}
 
-			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+			rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+			if err != nil {
+				log.Error(ctx, "getting RHS settings", "err", err)
+				return err
+			}
+			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 				Type: kms.KeyTypeEthereum,
-				ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+				ID:   rhsSettings.PublishingKey,
 			})
 			if err != nil {
 				log.Error(ctx, "can't create RHS publisher", "err", err)
@@ -557,7 +567,7 @@ func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, cur
 }
 
 // populate identity state with data needed to do generate new state.
-// Get Data from MT and previous state
+// GetEthClient Data from MT and previous state
 func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTrees, state, previousState *domain.IdentityState) error {
 	claimsTree, err := trees.ClaimsTree()
 	if err != nil {
@@ -735,14 +745,22 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	rhsMode := reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode)
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(
-		ctx,
-		rhsMode,
-		&kms.KeyID{
-			Type: kms.KeyTypeEthereum,
-			ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
-		})
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "getting resolver prefix", "err", err)
+		return nil, nil, err
+	}
+
+	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "getting RHS settings", "err", err)
+		return nil, nil, err
+	}
+
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   rhsSettings.PublishingKey,
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create RHS publisher: %w", err)
 	}
@@ -924,9 +942,21 @@ func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) e
 		return errors.New("can't publish genesis state for the identity based on the ethereum key")
 	}
 
-	publishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "getting resolver prefix", "err", err)
+		return err
+	}
+
+	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "getting RHS settings", "err", err)
+		return err
+	}
+
+	publishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
-		ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+		ID:   rhsSettings.PublishingKey,
 	})
 	if err != nil {
 		log.Error(ctx, "can't create RHS client", "err", err)
