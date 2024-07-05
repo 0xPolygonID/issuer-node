@@ -203,10 +203,3 @@ func DecodeETHPubKey(key []byte) (*ecdsa.PublicKey, error) {
 	pubKey, err := crypto.DecompressPubkey(key)
 	return pubKey, errors.WithStack(err)
 }
-
-// decodeETHPrivateKey is a helper method to convert byte representation of
-// private key to *ecdsa.PrivateKey
-func decodeETHPrivateKey(key []byte) (*ecdsa.PrivateKey, error) {
-	privKey, err := crypto.ToECDSA(key)
-	return privKey, errors.WithStack(err)
-}

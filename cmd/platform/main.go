@@ -88,20 +88,30 @@ func main() {
 		Pass:                cfg.VaultUserPassAuthPassword,
 	}
 
-	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-	if vaultErr != nil {
-		log.Error(ctx, "cannot initialize vault client", "err", err)
-		return
-	}
+	var keyStore *kms.KMS
+	if cfg.KmsPlugin == config.LocalStorage {
+		log.Info(ctx, "using local storage key provider")
+		keyStore, err = kms.OpenLocalPath(cfg.KmsPluginLocalStorageFilePath)
+		if err != nil {
+			log.Error(ctx, "cannot initialize kms", "err", err)
+			return
+		}
+	} else {
+		log.Info(ctx, "using vault key provider")
+		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+		if vaultErr != nil {
+			log.Error(ctx, "cannot initialize vault client", "err", err)
+			return
+		}
 
-	if vaultCfg.UserPassAuthEnabled {
-		go providers.RenewToken(ctx, vaultCli, vaultCfg)
-	}
-
-	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
-	if err != nil {
-		log.Error(ctx, "cannot initialize kms", "err", err)
-		return
+		if vaultCfg.UserPassAuthEnabled {
+			go providers.RenewToken(ctx, vaultCli, vaultCfg)
+		}
+		keyStore, err = kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
+		if err != nil {
+			log.Error(ctx, "cannot initialize kms", "err", err)
+			return
+		}
 	}
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)

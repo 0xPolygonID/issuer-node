@@ -61,6 +61,10 @@ api-ui: $(BIN)/oapi-codegen
 up:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
 
+.PHONY: up/localstorage
+ up/localstorage:
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
+
 .PHONY: run
 run:
 	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
@@ -154,6 +158,12 @@ lint-fix: $(BIN)/golangci-lint
 add-private-key:
 	docker exec issuer-vault-1 \
 	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)
+
+# usage: make private_key=xxx add-private-key-localstorage
+.PHONY: add-private-key-localstorage
+add-private-key-localstorage:
+	docker exec issuer-api-1 \
+	./kms_local_storage_priv_key_importer --privateKey=$(private_key)
 
 .PHONY: print-vault-token
 print-vault-token:
