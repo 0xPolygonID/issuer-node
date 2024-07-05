@@ -223,7 +223,7 @@ ISSUER_KMS_PLUGIN=localstorage
 When the issuer-api-1 container is running (after execute make run), you have to add your metamask private key with the following command 
 
 ```bash
- make private_key=4b3XXX add-private-key-localstorage
+make private_key=4b3XXX add-private-key-localstorage
 ```
 If you want to use Vault just change the `ISSUER_KMS_PLUGIN` to `vault` and follow the steps in the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section. 
 
