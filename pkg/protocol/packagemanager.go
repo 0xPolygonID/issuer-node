@@ -46,7 +46,7 @@ func InitPackageManager(ctx context.Context, ethStateContracts map[string]*abi.S
 }
 
 func kMSBJJAdapterSigner(keyStore *kms.KMS) packers.SignerResolverHandlerFunc {
-	return packers.SignerResolverHandlerFunc(func(kid string) (crypto.Signer, error) {
+	return func(kid string) (crypto.Signer, error) {
 		parts := strings.Split(kid, "#")
 		idBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 		if err != nil {
@@ -60,5 +60,5 @@ func kMSBJJAdapterSigner(keyStore *kms.KMS) packers.SignerResolverHandlerFunc {
 		}
 
 		return kmsAdapter, nil
-	})
+	}
 }

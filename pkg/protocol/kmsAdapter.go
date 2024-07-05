@@ -24,7 +24,7 @@ func (a KMSBJJJWSAdapter) Public() crypto.PublicKey {
 }
 
 // Sign signs prepared digest (swap, because there is a swap inside)
-func (a KMSBJJJWSAdapter) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (a KMSBJJJWSAdapter) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	sig, err := a.kms.Sign(context.Background(), a.keyID, utils.SwapEndianness(digest))
 	if err != nil {
 		return nil, err
