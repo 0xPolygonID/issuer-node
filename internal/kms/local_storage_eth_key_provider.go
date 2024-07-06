@@ -48,6 +48,7 @@ func (ls *localStorageEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 	if !ok {
 		return keyID, errors.New("unexpected public key type")
 	}
+
 	pubKeyBytes := crypto.CompressPubkey(pubKey)
 	pubKeyHex := hex.EncodeToString(pubKeyBytes)
 	keyID.ID = keyPath(identity, ls.keyType, pubKeyHex)
@@ -119,7 +120,7 @@ func (ls *localStorageEthKeyProvider) LinkToIdentity(ctx context.Context, keyID 
 
 // ListByIdentity lists keys by identity
 func (ls *localStorageEthKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
-	return ls.localStorageFileManager.searchByIdentityInFile(ctx, identity)
+	return ls.localStorageFileManager.searchByIdentityInFile(ctx, identity, ls.keyType)
 }
 
 // nolint

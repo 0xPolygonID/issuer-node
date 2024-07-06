@@ -15,10 +15,12 @@ import (
 // LocalStorageFileManager - interface for managing local storage
 type LocalStorageFileManager interface {
 	saveKeyMaterialToFile(ctx context.Context, keyMaterial map[string]string, id string) error
-	searchByIdentityInFile(ctx context.Context, identity w3c.DID) ([]KeyID, error)
+	searchByIdentityInFile(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error)
 	searchKeyMaterialInFileAndReplace(ctx context.Context, id string, identity w3c.DID) error
 	searchPrivateKeyInFile(ctx context.Context, keyID KeyID) (string, error)
 }
+
+const partsNumber3 = 3
 
 type localStorageFileManager struct {
 	file string
@@ -54,23 +56,24 @@ func (ls *localStorageFileManager) saveKeyMaterialToFile(ctx context.Context, ke
 	return nil
 }
 
-func (ls *localStorageFileManager) searchByIdentityInFile(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
+func (ls *localStorageFileManager) searchByIdentityInFile(ctx context.Context, identity w3c.DID, keyType KeyType) ([]KeyID, error) {
 	localStorageFileContent, err := readContentFile(ctx, ls.file)
 	if err != nil {
 		return nil, err
 	}
-
 	keyIDs := make([]KeyID, 0)
 	for _, keyMaterial := range localStorageFileContent {
 		keyParts := strings.Split(keyMaterial.KeyPath, "/")
-		if len(keyParts) != partsNumber {
+		if len(keyParts) != partsNumber && len(keyParts) != partsNumber3 {
 			continue
 		}
-		if keyParts[0] == identity.String() {
-			keyIDs = append(keyIDs, KeyID{
-				Type: KeyType(keyMaterial.KeyType),
-				ID:   keyMaterial.KeyPath,
-			})
+		if keyParts[0] == identity.String() || keyParts[1] == identity.String() {
+			if keyMaterial.KeyType == string(keyType) {
+				keyIDs = append(keyIDs, KeyID{
+					Type: KeyType(keyMaterial.KeyType),
+					ID:   keyMaterial.KeyPath,
+				})
+			}
 		}
 	}
 	return keyIDs, nil

@@ -56,8 +56,8 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 
 	identity := "did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV"
 	fileContent := []localStorageBJJKeyProviderFileContent{
-		{KeyPath: identity + "/key1", KeyType: "ETH", PrivateKey: "0xABC123"},
-		{KeyPath: "did:example:456/key2", KeyType: "Bitcoin", PrivateKey: "0xDEF456"},
+		{KeyPath: identity + "/ETH:0347fe70a2a9b752e8012d72851c35a13a1423bcdac4bde6ec036e1ea9317b36ac", KeyType: string(KeyTypeEthereum), PrivateKey: "0xABC123"},
+		{KeyPath: "keys/" + identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a", KeyType: string(KeyTypeBabyJubJub), PrivateKey: "0xDEF456"},
 	}
 
 	content, err := json.Marshal(fileContent)
@@ -70,10 +70,16 @@ func TestSearchByIdentityInFile_ReturnsKeyIDsOnMatch(t *testing.T) {
 	ctx := context.Background()
 	did, err := w3c.ParseDID(identity)
 	require.NoError(t, err)
-	keyIDs, err := ls.searchByIdentityInFile(ctx, *did)
+
+	keyIDs, err := ls.searchByIdentityInFile(ctx, *did, KeyTypeEthereum)
 	require.NoError(t, err)
 	require.Len(t, keyIDs, 1)
-	assert.Equal(t, KeyID{Type: KeyType("ETH"), ID: identity + "/key1"}, keyIDs[0])
+	assert.Equal(t, KeyID{Type: KeyTypeEthereum, ID: identity + "/ETH:0347fe70a2a9b752e8012d72851c35a13a1423bcdac4bde6ec036e1ea9317b36ac"}, keyIDs[0])
+
+	keyIDs, err = ls.searchByIdentityInFile(ctx, *did, KeyTypeBabyJubJub)
+	require.NoError(t, err)
+	require.Len(t, keyIDs, 1)
+	assert.Equal(t, KeyID{Type: KeyTypeBabyJubJub, ID: "keys/" + identity + "/BJJ:cecf34ed27074e121f1e8a8cc75954ab2b28506258b87b3c9a20e33461f4b12a"}, keyIDs[0])
 }
 
 //nolint:lll
@@ -82,7 +88,7 @@ func TestSearchByIdentityInFile_ReturnsErrorOnFileReadFailure(t *testing.T) {
 	ctx := context.Background()
 	did, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV")
 	require.NoError(t, err)
-	_, err = ls.searchByIdentityInFile(ctx, *did)
+	_, err = ls.searchByIdentityInFile(ctx, *did, KeyTypeEthereum)
 	assert.Error(t, err)
 }
 
@@ -93,7 +99,7 @@ func TestSearchByIdentityInFile_ReturnsEmptySliceWhenNoMatch(t *testing.T) {
 	defer os.Remove(tmpFile.Name())
 
 	fileContent := []localStorageBJJKeyProviderFileContent{
-		{KeyPath: "did:example:456/key1", KeyType: "ETH", PrivateKey: "0xABC123"},
+		{KeyPath: "key/did:example:456", KeyType: string(KeyTypeEthereum), PrivateKey: "0xABC123"},
 	}
 	content, err := json.Marshal(fileContent)
 	require.NoError(t, err)
@@ -107,7 +113,7 @@ func TestSearchByIdentityInFile_ReturnsEmptySliceWhenNoMatch(t *testing.T) {
 	did, err := w3c.ParseDID("did:polygonid:polygon:amoy:2qQ68JkRcf3ybQNvgRV9BP6qLgBrXmUezqBi4wsEuV")
 	require.NoError(t, err)
 
-	keyIDs, err := ls.searchByIdentityInFile(ctx, *did)
+	keyIDs, err := ls.searchByIdentityInFile(ctx, *did, KeyTypeEthereum)
 	require.NoError(t, err)
 	assert.Empty(t, keyIDs)
 }

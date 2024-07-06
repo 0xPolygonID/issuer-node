@@ -103,7 +103,7 @@ func (ls *localStorageBJJKeyProvider) Sign(ctx context.Context, keyID KeyID, dat
 
 // ListByIdentity lists keys by identity
 func (ls *localStorageBJJKeyProvider) ListByIdentity(ctx context.Context, identity w3c.DID) ([]KeyID, error) {
-	return ls.localStorageFileManager.searchByIdentityInFile(ctx, identity)
+	return ls.localStorageFileManager.searchByIdentityInFile(ctx, identity, ls.keyType)
 }
 
 // LinkToIdentity links key to identity
