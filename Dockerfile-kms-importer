@@ -8,7 +8,7 @@ COPY go.sum .
 COPY ./cmd/kms_priv_key_importer/ ./cmd/kms_priv_key_importer/
 COPY ./internal ./internal
 COPY ./pkg ./pkg
-COPY ./.env-issuer .
+
 
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 
@@ -26,6 +26,5 @@ RUN apk add doas; \
 RUN chmod g+rx,o+rx /
 
 COPY --from=base ./service/bin/* ./
-COPY --from=base ./service/.env-issuer ./
 COPY --from=base ./service/cmd/kms_priv_key_importer/aws_kms_material_key_importer.sh ./aws_kms_material_key_importer.sh
 RUN chmod +x ./aws_kms_material_key_importer.sh

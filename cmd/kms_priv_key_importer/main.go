@@ -36,7 +36,6 @@ const (
 	aWSAccessKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"
 	aWSSecretKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"
 	aWSRegion                           = "ISSUER_KMS_ETH_PLUGIN_AWS_REGION"
-	issuerEthTransferAccountKeyPath     = "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH"
 
 	jsonKeyPath      = "key_path"
 	jsonKeyType      = "key_type"
@@ -81,14 +80,14 @@ func main() {
 		issuerKmsPluginLocalStorageFilePath = pluginFolderPath
 	}
 
-	vaultIssuerPublishKeyPath := os.Getenv(issuerPublishKeyPath)
-	if vaultIssuerPublishKeyPath == "" {
+	issuerPublishKeyPathVar := os.Getenv(issuerPublishKeyPath)
+	if issuerPublishKeyPathVar == "" {
 		log.Error(ctx, "ISSUER_PUBLISH_KEY_PATH is not set")
 		return
 	}
 
 	material := make(map[string]string)
-	material[jsonKeyPath] = os.Getenv(issuerEthTransferAccountKeyPath)
+	material[jsonKeyPath] = issuerPublishKeyPathVar
 	material[jsonKeyType] = ethereum
 	material[jsonPrivateKey] = *fPrivateKey
 
@@ -145,13 +144,13 @@ func main() {
 		data[jsonKeyType] = ethereum
 		data[jsonPrivateKey] = *fPrivateKey
 
-		_, err = vaultCli.Logical().Write(path.Join(vaultPluginIden3MountPath, "import", vaultIssuerPublishKeyPath), data)
+		_, err = vaultCli.Logical().Write(path.Join(vaultPluginIden3MountPath, "import", issuerPublishKeyPathVar), data)
 		if err != nil {
 			log.Error(ctx, "cannot save key material to vault", "err", err)
 			return
 		}
 
-		log.Info(ctx, "private key saved to vault:", "path:", vaultIssuerPublishKeyPath)
+		log.Info(ctx, "private key saved to vault:", "path:", issuerPublishKeyPathVar)
 		return
 	}
 
@@ -159,14 +158,13 @@ func main() {
 		awsAccessKey := os.Getenv(aWSAccessKey)
 		awsSecretKey := os.Getenv(aWSSecretKey)
 		awsRegion := os.Getenv(aWSRegion)
-		issuerEthTransferAccountKeyPathVar := os.Getenv(issuerEthTransferAccountKeyPath)
 
-		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" || issuerEthTransferAccountKeyPathVar == "" {
-			log.Error(ctx, "aws access key, aws secret key, aws region or key path is not set")
+		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" {
+			log.Error(ctx, "aws access key, aws secret key, or aws region is not set")
 			return
 		}
 
-		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, issuerEthTransferAccountKeyPathVar)
+		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, issuerPublishKeyPathVar)
 		if err != nil {
 			log.Error(ctx, "cannot create empty key", "err", err)
 			return

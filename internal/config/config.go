@@ -57,7 +57,6 @@ type Configuration struct {
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
 	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
-	KmsPlugin                    string             `mapstructure:"KmsPlugin"`
 }
 
 // Database has the database configuration
@@ -571,14 +570,14 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
 	}
 
-	if cfg.KmsPlugin == "" {
-		log.Info(ctx, "ISSUER_KMS_PLUGIN value is missing, using default value: localstorage")
-		cfg.KmsPlugin = LocalStorage
+	if cfg.KeyStore.BJJPlugin == "" {
+		log.Info(ctx, "ISSUER_KMS_BJJ_PLUGIN value is missing, using default value: vault")
+		cfg.KeyStore.BJJPlugin = Vault
 	}
 
-	if cfg.KmsPlugin == LocalStorage && cfg.KeyStore.PluginLocalStorageFilePath == "" {
-		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
-		cfg.KeyStore.PluginLocalStorageFilePath = "./localstoragekeys"
+	if cfg.KeyStore.ETHPlugin == "" {
+		log.Info(ctx, "ISSUER_KMS_ETH_PLUGIN value is missing, using default value: vault")
+		cfg.KeyStore.ETHPlugin = Vault
 	}
 
 	if (cfg.KeyStore.BJJPlugin == LocalStorage || cfg.KeyStore.ETHPlugin == LocalStorage) && cfg.KeyStore.PluginLocalStorageFilePath == "" {
