@@ -133,7 +133,7 @@ func (awsKeyProv *awsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data
 		log.Error(ctx, "failed to decode public key", "err:", err)
 		return nil, fmt.Errorf("failed to decode public key: %v", err)
 	}
-	//TODO: Another option could be?: pubKeyBytes := secp256k1.S256().Marshal(pk.X, pk.Y)
+
 	pubKeyBytes := crypto.FromECDSAPub(pk)
 	signature, err := DecodeAWSETHSig(ctx, result.Signature, pubKeyBytes, data)
 	if err != nil {
