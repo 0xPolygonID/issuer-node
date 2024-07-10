@@ -5,10 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"path"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	awskms "github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/joho/godotenv"
 
@@ -27,11 +33,14 @@ const (
 	issuerKeyStorePluginIden3MountPath  = "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH"
 	issuerVaultUserPassAuthEnabled      = "ISSUER_VAULT_USERPASS_AUTH_ENABLED"
 	issuerVaultUserPassAuthPasword      = "ISSUER_VAULT_USERPASS_AUTH_PASSWORD"
+	aWSAccessKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"
+	aWSSecretKey                        = "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"
+	aWSRegion                           = "ISSUER_KMS_ETH_PLUGIN_AWS_REGION"
+	issuerEthTransferAccountKeyPath     = "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH"
 
 	jsonKeyPath      = "key_path"
 	jsonKeyType      = "key_type"
 	jsonPrivateKey   = "private_key"
-	pbkey            = "pbkey"
 	ethereum         = "ethereum"
 	pluginFolderPath = "./localstoragekeys"
 	envFile          = ".env-issuer"
@@ -79,7 +88,7 @@ func main() {
 	}
 
 	material := make(map[string]string)
-	material[jsonKeyPath] = pbkey
+	material[jsonKeyPath] = os.Getenv(issuerEthTransferAccountKeyPath)
 	material[jsonKeyType] = ethereum
 	material[jsonPrivateKey] = *fPrivateKey
 
@@ -143,7 +152,68 @@ func main() {
 		}
 
 		log.Info(ctx, "private key saved to vault:", "path:", vaultIssuerPublishKeyPath)
+		return
 	}
+
+	if issuerKMSEthPluginVar == config.AWS {
+		awsAccessKey := os.Getenv(aWSAccessKey)
+		awsSecretKey := os.Getenv(aWSSecretKey)
+		awsRegion := os.Getenv(aWSRegion)
+		issuerEthTransferAccountKeyPathVar := os.Getenv(issuerEthTransferAccountKeyPath)
+
+		if awsAccessKey == "" || awsSecretKey == "" || awsRegion == "" || issuerEthTransferAccountKeyPathVar == "" {
+			log.Error(ctx, "aws access key, aws secret key, aws region or key path is not set")
+			return
+		}
+
+		keyId, err := createEmptyKey(ctx, awsAccessKey, awsSecretKey, awsRegion, issuerEthTransferAccountKeyPathVar)
+		if err != nil {
+			log.Error(ctx, "cannot create empty key", "err", err)
+			return
+		}
+		log.Info(ctx, "key created", "keyId", *keyId)
+		return
+	}
+}
+
+func createEmptyKey(ctx context.Context, awsAccessKey, awsSecretKey, awsRegion string, privateKeyAlias string) (*string, error) {
+	cfg, err := awsconfig.LoadDefaultConfig(
+		ctx,
+		awsconfig.WithRegion(awsRegion),
+		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsAccessKey, awsSecretKey, "")),
+	)
+	if err != nil {
+		log.Error(ctx, "cannot load aws config", "err", err)
+		return nil, err
+	}
+
+	svc := awskms.NewFromConfig(cfg)
+	input := &awskms.CreateKeyInput{
+		KeySpec:     types.KeySpecEccSecgP256k1,
+		KeyUsage:    types.KeyUsageTypeSignVerify,
+		Origin:      types.OriginTypeExternal,
+		Description: aws.String("imported key"),
+	}
+
+	result, err := svc.CreateKey(ctx, input)
+	if err != nil {
+		log.Error(ctx, "cannot create key", "err", err)
+		return nil, err
+	}
+
+	alias := "alias/" + privateKeyAlias
+	inputAlias := &awskms.CreateAliasInput{
+		AliasName:   aws.String(alias),
+		TargetKeyId: result.KeyMetadata.Arn,
+	}
+
+	_, err = svc.CreateAlias(ctx, inputAlias)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create alias: %v", err)
+	}
+
+	log.Info(ctx, "alias created:", "alias:", alias)
+	return result.KeyMetadata.KeyId, nil
 }
 
 func saveKeyMaterialToFile(ctx context.Context, file string, keyMaterial map[string]string) error {

@@ -213,14 +213,15 @@ func keyStoreConfig(cfg *config.Configuration, ctx context.Context, vaultCfg pro
 	}
 
 	kmsConfig := kms.Config{
-		BJJKeyProvider:       kms.ConfigProvider(cfg.KeyStore.BJJPlugin),
-		ETHKeyProvider:       kms.ConfigProvider(cfg.KeyStore.ETHPlugin),
-		AWSKMSAccessKey:      cfg.KeyStore.AWSAccessKey,
-		AWSKMSSecretKey:      cfg.KeyStore.AWSSecretKey,
-		AWSKMSRegion:         cfg.KeyStore.AWSRegion,
-		LocalStoragePath:     cfg.KeyStore.PluginLocalStorageFilePath,
-		Vault:                vaultCli,
-		PluginIden3MountPath: cfg.KeyStore.PluginIden3MountPath,
+		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJPlugin),
+		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHPlugin),
+		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
+		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
+		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
+		LocalStoragePath:         cfg.KeyStore.PluginLocalStorageFilePath,
+		Vault:                    vaultCli,
+		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,
+		IssuerETHTransferKeyPath: cfg.Ethereum.TransferAccountKeyPath,
 	}
 
 	keyStore, err := kms.OpenWithConfig(ctx, kmsConfig)

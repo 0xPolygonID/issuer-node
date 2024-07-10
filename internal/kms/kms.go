@@ -44,14 +44,15 @@ const (
 
 // Config is a configuration for KMS
 type Config struct {
-	BJJKeyProvider       ConfigProvider
-	ETHKeyProvider       ConfigProvider
-	AWSKMSAccessKey      string
-	AWSKMSSecretKey      string
-	AWSKMSRegion         string
-	LocalStoragePath     string
-	Vault                *api.Client
-	PluginIden3MountPath string
+	BJJKeyProvider           ConfigProvider
+	ETHKeyProvider           ConfigProvider
+	AWSKMSAccessKey          string
+	AWSKMSSecretKey          string
+	AWSKMSRegion             string
+	LocalStoragePath         string
+	Vault                    *api.Client
+	PluginIden3MountPath     string
+	IssuerETHTransferKeyPath string
 }
 
 // KeyProvider describes the interface that key providers should match.
@@ -293,7 +294,7 @@ func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
 		if config.AWSKMSAccessKey == "" || config.AWSKMSSecretKey == "" || config.AWSKMSRegion == "" {
 			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
 		}
-		ethKeyProvider, err = NewAwsEthKeyProvider(ctx, KeyTypeEthereum, AwEthKeyProviderConfig{
+		ethKeyProvider, err = NewAwsEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwEthKeyProviderConfig{
 			Region:    config.AWSKMSRegion,
 			AccessKey: config.AWSKMSAccessKey,
 			SecretKey: config.AWSKMSSecretKey,

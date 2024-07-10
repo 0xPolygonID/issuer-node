@@ -21,9 +21,10 @@ import (
 const aliasPrefix = "alias/"
 
 type awsEthKeyProvider struct {
-	keyType          KeyType
-	reIdenKeyPathHex *regexp.Regexp // RE of key path bounded to identity
-	kmsClient        *kms.Client
+	keyType                  KeyType
+	reIdenKeyPathHex         *regexp.Regexp // RE of key path bounded to identity
+	kmsClient                *kms.Client
+	issuerETHTransferKeyPath string
 }
 
 // AwEthKeyProviderConfig - configuration for AWS KMS Ethereum key provider
@@ -34,7 +35,7 @@ type AwEthKeyProviderConfig struct {
 }
 
 // NewAwsEthKeyProvider - creates new key provider for Ethereum keys stored in AWS KMS
-func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, awsKmsEthKeyProviderConfig AwEthKeyProviderConfig) (KeyProvider, error) {
+func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, issuerETHTransferKeyPath string, awsKmsEthKeyProviderConfig AwEthKeyProviderConfig) (KeyProvider, error) {
 	keyTypeRE := regexp.QuoteMeta(string(keyType))
 	reIdenKeyPathHex := regexp.MustCompile("^(?i).*/" + keyTypeRE + ":([a-f0-9]{64})$")
 	cfg, err := config.LoadDefaultConfig(
@@ -48,9 +49,10 @@ func NewAwsEthKeyProvider(ctx context.Context, keyType KeyType, awsKmsEthKeyProv
 	}
 	svc := kms.NewFromConfig(cfg)
 	return &awsEthKeyProvider{
-		keyType:          keyType,
-		reIdenKeyPathHex: reIdenKeyPathHex,
-		kmsClient:        svc,
+		keyType:                  keyType,
+		reIdenKeyPathHex:         reIdenKeyPathHex,
+		kmsClient:                svc,
+		issuerETHTransferKeyPath: issuerETHTransferKeyPath,
 	}, nil
 }
 
@@ -94,6 +96,9 @@ func (awsKeyProv *awsEthKeyProvider) New(identity *w3c.DID) (KeyID, error) {
 
 // PublicKey returns public key for given keyID
 func (awsKeyProv *awsEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
+	if keyID.ID == awsKeyProv.issuerETHTransferKeyPath {
+		keyID.ID = aliasPrefix + awsKeyProv.issuerETHTransferKeyPath
+	}
 	ctx := context.Background()
 	inputPublicKey := &kms.GetPublicKeyInput{
 		KeyId: aws.String(keyID.ID),
@@ -107,6 +112,9 @@ func (awsKeyProv *awsEthKeyProvider) PublicKey(keyID KeyID) ([]byte, error) {
 
 // Sign signs data with keyID
 func (awsKeyProv *awsEthKeyProvider) Sign(ctx context.Context, keyID KeyID, data []byte) ([]byte, error) {
+	if keyID.ID == awsKeyProv.issuerETHTransferKeyPath {
+		keyID.ID = aliasPrefix + awsKeyProv.issuerETHTransferKeyPath
+	}
 	signInput := &kms.SignInput{
 		KeyId:            aws.String(keyID.ID),
 		Message:          data,

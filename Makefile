@@ -159,11 +159,14 @@ add-private-key:
 	docker exec issuer-vault-1 \
 	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)
 
-# usage: make private_key=xxx add-private-key-localstorage
-.PHONY: add-private-key-localstorage
-add-private-key-localstorage:
+# usage: make private_key=xxx import-private-key-to-kms
+# if you want to import your private key to localstorage, make sure docker-compose api service is mapping the localstorage folder:
+#     volumes:
+#     	- ../../localstoragekeys:/localstoragekeys:rw
+.PHONY: import-private-key-to-kms
+import-private-key-to-kms:
 	docker exec issuer-api-1 \
-	./kms_local_storage_priv_key_importer --privateKey=$(private_key)
+	./kms_priv_key_importer --privateKey=$(private_key)
 
 .PHONY: print-vault-token
 print-vault-token:
