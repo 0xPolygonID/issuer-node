@@ -79,43 +79,46 @@ func main() {
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
-	var vaultCli *vault.Client
-	var vaultErr error
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
 	}
 
 	var keyStore *kms.KMS
-	if cfg.KmsPlugin == config.LocalStorage {
-		log.Info(ctx, "using local storage key provider")
-		keyStore, err = kms.OpenLocalPath(cfg.KmsPluginLocalStorageFilePath)
-		if err != nil {
-			log.Error(ctx, "cannot initialize kms", "err", err)
-			return
-		}
-	} else {
-		log.Info(ctx, "using vault key provider")
-		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-		if vaultErr != nil {
-			log.Error(ctx, "cannot initialize vault client", "err", err)
-			return
-		}
+	//if cfg.KmsPlugin == config.LocalStorage {
+	//	log.Info(ctx, "using local storage key provider")
+	//	keyStore, err = kms.OpenLocalPath(cfg.KeyStore.PluginLocalStorageFilePath)
+	//	if err != nil {
+	//		log.Error(ctx, "cannot initialize kms", "err", err)
+	//		return
+	//	}
+	//} else {
+	//	log.Info(ctx, "using vault key provider")
+	//	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+	//	if vaultErr != nil {
+	//		log.Error(ctx, "cannot initialize vault client", "err", err)
+	//		return
+	//	}
+	//
+	//	if vaultCfg.UserPassAuthEnabled {
+	//		go providers.RenewToken(ctx, vaultCli, vaultCfg)
+	//	}
+	//	keyStore, err = kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
+	//	if err != nil {
+	//		log.Error(ctx, "cannot initialize kms", "err", err)
+	//		return
+	//	}
+	//}
 
-		if vaultCfg.UserPassAuthEnabled {
-			go providers.RenewToken(ctx, vaultCli, vaultCfg)
-		}
-		keyStore, err = kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
-		if err != nil {
-			log.Error(ctx, "cannot initialize kms", "err", err)
-			return
-		}
+	keyStore, err = keyStoreConfig(cfg, ctx, vaultCfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize key store", "err", err)
+		return
 	}
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
-
 	cfg.CredentialStatus.SingleIssuer = false
 	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
 	if err != nil {
@@ -216,6 +219,42 @@ func main() {
 
 	<-quit
 	log.Info(ctx, "Shutting down")
+}
+
+// keyStoreConfig initializes the key store
+func keyStoreConfig(cfg *config.Configuration, ctx context.Context, vaultCfg providers.Config) (*kms.KMS, error) {
+	var vaultCli *vault.Client
+	var vaultErr error
+	if cfg.KeyStore.BJJPlugin == config.Vault || cfg.KeyStore.ETHPlugin == config.Vault {
+		log.Info(ctx, "using vault key provider")
+		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+		if vaultErr != nil {
+			log.Error(ctx, "cannot initialize vault client", "err", vaultErr)
+			return nil, vaultErr
+		}
+
+		if vaultCfg.UserPassAuthEnabled {
+			go providers.RenewToken(ctx, vaultCli, vaultCfg)
+		}
+	}
+
+	kmsConfig := kms.Config{
+		BJJKeyProvider:       kms.ConfigProvider(cfg.KeyStore.BJJPlugin),
+		ETHKeyProvider:       kms.ConfigProvider(cfg.KeyStore.ETHPlugin),
+		AWSKMSAccessKey:      cfg.KeyStore.AWSAccessKey,
+		AWSKMSSecretKey:      cfg.KeyStore.AWSSecretKey,
+		AWSKMSRegion:         cfg.KeyStore.AWSRegion,
+		LocalStoragePath:     cfg.KeyStore.PluginLocalStorageFilePath,
+		Vault:                vaultCli,
+		PluginIden3MountPath: cfg.KeyStore.PluginIden3MountPath,
+	}
+
+	keyStore, err := kms.OpenWithConfig(ctx, kmsConfig)
+	if err != nil {
+		log.Error(ctx, "cannot initialize kms", "err", err)
+		return nil, err
+	}
+	return keyStore, nil
 }
 
 func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMiddlewareFunc {

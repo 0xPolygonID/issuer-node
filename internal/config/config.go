@@ -29,34 +29,35 @@ const (
 
 	// LocalStorage is the local storage plugin
 	LocalStorage = "localstorage"
+	// Vault is the vault plugin
+	Vault = "vault"
+	// AWS is the AWS plugin
+	AWS = "aws"
 )
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl                     string
-	ServerPort                    int
-	NativeProofGenerationEnabled  bool
-	Database                      Database      `mapstructure:"Database"`
-	Cache                         Cache         `mapstructure:"Cache"`
-	HTTPBasicAuth                 HTTPBasicAuth `mapstructure:"HTTPBasicAuth"`
-	KeyStore                      KeyStore      `mapstructure:"KeyStore"`
-	Log                           Log           `mapstructure:"Log"`
-	Ethereum                      Ethereum      `mapstructure:"Ethereum"`
-	Prover                        Prover        `mapstructure:"Prover"`
-	Circuit                       Circuit       `mapstructure:"Circuit"`
-	PublishingKeyPath             string        `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrequency   time.Duration `mapstructure:"OnChainCheckStatusFrequency"`
-	SchemaCache                   *bool         `mapstructure:"SchemaCache"`
-	APIUI                         APIUI         `mapstructure:"APIUI"`
-	IPFS                          IPFS          `mapstructure:"IPFS"`
-	VaultUserPassAuthEnabled      bool
-	VaultUserPassAuthPassword     string
-	CredentialStatus              CredentialStatus   `mapstructure:"CredentialStatus"`
-	CustomDIDMethods              []CustomDIDMethods `mapstructure:"-"`
-	MediaTypeManager              MediaTypeManager   `mapstructure:"MediaTypeManager"`
-	NetworkResolverPath           string             `mapstructure:"NetworkResolverPath"`
-	KmsPlugin                     string             `mapstructure:"KmsPlugin"`
-	KmsPluginLocalStorageFilePath string             `mapstructure:"KmsPluginLocalStorageFilePath"`
+	ServerUrl                    string
+	ServerPort                   int
+	NativeProofGenerationEnabled bool
+	Database                     Database           `mapstructure:"Database"`
+	Cache                        Cache              `mapstructure:"Cache"`
+	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
+	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
+	Log                          Log                `mapstructure:"Log"`
+	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
+	Prover                       Prover             `mapstructure:"Prover"`
+	Circuit                      Circuit            `mapstructure:"Circuit"`
+	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
+	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
+	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
+	APIUI                        APIUI              `mapstructure:"APIUI"`
+	IPFS                         IPFS               `mapstructure:"IPFS"`
+	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
+	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
+	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
+	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
+	KmsPlugin                    string             `mapstructure:"KmsPlugin"`
 }
 
 // Database has the database configuration
@@ -151,11 +152,19 @@ type Circuit struct {
 
 // KeyStore defines the keystore
 type KeyStore struct {
-	Address              string `tip:"Keystore address"`
-	Token                string `tip:"Token"`
-	PluginIden3MountPath string `tip:"PluginIden3MountPath"`
-	UserPassEnabled      bool   `tip:"UserPassEnabled"`
-	UserPassPassword     string `tip:"UserPassPassword"`
+	Address                    string `tip:"Keystore address"`
+	Token                      string `tip:"Token"`
+	PluginIden3MountPath       string `tip:"PluginIden3MountPath"`
+	UserPassEnabled            bool   `tip:"UserPassEnabled"`
+	UserPassPassword           string `tip:"UserPassPassword"`
+	BJJPlugin                  string `tip:"BJJPlugin"`
+	ETHPlugin                  string `tip:"ETHPlugin"`
+	PluginLocalStorageFilePath string `tip:"PluginLocalStorageFilePath"`
+	AWSAccessKey               string `tip:"AWS Acces Key"`
+	AWSSecretKey               string `tip:"AWS Secret Key"`
+	AWSRegion                  string `tip:"AWS Region"`
+	VaultUserPassAuthEnabled   bool   `tip:"VaultUserPassAuthEnabled"`
+	VaultUserPassAuthPassword  string `tip:"VaultUserPassAuthPassword"`
 }
 
 // Log holds runtime configurations
@@ -220,8 +229,8 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
-	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
-		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+	if c.KeyStore.Token == "" && !c.KeyStore.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.KeyStore.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
 
@@ -240,8 +249,8 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	log.Info(ctx, "Checking vault token", "token", c.KeyStore.Token)
-	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
-		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+	if c.KeyStore.Token == "" && !c.KeyStore.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.KeyStore.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
 
@@ -426,7 +435,16 @@ func bindEnv() {
 
 	_ = viper.BindEnv("KeyStore.Address", "ISSUER_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
+	_ = viper.BindEnv("KeyStore.BJJPlugin", "ISSUER_KMS_BJJ_PLUGIN")
+	_ = viper.BindEnv("KeyStore.ETHPlugin", "ISSUER_KMS_ETH_PLUGIN")
+	_ = viper.BindEnv("KeyStore.PluginLocalStorageFilePath", "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH")
+	_ = viper.BindEnv("KeyStore.AWSAccessKey", "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY")
+	_ = viper.BindEnv("KeyStore.AWSSecretKey", "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY")
+	_ = viper.BindEnv("KeyStore.AWSRegion", "ISSUER_KMS_ETH_PLUGIN_AWS_REGION")
+
 	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
+	_ = viper.BindEnv("KeyStore.VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
+	_ = viper.BindEnv("KeyStore.VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
@@ -448,11 +466,8 @@ func bindEnv() {
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
 
-	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
-	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
 	_ = viper.BindEnv("KmsPlugin", "ISSUER_KMS_PLUGIN")
-	_ = viper.BindEnv("KmsPluginLocalStorageFilePath", "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -561,9 +576,23 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.KmsPlugin = LocalStorage
 	}
 
-	if cfg.KmsPlugin == LocalStorage && cfg.KmsPluginLocalStorageFilePath == "" {
+	if cfg.KmsPlugin == LocalStorage && cfg.KeyStore.PluginLocalStorageFilePath == "" {
 		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
-		cfg.KmsPluginLocalStorageFilePath = "./localstoragekeys"
+		cfg.KeyStore.PluginLocalStorageFilePath = "./localstoragekeys"
+	}
+
+	if (cfg.KeyStore.BJJPlugin == LocalStorage || cfg.KeyStore.ETHPlugin == LocalStorage) && cfg.KeyStore.PluginLocalStorageFilePath == "" {
+		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
+		cfg.KeyStore.PluginLocalStorageFilePath = "./localstoragekeys"
+	}
+
+	if cfg.KeyStore.ETHPlugin == AWS {
+		if cfg.KeyStore.AWSAccessKey == "" {
+			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
+		}
+		if cfg.KeyStore.AWSSecretKey == "" {
+			log.Error(ctx, "ISSUER_AWS_SECRET_KEY value is missing")
+		}
 	}
 
 	if cfg.APIUI.KeyType == "" {

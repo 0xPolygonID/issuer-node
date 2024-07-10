@@ -16,7 +16,7 @@ polygon:
       mode: OffChain
       contractAddress: 0x16A1ae4c460C0a42f0a87e69c526c61599B28BC9
       rhsUrl: https://rhs-staging.polygonid.me
-      chainID: 80001
+      chainID: 80002
       publishingKey: pbkey
 
   main:
