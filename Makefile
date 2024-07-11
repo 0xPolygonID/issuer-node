@@ -159,14 +159,17 @@ add-private-key:
 	docker exec issuer-vault-1 \
 	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)
 
-# usage: make private_key=xxx import-private-key-to-kms
+# >>> usage: make private_key=xxx import-private-key-to-kms
 # If you want to import your private key to the local storage be sure to have the
 # file ${ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH}/kms_localstorage_keys.json, otherwise change the mapped volume.
+# If you want to import private key to vault running with docker compose  make sure ISSUER_KEY_STORE_ADDRESS=http://vault:8200  in .env-issuer
 # >>> Don't use this command if you want to import private key to aws kms, for that see cmd/kms_priv_key_importer/readme.md
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
 	docker build -t privadoid-kms-importer -f Dockerfile-kms-importer .
-	docker run -it -v ./.env-issuer:/.env-issuer -v ./localstoragekeys/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	docker run -it -v ./.env-issuer:/.env-issuer --network issuer-network \
+	-v ./localstoragekeys/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
+	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 
 .PHONY: print-vault-token
 print-vault-token:

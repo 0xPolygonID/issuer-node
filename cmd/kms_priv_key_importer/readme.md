@@ -30,7 +30,7 @@ ISSUER_VAULT_USERPASS_AUTH_PASSWORD=issuernodepwd
 
 Instead of setting the environment variables you use the `.env-issuer` file, you can copy the `.env-issuer.example` 
 file and rename it to `.env-issuer` and set the values of the environment variables there.
-Then from the root project folder you can run the following command:
+Then from the root project folder you can run the following command **(just for vault o localstorage)**:
 
 ```shell
 $ go run cmd/kms_priv_key_importer/main.go --privateKey <privateETHKey>
@@ -66,7 +66,7 @@ then you can import your private key using the following command:
 
 ```shell
 $ chmod +x kms_priv_key_importer
-$ ./kms_priv_key_importer <privateETHKey> <key-id> <aws-profile> <aws-region>
+$ ./kms_priv_key_importer <privateETHKey> <key-id> <aws-profile>
 ```
 
 where:
@@ -81,19 +81,21 @@ if you get `Key material successfully imported!!!` message, then your private ke
 In the root project folder run:
 
 ```shell
-docker build -t privadoid-kms-importer -f Dockerfile-kms-importer .
+docker build --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=XXXX \
+  --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=YYYY \
+  --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_REGION=eu-west-1 -t privadoid-kms-importer -f Dockerfile-kms-importer .
 ```
 
-after the docker image is created run (make sure you have the .env-issuer with your env vars):
+after the docker image is created run the following command (make sure you have the .env-issuer with your env vars):
 
 ```shell
 docker run -it -v ./.env-issuer:/.env-issuer privadoid-kms-importer sh
 ```
 
-inside the container execute:
+inside the container `privadoid-kms-importer` execute:
 
 ```
-./kms_priv_key_importer privateKey <ETH-PRIV-KEY>
+./kms_priv_key_importer --privateKey <ETH-PRIV-KEY>
 ```
 
 you will see something like this:
@@ -103,15 +105,9 @@ you will see something like this:
 2024/07/10 15:27:54 INFO key created keyId=9bb5b78b-c288-44a7-b1d4-0543e0a6
 ```
 
-then execute to set up AWS credentials:
-
-```shell
-aws configure set aws_access_key_id XXX --profile privado
-aws configure set aws_secret_access_key YYY --profile privado
-```
 then import the material key
 
 ```shell
-./aws_kms_material_key_importer.sh <ETH-PRIV-KEY> 9bb5b78b-c288-44a7-b1d4-0543e0a6 privado <AWS_REGION>
+sh ./aws_kms_material_key_importer.sh ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 9bb5b78b-c288-44a7-b1d4-0543e0a6 privadoid
 ```
 if you get `Key material successfully imported!!!` message, then your private key was successfully imported to AWS KMS.

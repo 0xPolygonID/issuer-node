@@ -6,21 +6,21 @@ set +x
 raw_key=$1
 key_id=$2
 aws_profile=$3
-aws_region=$4
+
 
 ASN1_PRIV_KEY_HEADER="302e0201010420"
 ASN1_SECP256K1_OID="a00706052b8104000a"
 OUT_FILE="priv_key.pkcs8"
 
-if [ -z "${raw_key}" ] || [ -z "${key_id}" ] || [ -z "${aws_profile}" ] || [ -z "${aws_region}" ]; then
-  echo "Usage: $1 $0 <private_key> <key_id> <aws_profile> <aws_region>"
+if [ -z "${raw_key}" ] || [ -z "${key_id}" ] || [ -z "${aws_profile}" ]; then
+  echo "Usage: $1 $0 <private_key> <key_id> <aws_profile>"
   exit 1
 fi
 
 openssl pkcs8 -topk8 -outform DER -nocrypt -inform DER -in <(echo "${ASN1_PRIV_KEY_HEADER} ${raw_key} ${ASN1_SECP256K1_OID}" | xxd -r -p) -out ${OUT_FILE} &>/dev/null
 printf "private key successfully written to: %s\n" "${OUT_FILE}"
 
-export KEY=`aws kms get-parameters-for-import --region ${aws_region} --profile ${aws_profile} \
+export KEY=`aws kms get-parameters-for-import --profile ${aws_profile} \
 --key-id ${key_id} \
 --wrapping-algorithm RSAES_OAEP_SHA_256 \
 --wrapping-key-spec RSA_2048 \
@@ -42,7 +42,7 @@ openssl pkeyutl \
 -pubin -encrypt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
 
 
-aws kms import-key-material --region ${aws_region} --profile ${aws_profile} \
+aws kms import-key-material --profile ${aws_profile} \
 --key-id ${key_id} \
 --encrypted-key-material fileb://EncryptedKeyMaterial.bin \
 --import-token fileb://ImportToken.bin \
