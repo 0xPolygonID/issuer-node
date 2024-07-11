@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awskms "github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/joho/godotenv"
 
@@ -63,7 +64,13 @@ func main() {
 		return
 	}
 
-	err := godotenv.Load(envFile)
+	_, err := crypto.HexToECDSA(*fPrivateKey)
+	if err != nil {
+		log.Error(ctx, "cannot convert private key to ECDSA", "err", err)
+		return
+	}
+
+	err = godotenv.Load(envFile)
 	if err != nil {
 		log.Error(ctx, "Error loading .env-issuer file")
 	}
@@ -72,7 +79,7 @@ func main() {
 	issuerKmsPluginLocalStorageFilePath := os.Getenv(issuerKmsPluginLocalStorageFilePath)
 
 	if issuerKMSEthPluginVar != config.LocalStorage && issuerKMSEthPluginVar != config.Vault && issuerKMSEthPluginVar != config.AWS {
-		log.Error(ctx, "issuer kms plugin is not set or is not local storage or vault or aws", "plugin: ", issuerKMSEthPluginVar)
+		log.Error(ctx, "issuer kms eth plugin is not set or is not local storage or vault or aws", "plugin: ", issuerKMSEthPluginVar)
 		return
 	}
 

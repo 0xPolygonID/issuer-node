@@ -4,11 +4,10 @@ You have to have installed the following tools:
 - [aws cli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) -- if you want to import your private key to AWS KMS
 - [openssl](https://www.openssl.org/) -- if you want to import your private key to AWS KMS
 
-this tools needs the following environment variables to be set:
+this tools needs the following environment variables to be set up:
 ```
 # Could be either [localstorage | vault] (BJJ) and [localstorage | vault] | aws (ETH)
 ISSUER_PUBLISH_KEY_PATH=pbkey
-ISSUER_KMS_BJJ_PLUGIN=localstorage
 ISSUER_KMS_ETH_PLUGIN=aws
 
 # if the plugin is localstorage, you can specify the file path (default path is current directory)
@@ -29,12 +28,32 @@ ISSUER_VAULT_USERPASS_AUTH_ENABLED=false
 ISSUER_VAULT_USERPASS_AUTH_PASSWORD=issuernodepwd
 ```
 
+Instead of setting the environment variables you use the `.env-issuer` file, you can copy the `.env-issuer.example` 
+file and rename it to `.env-issuer` and set the values of the environment variables there.
+Then from the root project folder you can run the following command:
+
+```shell
+$ go run cmd/kms_priv_key_importer/main.go --privateKey <privateETHKey>
+````
+or you can build the binary and run it:
+
+```shell
+$ go build -o kms_priv_key_importer cmd/kms_priv_key_importer/main.go
+```
+
+and then run:
+
+```shell
+ ./kms_priv_key_importer --privateKey <privateETHKey>
+```
+
+
 ### How import your private key to AWS KMS
 
 First you need to create a new key in AWS KMS, so export the variables defined in the requirements section and run the following command:
 
-```
-$ go run . --privateKey <private-key>
+```shell
+$ go run . --privateKey <privateETHKey>
 ```
 To get the key id you have to take a look at the output (or logs) of the previous command, it will be something like:
 
@@ -47,11 +66,11 @@ then you can import your private key using the following command:
 
 ```shell
 $ chmod +x kms_priv_key_importer
-$ ./kms_priv_key_importer <private-key> <key-id> <aws-profile> <aws-region>
+$ ./kms_priv_key_importer <privateETHKey> <key-id> <aws-profile> <aws-region>
 ```
 
 where:
-* `private-key` is your private key in hex format
+* `privateETHKey` is your private key in hex format (`ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`)
 * `key-id` is the key id of the key created in AWS KMS (in this example `157a8b2a-e5e9-4414-b9c5-301ce828f6c5`)
 * `aws-profile` is the profile name in your `~/.aws/credentials` file
 * `aws-region` is the region where the key was created
