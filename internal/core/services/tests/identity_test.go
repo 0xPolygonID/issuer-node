@@ -74,7 +74,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	t.Run("should update state", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
-		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
@@ -96,7 +96,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	t.Run("should update state for a new credential with mtp", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
-		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
@@ -118,7 +118,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	t.Run("should return success after revoke a MTP credential", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
-		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
@@ -144,7 +144,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	t.Run("should return pass after creating two credentials", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
-		claimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		claimMTP, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
@@ -166,7 +166,7 @@ func Test_identity_UpdateState(t *testing.T) {
 		_, err = identityService.UpdateState(ctx, *did)
 		assert.NoError(t, err)
 
-		claimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		claimSIG, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
@@ -193,7 +193,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	t.Run("should get an error creating credential with sig proof", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
-		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
@@ -208,7 +208,7 @@ func Test_identity_UpdateState(t *testing.T) {
 	t.Run("should update state after revoke credential with sig proof", func(t *testing.T) {
 		ctx := context.Background()
 		merklizedRootPosition := "index"
-		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject,
+		claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject,
 			common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition,
 			ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false,
 			verifiable.Iden3commRevocationStatusV1, nil, nil, nil))

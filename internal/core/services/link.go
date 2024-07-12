@@ -254,6 +254,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		link.CredentialSubject["id"] = userDID.String()
 
 		claimReq := ports.NewCreateClaimRequest(&issuerDID,
+			nil,
 			schema.URL,
 			link.CredentialSubject,
 			link.CredentialExpiration,
