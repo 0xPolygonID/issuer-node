@@ -1,9 +1,11 @@
 package kms
 
 import (
+	"crypto/ecdsa"
 	"fmt"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/pkg/errors"
@@ -14,8 +16,12 @@ const keysPathPrefix = "keys/"
 const kvStoragePath = "secret"
 
 const (
-	jsonKeyType = "key_type"
-	jsonKeyData = "key_data"
+	jsonKeyType   = "key_type"
+	jsonKeyData   = "key_data"
+	defaultLength = 32
+	partsNumber   = 2
+	// LocalStorageFileName is the name of the file where the keys are stored
+	LocalStorageFileName = "kms_localstorage_keys.json"
 )
 
 func saveKeyMaterial(vaultCli *api.Client, path string, jsonObj map[string]string) error {
@@ -113,4 +119,11 @@ func moveSecretData(vaultCli *api.Client, oldPath, newPath string) error {
 
 	_, err = cli.Delete(absVaultSecretPath(oldPath))
 	return errors.WithStack(err)
+}
+
+// decodeETHPrivateKey is a helper method to convert byte representation of
+// private key to *ecdsa.PrivateKey
+func decodeETHPrivateKey(key []byte) (*ecdsa.PrivateKey, error) {
+	privKey, err := crypto.ToECDSA(key)
+	return privKey, errors.WithStack(err)
 }

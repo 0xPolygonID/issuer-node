@@ -4,11 +4,15 @@ import (
 	"context"
 	stderr "errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/pkg/errors"
+
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // KMSType represents the KMS interface
@@ -201,4 +205,53 @@ func Open(pluginIden3MountPath string, vault *api.Client) (*KMS, error) {
 	}
 
 	return keyStore, nil
+}
+
+// OpenLocalPath returns an initialized KMS with local storage
+func OpenLocalPath(localStorageFolder string) (*KMS, error) {
+	filePath, err := createFileIfNotExists(localStorageFolder, LocalStorageFileName)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create file: %v", err)
+	}
+
+	localStorageFileManager := NewLocalStorageFileManager(filePath)
+	bjjKeyProvider := NewLocalStorageBJJKeyProvider(KeyTypeBabyJubJub, localStorageFileManager)
+	ethKeyProvider := NewLocalStorageEthKeyProvider(KeyTypeEthereum, localStorageFileManager)
+
+	keyStore := NewKMS()
+	err = keyStore.RegisterKeyProvider(KeyTypeBabyJubJub, bjjKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register BabyJubJub key provider: %+v", err)
+	}
+
+	err = keyStore.RegisterKeyProvider(KeyTypeEthereum, ethKeyProvider)
+	if err != nil {
+		return nil, fmt.Errorf("cannot register BabyJubJub key provider: %+v", err)
+	}
+	return keyStore, nil
+}
+
+func createFileIfNotExists(folderPath, fileName string) (string, error) {
+	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+		return "", fmt.Errorf("error creating folder: %v", err)
+	}
+	filePath := filepath.Join(folderPath, fileName)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		file, err := os.Create(filePath)
+		if err != nil {
+			return "", fmt.Errorf("error creating file: %v", err)
+		}
+		fileContent := []byte("[]")
+		if _, err := file.Write(fileContent); err != nil {
+			return "", fmt.Errorf("error initiliazing file: %v", err)
+		}
+		defer func(file *os.File) {
+			err := file.Close()
+			if err != nil {
+				log.Error(context.Background(), "error closing file", "err", err)
+			}
+		}(file)
+	}
+
+	return filePath, nil
 }

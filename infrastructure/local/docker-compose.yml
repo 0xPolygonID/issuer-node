@@ -25,6 +25,8 @@ services:
     env_file:
       - ../../.env-api
       - ../../.env-issuer
+    volumes:
+      - ../../localstoragekeys:/localstoragekeys:rw
     healthcheck:
       test: [ "CMD", "curl", "-f", "host.docker.internal:3001/status" ]
       interval: 10s

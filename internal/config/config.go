@@ -26,32 +26,37 @@ import (
 const (
 	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
 	ipfsGateway  = "https://cloudflare-ipfs.com"
+
+	// LocalStorage is the local storage plugin
+	LocalStorage = "localstorage"
 )
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl                    string
-	ServerPort                   int
-	NativeProofGenerationEnabled bool
-	Database                     Database      `mapstructure:"Database"`
-	Cache                        Cache         `mapstructure:"Cache"`
-	HTTPBasicAuth                HTTPBasicAuth `mapstructure:"HTTPBasicAuth"`
-	KeyStore                     KeyStore      `mapstructure:"KeyStore"`
-	Log                          Log           `mapstructure:"Log"`
-	Ethereum                     Ethereum      `mapstructure:"Ethereum"`
-	Prover                       Prover        `mapstructure:"Prover"`
-	Circuit                      Circuit       `mapstructure:"Circuit"`
-	PublishingKeyPath            string        `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrequency  time.Duration `mapstructure:"OnChainCheckStatusFrequency"`
-	SchemaCache                  *bool         `mapstructure:"SchemaCache"`
-	APIUI                        APIUI         `mapstructure:"APIUI"`
-	IPFS                         IPFS          `mapstructure:"IPFS"`
-	VaultUserPassAuthEnabled     bool
-	VaultUserPassAuthPassword    string
-	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
-	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
-	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
-	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
+	ServerUrl                     string
+	ServerPort                    int
+	NativeProofGenerationEnabled  bool
+	Database                      Database      `mapstructure:"Database"`
+	Cache                         Cache         `mapstructure:"Cache"`
+	HTTPBasicAuth                 HTTPBasicAuth `mapstructure:"HTTPBasicAuth"`
+	KeyStore                      KeyStore      `mapstructure:"KeyStore"`
+	Log                           Log           `mapstructure:"Log"`
+	Ethereum                      Ethereum      `mapstructure:"Ethereum"`
+	Prover                        Prover        `mapstructure:"Prover"`
+	Circuit                       Circuit       `mapstructure:"Circuit"`
+	PublishingKeyPath             string        `mapstructure:"PublishingKeyPath"`
+	OnChainCheckStatusFrequency   time.Duration `mapstructure:"OnChainCheckStatusFrequency"`
+	SchemaCache                   *bool         `mapstructure:"SchemaCache"`
+	APIUI                         APIUI         `mapstructure:"APIUI"`
+	IPFS                          IPFS          `mapstructure:"IPFS"`
+	VaultUserPassAuthEnabled      bool
+	VaultUserPassAuthPassword     string
+	CredentialStatus              CredentialStatus   `mapstructure:"CredentialStatus"`
+	CustomDIDMethods              []CustomDIDMethods `mapstructure:"-"`
+	MediaTypeManager              MediaTypeManager   `mapstructure:"MediaTypeManager"`
+	NetworkResolverPath           string             `mapstructure:"NetworkResolverPath"`
+	KmsPlugin                     string             `mapstructure:"KmsPlugin"`
+	KmsPluginLocalStorageFilePath string             `mapstructure:"KmsPluginLocalStorageFilePath"`
 }
 
 // Database has the database configuration
@@ -446,6 +451,8 @@ func bindEnv() {
 	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
 	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
+	_ = viper.BindEnv("KmsPlugin", "ISSUER_KMS_PLUGIN")
+	_ = viper.BindEnv("KmsPluginLocalStorageFilePath", "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -547,6 +554,16 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.NetworkResolverPath == "" {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing")
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
+	}
+
+	if cfg.KmsPlugin == "" {
+		log.Info(ctx, "ISSUER_KMS_PLUGIN value is missing, using default value: localstorage")
+		cfg.KmsPlugin = LocalStorage
+	}
+
+	if cfg.KmsPlugin == LocalStorage && cfg.KmsPluginLocalStorageFilePath == "" {
+		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
+		cfg.KmsPluginLocalStorageFilePath = "./localstoragekeys"
 	}
 
 	if cfg.APIUI.KeyType == "" {
