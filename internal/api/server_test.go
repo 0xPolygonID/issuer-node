@@ -351,7 +351,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			expected: expected{
 				httpCode: 202,
 				response: RevokeClaim202JSONResponse{
-					Message: "claim revocation request sent",
+					Message: "credential revocation request sent",
 				},
 			},
 		},
@@ -363,7 +363,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			expected: expected{
 				httpCode: 404,
 				response: RevokeClaim404JSONResponse{N404JSONResponse{
-					Message: "the claim does not exist",
+					Message: "the credential does not exist",
 				}},
 			},
 		},
@@ -382,7 +382,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/claims/revoke/%d", tc.did, tc.nonce)
+			url := fmt.Sprintf("/v1/%s/credentials/revoke/%d", tc.did, tc.nonce)
 			req, err := http.NewRequest(http.MethodPost, url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -393,21 +393,21 @@ func TestServer_RevokeClaim(t *testing.T) {
 			case RevokeClaim202JSONResponse:
 				var response RevokeClaim202JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
+				assert.Equal(t, v.Message, response.Message)
 			case RevokeClaim404JSONResponse:
 				var response RevokeClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
+				assert.Equal(t, v.Message, response.Message)
 			case RevokeClaim500JSONResponse:
 				var response RevokeClaim500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
+				assert.Equal(t, v.Message, response.Message)
 			}
 		})
 	}
 }
 
-func TestServer_CreateClaim(t *testing.T) {
+func TestServer_CreateCredential(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
@@ -451,7 +451,7 @@ func TestServer_CreateClaim(t *testing.T) {
 	did := iden.Identifier
 
 	type expected struct {
-		response                    CreateClaimResponseObject
+		response                    CreateCredentialResponseObject
 		httpCode                    int
 		createCredentialEventsCount int
 	}
@@ -487,7 +487,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
+				response:                    CreateCredential201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 1,
 			},
@@ -511,7 +511,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				},
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
+				response:                    CreateCredential201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 1,
 			},
@@ -534,7 +534,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				},
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
+				response:                    CreateCredential201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 1,
 			},
@@ -557,7 +557,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				},
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
+				response:                    CreateCredential201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 0,
 			},
@@ -576,7 +576,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
+				response:                    CreateCredential201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 1,
 			},
@@ -599,7 +599,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				},
 			},
 			expected: expected{
-				response:                    CreateClaim201JSONResponse{},
+				response:                    CreateCredential201JSONResponse{},
 				httpCode:                    http.StatusCreated,
 				createCredentialEventsCount: 1,
 			},
@@ -619,7 +619,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
-				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "malformed url"}},
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "malformed url"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -638,7 +638,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				Expiration: common.ToPointer(time.Now().Unix()),
 			},
 			expected: expected{
-				response: CreateClaim422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
+				response: CreateCredential422JSONResponse{N422JSONResponse{Message: "cannot load schema"}},
 				httpCode: http.StatusUnprocessableEntity,
 			},
 		},
@@ -658,7 +658,7 @@ func TestServer_CreateClaim(t *testing.T) {
 				Proofs:     &[]CreateClaimRequestProofs{"wrong proof"},
 			},
 			expected: expected{
-				response: CreateClaim400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
+				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
 				httpCode: http.StatusBadRequest,
 			},
 		},
@@ -666,7 +666,7 @@ func TestServer_CreateClaim(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pubSub.Clear(event.CreateCredentialEvent)
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/claims", tc.did)
+			url := fmt.Sprintf("/v1/%s/credentials", tc.did)
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -783,7 +783,7 @@ func TestServer_GetIdentities(t *testing.T) {
 	}
 }
 
-func TestServer_GetClaimQrCode(t *testing.T) {
+func TestServer_GetCredentialQrCode(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -828,7 +828,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response GetClaimQrCodeResponseObject
+		response GetCredentialQrCodeResponseObject
 		httpCode int
 	}
 
@@ -855,7 +855,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			did:   idStr,
 			claim: uuid.New(),
 			expected: expected{
-				response: GetClaimQrCode404JSONResponse{N404JSONResponse{
+				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
 				httpCode: http.StatusNotFound,
@@ -867,7 +867,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			did:   idNoClaims,
 			claim: claim.ID,
 			expected: expected{
-				response: GetClaimQrCode404JSONResponse{N404JSONResponse{
+				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
 				httpCode: http.StatusNotFound,
@@ -879,7 +879,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			did:   ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			claim: claim.ID,
 			expected: expected{
-				response: GetClaimQrCode400JSONResponse{N400JSONResponse{
+				response: GetCredentialQrCode400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
 				httpCode: http.StatusBadRequest,
@@ -891,14 +891,14 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			did:   idStr,
 			claim: claim.ID,
 			expected: expected{
-				response: GetClaimQrCode200JSONResponse{},
+				response: GetCredentialQrCode200JSONResponse{},
 				httpCode: http.StatusOK,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/claims/%s/qrcode", tc.did, tc.claim)
+			url := fmt.Sprintf("/v1/%s/credentials/%s/qrcode", tc.did, tc.claim)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -908,7 +908,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case GetClaimQrCode200JSONResponse:
+			case GetCredentialQrCode200JSONResponse:
 				var response GetClaimQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, string(protocol.CredentialOfferMessageType), response.Type)
@@ -924,15 +924,15 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, claim.SchemaType, response.Body.Credentials[0].Description)
 
-			case GetClaimQrCode400JSONResponse:
+			case GetCredentialQrCode400JSONResponse:
 				var response GetClaimQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case GetClaimQrCode404JSONResponse:
+			case GetCredentialQrCode404JSONResponse:
 				var response GetClaimQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case GetClaimQrCode500JSONResponse:
+			case GetCredentialQrCode500JSONResponse:
 				var response GetClaimQrCode500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
@@ -941,7 +941,7 @@ func TestServer_GetClaimQrCode(t *testing.T) {
 	}
 }
 
-func TestServer_GetClaim(t *testing.T) {
+func TestServer_GetCredential(t *testing.T) {
 	ctx := context.Background()
 	identityRepo := repositories.NewIdentity()
 	claimsRepo := repositories.NewClaims()
@@ -996,7 +996,7 @@ func TestServer_GetClaim(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response GetClaimResponseObject
+		response GetCredentialResponseObject
 		httpCode int
 	}
 
@@ -1024,7 +1024,7 @@ func TestServer_GetClaim(t *testing.T) {
 			claimID: uuid.New(),
 			expected: expected{
 				httpCode: http.StatusNotFound,
-				response: GetClaim404JSONResponse{N404JSONResponse{
+				response: GetCredential404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
 			},
@@ -1036,7 +1036,7 @@ func TestServer_GetClaim(t *testing.T) {
 			claimID: claim.ID,
 			expected: expected{
 				httpCode: http.StatusNotFound,
-				response: GetClaim404JSONResponse{N404JSONResponse{
+				response: GetCredential404JSONResponse{N404JSONResponse{
 					Message: "claim not found",
 				}},
 			},
@@ -1048,7 +1048,7 @@ func TestServer_GetClaim(t *testing.T) {
 			claimID: claim.ID,
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				response: GetClaim400JSONResponse{N400JSONResponse{
+				response: GetCredential400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
 			},
@@ -1060,14 +1060,14 @@ func TestServer_GetClaim(t *testing.T) {
 			claimID: claim.ID,
 			expected: expected{
 				httpCode: http.StatusOK,
-				response: GetClaim200JSONResponse{
+				response: GetCredential200JSONResponse{
 					Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 					CredentialSchema: CredentialSchema{
 						"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 						"JsonSchemaValidator2018",
 					},
 					CredentialStatus: verifiable.CredentialStatus{
-						ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", idStr, claim.RevNonce),
+						ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", idStr, claim.RevNonce),
 						Type:            "SparseMerkleTreeProof",
 						RevocationNonce: uint64(claim.RevNonce),
 					},
@@ -1077,7 +1077,7 @@ func TestServer_GetClaim(t *testing.T) {
 						"documentType": float64(2),
 						"type":         "KYCAgeCredential",
 					},
-					Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+					Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
 					IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 					Issuer:       idStr,
 					Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -1091,7 +1091,7 @@ func TestServer_GetClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/claims/%s", tc.did, tc.claimID.String())
+			url := fmt.Sprintf("/v1/%s/credentials/%s", tc.did, tc.claimID.String())
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -1101,20 +1101,20 @@ func TestServer_GetClaim(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case GetClaim200JSONResponse:
+			case GetCredential200JSONResponse:
 				var response GetClaimResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				validateClaim(t, response, GetClaimResponse(v))
 
-			case GetClaim400JSONResponse:
+			case GetCredential400JSONResponse:
 				var response GetClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
-			case GetClaim404JSONResponse:
+			case GetCredential404JSONResponse:
 				var response GetClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
-			case GetClaim500JSONResponse:
+			case GetCredential500JSONResponse:
 				var response GetClaim500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
@@ -1123,7 +1123,7 @@ func TestServer_GetClaim(t *testing.T) {
 	}
 }
 
-func TestServer_GetClaims(t *testing.T) {
+func TestServer_GetCredentials(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
@@ -1171,7 +1171,7 @@ func TestServer_GetClaims(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response GetClaimsResponseObject
+		response GetCredentialsResponseObject
 		len      int
 		httpCode int
 	}
@@ -1208,7 +1208,7 @@ func TestServer_GetClaims(t *testing.T) {
 			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				response: GetClaims400JSONResponse{N400JSONResponse{
+				response: GetCredentials400JSONResponse{N400JSONResponse{
 					Message: "invalid did",
 				}},
 			},
@@ -1223,7 +1223,7 @@ func TestServer_GetClaims(t *testing.T) {
 			},
 			expected: expected{
 				httpCode: http.StatusBadRequest,
-				response: GetClaims400JSONResponse{N400JSONResponse{"self and subject filter cannot be used together"}},
+				response: GetCredentials400JSONResponse{N400JSONResponse{"self and subject filter cannot be used together"}},
 			},
 		},
 		{
@@ -1233,7 +1233,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      0,
-				response: GetClaims200JSONResponse{},
+				response: GetCredentials200JSONResponse{},
 			},
 		},
 		{
@@ -1243,7 +1243,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      1,
-				response: GetClaims200JSONResponse{
+				response: GetCredentials200JSONResponse{
 					GetClaimResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
@@ -1251,7 +1251,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -1261,7 +1261,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"documentType": float64(2),
 							"type":         "KYCAgeCredential",
 						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -1283,7 +1283,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      1,
-				response: GetClaims200JSONResponse{
+				response: GetCredentials200JSONResponse{
 					GetClaimResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
@@ -1291,7 +1291,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -1301,7 +1301,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"documentType": float64(2),
 							"type":         "KYCAgeCredential",
 						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -1324,7 +1324,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      1,
-				response: GetClaims200JSONResponse{
+				response: GetCredentials200JSONResponse{
 					GetClaimResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
@@ -1332,7 +1332,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -1342,7 +1342,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"documentType": float64(2),
 							"type":         "KYCAgeCredential",
 						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -1364,7 +1364,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      0,
-				response: GetClaims200JSONResponse{},
+				response: GetCredentials200JSONResponse{},
 			},
 		},
 		{
@@ -1377,7 +1377,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      1,
-				response: GetClaims200JSONResponse{
+				response: GetCredentials200JSONResponse{
 					GetClaimResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
@@ -1385,7 +1385,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -1395,7 +1395,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"documentType": float64(2),
 							"type":         "KYCAgeCredential",
 						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -1417,7 +1417,7 @@ func TestServer_GetClaims(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusOK,
 				len:      1,
-				response: GetClaims200JSONResponse{
+				response: GetCredentials200JSONResponse{
 					GetClaimResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
@@ -1425,7 +1425,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"JsonSchemaValidator2018",
 						},
 						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/claims/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
+							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
 							Type:            "SparseMerkleTreeProof",
 							RevocationNonce: uint64(claim.RevNonce),
 						},
@@ -1435,7 +1435,7 @@ func TestServer_GetClaims(t *testing.T) {
 							"documentType": float64(2),
 							"type":         "KYCAgeCredential",
 						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/claim/%s", claim.ID),
+						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
 						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 						Issuer:       identityMultipleClaims.Identifier,
 						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -1460,18 +1460,18 @@ func TestServer_GetClaims(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case GetClaims200JSONResponse:
+			case GetCredentials200JSONResponse:
 				var response GetClaims200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.len, len(response))
 				for i := range response {
 					validateClaim(t, response[i], v[i])
 				}
-			case GetClaims400JSONResponse:
+			case GetCredentials400JSONResponse:
 				var response GetClaims400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
-			case GetClaims500JSONResponse:
+			case GetCredentials500JSONResponse:
 				var response GetClaims500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
@@ -1569,7 +1569,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/claims/revocation/status/%d", identity.Identifier, tc.nonce)
+			url := fmt.Sprintf("/v1/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -1641,7 +1641,7 @@ func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
 }
 
 func createGetClaimsURL(did string, schemaHash *string, schemaType *string, subject *string, revoked *string, self *string, queryField *string) string {
-	tURL := &url.URL{Path: fmt.Sprintf("/v1/%s/claims", did)}
+	tURL := &url.URL{Path: fmt.Sprintf("/v1/%s/credentials", did)}
 	q := tURL.Query()
 
 	if self != nil {
