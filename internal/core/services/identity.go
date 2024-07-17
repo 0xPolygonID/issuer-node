@@ -1098,7 +1098,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = fmt.Sprintf("%s/api/v1/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)

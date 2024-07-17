@@ -304,6 +304,30 @@ type GetClaimsParams struct {
 	QueryValue *string `form:"query_value,omitempty" json:"query_value,omitempty"`
 }
 
+// GetCredentialsParams defines parameters for GetCredentials.
+type GetCredentialsParams struct {
+	// SchemaType Filter per schema type. Example - KYCAgeCredential
+	SchemaType *string `form:"schemaType,omitempty" json:"schemaType,omitempty"`
+
+	// SchemaHash Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
+	SchemaHash *string `form:"schemaHash,omitempty" json:"schemaHash,omitempty"`
+
+	// Subject Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
+	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// Revoked Filter per credentials revoked or not - Example - true.
+	Revoked *bool `form:"revoked,omitempty" json:"revoked,omitempty"`
+
+	// Self Filter per retrieve credentials of the provided identifier. Example - true
+	Self *bool `form:"self,omitempty" json:"self,omitempty"`
+
+	// QueryField Filter this field inside the data of the claim
+	QueryField *string `form:"query_field,omitempty" json:"query_field,omitempty"`
+
+	// QueryValue Filter this value inside the data of the claim for the specified field in query_field
+	QueryValue *string `form:"query_value,omitempty" json:"query_value,omitempty"`
+}
+
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
 type AgentTextRequestBody = AgentTextBody
 
@@ -312,6 +336,9 @@ type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
 // CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
+
+// CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
+type CreateCredentialJSONRequestBody = CreateClaimRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -345,24 +372,42 @@ type ServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
-	// Get Claims
+	// Get Claims (Deprecated)
 	// (GET /v1/{identifier}/claims)
 	GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams)
-	// Create Claim
+	// Create Claim (Deprecated)
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Revocation Status
+	// Get Revocation Status (Deprecated)
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
-	// Revoke Claim
+	// Revoke Claim (Deprecated)
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Get Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
-	// Get Claim QR code
+	// Get Claim QR code (Deprecated)
 	// (GET /v1/{identifier}/claims/{id}/qrcode)
 	GetClaimQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
+	// Get Credentials
+	// (GET /v1/{identifier}/credentials)
+	GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams)
+	// Create Credential
+	// (POST /v1/{identifier}/credentials)
+	CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Revocation Status
+	// (GET /v1/{identifier}/credentials/revocation/status/{nonce})
+	GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
+	// Revoke Credential
+	// (POST /v1/{identifier}/credentials/revoke/{nonce})
+	RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
+	// Get Claim
+	// (GET /v1/{identifier}/credentials/{id})
+	GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
+	// Get Credentials QR code
+	// (GET /v1/{identifier}/credentials/{id}/qrcode)
+	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Publish Identity State
 	// (POST /v1/{identifier}/state/publish)
 	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -435,25 +480,25 @@ func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, pa
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Claims
+// Get Claims (Deprecated)
 // (GET /v1/{identifier}/claims)
 func (_ Unimplemented) GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create Claim
+// Create Claim (Deprecated)
 // (POST /v1/{identifier}/claims)
 func (_ Unimplemented) CreateClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Revocation Status
+// Get Revocation Status (Deprecated)
 // (GET /v1/{identifier}/claims/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Revoke Claim
+// Revoke Claim (Deprecated)
 // (POST /v1/{identifier}/claims/revoke/{nonce})
 func (_ Unimplemented) RevokeClaim(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -465,9 +510,45 @@ func (_ Unimplemented) GetClaim(w http.ResponseWriter, r *http.Request, identifi
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Claim QR code
+// Get Claim QR code (Deprecated)
 // (GET /v1/{identifier}/claims/{id}/qrcode)
 func (_ Unimplemented) GetClaimQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Credentials
+// (GET /v1/{identifier}/credentials)
+func (_ Unimplemented) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Credential
+// (POST /v1/{identifier}/credentials)
+func (_ Unimplemented) CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Revocation Status
+// (GET /v1/{identifier}/credentials/revocation/status/{nonce})
+func (_ Unimplemented) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Revoke Credential
+// (POST /v1/{identifier}/credentials/revoke/{nonce})
+func (_ Unimplemented) RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Claim
+// (GET /v1/{identifier}/credentials/{id})
+func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Credentials QR code
+// (GET /v1/{identifier}/credentials/{id}/qrcode)
+func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -935,6 +1016,267 @@ func (siw *ServerInterfaceWrapper) GetClaimQrCode(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetCredentials operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCredentialsParams
+
+	// ------------- Optional query parameter "schemaType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "schemaType", r.URL.Query(), &params.SchemaType)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schemaType", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "schemaHash" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "schemaHash", r.URL.Query(), &params.SchemaHash)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schemaHash", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "subject" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "subject", r.URL.Query(), &params.Subject)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "revoked" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "revoked", r.URL.Query(), &params.Revoked)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "revoked", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "self" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "self", r.URL.Query(), &params.Self)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "self", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "query_field" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query_field", r.URL.Query(), &params.QueryField)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_field", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "query_value" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query_value", r.URL.Query(), &params.QueryValue)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_value", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCredentials(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateCredential operation middleware
+func (siw *ServerInterfaceWrapper) CreateCredential(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCredential(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetRevocationStatusV2 operation middleware
+func (siw *ServerInterfaceWrapper) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathNonce
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRevocationStatusV2(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// RevokeCredential operation middleware
+func (siw *ServerInterfaceWrapper) RevokeCredential(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathNonce
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeCredential(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetCredential operation middleware
+func (siw *ServerInterfaceWrapper) GetCredential(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id PathClaim
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCredential(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetCredentialQrCode operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id PathClaim
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCredentialQrCode(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // PublishIdentityState operation middleware
 func (siw *ServerInterfaceWrapper) PublishIdentityState(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1151,6 +1493,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/claims/{id}/qrcode", wrapper.GetClaimQrCode)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/credentials", wrapper.GetCredentials)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/{identifier}/credentials", wrapper.CreateCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatusV2)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/{identifier}/credentials/revoke/{nonce}", wrapper.RevokeCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/credentials/{id}", wrapper.GetCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/credentials/{id}/qrcode", wrapper.GetCredentialQrCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/state/publish", wrapper.PublishIdentityState)
@@ -1784,6 +2144,303 @@ func (response GetClaimQrCode500JSONResponse) VisitGetClaimQrCodeResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetCredentialsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetCredentialsParams
+}
+
+type GetCredentialsResponseObject interface {
+	VisitGetCredentialsResponse(w http.ResponseWriter) error
+}
+
+type GetCredentials200JSONResponse GetClaimsResponse
+
+func (response GetCredentials200JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentials400JSONResponse struct{ N400JSONResponse }
+
+func (response GetCredentials400JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentials401JSONResponse struct{ N401JSONResponse }
+
+func (response GetCredentials401JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentials500JSONResponse struct{ N500JSONResponse }
+
+func (response GetCredentials500JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredentialRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreateCredentialJSONRequestBody
+}
+
+type CreateCredentialResponseObject interface {
+	VisitCreateCredentialResponse(w http.ResponseWriter) error
+}
+
+type CreateCredential201JSONResponse CreateClaimResponse
+
+func (response CreateCredential201JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateCredential400JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential401JSONResponse struct{ N401JSONResponse }
+
+func (response CreateCredential401JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential422JSONResponse struct{ N422JSONResponse }
+
+func (response CreateCredential422JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(422)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateCredential500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateCredential500JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusV2RequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Nonce      PathNonce      `json:"nonce"`
+}
+
+type GetRevocationStatusV2ResponseObject interface {
+	VisitGetRevocationStatusV2Response(w http.ResponseWriter) error
+}
+
+type GetRevocationStatusV2200JSONResponse RevocationStatusResponse
+
+func (response GetRevocationStatusV2200JSONResponse) VisitGetRevocationStatusV2Response(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusV2400JSONResponse struct{ N400JSONResponse }
+
+func (response GetRevocationStatusV2400JSONResponse) VisitGetRevocationStatusV2Response(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusV2500JSONResponse struct{ N500JSONResponse }
+
+func (response GetRevocationStatusV2500JSONResponse) VisitGetRevocationStatusV2Response(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeCredentialRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Nonce      PathNonce      `json:"nonce"`
+}
+
+type RevokeCredentialResponseObject interface {
+	VisitRevokeCredentialResponse(w http.ResponseWriter) error
+}
+
+type RevokeCredential202JSONResponse RevokeClaimResponse
+
+func (response RevokeCredential202JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeCredential400JSONResponse struct{ N400JSONResponse }
+
+func (response RevokeCredential400JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeCredential401JSONResponse struct{ N401JSONResponse }
+
+func (response RevokeCredential401JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeCredential404JSONResponse struct{ N404JSONResponse }
+
+func (response RevokeCredential404JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RevokeCredential500JSONResponse struct{ N500JSONResponse }
+
+func (response RevokeCredential500JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         PathClaim      `json:"id"`
+}
+
+type GetCredentialResponseObject interface {
+	VisitGetCredentialResponse(w http.ResponseWriter) error
+}
+
+type GetCredential200JSONResponse GetClaimResponse
+
+func (response GetCredential200JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredential400JSONResponse struct{ N400JSONResponse }
+
+func (response GetCredential400JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredential401JSONResponse struct{ N401JSONResponse }
+
+func (response GetCredential401JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredential404JSONResponse struct{ N404JSONResponse }
+
+func (response GetCredential404JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredential500JSONResponse struct{ N500JSONResponse }
+
+func (response GetCredential500JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCodeRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         PathClaim      `json:"id"`
+}
+
+type GetCredentialQrCodeResponseObject interface {
+	VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error
+}
+
+type GetCredentialQrCode200JSONResponse GetClaimQrCodeResponse
+
+func (response GetCredentialQrCode200JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode400JSONResponse struct{ N400JSONResponse }
+
+func (response GetCredentialQrCode400JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode404JSONResponse struct{ N404JSONResponse }
+
+func (response GetCredentialQrCode404JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode409JSONResponse struct{ N409JSONResponse }
+
+func (response GetCredentialQrCode409JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialQrCode500JSONResponse struct{ N500JSONResponse }
+
+func (response GetCredentialQrCode500JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PublishIdentityStateRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 }
@@ -1904,24 +2561,42 @@ type StrictServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
-	// Get Claims
+	// Get Claims (Deprecated)
 	// (GET /v1/{identifier}/claims)
 	GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error)
-	// Create Claim
+	// Create Claim (Deprecated)
 	// (POST /v1/{identifier}/claims)
 	CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error)
-	// Get Revocation Status
+	// Get Revocation Status (Deprecated)
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
-	// Revoke Claim
+	// Revoke Claim (Deprecated)
 	// (POST /v1/{identifier}/claims/revoke/{nonce})
 	RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error)
 	// Get Claim
 	// (GET /v1/{identifier}/claims/{id})
 	GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error)
-	// Get Claim QR code
+	// Get Claim QR code (Deprecated)
 	// (GET /v1/{identifier}/claims/{id}/qrcode)
 	GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error)
+	// Get Credentials
+	// (GET /v1/{identifier}/credentials)
+	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
+	// Create Credential
+	// (POST /v1/{identifier}/credentials)
+	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
+	// Get Revocation Status
+	// (GET /v1/{identifier}/credentials/revocation/status/{nonce})
+	GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error)
+	// Revoke Credential
+	// (POST /v1/{identifier}/credentials/revoke/{nonce})
+	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
+	// Get Claim
+	// (GET /v1/{identifier}/credentials/{id})
+	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
+	// Get Credentials QR code
+	// (GET /v1/{identifier}/credentials/{id}/qrcode)
+	GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error)
 	// Publish Identity State
 	// (POST /v1/{identifier}/state/publish)
 	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
@@ -2379,6 +3054,174 @@ func (sh *strictHandler) GetClaimQrCode(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetClaimQrCodeResponseObject); ok {
 		if err := validResponse.VisitGetClaimQrCodeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCredentials operation middleware
+func (sh *strictHandler) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
+	var request GetCredentialsRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCredentials(ctx, request.(GetCredentialsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCredentials")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCredentialsResponseObject); ok {
+		if err := validResponse.VisitGetCredentialsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateCredential operation middleware
+func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreateCredentialRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateCredentialJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateCredential(ctx, request.(CreateCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateCredentialResponseObject); ok {
+		if err := validResponse.VisitCreateCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRevocationStatusV2 operation middleware
+func (sh *strictHandler) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	var request GetRevocationStatusV2RequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRevocationStatusV2(ctx, request.(GetRevocationStatusV2RequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRevocationStatusV2")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRevocationStatusV2ResponseObject); ok {
+		if err := validResponse.VisitGetRevocationStatusV2Response(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RevokeCredential operation middleware
+func (sh *strictHandler) RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	var request RevokeCredentialRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RevokeCredential(ctx, request.(RevokeCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RevokeCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RevokeCredentialResponseObject); ok {
+		if err := validResponse.VisitRevokeCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCredential operation middleware
+func (sh *strictHandler) GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
+	var request GetCredentialRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCredential(ctx, request.(GetCredentialRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCredential")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCredentialResponseObject); ok {
+		if err := validResponse.VisitGetCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCredentialQrCode operation middleware
+func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
+	var request GetCredentialQrCodeRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCredentialQrCode(ctx, request.(GetCredentialQrCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCredentialQrCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCredentialQrCodeResponseObject); ok {
+		if err := validResponse.VisitGetCredentialQrCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
