@@ -366,7 +366,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 	}
 
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, nil, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
 		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {

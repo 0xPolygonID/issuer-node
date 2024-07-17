@@ -450,6 +450,9 @@ func TestServer_CreateCredential(t *testing.T) {
 	require.NoError(t, err)
 	did := iden.Identifier
 
+	claimID, err := uuid.NewUUID()
+	require.NoError(t, err)
+
 	type expected struct {
 		response                    CreateCredentialResponseObject
 		httpCode                    int
@@ -605,6 +608,33 @@ func TestServer_CreateCredential(t *testing.T) {
 			},
 		},
 		{
+			name: "Happy path with claim id",
+			auth: authOk,
+			did:  did,
+			body: CreateClaimRequest{
+				ClaimID:          common.ToPointer(claimID),
+				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
+				Type:             "KYCAgeCredential",
+				CredentialSubject: map[string]any{
+					"id":           "did:polygonid:polygon:mumbai:2qFDkNkWePjd6URt6kGQX14a7wVKhBZt8bpy7HZJZi",
+					"birthday":     19960425,
+					"documentType": 2,
+				},
+				Expiration: common.ToPointer(time.Now().Unix()),
+				Proofs: &[]CreateClaimRequestProofs{
+					"BJJSignature2021",
+					"Iden3SparseMerkleTreeProof",
+				},
+			},
+			expected: expected{
+				response: CreateClaim201JSONResponse{
+					Id: claimID.String(),
+				},
+				httpCode:                    http.StatusCreated,
+				createCredentialEventsCount: 1,
+			},
+		},
+		{
 			name: "Wrong credential url",
 			auth: authOk,
 			did:  did,
@@ -684,6 +714,9 @@ func TestServer_CreateCredential(t *testing.T) {
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
+				if tc.body.ClaimID != nil {
+					assert.Equal(t, tc.body.ClaimID.String(), response.Id)
+				}
 			case http.StatusBadRequest:
 				var response CreateClaim400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
@@ -1535,7 +1568,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 		BJJSignatureProof2021:      true,
 		Iden3SparseMerkleTreeProof: true,
 	}
-	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	claim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	assert.NoError(t, err)
 
 	type expected struct {
