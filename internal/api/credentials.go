@@ -490,9 +490,9 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 	}
 }
 
-func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetClaimQrCode200JSONResponse {
+func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) GetClaimQrCode200JSONResponse {
 	id := uuid.New()
-	return &GetClaimQrCode200JSONResponse{
+	return GetClaimQrCode200JSONResponse{
 		Body: struct {
 			Credentials []struct {
 				Description string `json:"description"`
