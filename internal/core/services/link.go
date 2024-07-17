@@ -38,8 +38,6 @@ var (
 	ErrLinkMaxExceeded = errors.New("cannot issue a credential for an expired link")
 	// ErrLinkInactive - link inactive
 	ErrLinkInactive = errors.New("cannot issue a credential for an inactive link")
-	// ErrClaimAlreadyIssued - claim already issued
-	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
 )
 
 // Link - represents a link in the issuer node
@@ -254,6 +252,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		link.CredentialSubject["id"] = userDID.String()
 
 		claimReq := ports.NewCreateClaimRequest(&issuerDID,
+			nil,
 			schema.URL,
 			link.CredentialSubject,
 			link.CredentialExpiration,

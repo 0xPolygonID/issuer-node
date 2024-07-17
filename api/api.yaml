@@ -857,6 +857,10 @@ components:
         credentialSchema:
           type: string
           x-omitempty: false
+        claimID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
         type:
           type: string
           x-omitempty: false

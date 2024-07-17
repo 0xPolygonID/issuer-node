@@ -59,6 +59,7 @@ type Config = []KeyValue
 
 // CreateClaimRequest defines model for CreateClaimRequest.
 type CreateClaimRequest struct {
+	ClaimID               *uuid.UUID                  `json:"claimID"`
 	CredentialSchema      string                      `json:"credentialSchema"`
 	CredentialSubject     map[string]interface{}      `json:"credentialSubject"`
 	DisplayMethod         *DisplayMethod              `json:"displayMethod,omitempty"`

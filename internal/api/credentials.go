@@ -82,7 +82,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 	}
 
-	req := ports.NewCreateClaimRequest(did, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+	req := ports.NewCreateClaimRequest(did, request.Body.ClaimID, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
 		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)
@@ -243,7 +243,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error parsing the claims"}}, nil
 	}
 
-	return GetClaims200JSONResponse(toGetClaims200Response(w3Claims)), nil
+	return toGetClaims200Response(w3Claims), nil
 }
 
 // GetCredentialQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
@@ -437,7 +437,7 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 	}
 }
 
-func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaimsResponse {
+func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaims200JSONResponse {
 	response := make(GetClaims200JSONResponse, len(claims))
 	for i := range claims {
 		response[i] = toGetClaim200Response(claims[i])
@@ -490,9 +490,9 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 	}
 }
 
-func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) GetClaimQrCode200JSONResponse {
+func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) *GetClaimQrCode200JSONResponse {
 	id := uuid.New()
-	return GetClaimQrCode200JSONResponse{
+	return &GetClaimQrCode200JSONResponse{
 		Body: struct {
 			Credentials []struct {
 				Description string `json:"description"`

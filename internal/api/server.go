@@ -42,11 +42,11 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 	}
 }
 
-// RegisterStatic add method to the mux that are not documented in the API.
-func RegisterStatic(mux *chi.Mux) {
-	mux.Get("/", documentation)
-	mux.Get("/static/docs/api/api.yaml", swagger)
-	mux.Get("/favicon.ico", favicon)
+// Health is a method
+func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
+	var resp Health200JSONResponse = s.health.Status()
+
+	return resp, nil
 }
 
 // GetDocumentation this method will be overridden in the main function
@@ -64,10 +64,11 @@ func (s *Server) GetYaml(_ context.Context, _ GetYamlRequestObject) (GetYamlResp
 	return nil, nil
 }
 
-// Health is a method
-func (s *Server) Health(_ context.Context, _ HealthRequestObject) (HealthResponseObject, error) {
-	var resp Health200JSONResponse = s.health.Status()
-	return resp, nil
+// RegisterStatic add method to the mux that are not documented in the API.
+func RegisterStatic(mux *chi.Mux) {
+	mux.Get("/", documentation)
+	mux.Get("/static/docs/api/api.yaml", swagger)
+	mux.Get("/favicon.ico", favicon)
 }
 
 func documentation(w http.ResponseWriter, _ *http.Request) {
