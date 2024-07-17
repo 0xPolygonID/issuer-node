@@ -627,7 +627,7 @@ func TestServer_CreateCredential(t *testing.T) {
 				},
 			},
 			expected: expected{
-				response: CreateClaim201JSONResponse{
+				response: CreateCredential201JSONResponse{
 					Id: claimID.String(),
 				},
 				httpCode:                    http.StatusCreated,
