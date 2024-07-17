@@ -157,9 +157,14 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, ErrJSONLdContext
 	}
 
-	vcID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
+	var vcID uuid.UUID
+	if req.ClaimID != nil {
+		vcID = *req.ClaimID
+	} else {
+		vcID, err = uuid.NewUUID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	vc, err := c.createVC(ctx, req, vcID, jsonLdContext, nonce)
