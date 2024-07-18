@@ -60,7 +60,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 				message = `Issuer Node cannot connect with Vault. Please check the value of ISSUER_KEY_STORE_TOKEN variable.`
 			}
 
-			log.Info(ctx, message+". More information in this link: https://devs.polygonid.com/docs/issuer/vault-auth")
+			log.Info(ctx, message+". More information in this link: https://docs.privado.id/docs/issuer/vault-auth/")
 			return CreateIdentity403JSONResponse{
 				N403JSONResponse{
 					Message: message,
