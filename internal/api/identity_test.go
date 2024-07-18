@@ -60,7 +60,8 @@ func TestServer_CreateIdentity(t *testing.T) {
 	)
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
+	server := NewServer(&cfg, identityService, accountService, connectionsService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -271,7 +272,8 @@ func TestServer_GetIdentities(t *testing.T) {
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
+	server := NewServer(&cfg, identityService, accountService, connectionsService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
 
 	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"

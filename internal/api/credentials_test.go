@@ -51,6 +51,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	connectionService := services.NewConnection(repositories.NewConnections(), claimsRepo, storage)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -61,7 +62,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	)
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
@@ -225,7 +226,8 @@ func TestServer_CreateCredential(t *testing.T) {
 	pubSub := pubsub.NewMock()
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	connectionService := services.NewConnection(repositories.NewConnections(), claimsRepo, storage)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(ctx, server)
 
 	iden, err := identityService.Create(ctx, "http://polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -528,6 +530,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	connectionService := services.NewConnection(repositories.NewConnections(), claimsRepo, storage)
 
 	idStr := "did:polygonid:polygon:mumbai:2qPrv5Yx8s1qAmEnPym68LfT7gTbASGampiGU7TseL"
 	idNoClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -540,7 +543,6 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		},
 		true,
 	)
-
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	identity := &domain.Identity{
@@ -553,7 +555,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -698,7 +700,8 @@ func TestServer_GetCredential(t *testing.T) {
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
+	server := NewServer(&cfg, identityService, accountService, connectionsService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
@@ -888,7 +891,8 @@ func TestServer_GetCredentials(t *testing.T) {
 	fixture := tests.NewFixture(storage)
 
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	connectionService := services.NewConnection(repositories.NewConnections(), claimsRepo, storage)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 
@@ -1247,7 +1251,8 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 
 	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
+	server := NewServer(&cfg, identityService, accountService, connectionsService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
 	handler := getHandler(context.Background(), server)
 
 	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"

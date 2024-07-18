@@ -69,6 +69,90 @@ paths:
                 $ref: '#/components/schemas/Config'
         '500':
           $ref: '#/components/responses/500'
+  #authentication
+  /v1/authentication/sessions/{id}:
+    get:
+      summary: Get Authentication Connection
+      operationId: getAuthenticationConnection
+      description: get authentication connection
+      parameters:
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Auth
+        - Connection
+      security:
+        - basicAuth: [ ]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAuthenticationConnectionResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+  # Authentication
+  /v1/authentication/qrcode:
+    get:
+      summary: Get Connection QRCode
+      operationId: authQRCode
+      description: Authentication qrcode
+      tags:
+        - Auth
+      parameters:
+        - name: type
+          in: query
+          required: false
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code.
+          schema:
+            type: string
+            enum: [ raw, link ]
+
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QrCodeLinkShortResponse'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/authentication/callback:
+    post:
+      summary: Authentication Callback
+      operationId: authCallback
+      description: Authentication callback
+      tags:
+        - Auth
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: ok
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+
 #identity:
   /v1/identities:
     post:
@@ -689,6 +773,10 @@ components:
       additionalProperties:
         type: boolean
 
+    UUIDString:
+      type: string
+      x-omitempty: false
+      example: b7144f1c-d54e-4f67-a4f1-f2e7ff1beb07
 
     GenericErrorMessage:
       type: object
@@ -909,6 +997,34 @@ components:
           type: string
           x-omitempty: false
 
+    AuthenticationConnection:
+      type: object
+      required:
+        - id
+        - userID
+        - issuerID
+        - createdAt
+        - modifiedAt
+      properties:
+        id:
+          $ref: '#/components/schemas/UUIDString'
+        userID:
+          $ref: '#/components/schemas/UUIDString'
+        issuerID:
+          $ref: '#/components/schemas/UUIDString'
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+        modifiedAt:
+          $ref: '#/components/schemas/TimeUTC'
+
+    GetAuthenticationConnectionResponse:
+      type: object
+      required:
+        - connection
+      properties:
+        connection:
+          $ref: '#/components/schemas/AuthenticationConnection'
+
     GetClaimsResponse:
       type: array
       items:
@@ -962,8 +1078,16 @@ components:
           $ref: '#/components/schemas/RefreshService'
 
     QrCodeLinkShortResponse:
-      type: string
-      example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+      type: object
+      required:
+        - qrCodeLink
+        - sessionID
+      properties:
+        qrCodeLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        sessionID:
+          $ref: '#/components/schemas/UUIDString'
 
     GetClaimQrCodeResponse:
       type: object
@@ -1008,7 +1132,6 @@ components:
           type: string
         to:
           type: string
-
 
     CredentialSchema:
       type: object
@@ -1112,6 +1235,33 @@ components:
       x-omitempty: false
 
   parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      description: |
+        UUID parameter, e.g: 8edd8112-c415-11ed-b036-debe37e1cbd6
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
+
+    sessionID:
+      name: sessionID
+      in: query
+      required: true
+      description: |
+        Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
+
+
     pathIdentifier:
       name: identifier
       in: path

@@ -132,6 +132,7 @@ func main() {
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
+	connectionsRepository := repositories.NewConnections()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
@@ -139,6 +140,7 @@ func main() {
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -191,7 +193,7 @@ func main() {
 	)
 	api.HandlerFromMux(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
