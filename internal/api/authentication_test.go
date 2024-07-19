@@ -21,20 +21,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 func TestServer_AuthCallback(t *testing.T) {
-	ctx := context.Background()
-	reader := helpers.CreateFile(t)
-	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
-	require.NoError(t, err)
-	server := NewServer(&cfg, nil, nil, nil, nil, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := newTestServer(t)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -83,13 +73,7 @@ func TestServer_AuthCallback(t *testing.T) {
 }
 
 func TestServer_GetAuthenticationConnection(t *testing.T) {
-	ctx := context.Background()
-	reader := helpers.CreateFile(t)
-	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
-	require.NoError(t, err)
-	connectionRepository := repositories.NewConnections()
-	connectionsService := services.NewConnection(connectionRepository, repositories.NewClaims(), storage)
-	server := NewServer(&cfg, nil, nil, connectionsService, nil, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := newTestServer(t)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
@@ -189,27 +173,7 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 }
 
 func TestServer_AuthQRCode(t *testing.T) {
-	ctx := context.Background()
-	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
-	identityStateRepo := repositories.NewIdentityState()
-	mtRepo := repositories.NewIdentityMerkleTreeRepository()
-	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	qrService := services.NewQrStoreService(cachex)
-	revocationRepository := repositories.NewRevocation()
-	connectionsRepository := repositories.NewConnections()
-	sessionRepository := repositories.NewSessionCached(cachex)
-
-	reader := helpers.CreateFile(t)
-
-	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
-	require.NoError(t, err)
-
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, sessionRepository, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
-	server := NewServer(&cfg, identityService, nil, connectionsService, nil, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := newTestServer(t)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID

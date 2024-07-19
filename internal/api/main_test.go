@@ -10,7 +10,17 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/piprate/json-gold/ld"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/helpers"
+	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -104,7 +114,7 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func getHandler(ctx context.Context, server *Server) http.Handler {
+func getHandler(ctx context.Context, server StrictServerInterface) http.Handler {
 	mux := chi.NewRouter()
 	RegisterStatic(mux)
 	return HandlerFromMux(NewStrictHandlerWithOptions(
@@ -197,4 +207,80 @@ func NewConnectionsMock() ports.ConnectionsService {
 
 func NewLinkMock() ports.LinkService {
 	return nil
+}
+
+type repos struct {
+	claims         ports.ClaimsRepository
+	connection     ports.ConnectionsRepository
+	identity       ports.IndentityRepository
+	idenMerkleTree ports.IdentityMerkleTreeRepository
+	identityState  ports.IdentityStateRepository
+	sessions       ports.SessionRepository
+	revocation     ports.RevocationRepository
+}
+
+type servicex struct {
+	credentials ports.ClaimsService
+	identity    ports.IdentityService
+}
+
+type infra struct {
+	db     *db.Storage
+	pubSub *pubsub.Mock
+}
+
+type testServer struct {
+	*Server
+	Repos    repos
+	Services servicex
+	Infra    infra
+}
+
+func newTestServer(t *testing.T) *testServer {
+	t.Helper()
+	repos := repos{
+		claims:         repositories.NewClaims(),
+		connection:     repositories.NewConnections(),
+		identity:       repositories.NewIdentity(),
+		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
+		identityState:  repositories.NewIdentityState(),
+		sessions:       repositories.NewSessionCached(cachex),
+		revocation:     repositories.NewRevocation(),
+	}
+	pubSub := pubsub.NewMock()
+
+	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, helpers.CreateFile(t))
+	require.NoError(t, err)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+
+	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
+	qrService := services.NewQrStoreService(cachex)
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, storage, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
+	connectionService := services.NewConnection(repos.connection, repos.claims, storage)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, storage, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
+	accountService := services.NewAccountService(*networkResolver)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+
+	return &testServer{
+		Server: server,
+		Repos:  repos,
+		Services: servicex{
+			credentials: claimsService,
+			identity:    identityService,
+		},
+		Infra: infra{
+			db:     storage,
+			pubSub: pubSub,
+		},
+	}
 }

@@ -8,22 +8,12 @@ import (
 	"testing"
 
 	core "github.com/iden3/go-iden3-core/v2"
-	"github.com/iden3/iden3comm/v2"
-	"github.com/iden3/iden3comm/v2/packers"
-	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
-	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
-	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
-	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
@@ -34,34 +24,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 		BJJ        = "BJJ"
 		ETH        = "ETH"
 	)
-	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
-	identityStateRepo := repositories.NewIdentityState()
-	mtRepo := repositories.NewIdentityMerkleTreeRepository()
-	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	revocationRepository := repositories.NewRevocation()
-	connectionsRepository := repositories.NewConnections()
-
-	reader := helpers.CreateFile(t)
-
-	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, reader)
-	require.NoError(t, err)
-
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-
-	mediaTypeManager := services.NewMediaTypeManager(
-		map[iden3comm.ProtocolMessage][]string{
-			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
-			protocol.RevocationStatusRequestMessageType: {"*"},
-		},
-		true,
-	)
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
-	accountService := services.NewAccountService(*networkResolver)
-	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
-	server := NewServer(&cfg, identityService, accountService, connectionsService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := newTestServer(t)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -245,45 +208,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 }
 
 func TestServer_GetIdentities(t *testing.T) {
-	ctx := context.Background()
-	identityRepo := repositories.NewIdentity()
-	claimsRepo := repositories.NewClaims()
-	identityStateRepo := repositories.NewIdentityState()
-	mtRepo := repositories.NewIdentityMerkleTreeRepository()
-	mtService := services.NewIdentityMerkleTrees(mtRepo)
-	revocationRepository := repositories.NewRevocation()
-	connectionsRepository := repositories.NewConnections()
-
-	reader := helpers.CreateFile(t)
-	networkResolver, err := networkPkg.NewResolver(ctx, cfg, keyStore, reader)
-	require.NoError(t, err)
-
-	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	identityService := services.NewIdentity(&KMSMock{}, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-
-	mediaTypeManager := services.NewMediaTypeManager(
-		map[iden3comm.ProtocolMessage][]string{
-			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
-			protocol.RevocationStatusRequestMessageType: {"*"},
-		},
-		true,
-	)
-
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
-	accountService := services.NewAccountService(*networkResolver)
-	connectionsService := services.NewConnection(connectionsRepository, claimsRepo, storage)
-	server := NewServer(&cfg, identityService, accountService, connectionsService, claimsService, nil, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := newTestServer(t)
 	handler := getHandler(context.Background(), server)
 
-	idStr1 := "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"
-	idStr2 := "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"
-	identity1 := &domain.Identity{
-		Identifier: idStr1,
-	}
-	identity2 := &domain.Identity{
-		Identifier: idStr2,
-	}
+	identity1 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"}
+	identity2 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity1)
 	fixture.CreateIdentity(t, identity2)
