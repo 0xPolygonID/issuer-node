@@ -99,7 +99,7 @@ paths:
           $ref: '#/components/responses/500'
 
   # Authentication
-  /v1/authentication/qrcode:
+  /v1/authentication/{issuerDID}/qrcode:
     get:
       summary: Get Connection QRCode
       operationId: authQRCode
@@ -107,6 +107,12 @@ paths:
       tags:
         - Auth
       parameters:
+        - name: issuerDID
+          in: path
+          required: true
+          description: Issuer DID
+          schema:
+            type: string
         - name: type
           in: query
           required: false
@@ -125,6 +131,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QrCodeLinkShortResponse'
+        '400':
+            $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 

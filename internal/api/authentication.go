@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/iden3/go-iden3-core/v2/w3c"
+
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -26,7 +28,12 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 
 // AuthQRCode returns the qr code for authenticating a user
 func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	did, err := w3c.ParseDID(req.IssuerDID)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err)
+		return AuthQRCode400JSONResponse{N400JSONResponse{"Invalid issuer did"}}, nil
+	}
+	resp, err := s.identityService.CreateAuthenticationQRCode(ctx, s.cfg.ServerUrl, *did)
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}

@@ -180,6 +180,9 @@ func TestServer_AuthQRCode(t *testing.T) {
 	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
 
+	did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
+	require.NoError(t, err)
+
 	type expected struct {
 		httpCode   int
 		qrWithLink bool
@@ -193,8 +196,11 @@ func TestServer_AuthQRCode(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name:    "should get a qr code with a link by default",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: nil}},
+			name: "should get a qr code with a link by default",
+			request: AuthQRCodeRequestObject{
+				IssuerDID: did.String(),
+				Params:    AuthQRCodeParams{Type: nil},
+			},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -211,8 +217,10 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get a qr code with a link as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(Link)}},
+			name: "should get a qr code with a link as requested",
+			request: AuthQRCodeRequestObject{
+				IssuerDID: did.String(),
+				Params:    AuthQRCodeParams{Type: common.ToPointer(Link)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -229,8 +237,10 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name:    "should get a RAW qr code as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(Raw)}},
+			name: "should get a RAW qr code as requested",
+			request: AuthQRCodeRequestObject{
+				IssuerDID: did.String(),
+				Params:    AuthQRCodeParams{Type: common.ToPointer(Raw)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: false,
@@ -249,7 +259,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := "/v1/authentication/qrcode"
+			apiURL := fmt.Sprintf("/v1/authentication/%s/qrcode", did.String())
 			if tc.request.Params.Type != nil {
 				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
 			}
