@@ -23,15 +23,6 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
-const (
-	// OnChain is the type for revocation status on chain
-	OnChain = "OnChain"
-	// OffChain is the type for revocation status off chain
-	OffChain = "OffChain"
-	// None is the type for revocation status None
-	None = "None"
-)
-
 type resolverPrefix string
 
 // ResolverClientConfig holds the resolver client config
@@ -49,14 +40,13 @@ type Resolver struct {
 
 // RhsSettings holds the rhs settings
 type RhsSettings struct {
-	Iden3CommAgentStatus string  `yaml:"directUrl"`
-	Mode                 string  `yaml:"mode"`
-	ContractAddress      *string `yaml:"contractAddress"`
-	RhsUrl               *string `yaml:"rhsUrl"`
-	ChainID              *string `yaml:"chainID"`
-	PublishingKey        string  `yaml:"publishingKey"`
-	SingleIssuer         bool
-	CredentialStatusType verifiable.CredentialStatusType
+	Iden3CommAgentStatus           string                          `yaml:"directUrl"`
+	DefaultAuthBJJCredentialStatus verifiable.CredentialStatusType `yaml:"defaultAuthBJJCredentialStatus"`
+	ContractAddress                *string                         `yaml:"contractAddress"`
+	RhsUrl                         *string                         `yaml:"rhsUrl"`
+	ChainID                        *string                         `yaml:"chainID"`
+	PublishingKey                  string                          `yaml:"publishingKey"`
+	SingleIssuer                   bool
 }
 
 // ResolverSettings holds the resolver settings
@@ -141,22 +131,12 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
 
-			if settings.Mode == None {
-				settings.CredentialStatusType = verifiable.Iden3commRevocationStatusV1
+			if settings.RhsUrl == nil {
+				return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
 			}
 
-			if settings.Mode == OffChain {
-				if settings.RhsUrl == nil {
-					return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
-				}
-				settings.CredentialStatusType = verifiable.Iden3ReverseSparseMerkleTreeProof
-			}
-
-			if settings.Mode == OnChain {
-				if settings.ContractAddress == nil {
-					return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
-				}
-				settings.CredentialStatusType = verifiable.Iden3OnchainSparseMerkleTreeProof2023
+			if settings.ContractAddress == nil {
+				return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
 			}
 
 			rhsSettings[resolverPrefix(resolverPrefixKey)] = settings

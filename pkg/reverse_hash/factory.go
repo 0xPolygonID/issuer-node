@@ -6,6 +6,7 @@ import (
 	"time"
 
 	ethCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	proof "github.com/iden3/merkletree-proof"
 	proofEth "github.com/iden3/merkletree-proof/eth"
 	proofHttp "github.com/iden3/merkletree-proof/http"
@@ -13,18 +14,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/network"
-)
-
-// RHSMode is a mode of RHS
-type RHSMode string
-
-const (
-	// RHSModeOffChain is a mode when we use off-chain RHS
-	RHSModeOffChain RHSMode = "OffChain"
-	// RHSModeOnChain is a mode when we use on-chain RHS
-	RHSModeOnChain RHSMode = "OnChain"
-	// RHSModeNone is a mode when we don't use RHS
-	RHSModeNone RHSMode = "None"
 )
 
 // Factory is a factory for creating RhsPublishers
@@ -42,29 +31,34 @@ func NewFactory(networkResolver network.Resolver, rpcTimeout time.Duration) Fact
 }
 
 // BuildPublishers creates new instance of RhsPublisher
-func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
-	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		return nil, err
+func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, credentialStatusType *verifiable.CredentialStatusType, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
+
+	if credentialStatusType == nil {
+		rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+		if err != nil {
+			return nil, err
+		}
+
+		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
 	}
-	rhsMode := RHSMode(rhsSettings.Mode)
-	switch rhsMode {
-	case RHSModeOffChain:
+
+	switch *credentialStatusType {
+	case verifiable.Iden3ReverseSparseMerkleTreeProof:
 		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
 		if err != nil {
 			return nil, err
 		}
 		return []RhsPublisher{NewRhsPublisher(rhsCli, false)}, nil
-	case RHSModeOnChain:
+	case verifiable.Iden3OnchainSparseMerkleTreeProof2023:
 		onChainCli, err := f.initOnChainRHSCli(ctx, resolverPrefix, kmsKey)
 		if err != nil {
 			return nil, err
 		}
 		return []RhsPublisher{NewRhsPublisher(onChainCli, false)}, nil
-	case RHSModeNone:
+	case verifiable.Iden3commRevocationStatusV1:
 		return []RhsPublisher{}, nil
 	default:
-		return nil, errors.New("unknown rhs mode")
+		return nil, errors.New("unknown credential status type")
 	}
 }
 

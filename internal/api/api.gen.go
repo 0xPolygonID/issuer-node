@@ -61,6 +61,7 @@ type Config = []KeyValue
 type CreateClaimRequest struct {
 	ClaimID               *uuid.UUID                  `json:"claimID"`
 	CredentialSchema      string                      `json:"credentialSchema"`
+	CredentialStatusType  *string                     `json:"credentialStatusType,omitempty"`
 	CredentialSubject     map[string]interface{}      `json:"credentialSubject"`
 	DisplayMethod         *DisplayMethod              `json:"displayMethod,omitempty"`
 	Expiration            *int64                      `json:"expiration,omitempty"`
@@ -84,10 +85,11 @@ type CreateClaimResponse struct {
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
 	DidMetadata struct {
-		Blockchain string                               `json:"blockchain"`
-		Method     string                               `json:"method"`
-		Network    string                               `json:"network"`
-		Type       CreateIdentityRequestDidMetadataType `json:"type"`
+		AuthBJJCredentialStatus *string                              `json:"authBJJCredentialStatus,omitempty"`
+		Blockchain              string                               `json:"blockchain"`
+		Method                  string                               `json:"method"`
+		Network                 string                               `json:"network"`
+		Type                    CreateIdentityRequestDidMetadataType `json:"type"`
 	} `json:"didMetadata"`
 }
 

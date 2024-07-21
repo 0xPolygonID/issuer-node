@@ -125,14 +125,15 @@ type ConnectionsPaginated struct {
 
 // CreateCredentialRequest defines model for CreateCredentialRequest.
 type CreateCredentialRequest struct {
-	CredentialSchema  string                 `json:"credentialSchema"`
-	CredentialSubject map[string]interface{} `json:"credentialSubject"`
-	DisplayMethod     *DisplayMethod         `json:"displayMethod,omitempty"`
-	Expiration        *time.Time             `json:"expiration,omitempty"`
-	MtProof           *bool                  `json:"mtProof,omitempty"`
-	RefreshService    *RefreshService        `json:"refreshService"`
-	SignatureProof    *bool                  `json:"signatureProof,omitempty"`
-	Type              string                 `json:"type"`
+	CredentialSchema     string                 `json:"credentialSchema"`
+	CredentialStatusType *string                `json:"credentialStatusType,omitempty"`
+	CredentialSubject    map[string]interface{} `json:"credentialSubject"`
+	DisplayMethod        *DisplayMethod         `json:"displayMethod,omitempty"`
+	Expiration           *time.Time             `json:"expiration,omitempty"`
+	MtProof              *bool                  `json:"mtProof,omitempty"`
+	RefreshService       *RefreshService        `json:"refreshService"`
+	SignatureProof       *bool                  `json:"signatureProof,omitempty"`
+	Type                 string                 `json:"type"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
@@ -386,6 +387,9 @@ type UUIDResponse struct {
 // UUIDString defines model for UUIDString.
 type UUIDString = string
 
+// CredentialStatusType defines model for credentialStatusType.
+type CredentialStatusType = string
+
 // Id defines model for id.
 type Id = uuid.UUID
 
@@ -520,6 +524,9 @@ type CreateLinkQrCodeCallbackParams struct {
 
 	// LinkID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
 	LinkID LinkID `form:"linkID" json:"linkID"`
+
+	// CredentialStatusType credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
+	CredentialStatusType *CredentialStatusType `form:"credentialStatusType,omitempty" json:"credentialStatusType,omitempty"`
 }
 
 // AcivateLinkJSONBody defines parameters for AcivateLink.
@@ -1480,6 +1487,14 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCodeCallback(w http.ResponseWrite
 	err = runtime.BindQueryParameter("form", true, true, "linkID", r.URL.Query(), &params.LinkID)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "linkID", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "credentialStatusType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "credentialStatusType", r.URL.Query(), &params.CredentialStatusType)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentialStatusType", Err: err})
 		return
 	}
 

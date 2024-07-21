@@ -374,7 +374,7 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				log.Error(ctx, "getting RHS settings", "err", err)
 				return err
 			}
-			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
+			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &rhsSettings.DefaultAuthBJJCredentialStatus, &kms.KeyID{
 				Type: kms.KeyTypeEthereum,
 				ID:   rhsSettings.PublishingKey,
 			})
@@ -757,7 +757,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &didOptions.AuthBJJCredentialStatus, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   rhsSettings.PublishingKey,
 	})
@@ -954,7 +954,7 @@ func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) e
 		return err
 	}
 
-	publishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
+	publishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &rhsSettings.DefaultAuthBJJCredentialStatus, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   rhsSettings.PublishingKey,
 	})

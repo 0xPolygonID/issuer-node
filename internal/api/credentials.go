@@ -73,17 +73,23 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		}
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(did)
-	if err != nil {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	var credentialStatusType *verifiable.CredentialStatusType
+	if request.Body.CredentialStatusType == nil {
+		resolverPrefix, err := common.ResolverPrefix(did)
+		if err != nil {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+		}
+
+		rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+		if err != nil {
+			return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+		}
+		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+	} else {
+		credentialStatusType = (*verifiable.CredentialStatusType)(request.Body.CredentialStatusType)
 	}
 
-	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
-	}
-
-	req := ports.NewCreateClaimRequest(did, request.Body.ClaimID, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
+	req := ports.NewCreateClaimRequest(did, request.Body.ClaimID, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, *credentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
 		toVerifiableDisplayMethod(request.Body.DisplayMethod))
 
 	resp, err := s.claimService.Save(ctx, req)

@@ -7,6 +7,7 @@ import (
 
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -22,6 +23,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	blockchain := request.Body.DidMetadata.Blockchain
 	network := request.Body.DidMetadata.Network
 	keyType := request.Body.DidMetadata.Type
+	authBJJCredentialStatus := request.Body.DidMetadata.AuthBJJCredentialStatus
 
 	if keyType != "BJJ" && keyType != "ETH" {
 		return CreateIdentity400JSONResponse{
@@ -36,12 +38,16 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
 	}
 
+	if authBJJCredentialStatus == nil {
+		authBJJCredentialStatus = (*string)(&rhsSettings.DefaultAuthBJJCredentialStatus)
+	}
+
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(method),
 		Network:                 core.NetworkID(network),
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: rhsSettings.CredentialStatusType,
+		AuthBJJCredentialStatus: (verifiable.CredentialStatusType)(*authBJJCredentialStatus),
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {

@@ -356,17 +356,23 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		claimRequestProofs.Iden3SparseMerkleTreeProof = true
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
-	if err != nil {
-		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	var credentialStatusType *verifiable.CredentialStatusType
+	if request.Body.CredentialStatusType == nil {
+		resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
+		if err != nil {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+		}
+
+		rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+		if err != nil {
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+		}
+		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+	} else {
+		credentialStatusType = (*verifiable.CredentialStatusType)(request.Body.CredentialStatusType)
 	}
 
-	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
-	}
-
-	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, nil, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, rhsSettings.CredentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
+	req := ports.NewCreateClaimRequest(&s.cfg.APIUI.IssuerDID, nil, request.Body.CredentialSchema, request.Body.CredentialSubject, request.Body.Expiration, request.Body.Type, nil, nil, nil, claimRequestProofs, nil, true, *credentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), nil,
 		toDisplayMethodService(request.Body.DisplayMethod))
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
@@ -693,17 +699,23 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
-	if err != nil {
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+	var credentialStatusType *verifiable.CredentialStatusType
+	if request.Params.CredentialStatusType == nil {
+		resolverPrefix, err := common.ResolverPrefix(common.ToPointer(s.cfg.APIUI.IssuerDID))
+		if err != nil {
+			return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+		}
+
+		rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+		if err != nil {
+			return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+		}
+		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+	} else {
+		credentialStatusType = (*verifiable.CredentialStatusType)(request.Params.CredentialStatusType)
 	}
 
-	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
-	}
-
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, rhsSettings.CredentialStatusType)
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, *credentialStatusType)
 	if err != nil {
 		log.Debug(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
