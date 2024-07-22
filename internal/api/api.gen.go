@@ -21,10 +21,24 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for CreateClaimRequestCredentialStatusType.
+const (
+	CreateClaimRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateClaimRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateClaimRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateClaimRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateClaimRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateClaimRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
 // Defines values for CreateClaimRequestProofs.
 const (
 	BJJSignature2021           CreateClaimRequestProofs = "BJJSignature2021"
 	Iden3SparseMerkleTreeProof CreateClaimRequestProofs = "Iden3SparseMerkleTreeProof"
+)
+
+// Defines values for CreateIdentityRequestDidMetadataAuthBJJCredentialStatus.
+const (
+	CreateIdentityRequestDidMetadataAuthBJJCredentialStatusIden3OnchainSparseMerkleTreeProof2023 CreateIdentityRequestDidMetadataAuthBJJCredentialStatus = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateIdentityRequestDidMetadataAuthBJJCredentialStatusIden3ReverseSparseMerkleTreeProof     CreateIdentityRequestDidMetadataAuthBJJCredentialStatus = "Iden3ReverseSparseMerkleTreeProof"
+	CreateIdentityRequestDidMetadataAuthBJJCredentialStatusIden3commRevocationStatusV10          CreateIdentityRequestDidMetadataAuthBJJCredentialStatus = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for CreateIdentityRequestDidMetadataType.
@@ -59,20 +73,23 @@ type Config = []KeyValue
 
 // CreateClaimRequest defines model for CreateClaimRequest.
 type CreateClaimRequest struct {
-	ClaimID               *uuid.UUID                  `json:"claimID"`
-	CredentialSchema      string                      `json:"credentialSchema"`
-	CredentialStatusType  *string                     `json:"credentialStatusType,omitempty"`
-	CredentialSubject     map[string]interface{}      `json:"credentialSubject"`
-	DisplayMethod         *DisplayMethod              `json:"displayMethod,omitempty"`
-	Expiration            *int64                      `json:"expiration,omitempty"`
-	MerklizedRootPosition *string                     `json:"merklizedRootPosition,omitempty"`
-	Proofs                *[]CreateClaimRequestProofs `json:"proofs,omitempty"`
-	RefreshService        *RefreshService             `json:"refreshService,omitempty"`
-	RevNonce              *uint64                     `json:"revNonce,omitempty"`
-	SubjectPosition       *string                     `json:"subjectPosition,omitempty"`
-	Type                  string                      `json:"type"`
-	Version               *uint32                     `json:"version,omitempty"`
+	ClaimID               *uuid.UUID                              `json:"claimID"`
+	CredentialSchema      string                                  `json:"credentialSchema"`
+	CredentialStatusType  *CreateClaimRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	CredentialSubject     map[string]interface{}                  `json:"credentialSubject"`
+	DisplayMethod         *DisplayMethod                          `json:"displayMethod,omitempty"`
+	Expiration            *int64                                  `json:"expiration,omitempty"`
+	MerklizedRootPosition *string                                 `json:"merklizedRootPosition,omitempty"`
+	Proofs                *[]CreateClaimRequestProofs             `json:"proofs,omitempty"`
+	RefreshService        *RefreshService                         `json:"refreshService,omitempty"`
+	RevNonce              *uint64                                 `json:"revNonce,omitempty"`
+	SubjectPosition       *string                                 `json:"subjectPosition,omitempty"`
+	Type                  string                                  `json:"type"`
+	Version               *uint32                                 `json:"version,omitempty"`
 }
+
+// CreateClaimRequestCredentialStatusType defines model for CreateClaimRequest.CredentialStatusType.
+type CreateClaimRequestCredentialStatusType string
 
 // CreateClaimRequestProofs defines model for CreateClaimRequest.Proofs.
 type CreateClaimRequestProofs string
@@ -85,13 +102,16 @@ type CreateClaimResponse struct {
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
 	DidMetadata struct {
-		AuthBJJCredentialStatus *string                              `json:"authBJJCredentialStatus,omitempty"`
-		Blockchain              string                               `json:"blockchain"`
-		Method                  string                               `json:"method"`
-		Network                 string                               `json:"network"`
-		Type                    CreateIdentityRequestDidMetadataType `json:"type"`
+		AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+		Blockchain              string                                                   `json:"blockchain"`
+		Method                  string                                                   `json:"method"`
+		Network                 string                                                   `json:"network"`
+		Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 	} `json:"didMetadata"`
 }
+
+// CreateIdentityRequestDidMetadataAuthBJJCredentialStatus defines model for CreateIdentityRequest.DidMetadata.AuthBJJCredentialStatus.
+type CreateIdentityRequestDidMetadataAuthBJJCredentialStatus string
 
 // CreateIdentityRequestDidMetadataType defines model for CreateIdentityRequest.DidMetadata.Type.
 type CreateIdentityRequestDidMetadataType string

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -77,6 +78,15 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 	if request.Body.CredentialStatusType == nil || *request.Body.CredentialStatusType == "" {
 		credentialStatusType = verifiable.Iden3commRevocationStatusV1
 	} else {
+		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
+		if !slices.Contains(allowedCredentialStatuses, string(*request.Body.CredentialStatusType)) {
+			log.Warn(ctx, "invalid credential status type", "req", request)
+			return CreateClaim400JSONResponse{
+				N400JSONResponse{
+					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *request.Body.CredentialStatusType),
+				},
+			}, nil
+		}
 		credentialStatusType = (verifiable.CredentialStatusType)(*request.Body.CredentialStatusType)
 	}
 
@@ -92,7 +102,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", credentialStatusType)}}, nil
+		return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
 	req := ports.NewCreateClaimRequest(did, request.Body.ClaimID, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, credentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,

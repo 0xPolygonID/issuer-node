@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -35,6 +36,15 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 	var authBJJCredentialStatus verifiable.CredentialStatusType
 	if authBJJCredentialStatusString != nil && *authBJJCredentialStatusString != "" {
+		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
+		if !slices.Contains(allowedCredentialStatuses, string(*authBJJCredentialStatusString)) {
+			log.Warn(ctx, "invalid credential status type", "req", request)
+			return CreateIdentity400JSONResponse{
+				N400JSONResponse{
+					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *authBJJCredentialStatusString),
+				},
+			}, nil
+		}
 		authBJJCredentialStatus = (verifiable.CredentialStatusType)(*authBJJCredentialStatusString)
 	} else {
 		authBJJCredentialStatus = verifiable.Iden3commRevocationStatusV1
@@ -47,7 +57,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, authBJJCredentialStatus) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
-		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", authBJJCredentialStatus)}}, nil
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", authBJJCredentialStatus)}}, nil
 	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{

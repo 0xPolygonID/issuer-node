@@ -1580,6 +1580,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
     Schema:
       type: object
       required:
@@ -1847,6 +1848,7 @@ components:
         credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
       schema:
         type: string
+      enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
 
     pathNonce:
       name: nonce

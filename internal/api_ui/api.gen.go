@@ -22,6 +22,13 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
+// Defines values for CreateCredentialRequestCredentialStatusType.
+const (
+	Iden3OnchainSparseMerkleTreeProof2023 CreateCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	Iden3ReverseSparseMerkleTreeProof     CreateCredentialRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	Iden3commRevocationStatusV10          CreateCredentialRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
 // Defines values for DisplayMethodType.
 const (
 	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
@@ -125,16 +132,19 @@ type ConnectionsPaginated struct {
 
 // CreateCredentialRequest defines model for CreateCredentialRequest.
 type CreateCredentialRequest struct {
-	CredentialSchema     string                 `json:"credentialSchema"`
-	CredentialStatusType *string                `json:"credentialStatusType,omitempty"`
-	CredentialSubject    map[string]interface{} `json:"credentialSubject"`
-	DisplayMethod        *DisplayMethod         `json:"displayMethod,omitempty"`
-	Expiration           *time.Time             `json:"expiration,omitempty"`
-	MtProof              *bool                  `json:"mtProof,omitempty"`
-	RefreshService       *RefreshService        `json:"refreshService"`
-	SignatureProof       *bool                  `json:"signatureProof,omitempty"`
-	Type                 string                 `json:"type"`
+	CredentialSchema     string                                       `json:"credentialSchema"`
+	CredentialStatusType *CreateCredentialRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	CredentialSubject    map[string]interface{}                       `json:"credentialSubject"`
+	DisplayMethod        *DisplayMethod                               `json:"displayMethod,omitempty"`
+	Expiration           *time.Time                                   `json:"expiration,omitempty"`
+	MtProof              *bool                                        `json:"mtProof,omitempty"`
+	RefreshService       *RefreshService                              `json:"refreshService"`
+	SignatureProof       *bool                                        `json:"signatureProof,omitempty"`
+	Type                 string                                       `json:"type"`
 }
+
+// CreateCredentialRequestCredentialStatusType defines model for CreateCredentialRequest.CredentialStatusType.
+type CreateCredentialRequestCredentialStatusType string
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {

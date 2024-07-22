@@ -734,6 +734,7 @@ components:
               type: string
               x-omitempty: true
               example: "Iden3ReverseSparseMerkleTreeProof"
+              enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
 
     CreateIdentityResponse:
       type: object
@@ -899,6 +900,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
