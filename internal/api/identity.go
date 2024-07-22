@@ -46,6 +46,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	}
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, authBJJCredentialStatus) {
+		log.Warn(ctx, "unsupported credential status type", "req", request)
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", authBJJCredentialStatus)}}, nil
 	}
 

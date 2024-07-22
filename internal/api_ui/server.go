@@ -374,6 +374,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
+		log.Warn(ctx, "unsupported credential status type", "req", request)
 		return CreateCredential400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
@@ -722,12 +723,13 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 	}
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
+		log.Warn(ctx, "unsupported credential status type", "req", request)
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
 	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), s.cfg.APIUI.IssuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, credentialStatusType)
 	if err != nil {
-		log.Debug(ctx, "error issuing the claim", "error", err)
+		log.Error(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 

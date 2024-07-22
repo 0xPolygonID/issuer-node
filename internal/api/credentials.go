@@ -91,6 +91,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 	}
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
+		log.Warn(ctx, "unsupported credential status type", "req", request)
 		return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
