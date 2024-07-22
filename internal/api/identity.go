@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -32,16 +33,21 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		}, nil
 	}
 
-	// rhsSettings, err := s.networkResolver.GetRhsSettingsForBlockchainAndNetwork(ctx, blockchain, network)
-	// if err != nil {
-	// 	return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
-	// }
+	var authBJJCredentialStatus verifiable.CredentialStatusType
+	if authBJJCredentialStatusString != nil && *authBJJCredentialStatusString != "" {
+		authBJJCredentialStatus = (verifiable.CredentialStatusType)(*authBJJCredentialStatusString)
+	} else {
+		authBJJCredentialStatus = verifiable.Iden3commRevocationStatusV1
+	}
 
-	// if authBJJCredentialStatusString == nil || *authBJJCredentialStatusString == "" {
-	// 	authBJJCredentialStatusString = verifiable.Iden3commRevocationStatusV1
-	// }
+	rhsSettings, err := s.networkResolver.GetRhsSettingsForBlockchainAndNetwork(ctx, blockchain, network)
+	if err != nil {
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
+	}
 
-	authBJJCredentialStatus := (*verifiable.CredentialStatusType)(authBJJCredentialStatusString)
+	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, authBJJCredentialStatus) {
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status '%s' is not supported by the issuer", authBJJCredentialStatus)}}, nil
+	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(method),

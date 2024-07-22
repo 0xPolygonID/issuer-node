@@ -669,7 +669,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, *didOptions.AuthBJJCredentialStatus, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthBJJCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -685,7 +685,6 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 
 // createIdentity - creates a new identity
 func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string, didOptions *ports.DIDCreationOptions) (*w3c.DID, *big.Int, error) {
-	defaultAuthBJJCredStatus := verifiable.Iden3commRevocationStatusV1
 	if didOptions == nil {
 		// nolint : it's a right assignment
 		didOptions = &ports.DIDCreationOptions{
@@ -693,12 +692,8 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			Blockchain:              core.NoChain,
 			Network:                 core.NoNetwork,
 			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: &defaultAuthBJJCredStatus,
+			AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1,
 		}
-	}
-
-	if didOptions.AuthBJJCredentialStatus == nil {
-		didOptions.AuthBJJCredentialStatus = &defaultAuthBJJCredStatus
 	}
 
 	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
@@ -735,7 +730,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, *didOptions.AuthBJJCredentialStatus, true)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthBJJCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err

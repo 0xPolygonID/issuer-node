@@ -15,11 +15,11 @@ import (
 
 // DIDCreationOptions represents options for DID creation
 type DIDCreationOptions struct {
-	Method                  core.DIDMethod                   `json:"method"`
-	Blockchain              core.Blockchain                  `json:"blockchain"`
-	Network                 core.NetworkID                   `json:"network"`
-	KeyType                 kms.KeyType                      `json:"keyType"`
-	AuthBJJCredentialStatus *verifiable.CredentialStatusType `json:"authBJJCredentialStatus,omitempty"`
+	Method                  core.DIDMethod                  `json:"method"`
+	Blockchain              core.Blockchain                 `json:"blockchain"`
+	Network                 core.NetworkID                  `json:"network"`
+	KeyType                 kms.KeyType                     `json:"keyType"`
+	AuthBJJCredentialStatus verifiable.CredentialStatusType `json:"authBJJCredentialStatus,omitempty"`
 }
 
 // CreateAuthenticationQRCodeResponse represents the response of the CreateAuthenticationQRCode method

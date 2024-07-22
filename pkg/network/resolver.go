@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"gopkg.in/yaml.v3"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -234,6 +235,20 @@ func (r *Resolver) GetConfirmationTimeout(resolverPrefixKey string) (time.Durati
 // GetSupportedContracts returns the supported contracts
 func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
 	return r.supportedContracts
+}
+
+// IsCredentialStatusTypeSupported returns if the credential status type is supported
+func (r *Resolver) IsCredentialStatusTypeSupported(rhsSettings *RhsSettings, credentialStatusType verifiable.CredentialStatusType) bool {
+	if credentialStatusType == verifiable.Iden3ReverseSparseMerkleTreeProof &&
+		rhsSettings.Mode != "All" && rhsSettings.Mode != "OffChain" {
+		return false
+	}
+	if credentialStatusType == verifiable.Iden3OnchainSparseMerkleTreeProof2023 &&
+		rhsSettings.Mode != "All" && rhsSettings.Mode != "OnChain" {
+		return false
+	}
+
+	return true
 }
 
 func getResolverPrefixKey(blockchain, network string) string {

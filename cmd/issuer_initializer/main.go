@@ -133,13 +133,12 @@ func main() {
 	cfg.CredentialStatus.SingleIssuer = true
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, *networkResolver, rhsFactory, revocationStatusResolver)
 
-	iden3commRevocationStatusV1 := verifiable.Iden3commRevocationStatusV1
 	didCreationOptions := &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
 		Blockchain:              core.Blockchain(cfg.APIUI.IdentityBlockchain),
 		KeyType:                 kms.KeyType(cfg.APIUI.KeyType),
-		AuthBJJCredentialStatus: &iden3commRevocationStatusV1, // TODO: change to config
+		AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1, // TODO: change to config
 	}
 
 	identity, err := identityService.Create(ctx, cfg.APIUI.ServerURL, didCreationOptions)

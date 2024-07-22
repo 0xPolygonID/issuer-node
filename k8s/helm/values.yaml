@@ -473,7 +473,7 @@ namespace: default
 issuerKeyType: BJJ
 
 # RHS Params
-mode: None
+rhsMode: None
 rhsUrl: nil
 
 issuerCustomDidMethods: ""
