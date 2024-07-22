@@ -32,7 +32,6 @@ func NewFactory(networkResolver network.Resolver, rpcTimeout time.Duration) Fact
 
 // BuildPublishers creates new instance of RhsPublisher
 func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, credentialStatusType *verifiable.CredentialStatusType, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
-
 	if credentialStatusType == nil || *credentialStatusType == "" {
 		rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 		if err != nil {

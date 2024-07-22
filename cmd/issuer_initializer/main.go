@@ -10,6 +10,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
+
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -132,7 +133,7 @@ func main() {
 	cfg.CredentialStatus.SingleIssuer = true
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, nil, claimsRepository, nil, nil, storage, nil, nil, nil, *networkResolver, rhsFactory, revocationStatusResolver)
 
-	var iden3commRevocationStatusV1 = verifiable.Iden3commRevocationStatusV1
+	iden3commRevocationStatusV1 := verifiable.Iden3commRevocationStatusV1
 	didCreationOptions := &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(cfg.APIUI.IdentityMethod),
 		Network:                 core.NetworkID(cfg.APIUI.IdentityNetwork),
