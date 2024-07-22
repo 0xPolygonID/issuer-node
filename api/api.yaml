@@ -383,7 +383,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  #claims:
   /v1/{identifier}/claims:
     post:
       summary: Create Claim (Deprecated)
@@ -561,7 +560,6 @@ paths:
           $ref: '#/components/responses/404'
         '500':
           $ref: '#/components/responses/500'
-
 
   /v1/{identifier}/claims/revoke/{nonce}:
     post:
@@ -748,6 +746,84 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  #schemas:
+  /v1/schemas:
+    post:
+      summary: Import JSON schema
+      operationId: ImportSchema
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportSchemaRequest'
+      responses:
+        '201':
+          description: Schema imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+    get:
+      summary: Get Schemas
+      operationId: GetSchemas
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in schema types and attributes.
+      responses:
+        '200':
+          description: Schema collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/schemas/{id}:
+    get:
+      summary: Get Schema
+      operationId: GetSchema
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Schemas
+      parameters:
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Schema information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+
 components:
   securitySchemes:
     basicAuth:
@@ -780,6 +856,16 @@ components:
       type: string
       x-omitempty: false
       example: b7144f1c-d54e-4f67-a4f1-f2e7ff1beb07
+
+    UUIDResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+          example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
 
     GenericErrorMessage:
       type: object
@@ -920,6 +1006,76 @@ components:
           x-omitempty: false
           enum:
             - "Iden3RefreshService2023"
+
+    ImportSchemaRequest:
+      type: object
+      required:
+        - url
+        - schemaType
+        - version
+      properties:
+        url:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+        schemaType:
+          type: string
+          example: "vaccinationCertificate"
+        title:
+          type: string
+          example: "KYC Age Credential"
+        description:
+          type: string
+          example: "KYC Age Credential description"
+        version:
+          type: string
+          example: "1.0.0"
+
+    Schema:
+      type: object
+      required:
+        - id
+        - hash
+        - bigInt
+        - url
+        - type
+        - createdAt
+        - version
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+          example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
+        hash:
+          type: string
+          x-omitempty: false
+          example: 18f30714a35a5db88ca24728c0c53dfd
+        bigInt:
+          type: string
+          x-omitempty: false
+          example: "336615423900919464193075592850483704600"
+        url:
+          type: string
+          x-omitempty: false
+          example: https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json
+        type:
+          type: string
+          x-omitempty: false
+          example: KYCCountryOfResidenceCredential
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+          x-omitempty: false
+        title:
+          type: string
+          x-omitempty: false
+          example: "KYC Age Credential"
+        description:
+          type: string
+          x-omitempty: false
+          example: "KYC Age Credential description"
+        version:
+          type: string
+          x-omitempty: false
+          example: "1.0.0"
 
     # display method
     DisplayMethod:

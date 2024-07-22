@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	iden3commProtocol "github.com/iden3/iden3comm/v2/protocol"
-
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -136,6 +136,7 @@ func main() {
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
+	schemaRepository := repositories.NewSchema(*storage)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
@@ -154,6 +155,7 @@ func main() {
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
+	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -191,15 +193,18 @@ func main() {
 		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
 		chiMiddleware.NoCache,
 	)
-	api.HandlerFromMux(
+	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
-		mux)
+		api.ChiServerOptions{
+			BaseRouter:       mux,
+			ErrorHandlerFunc: api.ErrorHandlerFunc,
+		})
 	api.RegisterStatic(mux)
 
 	server := &http.Server{
@@ -224,5 +229,16 @@ func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMid
 	return []api.StrictMiddlewareFunc{
 		api.LogMiddleware(ctx),
 		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
+	}
+}
+
+func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
+	switch err.(type) {
+	case *api.InvalidParamFormatError:
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
+	default:
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }

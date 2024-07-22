@@ -117,14 +117,19 @@ func TestMain(m *testing.M) {
 func getHandler(ctx context.Context, server StrictServerInterface) http.Handler {
 	mux := chi.NewRouter()
 	RegisterStatic(mux)
-	return HandlerFromMux(NewStrictHandlerWithOptions(
-		server,
-		middlewares(ctx),
-		StrictHTTPServerOptions{
-			RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
-			ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
-		},
-	), mux)
+	return HandlerWithOptions(
+		NewStrictHandlerWithOptions(
+			server,
+			middlewares(ctx),
+			StrictHTTPServerOptions{
+				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
+			},
+		),
+		ChiServerOptions{
+			BaseRouter:       mux,
+			ErrorHandlerFunc: ErrorHandlerFunc,
+		})
 }
 
 func middlewares(ctx context.Context) []StrictMiddlewareFunc {
@@ -215,6 +220,7 @@ type repos struct {
 	identity       ports.IndentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
+	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
 }
@@ -236,8 +242,11 @@ type testServer struct {
 	Infra    infra
 }
 
-func newTestServer(t *testing.T) *testServer {
+func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	t.Helper()
+	if st == nil {
+		st = storage
+	}
 	repos := repos{
 		claims:         repositories.NewClaims(),
 		connection:     repositories.NewConnections(),
@@ -245,8 +254,10 @@ func newTestServer(t *testing.T) *testServer {
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),
 		sessions:       repositories.NewSessionCached(cachex),
+		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
 	}
+
 	pubSub := pubsub.NewMock()
 
 	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, helpers.CreateFile(t))
@@ -256,8 +267,9 @@ func newTestServer(t *testing.T) *testServer {
 	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
 	qrService := services.NewQrStoreService(cachex)
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
-	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, storage, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
-	connectionService := services.NewConnection(repos.connection, repos.claims, storage)
+	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
+	connectionService := services.NewConnection(repos.connection, repos.claims, st)
+	schemaService := services.NewSchema(repos.schemas, schemaLoader)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -267,9 +279,9 @@ func newTestServer(t *testing.T) *testServer {
 		true,
 	)
 
-	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, storage, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService)
 
 	return &testServer{
 		Server: server,
@@ -279,7 +291,7 @@ func newTestServer(t *testing.T) *testServer {
 			identity:    identityService,
 		},
 		Infra: infra{
-			db:     storage,
+			db:     st,
 			pubSub: pubSub,
 		},
 	}

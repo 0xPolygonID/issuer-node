@@ -27,10 +27,11 @@ type Server struct {
 	packageManager     *iden3comm.PackageManager
 	publisherGateway   ports.Publisher
 	qrService          ports.QrStoreService
+	schemaService      ports.SchemaService
 }
 
 // NewServer is a Server constructor
-func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionsService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status) *Server {
+func NewServer(cfg *config.Configuration, identityService ports.IdentityService, accountService ports.AccountService, connectionsService ports.ConnectionsService, claimsService ports.ClaimsService, qrService ports.QrStoreService, publisherGateway ports.Publisher, packageManager *iden3comm.PackageManager, networkResolver network.Resolver, health *health.Status, schemaService ports.SchemaService) *Server {
 	return &Server{
 		cfg:                cfg,
 		accountService:     accountService,
@@ -42,6 +43,7 @@ func NewServer(cfg *config.Configuration, identityService ports.IdentityService,
 		publisherGateway:   publisherGateway,
 		packageManager:     packageManager,
 		qrService:          qrService,
+		schemaService:      schemaService,
 	}
 }
 

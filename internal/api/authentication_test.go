@@ -24,7 +24,7 @@ import (
 )
 
 func TestServer_AuthCallback(t *testing.T) {
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -73,7 +73,7 @@ func TestServer_AuthCallback(t *testing.T) {
 }
 
 func TestServer_GetAuthenticationConnection(t *testing.T) {
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
@@ -173,7 +173,7 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 }
 
 func TestServer_AuthQRCode(t *testing.T) {
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.APIUI.IssuerDID = *issuerDID

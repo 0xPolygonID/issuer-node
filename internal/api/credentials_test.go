@@ -28,7 +28,7 @@ import (
 )
 
 func TestServer_RevokeClaim(t *testing.T) {
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 
 	idStr := "did:polygonid:polygon:mumbai:2qM77fA6NGGWL9QEeb1dv2VA6wz5svcohgv61LZ7wB"
 	identity := &domain.Identity{
@@ -165,7 +165,7 @@ func TestServer_CreateCredential(t *testing.T) {
 	)
 	ctx := context.Background()
 
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	handler := getHandler(ctx, server)
 
 	iden, err := server.Services.identity.Create(ctx, "http://polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
@@ -464,7 +464,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -582,7 +582,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 }
 
 func TestServer_GetCredential(t *testing.T) {
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
 	idStrWithoutClaims := "did:polygonid:polygon:mumbai:2qGjTUuxZKqKS4Q8UmxHUPw55g15QgEVGnj6Wkq8Vk"
 	identity := &domain.Identity{
@@ -744,7 +744,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	)
 	ctx := context.Background()
 
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
 	fixture := tests.NewFixture(storage)
@@ -1074,7 +1074,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	)
 	ctx := context.Background()
 
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	assert.NoError(t, err)
 	handler := getHandler(context.Background(), server)
