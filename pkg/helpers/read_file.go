@@ -46,7 +46,7 @@ func CreateFile(t *testing.T) *MyYAMLReader {
     gasLess: false
     transferAmountWei: 1000000000000000000
     rhsSettings:
-      defaultCredentialStatus: Iden3commRevocationStatusV1.0
+      mode: None
       rhsUrl: https://rhs-staging.polygonid.me
       contractAddress: 0x3d3763eC0a50CE1AdF83d0b5D99FBE0e3fEB43fb
       chainID: 80002

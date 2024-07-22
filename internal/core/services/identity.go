@@ -374,7 +374,7 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				log.Error(ctx, "getting RHS settings", "err", err)
 				return err
 			}
-			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &rhsSettings.DefaultCredentialStatus, &kms.KeyID{
+			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 				Type: kms.KeyTypeEthereum,
 				ID:   rhsSettings.PublishingKey,
 			})
@@ -685,6 +685,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 
 // createIdentity - creates a new identity
 func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL string, didOptions *ports.DIDCreationOptions) (*w3c.DID, *big.Int, error) {
+	defaultAuthBJJCredStatus := verifiable.Iden3commRevocationStatusV1
 	if didOptions == nil {
 		// nolint : it's a right assignment
 		didOptions = &ports.DIDCreationOptions{
@@ -692,8 +693,12 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			Blockchain:              core.NoChain,
 			Network:                 core.NoNetwork,
 			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: nil,
+			AuthBJJCredentialStatus: &defaultAuthBJJCredStatus,
 		}
+	}
+
+	if didOptions.AuthBJJCredentialStatus == nil {
+		didOptions.AuthBJJCredentialStatus = &defaultAuthBJJCredStatus
 	}
 
 	mts, err := i.mtService.CreateIdentityMerkleTrees(ctx, tx)
@@ -730,22 +735,6 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(did)
-	if err != nil {
-		log.Error(ctx, "getting resolver prefix", "err", err)
-		return nil, nil, err
-	}
-
-	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "getting RHS settings", "err", err)
-		return nil, nil, err
-	}
-
-	if didOptions.AuthBJJCredentialStatus == nil || *didOptions.AuthBJJCredentialStatus == "" {
-		didOptions.AuthBJJCredentialStatus = &rhsSettings.DefaultCredentialStatus
-	}
-
 	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, *didOptions.AuthBJJCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
@@ -761,7 +750,19 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, didOptions.AuthBJJCredentialStatus, &kms.KeyID{
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "getting resolver prefix", "err", err)
+		return nil, nil, err
+	}
+
+	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "getting RHS settings", "err", err)
+		return nil, nil, err
+	}
+
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   rhsSettings.PublishingKey,
 	})
@@ -958,7 +959,7 @@ func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) e
 		return err
 	}
 
-	publishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &rhsSettings.DefaultCredentialStatus, &kms.KeyID{
+	publishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   rhsSettings.PublishingKey,
 	})

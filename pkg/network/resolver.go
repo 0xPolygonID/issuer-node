@@ -14,13 +14,23 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/iden3/contracts-abi/state/go/abi"
 	core "github.com/iden3/go-iden3-core/v2"
-	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"gopkg.in/yaml.v3"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+)
+
+const (
+	// All is the type for revocation status on chain and off chain
+	All = "All"
+	// OnChain is the type for revocation status on chain
+	OnChain = "OnChain"
+	// OffChain is the type for revocation status off chain
+	OffChain = "OffChain"
+	// None is the type for revocation status None
+	None = "None"
 )
 
 type resolverPrefix string
@@ -40,13 +50,13 @@ type Resolver struct {
 
 // RhsSettings holds the rhs settings
 type RhsSettings struct {
-	Iden3CommAgentStatus    string                          `yaml:"directUrl"`
-	DefaultCredentialStatus verifiable.CredentialStatusType `yaml:"defaultCredentialStatus"`
-	ContractAddress         *string                         `yaml:"contractAddress"`
-	RhsUrl                  *string                         `yaml:"rhsUrl"`
-	ChainID                 *string                         `yaml:"chainID"`
-	PublishingKey           string                          `yaml:"publishingKey"`
-	SingleIssuer            bool
+	Iden3CommAgentStatus string  `yaml:"directUrl"`
+	Mode                 string  `yaml:"mode"`
+	ContractAddress      *string `yaml:"contractAddress"`
+	RhsUrl               *string `yaml:"rhsUrl"`
+	ChainID              *string `yaml:"chainID"`
+	PublishingKey        string  `yaml:"publishingKey"`
+	SingleIssuer         bool
 }
 
 // ResolverSettings holds the resolver settings
@@ -131,12 +141,16 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
 
-			if settings.RhsUrl == nil {
-				return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
+			if settings.Mode == OffChain || settings.Mode == All {
+				if settings.RhsUrl == nil {
+					return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
+				}
 			}
 
-			if settings.ContractAddress == nil {
-				return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
+			if settings.Mode == OnChain || settings.Mode == All {
+				if settings.ContractAddress == nil {
+					return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
+				}
 			}
 
 			rhsSettings[resolverPrefix(resolverPrefixKey)] = settings
