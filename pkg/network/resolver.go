@@ -40,13 +40,13 @@ type Resolver struct {
 
 // RhsSettings holds the rhs settings
 type RhsSettings struct {
-	Iden3CommAgentStatus           string                          `yaml:"directUrl"`
-	DefaultAuthBJJCredentialStatus verifiable.CredentialStatusType `yaml:"defaultAuthBJJCredentialStatus"`
-	ContractAddress                *string                         `yaml:"contractAddress"`
-	RhsUrl                         *string                         `yaml:"rhsUrl"`
-	ChainID                        *string                         `yaml:"chainID"`
-	PublishingKey                  string                          `yaml:"publishingKey"`
-	SingleIssuer                   bool
+	Iden3CommAgentStatus    string                          `yaml:"directUrl"`
+	DefaultCredentialStatus verifiable.CredentialStatusType `yaml:"defaultCredentialStatus"`
+	ContractAddress         *string                         `yaml:"contractAddress"`
+	RhsUrl                  *string                         `yaml:"rhsUrl"`
+	ChainID                 *string                         `yaml:"chainID"`
+	PublishingKey           string                          `yaml:"publishingKey"`
+	SingleIssuer            bool
 }
 
 // ResolverSettings holds the resolver settings

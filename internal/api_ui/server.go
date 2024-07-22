@@ -367,7 +367,7 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 		if err != nil {
 			return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 		}
-		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+		credentialStatusType = &rhsSettings.DefaultCredentialStatus
 	} else {
 		credentialStatusType = (*verifiable.CredentialStatusType)(request.Body.CredentialStatusType)
 	}
@@ -710,7 +710,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		if err != nil {
 			return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 		}
-		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+		credentialStatusType = &rhsSettings.DefaultCredentialStatus
 	} else {
 		credentialStatusType = (*verifiable.CredentialStatusType)(request.Params.CredentialStatusType)
 	}

@@ -39,7 +39,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	}
 
 	if authBJJCredentialStatus == nil {
-		authBJJCredentialStatus = (*string)(&rhsSettings.DefaultAuthBJJCredentialStatus)
+		authBJJCredentialStatus = (*string)(&rhsSettings.DefaultCredentialStatus)
 	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{

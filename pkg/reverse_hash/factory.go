@@ -39,7 +39,7 @@ func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, cr
 			return nil, err
 		}
 
-		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+		credentialStatusType = &rhsSettings.DefaultCredentialStatus
 	}
 
 	switch *credentialStatusType {

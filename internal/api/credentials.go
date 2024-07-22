@@ -84,7 +84,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		if err != nil {
 			return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 		}
-		credentialStatusType = &rhsSettings.DefaultAuthBJJCredentialStatus
+		credentialStatusType = &rhsSettings.DefaultCredentialStatus
 	} else {
 		credentialStatusType = (*verifiable.CredentialStatusType)(request.Body.CredentialStatusType)
 	}
