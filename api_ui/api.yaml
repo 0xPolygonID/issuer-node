@@ -1848,7 +1848,6 @@ components:
         credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
       schema:
         type: string
-      enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
 
     pathNonce:
       name: nonce
