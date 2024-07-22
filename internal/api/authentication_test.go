@@ -196,13 +196,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 
 	for _, tc := range []testConfig{
 		{
-			name: "should get a qr code with a link by default",
-			request: AuthQRCodeRequestObject{
-				Body: &AuthQRCodeJSONRequestBody{
-					IssuerDID: did.String(),
-				},
-				Params: AuthQRCodeParams{Type: nil},
-			},
+			name:    "should get a qr code with a link by default",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: nil}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -219,15 +214,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name: "should get a qr code with a link as requested",
-			request: AuthQRCodeRequestObject{
-				Body: &AuthQRCodeJSONRequestBody{
-					IssuerDID: did.String(),
-				},
-				Params: AuthQRCodeParams{
-					Type: common.ToPointer(Link),
-				},
-			},
+			name:    "should get a qr code with a link as requested",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(Link)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -244,15 +232,8 @@ func TestServer_AuthQRCode(t *testing.T) {
 			},
 		},
 		{
-			name: "should get a RAW qr code as requested",
-			request: AuthQRCodeRequestObject{
-				Body: &AuthQRCodeJSONRequestBody{
-					IssuerDID: did.String(),
-				},
-				Params: AuthQRCodeParams{
-					Type: common.ToPointer(Raw),
-				},
-			},
+			name:    "should get a RAW qr code as requested",
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(Raw)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: false,
@@ -271,11 +252,11 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := "/v1/authentication/qrcode"
+			apiURL := fmt.Sprintf("/v1/%s/authentication/qrcode", did.String())
 			if tc.request.Params.Type != nil {
 				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
 			}
-			req, err := http.NewRequest(http.MethodPost, apiURL, tests.JSONBody(t, tc.request.Body))
+			req, err := http.NewRequest(http.MethodPost, apiURL, nil)
 			require.NoError(t, err)
 
 			handler.ServeHTTP(rr, req)

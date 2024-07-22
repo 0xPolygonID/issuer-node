@@ -99,7 +99,7 @@ paths:
           $ref: '#/components/responses/500'
 
   # Authentication
-  /v1/authentication/qrcode:
+  /v1/{identifier}/authentication/qrcode:
     post:
       summary: Get Connection QRCode
       operationId: authQRCode
@@ -107,6 +107,7 @@ paths:
       tags:
         - Auth
       parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
         - name: type
           in: query
           required: false
@@ -117,12 +118,6 @@ paths:
           schema:
             type: string
             enum: [ raw, link ]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ConnectionQRCodeRequest'
 
       responses:
         '200':
@@ -1084,15 +1079,6 @@ components:
           $ref: '#/components/schemas/DisplayMethod'
         refreshService:
           $ref: '#/components/schemas/RefreshService'
-
-    ConnectionQRCodeRequest:
-      type: object
-      required:
-        - issuerDID
-      properties:
-        issuerDID:
-          type: string
-          x-omitempty: false
 
     QrCodeLinkShortResponse:
       type: object

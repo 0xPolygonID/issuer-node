@@ -28,7 +28,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 
 // AuthQRCode returns the qr code for authenticating a user
 func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error) {
-	did, err := w3c.ParseDID(req.Body.IssuerDID)
+	did, err := w3c.ParseDID(req.Identifier)
 	if err != nil {
 		log.Error(ctx, "parsing issuer did", "err", err)
 		return AuthQRCode400JSONResponse{N400JSONResponse{"Invalid issuer did"}}, nil
