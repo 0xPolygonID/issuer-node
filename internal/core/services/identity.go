@@ -669,7 +669,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthBJJCredentialStatus, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, *didOptions.AuthBJJCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -692,7 +692,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			Blockchain:              core.NoChain,
 			Network:                 core.NoNetwork,
 			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: verifiable.SparseMerkleTreeProof,
+			AuthBJJCredentialStatus: nil,
 		}
 	}
 
@@ -730,7 +730,23 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthBJJCredentialStatus, true)
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "getting resolver prefix", "err", err)
+		return nil, nil, err
+	}
+
+	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "getting RHS settings", "err", err)
+		return nil, nil, err
+	}
+
+	if didOptions.AuthBJJCredentialStatus == nil || *didOptions.AuthBJJCredentialStatus == "" {
+		didOptions.AuthBJJCredentialStatus = &rhsSettings.DefaultCredentialStatus
+	}
+
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, *didOptions.AuthBJJCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -745,19 +761,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(did)
-	if err != nil {
-		log.Error(ctx, "getting resolver prefix", "err", err)
-		return nil, nil, err
-	}
-
-	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "getting RHS settings", "err", err)
-		return nil, nil, err
-	}
-
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &didOptions.AuthBJJCredentialStatus, &kms.KeyID{
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, didOptions.AuthBJJCredentialStatus, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
 		ID:   rhsSettings.PublishingKey,
 	})

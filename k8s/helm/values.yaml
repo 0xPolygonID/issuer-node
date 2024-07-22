@@ -473,7 +473,7 @@ namespace: default
 issuerKeyType: BJJ
 
 # RHS Params
-rhsMode: None
+defaultCredentialStatus: Iden3commRevocationStatusV1.0
 rhsUrl: nil
 
 issuerCustomDidMethods: ""

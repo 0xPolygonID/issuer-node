@@ -23,7 +23,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	blockchain := request.Body.DidMetadata.Blockchain
 	network := request.Body.DidMetadata.Network
 	keyType := request.Body.DidMetadata.Type
-	authBJJCredentialStatus := request.Body.DidMetadata.AuthBJJCredentialStatus
+	authBJJCredentialStatusString := request.Body.DidMetadata.AuthBJJCredentialStatus
 
 	if keyType != "BJJ" && keyType != "ETH" {
 		return CreateIdentity400JSONResponse{
@@ -38,16 +38,18 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
 	}
 
-	if authBJJCredentialStatus == nil {
-		authBJJCredentialStatus = (*string)(&rhsSettings.DefaultCredentialStatus)
+	if authBJJCredentialStatusString == nil || *authBJJCredentialStatusString == "" {
+		authBJJCredentialStatusString = (*string)(&rhsSettings.DefaultCredentialStatus)
 	}
+
+	authBJJCredentialStatus := (verifiable.CredentialStatusType)(*authBJJCredentialStatusString)
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
 		Method:                  core.DIDMethod(method),
 		Network:                 core.NetworkID(network),
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: (verifiable.CredentialStatusType)(*authBJJCredentialStatus),
+		AuthBJJCredentialStatus: &authBJJCredentialStatus,
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
