@@ -284,7 +284,7 @@ func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (G
 
 	claim, err := s.claimService.GetByID(ctx, did, clID)
 	if err != nil {
-		if errors.Is(err, services.ErrClaimNotFound) {
+		if errors.Is(err, services.ErrCredentialNotFound) {
 			return GetClaim404JSONResponse{N404JSONResponse{err.Error()}}, nil
 		}
 		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
@@ -345,7 +345,7 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 	}
 
 	claims, _, err := s.claimService.GetAll(ctx, *did, filter)
-	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
+	if err != nil && !errors.Is(err, services.ErrCredentialNotFound) {
 		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
 	}
 
@@ -405,7 +405,7 @@ func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeReque
 
 	claim, err := s.claimService.GetByID(ctx, did, claimID)
 	if err != nil {
-		if errors.Is(err, services.ErrClaimNotFound) {
+		if errors.Is(err, services.ErrCredentialNotFound) {
 			return GetClaimQrCode404JSONResponse{N404JSONResponse{err.Error()}}, nil
 		}
 		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil

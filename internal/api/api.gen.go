@@ -43,6 +43,12 @@ const (
 	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
 )
 
+// Defines values for AuthQRCodeParamsType.
+const (
+	Link AuthQRCodeParamsType = "link"
+	Raw  AuthQRCodeParamsType = "raw"
+)
+
 // AgentResponse defines model for AgentResponse.
 type AgentResponse struct {
 	Body     interface{} `json:"body"`
@@ -52,6 +58,15 @@ type AgentResponse struct {
 	To       string      `json:"to"`
 	Typ      string      `json:"typ"`
 	Type     string      `json:"type"`
+}
+
+// AuthenticationConnection defines model for AuthenticationConnection.
+type AuthenticationConnection struct {
+	CreatedAt  TimeUTC    `json:"createdAt"`
+	Id         UUIDString `json:"id"`
+	IssuerID   UUIDString `json:"issuerID"`
+	ModifiedAt TimeUTC    `json:"modifiedAt"`
+	UserID     UUIDString `json:"userID"`
 }
 
 // Config defines model for Config.
@@ -119,6 +134,11 @@ type DisplayMethodType string
 // GenericErrorMessage defines model for GenericErrorMessage.
 type GenericErrorMessage struct {
 	Message string `json:"message"`
+}
+
+// GetAuthenticationConnectionResponse defines model for GetAuthenticationConnectionResponse.
+type GetAuthenticationConnectionResponse struct {
+	Connection AuthenticationConnection `json:"connection"`
 }
 
 // GetClaimQrCodeResponse defines model for GetClaimQrCodeResponse.
@@ -200,6 +220,12 @@ type PublishIdentityStateResponse struct {
 	TxID               *string `json:"txID,omitempty"`
 }
 
+// QrCodeLinkShortResponse defines model for QrCodeLinkShortResponse.
+type QrCodeLinkShortResponse struct {
+	QrCodeLink string     `json:"qrCodeLink"`
+	SessionID  UUIDString `json:"sessionID"`
+}
+
 // RefreshService defines model for RefreshService.
 type RefreshService struct {
 	Id   string             `json:"id"`
@@ -235,6 +261,12 @@ type RevokeClaimResponse struct {
 // TimeUTC defines model for TimeUTC.
 type TimeUTC = timeapi.Time
 
+// UUIDString defines model for UUIDString.
+type UUIDString = string
+
+// Id defines model for id.
+type Id = uuid.UUID
+
 // PathClaim defines model for pathClaim.
 type PathClaim = string
 
@@ -243,6 +275,9 @@ type PathIdentifier = string
 
 // PathNonce defines model for pathNonce.
 type PathNonce = int64
+
+// SessionID defines model for sessionID.
+type SessionID = uuid.UUID
 
 // N400 defines model for 400.
 type N400 = GenericErrorMessage
@@ -275,10 +310,30 @@ type N500CreateIdentity struct {
 // AgentTextBody defines parameters for Agent.
 type AgentTextBody = string
 
+// AuthCallbackTextBody defines parameters for AuthCallback.
+type AuthCallbackTextBody = string
+
+// AuthCallbackParams defines parameters for AuthCallback.
+type AuthCallbackParams struct {
+	// SessionID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
+	SessionID SessionID `form:"sessionID" json:"sessionID"`
+}
+
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
 type GetQrFromStoreParams struct {
 	Id *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
 }
+
+// AuthQRCodeParams defines parameters for AuthQRCode.
+type AuthQRCodeParams struct {
+	// Type Type:
+	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
+	//   * `raw` - Return the raw QR code.
+	Type *AuthQRCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// AuthQRCodeParamsType defines parameters for AuthQRCode.
+type AuthQRCodeParamsType string
 
 // GetClaimsParams defines parameters for GetClaims.
 type GetClaimsParams struct {
@@ -331,6 +386,9 @@ type GetCredentialsParams struct {
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
 type AgentTextRequestBody = AgentTextBody
 
+// AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
+type AuthCallbackTextRequestBody = AuthCallbackTextBody
+
 // CreateIdentityJSONRequestBody defines body for CreateIdentity for application/json ContentType.
 type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
@@ -360,6 +418,12 @@ type ServerInterface interface {
 	// Agent
 	// (POST /v1/agent)
 	Agent(w http.ResponseWriter, r *http.Request)
+	// Authentication Callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
+	// Get Authentication Connection
+	// (GET /v1/authentication/sessions/{id})
+	GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id)
 	// Get Identities
 	// (GET /v1/identities)
 	GetIdentities(w http.ResponseWriter, r *http.Request)
@@ -372,6 +436,9 @@ type ServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
+	// Get Connection QRCode
+	// (POST /v1/{identifier}/authentication/qrcode)
+	AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams)
 	// Get Claims (Deprecated)
 	// (GET /v1/{identifier}/claims)
 	GetClaims(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetClaimsParams)
@@ -456,6 +523,18 @@ func (_ Unimplemented) Agent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Authentication Callback
+// (POST /v1/authentication/callback)
+func (_ Unimplemented) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Authentication Connection
+// (GET /v1/authentication/sessions/{id})
+func (_ Unimplemented) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Get Identities
 // (GET /v1/identities)
 func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
@@ -477,6 +556,12 @@ func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request
 // QrCode body
 // (GET /v1/qr-store)
 func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Connection QRCode
+// (POST /v1/{identifier}/authentication/qrcode)
+func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -665,6 +750,69 @@ func (siw *ServerInterfaceWrapper) Agent(w http.ResponseWriter, r *http.Request)
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// AuthCallback operation middleware
+func (siw *ServerInterfaceWrapper) AuthCallback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthCallbackParams
+
+	// ------------- Required query parameter "sessionID" -------------
+
+	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthCallback(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetAuthenticationConnection operation middleware
+func (siw *ServerInterfaceWrapper) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAuthenticationConnection(w, r, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetIdentities operation middleware
 func (siw *ServerInterfaceWrapper) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -746,6 +894,43 @@ func (siw *ServerInterfaceWrapper) GetQrFromStore(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetQrFromStore(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AuthQRCode operation middleware
+func (siw *ServerInterfaceWrapper) AuthQRCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AuthQRCodeParams
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AuthQRCode(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1465,6 +1650,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/agent", wrapper.Agent)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/authentication/callback", wrapper.AuthCallback)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/authentication/sessions/{id}", wrapper.GetAuthenticationConnection)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities", wrapper.GetIdentities)
 	})
 	r.Group(func(r chi.Router) {
@@ -1475,6 +1666,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/{identifier}/authentication/qrcode", wrapper.AuthQRCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/claims", wrapper.GetClaims)
@@ -1672,6 +1866,94 @@ func (response Agent500JSONResponse) VisitAgentResponse(w http.ResponseWriter) e
 	return json.NewEncoder(w).Encode(response)
 }
 
+type AuthCallbackRequestObject struct {
+	Params AuthCallbackParams
+	Body   *AuthCallbackTextRequestBody
+}
+
+type AuthCallbackResponseObject interface {
+	VisitAuthCallbackResponse(w http.ResponseWriter) error
+}
+
+type AuthCallback200Response struct {
+}
+
+func (response AuthCallback200Response) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	return nil
+}
+
+type AuthCallback400JSONResponse struct{ N400JSONResponse }
+
+func (response AuthCallback400JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthCallback500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthCallback500JSONResponse) VisitAuthCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnectionRequestObject struct {
+	Id Id `json:"id"`
+}
+
+type GetAuthenticationConnectionResponseObject interface {
+	VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error
+}
+
+type GetAuthenticationConnection200JSONResponse GetAuthenticationConnectionResponse
+
+func (response GetAuthenticationConnection200JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection400JSONResponse struct{ N400JSONResponse }
+
+func (response GetAuthenticationConnection400JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection401JSONResponse struct{ N401JSONResponse }
+
+func (response GetAuthenticationConnection401JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection404JSONResponse struct{ N404JSONResponse }
+
+func (response GetAuthenticationConnection404JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetAuthenticationConnection500JSONResponse struct{ N500JSONResponse }
+
+func (response GetAuthenticationConnection500JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetIdentitiesRequestObject struct {
 }
 
@@ -1841,6 +2123,42 @@ func (response GetQrFromStore404JSONResponse) VisitGetQrFromStoreResponse(w http
 type GetQrFromStore500JSONResponse struct{ N500JSONResponse }
 
 func (response GetQrFromStore500JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCodeRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     AuthQRCodeParams
+}
+
+type AuthQRCodeResponseObject interface {
+	VisitAuthQRCodeResponse(w http.ResponseWriter) error
+}
+
+type AuthQRCode200JSONResponse QrCodeLinkShortResponse
+
+func (response AuthQRCode200JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCode400JSONResponse struct{ N400JSONResponse }
+
+func (response AuthQRCode400JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AuthQRCode500JSONResponse struct{ N500JSONResponse }
+
+func (response AuthQRCode500JSONResponse) VisitAuthQRCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -2549,6 +2867,12 @@ type StrictServerInterface interface {
 	// Agent
 	// (POST /v1/agent)
 	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
+	// Authentication Callback
+	// (POST /v1/authentication/callback)
+	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
+	// Get Authentication Connection
+	// (GET /v1/authentication/sessions/{id})
+	GetAuthenticationConnection(ctx context.Context, request GetAuthenticationConnectionRequestObject) (GetAuthenticationConnectionResponseObject, error)
 	// Get Identities
 	// (GET /v1/identities)
 	GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error)
@@ -2561,6 +2885,9 @@ type StrictServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
+	// Get Connection QRCode
+	// (POST /v1/{identifier}/authentication/qrcode)
+	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
 	// Get Claims (Deprecated)
 	// (GET /v1/{identifier}/claims)
 	GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error)
@@ -2786,6 +3113,66 @@ func (sh *strictHandler) Agent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// AuthCallback operation middleware
+func (sh *strictHandler) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
+	var request AuthCallbackRequestObject
+
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AuthCallbackTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthCallback(ctx, request.(AuthCallbackRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthCallback")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthCallbackResponseObject); ok {
+		if err := validResponse.VisitAuthCallbackResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetAuthenticationConnection operation middleware
+func (sh *strictHandler) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id) {
+	var request GetAuthenticationConnectionRequestObject
+
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetAuthenticationConnection(ctx, request.(GetAuthenticationConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetAuthenticationConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetAuthenticationConnectionResponseObject); ok {
+		if err := validResponse.VisitGetAuthenticationConnectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetIdentities operation middleware
 func (sh *strictHandler) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	var request GetIdentitiesRequestObject
@@ -2886,6 +3273,33 @@ func (sh *strictHandler) GetQrFromStore(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetQrFromStoreResponseObject); ok {
 		if err := validResponse.VisitGetQrFromStoreResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AuthQRCode operation middleware
+func (sh *strictHandler) AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams) {
+	var request AuthQRCodeRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AuthQRCode(ctx, request.(AuthQRCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AuthQRCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AuthQRCodeResponseObject); ok {
+		if err := validResponse.VisitAuthQRCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
