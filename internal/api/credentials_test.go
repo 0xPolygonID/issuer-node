@@ -496,7 +496,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim: uuid.New(),
 			expected: expected{
 				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
-					Message: "credentials not found",
+					Message: "credential not found",
 				}},
 				httpCode: http.StatusNotFound,
 			},
@@ -508,7 +508,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim: claim.ID,
 			expected: expected{
 				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
-					Message: "credentials not found",
+					Message: "credential not found",
 				}},
 				httpCode: http.StatusNotFound,
 			},
@@ -558,7 +558,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 				assert.Equal(t, response.Id, response.Thid)
 				assert.Equal(t, idStr, response.From)
 				assert.Equal(t, claim.OtherIdentifier, response.To)
-				assert.Equal(t, cfg.ServerUrl+"v1/agent", response.Body.Url)
+				assert.Equal(t, cfg.ServerUrl+"/v1/agent", response.Body.Url)
 				require.Len(t, response.Body.Credentials, 1)
 				_, err = uuid.Parse(response.Body.Credentials[0].Id)
 				assert.NoError(t, err)
@@ -637,7 +637,7 @@ func TestServer_GetCredential(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				response: GetCredential404JSONResponse{N404JSONResponse{
-					Message: "credentials not found",
+					Message: "credential not found",
 				}},
 			},
 		},
@@ -649,7 +649,7 @@ func TestServer_GetCredential(t *testing.T) {
 			expected: expected{
 				httpCode: http.StatusNotFound,
 				response: GetCredential404JSONResponse{N404JSONResponse{
-					Message: "credentials not found",
+					Message: "credential not found",
 				}},
 			},
 		},
@@ -721,15 +721,15 @@ func TestServer_GetCredential(t *testing.T) {
 			case GetCredential400JSONResponse:
 				var response GetClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
+				assert.Equal(t, v.Message, response.Message)
 			case GetCredential404JSONResponse:
 				var response GetClaim404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
+				assert.Equal(t, v.Message, response.Message)
 			case GetCredential500JSONResponse:
 				var response GetClaim500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
+				assert.Equal(t, v.Message, response.Message)
 			}
 		})
 	}

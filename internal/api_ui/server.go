@@ -210,7 +210,7 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 		Subject: conn.UserDID.String(),
 	}
 	credentials, _, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
-	if err != nil && !errors.Is(err, services.ErrClaimNotFound) {
+	if err != nil && !errors.Is(err, services.ErrCredentialNotFound) {
 		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
 	}
@@ -286,7 +286,7 @@ func (s *Server) DeleteConnectionCredentials(ctx context.Context, request Delete
 func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
 	credential, err := s.claimService.GetByID(ctx, &s.cfg.APIUI.IssuerDID, request.Id)
 	if err != nil {
-		if errors.Is(err, services.ErrClaimNotFound) {
+		if errors.Is(err, services.ErrCredentialNotFound) {
 			return GetCredential400JSONResponse{N400JSONResponse{"The given credential id does not exist"}}, nil
 		}
 		return GetCredential500JSONResponse{N500JSONResponse{"There was an error trying to retrieve the credential information"}}, nil
@@ -327,7 +327,7 @@ func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsReque
 func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
 	err := s.claimService.Delete(ctx, request.Id)
 	if err != nil {
-		if errors.Is(err, services.ErrClaimNotFound) {
+		if errors.Is(err, services.ErrCredentialNotFound) {
 			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
 		}
 		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
@@ -650,7 +650,7 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 func (s *Server) GetCredentialQrCode(ctx context.Context, req GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
 	resp, err := s.claimService.GetCredentialQrCode(ctx, &s.cfg.APIUI.IssuerDID, req.Id, s.cfg.APIUI.ServerURL)
 	if err != nil {
-		if errors.Is(err, services.ErrClaimNotFound) {
+		if errors.Is(err, services.ErrCredentialNotFound) {
 			return GetCredentialQrCode400JSONResponse{N400JSONResponse{"Credential not found"}}, nil
 		}
 		if errors.Is(err, services.ErrEmptyMTPProof) {
