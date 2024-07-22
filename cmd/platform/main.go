@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	iden3commProtocol "github.com/iden3/iden3comm/v2/protocol"
+
 	"github.com/polygonid/sh-id-platform/internal/api"
 	"github.com/polygonid/sh-id-platform/internal/buildinfo"
 	"github.com/polygonid/sh-id-platform/internal/config"
@@ -229,16 +229,5 @@ func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMid
 	return []api.StrictMiddlewareFunc{
 		api.LogMiddleware(ctx),
 		api.BasicAuthMiddleware(ctx, auth.User, auth.Password),
-	}
-}
-
-func errorHandlerFunc(w http.ResponseWriter, _ *http.Request, err error) {
-	switch err.(type) {
-	case *api.InvalidParamFormatError:
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"message": err.Error()})
-	default:
-		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }
