@@ -240,11 +240,11 @@ func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
 // IsCredentialStatusTypeSupported returns true if the credential status type is supported
 func (r *Resolver) IsCredentialStatusTypeSupported(rhsSettings *RhsSettings, credentialStatusType verifiable.CredentialStatusType) bool {
 	if credentialStatusType == verifiable.Iden3ReverseSparseMerkleTreeProof &&
-		rhsSettings.Mode != "All" && rhsSettings.Mode != "OffChain" {
+		rhsSettings.Mode != All && rhsSettings.Mode != OffChain {
 		return false
 	}
 	if credentialStatusType == verifiable.Iden3OnchainSparseMerkleTreeProof2023 &&
-		rhsSettings.Mode != "All" && rhsSettings.Mode != "OnChain" {
+		rhsSettings.Mode != All && rhsSettings.Mode != OnChain {
 		return false
 	}
 
