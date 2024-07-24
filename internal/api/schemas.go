@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/iden3/go-iden3-core/v2/w3c"
+
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -19,8 +21,13 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 		log.Debug(ctx, "Importing schema bad request", "err", err, "req", req)
 		return ImportSchema400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("bad request: %s", err.Error())}}, nil
 	}
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return ImportSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
 	iReq := ports.NewImportSchemaRequest(req.Url, req.SchemaType, req.Title, req.Version, req.Description)
-	schema, err := s.schemaService.ImportSchema(ctx, s.cfg.APIUI.IssuerDID, iReq)
+	schema, err := s.schemaService.ImportSchema(ctx, *issuerDID, iReq)
 	if err != nil {
 		log.Error(ctx, "Importing schema", "err", err, "req", req)
 		return ImportSchema500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
@@ -30,7 +37,12 @@ func (s *Server) ImportSchema(ctx context.Context, request ImportSchemaRequestOb
 
 // GetSchema is the UI endpoint that searches and schema by Id and returns it.
 func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error) {
-	schema, err := s.schemaService.GetByID(ctx, s.cfg.APIUI.IssuerDID, request.Id)
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetSchema400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	schema, err := s.schemaService.GetByID(ctx, *issuerDID, request.Id)
 	if errors.Is(err, services.ErrSchemaNotFound) {
 		log.Error(ctx, "schema not found", "id", request.Id)
 		return GetSchema404JSONResponse{N404JSONResponse{Message: "schema not found"}}, nil
@@ -43,7 +55,12 @@ func (s *Server) GetSchema(ctx context.Context, request GetSchemaRequestObject) 
 
 // GetSchemas returns the list of schemas that match the request.Params.Query filter. If param query is nil it will return all
 func (s *Server) GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error) {
-	col, err := s.schemaService.GetAll(ctx, s.cfg.APIUI.IssuerDID, request.Params.Query)
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
+		return GetSchemas400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
+	}
+	col, err := s.schemaService.GetAll(ctx, *issuerDID, request.Params.Query)
 	if err != nil {
 		log.Error(ctx, "loading schemas", "err", err)
 		return GetSchemas500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil

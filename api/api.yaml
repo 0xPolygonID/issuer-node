@@ -747,7 +747,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #schemas:
-  /v1/schemas:
+  /v1/{identifier}/schemas:
     post:
       summary: Import JSON schema
       operationId: ImportSchema
@@ -755,6 +755,8 @@ paths:
         - basicAuth: [ ]
       tags:
         - Schemas
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
       requestBody:
         required: true
         content:
@@ -780,6 +782,7 @@ paths:
       tags:
         - Schemas
       parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
         - in: query
           name: query
           schema:
@@ -799,7 +802,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/schemas/{id}:
+  /v1/{identifier}/schemas/{id}:
     get:
       summary: Get Schema
       operationId: GetSchema
@@ -808,6 +811,7 @@ paths:
       tags:
         - Schemas
       parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
       responses:
         '200':

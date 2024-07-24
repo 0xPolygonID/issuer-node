@@ -192,7 +192,7 @@ type APIUI struct {
 	IssuerName         string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
 	IssuerLogo         string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
 	Issuer             string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID          w3c.DID   `mapstructure:"-"`
+	IssuerDID          w3c.DID   `mapstructure:"-"` // Deprecated
 	SchemaCache        *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`

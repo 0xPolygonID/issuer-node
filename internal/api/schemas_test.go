@@ -26,7 +26,6 @@ func TestServer_GetSchema(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
 	server.cfg.APIUI.ServerURL = "https://testing.env"
 	fixture := tests.NewFixture(storage)
 
@@ -100,7 +99,7 @@ func TestServer_GetSchema(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", fmt.Sprintf("/v1/schemas/%s", tc.id), nil)
+			req, err := http.NewRequest("GET", fmt.Sprintf("/v1/%s/schemas/%s", issuerDID, tc.id), nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -146,7 +145,6 @@ func TestServer_GetSchemas(t *testing.T) {
 
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
 	server.cfg.APIUI.ServerURL = "https://testing.env"
 	fixture := tests.NewFixture(storage)
 
@@ -240,7 +238,7 @@ func TestServer_GetSchemas(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := "/v1/schemas"
+			endpoint := fmt.Sprintf("/v1/%s/schemas", issuerDID)
 			if tc.query != nil {
 				endpoint = endpoint + "?query=" + url.QueryEscape(*tc.query)
 			}
@@ -270,7 +268,6 @@ func TestServer_ImportSchema(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
 	server.cfg.APIUI.ServerURL = "https://testing.env"
 
 	handler := getHandler(ctx, server)
@@ -336,7 +333,7 @@ func TestServer_ImportSchema(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/v1/schemas", tests.JSONBody(t, tc.request))
+			req, err := http.NewRequest("POST", fmt.Sprintf("/v1/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
@@ -367,7 +364,6 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
 	server.cfg.APIUI.ServerURL = "https://testing.env"
 
 	handler := getHandler(ctx, server)
@@ -432,7 +428,7 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/v1/schemas", tests.JSONBody(t, tc.request))
+			req, err := http.NewRequest("POST", fmt.Sprintf("/v1/%s/schemas", issuerDID), tests.JSONBody(t, tc.request))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 
