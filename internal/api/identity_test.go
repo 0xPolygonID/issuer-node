@@ -24,7 +24,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 		BJJ        = "BJJ"
 		ETH        = "ETH"
 	)
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
@@ -208,7 +208,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 }
 
 func TestServer_GetIdentities(t *testing.T) {
-	server := newTestServer(t)
+	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
 	identity1 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"}
