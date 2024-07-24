@@ -51,10 +51,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
 			},
 			expected: expected{
@@ -67,10 +68,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
 			},
 			expected: expected{
@@ -83,10 +85,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
 			},
 			expected: expected{
@@ -99,10 +102,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: network, Type: ETH},
 			},
 			expected: expected{
@@ -115,10 +119,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: "mynetwork", Type: BJJ},
 			},
 			expected: expected{
@@ -131,10 +136,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: blockchain, Method: "my method", Network: network, Type: BJJ},
 			},
 			expected: expected{
@@ -147,10 +153,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: "my blockchain", Method: method, Network: network, Type: BJJ},
 			},
 			expected: expected{
@@ -163,10 +170,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					Blockchain string                               `json:"blockchain"`
-					Method     string                               `json:"method"`
-					Network    string                               `json:"network"`
-					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 				}{Blockchain: "my blockchain", Method: method, Network: network, Type: "a wrong type"},
 			},
 			expected: expected{

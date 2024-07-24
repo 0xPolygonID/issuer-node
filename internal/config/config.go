@@ -79,7 +79,7 @@ type IPFS struct {
 type ReverseHashService struct {
 	URL     string `mapstructure:"Url" tip:"Reverse Hash Service address"`
 	Enabled bool   `tip:"Reverse hash service enabled"`
-	Mode    string `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
+	Mode    string `tip:"Reverse hash service mode (OffChain, OnChain, All, None)"`
 }
 
 // Ethereum struct
