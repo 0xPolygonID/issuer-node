@@ -84,6 +84,8 @@ func main() {
 		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
+		TLSEnabled:          cfg.KeyStore.TLSEnabled,
+		CertPath:            cfg.KeyStore.CertPath,
 	}
 
 	keyStore, err := keyStoreConfig(cfg, ctx, vaultCfg)

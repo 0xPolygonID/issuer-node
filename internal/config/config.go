@@ -164,6 +164,8 @@ type KeyStore struct {
 	AWSRegion                  string `tip:"AWS Region"`
 	VaultUserPassAuthEnabled   bool   `tip:"VaultUserPassAuthEnabled"`
 	VaultUserPassAuthPassword  string `tip:"VaultUserPassAuthPassword"`
+	TLSEnabled                 bool   `tip:"TLSEnabled"`
+	CertPath                   string `tip:"CertPath"`
 }
 
 // Log holds runtime configurations
@@ -444,6 +446,8 @@ func bindEnv() {
 	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
 	_ = viper.BindEnv("KeyStore.VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
 	_ = viper.BindEnv("KeyStore.VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("KeyStore.TLSEnabled", "ISSUER_VAULT_TLS_ENABLED")
+	_ = viper.BindEnv("KeyStore.CertPath", "ISSUER_VAULT_TLS_CERT_PATH")
 
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
