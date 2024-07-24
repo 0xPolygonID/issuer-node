@@ -37,7 +37,7 @@ func (s *Server) AuthQRCode(ctx context.Context, req AuthQRCodeRequestObject) (A
 	if err != nil {
 		return AuthQRCode500JSONResponse{N500JSONResponse{"Unexpected error while creating qr code"}}, nil
 	}
-	if req.Params.Type != nil && *req.Params.Type == Raw {
+	if req.Params.Type != nil && *req.Params.Type == AuthQRCodeParamsTypeRaw {
 		body, err := s.qrService.Find(ctx, resp.QrID)
 		if err != nil {
 			log.Error(ctx, "qr store. Finding qr", "err", err, "QrID", resp.QrID)

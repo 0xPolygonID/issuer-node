@@ -220,6 +220,7 @@ type repos struct {
 	identity       ports.IndentityRepository
 	idenMerkleTree ports.IdentityMerkleTreeRepository
 	identityState  ports.IdentityStateRepository
+	links          ports.LinkRepository
 	schemas        ports.SchemaRepository
 	sessions       ports.SessionRepository
 	revocation     ports.RevocationRepository
@@ -228,6 +229,9 @@ type repos struct {
 type servicex struct {
 	credentials ports.ClaimsService
 	identity    ports.IdentityService
+	schema      ports.SchemaService
+	links       ports.LinkService
+	qrs         ports.QrStoreService
 }
 
 type infra struct {
@@ -253,6 +257,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		identity:       repositories.NewIdentity(),
 		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
 		identityState:  repositories.NewIdentityState(),
+		links:          repositories.NewLink(*st),
 		sessions:       repositories.NewSessionCached(cachex),
 		schemas:        repositories.NewSchema(*st),
 		revocation:     repositories.NewRevocation(),
@@ -281,7 +286,8 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService)
+	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
 
 	return &testServer{
 		Server: server,
@@ -289,6 +295,9 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		Services: servicex{
 			credentials: claimsService,
 			identity:    identityService,
+			links:       linkService,
+			qrs:         qrService,
+			schema:      schemaService,
 		},
 		Infra: infra{
 			db:     st,

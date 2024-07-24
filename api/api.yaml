@@ -828,6 +828,234 @@ paths:
           $ref: '#/components/responses/500'
 
 
+  # Links
+  /v1/{identifier}/credentials/links:
+    get:
+      summary: Get Links
+      operationId: GetLinks
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in schema types and attributes.
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ all, active, inactive, exceeded ]
+          description: >
+            Schema type:
+              * `all` - All links. (default value)
+              * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
+              * `inactive` - Only deactivated links
+              * `exceeded` - Expired or maximum issuance exceeded
+      responses:
+        '200':
+          description: Link collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Link'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    post:
+      summary: Create Link
+      operationId: CreateLink
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLinkRequest'
+      responses:
+        '201':
+          description: Link created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UUIDResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/{identifier}/credentials/links/{id}:
+    get:
+      summary: Get Link
+      operationId: GetLink
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Links
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Credential link response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Link'
+        '400':
+            $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    patch:
+      summary: Activate | Deactivate Link
+      operationId: ActivateLink
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - active
+              properties:
+                active:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Link updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+    delete:
+      summary: Delete Link
+      operationId: DeleteLink
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+
+  /v1/{identifier}/credentials/links/{id}/qrcode:
+    post:
+      summary: Create Authentication Link QRCode
+      operationId: CreateLinkQrCode
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link qrcode generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
+    get:
+      summary: Get Credential Link QRCode
+      operationId: GetLinkQRCode
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/sessionID'
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Credential link QRCode
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetLinkQrCodeResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          description: 'Entity not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericErrorMessage'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/credentials/links/callback:
+    post:
+      summary: Create Link QR Code Callback
+      operationId: CreateLinkQrCodeCallback
+      description: Create Link QR Code Callback
+      tags:
+        - Auth
+      parameters:
+        - $ref: '#/components/parameters/sessionID'
+        - $ref: '#/components/parameters/linkID'
+        - $ref: '#/components/parameters/credentialStatusType'
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: ok
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 components:
   securitySchemes:
     basicAuth:
@@ -870,6 +1098,14 @@ components:
           type: string
           x-omitempty: false
           example: c79c9c04-8c98-40f2-a7a0-5eeabf08d836
+
+    GenericMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
 
     GenericErrorMessage:
       type: object
@@ -1407,13 +1643,224 @@ components:
       example: '2023-10-26T10:59:08Z'
       x-omitempty: false
 
+    Link:
+      type: object
+      required:
+        - id
+        - schemaUrl
+        - schemaType
+        - credentialSubject
+        - issuedClaims
+        - active
+        - status
+        - proofTypes
+        - schemaHash
+        - createdAt
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        schemaUrl:
+          type: string
+          example: https://someValidURL.com
+        schemaType:
+          type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
+        credentialSubject:
+          $ref: '#/components/schemas/CredentialSubject'
+        maxIssuance:
+          type: integer
+          x-omitempty: false
+          nullable: true
+        issuedClaims:
+          type: integer
+        expiration:
+          $ref: '#/components/schemas/TimeUTC'
+          x-omitempty: false
+          nullable: true
+        credentialExpiration:
+          $ref: '#/components/schemas/TimeUTC'
+          x-omitempty: false
+          nullable: true
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+        active:
+          type: boolean
+        status:
+          type: string
+          enum: [ active, inactive, exceeded ]
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
+
+    CredentialSubject:
+      type: object
+      x-omitempty: false
+      example:
+        birthday: 19960424
+        documentType: 2
+        type: "KYCAgeCredential"
+
+    CreateLinkRequest:
+      type: object
+      required:
+        - schemaID
+        - signatureProof
+        - mtProof
+        - credentialSubject
+      properties:
+        schemaID:
+          type: string
+          x-go-type: uuid.UUID
+          x-omitempty: false
+        credentialExpiration:
+          type: string
+          format: date-time
+          example: 2025-04-17T11:40:43.681857-03:00
+        expiration:
+          type: string
+          format: date-time
+          example: 2025-04-17T11:40:43.681857-03:00
+        limitedClaims:
+          type: integer
+          example: 5
+          x-omitempty: false
+        signatureProof:
+          type: boolean
+          example: true
+        mtProof:
+          type: boolean
+          example: false
+        credentialSubject:
+          $ref: '#/components/schemas/CredentialSubject'
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
+
+    CredentialLinkQrCodeResponse:
+      type: object
+      required:
+        - issuer
+        - qrCodeLink
+        - qrCodeRaw
+        - sessionID
+        - linkID
+        - linkDetail
+      properties:
+        issuer:
+          $ref: '#/components/schemas/IssuerDescription'
+        qrCodeRaw:
+          type: string
+        qrCodeLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        sessionID:
+          type: string
+          example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
+        linkDetail:
+          $ref: '#/components/schemas/LinkSimple'
+
+    GetLinkQrCodeResponse:
+      type: object
+      required:
+        - linkDetail
+      properties:
+        qrCode:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        status:
+          type: string
+          example: done | pending | pendingPublish
+        linkDetail:
+          $ref: '#/components/schemas/LinkSimple'
+
+    IssuerDescription:
+      type: object
+      required:
+        - displayName
+        - logo
+      properties:
+        displayName:
+          type: string
+          example: my issuer
+        logo:
+          type: string
+          example: "http://my-public-logo/logo.jpg"
+
+    LinkSimple:
+      type: object
+      required:
+        - id
+        - schemaUrl
+        - schemaType
+        - proofTypes
+        - schemaHash
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        schemaUrl:
+          type: string
+          example: https://someValidURL.com
+        schemaType:
+          type: string
+          example: KYCAgeCredential
+        schemaHash:
+          type: string
+          example: c9b2370371b7fa8b3dab2a5ba81b6838
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
+
   parameters:
+    credentialStatusType:
+      name: credentialStatusType
+      in: query
+      required: false
+      description: |
+        credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
+      schema:
+        type: string
+
     id:
       name: id
       in: path
       required: true
       description: |
         UUID parameter, e.g: 8edd8112-c415-11ed-b036-debe37e1cbd6
+      schema:
+        type: string
+        x-go-type: uuid.UUID
+        x-go-type-import:
+          name: uuid
+          path: github.com/google/uuid
+
+    linkID:
+      name: linkID
+      in: query
+      required: true
+      description: |
+        Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
       schema:
         type: string
         x-go-type: uuid.UUID
@@ -1434,7 +1881,6 @@ components:
           name: uuid
           path: github.com/google/uuid
 
-
     pathIdentifier:
       name: identifier
       in: path
@@ -1442,6 +1888,7 @@ components:
       description: Issuer identifier
       schema:
         type: string
+
     pathClaim:
       name: id
       in: path
@@ -1449,6 +1896,7 @@ components:
       description: Claim identifier
       schema:
         type: string
+
     pathNonce:
       name: nonce
       in: path

@@ -215,7 +215,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 		},
 		{
 			name:    "should get a qr code with a link as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(Link)}},
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeLink)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: true,
@@ -233,7 +233,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 		},
 		{
 			name:    "should get a RAW qr code as requested",
-			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(Raw)}},
+			request: AuthQRCodeRequestObject{Params: AuthQRCodeParams{Type: common.ToPointer(AuthQRCodeParamsTypeRaw)}},
 			expected: expected{
 				httpCode:   http.StatusOK,
 				qrWithLink: false,
