@@ -69,6 +69,7 @@ paths:
                 $ref: '#/components/schemas/Config'
         '500':
           $ref: '#/components/responses/500'
+
   #authentication
   /v1/authentication/sessions/{id}:
     get:
@@ -98,7 +99,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  # Authentication
   /v1/{identifier}/authentication/qrcode:
     post:
       summary: Get Connection QRCode
@@ -127,7 +127,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/QrCodeLinkShortResponse'
         '400':
-            $ref: '#/components/responses/400'
+          $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
 
@@ -156,7 +156,7 @@ paths:
           $ref: '#/components/responses/500'
 
 
-#identity:
+  #identity:
   /v1/identities:
     post:
       summary: Create Identity
@@ -184,7 +184,7 @@ paths:
         '401':
           $ref: '#/components/responses/401'
         '403':
-            $ref: '#/components/responses/403'
+          $ref: '#/components/responses/403'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
     get:
@@ -288,6 +288,177 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  #connections:
+  /v1/{identifier}/connections/{id}:
+    get:
+      summary: Get Connection
+      operationId: getConnection
+      description: get connection
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetConnectionResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete Connection
+      operationId: deleteConnection
+      description: delete connection
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+        - name: revokeCredentials
+          in: query
+          required: false
+          description: |
+            Set revokeCredentials to true if you want to revoke the credentials of the connection
+          schema:
+            type: boolean
+        - name: deleteCredentials
+          in: query
+          required: false
+          description: |
+            Set deleteCredentials to true if you want to delete the credentials of the connection
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/{identifier}/connections/{id}/credentials:
+    delete:
+      summary: Delete Connection Credentials
+      operationId: deleteConnectionCredentials
+      description: delete connection credentials
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/{identifier}/connections:
+    get:
+      summary: Get Connections
+      operationId: getConnections
+      description: get connections
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search in connections.
+        - in: query
+          name: credentials
+          schema:
+            type: boolean
+          description: credentials=true to include the connection credentials.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "createdAt", "-createdAt", "userID", "-userID" ]
+              default: "-createdAt"
+
+            description: >
+              The minus sign (-) before createdAt means descending order.
+
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionsPaginated'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
+  /v1/{identifier}/connections/{id}/credentials/revoke:
+    post:
+      summary: Revoke Connection Credentials
+      operationId: revokeConnectionCredentials
+      description: revoke connection credentials
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
   #credentials:
   /v1/{identifier}/credentials:
@@ -688,7 +859,7 @@ paths:
           $ref: '#/components/responses/409'
         '500':
           $ref: '#/components/responses/500'
-#agent
+  #agent
   /v1/agent:
     post:
       summary: Agent
@@ -917,7 +1088,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Link'
         '400':
-            $ref: '#/components/responses/400'
+          $ref: '#/components/responses/400'
         '404':
           $ref: '#/components/responses/404'
         '500':
@@ -1146,12 +1317,12 @@ components:
               type: string
               x-omitempty: false
               example: "BJJ"
-              enum: [BJJ, ETH]
+              enum: [ BJJ, ETH ]
             authBJJCredentialStatus:
               type: string
               x-omitempty: true
               example: "Iden3ReverseSparseMerkleTreeProof"
-              enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
+              enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
     CreateIdentityResponse:
       type: object
@@ -1236,6 +1407,49 @@ components:
         rootOfRoots:
           type: string
 
+    ConnectionsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          $ref: '#/components/schemas/GetConnectionsResponse'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
+    GetConnectionsResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/GetConnectionResponse'
+
+    GetConnectionResponse:
+      type: object
+      required:
+        - id
+        - userID
+        - issuerID
+        - createdAt
+        - credentials
+      properties:
+        id:
+          type: string
+          x-omitempty: false
+          example: 7fff8112-c415-11ed-b036-debe37e1cbd6
+        userID:
+          type: string
+          x-omitempty: false
+          example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
+        issuerID:
+          type: string
+          x-omitempty: false
+          example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+        credentials:
+          type: array
+          x-omitempty: false
+          items:
+            $ref: '#/components/schemas/Credential'
+
     # refresh service
     RefreshService:
       type: object
@@ -1251,6 +1465,26 @@ components:
           x-omitempty: false
           enum:
             - "Iden3RefreshService2023"
+
+    PaginatedMetadata:
+      type: object
+      required:
+        - total
+        - page
+        - max_results
+      properties:
+        total:
+          type: integer
+          format: uint
+          example: 1
+        page:
+          type: integer
+          format: uint
+          example: 1
+        max_results:
+          type: integer
+          format: uint
+          example: 50
 
     ImportSchemaRequest:
       type: object
@@ -1382,12 +1616,12 @@ components:
             type: string
             x-omitempty: false
             example: "BJJSignature2021"
-            enum: [ BJJSignature2021, Iden3SparseMerkleTreeProof]
+            enum: [ BJJSignature2021, Iden3SparseMerkleTreeProof ]
         credentialStatusType:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"
@@ -1405,6 +1639,71 @@ components:
         id:
           type: string
           x-omitempty: false
+
+    Credential:
+      type: object
+      required:
+        - id
+        - proofTypes
+        - createdAt
+        - expired
+        - schemaHash
+        - schemaType
+        - schemaUrl
+        - revNonce
+        - credentialSubject
+        - revoked
+        - userID
+      properties:
+        id:
+          type: string
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            name: uuid
+            path: github.com/google/uuid
+          example: 8edd8112-c415-11ed-b036-debe37e1cbd6
+        proofTypes:
+          type: array
+          items:
+            type: string
+          example: [ "BJJSignature2021" ]
+        createdAt:
+          $ref: '#/components/schemas/TimeUTC'
+        expiresAt:
+          $ref: '#/components/schemas/TimeUTC'
+        expired:
+          type: boolean
+          example: true
+        schemaHash:
+          type: string
+          example: "c9b2370371b7fa8b3dab2a5ba81b6838"
+        schemaType:
+          type: string
+          example: "KYCAgeCredential"
+        schemaUrl:
+          type: string
+          example: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+        revoked:
+          type: boolean
+          example: false
+        revNonce:
+          type: integer
+          format: uint64
+          example: 2136005230
+        credentialSubject:
+          type: object
+          x-omitempty: false
+          example:
+            birthday: 19960424
+            documentType: 2
+            id: "did:polygonid:polygon:amoy:2qDDDKmo436EZGCBAvkqZjADYoNRJszkG7UymZeCHQ"
+        userID:
+          type: string
+          example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        refreshService:
+          $ref: '#/components/schemas/RefreshService'
+        displayMethod:
+          $ref: '#/components/schemas/DisplayMethod'
 
     AuthenticationConnection:
       type: object
