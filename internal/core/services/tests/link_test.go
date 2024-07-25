@@ -90,7 +90,7 @@ func Test_link_issueClaim(t *testing.T) {
 
 	linkRepository := repositories.NewLink(*storage)
 	qrService := services.NewQrStoreService(cachex)
-	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock(), ipfsGateway)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock())
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
