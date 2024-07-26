@@ -2,12 +2,16 @@ package api
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
+	"github.com/polygonid/sh-id-platform/pkg/pagination"
+	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
 
 // CustomQrContentResponse is a wrapper to return any content as an api response.
@@ -113,6 +117,74 @@ func getLinkSimpleResponse(link domain.Link) LinkSimple {
 	}
 }
 
+func getProofs(credential *domain.Claim) []string {
+	proofs := make([]string, 0)
+	if credential.SignatureProof.Bytes != nil {
+		proofs = append(proofs, string(verifiable.BJJSignatureProofType))
+	}
+
+	if credential.MtProof {
+		proofs = append(proofs, string(verifiable.SparseMerkleTreeProof))
+	}
+
+	return proofs
+}
+
+func credentialResponse(w3c *verifiable.W3CCredential, credential *domain.Claim) Credential {
+	var expiresAt *TimeUTC
+	expired := false
+	if w3c.Expiration != nil {
+		if time.Now().UTC().After(w3c.Expiration.UTC()) {
+			expired = true
+		}
+		expiresAt = common.ToPointer(TimeUTC(*w3c.Expiration))
+	}
+
+	proofs := getProofs(credential)
+
+	var refreshService *RefreshService
+	if w3c.RefreshService != nil {
+		refreshService = &RefreshService{
+			Id:   w3c.RefreshService.ID,
+			Type: RefreshServiceType(w3c.RefreshService.Type),
+		}
+	}
+
+	var displayService *DisplayMethod
+	if w3c.DisplayMethod != nil {
+		displayService = &DisplayMethod{
+			Id:   w3c.DisplayMethod.ID,
+			Type: DisplayMethodType(w3c.DisplayMethod.Type),
+		}
+	}
+
+	return Credential{
+		CredentialSubject: w3c.CredentialSubject,
+		CreatedAt:         TimeUTC(*w3c.IssuanceDate),
+		Expired:           expired,
+		ExpiresAt:         expiresAt,
+		Id:                credential.ID,
+		ProofTypes:        proofs,
+		RevNonce:          uint64(credential.RevNonce),
+		Revoked:           credential.Revoked,
+		SchemaHash:        credential.SchemaHash,
+		SchemaType:        shortType(credential.SchemaType),
+		SchemaUrl:         credential.SchemaURL,
+		UserID:            credential.OtherIdentifier,
+		RefreshService:    refreshService,
+		DisplayMethod:     displayService,
+	}
+}
+
+func shortType(id string) string {
+	parts := strings.Split(id, "#")
+	l := len(parts)
+	if l == 0 {
+		return ""
+	}
+	return parts[l-1]
+}
+
 func schemaResponse(s *domain.Schema) Schema {
 	hash, _ := s.Hash.MarshalText()
 	return Schema{
@@ -134,4 +206,83 @@ func schemaCollectionResponse(schemas []domain.Schema) []Schema {
 		res[i] = schemaResponse(&s)
 	}
 	return res
+}
+
+func connectionResponse(conn *domain.Connection, w3cs []*verifiable.W3CCredential, credentials []*domain.Claim) GetConnectionResponse {
+	credResp := make([]Credential, len(w3cs))
+	if w3cs != nil {
+		for i := range credentials {
+			credResp[i] = credentialResponse(w3cs[i], credentials[i])
+		}
+	}
+
+	return GetConnectionResponse{
+		CreatedAt:   TimeUTC(conn.CreatedAt),
+		Id:          conn.ID.String(),
+		UserID:      conn.UserDID.String(),
+		IssuerID:    conn.IssuerDID.String(),
+		Credentials: credResp,
+	}
+}
+
+func connectionsResponse(conns []domain.Connection) (GetConnectionsResponse, error) {
+	resp := make([]GetConnectionResponse, 0)
+	var err error
+	for _, conn := range conns {
+		var w3creds []*verifiable.W3CCredential
+		var connCreds domain.Credentials
+		if conn.Credentials != nil {
+			connCreds = *conn.Credentials
+			w3creds, err = schema.FromClaimsModelToW3CCredential(connCreds)
+			if err != nil {
+				return nil, err
+			}
+		}
+		resp = append(resp, connectionResponse(&conn, w3creds, connCreds))
+	}
+
+	return resp, nil
+}
+
+func connectionsPaginatedResponse(conns []domain.Connection, pagFilter pagination.Filter, total uint) (ConnectionsPaginated, error) {
+	resp, err := connectionsResponse(conns)
+	if err != nil {
+		return ConnectionsPaginated{}, err
+	}
+
+	connsPag := ConnectionsPaginated{
+		Items: resp,
+		Meta: PaginatedMetadata{
+			MaxResults: pagFilter.MaxResults,
+			Page:       1, // default
+			Total:      total,
+		},
+	}
+	if pagFilter.Page != nil {
+		connsPag.Meta.Page = *pagFilter.Page
+	}
+
+	return connsPag, nil
+}
+
+func deleteConnectionResponse(deleteCredentials bool, revokeCredentials bool) string {
+	msg := "Connection successfully deleted."
+	if deleteCredentials {
+		msg += " Credentials successfully deleted."
+	}
+	if revokeCredentials {
+		msg += " Credentials successfully revoked."
+	}
+	return msg
+}
+
+func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool) string {
+	msg := "There was an error deleting the connection."
+	if deleteCredentials {
+		msg += " There was an error deleting the connection credentials."
+	}
+	if revokeCredentials {
+		msg += " Credentials successfully revoked."
+	}
+	return msg
 }
