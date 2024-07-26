@@ -13,7 +13,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -190,52 +189,4 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	}
 
 	return response, nil
-}
-
-// PublishIdentityState - publish identity state on chain
-func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return PublishIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-
-	publishedState, err := s.publisherGateway.PublishState(ctx, did)
-	if err != nil {
-		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
-			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
-		}
-		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
-	}
-
-	return PublishIdentityState202JSONResponse{
-		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
-		RevocationTreeRoot: publishedState.RevocationTreeRoot,
-		RootOfRoots:        publishedState.RootOfRoots,
-		State:              publishedState.State,
-		TxID:               publishedState.TxID,
-	}, nil
-}
-
-// RetryPublishState - retry to publish the current state if it failed previously.
-func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return RetryPublishState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-
-	publishedState, err := s.publisherGateway.RetryPublishState(ctx, did)
-	if err != nil {
-		log.Error(ctx, "error retrying the publishing the state", "err", err)
-		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoFailedStatesToProcess) {
-			return RetryPublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		}
-		return RetryPublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	return RetryPublishState202JSONResponse{
-		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
-		RevocationTreeRoot: publishedState.RevocationTreeRoot,
-		RootOfRoots:        publishedState.RootOfRoots,
-		State:              publishedState.State,
-		TxID:               publishedState.TxID,
-	}, nil
 }
