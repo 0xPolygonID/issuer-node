@@ -189,11 +189,19 @@ func main() {
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 
 	mux := chi.NewRouter()
+
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins:   []string{"localhost", "127.0.0.1", "*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+	})
+
 	mux.Use(
 		chiMiddleware.RequestID,
 		log.ChiMiddleware(ctx),
 		chiMiddleware.Recoverer,
-		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
+		corsMiddleware.Handler,
 		chiMiddleware.NoCache,
 	)
 	api.HandlerWithOptions(
