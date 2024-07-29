@@ -65,6 +65,14 @@ const (
 	Iden3RefreshService2023 RefreshServiceType = "Iden3RefreshService2023"
 )
 
+// Defines values for StateTransactionStatus.
+const (
+	Created   StateTransactionStatus = "created"
+	Failed    StateTransactionStatus = "failed"
+	Pending   StateTransactionStatus = "pending"
+	Published StateTransactionStatus = "published"
+)
+
 // Defines values for AuthQRCodeParamsType.
 const (
 	AuthQRCodeParamsTypeLink AuthQRCodeParamsType = "link"
@@ -443,6 +451,26 @@ type Schema struct {
 	Version     string  `json:"version"`
 }
 
+// StateStatusResponse defines model for StateStatusResponse.
+type StateStatusResponse struct {
+	PendingActions bool `json:"pendingActions"`
+}
+
+// StateTransaction defines model for StateTransaction.
+type StateTransaction struct {
+	Id          int64                  `json:"id"`
+	PublishDate TimeUTC                `json:"publishDate"`
+	State       string                 `json:"state"`
+	Status      StateTransactionStatus `json:"status"`
+	TxID        string                 `json:"txID"`
+}
+
+// StateTransactionStatus defines model for StateTransaction.Status.
+type StateTransactionStatus string
+
+// StateTransactionsResponse defines model for StateTransactionsResponse.
+type StateTransactionsResponse = []StateTransaction
+
 // TimeUTC defines model for TimeUTC.
 type TimeUTC = timeapi.Time
 
@@ -813,6 +841,12 @@ type ServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/{identifier}/state/retry)
 	RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Identity State Status
+	// (GET /v1/{identifier}/state/status)
+	GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Identity State Transactions
+	// (GET /v1/{identifier}/state/transactions)
+	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -1074,6 +1108,18 @@ func (_ Unimplemented) PublishIdentityState(w http.ResponseWriter, r *http.Reque
 // Retry Publish Identity State
 // (POST /v1/{identifier}/state/retry)
 func (_ Unimplemented) RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Identity State Status
+// (GET /v1/{identifier}/state/status)
+func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Identity State Transactions
+// (GET /v1/{identifier}/state/transactions)
+func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2620,6 +2666,62 @@ func (siw *ServerInterfaceWrapper) RetryPublishState(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetStateStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetStateStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStateStatus(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetStateTransactions operation middleware
+func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStateTransactions(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -2861,6 +2963,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/state/retry", wrapper.RetryPublishState)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/state/status", wrapper.GetStateStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/state/transactions", wrapper.GetStateTransactions)
 	})
 
 	return r
@@ -4620,6 +4728,76 @@ func (response RetryPublishState500JSONResponse) VisitRetryPublishStateResponse(
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetStateStatusRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetStateStatusResponseObject interface {
+	VisitGetStateStatusResponse(w http.ResponseWriter) error
+}
+
+type GetStateStatus200JSONResponse StateStatusResponse
+
+func (response GetStateStatus200JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateStatus400JSONResponse struct{ N400JSONResponse }
+
+func (response GetStateStatus400JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateStatus500JSONResponse struct{ N500JSONResponse }
+
+func (response GetStateStatus500JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactionsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetStateTransactionsResponseObject interface {
+	VisitGetStateTransactionsResponse(w http.ResponseWriter) error
+}
+
+type GetStateTransactions200JSONResponse StateTransactionsResponse
+
+func (response GetStateTransactions200JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactions400JSONResponse struct{ N400JSONResponse }
+
+func (response GetStateTransactions400JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactions500JSONResponse struct{ N500JSONResponse }
+
+func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Get the documentation
@@ -4751,6 +4929,12 @@ type StrictServerInterface interface {
 	// Retry Publish Identity State
 	// (POST /v1/{identifier}/state/retry)
 	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
+	// Get Identity State Status
+	// (GET /v1/{identifier}/state/status)
+	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
+	// Get Identity State Transactions
+	// (GET /v1/{identifier}/state/transactions)
+	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -5969,6 +6153,58 @@ func (sh *strictHandler) RetryPublishState(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RetryPublishStateResponseObject); ok {
 		if err := validResponse.VisitRetryPublishStateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetStateStatus operation middleware
+func (sh *strictHandler) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetStateStatusRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStateStatus(ctx, request.(GetStateStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStateStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStateStatusResponseObject); ok {
+		if err := validResponse.VisitGetStateStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetStateTransactions operation middleware
+func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetStateTransactionsRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStateTransactions(ctx, request.(GetStateTransactionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStateTransactions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
+		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

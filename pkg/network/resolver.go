@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/iden3/contracts-abi/state/go/abi"
+	"github.com/iden3/go-iden3-auth/v2/pubsignals"
+	"github.com/iden3/go-iden3-auth/v2/state"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"gopkg.in/yaml.v3"
@@ -36,6 +38,9 @@ const (
 
 type resolverPrefix string
 
+// StateResolvers type
+type StateResolvers map[string]pubsignals.StateResolver
+
 // ResolverClientConfig holds the resolver client config
 type ResolverClientConfig struct {
 	client          *eth.Client
@@ -47,6 +52,7 @@ type Resolver struct {
 	ethereumClients    map[resolverPrefix]ResolverClientConfig
 	rhsSettings        map[resolverPrefix]RhsSettings
 	supportedContracts map[string]*abi.State
+	stateResolvers     map[string]pubsignals.StateResolver
 }
 
 // RhsSettings holds the rhs settings
@@ -92,6 +98,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 	ethereumClients := make(map[resolverPrefix]ResolverClientConfig)
 	rhsSettings := make(map[resolverPrefix]RhsSettings)
 	supportedContracts := make(map[string]*abi.State)
+	stateResolvers := make(map[string]pubsignals.StateResolver)
 
 	log.Info(ctx, "resolver settings file found", "path", cfg.NetworkResolverPath)
 	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
@@ -160,6 +167,11 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 				return nil, fmt.Errorf("error failed create state contract client: %s", err.Error())
 			}
 			supportedContracts[resolverPrefixKey] = stateContract
+
+			stateResolvers[resolverPrefixKey] = state.ETHResolver{
+				RPCUrl:          networkSettings.NetworkURL,
+				ContractAddress: common.HexToAddress(networkSettings.ContractAddress),
+			}
 		}
 	}
 
@@ -169,6 +181,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 		ethereumClients:    ethereumClients,
 		rhsSettings:        rhsSettings,
 		supportedContracts: supportedContracts,
+		stateResolvers:     stateResolvers,
 	}, nil
 }
 
@@ -190,6 +203,11 @@ func (r *Resolver) GetContractAddress(resolverPrefixKey string) (*common.Address
 
 	contractAddress := common.HexToAddress(resolverClientConfig.contractAddress)
 	return &contractAddress, nil
+}
+
+// GetStateResolvers returns the state resolvers
+func (r *Resolver) GetStateResolvers() StateResolvers {
+	return r.stateResolvers
 }
 
 // GetRhsSettings returns the rhs settings

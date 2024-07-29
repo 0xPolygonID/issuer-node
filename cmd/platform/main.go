@@ -13,6 +13,8 @@ import (
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
+	auth "github.com/iden3/go-iden3-auth/v2"
+	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	iden3commProtocol "github.com/iden3/iden3comm/v2/protocol"
@@ -153,8 +155,15 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
+	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
+	verifier, err := auth.NewVerifier(verificationKeyLoader, networkResolver.GetStateResolvers())
+	if err != nil {
+		log.Error(ctx, "failed init verifier", "err", err)
+		return
+	}
+
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
