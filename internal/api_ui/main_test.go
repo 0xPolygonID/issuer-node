@@ -89,7 +89,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	cfg.ServerUrl = "https://testing.env/"
+	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 

@@ -111,13 +111,18 @@ func main() {
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
+	connectionsRepository := repositories.NewConnections()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
+	schemaRepository := repositories.NewSchema(*storage)
+	linkRepository := repositories.NewLink(*storage)
+	sessionRepository := repositories.NewSessionCached(cachex)
 
 	// services initialization
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
+	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
 
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
@@ -131,6 +136,8 @@ func main() {
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
+	schemaService := services.NewSchema(schemaRepository, schemaLoader)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -168,15 +175,18 @@ func main() {
 		cors.Handler(cors.Options{AllowedOrigins: []string{"*"}}),
 		chiMiddleware.NoCache,
 	)
-	api.HandlerFromMux(
+	api.HandlerWithOptions(
 		api.NewStrictHandlerWithOptions(
-			api.NewServer(cfg, identityService, accountService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth),
+			api.NewServer(cfg, identityService, accountService, connectionsService, claimsService, qrService, publisher, packageManager, *networkResolver, serverHealth, schemaService, linkService),
 			middlewares(ctx, cfg.HTTPBasicAuth),
 			api.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
 				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
 			}),
-		mux)
+		api.ChiServerOptions{
+			BaseRouter:       mux,
+			ErrorHandlerFunc: api.ErrorHandlerFunc,
+		})
 	api.RegisterStatic(mux)
 
 	server := &http.Server{

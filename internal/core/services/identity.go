@@ -692,7 +692,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			Blockchain:              core.NoChain,
 			Network:                 core.NoNetwork,
 			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: verifiable.SparseMerkleTreeProof,
+			AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1,
 		}
 	}
 
@@ -1098,7 +1098,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = fmt.Sprintf("%s/api/v1/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)

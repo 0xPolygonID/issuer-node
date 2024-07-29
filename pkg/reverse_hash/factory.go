@@ -19,6 +19,8 @@ import (
 type RHSMode string
 
 const (
+	// RHSModeAll is a mode when we use both on-chain and off-chain RHS
+	RHSModeAll RHSMode = "All"
 	// RHSModeOffChain is a mode when we use off-chain RHS
 	RHSModeOffChain RHSMode = "OffChain"
 	// RHSModeOnChain is a mode when we use on-chain RHS
@@ -48,7 +50,18 @@ func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, km
 		return nil, err
 	}
 	rhsMode := RHSMode(rhsSettings.Mode)
+
 	switch rhsMode {
+	case RHSModeAll:
+		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
+		if err != nil {
+			return nil, err
+		}
+		onChainCli, err := f.initOnChainRHSCli(ctx, resolverPrefix, kmsKey)
+		if err != nil {
+			return nil, err
+		}
+		return []RhsPublisher{NewRhsPublisher(rhsCli, false), NewRhsPublisher(onChainCli, false)}, nil
 	case RHSModeOffChain:
 		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
 		if err != nil {

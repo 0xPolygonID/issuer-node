@@ -10,10 +10,14 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/iden3comm/v2"
+	"github.com/iden3/iden3comm/v2/packers"
+	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/piprate/json-gold/ld"
+	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/errors"
@@ -21,7 +25,13 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
+	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
+	"github.com/polygonid/sh-id-platform/pkg/helpers"
+	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
+	"github.com/polygonid/sh-id-platform/pkg/pubsub"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var (
@@ -98,23 +108,28 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	cfg.ServerUrl = "https://testing.env/"
+	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 	m.Run()
 }
 
-func getHandler(ctx context.Context, server *Server) http.Handler {
+func getHandler(ctx context.Context, server StrictServerInterface) http.Handler {
 	mux := chi.NewRouter()
 	RegisterStatic(mux)
-	return HandlerFromMux(NewStrictHandlerWithOptions(
-		server,
-		middlewares(ctx),
-		StrictHTTPServerOptions{
-			RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
-			ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
-		},
-	), mux)
+	return HandlerWithOptions(
+		NewStrictHandlerWithOptions(
+			server,
+			middlewares(ctx),
+			StrictHTTPServerOptions{
+				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,
+				ResponseErrorHandlerFunc: errors.ResponseErrorHandlerFunc,
+			},
+		),
+		ChiServerOptions{
+			BaseRouter:       mux,
+			ErrorHandlerFunc: ErrorHandlerFunc,
+		})
 }
 
 func middlewares(ctx context.Context) []StrictMiddlewareFunc {
@@ -179,4 +194,114 @@ func NewPackageManagerMock() *iden3comm.PackageManager {
 
 func NewPublisherMock() ports.Publisher {
 	return nil
+}
+
+func NewIdentityMock() ports.IdentityService { return nil }
+
+func NewClaimsMock() ports.ClaimsService {
+	return nil
+}
+
+func NewSchemaMock() ports.SchemaService {
+	return nil
+}
+
+func NewConnectionsMock() ports.ConnectionsService {
+	return nil
+}
+
+func NewLinkMock() ports.LinkService {
+	return nil
+}
+
+type repos struct {
+	claims         ports.ClaimsRepository
+	connection     ports.ConnectionsRepository
+	identity       ports.IndentityRepository
+	idenMerkleTree ports.IdentityMerkleTreeRepository
+	identityState  ports.IdentityStateRepository
+	links          ports.LinkRepository
+	schemas        ports.SchemaRepository
+	sessions       ports.SessionRepository
+	revocation     ports.RevocationRepository
+}
+
+type servicex struct {
+	credentials ports.ClaimsService
+	identity    ports.IdentityService
+	schema      ports.SchemaService
+	links       ports.LinkService
+	qrs         ports.QrStoreService
+}
+
+type infra struct {
+	db     *db.Storage
+	pubSub *pubsub.Mock
+}
+
+type testServer struct {
+	*Server
+	Repos    repos
+	Services servicex
+	Infra    infra
+}
+
+func newTestServer(t *testing.T, st *db.Storage) *testServer {
+	t.Helper()
+	if st == nil {
+		st = storage
+	}
+	repos := repos{
+		claims:         repositories.NewClaims(),
+		connection:     repositories.NewConnections(),
+		identity:       repositories.NewIdentity(),
+		idenMerkleTree: repositories.NewIdentityMerkleTreeRepository(),
+		identityState:  repositories.NewIdentityState(),
+		links:          repositories.NewLink(*st),
+		sessions:       repositories.NewSessionCached(cachex),
+		schemas:        repositories.NewSchema(*st),
+		revocation:     repositories.NewRevocation(),
+	}
+
+	pubSub := pubsub.NewMock()
+
+	networkResolver, err := networkPkg.NewResolver(context.Background(), cfg, keyStore, helpers.CreateFile(t))
+	require.NoError(t, err)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+
+	mtService := services.NewIdentityMerkleTrees(repos.idenMerkleTree)
+	qrService := services.NewQrStoreService(cachex)
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	identityService := services.NewIdentity(keyStore, repos.identity, repos.idenMerkleTree, repos.identityState, mtService, qrService, repos.claims, repos.revocation, repos.connection, st, nil, repos.sessions, pubSub, *networkResolver, rhsFactory, revocationStatusResolver)
+	connectionService := services.NewConnection(repos.connection, repos.claims, st)
+	schemaService := services.NewSchema(repos.schemas, schemaLoader)
+
+	mediaTypeManager := services.NewMediaTypeManager(
+		map[iden3comm.ProtocolMessage][]string{
+			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
+			protocol.RevocationStatusRequestMessageType: {"*"},
+		},
+		true,
+	)
+
+	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
+	accountService := services.NewAccountService(*networkResolver)
+	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+
+	return &testServer{
+		Server: server,
+		Repos:  repos,
+		Services: servicex{
+			credentials: claimsService,
+			identity:    identityService,
+			links:       linkService,
+			qrs:         qrService,
+			schema:      schemaService,
+		},
+		Infra: infra{
+			db:     st,
+			pubSub: pubSub,
+		},
+	}
 }

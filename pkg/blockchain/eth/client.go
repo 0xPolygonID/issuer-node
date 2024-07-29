@@ -332,7 +332,6 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 	sigFn := c.signerFnFactory(ctx, kmsKey)
 
 	// tip := big.NewInt(0)
-	gasLimit := uint64(c.Config.DefaultGasLimit)
 
 	opts := &bind.TransactOpts{
 		From:     addr,
@@ -347,7 +346,7 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 		if err != nil {
 			return nil, err
 		}
-		gasLimit = uint64(0)
+		gasLimit := uint64(0)
 		opts.GasLimit = gasLimit
 		opts.GasTipCap = tip
 	}

@@ -53,11 +53,10 @@ type Link struct {
 	loader           loader.DocumentLoader
 	sessionManager   ports.SessionRepository
 	publisher        pubsub.Publisher
-	ipfsGateway      string
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, ipfsGatewayURL string) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -68,7 +67,6 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrSe
 		loader:           ld,
 		sessionManager:   sessionManager,
 		publisher:        publisher,
-		ipfsGateway:      ipfsGatewayURL,
 	}
 }
 
@@ -254,6 +252,7 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		link.CredentialSubject["id"] = userDID.String()
 
 		claimReq := ports.NewCreateClaimRequest(&issuerDID,
+			nil,
 			schema.URL,
 			link.CredentialSubject,
 			link.CredentialExpiration,

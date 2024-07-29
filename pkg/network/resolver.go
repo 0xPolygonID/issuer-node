@@ -24,6 +24,8 @@ import (
 )
 
 const (
+	// All is the type for revocation status on chain and off chain
+	All = "All"
 	// OnChain is the type for revocation status on chain
 	OnChain = "OnChain"
 	// OffChain is the type for revocation status off chain
@@ -56,7 +58,6 @@ type RhsSettings struct {
 	ChainID              *string `yaml:"chainID"`
 	PublishingKey        string  `yaml:"publishingKey"`
 	SingleIssuer         bool
-	CredentialStatusType verifiable.CredentialStatusType
 }
 
 // ResolverSettings holds the resolver settings
@@ -141,22 +142,16 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
 
-			if settings.Mode == None {
-				settings.CredentialStatusType = verifiable.Iden3commRevocationStatusV1
-			}
-
-			if settings.Mode == OffChain {
+			if settings.Mode == OffChain || settings.Mode == All {
 				if settings.RhsUrl == nil {
 					return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
 				}
-				settings.CredentialStatusType = verifiable.Iden3ReverseSparseMerkleTreeProof
 			}
 
-			if settings.Mode == OnChain {
+			if settings.Mode == OnChain || settings.Mode == All {
 				if settings.ContractAddress == nil {
 					return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
 				}
-				settings.CredentialStatusType = verifiable.Iden3OnchainSparseMerkleTreeProof2023
 			}
 
 			rhsSettings[resolverPrefix(resolverPrefixKey)] = settings
@@ -240,6 +235,20 @@ func (r *Resolver) GetConfirmationTimeout(resolverPrefixKey string) (time.Durati
 // GetSupportedContracts returns the supported contracts
 func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
 	return r.supportedContracts
+}
+
+// IsCredentialStatusTypeSupported returns true if the credential status type is supported
+func (r *Resolver) IsCredentialStatusTypeSupported(rhsSettings *RhsSettings, credentialStatusType verifiable.CredentialStatusType) bool {
+	if credentialStatusType == verifiable.Iden3ReverseSparseMerkleTreeProof &&
+		rhsSettings.Mode != All && rhsSettings.Mode != OffChain {
+		return false
+	}
+	if credentialStatusType == verifiable.Iden3OnchainSparseMerkleTreeProof2023 &&
+		rhsSettings.Mode != All && rhsSettings.Mode != OnChain {
+		return false
+	}
+
+	return true
 }
 
 func getResolverPrefixKey(blockchain, network string) string {
