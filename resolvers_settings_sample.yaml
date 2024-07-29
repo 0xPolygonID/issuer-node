@@ -11,7 +11,7 @@ polygon:
     rpcResponseTimeout: 5s
     waitReceiptCycleTime: 30s
     waitBlockCycleTime: 30s
-    gasLess: false
+    gasLess: true
     rhsSettings:
       mode: OffChain
       contractAddress: 0x16A1ae4c460C0a42f0a87e69c526c61599B28BC9
