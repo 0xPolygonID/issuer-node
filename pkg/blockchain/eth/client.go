@@ -337,7 +337,7 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 	opts := &bind.TransactOpts{
 		From:     addr,
 		Signer:   sigFn,
-		GasLimit: gasLimit, // go-ethereum library will estimate gas limit automatically if it is 0
+		GasLimit: uint64(0), // go-ethereum library will estimate gas limit automatically if it is 0
 		Context:  ctx,
 		NoSend:   false,
 	}
