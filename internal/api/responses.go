@@ -286,3 +286,41 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	}
 	return msg
 }
+
+func stateTransactionsResponse(states []domain.IdentityState) StateTransactionsResponse {
+	stateTransactions := make([]StateTransaction, len(states))
+	for i := range states {
+		stateTransactions[i] = toStateTransaction(states[i])
+	}
+	return stateTransactions
+}
+
+func toStateTransaction(state domain.IdentityState) StateTransaction {
+	var stateTran, txID string
+	if state.State != nil {
+		stateTran = *state.State
+	}
+	if state.TxID != nil {
+		txID = *state.TxID
+	}
+	return StateTransaction{
+		Id:          state.StateID,
+		PublishDate: TimeUTC(state.ModifiedAt),
+		State:       stateTran,
+		Status:      getTransactionStatus(state.Status),
+		TxID:        txID,
+	}
+}
+
+func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
+	switch status {
+	case domain.StatusCreated:
+		return "pending"
+	case domain.StatusTransacted:
+		return "transacted"
+	case domain.StatusConfirmed:
+		return "published"
+	default:
+		return "failed"
+	}
+}

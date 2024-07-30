@@ -11,10 +11,8 @@ import (
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 )
@@ -191,120 +189,4 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	}
 
 	return response, nil
-}
-
-// PublishIdentityState - publish identity state on chain
-func (s *Server) PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return PublishIdentityState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-
-	publishedState, err := s.publisherGateway.PublishState(ctx, did)
-	if err != nil {
-		if errors.Is(err, gateways.ErrNoStatesToProcess) || errors.Is(err, gateways.ErrStateIsBeingProcessed) {
-			return PublishIdentityState200JSONResponse{Message: err.Error()}, nil
-		}
-		return PublishIdentityState500JSONResponse{N500JSONResponse{err.Error()}}, nil
-	}
-
-	return PublishIdentityState202JSONResponse{
-		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
-		RevocationTreeRoot: publishedState.RevocationTreeRoot,
-		RootOfRoots:        publishedState.RootOfRoots,
-		State:              publishedState.State,
-		TxID:               publishedState.TxID,
-	}, nil
-}
-
-// RetryPublishState - retry to publish the current state if it failed previously.
-func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return RetryPublishState400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-
-	publishedState, err := s.publisherGateway.RetryPublishState(ctx, did)
-	if err != nil {
-		log.Error(ctx, "error retrying the publishing the state", "err", err)
-		if errors.Is(err, gateways.ErrStateIsBeingProcessed) || errors.Is(err, gateways.ErrNoFailedStatesToProcess) {
-			return RetryPublishState400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-		}
-		return RetryPublishState500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	return RetryPublishState202JSONResponse{
-		ClaimsTreeRoot:     publishedState.ClaimsTreeRoot,
-		RevocationTreeRoot: publishedState.RevocationTreeRoot,
-		RootOfRoots:        publishedState.RootOfRoots,
-		State:              publishedState.State,
-		TxID:               publishedState.TxID,
-	}, nil
-}
-
-// GetStateTransactions - get state transactions
-func (s *Server) GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return GetStateTransactions400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-	states, err := s.identityService.GetStates(ctx, *did)
-	if err != nil {
-		log.Error(ctx, "get state transactions", "err", err)
-		return GetStateTransactions500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	return GetStateTransactions200JSONResponse(stateTransactionsResponse(states)), nil
-}
-
-// GetStateStatus - get state status
-func (s *Server) GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return GetStateStatus400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-	pendingActions, err := s.identityService.HasUnprocessedAndFailedStatesByID(ctx, *did)
-	if err != nil {
-		log.Error(ctx, "get state status", "err", err)
-		return GetStateStatus500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-
-	return GetStateStatus200JSONResponse{PendingActions: pendingActions}, nil
-}
-
-func stateTransactionsResponse(states []domain.IdentityState) StateTransactionsResponse {
-	stateTransactions := make([]StateTransaction, len(states))
-	for i := range states {
-		stateTransactions[i] = toStateTransaction(states[i])
-	}
-	return stateTransactions
-}
-
-func toStateTransaction(state domain.IdentityState) StateTransaction {
-	var stateTran, txID string
-	if state.State != nil {
-		stateTran = *state.State
-	}
-	if state.TxID != nil {
-		txID = *state.TxID
-	}
-	return StateTransaction{
-		Id:          state.StateID,
-		PublishDate: TimeUTC(state.ModifiedAt),
-		State:       stateTran,
-		Status:      getTransactionStatus(state.Status),
-		TxID:        txID,
-	}
-}
-
-func getTransactionStatus(status domain.IdentityStatus) StateTransactionStatus {
-	switch status {
-	case domain.StatusCreated:
-		return "pending"
-	case domain.StatusTransacted:
-		return "transacted"
-	case domain.StatusConfirmed:
-		return "published"
-	default:
-		return "failed"
-	}
 }
