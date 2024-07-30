@@ -151,21 +151,21 @@ type Circuit struct {
 
 // KeyStore defines the keystore
 type KeyStore struct {
-	Address                    string `tip:"Keystore address"`
-	Token                      string `tip:"Token"`
-	PluginIden3MountPath       string `tip:"PluginIden3MountPath"`
-	UserPassEnabled            bool   `tip:"UserPassEnabled"`
-	UserPassPassword           string `tip:"UserPassPassword"`
-	BJJPlugin                  string `tip:"BJJPlugin"`
-	ETHPlugin                  string `tip:"ETHPlugin"`
-	PluginLocalStorageFilePath string `tip:"PluginLocalStorageFilePath"`
-	AWSAccessKey               string `tip:"AWS Acces Key"`
-	AWSSecretKey               string `tip:"AWS Secret Key"`
-	AWSRegion                  string `tip:"AWS Region"`
-	VaultUserPassAuthEnabled   bool   `tip:"VaultUserPassAuthEnabled"`
-	VaultUserPassAuthPassword  string `tip:"VaultUserPassAuthPassword"`
-	TLSEnabled                 bool   `tip:"TLSEnabled"`
-	CertPath                   string `tip:"CertPath"`
+	Address                      string `tip:"Keystore address"`
+	Token                        string `tip:"Token"`
+	PluginIden3MountPath         string `tip:"PluginIden3MountPath"`
+	UserPassEnabled              bool   `tip:"UserPassEnabled"`
+	UserPassPassword             string `tip:"UserPassPassword"`
+	BJJProvider                  string `tip:"BJJProvider"`
+	ETHProvider                  string `tip:"ETHProvider"`
+	ProviderLocalStorageFilePath string `tip:"ProviderLocalStorageFilePath"`
+	AWSAccessKey                 string `tip:"AWS Acces Key"`
+	AWSSecretKey                 string `tip:"AWS Secret Key"`
+	AWSRegion                    string `tip:"AWS Region"`
+	VaultUserPassAuthEnabled     bool   `tip:"VaultUserPassAuthEnabled"`
+	VaultUserPassAuthPassword    string `tip:"VaultUserPassAuthPassword"`
+	TLSEnabled                   bool   `tip:"TLSEnabled"`
+	CertPath                     string `tip:"CertPath"`
 }
 
 // Log holds runtime configurations
@@ -436,9 +436,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("KeyStore.Address", "ISSUER_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
-	_ = viper.BindEnv("KeyStore.BJJPlugin", "ISSUER_KMS_BJJ_PLUGIN")
-	_ = viper.BindEnv("KeyStore.ETHPlugin", "ISSUER_KMS_ETH_PLUGIN")
-	_ = viper.BindEnv("KeyStore.PluginLocalStorageFilePath", "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH")
+	_ = viper.BindEnv("KeyStore.BJJProvider", "ISSUER_KMS_BJJ_PROVIDER")
+	_ = viper.BindEnv("KeyStore.ETHProvider", "ISSUER_KMS_ETH_PROVIDER")
+	_ = viper.BindEnv("KeyStore.ProviderLocalStorageFilePath", "ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH")
 	_ = viper.BindEnv("KeyStore.AWSAccessKey", "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY")
 	_ = viper.BindEnv("KeyStore.AWSSecretKey", "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY")
 	_ = viper.BindEnv("KeyStore.AWSRegion", "ISSUER_KMS_ETH_PLUGIN_AWS_REGION")
@@ -574,22 +574,22 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
 	}
 
-	if cfg.KeyStore.BJJPlugin == "" {
+	if cfg.KeyStore.BJJProvider == "" {
 		log.Info(ctx, "ISSUER_KMS_BJJ_PLUGIN value is missing, using default value: vault")
-		cfg.KeyStore.BJJPlugin = Vault
+		cfg.KeyStore.BJJProvider = Vault
 	}
 
-	if cfg.KeyStore.ETHPlugin == "" {
+	if cfg.KeyStore.ETHProvider == "" {
 		log.Info(ctx, "ISSUER_KMS_ETH_PLUGIN value is missing, using default value: vault")
-		cfg.KeyStore.ETHPlugin = Vault
+		cfg.KeyStore.ETHProvider = Vault
 	}
 
-	if (cfg.KeyStore.BJJPlugin == LocalStorage || cfg.KeyStore.ETHPlugin == LocalStorage) && cfg.KeyStore.PluginLocalStorageFilePath == "" {
+	if (cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage) && cfg.KeyStore.ProviderLocalStorageFilePath == "" {
 		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
-		cfg.KeyStore.PluginLocalStorageFilePath = "./localstoragekeys"
+		cfg.KeyStore.ProviderLocalStorageFilePath = "./localstoragekeys"
 	}
 
-	if cfg.KeyStore.ETHPlugin == AWS {
+	if cfg.KeyStore.ETHProvider == AWS {
 		if cfg.KeyStore.AWSAccessKey == "" {
 			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
 		}

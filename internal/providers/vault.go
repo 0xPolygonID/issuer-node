@@ -77,7 +77,7 @@ func newVaultClientWithToken(cfg Config) (*vault.Client, error) {
 	if cfg.Address == "" {
 		return nil, errors.New("vault address is not specified")
 	}
-	if cfg.Address == "" {
+	if cfg.Token == "" {
 		return nil, errors.New("vault access token is not specified")
 	}
 

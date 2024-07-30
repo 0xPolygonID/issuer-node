@@ -8,11 +8,11 @@ this tools needs the following environment variables to be set up:
 ```
 # Could be either [localstorage | vault] (BJJ) and [localstorage | vault] | aws (ETH)
 ISSUER_PUBLISH_KEY_PATH=pbkey
-ISSUER_KMS_ETH_PLUGIN=aws
+ISSUER_KMS_ETH_PROVIDER=aws
 
 # if the plugin is localstorage, you can specify the file path (default path is current directory)
 # Important!!!: this path must be the same as the one used by the issuer node (defined in .env-issuer file)
-ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH=
+ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH=
 
 # If the plugin is AWS for ETH keys you need to specify the key id and secret key
 ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=XXX
@@ -65,12 +65,12 @@ To get the key id you have to take a look at the output (or logs) of the previou
 then you can import your private key using the following command:
 
 ```shell
-$ chmod +x kms_priv_key_importer
+$ chmod +x aws_kms_material_key_imporer.sh
 $ ./kms_priv_key_importer <privateETHKey> <key-id> <aws-profile>
 ```
 
 where:
-* `privateETHKey` is your private key in hex format (`ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`)
+* `privateETHKey` is your private key in hex format (`d3bdf6f80e510b2efed2d1dd2652f3ad5d433b8eeff0cb622d426d259576b551`)
 * `key-id` is the key id of the key created in AWS KMS (in this example `157a8b2a-e5e9-4414-b9c5-301ce828f6c5`)
 * `aws-profile` is the profile name in your `~/.aws/credentials` file
 * `aws-region` is the region where the key was created
@@ -83,7 +83,7 @@ In the root project folder run:
 ```shell
 docker build --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=XXXX \
   --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=YYYY \
-  --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_REGION=eu-west-1 -t privadoid-kms-importer -f Dockerfile-kms-importer .
+  --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_REGION=eu-west-1 -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 ```
 
 after the docker image is created run the following command (make sure you have the .env-issuer with your env vars):
@@ -108,6 +108,6 @@ you will see something like this:
 then import the material key
 
 ```shell
-sh ./aws_kms_material_key_importer.sh ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 9bb5b78b-c288-44a7-b1d4-0543e0a6 privadoid
+sh ./aws_kms_material_key_importer.sh d3bdf6f80e510b2efed2d1dd2652f3ad5d433b8eeff0cb622d426d259576b551 9bb5b78b-c288-44a7-b1d4-0543e0a6 privadoid
 ```
 if you get `Key material successfully imported!!!` message, then your private key was successfully imported to AWS KMS.

@@ -88,7 +88,7 @@ func main() {
 		CertPath:            cfg.KeyStore.CertPath,
 	}
 
-	keyStore, err := keyStoreConfig(cfg, ctx, vaultCfg)
+	keyStore, err := keyStoreConfig(ctx, cfg, vaultCfg)
 	if err != nil {
 		log.Error(ctx, "cannot initialize key store", "err", err)
 		return
@@ -208,10 +208,12 @@ func main() {
 }
 
 // keyStoreConfig initializes the key store
-func keyStoreConfig(cfg *config.Configuration, ctx context.Context, vaultCfg providers.Config) (*kms.KMS, error) {
-	var vaultCli *vault.Client
-	var vaultErr error
-	if cfg.KeyStore.BJJPlugin == config.Vault || cfg.KeyStore.ETHPlugin == config.Vault {
+func keyStoreConfig(ctx context.Context, cfg *config.Configuration, vaultCfg providers.Config) (*kms.KMS, error) {
+	var (
+		vaultCli *vault.Client
+		vaultErr error
+	)
+	if cfg.KeyStore.BJJProvider == config.Vault || cfg.KeyStore.ETHProvider == config.Vault {
 		log.Info(ctx, "using vault key provider")
 		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
 		if vaultErr != nil {
@@ -225,12 +227,12 @@ func keyStoreConfig(cfg *config.Configuration, ctx context.Context, vaultCfg pro
 	}
 
 	kmsConfig := kms.Config{
-		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJPlugin),
-		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHPlugin),
+		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
+		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
 		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
 		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
 		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
-		LocalStoragePath:         cfg.KeyStore.PluginLocalStorageFilePath,
+		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
 		Vault:                    vaultCli,
 		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,
 		IssuerETHTransferKeyPath: cfg.Ethereum.TransferAccountKeyPath,
