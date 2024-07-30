@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	issuerKMSETHPlugin                  = "ISSUER_KMS_ETH_PROVIDER"
+	issuerKMSETHProvider                = "ISSUER_KMS_ETH_PROVIDER"
 	issuerPublishKeyPath                = "ISSUER_PUBLISH_KEY_PATH"
 	issuerKmsPluginLocalStorageFilePath = "ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"
 	issuerKeyStoreToken                 = "ISSUER_KEY_STORE_TOKEN"
@@ -75,7 +75,7 @@ func main() {
 		log.Error(ctx, "Error loading .env-issuer file")
 	}
 
-	issuerKMSEthPluginVar := os.Getenv(issuerKMSETHPlugin)
+	issuerKMSEthPluginVar := os.Getenv(issuerKMSETHProvider)
 	issuerKmsPluginLocalStorageFilePath := os.Getenv(issuerKmsPluginLocalStorageFilePath)
 
 	if issuerKMSEthPluginVar != config.LocalStorage && issuerKMSEthPluginVar != config.Vault && issuerKMSEthPluginVar != config.AWS {
