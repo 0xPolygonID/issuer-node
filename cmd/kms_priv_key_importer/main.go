@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	issuerKMSETHPlugin                  = "ISSUER_KMS_ETH_PLUGIN"
+	issuerKMSETHPlugin                  = "ISSUER_KMS_ETH_PROVIDER"
 	issuerPublishKeyPath                = "ISSUER_PUBLISH_KEY_PATH"
-	issuerKmsPluginLocalStorageFilePath = "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH"
+	issuerKmsPluginLocalStorageFilePath = "ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"
 	issuerKeyStoreToken                 = "ISSUER_KEY_STORE_TOKEN"
 	issuerKeyStoreAddress               = "ISSUER_KEY_STORE_ADDRESS"
 	issuerKeyStorePluginIden3MountPath  = "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH"
@@ -79,7 +79,7 @@ func main() {
 	issuerKmsPluginLocalStorageFilePath := os.Getenv(issuerKmsPluginLocalStorageFilePath)
 
 	if issuerKMSEthPluginVar != config.LocalStorage && issuerKMSEthPluginVar != config.Vault && issuerKMSEthPluginVar != config.AWS {
-		log.Error(ctx, "issuer kms eth plugin is not set or is not local storage or vault or aws", "plugin: ", issuerKMSEthPluginVar)
+		log.Error(ctx, "issuer kms eth provider is not set or is not localstorage or vault or aws", "plugin: ", issuerKMSEthPluginVar)
 		return
 	}
 

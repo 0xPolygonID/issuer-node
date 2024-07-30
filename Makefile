@@ -1,4 +1,5 @@
 include .env-api
+include .env-issuer
 BIN := $(shell pwd)/bin
 VERSION ?= $(shell git rev-parse --short HEAD)
 GO?=$(shell which go)
@@ -14,6 +15,8 @@ DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
 DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
 ENVIRONMENT := ${ISSUER_API_ENVIRONMENT}
 
+ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH}
+ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
 
 # Local environment overrides via godotenv
 DOTENV_CMD = $(BIN)/godotenv
@@ -159,22 +162,37 @@ add-private-key:
 	docker exec issuer-vault-1 \
 	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)
 
-# >>> usage: make private_key=xxx import-private-key-to-kms
-# If you want to import your private key to the local storage be sure to have the
-# file ${ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FILE_PATH}/kms_localstorage_keys.json, otherwise change the mapped volume.
-# If you want to import private key to vault running with docker compose  make sure ISSUER_KEY_STORE_ADDRESS=http://vault:8200  in .env-issuer
-# >>> Don't use this command if you want to import private key to aws kms, for that see cmd/kms_priv_key_importer/readme.md
+## Usage:
+## AWS: make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
+## localstorage and vault: make private_key=XXX import-private-key-to-kms
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
-	docker build -t privadoid-kms-importer -f Dockerfile-kms-importer .
-	docker run -it -v ./.env-issuer:/.env-issuer --network issuer-network \
-	-v ./localstoragekeys/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
-	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
+	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	$(eval result = $(shell docker run -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
+		--network issuer-network \
+		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)))
+	@echo "result: $(result)"
+	$(eval keyID = $(shell echo $(result) | grep "key created keyId=" | sed 's/.*keyId=//'))
+	@if [ -n "$(keyID)" ]; then \
+		docker run -it --rm -v ./.env-issuer:/.env-issuer --network issuer-network \
+			privadoid-kms-importer sh ./aws_kms_material_key_importer.sh $(private_key) $(keyID) privadoid; \
+	else \
+		echo "something went wrong because keyID is empty"; \
+	fi
+else
+	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
+		--network issuer-network \
+		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+endif
 
 .PHONY: print-vault-token
 print-vault-token:
 	$(eval TOKEN = $(shell docker logs issuer-vault-1 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	@echo $(TOKEN)
+	echo $(TOKEN)
 
 .PHONY: add-vault-token
 add-vault-token:

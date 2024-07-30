@@ -12,7 +12,7 @@ ISSUER_KMS_ETH_PROVIDER=aws
 
 # if the plugin is localstorage, you can specify the file path (default path is current directory)
 # Important!!!: this path must be the same as the one used by the issuer node (defined in .env-issuer file)
-ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH=
+ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH=./localstoragekeys
 
 # If the plugin is AWS for ETH keys you need to specify the key id and secret key
 ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=XXX
@@ -81,9 +81,9 @@ if you get `Key material successfully imported!!!` message, then your private ke
 In the root project folder run:
 
 ```shell
-docker build --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=XXXX \
-  --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=YYYY \
-  --build-arg ISSUER_KMS_ETH_PLUGIN_AWS_REGION=eu-west-1 -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=XXXX \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=YYYY \
+  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=ZZZZ -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 ```
 
 after the docker image is created run the following command (make sure you have the .env-issuer with your env vars):
