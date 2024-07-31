@@ -126,13 +126,10 @@ func randomDID(t *testing.T) w3c.DID {
 func setupPluginBJJProvider(t *testing.T) (vaultCli *api.Client, mountPath string) {
 	t.Helper()
 	var err error
-	vaultCli, err = providers.VaultClient(context.Background(), providers.Config{
-		Address:             cfg.Address,
-		UserPassAuthEnabled: cfg.UserPassEnabled,
-		Pass:                cfg.UserPassPassword,
-	})
+	config := vaultTest()
+	vaultCli, err = providers.VaultClient(context.Background(), config)
 	require.NoError(t, err)
-	mountPath = cfg.PluginIden3MountPath
+	mountPath = config.MountPath
 	return
 }
 

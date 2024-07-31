@@ -39,6 +39,7 @@ type Config struct {
 	Pass                string
 	TLSEnabled          bool
 	CertPath            string
+	MountPath           string
 }
 
 // VaultClient checks vault configuration and creates new vault client

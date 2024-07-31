@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	vault "github.com/hashicorp/vault/api"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -19,7 +18,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
-	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
@@ -79,53 +77,18 @@ func main() {
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
-	var vaultCli *vault.Client
-	var vaultErr error
 	vaultCfg := providers.Config{
 		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
+		TLSEnabled:          cfg.KeyStore.TLSEnabled,
+		CertPath:            cfg.KeyStore.CertPath,
 	}
 
-	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-	if vaultErr != nil {
-		log.Error(ctx, "cannot initialize vault client", "err", err)
-		return
-	}
-
-	if vaultCfg.UserPassAuthEnabled {
-		go providers.RenewToken(ctx, vaultCli, vaultCfg)
-	}
-
-	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
+	keyStore, err := config.KeyStoreConfig(ctx, cfg, vaultCfg)
 	if err != nil {
-		log.Error(ctx, "cannot create BabyJubJub key provider", "err", err)
-		panic(err)
-	}
-
-	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
-	if err != nil {
-		log.Error(ctx, "cannot create Ethereum key provider", "err", err)
-		panic(err)
-	}
-
-	keyStore := kms.NewKMS()
-	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
-	if err != nil {
-		log.Error(ctx, "cannot register BabyJubJub key provider", "err", err)
-		panic(err)
-	}
-
-	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
-	if err != nil {
-		log.Error(ctx, "cannot register Ethereum key provider", "err", err)
-		panic(err)
-	}
-
-	err = config.CheckDID(ctx, cfg, vaultCli)
-	if err != nil {
-		log.Error(ctx, "cannot initialize did", "err", err)
+		log.Error(ctx, "cannot initialize key store", "err", err)
 		return
 	}
 

@@ -14,11 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 )
@@ -275,7 +276,7 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 }
 
 // CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
-func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) error {
+func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *vault.Client) error {
 	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
 	if cfg.APIUI.Issuer == "" {
 		log.Info(ctx, "Issuer DID not provided in configuration file. Getting it from vault")
@@ -379,19 +380,6 @@ func Load(fileName string) (*Configuration, error) {
 
 	checkEnvVars(ctx, config)
 	return config, nil
-}
-
-// VaultTest returns the vault configuration to be used in tests.
-// The vault token is obtained from environment vars.
-// If there is no env var, it will try to parse the init.out file
-// created by local docker image provided for TESTING purposes.
-func VaultTest() KeyStore {
-	return KeyStore{
-		Address:              "http://localhost:8200",
-		PluginIden3MountPath: "iden3",
-		UserPassEnabled:      true,
-		UserPassPassword:     "issuernodepwd",
-	}
 }
 
 // lookupVaultTokenFromFile parses the vault config file looking for the hvs token and returns it
@@ -646,6 +634,45 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as amoy")
 		cfg.APIUI.IdentityNetwork = "amoy"
 	}
+}
+
+// KeyStoreConfig initializes the key store
+func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.Config) (*kms.KMS, error) {
+	var (
+		vaultCli *vault.Client
+		vaultErr error
+	)
+	if cfg.KeyStore.BJJProvider == Vault || cfg.KeyStore.ETHProvider == Vault {
+		log.Info(ctx, "using vault key provider")
+		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+		if vaultErr != nil {
+			log.Error(ctx, "cannot initialize vault client", "err", vaultErr)
+			return nil, vaultErr
+		}
+
+		if vaultCfg.UserPassAuthEnabled {
+			go providers.RenewToken(ctx, vaultCli, vaultCfg)
+		}
+	}
+
+	kmsConfig := kms.Config{
+		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
+		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
+		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
+		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
+		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
+		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
+		Vault:                    vaultCli,
+		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,
+		IssuerETHTransferKeyPath: cfg.Ethereum.TransferAccountKeyPath,
+	}
+
+	keyStore, err := kms.OpenWithConfig(ctx, kmsConfig)
+	if err != nil {
+		log.Error(ctx, "cannot initialize kms", "err", err)
+		return nil, err
+	}
+	return keyStore, nil
 }
 
 func getWorkingDirectory() string {

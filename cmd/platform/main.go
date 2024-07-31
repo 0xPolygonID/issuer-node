@@ -12,7 +12,6 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	redis2 "github.com/go-redis/redis/v8"
-	vault "github.com/hashicorp/vault/api"
 	auth "github.com/iden3/go-iden3-auth/v2"
 	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
@@ -27,7 +26,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/errors"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/health"
-	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
@@ -90,7 +88,7 @@ func main() {
 		CertPath:            cfg.KeyStore.CertPath,
 	}
 
-	keyStore, err := keyStoreConfig(ctx, cfg, vaultCfg)
+	keyStore, err := config.KeyStoreConfig(ctx, cfg, vaultCfg)
 	if err != nil {
 		log.Error(ctx, "cannot initialize key store", "err", err)
 		return
@@ -222,45 +220,6 @@ func main() {
 
 	<-quit
 	log.Info(ctx, "Shutting down")
-}
-
-// keyStoreConfig initializes the key store
-func keyStoreConfig(ctx context.Context, cfg *config.Configuration, vaultCfg providers.Config) (*kms.KMS, error) {
-	var (
-		vaultCli *vault.Client
-		vaultErr error
-	)
-	if cfg.KeyStore.BJJProvider == config.Vault || cfg.KeyStore.ETHProvider == config.Vault {
-		log.Info(ctx, "using vault key provider")
-		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-		if vaultErr != nil {
-			log.Error(ctx, "cannot initialize vault client", "err", vaultErr)
-			return nil, vaultErr
-		}
-
-		if vaultCfg.UserPassAuthEnabled {
-			go providers.RenewToken(ctx, vaultCli, vaultCfg)
-		}
-	}
-
-	kmsConfig := kms.Config{
-		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
-		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
-		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
-		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
-		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
-		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
-		Vault:                    vaultCli,
-		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,
-		IssuerETHTransferKeyPath: cfg.Ethereum.TransferAccountKeyPath,
-	}
-
-	keyStore, err := kms.OpenWithConfig(ctx, kmsConfig)
-	if err != nil {
-		log.Error(ctx, "cannot initialize kms", "err", err)
-		return nil, err
-	}
-	return keyStore, nil
 }
 
 func middlewares(ctx context.Context, auth config.HTTPBasicAuth) []api.StrictMiddlewareFunc {
