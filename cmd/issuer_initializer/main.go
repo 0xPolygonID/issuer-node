@@ -61,10 +61,10 @@ func main() {
 	connected := false
 
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 	}
 	for i := 0; i < vaultAttempts; i++ {
 		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)

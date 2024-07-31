@@ -77,7 +77,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 		if errors.Is(err, kms.ErrPermissionDenied) {
 			var message string
-			if s.cfg.VaultUserPassAuthEnabled {
+			if s.cfg.KeyStore.VaultUserPassAuthEnabled {
 				message = "Issuer Node cannot connect with Vault. Please check the value of ISSUER_VAULT_USERPASS_AUTH_PASSWORD variable."
 			} else {
 				message = `Issuer Node cannot connect with Vault. Please check the value of ISSUER_KEY_STORE_TOKEN variable.`

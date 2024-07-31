@@ -82,10 +82,10 @@ func main() {
 	var vaultCli *vault.Client
 	var vaultErr error
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 	}
 
 	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)

@@ -26,6 +26,35 @@ type KMSType interface {
 	LinkToIdentity(ctx context.Context, keyID KeyID, identity w3c.DID) (KeyID, error)
 }
 
+// ConfigProvider is a key provider configuration
+type ConfigProvider string
+
+const (
+	// BJJVaultKeyProvider is a key provider for BabyJubJub keys in vault
+	BJJVaultKeyProvider ConfigProvider = "vault"
+	// BJJLocalStorageKeyProvider is a key provider for BabyJubJub keys in local storage
+	BJJLocalStorageKeyProvider ConfigProvider = "localstorage"
+	// ETHVaultKeyProvider is a key provider for Ethereum keys in vault
+	ETHVaultKeyProvider ConfigProvider = "vault"
+	// ETHLocalStorageKeyProvider is a key provider for Ethereum keys in local storage
+	ETHLocalStorageKeyProvider ConfigProvider = "localstorage"
+	// ETHAwsKmsKeyProvider is a key provider for Ethereum keys in AWS KMS
+	ETHAwsKmsKeyProvider ConfigProvider = "aws"
+)
+
+// Config is a configuration for KMS
+type Config struct {
+	BJJKeyProvider           ConfigProvider
+	ETHKeyProvider           ConfigProvider
+	AWSKMSAccessKey          string
+	AWSKMSSecretKey          string
+	AWSKMSRegion             string
+	LocalStoragePath         string
+	Vault                    *api.Client
+	PluginIden3MountPath     string
+	IssuerETHTransferKeyPath string
+}
+
 // KeyProvider describes the interface that key providers should match.
 type KeyProvider interface {
 	// New generates random key.
@@ -207,16 +236,74 @@ func Open(pluginIden3MountPath string, vault *api.Client) (*KMS, error) {
 	return keyStore, nil
 }
 
-// OpenLocalPath returns an initialized KMS with local storage
-func OpenLocalPath(localStorageFolder string) (*KMS, error) {
-	filePath, err := createFileIfNotExists(localStorageFolder, LocalStorageFileName)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create file: %v", err)
+// OpenWithConfig returns an initialized KMS with provided configuration
+func OpenWithConfig(ctx context.Context, config Config) (*KMS, error) {
+	var bjjKeyProvider KeyProvider
+	var ethKeyProvider KeyProvider
+	var err error
+
+	if config.BJJKeyProvider == "" {
+		return nil, errors.New("BabyJubJub key provider is not provided")
 	}
 
-	localStorageFileManager := NewLocalStorageFileManager(filePath)
-	bjjKeyProvider := NewLocalStorageBJJKeyProvider(KeyTypeBabyJubJub, localStorageFileManager)
-	ethKeyProvider := NewLocalStorageEthKeyProvider(KeyTypeEthereum, localStorageFileManager)
+	if config.ETHKeyProvider == "" {
+		return nil, errors.New("Ethereum key provider is not provided")
+	}
+
+	if config.BJJKeyProvider == BJJVaultKeyProvider {
+		bjjKeyProvider, err = NewVaultPluginIden3KeyProvider(config.Vault, config.PluginIden3MountPath, KeyTypeBabyJubJub)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
+		}
+		log.Info(ctx, "BabyJubJub key provider created", "provider:", BJJVaultKeyProvider)
+	}
+
+	if config.BJJKeyProvider == BJJLocalStorageKeyProvider {
+		filePath, err := createFileIfNotExists(ctx, config.LocalStoragePath, LocalStorageFileName)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create file: %v", err)
+		}
+		bjjKeyProvider = NewLocalStorageBJJKeyProvider(KeyTypeBabyJubJub, NewLocalStorageFileManager(filePath))
+		if err != nil {
+			return nil, fmt.Errorf("cannot create BabyJubJub key provider: %+v", err)
+		}
+		log.Info(ctx, "BabyJubJub key provider created", "provider:", BJJLocalStorageKeyProvider)
+	}
+
+	if config.ETHKeyProvider == ETHVaultKeyProvider {
+		ethKeyProvider, err = NewVaultPluginIden3KeyProvider(config.Vault, config.PluginIden3MountPath, KeyTypeEthereum)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create Ethereum key provider: %+v", err)
+		}
+		log.Info(ctx, "Ethereum key provider created", "provider:", ETHVaultKeyProvider)
+	}
+
+	if config.ETHKeyProvider == ETHLocalStorageKeyProvider {
+		filePath, err := createFileIfNotExists(ctx, config.LocalStoragePath, LocalStorageFileName)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create file: %v", err)
+		}
+		ethKeyProvider = NewLocalStorageEthKeyProvider(KeyTypeEthereum, NewLocalStorageFileManager(filePath))
+		if err != nil {
+			return nil, fmt.Errorf("cannot create Ethereum key provider: %+v", err)
+		}
+		log.Info(ctx, "Ethereum key provider created", "provider:", ETHLocalStorageKeyProvider)
+	}
+
+	if config.ETHKeyProvider == ETHAwsKmsKeyProvider {
+		if config.AWSKMSAccessKey == "" || config.AWSKMSSecretKey == "" || config.AWSKMSRegion == "" {
+			return nil, errors.New("AWS KMS access key, secret key and region have to be provided")
+		}
+		ethKeyProvider, err = NewAwsEthKeyProvider(ctx, KeyTypeEthereum, config.IssuerETHTransferKeyPath, AwEthKeyProviderConfig{
+			Region:    config.AWSKMSRegion,
+			AccessKey: config.AWSKMSAccessKey,
+			SecretKey: config.AWSKMSSecretKey,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("cannot create Ethereum aws key provider: %+v", err)
+		}
+		log.Info(ctx, "Ethereum key provider created", "provider:", ETHAwsKmsKeyProvider)
+	}
 
 	keyStore := NewKMS()
 	err = keyStore.RegisterKeyProvider(KeyTypeBabyJubJub, bjjKeyProvider)
@@ -231,7 +318,7 @@ func OpenLocalPath(localStorageFolder string) (*KMS, error) {
 	return keyStore, nil
 }
 
-func createFileIfNotExists(folderPath, fileName string) (string, error) {
+func createFileIfNotExists(ctx context.Context, folderPath, fileName string) (string, error) {
 	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
 		return "", fmt.Errorf("error creating folder: %v", err)
 	}
@@ -248,7 +335,7 @@ func createFileIfNotExists(folderPath, fileName string) (string, error) {
 		defer func(file *os.File) {
 			err := file.Close()
 			if err != nil {
-				log.Error(context.Background(), "error closing file", "err", err)
+				log.Error(ctx, "error closing file", "err", err)
 			}
 		}(file)
 	}

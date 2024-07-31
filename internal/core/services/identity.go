@@ -1205,7 +1205,12 @@ func sanitizeIssuerDoc(issDoc []byte) []byte {
 // ethPubKey returns the public key from the key manager service.
 // the public key is either uncompressed or compressed, so we need to handle both cases.
 func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
-	const uncompressedKeyLength = 65
+	const (
+		uncompressedKeyLength = 65
+		awsKeyLength          = 88
+		defaultKeyLength      = 33
+	)
+
 	keyBytes, err := keyMS.PublicKey(keyID)
 	if err != nil {
 		log.Error(ctx, "can't get bytes from public key", "err", err)
@@ -1217,6 +1222,15 @@ func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.
 		return crypto.UnmarshalPubkey(keyBytes)
 	}
 
+	// public key is AWS format. It's 88 bytes long.
+	if len(keyBytes) == awsKeyLength {
+		return kms.DecodeAWSETHPubKey(ctx, keyBytes)
+	}
+
 	// public key is compressed. It's 33 bytes long.
-	return kms.DecodeETHPubKey(keyBytes)
+	if len(keyBytes) == defaultKeyLength {
+		return kms.DecodeETHPubKey(keyBytes)
+	}
+
+	return nil, errors.New("unsupported public key format")
 }
