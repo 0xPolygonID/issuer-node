@@ -172,7 +172,7 @@ ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
 	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
-	$(eval result = $(shell docker run -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
+	$(eval result = $(shell docker run -it -v ./.env-issuer:/.env-issuer  \
 		--network issuer-network \
 		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)))
 	@echo "result: $(result)"
