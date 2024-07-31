@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: Polygon ID - Issuer
+  title: Privado ID - Issuer
   description: |
-    Documentation for the Issuer
+    Documentation for the Issuer Node
   version: "1"
 
 tags:
@@ -161,7 +161,14 @@ paths:
     post:
       summary: Create Identity
       operationId: CreateIdentity
-      description: Endpoint to create an identity
+      description: | 
+        Endpoint to create an identity to issue credentials.
+        Issuer node supports two types of keys (field `type`):
+        * BJJ Keys
+        * ETH Keys
+        
+        `authBJJCredentialStatus` field is optional and and defines how the auth core claim will be evaluated during 
+        the process to verify that it has not been revoked.
       tags:
         - Identity
       security:
@@ -314,6 +321,9 @@ paths:
     get:
       summary: Get Identity State Status
       operationId: GetStateStatus
+      description: |
+        Endpoint to get identity state status, if the identity is published or not.
+        If the status is `pendingActions` is true it means that the identity has pending actions to be published.
       security:
         - basicAuth: [ ]
       tags:
@@ -1876,7 +1886,7 @@ components:
       properties:
         qrCodeLink:
           type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
           $ref: '#/components/schemas/UUIDString'
 
@@ -2149,7 +2159,7 @@ components:
           type: string
         qrCodeLink:
           type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         sessionID:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
@@ -2163,7 +2173,7 @@ components:
       properties:
         qrCode:
           type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         status:
           type: string
           example: done | pending | pendingPublish
