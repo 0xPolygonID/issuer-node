@@ -84,21 +84,20 @@ type ReverseHashService struct {
 
 // Ethereum struct
 type Ethereum struct {
-	URL                       string        `tip:"Ethereum url"`
-	ContractAddress           string        `tip:"Contract Address"`
-	DefaultGasLimit           int           `tip:"Default Gas Limit"`
-	ConfirmationTimeout       time.Duration `tip:"Confirmation timeout"`
-	ConfirmationBlockCount    int64         `tip:"Confirmation block count"`
-	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
-	MinGasPrice               int           `tip:"Minimum Gas Price"`
-	MaxGasPrice               int           `tip:"The Datasource name locator"`
-	GasLess                   bool          `tip:"Gasless transactions"`
-	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
-	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
-	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:amoy"`
-	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
-	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
+	URL                    string        `tip:"Ethereum url"`
+	ContractAddress        string        `tip:"Contract Address"`
+	DefaultGasLimit        int           `tip:"Default Gas Limit"`
+	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
+	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
+	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
+	MinGasPrice            int           `tip:"Minimum Gas Price"`
+	MaxGasPrice            int           `tip:"The Datasource name locator"`
+	GasLess                bool          `tip:"Gasless transactions"`
+	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
+	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
+	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
+	ResolverPrefix         string        `tip:"blockchain:network e.g polygon:amoy"`
+	TransferAccountKeyPath string        `tip:"Transfer account key path"`
 }
 
 // CustomDIDMethods struct
