@@ -446,7 +446,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error) {
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
 	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
@@ -459,7 +459,14 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	issuerDoc := newDIDDocument(serverURL, issuerDID)
+	from := authReq.From
+	issuerDID, err := w3c.ParseDID(from)
+	if err != nil {
+		log.Error(ctx, "failed to parse issuerDID", "err", err)
+		return nil, err
+	}
+
+	issuerDoc := newDIDDocument(serverURL, *issuerDID)
 	bytesIssuerDoc, err := json.Marshal(issuerDoc)
 	if err != nil {
 		log.Error(ctx, "failed to marshal issuerDoc", "err", err)
@@ -475,7 +482,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 
 	conn := &domain.Connection{
 		ID:         uuid.New(),
-		IssuerDID:  issuerDID,
+		IssuerDID:  *issuerDID,
 		UserDID:    *userDID,
 		IssuerDoc:  bytesIssuerDoc,
 		UserDoc:    arm.Body.DIDDoc,

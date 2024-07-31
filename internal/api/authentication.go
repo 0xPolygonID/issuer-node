@@ -17,7 +17,7 @@ func (s *Server) AuthCallback(ctx context.Context, request AuthCallbackRequestOb
 		return AuthCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	_, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	_, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "error authenticating", err.Error())
 		return AuthCallback500JSONResponse{}, nil

@@ -95,7 +95,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.APIUI.ServerURL, s.cfg.APIUI.IssuerDID)
+	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "error authenticating", err.Error())
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -106,7 +106,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		log.Error(ctx, "error getting user DID", err.Error())
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "expecting a did in From"}}, nil
 	}
-	issuerDID, err := w3c.ParseDID(arm.From)
+	issuerDID, err := w3c.ParseDID(arm.To)
 	if err != nil {
 		log.Error(ctx, "error getting issuer DID", err.Error())
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "expecting a did in To"}}, nil
