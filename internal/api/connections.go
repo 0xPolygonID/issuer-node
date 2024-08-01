@@ -2,11 +2,17 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
+	uuid "github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	jsonSuite "github.com/iden3/go-schema-processor/v2/json"
+	"github.com/iden3/go-schema-processor/verifiable"
 
+	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
@@ -39,6 +45,68 @@ func (s *Server) GetConnections(ctx context.Context, request GetConnectionsReque
 
 	}
 	return GetConnections200JSONResponse(resp), nil
+}
+
+// CreateConnection creates a connection
+func (s *Server) CreateConnection(ctx context.Context, request CreateConnectionRequestObject) (CreateConnectionResponseObject, error) {
+	// validate did document
+	issuerDoc, err := json.Marshal(request.Body.IssuerDoc)
+	if err != nil {
+		log.Debug(ctx, "invalid issuer did document object", "err", err, "req", request)
+		return CreateConnection400JSONResponse{N400JSONResponse{"invalid issuer did document"}}, nil
+	}
+
+	userDoc, err := json.Marshal(request.Body.UserDoc)
+	if err != nil {
+		log.Debug(ctx, "invalid user did document object", "err", err, "req", request)
+		return CreateConnection400JSONResponse{N400JSONResponse{"invalid user did document"}}, nil
+	}
+	validator := jsonSuite.Validator{}
+	if checkJSONIsNotNull(issuerDoc) {
+		err := validator.ValidateData(issuerDoc, []byte(verifiable.DIDDocumentJSONSchema))
+		if err != nil {
+			log.Debug(ctx, "invalid issuer did document", "err", err, "req", request)
+			return CreateConnection400JSONResponse{N400JSONResponse{"invalid issuer did document"}}, nil
+		}
+	}
+
+	if checkJSONIsNotNull(userDoc) {
+		err := validator.ValidateData(userDoc, []byte(verifiable.DIDDocumentJSONSchema))
+		if err != nil {
+			log.Debug(ctx, "invalid user did document", "err", err, "req", request)
+			return CreateConnection400JSONResponse{N400JSONResponse{"invalid user did document"}}, nil
+		}
+	}
+
+	issuerDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Debug(ctx, "invalid issuer did", "err", err, "req", request)
+		return CreateConnection400JSONResponse{N400JSONResponse{"invalid issuer did"}}, nil
+	}
+
+	userDID, err := w3c.ParseDID(request.Body.UserDID)
+	if err != nil {
+		log.Debug(ctx, "invalid user did", "err", err, "req", request)
+		return CreateConnection400JSONResponse{N400JSONResponse{"invalid user did"}}, nil
+	}
+
+	conn := &domain.Connection{
+		ID:         uuid.New(),
+		IssuerDID:  *issuerDID,
+		UserDID:    *userDID,
+		IssuerDoc:  issuerDoc,
+		UserDoc:    userDoc,
+		CreatedAt:  time.Now(),
+		ModifiedAt: time.Now(),
+	}
+
+	err = s.connectionsService.Create(ctx, conn)
+	if err != nil {
+		log.Debug(ctx, "create connection error", "err", err, "req", request)
+		return CreateConnection500JSONResponse{N500JSONResponse{"There was an error creating the connection"}}, nil
+	}
+
+	return CreateConnection201JSONResponse{}, nil
 }
 
 // DeleteConnection deletes a connection
@@ -157,4 +225,8 @@ func getConnectionsFilter(req GetConnectionsRequestObject) (*ports.NewGetAllConn
 		}
 	}
 	return ports.NewGetAllRequest(req.Params.Credentials, req.Params.Query, req.Params.Page, req.Params.MaxResults, orderBy), nil
+}
+
+func checkJSONIsNotNull(message []byte) bool {
+	return message != nil && string(message) != "null"
 }

@@ -152,6 +152,13 @@ type CreateClaimResponse struct {
 	Id string `json:"id"`
 }
 
+// CreateConnectionRequest defines model for CreateConnectionRequest.
+type CreateConnectionRequest struct {
+	IssuerDoc map[string]interface{} `json:"issuerDoc"`
+	UserDID   string                 `json:"userDID"`
+	UserDoc   map[string]interface{} `json:"userDoc"`
+}
+
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
 	DidMetadata struct {
@@ -698,6 +705,9 @@ type CreateIdentityJSONRequestBody = CreateIdentityRequest
 // CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
 
+// CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
+type CreateConnectionJSONRequestBody = CreateConnectionRequest
+
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
 type CreateCredentialJSONRequestBody = CreateClaimRequest
 
@@ -775,6 +785,9 @@ type ServerInterface interface {
 	// Get Connections
 	// (GET /v1/{identifier}/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetConnectionsParams)
+	// Create Connection
+	// (POST /v1/{identifier}/connections)
+	CreateConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Delete Connection
 	// (DELETE /v1/{identifier}/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id, params DeleteConnectionParams)
@@ -976,6 +989,12 @@ func (_ Unimplemented) GetClaimQrCode(w http.ResponseWriter, r *http.Request, id
 // Get Connections
 // (GET /v1/{identifier}/connections)
 func (_ Unimplemented) GetConnections(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetConnectionsParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Connection
+// (POST /v1/{identifier}/connections)
+func (_ Unimplemented) CreateConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1795,6 +1814,34 @@ func (siw *ServerInterfaceWrapper) GetConnections(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetConnections(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateConnection operation middleware
+func (siw *ServerInterfaceWrapper) CreateConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateConnection(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2899,6 +2946,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/{identifier}/connections", wrapper.GetConnections)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/{identifier}/connections", wrapper.CreateConnection)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/v1/{identifier}/connections/{id}", wrapper.DeleteConnection)
 	})
 	r.Group(func(r chi.Router) {
@@ -3785,6 +3835,42 @@ func (response GetConnections400JSONResponse) VisitGetConnectionsResponse(w http
 type GetConnections500JSONResponse struct{ N500JSONResponse }
 
 func (response GetConnections500JSONResponse) VisitGetConnectionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateConnectionRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreateConnectionJSONRequestBody
+}
+
+type CreateConnectionResponseObject interface {
+	VisitCreateConnectionResponse(w http.ResponseWriter) error
+}
+
+type CreateConnection201JSONResponse GenericMessage
+
+func (response CreateConnection201JSONResponse) VisitCreateConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateConnection400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateConnection400JSONResponse) VisitCreateConnectionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateConnection500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateConnection500JSONResponse) VisitCreateConnectionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4863,6 +4949,9 @@ type StrictServerInterface interface {
 	// Get Connections
 	// (GET /v1/{identifier}/connections)
 	GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error)
+	// Create Connection
+	// (POST /v1/{identifier}/connections)
+	CreateConnection(ctx context.Context, request CreateConnectionRequestObject) (CreateConnectionResponseObject, error)
 	// Delete Connection
 	// (DELETE /v1/{identifier}/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
@@ -5534,6 +5623,39 @@ func (sh *strictHandler) GetConnections(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetConnectionsResponseObject); ok {
 		if err := validResponse.VisitGetConnectionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateConnection operation middleware
+func (sh *strictHandler) CreateConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreateConnectionRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateConnectionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateConnection(ctx, request.(CreateConnectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateConnection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateConnectionResponseObject); ok {
+		if err := validResponse.VisitCreateConnectionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
