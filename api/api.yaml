@@ -667,10 +667,10 @@ paths:
             type: string
             enum: [ all, revoked, expired ]
           description: >
-            Schema type:
-              * `all` - All Schemas. (default value)
-              * `revoked` - Only revoked schemas
-              * `expired` - Only expired schemas
+            Credential status:
+              * `all` - All Credentials. (default value)
+              * `revoked` - Only revoked credentials
+              * `expired` - Only expired credentials
         - in: query
           name: query
           schema:

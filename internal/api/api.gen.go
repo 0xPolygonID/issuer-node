@@ -713,10 +713,10 @@ type GetLinkQRCodeParams struct {
 type GetCredentialsPaginatedParams struct {
 	Did *string `form:"did,omitempty" json:"did,omitempty"`
 
-	// Status Schema type:
-	//   * `all` - All Schemas. (default value)
-	//   * `revoked` - Only revoked schemas
-	//   * `expired` - Only expired schemas
+	// Status Credential status:
+	//   * `all` - All Credentials. (default value)
+	//   * `revoked` - Only revoked credentials
+	//   * `expired` - Only expired credentials
 	Status *GetCredentialsPaginatedParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 
 	// Query Query string to do full text search
