@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-schema-processor/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -20,6 +22,184 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 )
+
+func TestServer_CreateConnection(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+	server := newTestServer(t, nil)
+
+	handler := getHandler(ctx, server)
+
+	iden, err := server.Services.identity.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+	issuerDID, err := w3c.ParseDID(iden.Identifier)
+	require.NoError(t, err)
+
+	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
+	require.NoError(t, err)
+
+	const serviceContext = "https://www.w3.org/ns/did/v1"
+	userDidDoc := verifiable.DIDDocument{
+		Context: []string{serviceContext},
+		ID:      userDID.ID,
+		Service: []interface{}{},
+	}
+	var userDoc map[string]interface{}
+	userDocBytes, err := json.Marshal(userDidDoc)
+	require.NoError(t, err)
+	json.Unmarshal(userDocBytes, &userDoc)
+
+	issuerDidDoc := verifiable.DIDDocument{
+		Context: []string{serviceContext},
+		ID:      userDID.ID,
+		Service: []interface{}{},
+	}
+	var issuerDoc map[string]interface{}
+	issuerDocBytes, err := json.Marshal(issuerDidDoc)
+	require.NoError(t, err)
+	json.Unmarshal(issuerDocBytes, &issuerDoc)
+	require.NoError(t, err)
+
+	wrongDidDoc := make(map[string]interface{})
+	wrongDidDoc["wrong"] = "wrong"
+
+	type expected struct {
+		httpCode int
+		message  *string
+	}
+
+	type testConfig struct {
+		name      string
+		connID    uuid.UUID
+		auth      func() (string, string)
+		body      *CreateConnectionRequest
+		issuerDID string
+		expected  expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:      "No auth header",
+			auth:      authWrong,
+			issuerDID: issuerDID.String(),
+			body: &CreateConnectionRequest{
+				UserDID:   userDID.String(),
+				UserDoc:   userDoc,
+				IssuerDoc: issuerDoc,
+			},
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:      "should get an error, wrong user did document",
+			connID:    uuid.New(),
+			auth:      authOk,
+			issuerDID: issuerDID.String(),
+			body: &CreateConnectionRequest{
+				UserDID:   userDID.String(),
+				UserDoc:   wrongDidDoc,
+				IssuerDoc: issuerDoc,
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("invalid user did document"),
+			},
+		},
+		{
+			name:      "should get an error, wrong issuer did document",
+			connID:    uuid.New(),
+			auth:      authOk,
+			issuerDID: issuerDID.String(),
+			body: &CreateConnectionRequest{
+				UserDID:   userDID.String(),
+				UserDoc:   userDoc,
+				IssuerDoc: wrongDidDoc,
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("invalid issuer did document"),
+			},
+		},
+		{
+			name:      "should get an error, wrong user did",
+			connID:    uuid.New(),
+			auth:      authOk,
+			issuerDID: issuerDID.String(),
+			body: &CreateConnectionRequest{
+				UserDID:   "invalid did",
+				UserDoc:   userDoc,
+				IssuerDoc: issuerDoc,
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("invalid user did"),
+			},
+		},
+		{
+			name:      "should get an error, wrong issuer did",
+			connID:    uuid.New(),
+			auth:      authOk,
+			issuerDID: "invalid did",
+			body: &CreateConnectionRequest{
+				UserDID:   userDID.String(),
+				UserDoc:   userDoc,
+				IssuerDoc: issuerDoc,
+			},
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("invalid issuer did"),
+			},
+		},
+		{
+			name:      "connetion created",
+			connID:    uuid.New(),
+			auth:      authOk,
+			issuerDID: issuerDID.String(),
+			body: &CreateConnectionRequest{
+				UserDID:   userDID.String(),
+				UserDoc:   userDoc,
+				IssuerDoc: issuerDoc,
+			},
+			expected: expected{
+				httpCode: http.StatusCreated,
+				message:  common.ToPointer(""),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			urlTest := fmt.Sprintf("/v1/%s/connections", tc.issuerDID)
+			parsedURL, err := url.Parse(urlTest)
+			require.NoError(t, err)
+
+			reqBytes, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+			req, err := http.NewRequest(http.MethodPost, parsedURL.String(), bytes.NewBuffer(reqBytes))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusBadRequest:
+				var response DeleteConnection400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			case http.StatusOK:
+				var response DeleteConnection200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			}
+		})
+	}
+}
 
 func TestServer_DeleteConnection(t *testing.T) {
 	const (
