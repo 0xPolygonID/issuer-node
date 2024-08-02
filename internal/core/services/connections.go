@@ -33,6 +33,13 @@ func NewConnection(connRepo ports.ConnectionsRepository, claimsRepo ports.Claims
 	}
 }
 
+func (c *connection) Create(ctx context.Context, connection *domain.Connection) error {
+	return c.storage.Pgx.BeginFunc(ctx, func(tx pgx.Tx) error {
+		_, err := c.connRepo.Save(ctx, c.storage.Pgx, connection)
+		return err
+	})
+}
+
 func (c *connection) Delete(ctx context.Context, id uuid.UUID, deleteCredentials bool, issuerDID w3c.DID) error {
 	return c.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {

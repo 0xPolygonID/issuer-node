@@ -489,6 +489,33 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+    post:
+      summary: Create Connection
+      operationId: createConnection
+      description: create connection
+      tags:
+        - Connection
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectionRequest'
+      responses:
+        '201':
+          description: Connection Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
 
   /v1/{identifier}/connections/{id}/credentials/revoke:
     post:
@@ -2223,6 +2250,19 @@ components:
           items:
             type: string
           example: [ "BJJSignature2021" ]
+    CreateConnectionRequest:
+      type: object
+      required: [ userDID, userDoc, issuerDoc ]
+      properties:
+        userDID:
+          type: string
+          example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
+        userDoc:
+          type: object
+          format: byte
+        issuerDoc:
+          type: object
+          format: byte
 
   parameters:
     credentialStatusType:
