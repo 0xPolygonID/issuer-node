@@ -1,4 +1,4 @@
-name: Checks2
+name: Checks
 
 on: [push]
 
