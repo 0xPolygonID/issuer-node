@@ -52,7 +52,8 @@ func TestServer_CreateConnection(t *testing.T) {
 	var userDoc map[string]interface{}
 	userDocBytes, err := json.Marshal(userDidDoc)
 	require.NoError(t, err)
-	json.Unmarshal(userDocBytes, &userDoc)
+	err = json.Unmarshal(userDocBytes, &userDoc)
+	require.NoError(t, err)
 
 	issuerDidDoc := verifiable.DIDDocument{
 		Context: []string{serviceContext},
@@ -62,7 +63,7 @@ func TestServer_CreateConnection(t *testing.T) {
 	var issuerDoc map[string]interface{}
 	issuerDocBytes, err := json.Marshal(issuerDidDoc)
 	require.NoError(t, err)
-	json.Unmarshal(issuerDocBytes, &issuerDoc)
+	err = json.Unmarshal(issuerDocBytes, &issuerDoc)
 	require.NoError(t, err)
 
 	wrongDidDoc := make(map[string]interface{})
