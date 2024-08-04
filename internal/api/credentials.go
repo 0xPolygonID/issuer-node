@@ -637,7 +637,13 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsPaginatedReques
 		}
 	}
 
-	filter.Page = &req.Page
+	if req.Params.Page != nil {
+		if *req.Params.Page <= 0 {
+			return nil, errors.New("page param must be higher than 0")
+		}
+		filter.Page = req.Params.Page
+	}
+
 	if req.Params.Sort != nil {
 		for _, sortBy := range *req.Params.Sort {
 			var err error

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -447,6 +448,93 @@ func TestServer_CreateCredential(t *testing.T) {
 				var response CreateClaim422JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
+			}
+		})
+	}
+}
+
+func TestServer_DeleteCredential(t *testing.T) {
+	server := newTestServer(t, nil)
+	ctx := context.Background()
+	handler := getHandler(ctx, server)
+
+	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
+	identity := &domain.Identity{
+		Identifier: idStr,
+	}
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	claim := fixture.NewClaim(t, identity.Identifier)
+	fixture.CreateClaim(t, claim)
+
+	type expected struct {
+		httpCode int
+		message  *string
+	}
+
+	type testConfig struct {
+		name         string
+		credentialID uuid.UUID
+		auth         func() (string, string)
+		expected     expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:         "should get an error, not existing claim",
+			credentialID: uuid.New(),
+			auth:         authOk,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("The given credential does not exist"),
+			},
+		},
+		{
+			name:         "should delete the credential",
+			credentialID: claim.ID,
+			auth:         authOk,
+			expected: expected{
+				httpCode: http.StatusOK,
+				message:  common.ToPointer("Credential successfully deleted"),
+			},
+		},
+		{
+			name:         "should get an error, a credential cannot be deleted twice",
+			credentialID: claim.ID,
+			auth:         authOk,
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				message:  common.ToPointer("The given credential does not exist"),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v1/%s/credentials/%s", *claim.Identifier, tc.credentialID.String())
+			req, err := http.NewRequest("DELETE", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusBadRequest:
+				var response DeleteCredential400JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
+			case http.StatusOK:
+				var response DeleteCredential200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, *tc.expected.message, response.Message)
 			}
 		})
 	}
@@ -1060,6 +1148,488 @@ func TestServer_GetCredentials(t *testing.T) {
 				var response GetClaims500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
+			}
+		})
+	}
+}
+
+func TestServer_GetCredentialsPaginated(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	require.NoError(t, err)
+
+	did, err := w3c.ParseDID(identityMultipleClaims.Identifier)
+	require.NoError(t, err)
+
+	typeC := "KYCAgeCredential"
+	merklizedRootPosition := "index"
+	schemaURL := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+
+	claimsService := server.claimService
+
+	// Never expires
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: true},
+		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	require.NoError(t, err)
+
+	future := time.Now().Add(1000 * time.Hour)
+	past := time.Now().Add(-1000 * time.Hour)
+	// Expires in future
+	_, err = claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	require.NoError(t, err)
+
+	// Expired
+	expiredClaim, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &past, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	require.NoError(t, err)
+
+	// non expired, but revoked
+	revoked, err := claimsService.Save(ctx, ports.NewCreateClaimRequest(did, nil, schemaURL, credentialSubject, &future, typeC, nil, nil, &merklizedRootPosition,
+		ports.ClaimRequestProofs{BJJSignatureProof2021: false, Iden3SparseMerkleTreeProof: true},
+		nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	require.NoError(t, err)
+
+	id, err := w3c.ParseDID(*revoked.Identifier)
+	require.NoError(t, err)
+	require.NoError(t, claimsService.Revoke(ctx, *id, uint64(revoked.RevNonce), "because I can"))
+
+	iReq := ports.NewImportSchemaRequest(schemaURL, typeC, common.ToPointer("someTitle"), uuid.NewString(), common.ToPointer("someDescription"))
+	_, err = server.schemaService.ImportSchema(ctx, *did, iReq)
+	require.NoError(t, err)
+
+	handler := getHandler(context.Background(), server)
+
+	type expected struct {
+		credentialsCount int
+		page             uint
+		maxResults       uint
+		total            uint
+		httpCode         int
+		errorMsg         string
+	}
+
+	type testConfig struct {
+		name       string
+		auth       func() (string, string)
+		did        *string
+		query      *string
+		sort       *string
+		status     *string
+		page       *int
+		maxResults *int
+		expected   expected
+	}
+	for _, tc := range []testConfig{
+		{
+			name: "Not authorized",
+			auth: authWrong,
+			page: common.ToPointer(1),
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name:   "Wrong status",
+			auth:   authOk,
+			page:   common.ToPointer(1),
+			status: common.ToPointer("wrong"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "wrong type value. Allowed values: [all, revoked, expired]",
+			},
+		},
+		{
+			name: "wrong did",
+			auth: authOk,
+			page: common.ToPointer(1),
+			did:  common.ToPointer("wrongdid:"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "cannot parse did parameter: wrong format",
+			},
+		},
+		{
+			name: "pagination. Page is < 1 not allowed",
+			auth: authOk,
+			page: common.ToPointer(0),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "page param must be higher than 0",
+			},
+		},
+		{
+			name:       "pagination. max_results < 1 return default max results",
+			auth:       authOk,
+			page:       common.ToPointer(1),
+			maxResults: common.ToPointer(0),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Default max results",
+			auth: authOk,
+			page: common.ToPointer(1),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:   "Status 'all' explicit",
+			auth:   authOk,
+			page:   common.ToPointer(1),
+			status: common.ToPointer("all"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:       "GetCredentialsPaginated all explicit, page 1 with 2 results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(1),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             1,
+				credentialsCount: 2,
+			},
+		},
+		{
+			name:       "GetCredentialsPaginated all explicit, page 2 with 2 results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(2),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             2,
+				credentialsCount: 2,
+			},
+		},
+		{
+			name:       "GetCredentialsPaginated all explicit, page 3 with 2 results. No results",
+			auth:       authOk,
+			status:     common.ToPointer("all"),
+			page:       common.ToPointer(3),
+			maxResults: common.ToPointer(2),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       2,
+				page:             3,
+				credentialsCount: 0,
+			},
+		},
+		{
+			name:   "GetCredentialsPaginated all from existing did",
+			auth:   authOk,
+			status: common.ToPointer("all"),
+			page:   common.ToPointer(1),
+			did:    &expiredClaim.OtherIdentifier,
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:   "GetCredentialsPaginated all from non existing did. Expecting empty list",
+			auth:   authOk,
+			status: common.ToPointer("all"),
+			page:   common.ToPointer(1),
+			did:    common.ToPointer("did:iden3:tJU7z1dbKyKYLiaopZ5tN6Zjsspq7QhYayiR31RFa"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
+			},
+		},
+		{
+			name:   "Revoked",
+			auth:   authOk,
+			status: common.ToPointer("revoked"),
+			page:   common.ToPointer(1),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
+			},
+		},
+		{
+			name:   "REVOKED",
+			auth:   authOk,
+			status: common.ToPointer("REVOKED"),
+			page:   common.ToPointer(1),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
+			},
+		},
+		{
+			name:   "Expired",
+			auth:   authOk,
+			status: common.ToPointer("expired"),
+			page:   common.ToPointer(1),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            1,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 1,
+			},
+		},
+		{
+			name:  "Search by did and other words in query params:",
+			auth:  authOk,
+			page:  common.ToPointer(1),
+			query: common.ToPointer("some words and " + revoked.OtherIdentifier),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "Search by partial did and other words in query params:",
+			auth:  authOk,
+			page:  common.ToPointer(1),
+			query: common.ToPointer("some words and " + revoked.OtherIdentifier[9:14]),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "Search by did in query params:",
+			auth:  authOk,
+			page:  common.ToPointer(1),
+			query: &revoked.OtherIdentifier,
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "Search by attributes in query params",
+			auth:  authOk,
+			query: common.ToPointer("birthday"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "Search by attributes in query params, partial word",
+			auth:  authOk,
+			page:  common.ToPointer(1),
+			query: common.ToPointer("rthd"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "Search by partial did in query params:",
+			auth:  authOk,
+			query: common.ToPointer(revoked.OtherIdentifier[9:14]),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "FTS is doing and OR when no did passed:",
+			auth:  authOk,
+			query: common.ToPointer("birthday schema attribute not the rest of words this sentence"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name:  "FTS is doing and AND when did passed:",
+			auth:  authOk,
+			did:   &expiredClaim.OtherIdentifier,
+			query: common.ToPointer("not existing words"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            0,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 0,
+			},
+		},
+		{
+			name: "Wrong order by",
+			auth: authOk,
+			sort: common.ToPointer("wrongField"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "wrong sort by value",
+			},
+		},
+		{
+			name: "Order by one field",
+			auth: authOk,
+			sort: common.ToPointer("createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by 2 fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by all fields",
+			auth: authOk,
+			sort: common.ToPointer("-schemaType, createdAt, -expiresAt, revoked"),
+			expected: expected{
+				httpCode:         http.StatusOK,
+				total:            4,
+				maxResults:       50,
+				page:             1,
+				credentialsCount: 4,
+			},
+		},
+		{
+			name: "Order by 2 repeated fields",
+			auth: authOk,
+			sort: common.ToPointer("createdAt, createdAt"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "repeated sort by value field",
+			},
+		},
+		{
+			name: "Order by 2 repeated contradictory fields ",
+			auth: authOk,
+			sort: common.ToPointer("createdAt, -createdAt"),
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+				errorMsg: "repeated sort by value field",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			endpoint := url.URL{Path: fmt.Sprintf("/v1/%s/credentials/search", identityMultipleClaims.Identifier)}
+			queryParams := make([]string, 0)
+			if tc.query != nil {
+				queryParams = append(queryParams, "query="+*tc.query)
+			}
+			if tc.sort != nil {
+				queryParams = append(queryParams, "sort="+*tc.sort)
+			}
+			if tc.status != nil {
+				queryParams = append(queryParams, "status="+*tc.status)
+			}
+			if tc.did != nil {
+				queryParams = append(queryParams, "did="+*tc.did)
+			}
+			if tc.page != nil {
+				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
+			}
+			if tc.maxResults != nil {
+				queryParams = append(queryParams, "max_results="+strconv.Itoa(*tc.maxResults))
+			}
+			endpoint.RawQuery = strings.Join(queryParams, "&")
+			req, err := http.NewRequest("GET", endpoint.String(), nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			switch tc.expected.httpCode {
+			case http.StatusOK:
+				var response GetCredentialsPaginated200JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.total, response.Meta.Total)
+				assert.Equal(t, tc.expected.credentialsCount, len(response.Items))
+				assert.Equal(t, tc.expected.maxResults, response.Meta.MaxResults)
+				assert.Equal(t, tc.expected.page, response.Meta.Page)
+
+			case http.StatusBadRequest:
+				var response GetCredentialsPaginated400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
+
+			case http.StatusInternalServerError:
+				var response GetCredentialsPaginated400JSONResponse
+				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.errorMsg, response.Message)
 			}
 		})
 	}

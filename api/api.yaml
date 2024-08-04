@@ -635,7 +635,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/page/{page}:
+  /v1/{identifier}/credentials/search:
     get:
       summary: Get Credentials Paginated
       operationId: GetCredentialsPaginated
@@ -648,14 +648,14 @@ paths:
         - basicAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
-        - in: path
+        - in: query
           name: page
           schema:
             type: integer
             format: uint
             minimum: 1
             example: 1
-          description: Page to fetch. First is one.
+          description: Page to fetch. First is one. If omitted, all results will be returned.
         - in: query
           name: did
           schema:

@@ -711,7 +711,9 @@ type GetLinkQRCodeParams struct {
 
 // GetCredentialsPaginatedParams defines parameters for GetCredentialsPaginated.
 type GetCredentialsPaginatedParams struct {
-	Did *string `form:"did,omitempty" json:"did,omitempty"`
+	// Page Page to fetch. First is one. If omitted, all results will be returned.
+	Page *uint   `form:"page,omitempty" json:"page,omitempty"`
+	Did  *string `form:"did,omitempty" json:"did,omitempty"`
 
 	// Status Credential status:
 	//   * `all` - All Credentials. (default value)
@@ -876,15 +878,15 @@ type ServerInterface interface {
 	// Create Authentication Link QRCode
 	// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Get Credentials Paginated
-	// (GET /v1/{identifier}/credentials/page/{page})
-	GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, page uint, params GetCredentialsPaginatedParams)
 	// Get Revocation Status
 	// (GET /v1/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Credential
 	// (POST /v1/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
+	// Get Credentials Paginated
+	// (GET /v1/{identifier}/credentials/search)
+	GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsPaginatedParams)
 	// Delete Credential
 	// (DELETE /v1/{identifier}/credentials/{id})
 	DeleteCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
@@ -1131,12 +1133,6 @@ func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credentials Paginated
-// (GET /v1/{identifier}/credentials/page/{page})
-func (_ Unimplemented) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, page uint, params GetCredentialsPaginatedParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Get Revocation Status
 // (GET /v1/{identifier}/credentials/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
@@ -1146,6 +1142,12 @@ func (_ Unimplemented) GetRevocationStatusV2(w http.ResponseWriter, r *http.Requ
 // Revoke Credential
 // (POST /v1/{identifier}/credentials/revoke/{nonce})
 func (_ Unimplemented) RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Credentials Paginated
+// (GET /v1/{identifier}/credentials/search)
+func (_ Unimplemented) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsPaginatedParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2474,86 +2476,6 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetCredentialsPaginated operation middleware
-func (siw *ServerInterfaceWrapper) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "page" -------------
-	var page uint
-
-	err = runtime.BindStyledParameterWithOptions("simple", "page", chi.URLParam(r, "page"), &page, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: false})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetCredentialsPaginatedParams
-
-	// ------------- Optional query parameter "did" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "did", r.URL.Query(), &params.Did)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "did", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "status" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "query" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "max_results" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "sort" -------------
-
-	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCredentialsPaginated(w, r, identifier, page, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 // GetRevocationStatusV2 operation middleware
 func (siw *ServerInterfaceWrapper) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2617,6 +2539,85 @@ func (siw *ServerInterfaceWrapper) RevokeCredential(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RevokeCredential(w, r, identifier, nonce)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetCredentialsPaginated operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCredentialsPaginatedParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "did" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "did", r.URL.Query(), &params.Did)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "did", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCredentialsPaginated(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3172,13 +3173,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/credentials/page/{page}", wrapper.GetCredentialsPaginated)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatusV2)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/credentials/revoke/{nonce}", wrapper.RevokeCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/credentials/search", wrapper.GetCredentialsPaginated)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/v1/{identifier}/credentials/{id}", wrapper.DeleteCredential)
@@ -4601,52 +4602,6 @@ func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialsPaginatedRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Page       uint           `json:"page,omitempty"`
-	Params     GetCredentialsPaginatedParams
-}
-
-type GetCredentialsPaginatedResponseObject interface {
-	VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error
-}
-
-type GetCredentialsPaginated200JSONResponse CredentialsPaginated
-
-func (response GetCredentialsPaginated200JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetCredentialsPaginated400JSONResponse struct{ N400JSONResponse }
-
-func (response GetCredentialsPaginated400JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetCredentialsPaginated404JSONResponse struct{ N404JSONResponse }
-
-func (response GetCredentialsPaginated404JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetCredentialsPaginated500JSONResponse struct{ N500JSONResponse }
-
-func (response GetCredentialsPaginated500JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type GetRevocationStatusV2RequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Nonce      PathNonce      `json:"nonce"`
@@ -4731,6 +4686,51 @@ func (response RevokeCredential404JSONResponse) VisitRevokeCredentialResponse(w 
 type RevokeCredential500JSONResponse struct{ N500JSONResponse }
 
 func (response RevokeCredential500JSONResponse) VisitRevokeCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialsPaginatedRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetCredentialsPaginatedParams
+}
+
+type GetCredentialsPaginatedResponseObject interface {
+	VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error
+}
+
+type GetCredentialsPaginated200JSONResponse CredentialsPaginated
+
+func (response GetCredentialsPaginated200JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialsPaginated400JSONResponse struct{ N400JSONResponse }
+
+func (response GetCredentialsPaginated400JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialsPaginated404JSONResponse struct{ N404JSONResponse }
+
+func (response GetCredentialsPaginated404JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetCredentialsPaginated500JSONResponse struct{ N500JSONResponse }
+
+func (response GetCredentialsPaginated500JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5272,15 +5272,15 @@ type StrictServerInterface interface {
 	// Create Authentication Link QRCode
 	// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
-	// Get Credentials Paginated
-	// (GET /v1/{identifier}/credentials/page/{page})
-	GetCredentialsPaginated(ctx context.Context, request GetCredentialsPaginatedRequestObject) (GetCredentialsPaginatedResponseObject, error)
 	// Get Revocation Status
 	// (GET /v1/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error)
 	// Revoke Credential
 	// (POST /v1/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
+	// Get Credentials Paginated
+	// (GET /v1/{identifier}/credentials/search)
+	GetCredentialsPaginated(ctx context.Context, request GetCredentialsPaginatedRequestObject) (GetCredentialsPaginatedResponseObject, error)
 	// Delete Credential
 	// (DELETE /v1/{identifier}/credentials/{id})
 	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
@@ -6322,34 +6322,6 @@ func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// GetCredentialsPaginated operation middleware
-func (sh *strictHandler) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, page uint, params GetCredentialsPaginatedParams) {
-	var request GetCredentialsPaginatedRequestObject
-
-	request.Identifier = identifier
-	request.Page = page
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetCredentialsPaginated(ctx, request.(GetCredentialsPaginatedRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetCredentialsPaginated")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetCredentialsPaginatedResponseObject); ok {
-		if err := validResponse.VisitGetCredentialsPaginatedResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // GetRevocationStatusV2 operation middleware
 func (sh *strictHandler) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	var request GetRevocationStatusV2RequestObject
@@ -6397,6 +6369,33 @@ func (sh *strictHandler) RevokeCredential(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeCredentialResponseObject); ok {
 		if err := validResponse.VisitRevokeCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetCredentialsPaginated operation middleware
+func (sh *strictHandler) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsPaginatedParams) {
+	var request GetCredentialsPaginatedRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetCredentialsPaginated(ctx, request.(GetCredentialsPaginatedRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetCredentialsPaginated")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetCredentialsPaginatedResponseObject); ok {
+		if err := validResponse.VisitGetCredentialsPaginatedResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
