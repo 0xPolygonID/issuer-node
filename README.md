@@ -221,11 +221,20 @@ ISSUER_KMS_BJJ_PLUGIN=localstorage
 ISSUER_KMS_ETH_PLUGIN=localstorage
 ```
 
-When the issuer-api-1 container is running (after execute make run), you have to add your metamask private key with the following command 
+To import the private key in AWS Kms run (make sure ISSUER_KMS_ETH_PLUGIN is set to `aws`):
 
-```bash
-make private_key=4b3XXX add-private-key-localstorage
+```shell
+make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
 ```
+
+To import your private key in localstorage or Vault run (make sure ISSUER_KMS_ETH_PLUGIN is set to `localstorage` or `vault`):
+
+```shel
+make private_key=XXX import-private-key-to-kms
+```
+
+
+
 If you want to use Vault just change the `ISSUER_KMS_BJJ_PLUGIN` and `ISSUER_KMS_ETH_PLUGIN` to `vault` and follow the steps in the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section. 
 
 
