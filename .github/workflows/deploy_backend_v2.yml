@@ -44,9 +44,9 @@ jobs:
       - name: Print branch
         run: git branch --show-current
 
-      - name: Create .env-api
+      - name: Create .env-issuer
         run: |
-          touch .env-api
+          touch .env-issuer
 
       - run: make build/docker
 
