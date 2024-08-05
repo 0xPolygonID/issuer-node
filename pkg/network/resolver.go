@@ -100,7 +100,6 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 	supportedContracts := make(map[string]*abi.State)
 	stateResolvers := make(map[string]pubsignals.StateResolver)
 
-	log.Info(ctx, "resolver settings file found", "path", cfg.NetworkResolverPath)
 	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
 	var printer strings.Builder
 	for chainName, chainSettings := range rs {
