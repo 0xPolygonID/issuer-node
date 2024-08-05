@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/iden3/iden3comm/v2/packers"
@@ -26,6 +27,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
 func TestServer_RevokeClaim(t *testing.T) {
@@ -457,14 +459,9 @@ func TestServer_DeleteCredential(t *testing.T) {
 	server := newTestServer(t, nil)
 	ctx := context.Background()
 	handler := getHandler(ctx, server)
-
-	idStr := "did:polygonid:polygon:mumbai:2qLduMv2z7hnuhzkcTWesCUuJKpRVDEThztM4tsJUj"
-	identity := &domain.Identity{
-		Identifier: idStr,
-	}
+	identity, err := server.Services.identity.Create(ctx, "http://polygon-test", &ports.DIDCreationOptions{Method: core.DIDMethodIden3, Blockchain: core.Polygon, Network: core.Amoy, KeyType: kms.KeyTypeBabyJubJub})
+	require.NoError(t, err)
 	fixture := tests.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
-
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
