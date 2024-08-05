@@ -19,7 +19,7 @@ jobs:
       id-token: write
       contents: write
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latestq
 
     steps:
       - name: Checkout code
@@ -35,6 +35,12 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
+      - name: Print Environment
+        run: echo ${{ github.event.workflow_run.head_branch }}
+
+      - name: Print branch
+        run: git branch --show-current
 
       - name: Create .env-api
         run: |
