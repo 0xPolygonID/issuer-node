@@ -125,6 +125,7 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 		}}, nil
 	}
 
+	partsLength := 4
 	for _, identity := range identities {
 		did, err := w3c.ParseDID(identity)
 		if err != nil {
@@ -145,7 +146,7 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 		}
 
 		items := strings.Split(identity, ":")
-		if len(items) < 4 {
+		if len(items) < partsLength {
 			return GetIdentities500JSONResponse{N500JSONResponse{
 				Message: "Invalid identity",
 			}}, nil
