@@ -557,6 +557,13 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
+	if cfg.NetworkResolverPath == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing. Trying to use ISSUER_RESOLVER_FILE")
+		if cfg.NetworkResolverFile == "" {
+			log.Info(ctx, "ISSUER_RESOLVER_FILE value is missing")
+		}
+	}
+
 	if cfg.NetworkResolverPath == "" && cfg.NetworkResolverFile == "" {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value: ./resolvers_settings.yaml")
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
