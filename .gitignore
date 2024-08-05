@@ -20,6 +20,8 @@ infrastructure/local/.vault/file
 tools/changelog/input.md
 tools/changelog/changelog.md
 
+kms_localstorage_keys.json
+
 .fleet
 .vscode/
 
