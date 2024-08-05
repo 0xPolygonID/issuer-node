@@ -217,17 +217,17 @@ make restart-ui
 Setup environment variables in `.env-issuer` file:
 
 ```bash
-ISSUER_KMS_BJJ_PLUGIN=localstorage
-ISSUER_KMS_ETH_PLUGIN=localstorage
+ISSUER_KMS_BJJ_PROVIDER=localstorage
+ISSUER_KMS_ETH_PROVIDER=localstorage
 ```
 
-To import the private key in AWS Kms run (make sure ISSUER_KMS_ETH_PLUGIN is set to `aws`):
+To import the private key in AWS Kms run (make sure ISSUER_KMS_ETH_PROVIDER is set to `aws`):
 
 ```shell
 make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
 ```
 
-To import your private key in localstorage or Vault run (make sure ISSUER_KMS_ETH_PLUGIN is set to `localstorage` or `vault`):
+To import your private key in localstorage or Vault run (make sure ISSUER_KMS_ETH_PROVIDER is set to `localstorage` or `vault`):
 
 ```shel
 make private_key=XXX import-private-key-to-kms
