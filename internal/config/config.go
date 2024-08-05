@@ -58,6 +58,7 @@ type Configuration struct {
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
 	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
+	NetworkResolverFile          string             `mapstructure:"NetworkResolverFile"`
 }
 
 // Database has the database configuration
@@ -457,7 +458,7 @@ func bindEnv() {
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
 
 	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
-	_ = viper.BindEnv("KmsPlugin", "ISSUER_KMS_PLUGIN")
+	_ = viper.BindEnv("NetworkResolverFile", "ISSUER_RESOLVER_FILE")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -556,8 +557,8 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
-	if cfg.NetworkResolverPath == "" {
-		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing")
+	if cfg.NetworkResolverPath == "" && cfg.NetworkResolverFile == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value: ./resolvers_settings.yaml")
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
 	}
 

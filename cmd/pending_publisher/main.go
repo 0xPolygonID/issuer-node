@@ -92,7 +92,7 @@ func main() {
 		return
 	}
 
-	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "cannot read network resolver file", "err", err)
 		return
