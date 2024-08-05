@@ -9,7 +9,7 @@ COPY ./internal ./internal
 COPY ./pkg ./pkg
 COPY ./go.mod ./
 COPY ./go.sum ./
-COPY ./resolvers_settings3.* ./
+COPY ./resolvers_settings.* ./
 
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./tools/...
