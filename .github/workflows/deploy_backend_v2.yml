@@ -36,6 +36,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Print Environment
+        run: echo ${{ github.event.workflow_run.head_branch }}
+
+      - name: Print branch
+        run: git branch --show-current
+
       - name: Create .env-api
         run: |
           touch .env-api
