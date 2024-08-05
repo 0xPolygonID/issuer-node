@@ -561,6 +561,8 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing. Trying to use ISSUER_RESOLVER_FILE")
 		if cfg.NetworkResolverFile == "" {
 			log.Info(ctx, "ISSUER_RESOLVER_FILE value is missing")
+		} else {
+			log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
 		}
 	}
 
