@@ -43,9 +43,11 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
     					previous_state,
     					status,               
     					modified_at,
-    					created_at          
+    					identity_states.created_at,
+				        claims.credential_status
 			   FROM identities
 			   LEFT JOIN identity_states ON identities.identifier = identity_states.identifier
+               LEFT JOIN claims ON claims.identifier = identities.identifier and claims.schema_type = 'https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential'
 			   WHERE identities.identifier=$1 
 			        AND ( status = 'transacted' OR status = 'confirmed')
     				OR (identities.identifier=$1 AND status = 'created' AND previous_state is null
@@ -66,7 +68,8 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 		&identity.State.PreviousState,
 		&identity.State.Status,
 		&identity.State.ModifiedAt,
-		&identity.State.CreatedAt)
+		&identity.State.CreatedAt,
+		&identity.AuthCoreClaimRevocationStatus)
 
 	return &identity, err
 }
