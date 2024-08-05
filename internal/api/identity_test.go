@@ -226,7 +226,8 @@ func TestServer_GetIdentities(t *testing.T) {
 	fixture.CreateIdentity(t, identity2)
 
 	type expected struct {
-		httpCode int
+		httpCode                int
+		authBJJCredentialStatus *GetIdentitiesResponseAuthBJJCredentialStatus
 	}
 	type testConfig struct {
 		name     string
@@ -246,7 +247,8 @@ func TestServer_GetIdentities(t *testing.T) {
 			name: "should return all the entities",
 			auth: authOk,
 			expected: expected{
-				httpCode: 200,
+				httpCode:                200,
+				authBJJCredentialStatus: nil,
 			},
 		},
 	} {
@@ -263,6 +265,7 @@ func TestServer_GetIdentities(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.httpCode, rr.Code)
 				assert.True(t, len(response) >= 2)
+				assert.Equal(t, tc.expected.authBJJCredentialStatus, response[0].AuthBJJCredentialStatus)
 			}
 		})
 	}

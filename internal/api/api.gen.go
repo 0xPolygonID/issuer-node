@@ -53,6 +53,13 @@ const (
 	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
 )
 
+// Defines values for GetIdentitiesResponseAuthBJJCredentialStatus.
+const (
+	Iden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3OnchainSparseMerkleTreeProof2023"
+	Iden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3ReverseSparseMerkleTreeProof"
+	Iden3commRevocationStatusV10          GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3commRevocationStatusV1.0"
+)
+
 // Defines values for LinkStatus.
 const (
 	LinkStatusActive   LinkStatus = "active"
@@ -328,6 +335,18 @@ type GetConnectionResponse struct {
 
 // GetConnectionsResponse defines model for GetConnectionsResponse.
 type GetConnectionsResponse = []GetConnectionResponse
+
+// GetIdentitiesResponse defines model for GetIdentitiesResponse.
+type GetIdentitiesResponse struct {
+	AuthBJJCredentialStatus *GetIdentitiesResponseAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+	Blockchain              string                                        `json:"blockchain"`
+	Identifier              string                                        `json:"identifier"`
+	Method                  string                                        `json:"method"`
+	Network                 string                                        `json:"network"`
+}
+
+// GetIdentitiesResponseAuthBJJCredentialStatus defines model for GetIdentitiesResponse.AuthBJJCredentialStatus.
+type GetIdentitiesResponseAuthBJJCredentialStatus string
 
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {
@@ -3495,7 +3514,7 @@ type GetIdentitiesResponseObject interface {
 	VisitGetIdentitiesResponse(w http.ResponseWriter) error
 }
 
-type GetIdentities200JSONResponse []string
+type GetIdentities200JSONResponse []GetIdentitiesResponse
 
 func (response GetIdentities200JSONResponse) VisitGetIdentitiesResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

@@ -211,7 +211,7 @@ paths:
                 type: array
                 x-omitempty: false
                 items:
-                  type: string
+                  $ref: '#/components/schemas/GetIdentitiesResponse'
         '401':
           $ref: '#/components/responses/401'
         '500':
@@ -1641,6 +1641,36 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/GetConnectionResponse'
+
+    GetIdentitiesResponse:
+      type: object
+      required:
+        - identifier
+        - method
+        - blockchain
+        - network
+      properties:
+        identifier:
+          type: string
+          x-omitempty: false
+          example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
+        authBJJCredentialStatus:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        method:
+          type: string
+          x-omitempty: false
+          example: "polygonid"
+        blockchain:
+          type: string
+          x-omitempty: false
+          example: "polygon"
+        network:
+          type: string
+          x-omitempty: false
+          example: "amoy"
 
     GetConnectionResponse:
       type: object
