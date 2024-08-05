@@ -306,10 +306,11 @@ type GetConnectionsResponse = []GetConnectionResponse
 
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {
-	Address    *string        `json:"address,omitempty"`
-	Balance    *string        `json:"balance,omitempty"`
-	Identifier *string        `json:"identifier,omitempty"`
-	State      *IdentityState `json:"state,omitempty"`
+	Address                       *string                       `json:"address,omitempty"`
+	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
+	Balance                       *string                       `json:"balance,omitempty"`
+	Identifier                    *string                       `json:"identifier,omitempty"`
+	State                         *IdentityState                `json:"state,omitempty"`
 }
 
 // GetLinkQrCodeResponse defines model for GetLinkQrCodeResponse.
@@ -488,6 +489,13 @@ type UUIDResponse struct {
 
 // UUIDString defines model for UUIDString.
 type UUIDString = string
+
+// AuthCoreClaimRevocationStatus defines model for authCoreClaimRevocationStatus.
+type AuthCoreClaimRevocationStatus struct {
+	ID              string `json:"ID"`
+	RevocationNonce int    `json:"revocationNonce"`
+	Type            string `json:"type"`
+}
 
 // CredentialStatusType defines model for credentialStatusType.
 type CredentialStatusType = string

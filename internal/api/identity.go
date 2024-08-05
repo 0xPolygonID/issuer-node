@@ -178,6 +178,11 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 			Status:             string(identity.State.Status),
 			TxID:               identity.State.TxID,
 		},
+		AuthCoreClaimRevocationStatus: AuthCoreClaimRevocationStatus{
+			ID:              identity.AuthCoreClaimRevocationStatus.ID,
+			Type:            identity.AuthCoreClaimRevocationStatus.Type,
+			RevocationNonce: int(identity.AuthCoreClaimRevocationStatus.RevocationNonce),
+		},
 	}
 
 	if identity.Address != nil && *identity.Address != "" {

@@ -1424,6 +1424,7 @@ components:
       required:
         - identity
         - status
+        - authCoreClaimRevocationStatus
       properties:
         identifier:
           type: string
@@ -1433,7 +1434,22 @@ components:
           type: string
         balance:
           type: string
+        authCoreClaimRevocationStatus:
+          $ref: '#/components/schemas/authCoreClaimRevocationStatus'
 
+    authCoreClaimRevocationStatus:
+      type: object
+      required:
+        - ID
+        - type
+        - revocationNonce
+      properties:
+        ID:
+          type: string
+        type:
+          type: string
+        revocationNonce:
+          type: integer
 
     IdentityState:
       type: object
