@@ -211,7 +211,7 @@ paths:
                 type: array
                 x-omitempty: false
                 items:
-                  type: string
+                  $ref: '#/components/schemas/GetIdentitiesResponse'
         '401':
           $ref: '#/components/responses/401'
         '500':
@@ -635,6 +635,83 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/{identifier}/credentials/search:
+    get:
+      summary: Get Credentials Paginated
+      operationId: GetCredentialsPaginated
+      description: |
+        Return all the credentials for page.
+        Filter between all | revoked | expired credentials and also perform a full text search with the query parameter.
+      tags:
+        - Credentials
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 1
+          description: Page to fetch. First is one. If omitted, all results will be returned.
+        - in: query
+          name: did
+          schema:
+            type: string
+            example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ all, revoked, expired ]
+          description: >
+            Credential status:
+              * `all` - All Credentials. (default value)
+              * `revoked` - Only revoked credentials
+              * `expired` - Only expired credentials
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Query string to do full text search
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 50
+            default: 50
+          description: Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
+        - in: query
+          name: sort
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [ "schemaType", "-schemaType", "createdAt", "-createdAt", "expiresAt", "-expiresAt", "revoked", "-revoked" ]
+              default: "-createdAt"
+
+            description: >
+              The minus sign (-) before createdAt means descending order.
+
+      responses:
+        '200':
+          description: List of credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialsPaginated'
+        '400':
+          $ref: '#/components/responses/400'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v1/{identifier}/claims:
     post:
       summary: Create Claim (Deprecated)
@@ -754,6 +831,30 @@ paths:
           $ref: '#/components/responses/401'
         '404':
           $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+    delete:
+      summary: Delete Credential
+      operationId: DeleteCredential
+      description: Endpoint to delete a Credential
+      tags:
+        - Credentials
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathClaim'
+      responses:
+        '200':
+          description: Claim deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
         '500':
           $ref: '#/components/responses/500'
 
@@ -1557,6 +1658,36 @@ components:
       items:
         $ref: '#/components/schemas/GetConnectionResponse'
 
+    GetIdentitiesResponse:
+      type: object
+      required:
+        - identifier
+        - method
+        - blockchain
+        - network
+      properties:
+        identifier:
+          type: string
+          x-omitempty: false
+          example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
+        authBJJCredentialStatus:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        method:
+          type: string
+          x-omitempty: false
+          example: "polygonid"
+        blockchain:
+          type: string
+          x-omitempty: false
+          example: "polygon"
+        network:
+          type: string
+          x-omitempty: false
+          example: "amoy"
+
     GetConnectionResponse:
       type: object
       required:
@@ -1989,6 +2120,17 @@ components:
         type:
           type: string
           x-omitempty: false
+      
+    CredentialsPaginated:
+      type: object
+      required: [ items, meta ]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Credential'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
 
     RevokeClaimResponse:
       type: object

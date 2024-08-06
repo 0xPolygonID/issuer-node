@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
@@ -115,13 +116,49 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 
 // GetIdentities is the controller to get identities
 func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error) {
-	var response GetIdentities200JSONResponse
 	var err error
-	response, err = s.identityService.Get(ctx)
+	var response GetIdentities200JSONResponse
+	identities, err := s.identityService.Get(ctx)
 	if err != nil {
 		return GetIdentities500JSONResponse{N500JSONResponse{
 			Message: err.Error(),
 		}}, nil
+	}
+
+	partsLength := 4
+	for _, identity := range identities {
+		did, err := w3c.ParseDID(identity)
+		if err != nil {
+			return GetIdentities500JSONResponse{N500JSONResponse{
+				Message: err.Error(),
+			}}, nil
+		}
+
+		var authBjjCredStatus *GetIdentitiesResponseAuthBJJCredentialStatus
+		authClaim, _ := s.claimService.GetAuthClaim(ctx, did)
+		if authClaim != nil {
+			credentialStatus, _ := authClaim.GetCredentialStatus()
+
+			if credentialStatus != nil {
+				credStatusType := GetIdentitiesResponseAuthBJJCredentialStatus(credentialStatus.Type)
+				authBjjCredStatus = &credStatusType
+			}
+		}
+
+		items := strings.Split(identity, ":")
+		if len(items) < partsLength {
+			return GetIdentities500JSONResponse{N500JSONResponse{
+				Message: "Invalid identity",
+			}}, nil
+		}
+
+		response = append(response, GetIdentitiesResponse{
+			Identifier:              identity,
+			Method:                  items[1],
+			Blockchain:              items[2],
+			Network:                 items[3],
+			AuthBJJCredentialStatus: authBjjCredStatus,
+		})
 	}
 
 	return response, nil

@@ -44,6 +44,24 @@ func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialR
 	}
 }
 
+// DeleteCredential deletes a credential
+func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
+	clID, err := uuid.Parse(request.Id)
+	if err != nil {
+		return DeleteCredential400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+	}
+
+	err = s.claimService.Delete(ctx, clID)
+	if err != nil {
+		if errors.Is(err, services.ErrCredentialNotFound) {
+			return DeleteCredential400JSONResponse{N400JSONResponse{"The given credential does not exist"}}, nil
+		}
+		return DeleteCredential500JSONResponse{N500JSONResponse{"There was an error deleting the credential"}}, nil
+	}
+
+	return DeleteCredential200JSONResponse{Message: "Credential successfully deleted"}, nil
+}
+
 // CreateClaim is claim creation controller
 // deprecated - Use CreateCredential instead
 func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
@@ -281,6 +299,47 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
 		return GetCredential500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
 	}
+}
+
+// GetCredentialsPaginated returns a collection of credentials that matches the request.
+func (s *Server) GetCredentialsPaginated(ctx context.Context, request GetCredentialsPaginatedRequestObject) (GetCredentialsPaginatedResponseObject, error) {
+	filter, err := getCredentialsFilter(ctx, request)
+	if err != nil {
+		return GetCredentialsPaginated400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+	}
+
+	did, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		return GetCredentialsPaginated400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+	}
+
+	credentials, total, err := s.claimService.GetAll(ctx, *did, filter)
+	if err != nil {
+		log.Error(ctx, "loading credentials", "err", err, "req", request)
+		return GetCredentialsPaginated500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+	}
+	response := make([]Credential, len(credentials))
+	for i, credential := range credentials {
+		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
+		if err != nil {
+			log.Error(ctx, "creating credentials response", "err", err, "req", request)
+			return GetCredentialsPaginated500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+		}
+		response[i] = credentialResponse(w3c, credential)
+	}
+
+	resp := GetCredentialsPaginated200JSONResponse{
+		Items: response,
+		Meta: PaginatedMetadata{
+			MaxResults: filter.MaxResults,
+			Page:       1, // default
+			Total:      total,
+		},
+	}
+	if filter.Page != nil {
+		resp.Meta.Page = *filter.Page
+	}
+	return resp, nil
 }
 
 // GetClaim is the controller to get a claim.
@@ -541,4 +600,70 @@ func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) GetCla
 		Typ:  string(packers.MediaTypePlainMessage),
 		Type: string(protocol.CredentialOfferMessageType),
 	}
+}
+
+func getCredentialsFilter(ctx context.Context, req GetCredentialsPaginatedRequestObject) (*ports.ClaimsFilter, error) {
+	filter := &ports.ClaimsFilter{}
+	if req.Params.Did != nil {
+		did, err := w3c.ParseDID(*req.Params.Did)
+		if err != nil {
+			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", did)
+			return nil, errors.New("cannot parse did parameter: wrong format")
+		}
+		filter.Subject, filter.FTSAndCond = did.String(), true
+	}
+	if req.Params.Status != nil {
+		switch GetCredentialsPaginatedParamsStatus(strings.ToLower(string(*req.Params.Status))) {
+		case Revoked:
+			filter.Revoked = common.ToPointer(true)
+		case Expired:
+			filter.ExpiredOn = common.ToPointer(time.Now())
+		case All:
+			// Nothing to be done
+		default:
+			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
+		}
+	}
+	if req.Params.Query != nil {
+		filter.FTSQuery = *req.Params.Query
+	}
+
+	filter.MaxResults = 50
+	if req.Params.MaxResults != nil {
+		if *req.Params.MaxResults <= 0 {
+			filter.MaxResults = 50
+		} else {
+			filter.MaxResults = *req.Params.MaxResults
+		}
+	}
+
+	if req.Params.Page != nil {
+		if *req.Params.Page <= 0 {
+			return nil, errors.New("page param must be higher than 0")
+		}
+		filter.Page = req.Params.Page
+	}
+
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetCredentialsPaginatedParamsSort(field) {
+			case GetCredentialsPaginatedParamsSortSchemaType:
+				err = filter.OrderBy.Add(ports.CredentialSchemaType, desc)
+			case GetCredentialsPaginatedParamsSortCreatedAt:
+				err = filter.OrderBy.Add(ports.CredentialCreatedAt, desc)
+			case GetCredentialsPaginatedParamsSortExpiresAt:
+				err = filter.OrderBy.Add(ports.CredentialExpiresAt, desc)
+			case GetCredentialsPaginatedParamsSortRevoked:
+				err = filter.OrderBy.Add(ports.CredentialRevoked, desc)
+			default:
+				return nil, errors.New("wrong sort by value")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	return filter, nil
 }
