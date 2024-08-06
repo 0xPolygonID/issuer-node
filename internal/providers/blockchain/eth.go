@@ -14,17 +14,24 @@ import (
 )
 
 // InitEthClient returns a State Contract Instance
-func InitEthClient(ethURL, contractAddress string) (*abi.State, error) {
-	ec, err := ethclient.Dial(ethURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed connect to eth node %s: %s", ethURL, err.Error())
+func InitEthClient(addresses map[string]string, rpcs map[string]string) (map[string]*abi.State, error) {
+	stateContracts := make(map[string]*abi.State, len(addresses))
+	for chainID, address := range addresses {
+		if _, ok := rpcs[chainID]; !ok {
+			return nil, fmt.Errorf("rpc url for chain '%s' not found", chainID)
+		}
+		ec, err := ethclient.Dial(rpcs[chainID])
+		if err != nil {
+			return nil, fmt.Errorf("failed connect to eth node '%s': %v", rpcs[chainID], err)
+		}
+		stateContract, err := abi.NewState(common.HexToAddress(address), ec)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"error failed create state contract client for contract '%s' and rpc '%s': %v", address, rpcs[chainID], err)
+		}
+		stateContracts[chainID] = stateContract
 	}
-	stateContractInstance, err := abi.NewState(common.HexToAddress(contractAddress), ec)
-	if err != nil {
-		return nil, fmt.Errorf("error failed create state contract client: %s", err.Error())
-	}
-
-	return stateContractInstance, nil
+	return stateContracts, nil
 }
 
 // InitEthConnect opens a new eth connection

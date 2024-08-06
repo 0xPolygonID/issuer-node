@@ -48,9 +48,10 @@ type Configuration struct {
 	IPFS                         IPFS          `mapstructure:"IPFS"`
 	VaultUserPassAuthEnabled     bool
 	VaultUserPassAuthPassword    string
-	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
-	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
-	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
+	CredentialStatus             CredentialStatus       `mapstructure:"CredentialStatus"`
+	CustomDIDMethods             []CustomDIDMethods     `mapstructure:"-"`
+	MediaTypeManager             MediaTypeManager       `mapstructure:"MediaTypeManager"`
+	VerifierStateContracts       VerifierStateContracts `mapstructure:"VerifierStateContracts"`
 }
 
 // Database has the database configuration
@@ -226,6 +227,46 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// CredentialStatus struct
+type VerifierStateContracts struct {
+	Addresses string `mapstructure:"Addresses" tip:"Verifier state contract addresses"`
+	RPCs      string `mapstructure:"RPCs" tip:"Verifier state contract RPC URLs"`
+}
+
+func (v *VerifierStateContracts) Parse() (addresses map[string]string, rpcs map[string]string, err error) {
+	const pairSeparator = ";"
+
+	chainToAddress := strings.Split(v.Addresses, pairSeparator)
+	chainToRPC := strings.Split(v.RPCs, pairSeparator)
+
+	if len(chainToAddress) != len(chainToRPC) {
+		return nil, nil, fmt.Errorf("addresses and rpcs must have the same length")
+	}
+
+	fn := func(pairList []string) (map[string]string, error) {
+		result := make(map[string]string, len(pairList))
+		for _, pair := range pairList {
+			keyValue := strings.Split(pair, "=")
+			if len(keyValue) != 2 {
+				return nil, fmt.Errorf("pair must have the format chain=resource")
+			}
+			result[keyValue[0]] = keyValue[1]
+		}
+		return result, nil
+	}
+
+	addresses, err = fn(chainToAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing addresses: %w", err)
+	}
+	rpcs, err = fn(chainToRPC)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing rpcs: %w", err)
+	}
+
+	return addresses, rpcs, nil
 }
 
 // SanitizeAPIUI perform some basic checks and sanitizations in the configuration.
@@ -515,6 +556,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("MediaTypeManager.Enabled", "ISSUER_MEDIA_TYPE_MANAGER_ENABLED")
 
+	_ = viper.BindEnv("VerifierStateContracts.Addresses", "ISSUER_VERIFIER_STATE_CONTRACTS_ADDRESSES")
+	_ = viper.BindEnv("VerifierStateContracts.RPCs", "ISSUER_VERIFIER_STATE_CONTRACTS_RPCS")
+
 	viper.AutomaticEnv()
 }
 
@@ -691,6 +735,14 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.APIUI.IdentityNetwork == "" {
 		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as amoy")
 		cfg.APIUI.IdentityNetwork = "amoy"
+	}
+
+	if cfg.VerifierStateContracts.Addresses == "" {
+		log.Info(ctx, "ISSUER_VERIFIER_STATE_CONTRACTS_ADDRESSES value is missing")
+	}
+
+	if cfg.VerifierStateContracts.RPCs == "" {
+		log.Info(ctx, "ISSUER_VERIFIER_STATE_CONTRACTS_RPCS value is missing")
 	}
 }
 
