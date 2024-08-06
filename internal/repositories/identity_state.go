@@ -92,10 +92,11 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 }
 
 // GetPublishedStates returns all the states
-func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID) ([]domain.IdentityState, error) {
+func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, page uint, maxResults uint) ([]domain.IdentityState, error) {
+	offset := (page - 1) * maxResults
 	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
        tx_id, previous_state, status, modified_at, created_at 
-	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC`, issuerDID.String())
+	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC LIMIT $2 OFFSET $3`, issuerDID.String(), maxResults, offset)
 	if err != nil {
 		return nil, err
 	}

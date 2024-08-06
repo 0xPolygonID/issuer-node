@@ -518,7 +518,11 @@ func (s *Server) GetStateStatus(ctx context.Context, _ GetStateStatusRequestObje
 
 // GetStateTransactions - get the state transactions
 func (s *Server) GetStateTransactions(ctx context.Context, _ GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error) {
-	states, err := s.identityService.GetStates(ctx, s.cfg.APIUI.IssuerDID)
+	const (
+		defaultPage       = uint(1)
+		defaultMaxResults = uint(10)
+	)
+	states, err := s.identityService.GetStates(ctx, s.cfg.APIUI.IssuerDID, defaultPage, defaultMaxResults)
 	if err != nil {
 		log.Error(ctx, "get state transactions", "err", err)
 		return GetStateTransactions500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
