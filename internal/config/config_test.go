@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -107,6 +108,93 @@ func TestConfiguration_validateServerUrl(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			assert.Equal(t, tc.expected.url, sURL)
+		})
+	}
+}
+
+func TestVerifierStateContracts_Parse(t *testing.T) {
+	type testCase struct {
+		name      string
+		input     VerifierStateContracts
+		addresses map[string]string
+		rpcs      map[string]string
+		err       error
+	}
+
+	tests := []testCase{
+		{
+			name: "Valid input",
+			input: VerifierStateContracts{
+				Addresses: "chain1=address1;chain2=address2",
+				RPCs:      "chain1=rpc1;chain2=rpc2",
+			},
+			addresses: map[string]string{
+				"chain1": "address1",
+				"chain2": "address2",
+			},
+			rpcs: map[string]string{
+				"chain1": "rpc1",
+				"chain2": "rpc2",
+			},
+			err: nil,
+		},
+		{
+			name: "Mismatched lengths",
+			input: VerifierStateContracts{
+				Addresses: "chain1=address1",
+				RPCs:      "chain1=rpc1;chain2=rpc2",
+			},
+			addresses: nil,
+			rpcs:      nil,
+			err:       fmt.Errorf("addresses and rpcs must have the same length"),
+		},
+		{
+			name: "Invalid address format",
+			input: VerifierStateContracts{
+				Addresses: "chain1address1;chain2=address2",
+				RPCs:      "chain1=rpc1;chain2=rpc2",
+			},
+			addresses: nil,
+			rpcs:      nil,
+			err:       fmt.Errorf("error parsing addresses: pair must have the format chain=resource"),
+		},
+		{
+			name: "Invalid rpc format",
+			input: VerifierStateContracts{
+				Addresses: "chain1=address1;chain2=address2",
+				RPCs:      "chain1rpc1;chain2=rpc2",
+			},
+			addresses: nil,
+			rpcs:      nil,
+			err:       fmt.Errorf("error parsing rpcs: pair must have the format chain=resource"),
+		},
+		{
+			name: "Single pair of addresses and rpcs",
+			input: VerifierStateContracts{
+				Addresses: "chain1=address1",
+				RPCs:      "chain1=rpc1",
+			},
+			addresses: map[string]string{
+				"chain1": "address1",
+			},
+			rpcs: map[string]string{
+				"chain1": "rpc1",
+			},
+			err: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			addresses, rpcs, err := tc.input.Parse()
+			if tc.err != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tc.err.Error(), err.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.addresses, addresses)
+				assert.Equal(t, tc.rpcs, rpcs)
+			}
 		})
 	}
 }
