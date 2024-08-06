@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	redis2 "github.com/go-redis/redis/v8"
 	auth "github.com/iden3/go-iden3-auth/v2"
 	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
 	"github.com/iden3/iden3comm/v2"
@@ -29,7 +28,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -66,15 +64,37 @@ func main() {
 		return
 	}
 
-	// Redis cache
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	//var cachex cache.Cache
+	//var ps pubsub.Client
+	//if cfg.Cache.Provider == config.CacheProviderRedis {
+	//	rdb, err := redis.Open(cfg.Cache.Url)
+	//	if err != nil {
+	//		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.Url)
+	//		return
+	//	}
+	//	ps := pubsub.NewRedis(rdb)
+	//	ps.WithLogger(log.Error)
+	//	cachex = cache.NewRedisCache(rdb)
+	//} else if cfg.Cache.Provider == config.CacheProviderValKey {
+	//	client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{cfg.Cache.Url}})
+	//	if err != nil {
+	//		log.Error(ctx, "cannot connect to valkey", "err", err, "host", cfg.Cache.Url)
+	//		return
+	//	}
+	//	ps = pubsub.NewValKeyClient(client)
+	//	cachex = cache.NewValKeyCache(client)
+	//}
+
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize cache", "err", err)
 		return
 	}
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
+		return
+	}
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
@@ -169,9 +189,9 @@ func main() {
 
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
-		"redis": func(rdb *redis2.Client) health.Pinger {
-			return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
-		}(rdb),
+		//"redis": func(rdb *redis2.Client) health.Pinger {
+		//	return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
+		//}(rdb),
 	})
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 

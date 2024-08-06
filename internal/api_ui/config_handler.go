@@ -40,7 +40,7 @@ func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConf
 
 		KeyValue{
 			Key:   "ISSUER_REDIS_URL",
-			Value: s.cfg.Cache.RedisUrl,
+			Value: s.cfg.Cache.Url,
 		},
 
 		KeyValue{

@@ -13,7 +13,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	redis2 "github.com/go-redis/redis/v8"
 	vault "github.com/hashicorp/vault/api"
 	auth "github.com/iden3/go-iden3-auth/v2"
 	authLoaders "github.com/iden3/go-iden3-auth/v2/loaders"
@@ -37,7 +36,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -76,14 +74,16 @@ func main() {
 	}
 
 	// Redis cache
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize cache", "err", err)
 		return
 	}
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
+		return
+	}
 
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
@@ -202,9 +202,9 @@ func main() {
 
 	serverHealth := health.New(health.Monitors{
 		"postgres": storage.Ping,
-		"redis": func(rdb *redis2.Client) health.Pinger {
-			return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
-		}(rdb),
+		//"redis": func(rdb *redis2.Client) health.Pinger {
+		//	return func(ctx context.Context) error { return rdb.Ping(ctx).Err() }
+		//}(rdb),
 	})
 	serverHealth.Run(ctx, health.DefaultPingPeriod)
 

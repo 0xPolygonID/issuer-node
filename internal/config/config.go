@@ -34,6 +34,11 @@ const (
 	Vault = "vault"
 	// AWS is the AWS plugin
 	AWS = "aws"
+
+	// CacheProviderRedis is the redis cache provider
+	CacheProviderRedis = "redis"
+	// CacheProviderValKey is the valkey cache provider
+	CacheProviderValKey = "valkey"
 )
 
 // Configuration holds the project configuration
@@ -69,7 +74,8 @@ type Database struct {
 
 // Cache configurations
 type Cache struct {
-	RedisUrl string `mapstructure:"RedisUrl" tip:"The redis url to use as a cache"`
+	Provider string `mapstructure:"Provider" tip:"The cache provider to use"`
+	Url      string `mapstructure:"Url" tip:"The redis url to use as a cache"`
 }
 
 // IPFS configurations
@@ -454,7 +460,9 @@ func bindEnv() {
 
 	_ = viper.BindEnv("Circuit.Path", "ISSUER_CIRCUIT_PATH")
 
-	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
+	_ = viper.BindEnv("Cache.Provider", "ISSUER_CACHE_PROVIDER")
+	_ = viper.BindEnv("Cache.Url", "ISSUER_CACHE_URL")
+
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
 
 	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
@@ -543,8 +551,12 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_CIRCUIT_PATH value is missing")
 	}
 
-	if cfg.Cache.RedisUrl == "" {
-		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
+	if cfg.Cache.Provider == "" {
+		log.Info(ctx, "ISSUER_CACHE_PROVIDER value is missing")
+	}
+
+	if cfg.Cache.Url == "" {
+		log.Info(ctx, "ISSUER_CACHE_URL value is missing")
 	}
 
 	if cfg.SchemaCache == nil {
