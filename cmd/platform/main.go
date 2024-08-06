@@ -64,27 +64,6 @@ func main() {
 		return
 	}
 
-	//var cachex cache.Cache
-	//var ps pubsub.Client
-	//if cfg.Cache.Provider == config.CacheProviderRedis {
-	//	rdb, err := redis.Open(cfg.Cache.Url)
-	//	if err != nil {
-	//		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.Url)
-	//		return
-	//	}
-	//	ps := pubsub.NewRedis(rdb)
-	//	ps.WithLogger(log.Error)
-	//	cachex = cache.NewRedisCache(rdb)
-	//} else if cfg.Cache.Provider == config.CacheProviderValKey {
-	//	client, err := valkey.NewClient(valkey.ClientOption{InitAddress: []string{cfg.Cache.Url}})
-	//	if err != nil {
-	//		log.Error(ctx, "cannot connect to valkey", "err", err, "host", cfg.Cache.Url)
-	//		return
-	//	}
-	//	ps = pubsub.NewValKeyClient(client)
-	//	cachex = cache.NewValKeyCache(client)
-	//}
-
 	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
 		log.Error(ctx, "cannot initialize cache", "err", err)
