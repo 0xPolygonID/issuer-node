@@ -902,7 +902,7 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]domain.IdentityState, error) {
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
 	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
 }
 

@@ -1622,9 +1622,17 @@ components:
           type: string
 
     StateTransactionsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/StateTransaction'
+      type: object
+      required:
+        - total
+        - transactions
+      properties:
+        total:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StateTransaction'
 
     StateStatusResponse:
       type: object

@@ -521,7 +521,10 @@ type StateTransaction struct {
 type StateTransactionStatus string
 
 // StateTransactionsResponse defines model for StateTransactionsResponse.
-type StateTransactionsResponse = []StateTransaction
+type StateTransactionsResponse struct {
+	Total        int                `json:"total"`
+	Transactions []StateTransaction `json:"transactions"`
+}
 
 // TimeUTC defines model for TimeUTC.
 type TimeUTC = timeapi.Time

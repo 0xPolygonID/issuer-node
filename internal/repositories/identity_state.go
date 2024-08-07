@@ -91,18 +91,21 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 	return toIdentityStatesDomain(rows)
 }
 
-// GetPublishedStates returns all the states
-func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, page uint, maxResults uint) ([]domain.IdentityState, error) {
+// GetStates returns all the states
+func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
 	offset := (page - 1) * maxResults
-	rows, err := conn.Query(ctx, `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
-       tx_id, previous_state, status, modified_at, created_at 
-	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC LIMIT $2 OFFSET $3`, issuerDID.String(), maxResults, offset)
+
+	query := `SELECT state_id, identifier, state, root_of_roots, claims_tree_root, revocation_tree_root, block_timestamp, block_number, 
+       tx_id, previous_state, status, modified_at, created_at, COUNT(*) OVER() AS total
+	FROM identity_states WHERE identifier = $1 and previous_state IS NOT NULL ORDER BY state_id ASC LIMIT $2 OFFSET $3 `
+
+	rows, err := conn.Query(ctx, query, issuerDID.String(), maxResults, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	return toIdentityStatesDomain(rows)
+	return toIdentityStatesDomainDto(rows)
 }
 
 func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, state *domain.IdentityState) (int64, error) {
@@ -114,6 +117,38 @@ func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, stat
 	}
 
 	return tag.RowsAffected(), nil
+}
+
+func toIdentityStatesDomainDto(rows pgx.Rows) ([]ports.IdentityStatePaginationDto, error) {
+	states := []ports.IdentityStatePaginationDto{}
+	stateDto := ports.IdentityStatePaginationDto{}
+	for rows.Next() {
+		var state domain.IdentityState
+		if err := rows.Scan(&state.StateID,
+			&state.Identifier,
+			&state.State,
+			&state.RootOfRoots,
+			&state.ClaimsTreeRoot,
+			&state.RevocationTreeRoot,
+			&state.BlockTimestamp,
+			&state.BlockNumber,
+			&state.TxID,
+			&state.PreviousState,
+			&state.Status,
+			&state.ModifiedAt,
+			&state.CreatedAt,
+			&stateDto.Total); err != nil {
+			return nil, err
+		}
+		stateDto.IdentityState = state
+		states = append(states, stateDto)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return states, nil
 }
 
 func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
 	"github.com/polygonid/sh-id-platform/pkg/pagination"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
@@ -287,16 +288,25 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	return msg
 }
 
-func stateTransactionsResponse(states []domain.IdentityState) StateTransactionsResponse {
+func stateTransactionsResponse(states []ports.IdentityStatePaginationDto) StateTransactionsResponse {
 	stateTransactions := make([]StateTransaction, len(states))
 	for i := range states {
 		stateTransactions[i] = toStateTransaction(states[i])
 	}
-	return stateTransactions
+	total := 0
+	if len(states) > 0 {
+		total = states[0].Total
+	}
+	result := StateTransactionsResponse{
+		Transactions: stateTransactions,
+		Total:        total,
+	}
+	return result
 }
 
-func toStateTransaction(state domain.IdentityState) StateTransaction {
+func toStateTransaction(stateDto ports.IdentityStatePaginationDto) StateTransaction {
 	var stateTran, txID string
+	state := stateDto.IdentityState
 	if state.State != nil {
 		stateTran = *state.State
 	}

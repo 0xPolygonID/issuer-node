@@ -230,17 +230,20 @@ func TestServer_GetStateTransactions(t *testing.T) {
 			did:  didWithTxsW3c,
 			expected: expected{
 				response: GetStateTransactions200JSONResponse{
-					StateTransaction{
-						PublishDate: TimeUTC(date1.UTC()),
-						State:       "6a62b311d83a406ae21d4e21c84fe44876aa069c17706d90637bf038e8ad0b1c",
-						Status:      "published",
-						TxID:        "0x3b8545366556f55be186f92097f203f85a917b93cd68f431ec292c74df4e2472",
-					},
-					StateTransaction{
-						PublishDate: TimeUTC(date2.UTC()),
-						State:       "45bb0f2ce3b48b79e8a0b4750400892551afbdbe895d754341e07fb93d80ec26",
-						Status:      "published",
-						TxID:        "0x3b8545366556f55be186f92097f203f85a917b93cd68f431ec292c74df4e2500",
+					Total: 5,
+					Transactions: []StateTransaction{
+						{
+							PublishDate: TimeUTC(date1.UTC()),
+							State:       "6a62b311d83a406ae21d4e21c84fe44876aa069c17706d90637bf038e8ad0b1c",
+							Status:      "published",
+							TxID:        "0x3b8545366556f55be186f92097f203f85a917b93cd68f431ec292c74df4e2472",
+						},
+						{
+							PublishDate: TimeUTC(date2.UTC()),
+							State:       "45bb0f2ce3b48b79e8a0b4750400892551afbdbe895d754341e07fb93d80ec26",
+							Status:      "published",
+							TxID:        "0x3b8545366556f55be186f92097f203f85a917b93cd68f431ec292c74df4e2500",
+						},
 					},
 				},
 				httpCode: http.StatusOK,
@@ -259,16 +262,16 @@ func TestServer_GetStateTransactions(t *testing.T) {
 			case http.StatusOK:
 				var response GetStateTransactions200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, len(tc.expected.response), len(response))
-				if len(tc.expected.response) > 0 {
-					assert.Equal(t, tc.expected.response[0].PublishDate, response[0].PublishDate)
-					assert.Equal(t, tc.expected.response[0].State, response[0].State)
-					assert.Equal(t, tc.expected.response[0].Status, response[0].Status)
-					assert.Equal(t, tc.expected.response[0].TxID, response[0].TxID)
-					assert.Equal(t, tc.expected.response[1].PublishDate, response[1].PublishDate)
-					assert.Equal(t, tc.expected.response[1].State, response[1].State)
-					assert.Equal(t, tc.expected.response[1].Status, response[1].Status)
-					assert.Equal(t, tc.expected.response[1].TxID, response[1].TxID)
+				assert.Equal(t, len(tc.expected.response.Transactions), len(response.Transactions))
+				if len(tc.expected.response.Transactions) > 0 {
+					assert.Equal(t, tc.expected.response.Transactions[0].PublishDate, response.Transactions[0].PublishDate)
+					assert.Equal(t, tc.expected.response.Transactions[0].State, response.Transactions[0].State)
+					assert.Equal(t, tc.expected.response.Transactions[0].Status, response.Transactions[0].Status)
+					assert.Equal(t, tc.expected.response.Transactions[0].TxID, response.Transactions[0].TxID)
+					assert.Equal(t, tc.expected.response.Transactions[1].PublishDate, response.Transactions[1].PublishDate)
+					assert.Equal(t, tc.expected.response.Transactions[1].State, response.Transactions[1].State)
+					assert.Equal(t, tc.expected.response.Transactions[1].Status, response.Transactions[1].Status)
+					assert.Equal(t, tc.expected.response.Transactions[1].TxID, response.Transactions[1].TxID)
 				}
 			}
 		})
