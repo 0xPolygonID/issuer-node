@@ -26,7 +26,13 @@ import {
   isAsyncTaskStarting,
 } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
-import { CREDENTIALS_TABS, DELETE, REVOKE, REVOKED_SEARCH_PARAM } from "src/utils/constants";
+import {
+  CREDENTIALS_TABS,
+  DELETE,
+  NOT_PUBLISHED_STATE,
+  REVOKE,
+  REVOKED_SEARCH_PARAM,
+} from "src/utils/constants";
 import { buildAppError, credentialSubjectValueErrorToString } from "src/utils/error";
 import { formatDate } from "src/utils/forms";
 import { extractCredentialSubjectAttribute } from "src/utils/jsonSchemas";
@@ -199,7 +205,7 @@ export function CredentialDetails() {
               extra={
                 <Row gutter={[0, 8]} justify="end">
                   <Col>
-                    <Tooltip title={notPuslihedState ? "State not published" : ""}>
+                    <Tooltip title={notPuslihedState ? NOT_PUBLISHED_STATE : ""}>
                       <Button
                         danger
                         disabled={revoked}

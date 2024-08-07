@@ -6,7 +6,7 @@ import { createIssuer } from "src/adapters/api/issuers";
 import { useEnvContext } from "src/contexts/Env";
 import { IssuerFormData } from "src/domain/identifier";
 import { ROUTES } from "src/routes";
-import { ISSUER_ADD } from "src/utils/constants";
+import { ISSUER_ADD, ISSUER_DETAILS } from "src/utils/constants";
 
 export function CreateIssuer() {
   const env = useEnvContext();
@@ -34,7 +34,7 @@ export function CreateIssuer() {
         showDivider
         title={ISSUER_ADD}
       >
-        <Card className="issuers-card" title="Issuer details">
+        <Card className="issuers-card" title={ISSUER_DETAILS}>
           <Space direction="vertical">
             <IssuerForm onBack={() => navigate(ROUTES.issuers.path)} onSubmit={handleSubmit} />
           </Space>

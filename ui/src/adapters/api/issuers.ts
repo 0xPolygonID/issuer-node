@@ -79,11 +79,7 @@ export async function getApiIssuers({
       url: `${API_VERSION}/identities`,
     });
 
-    if (response.data === null) {
-      return buildSuccessResponse(getListParser(apiIssuerParser).parse([]));
-    } else {
-      return buildSuccessResponse(getListParser(apiIssuerParser).parse(response.data));
-    }
+    return buildSuccessResponse(getListParser(apiIssuerParser).parse(response.data || []));
   } catch (error) {
     return buildErrorResponse(error);
   }

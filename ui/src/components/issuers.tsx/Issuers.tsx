@@ -13,7 +13,7 @@ import { IssuerFormData } from "src/domain/identifier";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";
-import { ISSUERS } from "src/utils/constants";
+import { ISSUERS, ISSUER_ADD } from "src/utils/constants";
 
 export function Issuers() {
   const env = useEnvContext();
@@ -77,7 +77,7 @@ export function Issuers() {
               maskClosable
               onCancel={closeModal}
               open
-              title="Add new issuer"
+              title={ISSUER_ADD}
             >
               <IssuerForm onBack={closeModal} onSubmit={handleSubmit} />
             </Modal>

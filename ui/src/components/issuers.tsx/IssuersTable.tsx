@@ -45,7 +45,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
 
   useEffect(() => {
     if (isAsyncTaskDataAvailable(issuersList)) {
-      if (queryParam === null) {
+      if (!queryParam) {
         setFilteredIdentifiers(issuersList.data);
       } else {
         const filteredData = issuersList.data.filter((issuer: Issuer) =>
