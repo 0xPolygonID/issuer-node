@@ -24,6 +24,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { AppError, Transaction } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -37,6 +38,7 @@ const PUBLISHED_MESSAGE = "Issuer state is being published";
 
 export function IssuerState() {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
   const { refreshStatus, status } = useIssuerStateContext();
 
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
@@ -58,7 +60,7 @@ export function IssuerState() {
 
     const functionToExecute = failedTransaction ? retryPublishState : publishState;
 
-    void functionToExecute({ env }).then((response) => {
+    void functionToExecute({ env, identifier }).then((response) => {
       if (response.success) {
         void messageAPI.success(PUBLISHED_MESSAGE);
       } else {
@@ -74,7 +76,7 @@ export function IssuerState() {
 
   const fetchTransactions = useCallback(
     async (signal?: AbortSignal) => {
-      const response = await getTransactions({ env, signal });
+      const response = await getTransactions({ env, identifier, signal });
 
       if (response.success) {
         setTransactions({ data: response.data.successful, status: "successful" });
@@ -85,7 +87,7 @@ export function IssuerState() {
         }
       }
     },
-    [env]
+    [env, identifier]
   );
 
   const tableColumns: TableColumnsType<Transaction> = [

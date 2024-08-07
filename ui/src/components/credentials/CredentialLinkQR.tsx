@@ -17,6 +17,7 @@ import { CredentialQR } from "src/components/credentials/CredentialQR";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { AppError } from "src/domain";
 import { AsyncTask, hasAsyncTaskFailed, isAsyncTaskDataAvailable } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -27,6 +28,7 @@ const PUSH_NOTIFICATIONS_REMINDER =
 
 export function CredentialLinkQR() {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, AppError>>({
@@ -44,7 +46,7 @@ export function CredentialLinkQR() {
       if (linkID) {
         setAuthQRCode({ status: "loading" });
 
-        const response = await createAuthQRCode({ env, linkID, signal });
+        const response = await createAuthQRCode({ env, identifier, linkID, signal });
 
         if (response.success) {
           setAuthQRCode({ data: response.data, status: "successful" });
@@ -55,7 +57,7 @@ export function CredentialLinkQR() {
         }
       }
     },
-    [linkID, env]
+    [linkID, env, identifier]
   );
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export function CredentialLinkQR() {
       if (isAsyncTaskDataAvailable(authQRCode) && linkID) {
         const response = await getImportQRCode({
           env,
+          identifier,
           linkID,
           sessionID: authQRCode.data.sessionID,
         });
@@ -107,7 +110,7 @@ export function CredentialLinkQR() {
     }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [authQRCode, env, importQRCheck, linkID, messageAPI]);
+  }, [authQRCode, env, importQRCheck, linkID, messageAPI, identifier]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);

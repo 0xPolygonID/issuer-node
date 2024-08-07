@@ -5,6 +5,7 @@ import { deleteCredential, revokeCredential } from "src/adapters/api/credentials
 import IconAlert from "src/assets/icons/alert-triangle.svg?react";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { Credential } from "src/domain";
 import { CLOSE, DELETE } from "src/utils/constants";
@@ -19,6 +20,7 @@ export function CredentialDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -30,7 +32,7 @@ export function CredentialDeleteModal({
   const handleDeleteCredential = () => {
     setIsLoading(true);
 
-    void deleteCredential({ env, id }).then((response) => {
+    void deleteCredential({ env, id, identifier }).then((response) => {
       if (response.success) {
         onClose();
         onDelete();
@@ -47,7 +49,7 @@ export function CredentialDeleteModal({
   const handleRevokeCredential = () => {
     setIsLoading(true);
 
-    void revokeCredential({ env, nonce }).then((response) => {
+    void revokeCredential({ env, identifier, nonce }).then((response) => {
       if (response.success) {
         handleDeleteCredential();
 

@@ -1,6 +1,8 @@
 import { ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import { CreateIssuer } from "../issuers.tsx/CreateIssuer";
+import { Issuers } from "../issuers.tsx/Issuers";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
@@ -16,18 +18,21 @@ import { ImportSchema } from "src/components/schemas/ImportSchema";
 import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { Layout, ROUTES, RouteID } from "src/routes";
 import { ROOT_PATH } from "src/utils/constants";
 
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
+  createIssuer: CreateIssuer,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
   credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
+  issuers: Issuers,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   notFound: NotFound,
@@ -35,7 +40,14 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   schemas: Schemas,
 };
 
+const issuerRoutes = [
+  { ...ROUTES.issuers, Component: COMPONENTS.issuers },
+  { ...ROUTES.createIssuer, Component: COMPONENTS.createIssuer },
+];
+
 export function Router() {
+  const { identifier } = useIssuerContext();
+
   const getLayoutRoutes = (currentLayout: Layout) =>
     Object.entries(ROUTES).reduce((acc: React.ReactElement[], [keyRoute, { layout, path }]) => {
       const componentsEntry = Object.entries(COMPONENTS).find(
@@ -50,15 +62,29 @@ export function Router() {
 
   return (
     <Routes>
-      <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
+      {identifier ? (
+        <>
+          <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
 
-      <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
+          <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
 
-      <Route element={<FullWidthLayout background="bg-light" />}>
-        {getLayoutRoutes("fullWidthGrey")}
-      </Route>
+          <Route element={<FullWidthLayout background="bg-light" />}>
+            {getLayoutRoutes("fullWidthGrey")}
+          </Route>
 
-      <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
+          <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
+        </>
+      ) : (
+        <>
+          <Route element={<SiderLayout />}>
+            {issuerRoutes.map(({ Component, path }) => (
+              <Route element={<Component />} key={path} path={path} />
+            ))}
+          </Route>
+
+          <Route element={<Navigate to={ROUTES.issuers.path} />} path="*" />
+        </>
+      )}
     </Routes>
   );
 }

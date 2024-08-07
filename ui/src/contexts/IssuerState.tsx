@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { useIssuerContext } from "./Issuer";
 import { getStatus } from "src/adapters/api/issuer-state";
 import { useEnvContext } from "src/contexts/Env";
 import { AppError } from "src/domain";
@@ -33,6 +34,7 @@ const IssuerStateContext = createContext<IssuerState>({
 
 export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
 
   const [messageAPI, messageContext] = message.useMessage();
 
@@ -40,17 +42,19 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
   const refreshStatus = useCallback(
     async (signal?: AbortSignal) => {
-      const response = await getStatus({ env, signal });
+      if (identifier) {
+        const response = await getStatus({ env, identifier, signal });
 
-      if (response.success) {
-        setStatus({ data: response.data.pendingActions, status: "successful" });
-      } else {
-        if (!isAbortedError(response.error)) {
-          void messageAPI.error(response.error.message);
+        if (response.success) {
+          setStatus({ data: response.data.pendingActions, status: "successful" });
+        } else {
+          if (!isAbortedError(response.error)) {
+            void messageAPI.error(response.error.message);
+          }
         }
       }
     },
-    [env, messageAPI]
+    [env, messageAPI, identifier]
   );
 
   const notifyChange = useCallback(

@@ -33,6 +33,7 @@ import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";
 import { TableCard } from "src/components/shared/TableCard";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { AppError, Credential } from "src/domain";
 import { ROUTES } from "src/routes";
 import { AsyncTask, isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
@@ -61,6 +62,7 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
 
   const navigate = useNavigate();
 
@@ -171,7 +173,11 @@ export function CredentialsTable() {
                 key: "details",
                 label: DETAILS,
                 onClick: () =>
-                  navigate(generatePath(ROUTES.credentialDetails.path, { credentialID: id })),
+                  navigate(
+                    `${generatePath(ROUTES.credentialDetails.path, {
+                      credentialID: id,
+                    })}?${new URLSearchParams({ revoked: `${credential.revoked}` }).toString()}`
+                  ),
               },
               {
                 key: "divider1",
@@ -243,6 +249,7 @@ export function CredentialsTable() {
 
       const response = await getCredentials({
         env,
+        identifier,
         params: {
           maxResults: paginationMaxResults,
           page: paginationPage,
@@ -276,6 +283,7 @@ export function CredentialsTable() {
       paginationPage,
       queryParam,
       sortParam,
+      identifier,
       updateUrlParams,
     ]
   );

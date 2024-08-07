@@ -1,10 +1,50 @@
+import { AuthBJJCredentialStatus } from "./identifier";
+
 export type CredentialsTabIDs = "issued" | "links";
+
+export enum CredentialProofType {
+  BJJSignature2021 = "BJJSignature2021",
+  Iden3SparseMerkleTreeProof = "Iden3SparseMerkleTreeProof",
+}
 
 export type ProofType = "MTP" | "SIG";
 
 export type RefreshService = {
   id: string;
   type: "Iden3RefreshService2023";
+};
+
+export type Proof = {
+  coreClaim: string;
+  issuerData: Record<string, unknown>;
+  signature: string;
+  type: CredentialProofType;
+};
+
+export type CredentialSchema = {
+  id: string;
+  type: string;
+};
+
+export type CredentialStatus = {
+  id: string;
+  revocationNonce: number;
+  type: AuthBJJCredentialStatus;
+};
+
+export type CredentialDetail = {
+  "@context": string[];
+  credentialSchema: CredentialSchema;
+  credentialStatus: CredentialStatus;
+  credentialSubject: {
+    type: string;
+  } & Record<string, unknown>;
+  expirationDate: Date | null;
+  id: string;
+  issuanceDate: Date;
+  issuer: string;
+  proof: Proof[];
+  refreshService: RefreshService | null;
 };
 
 export type Credential = {
@@ -21,6 +61,23 @@ export type Credential = {
   schemaType: string;
   schemaUrl: string;
   userID: string;
+};
+
+export type RevocationStatus = {
+  issuer?: {
+    claimsTreeRoot?: string;
+    revocationTreeRoot?: string;
+    rootOfRoots?: string;
+    state?: string;
+  };
+  mtp: {
+    existence: boolean;
+    node_aux?: {
+      key?: string;
+      value?: string;
+    };
+    siblings?: string[];
+  };
 };
 
 export type IssuedQRCode = {

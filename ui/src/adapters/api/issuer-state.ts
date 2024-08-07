@@ -5,6 +5,7 @@ import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { Env, IssuerStatus, Transaction, TransactionStatus } from "src/domain";
+import { Identifier } from "src/domain/identifier";
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
 
@@ -32,7 +33,13 @@ const transactionParser = getStrictParser<TransactionInput, Transaction>()(
   })
 );
 
-export async function publishState({ env }: { env: Env }): Promise<Response<null>> {
+export async function publishState({
+  env,
+  identifier,
+}: {
+  env: Env;
+  identifier: Identifier;
+}): Promise<Response<null>> {
   try {
     await axios({
       baseURL: env.api.url,
@@ -40,7 +47,7 @@ export async function publishState({ env }: { env: Env }): Promise<Response<null
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/state/publish`,
+      url: `${API_VERSION}/${identifier}/state/publish`,
     });
     return buildSuccessResponse(null);
   } catch (error) {
@@ -48,7 +55,13 @@ export async function publishState({ env }: { env: Env }): Promise<Response<null
   }
 }
 
-export async function retryPublishState({ env }: { env: Env }): Promise<Response<null>> {
+export async function retryPublishState({
+  env,
+  identifier,
+}: {
+  env: Env;
+  identifier: Identifier;
+}): Promise<Response<null>> {
   try {
     await axios({
       baseURL: env.api.url,
@@ -56,7 +69,7 @@ export async function retryPublishState({ env }: { env: Env }): Promise<Response
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/state/retry`,
+      url: `${API_VERSION}/${identifier}/state/retry`,
     });
     return buildSuccessResponse(null);
   } catch (error) {
@@ -66,9 +79,11 @@ export async function retryPublishState({ env }: { env: Env }): Promise<Response
 
 export async function getStatus({
   env,
+  identifier,
   signal,
 }: {
   env: Env;
+  identifier: Identifier;
   signal?: AbortSignal;
 }): Promise<Response<IssuerStatus>> {
   try {
@@ -79,7 +94,7 @@ export async function getStatus({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/state/status`,
+      url: `${API_VERSION}/${identifier}/state/status`,
     });
     return buildSuccessResponse(issuerStatusParser.parse(response.data));
   } catch (error) {
@@ -93,9 +108,11 @@ const issuerStatusParser = getStrictParser<IssuerStatus>()(
 
 export async function getTransactions({
   env,
+  identifier,
   signal,
 }: {
   env: Env;
+  identifier: Identifier;
   signal?: AbortSignal;
 }): Promise<Response<List<Transaction>>> {
   try {
@@ -106,7 +123,7 @@ export async function getTransactions({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/state/transactions`,
+      url: `${API_VERSION}/${identifier}/state/transactions`,
     });
     return buildSuccessResponse(
       getListParser(transactionParser)

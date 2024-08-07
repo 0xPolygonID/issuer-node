@@ -19,6 +19,8 @@ export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
 export const ISSUED_CREDENTIALS = "Issued credentials";
 export const ISSUER_STATE = "Issuer state";
+export const ISSUER_ADD = "Add new issuer";
+export const ISSUERS = "Issuers";
 export const LINKS = "Links";
 export const REVOCATION = "Revocation";
 export const REVOKE = "Revoke";
@@ -37,6 +39,7 @@ export const STATUS_SEARCH_PARAM = "status";
 export const PAGINATION_PAGE_PARAM = "page";
 export const PAGINATION_MAX_RESULTS_PARAM = "max_results";
 export const SORT_PARAM = "sort";
+export const REVOKED_SEARCH_PARAM = "revoked";
 
 export const DEFAULT_PAGINATION_PAGE = 1;
 export const DEFAULT_PAGINATION_MAX_RESULTS = 10;
@@ -88,3 +91,5 @@ export const IPFS_CUSTOM_GATEWAY_KEY = "ipfsGatewayUrl";
 
 export const URL_FIELD_ERROR_MESSAGE =
   "Must be a valid URL that includes a scheme such as https://";
+
+export const IDENTIFIER_LOCAL_STORAGE_KEY = "identifier";

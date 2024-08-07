@@ -2,6 +2,8 @@ import { Col, Divider, Menu, Row, Space, Tag, Typography, message } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
+import { SelectedIssuer } from "../issuers.tsx/SelectedIssuer";
+import IconIssuers from "src/assets/icons/building.svg?react";
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
@@ -13,6 +15,7 @@ import { LogoLink } from "src/components/shared/LogoLink";
 import { SettingsModal } from "src/components/shared/SettingsModal";
 import { UserDisplay } from "src/components/shared/UserDisplay";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
@@ -21,6 +24,7 @@ import {
   CREDENTIALS,
   CREDENTIALS_TABS,
   DOCS_URL,
+  ISSUERS,
   ISSUER_STATE,
   SCHEMAS,
 } from "src/utils/constants";
@@ -34,6 +38,8 @@ export function SiderMenu({
 }) {
   const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
+  const { identifier } = useIssuerContext();
+
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
@@ -44,6 +50,7 @@ export function SiderMenu({
   const credentialsPath = ROUTES.credentials.path;
   const issuerStatePath = ROUTES.issuerState.path;
   const schemasPath = ROUTES.schemas.path;
+  const issuersPath = ROUTES.issuers.path;
 
   const getSelectedKey = (): string[] => {
     if (
@@ -75,6 +82,8 @@ export function SiderMenu({
       return [connectionsPath];
     } else if (matchRoutes([{ path: issuerStatePath }], pathname)) {
       return [issuerStatePath];
+    } else if (matchRoutes([{ path: issuersPath }, { path: ROUTES.createIssuer.path }], pathname)) {
+      return [issuersPath];
     }
 
     return [];
@@ -99,11 +108,16 @@ export function SiderMenu({
         <Col>
           <UserDisplay />
 
-          <Divider />
+          <Divider style={{ marginBottom: 8 }} />
+
+          <SelectedIssuer />
+
+          <Divider style={{ marginTop: 8 }} />
 
           <Menu
             items={[
               {
+                disabled: !identifier,
                 icon: <IconSchema />,
                 key: schemasPath,
                 label: SCHEMAS,
@@ -111,6 +125,7 @@ export function SiderMenu({
                 title: "",
               },
               {
+                disabled: !identifier,
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -123,6 +138,7 @@ export function SiderMenu({
                 title: "",
               },
               {
+                disabled: !identifier,
                 icon: <IconConnections />,
                 key: connectionsPath,
                 label: CONNECTIONS,
@@ -130,6 +146,7 @@ export function SiderMenu({
                 title: "",
               },
               {
+                disabled: !identifier,
                 icon: <IconIssuerState />,
                 key: issuerStatePath,
                 label:
@@ -142,6 +159,13 @@ export function SiderMenu({
                     ISSUER_STATE
                   ),
                 onClick: () => onMenuClick(issuerStatePath),
+                title: "",
+              },
+              {
+                icon: <IconIssuers />,
+                key: issuersPath,
+                label: ISSUERS,
+                onClick: () => onMenuClick(issuersPath),
                 title: "",
               },
             ]}

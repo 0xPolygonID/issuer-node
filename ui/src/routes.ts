@@ -11,7 +11,9 @@ export type RouteID =
   | "linkDetails"
   | "notFound"
   | "schemaDetails"
-  | "schemas";
+  | "schemas"
+  | "issuers"
+  | "createIssuer";
 
 export type Layout = "fullWidth" | "fullWidthGrey" | "sider";
 
@@ -31,6 +33,10 @@ export const ROUTES: Routes = {
   connections: {
     layout: "sider",
     path: "/connections",
+  },
+  createIssuer: {
+    layout: "sider",
+    path: "/issuers/create",
   },
   credentialDetails: {
     layout: "sider",
@@ -55,6 +61,10 @@ export const ROUTES: Routes = {
   issueCredential: {
     layout: "sider",
     path: "/credentials/issue",
+  },
+  issuers: {
+    layout: "sider",
+    path: "/issuers",
   },
   issuerState: {
     layout: "sider",

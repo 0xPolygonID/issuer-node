@@ -5,6 +5,7 @@ import { useState } from "react";
 import { deleteConnection } from "src/adapters/api/connections";
 import IconClose from "src/assets/icons/x.svg?react";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { CLOSE, DELETE } from "src/utils/constants";
 
@@ -18,6 +19,7 @@ export function ConnectionDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -26,20 +28,22 @@ export function ConnectionDeleteModal({
   const [deleteCredentials, setDeleteCredentials] = useState<boolean>(false);
 
   const handleDeleteConnection = () => {
-    void deleteConnection({ deleteCredentials, env, id, revokeCredentials }).then((response) => {
-      if (response.success) {
-        onClose();
-        onDelete();
+    void deleteConnection({ deleteCredentials, env, id, identifier, revokeCredentials }).then(
+      (response) => {
+        if (response.success) {
+          onClose();
+          onDelete();
 
-        if (revokeCredentials) {
-          void notifyChange("revoke");
+          if (revokeCredentials) {
+            void notifyChange("revoke");
+          }
+
+          void messageAPI.success(response.data.message);
+        } else {
+          void messageAPI.error(response.error.message);
         }
-
-        void messageAPI.success(response.data.message);
-      } else {
-        void messageAPI.error(response.error.message);
       }
-    });
+    );
   };
 
   return (

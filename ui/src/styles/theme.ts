@@ -104,6 +104,7 @@ export const theme: ThemeConfig = {
       colorPrimaryHover: primaryColor,
       controlHeight: 40,
       size: 20,
+      wrapperMarginInlineEnd: 0,
     },
     Select: { colorBorder: primaryColor, controlHeight: 40 },
     Table: { fontSize: 14, fontWeightStrong: 400 },

@@ -15,6 +15,7 @@ import {
   ObjectAttribute,
   ProofType,
 } from "src/domain";
+import { CredentialProofType } from "src/domain/credential";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
@@ -425,17 +426,17 @@ export function serializeCredentialIssuance({
       data: {
         credentialSchema,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
-        expiration: credentialExpiration
-          ? serializeDate(dayjs(credentialExpiration), "date-time")
-          : null,
-        mtProof,
+        expiration: credentialExpiration ? dayjs(credentialExpiration).unix() : null,
+        proofs: [
+          ...(mtProof ? [CredentialProofType.Iden3SparseMerkleTreeProof] : []),
+          ...(signatureProof ? [CredentialProofType.BJJSignature2021] : []),
+        ],
         refreshService: credentialRefreshService
           ? {
               id: credentialRefreshService,
               type: "Iden3RefreshService2023",
             }
           : null,
-        signatureProof,
         type,
       },
       success: true,

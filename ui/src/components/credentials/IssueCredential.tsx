@@ -17,6 +17,7 @@ import { IssueCredentialForm } from "src/components/credentials/IssueCredentialF
 import { Summary } from "src/components/credentials/Summary";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { useIssuerStateContext } from "src/contexts/IssuerState";
 import { ApiSchema, JsonSchema } from "src/domain";
 import { ROUTES } from "src/routes";
@@ -47,6 +48,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
 
 export function IssueCredential() {
   const env = useEnvContext();
+  const { identifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const navigate = useNavigate();
@@ -132,6 +134,7 @@ export function IssueCredential() {
       if (serializedCredentialForm.success) {
         const response = await createLink({
           env,
+          identifier,
           payload: serializedCredentialForm.data,
         });
         if (response.success) {
@@ -174,6 +177,7 @@ export function IssueCredential() {
       if (serializedCredentialForm.success) {
         const response = await createCredential({
           env,
+          identifier,
           payload: serializedCredentialForm.data,
         });
         if (response.success) {

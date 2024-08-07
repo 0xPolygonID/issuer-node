@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
+import { IssuerProvider } from "./contexts/Issuer";
 import { Router } from "src/components/shared/Router";
 import { EnvProvider } from "src/contexts/Env";
 import { IssuerStateProvider } from "src/contexts/IssuerState";
@@ -30,9 +31,11 @@ root.render(
     <BrowserRouter>
       <ConfigProvider theme={theme}>
         <EnvProvider>
-          <IssuerStateProvider>
-            <Router />
-          </IssuerStateProvider>
+          <IssuerProvider>
+            <IssuerStateProvider>
+              <Router />
+            </IssuerStateProvider>
+          </IssuerProvider>
         </EnvProvider>
       </ConfigProvider>
     </BrowserRouter>

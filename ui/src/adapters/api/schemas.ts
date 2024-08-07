@@ -5,6 +5,7 @@ import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
 import { ApiSchema, Env, JsonLdType } from "src/domain";
+import { Identifier } from "src/domain/identifier";
 import { getStorageByKey } from "src/utils/browser";
 import { API_VERSION, IPFS_CUSTOM_GATEWAY_KEY, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -30,6 +31,7 @@ const apiSchemaParser = getStrictParser<ApiSchemaInput, ApiSchema>()(
 export async function importSchema({
   description,
   env,
+  identifier,
   jsonLdType,
   schemaUrl,
   title,
@@ -37,6 +39,7 @@ export async function importSchema({
 }: {
   description?: string;
   env: Env;
+  identifier: Identifier;
   jsonLdType: JsonLdType;
   schemaUrl: string;
   title?: string;
@@ -56,7 +59,7 @@ export async function importSchema({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/schemas`,
+      url: `${API_VERSION}/${identifier}/schemas`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -66,10 +69,12 @@ export async function importSchema({
 
 export async function getApiSchema({
   env,
+  identifier,
   schemaID,
   signal,
 }: {
   env: Env;
+  identifier: Identifier;
   schemaID: string;
   signal: AbortSignal;
 }): Promise<Response<ApiSchema>> {
@@ -81,7 +86,7 @@ export async function getApiSchema({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/schemas/${schemaID}`,
+      url: `${API_VERSION}/${identifier}/schemas/${schemaID}`,
     });
     return buildSuccessResponse(apiSchemaParser.parse(response.data));
   } catch (error) {
@@ -91,10 +96,12 @@ export async function getApiSchema({
 
 export async function getApiSchemas({
   env,
+  identifier,
   params: { query },
   signal,
 }: {
   env: Env;
+  identifier: Identifier;
   params: {
     query?: string;
   };
@@ -111,7 +118,7 @@ export async function getApiSchemas({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `${API_VERSION}/schemas`,
+      url: `${API_VERSION}/${identifier}/schemas`,
     });
     return buildSuccessResponse(
       getListParser(apiSchemaParser)
