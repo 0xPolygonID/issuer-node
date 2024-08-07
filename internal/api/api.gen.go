@@ -521,7 +521,10 @@ type StateTransaction struct {
 type StateTransactionStatus string
 
 // StateTransactionsResponse defines model for StateTransactionsResponse.
-type StateTransactionsResponse = []StateTransaction
+type StateTransactionsResponse struct {
+	Total        int                `json:"total"`
+	Transactions []StateTransaction `json:"transactions"`
+}
 
 // TimeUTC defines model for TimeUTC.
 type TimeUTC = timeapi.Time
@@ -768,6 +771,15 @@ type GetSchemasParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
+// GetStateTransactionsParams defines parameters for GetStateTransactions.
+type GetStateTransactionsParams struct {
+	// Page Page to fetch. First is 1. If not provided, default is 1.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Default is 10.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+}
+
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
 type AgentTextRequestBody = AgentTextBody
 
@@ -943,7 +955,7 @@ type ServerInterface interface {
 	GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Identity State Transactions
 	// (GET /v1/{identifier}/state/transactions)
-	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -1234,7 +1246,7 @@ func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, id
 
 // Get Identity State Transactions
 // (GET /v1/{identifier}/state/transactions)
-func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2970,8 +2982,27 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetStateTransactionsParams
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetStateTransactions(w, r, identifier)
+		siw.Handler.GetStateTransactions(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -5159,6 +5190,7 @@ func (response GetStateStatus500JSONResponse) VisitGetStateStatusResponse(w http
 
 type GetStateTransactionsRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
+	Params     GetStateTransactionsParams
 }
 
 type GetStateTransactionsResponseObject interface {
@@ -6677,10 +6709,11 @@ func (sh *strictHandler) GetStateStatus(w http.ResponseWriter, r *http.Request, 
 }
 
 // GetStateTransactions operation middleware
-func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
 	var request GetStateTransactionsRequestObject
 
 	request.Identifier = identifier
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetStateTransactions(ctx, request.(GetStateTransactionsRequestObject))

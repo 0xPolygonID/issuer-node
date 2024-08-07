@@ -305,6 +305,22 @@ paths:
         - Identity
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            format: uint
+            minimum: 1
+            example: 5
+          description: Page to fetch. First is 1. If not provided, default is 1.
+        - in: query
+          name: max_results
+          schema:
+            type: integer
+            format: uint
+            example: 10
+            default: 10
+          description: Number of items to fetch on each page. Default is 10.
       responses:
         '200':
           description: State transactions
@@ -1606,9 +1622,17 @@ components:
           type: string
 
     StateTransactionsResponse:
-      type: array
-      items:
-        $ref: '#/components/schemas/StateTransaction'
+      type: object
+      required:
+        - total
+        - transactions
+      properties:
+        total:
+          type: integer
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StateTransaction'
 
     StateStatusResponse:
       type: object

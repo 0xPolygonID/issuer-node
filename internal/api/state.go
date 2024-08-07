@@ -60,11 +60,26 @@ func (s *Server) RetryPublishState(ctx context.Context, request RetryPublishStat
 
 // GetStateTransactions - get state transactions
 func (s *Server) GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error) {
+	const (
+		defaultPage       = uint(1)
+		defaultMaxResults = uint(10)
+	)
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
 		return GetStateTransactions400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
-	states, err := s.identityService.GetStates(ctx, *did)
+
+	page := defaultPage
+	if request.Params.Page != nil {
+		page = *request.Params.Page
+	}
+
+	maxResults := defaultMaxResults
+	if request.Params.MaxResults != nil {
+		maxResults = *request.Params.MaxResults
+	}
+
+	states, err := s.identityService.GetStates(ctx, *did, page, maxResults)
 	if err != nil {
 		log.Error(ctx, "get state transactions", "err", err)
 		return GetStateTransactions500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
