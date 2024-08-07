@@ -581,7 +581,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim: uuid.New(),
 			expected: expected{
 				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
-					Message: "credential not found",
+					Message: "Credential not found",
 				}},
 				httpCode: http.StatusNotFound,
 			},
@@ -593,7 +593,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			claim: claim.ID,
 			expected: expected{
 				response: GetCredentialQrCode404JSONResponse{N404JSONResponse{
-					Message: "credential not found",
+					Message: "Credential not found",
 				}},
 				httpCode: http.StatusNotFound,
 			},
@@ -623,7 +623,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/%s/qrcode", tc.did, tc.claim)
+			url := fmt.Sprintf("/v1/%s/credentials/%s/qrcode?type=raw", tc.did, tc.claim)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -634,20 +634,23 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetCredentialQrCode200JSONResponse:
-				var response GetClaimQrCode200JSONResponse
+				var response GetCredentialQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, string(protocol.CredentialOfferMessageType), response.Type)
-				assert.Equal(t, string(packers.MediaTypePlainMessage), response.Typ)
-				_, err := uuid.Parse(response.Id)
+				fmt.Println("response", response)
+				var rawResponse GetClaimQrCode200JSONResponse
+				assert.NoError(t, json.Unmarshal([]byte(response.QrCodeLink), &rawResponse))
+				assert.Equal(t, string(protocol.CredentialOfferMessageType), rawResponse.Type)
+				assert.Equal(t, string(packers.MediaTypePlainMessage), rawResponse.Typ)
+				_, err := uuid.Parse(rawResponse.Id)
 				assert.NoError(t, err)
-				assert.Equal(t, response.Id, response.Thid)
-				assert.Equal(t, idStr, response.From)
-				assert.Equal(t, claim.OtherIdentifier, response.To)
-				assert.Equal(t, cfg.ServerUrl+"/v1/agent", response.Body.Url)
-				require.Len(t, response.Body.Credentials, 1)
-				_, err = uuid.Parse(response.Body.Credentials[0].Id)
+				assert.Equal(t, rawResponse.Id, rawResponse.Thid)
+				assert.Equal(t, idStr, rawResponse.From)
+				assert.Equal(t, claim.OtherIdentifier, rawResponse.To)
+				assert.Equal(t, cfg.ServerUrl+"/v1/agent", rawResponse.Body.Url)
+				require.Len(t, rawResponse.Body.Credentials, 1)
+				_, err = uuid.Parse(rawResponse.Body.Credentials[0].Id)
 				assert.NoError(t, err)
-				assert.Equal(t, claim.SchemaType, response.Body.Credentials[0].Description)
+				assert.Equal(t, claim.SchemaType, rawResponse.Body.Credentials[0].Description)
 
 			case GetCredentialQrCode400JSONResponse:
 				var response GetClaimQrCode400JSONResponse

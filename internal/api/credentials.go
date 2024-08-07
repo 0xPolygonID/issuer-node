@@ -438,28 +438,51 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 	return GetClaims200JSONResponse(toGetClaims200Response(w3Claims)), nil
 }
 
-// GetCredentialQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
+// GetCredentialQrCode returns a GetCredentialQrCodeResponseObject raw or link type based on query parameter `type`
 // scan it with privado.id wallet to accept the claim
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
-	resp, err := s.GetClaimQrCode(ctx, GetClaimQrCodeRequestObject(request))
+	if request.Identifier == "" {
+		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
+	}
+
+	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		return GetCredentialQrCode500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
-	switch ret := resp.(type) {
-	case GetClaimQrCode200JSONResponse:
-		return GetCredentialQrCode200JSONResponse(ret), nil
-	case GetClaimQrCode400JSONResponse:
-		return GetCredentialQrCode400JSONResponse{N400JSONResponse{Message: ret.Message}}, nil
-	case GetClaimQrCode404JSONResponse:
-		return GetCredentialQrCode404JSONResponse{N404JSONResponse{Message: ret.Message}}, nil
-	case GetClaimQrCode409JSONResponse:
-		return GetCredentialQrCode409JSONResponse{N409JSONResponse{Message: ret.Message}}, nil
-	case GetClaimQrCode500JSONResponse:
-		return GetCredentialQrCode500JSONResponse{N500JSONResponse{Message: ret.Message}}, nil
-	default:
-		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
-		return GetCredentialQrCode500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
+
+	if request.Id == "" {
+		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
 	}
+
+	claimID, err := uuid.Parse(request.Id)
+	if err != nil {
+		return GetCredentialQrCode400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+	}
+
+	resp, err := s.claimService.GetCredentialQrCode(ctx, did, claimID, s.cfg.ServerUrl)
+	if err != nil {
+		if errors.Is(err, services.ErrCredentialNotFound) {
+			return GetCredentialQrCode404JSONResponse{N404JSONResponse{"Credential not found"}}, nil
+		}
+		if errors.Is(err, services.ErrEmptyMTPProof) {
+			return GetCredentialQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credentials"}}, nil
+		}
+		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
+	}
+	qrContent := resp.QrCodeURL
+	// Backward compatibility. If the type is raw, we return the raw qr code
+	if request.Params.Type != nil && *request.Params.Type == GetCredentialQrCodeParamsTypeRaw {
+		rawQrCode, err := s.qrService.Find(ctx, resp.QrID)
+		if err != nil {
+			log.Error(ctx, "qr store. Finding qr", "err", err, "id", resp.QrID)
+			return GetCredentialQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
+		}
+		qrContent = string(rawQrCode)
+	}
+	return GetCredentialQrCode200JSONResponse{
+		QrCodeLink: qrContent,
+		SchemaType: resp.SchemaType,
+	}, nil
 }
 
 // GetClaimQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
