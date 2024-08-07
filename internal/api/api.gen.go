@@ -121,6 +121,12 @@ const (
 	GetCredentialsPaginatedParamsSortSchemaType      GetCredentialsPaginatedParamsSort = "schemaType"
 )
 
+// Defines values for GetCredentialQrCodeParamsType.
+const (
+	GetCredentialQrCodeParamsTypeLink GetCredentialQrCodeParamsType = "link"
+	GetCredentialQrCodeParamsTypeRaw  GetCredentialQrCodeParamsType = "raw"
+)
+
 // AgentResponse defines model for AgentResponse.
 type AgentResponse struct {
 	Body     interface{} `json:"body"`
@@ -458,6 +464,12 @@ type QrCodeLinkShortResponse struct {
 	SessionID  UUIDString `json:"sessionID"`
 }
 
+// QrCodeLinkWithSchemaTypeShortResponse defines model for QrCodeLinkWithSchemaTypeShortResponse.
+type QrCodeLinkWithSchemaTypeShortResponse struct {
+	QrCodeLink string `json:"qrCodeLink"`
+	SchemaType string `json:"schemaType"`
+}
+
 // RefreshService defines model for RefreshService.
 type RefreshService struct {
 	Id   string             `json:"id"`
@@ -765,6 +777,17 @@ type GetCredentialsPaginatedParamsStatus string
 // GetCredentialsPaginatedParamsSort defines parameters for GetCredentialsPaginated.
 type GetCredentialsPaginatedParamsSort string
 
+// GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
+type GetCredentialQrCodeParams struct {
+	// Type Type:
+	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
+	//   * `raw` - Return the raw QR code.
+	Type *GetCredentialQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
+}
+
+// GetCredentialQrCodeParamsType defines parameters for GetCredentialQrCode.
+type GetCredentialQrCodeParamsType string
+
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
@@ -934,7 +957,7 @@ type ServerInterface interface {
 	GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Get Credentials QR code
 	// (GET /v1/{identifier}/credentials/{id}/qrcode)
-	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
+	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams)
 	// Get Schemas
 	// (GET /v1/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -1204,7 +1227,7 @@ func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, ide
 
 // Get Credentials QR code
 // (GET /v1/{identifier}/credentials/{id}/qrcode)
-func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
+func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -2766,8 +2789,19 @@ func (siw *ServerInterfaceWrapper) GetCredentialQrCode(w http.ResponseWriter, r 
 
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCredentialQrCodeParams
+
+	// ------------- Optional query parameter "type" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "type", r.URL.Query(), &params.Type)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "type", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCredentialQrCode(w, r, identifier, id)
+		siw.Handler.GetCredentialQrCode(w, r, identifier, id, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -4897,13 +4931,14 @@ func (response GetCredential500JSONResponse) VisitGetCredentialResponse(w http.R
 type GetCredentialQrCodeRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Id         PathClaim      `json:"id"`
+	Params     GetCredentialQrCodeParams
 }
 
 type GetCredentialQrCodeResponseObject interface {
 	VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error
 }
 
-type GetCredentialQrCode200JSONResponse GetClaimQrCodeResponse
+type GetCredentialQrCode200JSONResponse QrCodeLinkWithSchemaTypeShortResponse
 
 func (response GetCredentialQrCode200JSONResponse) VisitGetCredentialQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -6517,11 +6552,12 @@ func (sh *strictHandler) GetCredential(w http.ResponseWriter, r *http.Request, i
 }
 
 // GetCredentialQrCode operation middleware
-func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
+func (sh *strictHandler) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams) {
 	var request GetCredentialQrCodeRequestObject
 
 	request.Identifier = identifier
 	request.Id = id
+	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
 		return sh.ssi.GetCredentialQrCode(ctx, request.(GetCredentialQrCodeRequestObject))

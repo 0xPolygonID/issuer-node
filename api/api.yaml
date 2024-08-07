@@ -1014,13 +1014,23 @@ paths:
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/pathClaim'
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ raw, link ]
+          description: >
+            Type:
+              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
+              * `raw` - Return the raw QR code.
       responses:
         '200':
           description: ok
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetClaimQrCodeResponse'
+                $ref: '#/components/schemas/QrCodeLinkWithSchemaTypeShortResponse'
         '400':
           $ref: '#/components/responses/400'
         '404':
@@ -2144,6 +2154,19 @@ components:
         type:
           type: string
           x-omitempty: false
+      
+    QrCodeLinkWithSchemaTypeShortResponse:
+      type: object
+      required:
+        - qrCodeLink
+        - schemaType
+      properties:
+        qrCodeLink:
+          type: string
+          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        schemaType:
+          type: string
+          example: "vaccinationCertificate"
       
     CredentialsPaginated:
       type: object
