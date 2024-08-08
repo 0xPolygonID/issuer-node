@@ -6,9 +6,9 @@ test.describe('API tests', () => {
         const newDID = await request.post(`/v1/identities`, {
             data: {
                 "didMetadata": {
-                  "method": "polygonid",
-                  "blockchain": "polygon",
-                  "network": "amoy",
+                  "method": "iden3",
+                  "blockchain": "privado",
+                  "network": "main",
                   "type": "BJJ",
                   "authBJJCredentialStatus": "Iden3commRevocationStatusV1.0"
                 }
