@@ -3,7 +3,7 @@ name: Test API
 on:
   push:
     branches:
-      - develop
+      - develop-v2
 
 jobs:
   run-tests:
