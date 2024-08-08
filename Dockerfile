@@ -1,15 +1,16 @@
-FROM golang:1.21 as base
+FROM golang:1.21 AS base
 ARG VERSION
 WORKDIR /service
-ENV GOBIN /service/bin
+ENV GOBIN=/service/bin
 COPY ./api ./api
-COPY ./api_ui ./api_ui
 COPY ./cmd ./cmd
 COPY ./tools/vault-migrator ./tools/vault-migrator
 COPY ./internal ./internal
 COPY ./pkg ./pkg
 COPY ./go.mod ./
 COPY ./go.sum ./
+COPY ./resolvers_settings.* ./
+
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./tools/...
 
@@ -25,6 +26,6 @@ RUN apk add doas; \
 RUN chmod g+rx,o+rx /
 
 COPY --from=base ./service/api ./api
-COPY --from=base ./service/api_ui ./api_ui
 COPY --from=base ./service/bin/* ./
 COPY --from=base ./service/pkg/credentials ./pkg/credentials
+COPY --from=base ./service/resolvers_settings.* ./

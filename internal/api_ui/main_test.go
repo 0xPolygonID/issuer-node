@@ -39,6 +39,19 @@ var (
 
 const ipfsGatewayURL = "http://localhost:8080"
 
+// VaultTest returns the vault configuration to be used in tests.
+// The vault token is obtained from environment vars.
+// If there is no env var, it will try to parse the init.out file
+// created by local docker image provided for TESTING purposes.
+func vaultTest() config.KeyStore {
+	return config.KeyStore{
+		Address:              "http://localhost:8200",
+		PluginIden3MountPath: "iden3",
+		UserPassEnabled:      true,
+		UserPassPassword:     "issuernodepwd",
+	}
+}
+
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 	log.Config(log.LevelDebug, log.OutputText, os.Stdout)
@@ -51,7 +64,11 @@ func TestMain(m *testing.M) {
 		Database: config.Database{
 			URL: conn,
 		},
-		KeyStore: config.VaultTest(),
+		KeyStore: vaultTest(),
+		Ethereum: config.Ethereum{
+			URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
+			ResolverPrefix: "polygon:mumbai",
+		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
@@ -85,13 +102,8 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	cfg.ServerUrl = "https://testing.env/"
-	cfg.CredentialStatus = config.CredentialStatus{
-		RHSMode: "None",
-		Iden3CommAgentStatus: config.Iden3CommAgentStatus{
-			URL: "http://localhost:3001",
-		},
-	}
+	cfg.ServerUrl = "https://testing.env"
+	cfg.Ethereum = cfgForTesting.Ethereum
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 
 	m.Run()

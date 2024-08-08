@@ -2,16 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"math/big"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-	vault "github.com/hashicorp/vault/api"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -29,10 +24,10 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/providers"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	httpPkg "github.com/polygonid/sh-id-platform/pkg/http"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
@@ -53,11 +48,6 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	if err := cfg.SanitizeAPIUI(ctx); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
-
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
@@ -77,33 +67,23 @@ func main() {
 	connectionsRepository := repositories.NewConnections()
 	claimsRepository := repositories.NewClaims()
 
-	var vaultCli *vault.Client
-	var vaultErr error
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
+		TLSEnabled:          cfg.KeyStore.TLSEnabled,
+		CertPath:            cfg.KeyStore.CertPath,
 	}
 
-	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-	if vaultErr != nil {
-		log.Error(ctx, "cannot initialize vault client", "err", err)
-		return
-	}
-
-	if vaultCfg.UserPassAuthEnabled {
-		go providers.RenewToken(ctx, vaultCli, vaultCfg)
-	}
-
-	err = config.CheckDID(ctx, cfg, vaultCli)
+	keyStore, err := config.KeyStoreConfig(ctx, cfg, vaultCfg)
 	if err != nil {
-		log.Error(ctx, "cannot initialize did", "err", err)
+		log.Error(ctx, "cannot initialize key store", "err", err)
 		return
 	}
 
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
-	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, vaultCli)
+	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, keyStore)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)
 		return
@@ -144,38 +124,27 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *vault.Client) (ports.ClaimsService, error) {
+func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, keyStore *kms.KMS) (ports.ClaimsService, error) {
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
-	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize kms: err %s", err.Error())
-	}
 
-	commonClient, err := ethclient.Dial(cfg.Ethereum.URL)
+	cfg.CredentialStatus.SingleIssuer = true
+	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
-		log.Error(ctx, "error dialing with ethclient", "err", err, "eth-url", cfg.Ethereum.URL)
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return nil, err
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
+	if err != nil {
+		log.Error(ctx, "failed initialize network resolver", "err", err)
 		return nil, err
 	}
 
-	ethConn := eth.NewClient(commonClient, &eth.ClientConfig{
-		DefaultGasLimit:        cfg.Ethereum.DefaultGasLimit,
-		ConfirmationTimeout:    cfg.Ethereum.ConfirmationTimeout,
-		ConfirmationBlockCount: cfg.Ethereum.ConfirmationBlockCount,
-		ReceiptTimeout:         cfg.Ethereum.ReceiptTimeout,
-		MinGasPrice:            big.NewInt(int64(cfg.Ethereum.MinGasPrice)),
-		MaxGasPrice:            big.NewInt(int64(cfg.Ethereum.MaxGasPrice)),
-		GasLess:                cfg.Ethereum.GasLess,
-		RPCResponseTimeout:     cfg.Ethereum.RPCResponseTimeout,
-		WaitReceiptCycleTime:   cfg.Ethereum.WaitReceiptCycleTime,
-		WaitBlockCycleTime:     cfg.Ethereum.WaitBlockCycleTime,
-	}, keyStore)
-
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.URL, ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
@@ -190,7 +159,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 		*cfg.MediaTypeManager.Enabled,
 	)
 
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	return claimsService, nil

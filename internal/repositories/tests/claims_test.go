@@ -17,10 +17,89 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/internal/sqltools"
 )
+
+func TestSaveClaim(t *testing.T) {
+	ctx := context.Background()
+	claimsRepo := repositories.NewClaims()
+	idStr := "did:polygonid:polygon:amoy:2qWcgX6ts9RnL9gP7bQP7BjVCuY92Xpwj9wzBzQGdc"
+	identity := &domain.Identity{
+		Identifier: idStr,
+	}
+
+	issuerDID, err := w3c.ParseDID(idStr)
+	require.NoError(t, err)
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	claim := &domain.Claim{
+		ID:              uuid.New(),
+		Identifier:      common.ToPointer(idStr),
+		Issuer:          idStr,
+		SchemaHash:      "ca938857241db9451ea329256b9c06e5",
+		SchemaURL:       "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/auth.json-ld",
+		SchemaType:      "AuthBJJCredential",
+		OtherIdentifier: "",
+		Expiration:      0,
+		Version:         0,
+		RevNonce:        100,
+	}
+
+	defer func(claimsRepo ports.ClaimsRepository, ctx context.Context, conn db.Querier, id uuid.UUID) {
+		err := claimsRepo.Delete(ctx, conn, id)
+		if err != nil {
+			t.Failed()
+		}
+	}(claimsRepo, ctx, storage.Pgx, claim.ID)
+
+	t.Run("should save the claim with id", func(t *testing.T) {
+		id, err := claimsRepo.Save(ctx, storage.Pgx, claim)
+		assert.NoError(t, err)
+		assert.NotNil(t, id)
+		claimInDatabase, err := claimsRepo.GetByIdAndIssuer(ctx, storage.Pgx, issuerDID, claim.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, claimInDatabase)
+		assert.Equal(t, claim.ID, claimInDatabase.ID)
+		assert.Equal(t, claim.Identifier, claimInDatabase.Identifier)
+		assert.Equal(t, claim.Issuer, claimInDatabase.Issuer)
+		assert.Equal(t, claim.SchemaHash, claimInDatabase.SchemaHash)
+		assert.Equal(t, claim.SchemaURL, claimInDatabase.SchemaURL)
+		assert.Equal(t, claim.SchemaType, claimInDatabase.SchemaType)
+		assert.Equal(t, claim.OtherIdentifier, claimInDatabase.OtherIdentifier)
+		assert.Equal(t, claim.Expiration, claimInDatabase.Expiration)
+		assert.Equal(t, claim.Version, claimInDatabase.Version)
+		assert.Equal(t, claim.RevNonce, claimInDatabase.RevNonce)
+	})
+
+	t.Run("should not update the claim", func(t *testing.T) {
+		claim.SchemaType = "AuthBJJCredential2"
+		claim.SchemaURL = "http://schema"
+		claim.SchemaHash = "ca938857"
+		claim.Expiration = 100
+		claim.RevNonce = 99
+		claim.Version = 1
+		id, err := claimsRepo.Save(ctx, storage.Pgx, claim)
+		assert.NoError(t, err)
+		assert.NotNil(t, id)
+		claimInDatabase, err := claimsRepo.GetByIdAndIssuer(ctx, storage.Pgx, issuerDID, claim.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, claimInDatabase)
+		assert.Equal(t, claim.ID, claimInDatabase.ID)
+		assert.Equal(t, claim.Identifier, claimInDatabase.Identifier)
+		assert.Equal(t, claim.Issuer, claimInDatabase.Issuer)
+		assert.Equal(t, claim.SchemaHash, claimInDatabase.SchemaHash)
+		assert.Equal(t, claim.SchemaURL, claimInDatabase.SchemaURL)
+		assert.Equal(t, claim.SchemaType, claimInDatabase.SchemaType)
+		assert.Equal(t, claim.OtherIdentifier, claimInDatabase.OtherIdentifier)
+		assert.Equal(t, claim.Expiration, claimInDatabase.Expiration)
+		assert.Equal(t, claim.Version, claimInDatabase.Version)
+		assert.Equal(t, claim.RevNonce, claimInDatabase.RevNonce)
+	})
+}
 
 func TestRevoke(t *testing.T) {
 	// given

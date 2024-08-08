@@ -27,7 +27,6 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -38,6 +37,7 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/circuit/signer"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/signature/suite/babyjubjub"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/primitive"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -76,13 +76,13 @@ type identity struct {
 	ignoreRHSErrors          bool
 	pubsub                   pubsub.Publisher
 	revocationStatusResolver *revocation_status.RevocationStatusResolver
-	credentialStatusSettings config.CredentialStatus
+	networkResolver          network.Resolver
 	rhsFactory               reverse_hash.Factory
 }
 
 // NewIdentity creates a new identity
 // nolint
-func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, credentialStatusSettings config.CredentialStatus, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
+func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, imtRepository ports.IdentityMerkleTreeRepository, identityStateRepository ports.IdentityStateRepository, mtservice ports.MtService, qrService ports.QrStoreService, claimsRepository ports.ClaimsRepository, revocationRepository ports.RevocationRepository, connectionsRepository ports.ConnectionsRepository, storage *db.Storage, verifier *auth.Verifier, sessionRepository ports.SessionRepository, ps pubsub.Client, networkResolver network.Resolver, rhsFactory reverse_hash.Factory, revocationStatusResolver *revocation_status.RevocationStatusResolver) ports.IdentityService {
 	return &identity{
 		identityRepository:       identityRepository,
 		imtRepository:            imtRepository,
@@ -98,7 +98,7 @@ func NewIdentity(kms kms.KMSType, identityRepository ports.IndentityRepository, 
 		ignoreRHSErrors:          false,
 		verifier:                 verifier,
 		pubsub:                   ps,
-		credentialStatusSettings: credentialStatusSettings,
+		networkResolver:          networkResolver,
 		rhsFactory:               rhsFactory,
 		revocationStatusResolver: revocationStatusResolver,
 	}
@@ -315,7 +315,12 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 		Status:     domain.StatusCreated,
 	}
 
-	err := i.storage.Pgx.BeginFunc(ctx,
+	resolverPrefix, err := common.ResolverPrefix(&did)
+	if err != nil {
+		return nil, err
+	}
+
+	err = i.storage.Pgx.BeginFunc(ctx,
 		func(tx pgx.Tx) error {
 			iTrees, err := i.mtService.GetIdentityMerkleTrees(ctx, tx, &did)
 			if err != nil {
@@ -364,9 +369,14 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 				return fmt.Errorf("error saving new identity state: %w", err)
 			}
 
-			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+			rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+			if err != nil {
+				log.Error(ctx, "getting RHS settings", "err", err)
+				return err
+			}
+			rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 				Type: kms.KeyTypeEthereum,
-				ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+				ID:   rhsSettings.PublishingKey,
 			})
 			if err != nil {
 				log.Error(ctx, "can't create RHS publisher", "err", err)
@@ -436,7 +446,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error) {
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
 	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
@@ -449,7 +459,14 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	issuerDoc := newDIDDocument(serverURL, issuerDID)
+	from := authReq.From
+	issuerDID, err := w3c.ParseDID(from)
+	if err != nil {
+		log.Error(ctx, "failed to parse issuerDID", "err", err)
+		return nil, err
+	}
+
+	issuerDoc := newDIDDocument(serverURL, *issuerDID)
 	bytesIssuerDoc, err := json.Marshal(issuerDoc)
 	if err != nil {
 		log.Error(ctx, "failed to marshal issuerDoc", "err", err)
@@ -465,7 +482,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 
 	conn := &domain.Connection{
 		ID:         uuid.New(),
-		IssuerDID:  issuerDID,
+		IssuerDID:  *issuerDID,
 		UserDID:    *userDID,
 		IssuerDoc:  bytesIssuerDoc,
 		UserDoc:    arm.Body.DIDDoc,
@@ -557,7 +574,7 @@ func (i *identity) update(ctx context.Context, conn db.Querier, id *w3c.DID, cur
 }
 
 // populate identity state with data needed to do generate new state.
-// Get Data from MT and previous state
+// GetEthClient Data from MT and previous state
 func populateIdentityState(ctx context.Context, trees *domain.IdentityMerkleTrees, state, previousState *domain.IdentityState) error {
 	claimsTree, err := trees.ClaimsTree()
 	if err != nil {
@@ -682,7 +699,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			Blockchain:              core.NoChain,
 			Network:                 core.NoNetwork,
 			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: verifiable.SparseMerkleTreeProof,
+			AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1,
 		}
 	}
 
@@ -735,14 +752,22 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, fmt.Errorf("can't save identity: %w", err)
 	}
 
-	rhsMode := reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode)
-	rhsPublishers, err := i.rhsFactory.BuildPublishers(
-		ctx,
-		rhsMode,
-		&kms.KeyID{
-			Type: kms.KeyTypeEthereum,
-			ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
-		})
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "getting resolver prefix", "err", err)
+		return nil, nil, err
+	}
+
+	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "getting RHS settings", "err", err)
+		return nil, nil, err
+	}
+
+	rhsPublishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
+		Type: kms.KeyTypeEthereum,
+		ID:   rhsSettings.PublishingKey,
+	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("can't create RHS publisher: %w", err)
 	}
@@ -778,7 +803,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {
-	pubKey, err := ethPubKey(i.kms, *key)
+	pubKey, err := ethPubKey(ctx, i.kms, *key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -877,8 +902,8 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID) ([]domain.IdentityState, error) {
-	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID)
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
+	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
 }
 
 func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {
@@ -924,9 +949,21 @@ func (i *identity) PublishGenesisStateToRHS(ctx context.Context, did *w3c.DID) e
 		return errors.New("can't publish genesis state for the identity based on the ethereum key")
 	}
 
-	publishers, err := i.rhsFactory.BuildPublishers(ctx, reverse_hash.RHSMode(i.credentialStatusSettings.RHSMode), &kms.KeyID{
+	resolverPrefix, err := common.ResolverPrefix(did)
+	if err != nil {
+		log.Error(ctx, "getting resolver prefix", "err", err)
+		return err
+	}
+
+	rhsSettings, err := i.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "getting RHS settings", "err", err)
+		return err
+	}
+
+	publishers, err := i.rhsFactory.BuildPublishers(ctx, resolverPrefix, &kms.KeyID{
 		Type: kms.KeyTypeEthereum,
-		ID:   i.credentialStatusSettings.OnchainTreeStore.PublishingKeyPath,
+		ID:   rhsSettings.PublishingKey,
 	})
 	if err != nil {
 		log.Error(ctx, "can't create RHS client", "err", err)
@@ -1068,7 +1105,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = fmt.Sprintf("%s/api/v1/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
@@ -1165,10 +1202,35 @@ func sanitizeIssuerDoc(issDoc []byte) []byte {
 	return []byte(str)
 }
 
-func ethPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
+// ethPubKey returns the public key from the key manager service.
+// the public key is either uncompressed or compressed, so we need to handle both cases.
+func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
+	const (
+		uncompressedKeyLength = 65
+		awsKeyLength          = 88
+		defaultKeyLength      = 33
+	)
+
 	keyBytes, err := keyMS.PublicKey(keyID)
 	if err != nil {
+		log.Error(ctx, "can't get bytes from public key", "err", err)
 		return nil, err
 	}
-	return kms.DecodeETHPubKey(keyBytes)
+
+	// public key is uncompressed. It's 65 bytes long.
+	if len(keyBytes) == uncompressedKeyLength {
+		return crypto.UnmarshalPubkey(keyBytes)
+	}
+
+	// public key is AWS format. It's 88 bytes long.
+	if len(keyBytes) == awsKeyLength {
+		return kms.DecodeAWSETHPubKey(ctx, keyBytes)
+	}
+
+	// public key is compressed. It's 33 bytes long.
+	if len(keyBytes) == defaultKeyLength {
+		return kms.DecodeETHPubKey(keyBytes)
+	}
+
+	return nil, errors.New("unsupported public key format")
 }

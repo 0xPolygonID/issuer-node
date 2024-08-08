@@ -37,12 +37,12 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/providers/blockchain"
 	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	circuitLoaders "github.com/polygonid/sh-id-platform/pkg/loaders"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -69,11 +69,6 @@ func main() {
 		return
 	}
 
-	if err := services.RegisterCustomDIDMethods(ctx, cfg.CustomDIDMethods); err != nil {
-		log.Error(ctx, "cannot register custom DID methods. Server cannot start", "err", err)
-		return
-	}
-
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
 		log.Error(ctx, "cannot connect to database", "err", err)
@@ -96,10 +91,10 @@ func main() {
 	var vaultCli *vault.Client
 	var vaultErr error
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 	}
 
 	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
@@ -124,24 +119,6 @@ func main() {
 		return
 	}
 
-	ethereumClient, err := blockchain.Open(cfg, keyStore)
-	if err != nil {
-		log.Error(ctx, "error dialing with ethereum client", "err", err)
-		return
-	}
-
-	stateContract, err := blockchain.InitEthClient(cfg.Ethereum.URL, cfg.Ethereum.ContractAddress)
-	if err != nil {
-		log.Error(ctx, "failed init ethereum client", "err", err)
-		return
-	}
-
-	ethConn, err := blockchain.InitEthConnect(cfg.Ethereum, keyStore)
-	if err != nil {
-		log.Error(ctx, "failed init ethereum connect", "err", err)
-		return
-	}
-
 	verificationKeyLoader := &authLoaders.FSKeyLoader{Dir: cfg.Circuit.Path + "/authV2"}
 	resolvers := map[string]pubsignals.StateResolver{
 		cfg.Ethereum.ResolverPrefix: state.ETHResolver{
@@ -158,7 +135,20 @@ func main() {
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
 	proofService := gateways.NewProver(ctx, cfg, circuitsLoaderService)
-	rhsFactory := reverse_hash.NewFactory(cfg.CredentialStatus.RHS.GetURL(), ethConn, common.HexToAddress(cfg.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract), reverse_hash.DefaultRHSTimeOut)
+
+	cfg.CredentialStatus.SingleIssuer = true
+	reader, err := network.GetReaderFromConfig(cfg, ctx)
+	if err != nil {
+		log.Error(ctx, "cannot read network resolver file", "err", err)
+		return
+	}
+	networkResolver, err := network.NewResolver(ctx, *cfg, keyStore, reader)
+	if err != nil {
+		log.Error(ctx, "failed initialize network resolver", "err", err)
+		return
+	}
+
+	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 
 	// repositories initialization
 	identityRepository := repositories.NewIdentity()
@@ -175,8 +165,6 @@ func main() {
 	mtService := services.NewIdentityMerkleTrees(mtRepository)
 	qrService := services.NewQrStoreService(cachex)
 
-	cfg.CredentialStatus.SingleIssuer = true
-
 	mediaTypeManager := services.NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
 			iden3commProtocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
@@ -185,28 +173,28 @@ func main() {
 		*cfg.MediaTypeManager.Enabled,
 	)
 
-	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(cfg.CredentialStatus)
-	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, cfg.CredentialStatus, rhsFactory, revocationStatusResolver)
+	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
-	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, cfg.IPFS.GatewayURL)
+	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps)
 
-	transactionService, err := gateways.NewTransaction(ethereumClient, cfg.Ethereum.ConfirmationBlockCount)
+	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
 		log.Error(ctx, "error creating transaction service", "err", err)
 		return
 	}
 
-	publisherGateway, err := gateways.NewPublisherEthGateway(ethereumClient, common.HexToAddress(cfg.Ethereum.ContractAddress), keyStore, cfg.PublishingKeyPath)
+	publisherGateway, err := gateways.NewPublisherEthGateway(*networkResolver, keyStore, cfg.PublishingKeyPath)
 	if err != nil {
 		log.Error(ctx, "error creating publish gateway", "err", err)
 		return
 	}
 
-	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout, ps)
+	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, networkResolver, ps)
 
-	packageManager, err := protocol.InitPackageManager(stateContract, cfg.Circuit.Path)
+	packageManager, err := protocol.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), cfg.Circuit.Path)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
 		return
@@ -236,7 +224,7 @@ func main() {
 	)
 	api_ui.HandlerWithOptions(
 		api_ui.NewStrictHandlerWithOptions(
-			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, qrService, publisher, packageManager, serverHealth),
+			api_ui.NewServer(cfg, identityService, claimsService, schemaService, connectionsService, linkService, qrService, publisher, packageManager, serverHealth, *networkResolver),
 			middlewares(ctx, cfg.APIUI.APIUIAuth),
 			api_ui.StrictHTTPServerOptions{
 				RequestErrorHandlerFunc:  errors.RequestErrorHandlerFunc,

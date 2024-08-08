@@ -932,6 +932,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/sessionID'
         - $ref: '#/components/parameters/linkID'
+        - $ref: '#/components/parameters/credentialStatusType'
       requestBody:
         required: true
         content:
@@ -1012,7 +1013,6 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/KeyValue'
-
 
     ImportSchemaRequest:
       type: object
@@ -1575,6 +1575,11 @@ components:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
           $ref: '#/components/schemas/DisplayMethod'
+        credentialStatusType:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023]
     Schema:
       type: object
       required:
@@ -1833,6 +1838,15 @@ components:
         x-go-type-import:
           name: uuid
           path: github.com/google/uuid
+
+    credentialStatusType:
+      name: credentialStatusType
+      in: query
+      required: false
+      description: |
+        credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
+      schema:
+        type: string
 
     pathNonce:
       name: nonce

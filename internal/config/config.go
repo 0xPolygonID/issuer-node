@@ -14,11 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/vault/api"
+	vault "github.com/hashicorp/vault/api"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/spf13/viper"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 )
@@ -26,6 +27,13 @@ import (
 const (
 	CIConfigPath = "/home/runner/work/sh-id-platform/sh-id-platform/" // CIConfigPath variable contain the CI configuration path
 	ipfsGateway  = "https://cloudflare-ipfs.com"
+
+	// LocalStorage is the local storage plugin
+	LocalStorage = "localstorage"
+	// Vault is the vault plugin
+	Vault = "vault"
+	// AWS is the AWS plugin
+	AWS = "aws"
 )
 
 // Configuration holds the project configuration
@@ -33,24 +41,24 @@ type Configuration struct {
 	ServerUrl                    string
 	ServerPort                   int
 	NativeProofGenerationEnabled bool
-	Database                     Database      `mapstructure:"Database"`
-	Cache                        Cache         `mapstructure:"Cache"`
-	HTTPBasicAuth                HTTPBasicAuth `mapstructure:"HTTPBasicAuth"`
-	KeyStore                     KeyStore      `mapstructure:"KeyStore"`
-	Log                          Log           `mapstructure:"Log"`
-	Ethereum                     Ethereum      `mapstructure:"Ethereum"`
-	Prover                       Prover        `mapstructure:"Prover"`
-	Circuit                      Circuit       `mapstructure:"Circuit"`
-	PublishingKeyPath            string        `mapstructure:"PublishingKeyPath"`
-	OnChainCheckStatusFrequency  time.Duration `mapstructure:"OnChainCheckStatusFrequency"`
-	SchemaCache                  *bool         `mapstructure:"SchemaCache"`
-	APIUI                        APIUI         `mapstructure:"APIUI"`
-	IPFS                         IPFS          `mapstructure:"IPFS"`
-	VaultUserPassAuthEnabled     bool
-	VaultUserPassAuthPassword    string
+	Database                     Database           `mapstructure:"Database"`
+	Cache                        Cache              `mapstructure:"Cache"`
+	HTTPBasicAuth                HTTPBasicAuth      `mapstructure:"HTTPBasicAuth"`
+	KeyStore                     KeyStore           `mapstructure:"KeyStore"`
+	Log                          Log                `mapstructure:"Log"`
+	Ethereum                     Ethereum           `mapstructure:"Ethereum"`
+	Prover                       Prover             `mapstructure:"Prover"`
+	Circuit                      Circuit            `mapstructure:"Circuit"`
+	PublishingKeyPath            string             `mapstructure:"PublishingKeyPath"`
+	OnChainCheckStatusFrequency  time.Duration      `mapstructure:"OnChainCheckStatusFrequency"`
+	SchemaCache                  *bool              `mapstructure:"SchemaCache"`
+	APIUI                        APIUI              `mapstructure:"APIUI"`
+	IPFS                         IPFS               `mapstructure:"IPFS"`
 	CredentialStatus             CredentialStatus   `mapstructure:"CredentialStatus"`
 	CustomDIDMethods             []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager             MediaTypeManager   `mapstructure:"MediaTypeManager"`
+	NetworkResolverPath          string             `mapstructure:"NetworkResolverPath"`
+	NetworkResolverFile          string             `mapstructure:"NetworkResolverFile"`
 }
 
 // Database has the database configuration
@@ -73,26 +81,25 @@ type IPFS struct {
 type ReverseHashService struct {
 	URL     string `mapstructure:"Url" tip:"Reverse Hash Service address"`
 	Enabled bool   `tip:"Reverse hash service enabled"`
-	Mode    string `tip:"Reverse hash service mode (OffChain, OnChain, Mixed, None)"`
+	Mode    string `tip:"Reverse hash service mode (OffChain, OnChain, All, None)"`
 }
 
 // Ethereum struct
 type Ethereum struct {
-	URL                       string        `tip:"Ethereum url"`
-	ContractAddress           string        `tip:"Contract Address"`
-	DefaultGasLimit           int           `tip:"Default Gas Limit"`
-	ConfirmationTimeout       time.Duration `tip:"Confirmation timeout"`
-	ConfirmationBlockCount    int64         `tip:"Confirmation block count"`
-	ReceiptTimeout            time.Duration `tip:"Receipt timeout"`
-	MinGasPrice               int           `tip:"Minimum Gas Price"`
-	MaxGasPrice               int           `tip:"The Datasource name locator"`
-	GasLess                   bool          `tip:"Gasless transactions"`
-	RPCResponseTimeout        time.Duration `tip:"RPC Response timeout"`
-	WaitReceiptCycleTime      time.Duration `tip:"Wait Receipt Cycle Time"`
-	WaitBlockCycleTime        time.Duration `tip:"Wait Block Cycle Time"`
-	ResolverPrefix            string        `tip:"blockchain:network e.g polygon:amoy"`
-	InternalTransferAmountWei int64         `tip:"Internal transfer amount in wei"`
-	TransferAccountKeyPath    string        `tip:"Transfer account key path"`
+	URL                    string        `tip:"Ethereum url"`
+	ContractAddress        string        `tip:"Contract Address"`
+	DefaultGasLimit        int           `tip:"Default Gas Limit"`
+	ConfirmationTimeout    time.Duration `tip:"Confirmation timeout"`
+	ConfirmationBlockCount int64         `tip:"Confirmation block count"`
+	ReceiptTimeout         time.Duration `tip:"Receipt timeout"`
+	MinGasPrice            int           `tip:"Minimum Gas Price"`
+	MaxGasPrice            int           `tip:"The Datasource name locator"`
+	GasLess                bool          `tip:"Gasless transactions"`
+	RPCResponseTimeout     time.Duration `tip:"RPC Response timeout"`
+	WaitReceiptCycleTime   time.Duration `tip:"Wait Receipt Cycle Time"`
+	WaitBlockCycleTime     time.Duration `tip:"Wait Block Cycle Time"`
+	ResolverPrefix         string        `tip:"blockchain:network e.g polygon:amoy"`
+	TransferAccountKeyPath string        `tip:"Transfer account key path"`
 }
 
 // CustomDIDMethods struct
@@ -145,11 +152,21 @@ type Circuit struct {
 
 // KeyStore defines the keystore
 type KeyStore struct {
-	Address              string `tip:"Keystore address"`
-	Token                string `tip:"Token"`
-	PluginIden3MountPath string `tip:"PluginIden3MountPath"`
-	UserPassEnabled      bool   `tip:"UserPassEnabled"`
-	UserPassPassword     string `tip:"UserPassPassword"`
+	Address                      string `tip:"Keystore address"`
+	Token                        string `tip:"Token"`
+	PluginIden3MountPath         string `tip:"PluginIden3MountPath"`
+	UserPassEnabled              bool   `tip:"UserPassEnabled"`
+	UserPassPassword             string `tip:"UserPassPassword"`
+	BJJProvider                  string `tip:"BJJProvider"`
+	ETHProvider                  string `tip:"ETHProvider"`
+	ProviderLocalStorageFilePath string `tip:"ProviderLocalStorageFilePath"`
+	AWSAccessKey                 string `tip:"AWS Acces Key"`
+	AWSSecretKey                 string `tip:"AWS Secret Key"`
+	AWSRegion                    string `tip:"AWS Region"`
+	VaultUserPassAuthEnabled     bool   `tip:"VaultUserPassAuthEnabled"`
+	VaultUserPassAuthPassword    string `tip:"VaultUserPassAuthPassword"`
+	TLSEnabled                   bool   `tip:"TLSEnabled"`
+	CertPath                     string `tip:"CertPath"`
 }
 
 // Log holds runtime configurations
@@ -186,7 +203,7 @@ type APIUI struct {
 	IssuerName         string    `mapstructure:"IssuerName" tip:"Server UI API backend issuer name"`
 	IssuerLogo         string    `mapstructure:"IssuerLogo" tip:"Server UI API backend issuer logo (URL)"`
 	Issuer             string    `mapstructure:"IssuerDID" tip:"Server UI API backend issuer DID (already created in the issuer node)"`
-	IssuerDID          w3c.DID   `mapstructure:"-"`
+	IssuerDID          w3c.DID   `mapstructure:"-"` // Deprecated
 	SchemaCache        *bool     `mapstructure:"SchemaCache" tip:"Server UI API backend for enabling schema caching"`
 	IdentityMethod     string    `mapstructure:"IdentityMethod" tip:"Server UI API backend Identity Method"`
 	IdentityBlockchain string    `mapstructure:"IdentityBlockchain" tip:"Server UI API backend Identity Blockchain"`
@@ -214,15 +231,9 @@ func (c *Configuration) Sanitize(ctx context.Context) error {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
 	}
 	c.ServerUrl = sUrl
-	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
-		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+	if c.KeyStore.Token == "" && !c.KeyStore.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.KeyStore.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
-	}
-
-	err = c.sanitizeCredentialStatus(ctx, c.ServerUrl)
-	if err != nil {
-		log.Error(ctx, "error sanitizing credential status", "error", err)
-		return err
 	}
 
 	return nil
@@ -240,8 +251,8 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 	}
 
 	log.Info(ctx, "Checking vault token", "token", c.KeyStore.Token)
-	if c.KeyStore.Token == "" && !c.VaultUserPassAuthEnabled {
-		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.VaultUserPassAuthEnabled)
+	if c.KeyStore.Token == "" && !c.KeyStore.VaultUserPassAuthEnabled {
+		log.Error(ctx, "a vault token must be provided or vault userpass auth must be enabled", "vaultUserPassAuthEnabled", c.KeyStore.VaultUserPassAuthEnabled)
 		return fmt.Errorf("a vault token must be provided or vault userpass auth must be enabled")
 	}
 
@@ -256,51 +267,16 @@ func (c *Configuration) SanitizeAPIUI(ctx context.Context) (err error) {
 		log.Info(ctx, "Issuer DID not provided in configuration file")
 	}
 
-	err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
-	if err != nil {
-		log.Error(ctx, "error sanitizing credential status", "error", err)
-		return err
-	}
-	return nil
-}
-
-func (c *Configuration) sanitizeCredentialStatus(_ context.Context, host string) error {
-	if c.CredentialStatus.RHSMode != onChain && c.CredentialStatus.RHSMode != offChain && c.CredentialStatus.RHSMode != none {
-		return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_MODE value is not valid")
-	}
-
-	if c.CredentialStatus.RHSMode == none {
-		c.CredentialStatus.Iden3CommAgentStatus.URL = host
-		c.CredentialStatus.CredentialStatusType = iden3commRevocationStatusV1
-	}
-
-	if c.CredentialStatus.RHSMode == offChain {
-		if c.CredentialStatus.RHS.URL == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_URL value is missing")
-		}
-		c.CredentialStatus.CredentialStatusType = iden3ReverseSparseMerkleTreeProof
-		c.CredentialStatus.Iden3CommAgentStatus.URL = host
-	}
-
-	if c.CredentialStatus.RHSMode == onChain {
-		if c.CredentialStatus.OnchainTreeStore.SupportedTreeStoreContract == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_ONCHAIN_TREE_STORE_SUPPORTED_CONTRACT value is missing")
-		}
-
-		if c.CredentialStatus.OnchainTreeStore.PublishingKeyPath == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_PUBLISHING_KEY_PATH value is missing")
-		}
-
-		if c.CredentialStatus.OnchainTreeStore.ChainID == "" {
-			return fmt.Errorf("ISSUER_CREDENTIAL_STATUS_RHS_CHAIN_ID value is missing")
-		}
-		c.CredentialStatus.CredentialStatusType = iden3OnchainSparseMerkleTreeProof2023
-	}
+	//err = c.sanitizeCredentialStatus(ctx, c.APIUI.ServerURL)
+	//if err != nil {
+	//	log.Error(ctx, "error sanitizing credential status", "error", err)
+	//	return err
+	//}
 	return nil
 }
 
 // CheckDID checks if the issuer did is provided in the configuration file. If not, it tries to get it from vault.
-func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *api.Client) error {
+func CheckDID(ctx context.Context, cfg *Configuration, vaultCli *vault.Client) error {
 	log.Info(ctx, "Checking issuer did value", "did", cfg.APIUI.Issuer)
 	if cfg.APIUI.Issuer == "" {
 		log.Info(ctx, "Issuer DID not provided in configuration file. Getting it from vault")
@@ -406,19 +382,6 @@ func Load(fileName string) (*Configuration, error) {
 	return config, nil
 }
 
-// VaultTest returns the vault configuration to be used in tests.
-// The vault token is obtained from environment vars.
-// If there is no env var, it will try to parse the init.out file
-// created by local docker image provided for TESTING purposes.
-func VaultTest() KeyStore {
-	return KeyStore{
-		Address:              "http://localhost:8200",
-		PluginIden3MountPath: "iden3",
-		UserPassEnabled:      true,
-		UserPassPassword:     "issuernodepwd",
-	}
-}
-
 // lookupVaultTokenFromFile parses the vault config file looking for the hvs token and returns it
 // pathVaultConfig MUST be a relative path starting from the root project folder
 // like "infrastructure/local/.vault/data/init.out"
@@ -461,22 +424,21 @@ func bindEnv() {
 
 	_ = viper.BindEnv("KeyStore.Address", "ISSUER_KEY_STORE_ADDRESS")
 	_ = viper.BindEnv("KeyStore.Token", "ISSUER_KEY_STORE_TOKEN")
+	_ = viper.BindEnv("KeyStore.BJJProvider", "ISSUER_KMS_BJJ_PROVIDER")
+	_ = viper.BindEnv("KeyStore.ETHProvider", "ISSUER_KMS_ETH_PROVIDER")
+	_ = viper.BindEnv("KeyStore.ProviderLocalStorageFilePath", "ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH")
+	_ = viper.BindEnv("KeyStore.AWSAccessKey", "ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY")
+	_ = viper.BindEnv("KeyStore.AWSSecretKey", "ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY")
+	_ = viper.BindEnv("KeyStore.AWSRegion", "ISSUER_KMS_ETH_PLUGIN_AWS_REGION")
+
 	_ = viper.BindEnv("KeyStore.PluginIden3MountPath", "ISSUER_KEY_STORE_PLUGIN_IDEN3_MOUNT_PATH")
+	_ = viper.BindEnv("KeyStore.VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
+	_ = viper.BindEnv("KeyStore.VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("KeyStore.TLSEnabled", "ISSUER_VAULT_TLS_ENABLED")
+	_ = viper.BindEnv("KeyStore.CertPath", "ISSUER_VAULT_TLS_CERT_PATH")
 
 	_ = viper.BindEnv("Ethereum.URL", "ISSUER_ETHEREUM_URL")
 	_ = viper.BindEnv("Ethereum.ContractAddress", "ISSUER_ETHEREUM_CONTRACT_ADDRESS")
-	_ = viper.BindEnv("Ethereum.DefaultGasLimit", "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT")
-	_ = viper.BindEnv("Ethereum.ConfirmationTimeout", "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT")
-	_ = viper.BindEnv("Ethereum.ConfirmationBlockCount", "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT")
-	_ = viper.BindEnv("Ethereum.ReceiptTimeout", "ISSUER_ETHEREUM_RECEIPT_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.MinGasPrice", "ISSUER_ETHEREUM_MIN_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.MaxGasPrice", "ISSUER_ETHEREUM_MAX_GAS_PRICE")
-	_ = viper.BindEnv("Ethereum.GasLess", "ISSUER_ETHEREUM_GASLESS")
-	_ = viper.BindEnv("Ethereum.RPCResponseTimeout", "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT")
-	_ = viper.BindEnv("Ethereum.WaitReceiptCycleTime", "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.WaitBlockCycleTime", "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME")
-	_ = viper.BindEnv("Ethereum.ResolverPrefix", "ISSUER_ETHEREUM_RESOLVER_PREFIX")
-	_ = viper.BindEnv("Ethereum.InternalTransferAmountWei", "ISSUER_INTERNAL_TRANSFER_AMOUNT_WEI")
 	_ = viper.BindEnv("Ethereum.TransferAccountKeyPath", "ISSUER_ETHEREUM_TRANSFER_ACCOUNT_KEY_PATH")
 
 	_ = viper.BindEnv("CredentialStatus.Iden3CommAgentStatus.URL", "ISSUER_CREDENTIAL_STATUS_DIRECT_URL")
@@ -495,8 +457,8 @@ func bindEnv() {
 	_ = viper.BindEnv("Cache.RedisUrl", "ISSUER_REDIS_URL")
 	_ = viper.BindEnv("SchemaCache", "ISSUER_SCHEMA_CACHE")
 
-	_ = viper.BindEnv("VaultUserPassAuthEnabled", "ISSUER_VAULT_USERPASS_AUTH_ENABLED")
-	_ = viper.BindEnv("VaultUserPassAuthPassword", "ISSUER_VAULT_USERPASS_AUTH_PASSWORD")
+	_ = viper.BindEnv("NetworkResolverPath", "ISSUER_RESOLVER_PATH")
+	_ = viper.BindEnv("NetworkResolverFile", "ISSUER_RESOLVER_FILE")
 
 	_ = viper.BindEnv("APIUI.ServerPort", "ISSUER_API_UI_SERVER_PORT")
 	_ = viper.BindEnv("APIUI.ServerURL", "ISSUER_API_UI_SERVER_URL")
@@ -569,50 +531,6 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
 	}
 
-	if cfg.Ethereum.ContractAddress == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONTRACT_ADDRESS value is missing")
-	}
-
-	if cfg.Ethereum.URL == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_URL value is missing")
-	}
-
-	if cfg.Ethereum.DefaultGasLimit == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_DEFAULT_GAS_LIMIT value is missing")
-	}
-
-	if cfg.Ethereum.ConfirmationTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_TIME_OUT value is missing")
-	}
-
-	if cfg.Ethereum.ConfirmationBlockCount == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_CONFIRMATION_BLOCK_COUNT value is missing")
-	}
-
-	if cfg.Ethereum.ReceiptTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_RECEIPT_TIMEOUT value is missing")
-	}
-
-	if cfg.Ethereum.MaxGasPrice == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_MAX_GAS_PRICE value is missing or is 0")
-	}
-
-	if cfg.Ethereum.RPCResponseTimeout == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_RPC_RESPONSE_TIMEOUT value is missing")
-	}
-
-	if cfg.Ethereum.WaitReceiptCycleTime == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_RECEIPT_CYCLE_TIME value is missing")
-	}
-
-	if cfg.Ethereum.WaitBlockCycleTime == 0 {
-		log.Info(ctx, "ISSUER_ETHEREUM_WAIT_BLOCK_CYCLE_TIME value is missing")
-	}
-
-	if cfg.Ethereum.ResolverPrefix == "" {
-		log.Info(ctx, "ISSUER_ETHEREUM_RESOLVER_PREFIX value is missing")
-	}
-
 	if cfg.Prover.ServerURL == "" {
 		log.Info(ctx, "ISSUER_PROVER_SERVER_URL value is missing")
 	}
@@ -639,9 +557,42 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		cfg.MediaTypeManager.Enabled = common.ToPointer(true)
 	}
 
-	if cfg.CredentialStatus.RHSMode == "" {
-		log.Info(ctx, "ISSUER_CREDENTIAL_STATUS_RHS_MODE value is missing and the server set up it as None")
-		cfg.CredentialStatus.RHSMode = "None"
+	if cfg.NetworkResolverPath == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing. Trying to use ISSUER_RESOLVER_FILE")
+		if cfg.NetworkResolverFile == "" {
+			log.Info(ctx, "ISSUER_RESOLVER_FILE value is missing")
+		} else {
+			log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
+		}
+	}
+
+	if cfg.NetworkResolverPath == "" && cfg.NetworkResolverFile == "" {
+		log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value: ./resolvers_settings.yaml")
+		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
+	}
+
+	if cfg.KeyStore.BJJProvider == "" {
+		log.Info(ctx, "ISSUER_KMS_BJJ_PLUGIN value is missing, using default value: vault")
+		cfg.KeyStore.BJJProvider = Vault
+	}
+
+	if cfg.KeyStore.ETHProvider == "" {
+		log.Info(ctx, "ISSUER_KMS_ETH_PLUGIN value is missing, using default value: vault")
+		cfg.KeyStore.ETHProvider = Vault
+	}
+
+	if (cfg.KeyStore.BJJProvider == LocalStorage || cfg.KeyStore.ETHProvider == LocalStorage) && cfg.KeyStore.ProviderLocalStorageFilePath == "" {
+		log.Info(ctx, "ISSUER_KMS_PLUGIN_LOCAL_STORAGE_FOLDER value is missing, using default value: ./localstoragekeys")
+		cfg.KeyStore.ProviderLocalStorageFilePath = "./localstoragekeys"
+	}
+
+	if cfg.KeyStore.ETHProvider == AWS {
+		if cfg.KeyStore.AWSAccessKey == "" {
+			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
+		}
+		if cfg.KeyStore.AWSSecretKey == "" {
+			log.Error(ctx, "ISSUER_AWS_SECRET_KEY value is missing")
+		}
 	}
 
 	if cfg.APIUI.KeyType == "" {
@@ -692,6 +643,45 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 		log.Info(ctx, "ISSUER_API_IDENTITY_NETWORK value is missing and the server set up it as amoy")
 		cfg.APIUI.IdentityNetwork = "amoy"
 	}
+}
+
+// KeyStoreConfig initializes the key store
+func KeyStoreConfig(ctx context.Context, cfg *Configuration, vaultCfg providers.Config) (*kms.KMS, error) {
+	var (
+		vaultCli *vault.Client
+		vaultErr error
+	)
+	if cfg.KeyStore.BJJProvider == Vault || cfg.KeyStore.ETHProvider == Vault {
+		log.Info(ctx, "using vault key provider")
+		vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
+		if vaultErr != nil {
+			log.Error(ctx, "cannot initialize vault client", "err", vaultErr)
+			return nil, vaultErr
+		}
+
+		if vaultCfg.UserPassAuthEnabled {
+			go providers.RenewToken(ctx, vaultCli, vaultCfg)
+		}
+	}
+
+	kmsConfig := kms.Config{
+		BJJKeyProvider:           kms.ConfigProvider(cfg.KeyStore.BJJProvider),
+		ETHKeyProvider:           kms.ConfigProvider(cfg.KeyStore.ETHProvider),
+		AWSKMSAccessKey:          cfg.KeyStore.AWSAccessKey,
+		AWSKMSSecretKey:          cfg.KeyStore.AWSSecretKey,
+		AWSKMSRegion:             cfg.KeyStore.AWSRegion,
+		LocalStoragePath:         cfg.KeyStore.ProviderLocalStorageFilePath,
+		Vault:                    vaultCli,
+		PluginIden3MountPath:     cfg.KeyStore.PluginIden3MountPath,
+		IssuerETHTransferKeyPath: cfg.Ethereum.TransferAccountKeyPath,
+	}
+
+	keyStore, err := kms.OpenWithConfig(ctx, kmsConfig)
+	if err != nil {
+		log.Error(ctx, "cannot initialize kms", "err", err)
+		return nil, err
+	}
+	return keyStore, nil
 }
 
 func getWorkingDirectory() string {

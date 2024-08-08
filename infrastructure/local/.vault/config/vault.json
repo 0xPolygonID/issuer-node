@@ -14,4 +14,4 @@
     "max_lease_ttl": "0h",
     "api_addr": "http://0.0.0.0:8200",
     "plugin_directory" : "/vault/plugins"
-  }  
+}

@@ -2,56 +2,36 @@ version: "3.9"
 services:
 
   ui:
-    build:
-      context: ../../ui/
-      dockerfile: Dockerfile
+    image: issuer-ui:local
     ports:
       - "8088:80"
     env_file:
       - ../../.env-api
       - ../../.env-ui
     healthcheck:
-      test: [ "CMD", "curl", "-f", "host.docker.internal:8088/health" ]
+      test: [ "CMD", "curl", "-f", "localhost:8088/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
   api:
-    build:
-      context: ../../
-      dockerfile: ${DOCKER_FILE}
+    image: issuer-api:local
     ports:
       - "3001:3001"
     env_file:
       - ../../.env-api
       - ../../.env-issuer
+    volumes:
+      - ../../localstoragekeys:/localstoragekeys:rw
     healthcheck:
-      test: [ "CMD", "curl", "-f", "host.docker.internal:3001/status" ]
+      test: [ "CMD", "curl", "-f", "localhost:3001/status" ]
       interval: 10s
       timeout: 5s
       retries: 5
     command: sh -c "apk add curl && sleep 4s && ./migrate && ./platform"
 
-  api-ui:
-    build:
-      context: ../../
-      dockerfile: ${DOCKER_FILE}
-    ports:
-      - "3002:3002"
-    env_file:
-      - ../../.env-api
-      - ../../.env-issuer
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "host.docker.internal:3002/status" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    command: sh -c "apk add curl && sleep 4s && ./migrate && ./platform_ui"
-
   notifications:
-    build:
-      context: ../../
-      dockerfile: ${DOCKER_FILE}
+    image: issuer-api:local
     ports:
       - "3004:3004"
     env_file:
@@ -60,24 +40,13 @@ services:
     command: sh -c "sleep 4s && ./notifications"
 
   pending_publisher:
-    build:
-      context: ../../
-      dockerfile: ${DOCKER_FILE}
+    image: issuer-api:local
     ports:
       - "3005:3005"
     env_file:
       - ../../.env-api
       - ../../.env-issuer
     command: sh -c "sleep 4s &&  ./pending_publisher"
-
-  initializer:
-    build:
-      context: ../../
-      dockerfile: ${DOCKER_FILE}
-    env_file:
-      - ../../.env-api
-      - ../../.env-issuer
-    command: sh -c "sleep 4s && ./migrate && ./issuer_initializer"
 
 networks:
   default:

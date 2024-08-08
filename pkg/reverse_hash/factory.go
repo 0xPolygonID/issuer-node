@@ -11,13 +11,16 @@ import (
 	proofHttp "github.com/iden3/merkletree-proof/http"
 
 	"github.com/polygonid/sh-id-platform/internal/kms"
-	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
+	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 )
 
 // RHSMode is a mode of RHS
 type RHSMode string
 
 const (
+	// RHSModeAll is a mode when we use both on-chain and off-chain RHS
+	RHSModeAll RHSMode = "All"
 	// RHSModeOffChain is a mode when we use off-chain RHS
 	RHSModeOffChain RHSMode = "OffChain"
 	// RHSModeOnChain is a mode when we use on-chain RHS
@@ -28,33 +31,45 @@ const (
 
 // Factory is a factory for creating RhsPublishers
 type Factory struct {
-	url                      string
-	ethClient                *eth.Client
-	onChainTreeStoreContract ethCommon.Address
-	responseTimeout          time.Duration
+	responseTimeout time.Duration
+	networkResolver network.Resolver
 }
 
 // NewFactory creates new instance of Factory
-func NewFactory(url string, ethClient *eth.Client, contract ethCommon.Address, rpcTimeout time.Duration) Factory {
+func NewFactory(networkResolver network.Resolver, rpcTimeout time.Duration) Factory {
 	return Factory{
-		url:                      url,
-		ethClient:                ethClient,
-		onChainTreeStoreContract: contract,
-		responseTimeout:          rpcTimeout,
+		networkResolver: networkResolver,
+		responseTimeout: rpcTimeout,
 	}
 }
 
 // BuildPublishers creates new instance of RhsPublisher
-func (f *Factory) BuildPublishers(ctx context.Context, rhsMode RHSMode, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
+func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
+	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return nil, err
+	}
+	rhsMode := RHSMode(rhsSettings.Mode)
+
 	switch rhsMode {
+	case RHSModeAll:
+		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
+		if err != nil {
+			return nil, err
+		}
+		onChainCli, err := f.initOnChainRHSCli(ctx, resolverPrefix, kmsKey)
+		if err != nil {
+			return nil, err
+		}
+		return []RhsPublisher{NewRhsPublisher(rhsCli, false), NewRhsPublisher(onChainCli, false)}, nil
 	case RHSModeOffChain:
-		rhsCli, err := f.initOffChainRHS()
+		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
 		if err != nil {
 			return nil, err
 		}
 		return []RhsPublisher{NewRhsPublisher(rhsCli, false)}, nil
 	case RHSModeOnChain:
-		onChainCli, err := f.initOnChainRHSCli(ctx, kmsKey)
+		onChainCli, err := f.initOnChainRHSCli(ctx, resolverPrefix, kmsKey)
 		if err != nil {
 			return nil, err
 		}
@@ -66,27 +81,50 @@ func (f *Factory) BuildPublishers(ctx context.Context, rhsMode RHSMode, kmsKey *
 	}
 }
 
-func (f *Factory) initOffChainRHS() (proof.ReverseHashCli, error) {
-	if f.url == "" {
+func (f *Factory) initOffChainRHS(ctx context.Context, resolverPrefix string) (proof.ReverseHashCli, error) {
+	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		return nil, err
+	}
+	if rhsSettings.RhsUrl == nil || *rhsSettings.RhsUrl == "" {
 		return nil, errors.New("rhs url must be configured")
 	}
 	return &proofHttp.ReverseHashCli{
-		URL:         f.url,
+		URL:         *rhsSettings.RhsUrl,
 		HTTPTimeout: f.responseTimeout,
 	}, nil
 }
 
-func (f *Factory) initOnChainRHSCli(ctx context.Context, kmsKey *kms.KeyID) (proof.ReverseHashCli, error) {
+func (f *Factory) initOnChainRHSCli(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) (proof.ReverseHashCli, error) {
 	// TODO:
 	// This can be a  problem in the future.
 	// Since between counting the miner tip and using this transaction option can be a big time gap.
 	// And while executing a transaction, we can have bigger tips on the network than we counted.
-	txOpts, err := f.ethClient.CreateTxOpts(ctx, *kmsKey)
+	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
 	}
-	cli, err := proofEth.NewReverseHashCli(f.ethClient.GetEthereumClient(), f.onChainTreeStoreContract, txOpts.From, txOpts.Signer)
+
+	ethClient, err := f.networkResolver.GetEthClient(resolverPrefix)
 	if err != nil {
+		log.Error(ctx, "failed to get eth client", "err", err)
+		return nil, err
+	}
+
+	txOpts, err := ethClient.CreateTxOpts(ctx, *kmsKey)
+	if err != nil {
+		log.Error(ctx, "failed to create tx opts", "err", err)
+		return nil, err
+	}
+
+	if rhsSettings.ContractAddress == nil || *rhsSettings.ContractAddress == "" {
+		return nil, errors.New("rhs contract address must be configured")
+	}
+
+	contractAddress := ethCommon.HexToAddress(*rhsSettings.ContractAddress)
+	cli, err := proofEth.NewReverseHashCli(ethClient.GetEthereumClient(), contractAddress, txOpts.From, txOpts.Signer)
+	if err != nil {
+		log.Error(ctx, "failed to create on-chain rhs client", "err", err)
 		return nil, err
 	}
 	return cli, nil

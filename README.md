@@ -211,6 +211,33 @@ make restart-ui
 ```
 ---
 
+## Issuer Node V2 Notes
+
+### Running issuer node with local storage file instead of Vault
+Setup environment variables in `.env-issuer` file:
+
+```bash
+ISSUER_KMS_BJJ_PROVIDER=localstorage
+ISSUER_KMS_ETH_PROVIDER=localstorage
+```
+
+To import the private key in AWS Kms run (make sure ISSUER_KMS_ETH_PROVIDER is set to `aws`):
+
+```shell
+make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
+```
+
+To import your private key in localstorage or Vault run (make sure ISSUER_KMS_ETH_PROVIDER is set to `localstorage` or `vault`):
+
+```shel
+make private_key=XXX import-private-key-to-kms
+```
+
+
+
+If you want to use Vault just change the `ISSUER_KMS_BJJ_PLUGIN` and `ISSUER_KMS_ETH_PLUGIN` to `vault` and follow the steps in the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section. 
+
+
 ## Quick Start Demo
 
 This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will walk you through the process of **issuing** and **verifying** your **first credential**.

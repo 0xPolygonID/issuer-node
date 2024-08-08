@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-    <title>Privado ID - Self Hosted Issuer</title>
+    <title>Privado ID - Issuer Node</title>
     <meta charset="utf-8">
     <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet">
     <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
@@ -11,17 +11,23 @@
     id = "the-doc"
     spec-url="/static/docs/api/api.yaml"
     theme = "light"
-    regular-font = "Nunito"
-    primary-color = "#7F56D9"
+    primary-color = "#93f598"
     allow-spec-url-load = false
     allow-spec-file-load = false
     show-header = false
-    render-style = "read"
+    render-style = "focused"
+    layout = "row"
     allow-authentication = true
     sort-endpoints-by="summary"
   >
-<!--    <img slot="nav-logo" src="{logo}" style="width:50px; height:50px"/>-->
+      <img
+              slot="nav-logo"
+              src="https://docs.privado.id/img/privado_logo.svg"
+              width="100px"
+              height="100px"
+      />
   </rapi-doc>
+
   <script>
       window.addEventListener('DOMContentLoaded', () => {
           const rapidocEl = document.getElementById('the-doc');

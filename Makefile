@@ -1,4 +1,4 @@
-include .env-api
+include .env-issuer
 BIN := $(shell pwd)/bin
 VERSION ?= $(shell git rev-parse --short HEAD)
 GO?=$(shell which go)
@@ -12,8 +12,10 @@ DOCKER_COMPOSE_FILE := $(LOCAL_DEV_PATH)/docker-compose.yml
 DOCKER_COMPOSE_FILE_INFRA := $(LOCAL_DEV_PATH)/docker-compose-infra.yml
 DOCKER_COMPOSE_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE)
 DOCKER_COMPOSE_INFRA_CMD := docker compose -p issuer -f $(DOCKER_COMPOSE_FILE_INFRA)
-ENVIRONMENT := ${ISSUER_API_ENVIRONMENT}
+ENVIRONMENT := ${ISSUER_ENVIRONMENT}
 
+ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH}
+ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
 
 # Local environment overrides via godotenv
 DOTENV_CMD = $(BIN)/godotenv
@@ -52,53 +54,44 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
-
-.PHONY: api-ui
-api-ui: $(BIN)/oapi-codegen
-	$(BIN)/oapi-codegen -config ./api_ui/config-oapi-codegen.yaml ./api_ui/api.yaml > ./internal/api_ui/api.gen.go
-
+# If you want to use vault as a KMS provider, you need to run this command
 .PHONY: up
 up:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
 
-.PHONY: run
-run:
-	$(eval DELETE_FILE = $(shell if [ -f ./.env-ui ]; then echo "false"; else echo "true"; fi))
-	@if [ -f ./.env-ui ]; then echo "false"; else touch ./.env-ui; fi
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api pending_publisher
-	@if [ $(DELETE_FILE) = "true" ] ; then rm ./.env-ui; fi
+# If you want to use localstorage as a KMS provider, you need to run this command
+.PHONY: up/localstorage
+ up/localstorage:
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
 
-.PHONY: run-arm
-run-arm:
-	@echo "WARN: Running ARM version is deprecated. 'make run' will be executed instead."
-	@make run
-
-.PHONY: run-ui
-run-ui: add-host-url-swagger
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d api-ui ui notifications pending_publisher
-
-.PHONY: run-ui-arm
-run-ui-arm: add-host-url-swagger
-	@echo "WARN: Running ARM version is deprecated. 'make run-ui' will be executed instead."
-	@make run-ui
-	
+# Build the docker image for the issuer-api
 .PHONY: build
 build:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api pending_publisher
+	docker build -t issuer-api:local -f ./Dockerfile .
 
-.PHONY: build-arm
-build-arm:
-	@echo "WARN: Running ARM version is deprecated. 'make build' will be executed instead."
-	@make build
-
+# Build the docker image for the issuer-ui
 .PHONY: build-ui
 build-ui:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) build api-ui ui notifications pending_publisher
+	docker build -t issuer-ui:local -f ./ui/Dockerfile ./ui
 
-.PHONY: build-ui-arm
-build-ui-arm:
-	@echo "WARN: Running ARM version is deprecated. 'make build-ui' will be executed instead."
-	@make build-ui
+# Run the api, pending_publisher and notifications services
+.PHONY: run
+run:
+	@if [ -f ./resolvers_settings.yaml ]; then \
+  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications; \
+	else \
+  		echo "./resolvers_settings.yaml not found"; \
+  	fi
+
+# Run the ui, api, pending_publisher and notifications services
+# First build the ui image and the api image
+.PHONY: run-ui
+run-ui: build-ui build add-host-url-swagger
+	@if [ -f ./resolvers_settings.yaml ]; then \
+  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications; \
+	else \
+  		echo "./resolvers_settings.yaml not found"; \
+  	fi
 
 .PHONY: down
 down:
@@ -114,6 +107,7 @@ stop:
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
 
+# Clean the vault data
 .PHONY: clean-vault
 clean-vault:
 	rm -R infrastructure/local/.vault/data/init.out
@@ -145,16 +139,46 @@ lint: $(BIN)/golangci-lint
 lint-fix: $(BIN)/golangci-lint
 		  $(BIN)/golangci-lint run --fix
 
-# usage: make private_key=xxx add-private-key
-.PHONY: add-private-key
-add-private-key:
-	docker exec issuer-vault-1 \
-	vault write iden3/import/pbkey key_type=ethereum private_key=$(private_key)
+## Usage:
+## AWS: make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
+## localstorage and vault: make private_key=XXX import-private-key-to-kms
+.PHONY: import-private-key-to-kms
+import-private-key-to-kms:
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
+	@echo "AWS"
+	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
+    		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	$(eval result = $(shell docker run -it -v ./.env-issuer:/.env-issuer  \
+		--network issuer-network \
+		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)))
+	@echo "result: $(result)"
+	$(eval keyID = $(shell echo $(result) | grep "key created keyId=" | sed 's/.*keyId=//'))
+	@if [ -n "$(keyID)" ]; then \
+		docker run -it --rm -v ./.env-issuer:/.env-issuer --network issuer-network \
+			privadoid-kms-importer sh ./aws_kms_material_key_importer.sh $(private_key) $(keyID) privadoid; \
+	else \
+		echo "something went wrong because keyID is empty"; \
+	fi
+else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
+	@echo "LOCALSTORAGE"
+	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
+		--network issuer-network \
+		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
+	@echo "VAULT"
+	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	docker run --rm -it -v ./.env-issuer:/.env-issuer --network issuer-network \
+		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+else
+	@echo "ISSUER_KMS_ETH_PROVIDER is not set"
+endif
 
 .PHONY: print-vault-token
 print-vault-token:
 	$(eval TOKEN = $(shell docker logs issuer-vault-1 2>&1 | grep " .hvs" | awk  '{print $$2}' | tail -1 ))
-	@echo $(TOKEN)
+	echo $(TOKEN)
 
 .PHONY: add-vault-token
 add-vault-token:
@@ -163,65 +187,11 @@ add-vault-token:
 	@echo ISSUER_KEY_STORE_TOKEN=$(TOKEN) >> .env-issuer.tmp
 	mv .env-issuer.tmp .env-issuer
 
-
-.PHONY: run-initializer
-run-initializer:
-	COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_FILE="Dockerfile" $(DOCKER_COMPOSE_CMD) up -d initializer
-	sleep 5
-
-.PHONY: generate-issuer-did
-generate-issuer-did: run-initializer
-	docker logs issuer-initializer-1
-	$(eval DID = $(shell docker logs -f --tail 1 issuer-initializer-1 | grep "did"))
-	@echo $(DID)
-	sed '/ISSUER_API_UI_ISSUER_DID/d' .env-api > .env-api.tmp
-	@echo ISSUER_API_UI_ISSUER_DID=$(DID) >> .env-api.tmp
-	mv .env-api.tmp .env-api
-	docker stop issuer-initializer-1
-	docker rm issuer-initializer-1
-
-
-.PHONY: generate-issuer-did-arm
-generate-issuer-did-arm:
-	@echo "WARN: Running ARM version is deprecated. 'make generate-issuer-did' will be executed instead."
-	@make generate-issuer-did
-
 .PHONY: add-host-url-swagger
 add-host-url-swagger:
 	@if [ $(ENVIRONMENT) != "" ] && [ $(ENVIRONMENT) != "local" ]; then \
 		sed -i -e  "s#server-url = [^ ]*#server-url = \""${ISSUER_API_UI_SERVER_URL}"\"#g" api_ui/spec.html; \
 	fi
-
-.PHONY: rm-issuer-imgs
-rm-issuer-imgs: stop
-	$(DOCKER_COMPOSE_CMD) rm -f
-	docker rmi -f issuer-api issuer-ui issuer-api-ui issuer-pending_publisher
-
-.PHONY: restart-ui
-restart-ui: rm-issuer-imgs up run run-ui
-
-.PHONY: restart-ui-arm
-restart-ui-arm:
-	@echo "WARN: Running ARM version is deprecated. 'make restart-ui' will be executed instead."
-	@make restart-ui
-
-.PHONY: print-did
-print-did:
-	docker exec issuer-vault-1 \
-	vault kv get -mount=kv did
-
-# use this to delete the did from vault. It will not be deleted from the database
-.PHONY: delete-did
-delete-did:
-	docker exec issuer-vault-1 \
-	vault kv delete kv/did
-
-# use this to add the did to vault. It will not be added to the database
-# usage: make did=xxx add-did
-.PHONY: add-did
-add-did:
-	docker exec issuer-vault-1 \
-	vault kv put kv/did did=$(did)
 
 # usage: make vault_token=xxx vault-export-keys
 .PHONY: vault-export-keys
@@ -241,3 +211,7 @@ vault-import-keys:
 change-vault-password:
 	docker exec issuer-vault-1 \
 	vault write auth/userpass/users/issuernode password=$(new_password)
+
+.PHONY: print-commands
+print-commands:
+	@grep '^\s*\.[a-zA-Z_][a-zA-Z0-9_]*' Makefile

@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	ErrClaimNotFound                     = errors.New("claim not found")                                               // ErrClaimNotFound Cannot retrieve the given claim
+	ErrCredentialNotFound                = errors.New("credential not found")                                          // ErrCredentialNotFound Cannot retrieve the given claim
 	ErrSchemaNotFound                    = errors.New("schema not found")                                              // ErrSchemaNotFound Cannot retrieve the given schema from DB
 	ErrLinkNotFound                      = errors.New("link not found")                                                // ErrLinkNotFound Cannot get the given link from the DB
 	ErrJSONLdContext                     = errors.New("jsonLdContext must be a string")                                // ErrJSONLdContext Field jsonLdContext must be a string
@@ -157,9 +157,14 @@ func (c *claim) CreateCredential(ctx context.Context, req *ports.CreateClaimRequ
 		return nil, ErrJSONLdContext
 	}
 
-	vcID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
+	var vcID uuid.UUID
+	if req.ClaimID != nil {
+		vcID = *req.ClaimID
+	} else {
+		vcID, err = uuid.NewUUID()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	vc, err := c.createVC(ctx, req, vcID, jsonLdContext, nonce)
@@ -295,7 +300,7 @@ func (c *claim) Delete(ctx context.Context, id uuid.UUID) error {
 	err := c.icRepo.Delete(ctx, c.storage.Pgx, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return ErrClaimNotFound
+			return ErrCredentialNotFound
 		}
 		return err
 	}
@@ -307,7 +312,7 @@ func (c *claim) GetByID(ctx context.Context, issID *w3c.DID, id uuid.UUID) (*dom
 	claim, err := c.icRepo.GetByIdAndIssuer(ctx, c.storage.Pgx, issID, id)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return nil, ErrClaimNotFound
+			return nil, ErrCredentialNotFound
 		}
 		return nil, err
 	}
@@ -409,7 +414,7 @@ func (c *claim) GetAll(ctx context.Context, did w3c.DID, filter *ports.ClaimsFil
 	claims, total, err := c.icRepo.GetAllByIssuerID(ctx, c.storage.Pgx, did, filter)
 	if err != nil {
 		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return nil, 0, ErrClaimNotFound
+			return nil, 0, ErrCredentialNotFound
 		}
 		return nil, 0, err
 	}

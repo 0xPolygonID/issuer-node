@@ -1,7 +1,9 @@
 package domain
 
 import (
+	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/iden3/go-iden3-core/v2/w3c"
 
@@ -9,15 +11,26 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
+// AuthCoreClaimRevocationStatus - auth core claim revocation status
+type AuthCoreClaimRevocationStatus struct {
+	ID              string `json:"id"`
+	Type            string `json:"type"`
+	RevocationNonce uint   `json:"revocationNonce"`
+}
+
+// ErrInvalidIdentifier - invalid identifier error
+var ErrInvalidIdentifier = errors.New("invalid identifier")
+
 // Identity struct
 type Identity struct {
-	Identifier string
-	State      IdentityState
-	Relay      string   `json:"relay"`
-	Immutable  bool     `json:"immutable"`
-	KeyType    string   `json:"keyType"`
-	Address    *string  `json:"address"`
-	Balance    *big.Int `json:"balance"`
+	Identifier                    string
+	State                         IdentityState
+	Relay                         string                        `json:"relay"`
+	Immutable                     bool                          `json:"immutable"`
+	KeyType                       string                        `json:"keyType"`
+	Address                       *string                       `json:"address"`
+	Balance                       *big.Int                      `json:"balance"`
+	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
 }
 
 // NewIdentityFromIdentifier default identity model from identity and root state
@@ -42,4 +55,16 @@ func NewIdentityFromIdentifier(did *w3c.DID, rootState string) (*Identity, error
 			State:      &rootState,
 		},
 	}, nil
+}
+
+// GetResolverPrefix get resolver prefix
+func (i *Identity) GetResolverPrefix() (string, error) {
+	const itemsLen = 4
+	items := strings.Split(i.Identifier, ":")
+	if len(items) < itemsLen {
+		return "", ErrInvalidIdentifier
+	}
+	chain := items[2]
+	network := items[3]
+	return chain + ":" + network, nil
 }

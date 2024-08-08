@@ -48,6 +48,8 @@ var (
 	ErrTransactionNotFound = errors.New("transaction not found")
 	// CompressedPublicKeyLength is the length of a compressed public key
 	CompressedPublicKeyLength = 33
+	// AwsKmsPublicKeyLength is the length of a public key from AWS KMS
+	AwsKmsPublicKeyLength = 88
 )
 
 // Client is an ethereum client to call Smart Contract methods.
@@ -67,7 +69,7 @@ type ClientConfig struct {
 	MaxGasPrice            *big.Int      `json:"max_gas_price"`
 	GasLess                bool          `json:"gas_less"`
 	RPCResponseTimeout     time.Duration `json:"rpc_response_time_out"`
-	WaitReceiptCycleTime   time.Duration `json:"wait_receipt_cycle_time_out"`
+	WaitReceiptCycleTime   time.Duration `json:"wait_receipt*eth.Client_cycle_time_out"`
 	WaitBlockCycleTime     time.Duration `json:"wait_block_cycle_time_out"`
 }
 
@@ -83,6 +85,16 @@ func NewClient(client *ethclient.Client, c *ClientConfig, kms *kms.KMS) *Client 
 // GetEthereumClient returns the underlying ethereum client
 func (c *Client) GetEthereumClient() *ethclient.Client {
 	return c.client
+}
+
+// GetConfirmationBlockCount returns the number of blocks to wait for confirmation
+func (c *Client) GetConfirmationBlockCount() int64 {
+	return c.Config.ConfirmationBlockCount
+}
+
+// GetConfirmationConfirmationTimeout returns the timeout for confirmation
+func (c *Client) GetConfirmationConfirmationTimeout() time.Duration {
+	return c.Config.ConfirmationTimeout
 }
 
 // BalanceAt retrieves information about the default account
@@ -311,6 +323,7 @@ func (c *Client) GetTransactionByID(ctx context.Context, txID string) (*types.Tr
 
 // CreateTxOpts creates a new transaction signer
 func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.TransactOpts, error) {
+	//nolint:all
 	addr, err := c.getAddress(kmsKey)
 	if err != nil {
 		return nil, err
@@ -319,12 +332,11 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 	sigFn := c.signerFnFactory(ctx, kmsKey)
 
 	// tip := big.NewInt(0)
-	gasLimit := uint64(c.Config.DefaultGasLimit)
 
 	opts := &bind.TransactOpts{
 		From:     addr,
 		Signer:   sigFn,
-		GasLimit: gasLimit, // go-ethereum library will estimate gas limit automatically if it is 0
+		GasLimit: uint64(0), // go-ethereum library will estimate gas limit automatically if it is 0
 		Context:  ctx,
 		NoSend:   false,
 	}
@@ -334,7 +346,7 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 		if err != nil {
 			return nil, err
 		}
-		gasLimit = uint64(0)
+		gasLimit := uint64(0)
 		opts.GasLimit = gasLimit
 		opts.GasTipCap = tip
 	}
@@ -503,6 +515,11 @@ func (c *Client) getAddress(k kms.KeyID) (common.Address, error) {
 	switch len(bytesPubKey) {
 	case CompressedPublicKeyLength:
 		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
+	case AwsKmsPublicKeyLength:
+		pubKey, err = kms.DecodeAWSETHPubKey(context.Background(), bytesPubKey)
+		if err != nil {
+			return common.Address{}, err
+		}
 	default:
 		pubKey, err = crypto.UnmarshalPubkey(bytesPubKey)
 	}
