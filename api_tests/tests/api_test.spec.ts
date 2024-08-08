@@ -23,7 +23,7 @@ test.describe('API tests', () => {
                 "credentialSchema": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
                 "type": "KYCAgeCredential",
                 "credentialSubject": {
-                    "id": "did:polygonid:polygon:amoy:2qSJrG9cQXBa9A4J1XMRLVunZTz17hhQokNXq7HNrX",
+                    "id": "did:iden3:privado:main:2Sj3kThjNGrJN6Gk3QMaxtZrGC7DweusYtTWsr6jHm",
                     "birthday": 19960424,
                     "documentType": 2
                 },
@@ -42,8 +42,8 @@ test.describe('API tests', () => {
                 "body": {
                     "id": id,
                 },
-                "from": "did:polygonid:polygon:mumbai:2qJG6RYgN1u6v7JAYSdfixSwktnZ7hMzd4t21SCdNu",
-                "to": "did:polygonid:polygon:mumbai:2qFroxB5kwgCxgVrNGUM6EW3khJgCdHHnKTr3VnTcp"
+                "from": "did:iden3:privado:main:2ScShf8ab4s9kCnRzg6cf3Z81dTawxPLxjF5rEYgKv",
+                "to": "did:iden3:privado:main:2SfrAF6Lya1HLEGWcSXTBMApk5YVmKR2ymZWDjZNSH"
             }
         });
 
@@ -57,7 +57,7 @@ test.describe('API tests', () => {
                 "credentialSchema": "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
                 "type": "KYCAgeCredential",
                 "credentialSubject": {
-                    "id": "did:polygonid:polygon:amoy:2qSJrG9cQXBa9A4J1XMRLVunZTz17hhQokNXq7HNrX",
+                    "id": "did:iden3:privado:main:2Sj3kThjNGrJN6Gk3QMaxtZrGC7DweusYtTWsr6jHm",
                     "birthday": 19960424,
                     "documentType": 2
                 },
