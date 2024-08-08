@@ -48,7 +48,7 @@ func main() {
 
 	log.Info(ctx, "starting issuer node...", "revision", build)
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load()
 	if err != nil {
 		log.Error(ctx, "cannot load config", "err", err)
 		return
@@ -95,7 +95,6 @@ func main() {
 	}
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
-	cfg.CredentialStatus.SingleIssuer = false
 
 	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {

@@ -39,7 +39,7 @@ func main() {
 
 	log.Info(ctx, "starting pending publisher...", "revision", build)
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load()
 	if err != nil {
 		log.Error(ctx, "cannot load config", "err", err)
 		panic(err)
@@ -125,10 +125,10 @@ func main() {
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
-	proofService := initProofService(ctx, cfg, circuitsLoaderService)
+	proofService := initProofService(circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -178,18 +178,9 @@ func main() {
 	log.Info(ctx, "Finished")
 }
 
-func initProofService(ctx context.Context, config *config.Configuration, circuitLoaderService *circuitLoaders.Circuits) ports.ZKGenerator {
-	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
-	if config.NativeProofGenerationEnabled {
-		proverConfig := &services.NativeProverConfig{
-			CircuitsLoader: circuitLoaderService,
-		}
-		return services.NewNativeProverService(proverConfig)
+func initProofService(circuitLoaderService *circuitLoaders.Circuits) ports.ZKGenerator {
+	proverConfig := &services.NativeProverConfig{
+		CircuitsLoader: circuitLoaderService,
 	}
-
-	proverConfig := &gateways.ProverConfig{
-		ServerURL:       config.Prover.ServerURL,
-		ResponseTimeout: config.Prover.ResponseTimeout,
-	}
-	return gateways.NewProverService(proverConfig)
+	return services.NewNativeProverService(proverConfig)
 }
