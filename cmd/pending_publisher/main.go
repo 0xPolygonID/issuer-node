@@ -47,11 +47,6 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	if err := cfg.Sanitize(ctx); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
-
 	rdb, err := redis.Open(cfg.Cache.RedisUrl)
 	if err != nil {
 		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)

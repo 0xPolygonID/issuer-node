@@ -36,8 +36,15 @@ const (
 
 // Configuration holds the project configuration
 type Configuration struct {
-	ServerUrl                   string `env:"ISSUER_SERVER_URL" envDefault:"http://localhost"`
-	ServerPort                  int    `env:"ISSUER_SERVER_PORT" envDefault:"3001"`
+	ServerUrl                   string        `env:"ISSUER_SERVER_URL" envDefault:"http://localhost"`
+	ServerPort                  int           `env:"ISSUER_SERVER_PORT" envDefault:"3001"`
+	PublishingKeyPath           string        `env:"ISSUER_PUBLISH_KEY_PATH" envDefault:"pbkey"`
+	SchemaCache                 *bool         `env:"ISSUER_SCHEMA_CACHE" envDefault:"false"`
+	OnChainCheckStatusFrequency time.Duration `env:"ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY"`
+	NetworkResolverPath         string        `env:"ISSUER_RESOLVER_PATH"`
+	NetworkResolverFile         *string       `env:"ISSUER_RESOLVER_FILE"`
+	IssuerName                  string        `env:"ISSUER_ISSUER_NAME"`
+	IssuerLogo                  string        `env:"ISSUER_ISSUER_LOGO"`
 	Database                    Database
 	Cache                       Cache
 	HTTPBasicAuth               HTTPBasicAuth
@@ -45,16 +52,9 @@ type Configuration struct {
 	Log                         Log
 	Ethereum                    Ethereum
 	Circuit                     Circuit
-	PublishingKeyPath           string        `env:"ISSUER_PUBLISH_KEY_PATH"`
-	OnChainCheckStatusFrequency time.Duration `env:"ISSUER_ONCHAIN_CHECK_STATUS_FREQUENCY"`
-	SchemaCache                 *bool         `env:"ISSUER_SCHEMA_CACHE"`
 	IPFS                        IPFS
 	CustomDIDMethods            []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager            MediaTypeManager
-	NetworkResolverPath         string `env:"ISSUER_RESOLVER_PATH"`
-	NetworkResolverFile         string `env:"ISSUER_RESOLVER_FILE"`
-	IssuerName                  string `env:"ISSUER_ISSUER_NAME"`
-	IssuerLogo                  string `env:"ISSUER_ISSUER_LOGO"`
 }
 
 // Database has the database configuration
@@ -168,9 +168,24 @@ type MediaTypeManager struct {
 	Enabled *bool `env:"ISSUER_MEDIA_TYPE_MANAGER_ENABLED"`
 }
 
-// Sanitize perform some basic checks and sanitizations in the configuration.
+// Load loads the configuration from a file
+func Load() (*Configuration, error) {
+	ctx := context.Background()
+	cfg := Configuration{} // 👈 new instance of `Config`
+	err := env.Parse(&cfg) // 👈 Parse environment variables into `Config`
+	if err != nil {
+		return nil, err
+	}
+	checkEnvVars(ctx, &cfg)
+	if err := cfg.sanitize(ctx); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+// sanitize perform some basic checks and sanitizations in the configuration.
 // Returns true if config is acceptable, error otherwise.
-func (c *Configuration) Sanitize(ctx context.Context) error {
+func (c *Configuration) sanitize(ctx context.Context) error {
 	sUrl, err := c.validateServerUrl()
 	if err != nil {
 		return fmt.Errorf("serverUrl is not a valid URL <%s>: %w", c.ServerUrl, err)
@@ -194,18 +209,6 @@ func (c *Configuration) validateServerUrl() (string, error) {
 	}
 	sUrl.RawQuery = ""
 	return strings.Trim(strings.Trim(sUrl.String(), "/"), "?"), nil
-}
-
-// Load loads the configuration from a file
-func Load() (*Configuration, error) {
-	ctx := context.Background()
-	cfg := Configuration{} // 👈 new instance of `Config`
-	err := env.Parse(&cfg) // 👈 Parse environment variables into `Config`
-	if err != nil {
-		return nil, err
-	}
-	checkEnvVars(ctx, &cfg)
-	return &cfg, nil
 }
 
 // lookupVaultTokenFromFile parses the vault config file looking for the hvs token and returns it
@@ -297,14 +300,14 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 
 	if cfg.NetworkResolverPath == "" {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH value is missing. Trying to use ISSUER_RESOLVER_FILE")
-		if cfg.NetworkResolverFile == "" {
+		if cfg.NetworkResolverFile == nil || *cfg.NetworkResolverFile == "" {
 			log.Info(ctx, "ISSUER_RESOLVER_FILE value is missing")
 		} else {
 			log.Info(ctx, "ISSUER_RESOLVER_FILE value is present")
 		}
 	}
 
-	if cfg.NetworkResolverPath == "" && cfg.NetworkResolverFile == "" {
+	if cfg.NetworkResolverPath == "" && (cfg.NetworkResolverFile == nil || *cfg.NetworkResolverFile == "") {
 		log.Info(ctx, "ISSUER_RESOLVER_PATH and ISSUER_RESOLVER_FILE value is missing. Using default value: ./resolvers_settings.yaml")
 		cfg.NetworkResolverPath = "./resolvers_settings.yaml"
 	}
