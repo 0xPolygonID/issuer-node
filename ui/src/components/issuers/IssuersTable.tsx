@@ -13,7 +13,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { identifierParser } from "src/adapters/api/issuers";
-import IconIssuers from "src/assets/icons/building.svg?react";
+import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { NoResults } from "src/components/shared/NoResults";

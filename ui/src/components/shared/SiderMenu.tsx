@@ -2,7 +2,7 @@ import { Col, Divider, Menu, Row, Space, Tag, Typography, message } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
-import IconIssuers from "src/assets/icons/building.svg?react";
+import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
