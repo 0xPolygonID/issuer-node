@@ -8,9 +8,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
   use: {
-    baseURL: 'https://issuer-node-api-v2-test.privado.id',//TODO get from container
+    // baseURL: 'https://issuer-node-api-v2-test.privado.id',//TODO get from container
+    baseURL: `${process.env.ISSUER_API_URL}`,
     extraHTTPHeaders: {
       'Authorization': `Basic ${btoa(`${process.env.ISSUER_API_UI_AUTH_USER}:${process.env.ISSUER_API_UI_AUTH_PASSWORD}`)}`,
     }
