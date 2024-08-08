@@ -3,7 +3,7 @@ name: Test Issuer Node API
 on:
   push:
     branches:
-      - develop
+      - develop-v2
 
 jobs:
   run-tests:
