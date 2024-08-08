@@ -1,7 +1,21 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('API tests', () => {
-    let did: string = 'did:polygonid:polygon:amoy:2qYQdd1yqFyrM9ZPqYTE4WHAQH2PX5Rjtj7YDYPppj';
+    let did: string;
+    test.beforeEach(async ({request}) => {
+        const newDID = await request.post(`/v1/identities`, {
+            data: {
+                "didMetadata": {
+                  "method": "polygonid",
+                  "blockchain": "polygon",
+                  "network": "amoy",
+                  "type": "BJJ",
+                  "authBJJCredentialStatus": "Iden3commRevocationStatusV1.0"
+                }
+              }
+        });
+        did = (await newDID.json()).identifier;
+    });
 
     test('unsuported media type', async ({ request }) => {
         const newClaim = await request.post(`/v1/${did}/credentials`, {
