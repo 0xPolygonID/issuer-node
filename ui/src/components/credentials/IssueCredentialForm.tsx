@@ -93,7 +93,7 @@ export function IssueCredentialForm({
   type: "directIssue" | "credentialLink";
 }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const [form] = Form.useForm<IssueCredentialFormData>();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -304,7 +304,7 @@ export function IssueCredentialForm({
 
       const response = await getApiSchemas({
         env,
-        identifier,
+        issuerIdentifier,
         params: {},
         signal,
       });
@@ -327,7 +327,7 @@ export function IssueCredentialForm({
         }
       }
     },
-    [env, fetchJsonSchema, initialValues.schemaID, messageAPI, identifier]
+    [env, fetchJsonSchema, initialValues.schemaID, messageAPI, issuerIdentifier]
   );
 
   useEffect(() => {

@@ -9,13 +9,15 @@ import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import {
   Attribute,
   AttributeValue,
+  AuthBJJCredentialStatus,
+  CredentialProofType,
+  IssuerType,
   Json,
   JsonLiteral,
   JsonObject,
   ObjectAttribute,
   ProofType,
 } from "src/domain";
-import { CredentialProofType } from "src/domain/credential";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
 
 // Types
@@ -42,6 +44,16 @@ export type CredentialLinkIssuance = CredentialIssuance & {
   linkMaximumIssuance: number | undefined;
   type: "credentialLink";
 };
+
+export type IssuerFormData = { blockchain: string; method: string; network: string } & (
+  | {
+      authBJJCredentialStatus: AuthBJJCredentialStatus;
+      type: IssuerType.BJJ;
+    }
+  | {
+      type: IssuerType.ETH;
+    }
+);
 
 // Parsers
 export type TableSorterInput = { field: string; order?: "ascend" | "descend" | undefined };

@@ -48,7 +48,7 @@ const defaultCredentialFormInput: CredentialFormInput = {
 
 export function IssueCredential() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const navigate = useNavigate();
@@ -134,7 +134,7 @@ export function IssueCredential() {
       if (serializedCredentialForm.success) {
         const response = await createLink({
           env,
-          identifier,
+          issuerIdentifier,
           payload: serializedCredentialForm.data,
         });
         if (response.success) {
@@ -177,7 +177,7 @@ export function IssueCredential() {
       if (serializedCredentialForm.success) {
         const response = await createCredential({
           env,
-          identifier,
+          issuerIdentifier,
           payload: serializedCredentialForm.data,
         });
         if (response.success) {

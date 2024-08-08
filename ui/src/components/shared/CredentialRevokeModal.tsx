@@ -20,7 +20,7 @@ export function CredentialRevokeModal({
   onRevoke: () => void;
 }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -33,7 +33,7 @@ export function CredentialRevokeModal({
   const handleRevokeCredential = () => {
     setIsLoading(true);
 
-    void revokeCredential({ env, identifier, nonce }).then((response) => {
+    void revokeCredential({ env, issuerIdentifier, nonce }).then((response) => {
       if (response.success) {
         onClose();
         onRevoke();

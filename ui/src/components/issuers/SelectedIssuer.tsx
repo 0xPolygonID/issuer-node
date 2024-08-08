@@ -1,8 +1,8 @@
 import { Typography } from "antd";
 import { useIssuerContext } from "src/contexts/Issuer";
-import { Identifier } from "src/domain/identifier";
+import { IssuerIdentifier } from "src/domain";
 
-function formatIdentifier(identifier: Identifier): string {
+function formatIdentifier(identifier: IssuerIdentifier): string {
   if (identifier) {
     const parts = identifier.split(":");
     const id = parts.at(-1);
@@ -14,11 +14,11 @@ function formatIdentifier(identifier: Identifier): string {
 }
 
 export function SelectedIssuer() {
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   return (
     <Typography.Text style={{ fontSize: 12, whiteSpace: "nowrap" }}>
-      {formatIdentifier(identifier)}
+      {formatIdentifier(issuerIdentifier)}
     </Typography.Text>
   );
 }

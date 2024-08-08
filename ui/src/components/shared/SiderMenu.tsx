@@ -2,7 +2,6 @@ import { Col, Divider, Menu, Row, Space, Tag, Typography, message } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
-import { SelectedIssuer } from "../issuers.tsx/SelectedIssuer";
 import IconIssuers from "src/assets/icons/building.svg?react";
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
@@ -11,6 +10,7 @@ import IconLink from "src/assets/icons/link-external-01.svg?react";
 import IconSettings from "src/assets/icons/settings-01.svg?react";
 import IconIssuerState from "src/assets/icons/switch-horizontal.svg?react";
 import IconConnections from "src/assets/icons/users-01.svg?react";
+import { SelectedIssuer } from "src/components/issuers/SelectedIssuer";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { SettingsModal } from "src/components/shared/SettingsModal";
 import { UserDisplay } from "src/components/shared/UserDisplay";
@@ -38,7 +38,7 @@ export function SiderMenu({
 }) {
   const { buildTag } = useEnvContext();
   const { status } = useIssuerStateContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ export function SiderMenu({
           <Menu
             items={[
               {
-                disabled: !identifier,
+                disabled: !issuerIdentifier,
                 icon: <IconSchema />,
                 key: schemasPath,
                 label: SCHEMAS,
@@ -125,7 +125,7 @@ export function SiderMenu({
                 title: "",
               },
               {
-                disabled: !identifier,
+                disabled: !issuerIdentifier,
                 icon: <IconCredentials />,
                 key: credentialsPath,
                 label: CREDENTIALS,
@@ -138,7 +138,7 @@ export function SiderMenu({
                 title: "",
               },
               {
-                disabled: !identifier,
+                disabled: !issuerIdentifier,
                 icon: <IconConnections />,
                 key: connectionsPath,
                 label: CONNECTIONS,
@@ -146,7 +146,7 @@ export function SiderMenu({
                 title: "",
               },
               {
-                disabled: !identifier,
+                disabled: !issuerIdentifier,
                 icon: <IconIssuerState />,
                 key: issuerStatePath,
                 label:

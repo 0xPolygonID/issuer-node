@@ -1,15 +1,15 @@
 import { Divider, Modal, Space, message } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SiderLayoutContent } from "../shared/SiderLayoutContent";
 
-import { IssuerForm } from "./IssuerForm";
-import { IssuersTable } from "./IssuersTable";
 import { createIssuer } from "src/adapters/api/issuers";
+import { IssuerFormData } from "src/adapters/parsers/view";
 import IconClose from "src/assets/icons/x.svg?react";
+import { IssuerForm } from "src/components/issuers/IssuerForm";
+import { IssuersTable } from "src/components/issuers/IssuersTable";
+import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerContext } from "src/contexts/Issuer";
-import { IssuerFormData } from "src/domain/identifier";
 import { ROUTES } from "src/routes";
 import { isAsyncTaskDataAvailable } from "src/utils/async";
 import { makeRequestAbortable } from "src/utils/browser";

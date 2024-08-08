@@ -4,8 +4,7 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { ID, IDParser, buildAuthorizationHeader } from "src/adapters/api";
 import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
-import { ApiSchema, Env, JsonLdType } from "src/domain";
-import { Identifier } from "src/domain/identifier";
+import { ApiSchema, Env, IssuerIdentifier, JsonLdType } from "src/domain";
 import { getStorageByKey } from "src/utils/browser";
 import { API_VERSION, IPFS_CUSTOM_GATEWAY_KEY, QUERY_SEARCH_PARAM } from "src/utils/constants";
 import { List } from "src/utils/types";
@@ -31,7 +30,7 @@ const apiSchemaParser = getStrictParser<ApiSchemaInput, ApiSchema>()(
 export async function importSchema({
   description,
   env,
-  identifier,
+  issuerIdentifier,
   jsonLdType,
   schemaUrl,
   title,
@@ -39,7 +38,7 @@ export async function importSchema({
 }: {
   description?: string;
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   jsonLdType: JsonLdType;
   schemaUrl: string;
   title?: string;
@@ -59,7 +58,7 @@ export async function importSchema({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${identifier}/schemas`,
+      url: `${API_VERSION}/${issuerIdentifier}/schemas`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -69,12 +68,12 @@ export async function importSchema({
 
 export async function getApiSchema({
   env,
-  identifier,
+  issuerIdentifier,
   schemaID,
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   schemaID: string;
   signal: AbortSignal;
 }): Promise<Response<ApiSchema>> {
@@ -86,7 +85,7 @@ export async function getApiSchema({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${identifier}/schemas/${schemaID}`,
+      url: `${API_VERSION}/${issuerIdentifier}/schemas/${schemaID}`,
     });
     return buildSuccessResponse(apiSchemaParser.parse(response.data));
   } catch (error) {
@@ -96,12 +95,12 @@ export async function getApiSchema({
 
 export async function getApiSchemas({
   env,
-  identifier,
+  issuerIdentifier,
   params: { query },
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   params: {
     query?: string;
   };
@@ -118,7 +117,7 @@ export async function getApiSchemas({
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${identifier}/schemas`,
+      url: `${API_VERSION}/${issuerIdentifier}/schemas`,
     });
     return buildSuccessResponse(
       getListParser(apiSchemaParser)

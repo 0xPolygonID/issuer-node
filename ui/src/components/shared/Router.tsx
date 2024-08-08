@@ -1,8 +1,6 @@
 import { ComponentType } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { CreateIssuer } from "../issuers.tsx/CreateIssuer";
-import { Issuers } from "../issuers.tsx/Issuers";
 import { ConnectionDetails } from "src/components/connections/ConnectionDetails";
 import { ConnectionsTable } from "src/components/connections/ConnectionsTable";
 import { CredentialDetails } from "src/components/credentials/CredentialDetails";
@@ -12,6 +10,8 @@ import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
+import { CreateIssuer } from "src/components/issuers/CreateIssuer";
+import { Issuers } from "src/components/issuers/Issuers";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
@@ -40,13 +40,8 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
   schemas: Schemas,
 };
 
-const issuerRoutes = [
-  { ...ROUTES.issuers, Component: COMPONENTS.issuers },
-  { ...ROUTES.createIssuer, Component: COMPONENTS.createIssuer },
-];
-
 export function Router() {
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const getLayoutRoutes = (currentLayout: Layout) =>
     Object.entries(ROUTES).reduce((acc: React.ReactElement[], [keyRoute, { layout, path }]) => {
@@ -62,7 +57,7 @@ export function Router() {
 
   return (
     <Routes>
-      {identifier ? (
+      {issuerIdentifier ? (
         <>
           <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
 
@@ -77,9 +72,8 @@ export function Router() {
       ) : (
         <>
           <Route element={<SiderLayout />}>
-            {issuerRoutes.map(({ Component, path }) => (
-              <Route element={<Component />} key={path} path={path} />
-            ))}
+            <Route element={<COMPONENTS.issuers />} path={ROUTES.issuers.path} />
+            <Route element={<COMPONENTS.createIssuer />} path={ROUTES.createIssuer.path} />
           </Route>
 
           <Route element={<Navigate to={ROUTES.issuers.path} />} path="*" />

@@ -3,25 +3,11 @@ import { z } from "zod";
 
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { buildAuthorizationHeader } from "src/adapters/api";
-import { datetimeParser, getListParser, getStrictParser } from "src/adapters/parsers";
-import { Env } from "src/domain";
+import { getListParser, getStrictParser } from "src/adapters/parsers";
+import { AuthBJJCredentialStatus, Env, Issuer, IssuerIdentifier, IssuerType } from "src/domain";
 
-import {
-  AuthBJJCredentialStatus,
-  Identifier,
-  Issuer,
-  IssuerFormData,
-  IssuerState,
-} from "src/domain/identifier";
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
-
-type ApiIssuerStateInput = Omit<IssuerState, "state"> & {
-  state: Omit<IssuerState["state"], "createdAt" | "modifiedAt"> & {
-    createdAt: string;
-    modifiedAt: string;
-  };
-};
 
 const apiIssuerParser = getStrictParser<Issuer>()(
   z.object({
@@ -37,31 +23,9 @@ const apiIssuerParser = getStrictParser<Issuer>()(
   })
 );
 
-export const identifierParser = getStrictParser<Identifier>()(z.string().nullable());
+export const identifierParser = getStrictParser<IssuerIdentifier>()(z.string());
 
-const apiIssuerStateParser = getStrictParser<ApiIssuerStateInput, IssuerState>()(
-  z.object({
-    address: z.string(),
-    identifier: z.string(),
-    state: z.object({
-      blockNumber: z.number().optional(),
-      blockTimestamp: z.number().optional(),
-      claimsTreeRoot: z.string(),
-      createdAt: datetimeParser,
-      identifier: z.string().optional(),
-      modifiedAt: datetimeParser,
-      previousState: z.string().optional(),
-      revocationTreeRoot: z.string().optional(),
-      rootOfRoots: z.string().optional(),
-      state: z.string(),
-      stateID: z.number().optional(),
-      status: z.string(),
-      txID: z.string().optional(),
-    }),
-  })
-);
-
-export async function getApiIssuers({
+export async function getIssuers({
   env,
   signal,
 }: {
@@ -85,15 +49,23 @@ export async function getApiIssuers({
   }
 }
 
+export type CreateIssuer = {
+  authBJJCredentialStatus?: AuthBJJCredentialStatus;
+  blockchain: string;
+  method: string;
+  network: string;
+  type: IssuerType;
+};
+
 export async function createIssuer({
   env,
   payload,
 }: {
   env: Env;
-  payload: IssuerFormData;
-}): Promise<Response<IssuerState>> {
+  payload: CreateIssuer;
+}): Promise<Response<void>> {
   try {
-    const response = await axios({
+    await axios({
       baseURL: env.api.url,
       data: { didMetadata: payload },
       headers: {
@@ -103,7 +75,7 @@ export async function createIssuer({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(apiIssuerStateParser.parse(response.data));
+    return buildSuccessResponse(undefined);
   } catch (error) {
     return buildErrorResponse(error);
   }

@@ -1,4 +1,4 @@
-import { AuthBJJCredentialStatus } from "./identifier";
+import { AuthBJJCredentialStatus } from "src/domain/issuer";
 
 export type CredentialsTabIDs = "issued" | "links";
 
@@ -39,9 +39,9 @@ export type CredentialDetail = {
   credentialSubject: {
     type: string;
   } & Record<string, unknown>;
-  expirationDate: Date | null;
+  expirationDate: string | null;
   id: string;
-  issuanceDate: Date;
+  issuanceDate: string;
   issuer: string;
   proof: Proof[];
   refreshService: RefreshService | null;

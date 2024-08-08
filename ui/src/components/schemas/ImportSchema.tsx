@@ -23,7 +23,7 @@ type Step =
 
 export function ImportSchema() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const navigate = useNavigate();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -40,17 +40,23 @@ export function ImportSchema() {
     },
     schemaUrl,
   }: FormData) =>
-    void importSchema({ description, env, identifier, jsonLdType, schemaUrl, title, version }).then(
-      (response) => {
-        if (response.success) {
-          navigate(ROUTES.schemas.path);
+    void importSchema({
+      description,
+      env,
+      issuerIdentifier,
+      jsonLdType,
+      schemaUrl,
+      title,
+      version,
+    }).then((response) => {
+      if (response.success) {
+        navigate(ROUTES.schemas.path);
 
-          void messageAPI.success("Schema successfully imported");
-        } else {
-          void messageAPI.error(response.error.message);
-        }
+        void messageAPI.success("Schema successfully imported");
+      } else {
+        void messageAPI.error(response.error.message);
       }
-    );
+    });
 
   return (
     <>

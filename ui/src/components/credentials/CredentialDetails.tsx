@@ -16,8 +16,7 @@ import { LoadingResult } from "src/components/shared/LoadingResult";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
 import { useIssuerContext } from "src/contexts/Issuer";
-import { AppError, ObjectAttributeValue } from "src/domain";
-import { Credential } from "src/domain/credential";
+import { AppError, Credential, ObjectAttributeValue } from "src/domain";
 import { ROUTES } from "src/routes";
 import {
   AsyncTask,
@@ -44,7 +43,7 @@ export function CredentialDetails() {
   const { sm } = Grid.useBreakpoint();
 
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
     AsyncTask<ObjectAttributeValue, AppError>
@@ -122,7 +121,7 @@ export function CredentialDetails() {
         const response = await getCredential({
           credentialID,
           env,
-          identifier,
+          issuerIdentifier,
           signal,
         });
 
@@ -136,7 +135,7 @@ export function CredentialDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, credentialID, identifier]
+    [env, fetchJsonSchemaFromUrl, credentialID, issuerIdentifier]
   );
 
   useEffect(() => {
@@ -193,7 +192,7 @@ export function CredentialDetails() {
             userID,
           } = credential.data;
 
-          const notPuslihedState = revoked && !credential.data.revoked;
+          const notPuslihedState: boolean = revoked && !credential.data.revoked;
 
           const qrCodeLink =
             window.location.origin +

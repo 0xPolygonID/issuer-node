@@ -53,7 +53,7 @@ import { notifyParseErrors } from "src/utils/error";
 
 export function ConnectionsTable() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const navigate = useNavigate();
 
   const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
@@ -198,7 +198,7 @@ export function ConnectionsTable() {
       const response = await getConnections({
         credentials: true,
         env,
-        identifier,
+        issuerIdentifier,
         params: {
           maxResults: paginationMaxResults,
           page: paginationPage,
@@ -224,7 +224,15 @@ export function ConnectionsTable() {
         }
       }
     },
-    [env, paginationMaxResults, paginationPage, queryParam, sortParam, updateUrlParams, identifier]
+    [
+      env,
+      paginationMaxResults,
+      paginationPage,
+      queryParam,
+      sortParam,
+      updateUrlParams,
+      issuerIdentifier,
+    ]
   );
 
   const onSearch = useCallback(

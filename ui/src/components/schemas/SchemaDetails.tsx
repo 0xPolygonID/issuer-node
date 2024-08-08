@@ -26,7 +26,7 @@ import {
 import { formatDate } from "src/utils/forms";
 
 export function SchemaDetails() {
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const navigate = useNavigate();
   const { schemaID } = useParams();
 
@@ -97,7 +97,7 @@ export function SchemaDetails() {
 
         const response = await getApiSchema({
           env,
-          identifier,
+          issuerIdentifier,
           schemaID,
           signal,
         });
@@ -112,7 +112,7 @@ export function SchemaDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, schemaID, identifier]
+    [env, fetchJsonSchemaFromUrl, schemaID, issuerIdentifier]
   );
 
   useEffect(() => {

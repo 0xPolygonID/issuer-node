@@ -20,7 +20,7 @@ import { formatDate } from "src/utils/forms";
 
 export function ConnectionDetails() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const navigate = useNavigate();
 
   const [connection, setConnection] = useState<AsyncTask<Connection, AppError>>({
@@ -38,7 +38,7 @@ export function ConnectionDetails() {
         const response = await getConnection({
           env,
           id: connectionID,
-          identifier,
+          issuerIdentifier,
           signal,
         });
         if (response.success) {
@@ -53,7 +53,7 @@ export function ConnectionDetails() {
         }
       }
     },
-    [connectionID, env, identifier]
+    [connectionID, env, issuerIdentifier]
   );
 
   useEffect(() => {
