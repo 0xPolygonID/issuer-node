@@ -11,6 +11,7 @@ import {
 
 import { getStatus } from "src/adapters/api/issuer-state";
 import { useEnvContext } from "src/contexts/Env";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { AppError } from "src/domain";
 import { AsyncTask } from "src/utils/async";
 import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
@@ -33,6 +34,7 @@ const IssuerStateContext = createContext<IssuerState>({
 
 export function IssuerStateProvider(props: PropsWithChildren) {
   const env = useEnvContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [messageAPI, messageContext] = message.useMessage();
 
@@ -40,17 +42,19 @@ export function IssuerStateProvider(props: PropsWithChildren) {
 
   const refreshStatus = useCallback(
     async (signal?: AbortSignal) => {
-      const response = await getStatus({ env, signal });
+      if (issuerIdentifier) {
+        const response = await getStatus({ env, issuerIdentifier, signal });
 
-      if (response.success) {
-        setStatus({ data: response.data.pendingActions, status: "successful" });
-      } else {
-        if (!isAbortedError(response.error)) {
-          void messageAPI.error(response.error.message);
+        if (response.success) {
+          setStatus({ data: response.data.pendingActions, status: "successful" });
+        } else {
+          if (!isAbortedError(response.error)) {
+            void messageAPI.error(response.error.message);
+          }
         }
       }
     },
-    [env, messageAPI]
+    [env, messageAPI, issuerIdentifier]
   );
 
   const notifyChange = useCallback(

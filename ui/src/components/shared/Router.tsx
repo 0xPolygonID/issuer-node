@@ -10,24 +10,29 @@ import { Credentials } from "src/components/credentials/Credentials";
 import { IssueCredential } from "src/components/credentials/IssueCredential";
 import { LinkDetails } from "src/components/credentials/LinkDetails";
 import { IssuerState } from "src/components/issuer-state/IssuerState";
+import { CreateIssuer } from "src/components/issuers/CreateIssuer";
+import { Issuers } from "src/components/issuers/Issuers";
 import { FullWidthLayout } from "src/components/layouts/FullWidthLayout";
 import { SiderLayout } from "src/components/layouts/SiderLayout";
 import { ImportSchema } from "src/components/schemas/ImportSchema";
 import { SchemaDetails } from "src/components/schemas/SchemaDetails";
 import { Schemas } from "src/components/schemas/Schemas";
 import { NotFound } from "src/components/shared/NotFound";
+import { useIssuerContext } from "src/contexts/Issuer";
 import { Layout, ROUTES, RouteID } from "src/routes";
 import { ROOT_PATH } from "src/utils/constants";
 
 const COMPONENTS: Record<RouteID, ComponentType> = {
   connectionDetails: ConnectionDetails,
   connections: ConnectionsTable,
+  createIssuer: CreateIssuer,
   credentialDetails: CredentialDetails,
   credentialIssuedQR: CredentialIssuedQR,
   credentialLinkQR: CredentialLinkQR,
   credentials: Credentials,
   importSchema: ImportSchema,
   issueCredential: IssueCredential,
+  issuers: Issuers,
   issuerState: IssuerState,
   linkDetails: LinkDetails,
   notFound: NotFound,
@@ -36,6 +41,8 @@ const COMPONENTS: Record<RouteID, ComponentType> = {
 };
 
 export function Router() {
+  const { issuerIdentifier } = useIssuerContext();
+
   const getLayoutRoutes = (currentLayout: Layout) =>
     Object.entries(ROUTES).reduce((acc: React.ReactElement[], [keyRoute, { layout, path }]) => {
       const componentsEntry = Object.entries(COMPONENTS).find(
@@ -50,15 +57,28 @@ export function Router() {
 
   return (
     <Routes>
-      <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
+      {issuerIdentifier ? (
+        <>
+          <Route element={<Navigate to={ROUTES.schemas.path} />} path={ROOT_PATH} />
 
-      <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
+          <Route element={<FullWidthLayout />}>{getLayoutRoutes("fullWidth")}</Route>
 
-      <Route element={<FullWidthLayout background="bg-light" />}>
-        {getLayoutRoutes("fullWidthGrey")}
-      </Route>
+          <Route element={<FullWidthLayout background="bg-light" />}>
+            {getLayoutRoutes("fullWidthGrey")}
+          </Route>
 
-      <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
+          <Route element={<SiderLayout />}>{getLayoutRoutes("sider")}</Route>
+        </>
+      ) : (
+        <>
+          <Route element={<SiderLayout />}>
+            <Route element={<COMPONENTS.issuers />} path={ROUTES.issuers.path} />
+            <Route element={<COMPONENTS.createIssuer />} path={ROUTES.createIssuer.path} />
+          </Route>
+
+          <Route element={<Navigate to={ROUTES.issuers.path} />} path="*" />
+        </>
+      )}
     </Routes>
   );
 }

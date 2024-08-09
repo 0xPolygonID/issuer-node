@@ -9,6 +9,9 @@ import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import {
   Attribute,
   AttributeValue,
+  AuthBJJCredentialStatus,
+  CredentialProofType,
+  IssuerType,
   Json,
   JsonLiteral,
   JsonObject,
@@ -41,6 +44,16 @@ export type CredentialLinkIssuance = CredentialIssuance & {
   linkMaximumIssuance: number | undefined;
   type: "credentialLink";
 };
+
+export type IssuerFormData = { blockchain: string; method: string; network: string } & (
+  | {
+      authBJJCredentialStatus: AuthBJJCredentialStatus;
+      type: IssuerType.BJJ;
+    }
+  | {
+      type: IssuerType.ETH;
+    }
+);
 
 // Parsers
 export type TableSorterInput = { field: string; order?: "ascend" | "descend" | undefined };
@@ -425,17 +438,17 @@ export function serializeCredentialIssuance({
       data: {
         credentialSchema,
         credentialSubject: serializedSchemaForm.data === undefined ? {} : serializedSchemaForm.data,
-        expiration: credentialExpiration
-          ? serializeDate(dayjs(credentialExpiration), "date-time")
-          : null,
-        mtProof,
+        expiration: credentialExpiration ? dayjs(credentialExpiration).unix() : null,
+        proofs: [
+          ...(mtProof ? [CredentialProofType.Iden3SparseMerkleTreeProof] : []),
+          ...(signatureProof ? [CredentialProofType.BJJSignature2021] : []),
+        ],
         refreshService: credentialRefreshService
           ? {
               id: credentialRefreshService,
               type: "Iden3RefreshService2023",
             }
           : null,
-        signatureProof,
         type,
       },
       success: true,
