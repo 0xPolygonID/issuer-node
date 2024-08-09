@@ -157,7 +157,7 @@ func (s *Server) GetConnection(ctx context.Context, request GetConnectionRequest
 	filter := &ports.ClaimsFilter{
 		Subject: conn.UserDID.String(),
 	}
-	credentials, _, err := s.claimService.GetAll(ctx, s.cfg.APIUI.IssuerDID, filter)
+	credentials, _, err := s.claimService.GetAll(ctx, *issuerDID, filter)
 	if err != nil && !errors.Is(err, services.ErrCredentialNotFound) {
 		log.Debug(ctx, "get connection internal server error retrieving credentials", "err", err, "req", request)
 		return GetConnection500JSONResponse{N500JSONResponse{"There was an error retrieving the connection"}}, nil
@@ -212,9 +212,9 @@ func getConnectionsFilter(req GetConnectionsRequestObject) (*ports.NewGetAllConn
 			var err error
 			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
 			switch GetConnectionsParamsSort(field) {
-			case CreatedAt:
+			case GetConnectionsParamsSortCreatedAt:
 				err = orderBy.Add(ports.ConnectionsCreatedAt, desc)
-			case UserID:
+			case GetConnectionsParamsSortUserID:
 				err = orderBy.Add(ports.ConnectionsUserID, desc)
 			default:
 				return nil, errors.New("wrong sort by value")

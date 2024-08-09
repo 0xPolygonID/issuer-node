@@ -46,17 +46,12 @@ func main() {
 
 	log.Info(ctx, "starting issuer node...", "revision", build)
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load()
 	if err != nil {
 		log.Error(ctx, "cannot load config", "err", err)
 		return
 	}
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
-
-	if err := cfg.Sanitize(ctx); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -94,7 +89,6 @@ func main() {
 	}
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
-	cfg.CredentialStatus.SingleIssuer = false
 
 	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
@@ -178,7 +172,7 @@ func main() {
 
 	corsMiddleware := cors.New(cors.Options{
 		AllowedOrigins:   []string{"localhost", "127.0.0.1", "*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 	})

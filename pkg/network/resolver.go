@@ -138,15 +138,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 			ethereumClients[resolverPrefix(resolverPrefixKey)] = *resolverClientConfig
 			settings := networkSettings.RhsSettings
-
-			// TODO: Change this when two apis are merged
-			if cfg.CredentialStatus.SingleIssuer {
-				settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.APIUI.ServerURL, "/")
-			} else {
-				settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.ServerUrl, "/")
-			}
-
-			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
+			settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.ServerUrl, "/")
 
 			if settings.Mode == OffChain || settings.Mode == All {
 				if settings.RhsUrl == nil {

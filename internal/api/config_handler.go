@@ -15,13 +15,20 @@ func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConf
 			Value: s.cfg.ServerUrl,
 		},
 		KeyValue{
+			Key:   "ISSUER_DATABASE_URL",
+			Value: s.cfg.Database.URL,
+		},
+
+		KeyValue{
 			Key:   "ISSUER_KEY_STORE_TOKEN",
 			Value: token,
 		},
+
 		KeyValue{
-			Key:   "ISSUER_CACHE_URL",
+			Key:   "ISSUER_REDIS_URL",
 			Value: s.cfg.Cache.Url,
 		},
+
 		KeyValue{
 			Key:   "ISSUER_API_IPFS_GATEWAY_URL",
 			Value: s.cfg.IPFS.GatewayURL,

@@ -52,10 +52,10 @@ const ipfsGatewayURL = "http://localhost:8080"
 // created by local docker image provided for TESTING purposes.
 func vaultTest() config.KeyStore {
 	return config.KeyStore{
-		Address:              "http://localhost:8200",
-		PluginIden3MountPath: "iden3",
-		UserPassEnabled:      true,
-		UserPassPassword:     "issuernodepwd",
+		Address:                   "http://localhost:8200",
+		PluginIden3MountPath:      "iden3",
+		VaultUserPassAuthEnabled:  true,
+		VaultUserPassAuthPassword: "issuernodepwd",
 	}
 }
 
@@ -72,10 +72,6 @@ func TestMain(m *testing.M) {
 			URL: conn,
 		},
 		KeyStore: vaultTest(),
-		Ethereum: config.Ethereum{
-			URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
-			ResolverPrefix: "polygon:mumbai",
-		},
 	}
 	s, teardown, err := tests.NewTestStorage(&cfgForTesting)
 	defer teardown()
@@ -89,8 +85,8 @@ func TestMain(m *testing.M) {
 
 	vaultCli, err = providers.VaultClient(ctx, providers.Config{
 		Address:             cfgForTesting.KeyStore.Address,
-		UserPassAuthEnabled: cfgForTesting.KeyStore.UserPassEnabled,
-		Pass:                cfgForTesting.KeyStore.UserPassPassword,
+		UserPassAuthEnabled: cfgForTesting.KeyStore.VaultUserPassAuthEnabled,
+		Pass:                cfgForTesting.KeyStore.VaultUserPassAuthPassword,
 	})
 	if err != nil {
 		log.Error(ctx, "failed to acquire vault client", "err", err)
