@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type envVarsT map[string]string
+
 func TestLookupVaultTokenFromFile(t *testing.T) {
 	token, err := lookupVaultTokenFromFile("file does not exist")
 	assert.Empty(t, token)
@@ -114,7 +116,104 @@ func TestConfiguration_validateServerUrl(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	envVars := map[string]string{
+	envVars := initVariables(t)
+	loadEnvironmentVariables(t, envVars)
+	cfg, err := Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "https://issuer-node.privado.id/issuer", cfg.ServerUrl)
+	assert.Equal(t, 3001, cfg.ServerPort)
+	assert.Equal(t, "pbkey", cfg.PublishingKeyPath)
+	assert.Equal(t, time.Duration(60000000000), cfg.OnChainCheckStatusFrequency)
+	assert.Equal(t, "postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable", cfg.Database.URL)
+	assert.Equal(t, -4, cfg.Log.Level)
+	assert.Equal(t, 1, cfg.Log.Mode)
+	assert.Equal(t, "user-issuer", cfg.HTTPBasicAuth.User)
+	assert.Equal(t, "password-issuer", cfg.HTTPBasicAuth.Password)
+	assert.Equal(t, "https://gateway.pinata.cloud", cfg.IPFS.GatewayURL)
+	assert.Equal(t, "https://vault.privado.id", cfg.KeyStore.Address)
+	assert.Equal(t, "iden3", cfg.KeyStore.PluginIden3MountPath)
+	assert.Equal(t, "/localstorage", cfg.KeyStore.ProviderLocalStorageFilePath)
+	assert.True(t, true, cfg.KeyStore.VaultUserPassAuthEnabled)
+	assert.Equal(t, "issuernodepwd", cfg.KeyStore.VaultUserPassAuthPassword)
+	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
+	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
+	assert.Equal(t, "XYZ", cfg.KeyStore.AWSAccessKey)
+	assert.Equal(t, "123HHUBUuO5", cfg.KeyStore.AWSSecretKey)
+	assert.Equal(t, "eu-west-1", cfg.KeyStore.AWSRegion)
+	assert.Equal(t, "./resolvers_settings.yaml", cfg.NetworkResolverPath)
+	assert.Equal(t, "hvs.NK8jrOU4XNY", cfg.KeyStore.Token)
+	assert.Equal(t, "123", *cfg.NetworkResolverFile)
+	assert.Equal(t, "./pkg/credentials/circuits", cfg.Circuit.Path)
+	assert.Equal(t, "redis://@localhost:6379/1", cfg.Cache.RedisUrl)
+	assert.True(t, *cfg.MediaTypeManager.Enabled)
+
+}
+
+func TestLoadKmsProviders(t *testing.T) {
+	envVars := initVariables(t)
+	envVars["ISSUER_KMS_BJJ_PROVIDER"] = ""
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = ""
+	loadEnvironmentVariables(t, envVars)
+	cfg, err := Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "vault", cfg.KeyStore.BJJProvider)
+	assert.Equal(t, "vault", cfg.KeyStore.ETHProvider)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
+	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = ""
+	loadEnvironmentVariables(t, envVars)
+	cfg, err = Load()
+	assert.Error(t, err)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
+	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = "123"
+	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"] = ""
+	loadEnvironmentVariables(t, envVars)
+	cfg, err = Load()
+	assert.Error(t, err)
+
+	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
+	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = "123"
+	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"] = "456"
+	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_REGION"] = ""
+	loadEnvironmentVariables(t, envVars)
+	cfg, err = Load()
+	assert.Error(t, err)
+}
+
+func TestLoadKmsProvidersFolder(t *testing.T) {
+	envVars := initVariables(t)
+	envVars["ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH"] = "./newfolder"
+	loadEnvironmentVariables(t, envVars)
+	cfg, err := Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
+	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
+	assert.Equal(t, "./newfolder", cfg.KeyStore.ProviderLocalStorageFilePath)
+}
+
+func TestLoadNetworkResolver(t *testing.T) {
+	envVars := initVariables(t)
+	envVars["ISSUER_RESOLVER_PATH"] = ""
+	envVars["ISSUER_RESOLVER_FILE"] = "an encoded base 64 file content"
+
+	loadEnvironmentVariables(t, envVars)
+	cfg, err := Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "", cfg.NetworkResolverPath)
+	assert.Equal(t, "an encoded base 64 file content", *cfg.NetworkResolverFile)
+
+	envVars["ISSUER_RESOLVER_PATH"] = ""
+	envVars["ISSUER_RESOLVER_FILE"] = ""
+	loadEnvironmentVariables(t, envVars)
+	cfg, err = Load()
+	assert.NoError(t, err)
+	assert.Equal(t, "./resolvers_settings.yaml", cfg.NetworkResolverPath)
+}
+
+func initVariables(t *testing.T) envVarsT {
+	t.Helper()
+	var envVars = map[string]string{
 		"ISSUER_SERVER_URL":                           "https://issuer-node.privado.id/issuer",
 		"ISSUER_SERVER_PORT":                          "3001",
 		"ISSUER_NATIVE_PROOF_GENERATION_ENABLED":      "true",
@@ -144,38 +243,13 @@ func TestLoad(t *testing.T) {
 		"ISSUER_REDIS_URL":                            "redis://@localhost:6379/1",
 		"ISSUER_MEDIA_TYPE_MANAGER_ENABLED":           "true",
 	}
+	return envVars
+}
 
+func loadEnvironmentVariables(t *testing.T, envVars envVarsT) {
+	t.Helper()
 	for key, value := range envVars {
 		err := os.Setenv(key, value)
 		assert.NoError(t, err)
 	}
-
-	cfg, err := Load()
-	assert.NoError(t, err)
-	assert.Equal(t, "https://issuer-node.privado.id/issuer", cfg.ServerUrl)
-	assert.Equal(t, 3001, cfg.ServerPort)
-	assert.Equal(t, "pbkey", cfg.PublishingKeyPath)
-	assert.Equal(t, time.Duration(60000000000), cfg.OnChainCheckStatusFrequency)
-	assert.Equal(t, "postgres://polygonid:polygonid@localhost:5432/platformid?sslmode=disable", cfg.Database.URL)
-	assert.Equal(t, -4, cfg.Log.Level)
-	assert.Equal(t, 1, cfg.Log.Mode)
-	assert.Equal(t, "user-issuer", cfg.HTTPBasicAuth.User)
-	assert.Equal(t, "password-issuer", cfg.HTTPBasicAuth.Password)
-	assert.Equal(t, "https://gateway.pinata.cloud", cfg.IPFS.GatewayURL)
-	assert.Equal(t, "https://vault.privado.id", cfg.KeyStore.Address)
-	assert.Equal(t, "iden3", cfg.KeyStore.PluginIden3MountPath)
-	assert.Equal(t, "/localstorage", cfg.KeyStore.ProviderLocalStorageFilePath)
-	assert.True(t, true, cfg.KeyStore.VaultUserPassAuthEnabled)
-	assert.Equal(t, "issuernodepwd", cfg.KeyStore.VaultUserPassAuthPassword)
-	assert.Equal(t, "localstorage", cfg.KeyStore.BJJProvider)
-	assert.Equal(t, "localstorage", cfg.KeyStore.ETHProvider)
-	assert.Equal(t, "XYZ", cfg.KeyStore.AWSAccessKey)
-	assert.Equal(t, "123HHUBUuO5", cfg.KeyStore.AWSSecretKey)
-	assert.Equal(t, "eu-west-1", cfg.KeyStore.AWSRegion)
-	assert.Equal(t, "./resolvers_settings.yaml", cfg.NetworkResolverPath)
-	assert.Equal(t, "hvs.NK8jrOU4XNY", cfg.KeyStore.Token)
-	assert.Equal(t, "123", *cfg.NetworkResolverFile)
-	assert.Equal(t, "./pkg/credentials/circuits", cfg.Circuit.Path)
-	assert.Equal(t, "redis://@localhost:6379/1", cfg.Cache.RedisUrl)
-	assert.True(t, *cfg.MediaTypeManager.Enabled)
 }

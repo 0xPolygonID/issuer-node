@@ -176,7 +176,9 @@ func Load() (*Configuration, error) {
 	if err != nil {
 		return nil, err
 	}
-	checkEnvVars(ctx, &cfg)
+	if err := checkEnvVars(ctx, &cfg); err != nil {
+		return nil, err
+	}
 	if err := cfg.sanitize(ctx); err != nil {
 		return nil, err
 	}
@@ -234,14 +236,15 @@ func lookupVaultTokenFromFile(pathVaultConfig string) (string, error) {
 }
 
 // nolint:gocyclo,gocognit
-func checkEnvVars(ctx context.Context, cfg *Configuration) {
+func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 	if cfg.IPFS.GatewayURL == "" {
 		log.Warn(ctx, "ISSUER_IPFS_GATEWAY_URL value is missing, using default value: "+ipfsGateway)
 		cfg.IPFS.GatewayURL = ipfsGateway
 	}
 
 	if cfg.ServerUrl == "" {
-		log.Info(ctx, "ISSUER_SERVER_URL value is missing")
+		log.Error(ctx, "ISSUER_SERVER_URL value is missing")
+		return errors.New("ISSUER_SERVER_URL value is missing")
 	}
 
 	if cfg.ServerPort == 0 {
@@ -330,11 +333,19 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) {
 	if cfg.KeyStore.ETHProvider == AWS {
 		if cfg.KeyStore.AWSAccessKey == "" {
 			log.Error(ctx, "ISSUER_AWS_KEY_ID value is missing")
+			return errors.New("ISSUER_AWS_KEY_ID value is missing")
 		}
 		if cfg.KeyStore.AWSSecretKey == "" {
 			log.Error(ctx, "ISSUER_AWS_SECRET_KEY value is missing")
+			return errors.New("ISSUER_AWS_SECRET_KEY value is missing")
+		}
+		if cfg.KeyStore.AWSRegion == "" {
+			log.Error(ctx, "ISSUER_AWS_REGION value is missing")
+			return errors.New("ISSUER_AWS_REGION value is missing")
 		}
 	}
+
+	return nil
 }
 
 // KeyStoreConfig initializes the key store
