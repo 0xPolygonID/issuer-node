@@ -146,7 +146,6 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "./pkg/credentials/circuits", cfg.Circuit.Path)
 	assert.Equal(t, "redis://@localhost:6379/1", cfg.Cache.RedisUrl)
 	assert.True(t, *cfg.MediaTypeManager.Enabled)
-
 }
 
 func TestLoadKmsProviders(t *testing.T) {
@@ -162,14 +161,14 @@ func TestLoadKmsProviders(t *testing.T) {
 	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
-	cfg, err = Load()
+	_, err = Load()
 	assert.Error(t, err)
 
 	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY"] = "123"
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"] = ""
 	loadEnvironmentVariables(t, envVars)
-	cfg, err = Load()
+	_, err = Load()
 	assert.Error(t, err)
 
 	envVars["ISSUER_KMS_ETH_PROVIDER"] = "aws"
@@ -177,7 +176,7 @@ func TestLoadKmsProviders(t *testing.T) {
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY"] = "456"
 	envVars["ISSUER_KMS_ETH_PLUGIN_AWS_REGION"] = ""
 	loadEnvironmentVariables(t, envVars)
-	cfg, err = Load()
+	_, err = Load()
 	assert.Error(t, err)
 }
 
@@ -213,7 +212,7 @@ func TestLoadNetworkResolver(t *testing.T) {
 
 func initVariables(t *testing.T) envVarsT {
 	t.Helper()
-	var envVars = map[string]string{
+	envVars := map[string]string{
 		"ISSUER_SERVER_URL":                           "https://issuer-node.privado.id/issuer",
 		"ISSUER_SERVER_PORT":                          "3001",
 		"ISSUER_NATIVE_PROOF_GENERATION_ENABLED":      "true",
