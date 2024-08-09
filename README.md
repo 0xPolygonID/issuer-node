@@ -66,15 +66,16 @@ In this section we will cover the installation of the Issuer Node API.
 
     ```shell
     cp .env-issuer.sample .env-issuer
-    cp .env-api.sample .env-api
     ```
 
-2. Fill the .env-issuer config file with the proper variables:
+2. Copy the resolvers settings sample file:
 
-   *.env-issuer*
-    ```bash
-    ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
+    ```shell
+    cp resolvers_settings_sample.yaml resolvers_settings.yaml
     ```
+3. Fill the `networkURL` in the resolvers_settings.yaml file with the proper value for every chain:
+
+ 
 3. Start the infrastructure:
 
     ```bash
@@ -90,7 +91,7 @@ In this section we will cover the installation of the Issuer Node API.
 5. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
 
     ```bash
-    make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
+    make private_key=<YOUR_WALLET_PRIVATE_KEY> import-private-key-to-kms
     ```
 
 ----
@@ -99,7 +100,7 @@ In this section we will cover the installation of the Issuer Node API.
 In order to **stop** and **delete** all the containers.
 
 > [!WARNING]
-> This will permanently delete all data, making it necessary to create an Issuer DID again.
+> This will permanently delete all data.
 
 ``` bash
 make down
@@ -127,31 +128,25 @@ The issuer node is extensively configurable, for a detailed list of the configur
 
 1. Fill the .env-issuer config file with the proper variables:
 
-   *.env-issuer*
-    ```bash
-    ISSUER_API_AUTH_USER=user-issuer
-    ISSUER_API_AUTH_PASSWORD=password-issuer
-    ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
-    ```
+*.env-issuer*
+```bash
+ISSUER_API_AUTH_USER=user-issuer
+ISSUER_API_AUTH_PASSWORD=password-issuer
+ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+```
 
 2. Run api:
 
-    ```bash
-    make run
-    ```
+```bash
+make build # Only needed the first time
+make run
+```
 
 > Core API specification - http://localhost:3001/
 
 ---
 
 **Troubleshooting:**
-
-Restart the api.
-
-```bash 
-make restart-api
-```
-
 ---
 
 ### Issuer Node UI
@@ -162,80 +157,25 @@ In order to make the UI work, we will need configure some env variables in the `
 
 1. Copy .env-ui sample file and fill the needed env variables:
 
+```bash 
+cp .env-ui.sample .env-ui
+```
 
-    ```bash 
-    cp .env-ui.sample .env-ui
-    ```
+If you want to use basic auth, you can set the following variables in the `.env-ui` file:
+```bash
+ISSUER_UI_INSECURE=false
+ISSUER_UI_AUTH_USERNAME=user-ui
+ISSUER_UI_AUTH_PASSWORD=password-ui
+```
 
-    *.env-ui*
-    ```bash
-    ISSUER_UI_AUTH_USERNAME=user-ui
-    ISSUER_UI_AUTH_PASSWORD=password-ui
-    ```
-    
-    *.env-api*
-    ```bash
-    ISSUER_API_UI_SERVER_URL={PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_API_UI_SERVER_PORT}
-    ```
-
-    > **_NOTE:_**  It is possible to register custom did methods. This field accepts an array of objects in JSON format.</br>
-    > Example:
-        ```
-        ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
-        ```
-
-2. Generate Issuer DID:
-
-    ```bash
-    make generate-issuer-did
-    ```
 
 3. Run UI:
-
-    ```bash
-    make run-ui
-    ```
-
-
->**API UI specification** - http://localhost:3002/
-> 
->**UI** - http://localhost:8088/
-
----
-**Troubleshooting:**
-
-Restart the ui:
-
-```bash 
-make restart-ui
-```
----
-
-## Issuer Node V2 Notes
-
-### Running issuer node with local storage file instead of Vault
-Setup environment variables in `.env-issuer` file:
-
+This command will start the UI in the port 8088 and the API in the port 3001.
 ```bash
-ISSUER_KMS_BJJ_PROVIDER=localstorage
-ISSUER_KMS_ETH_PROVIDER=localstorage
+make run-ui
 ```
-
-To import the private key in AWS Kms run (make sure ISSUER_KMS_ETH_PROVIDER is set to `aws`):
-
-```shell
-make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
-```
-
-To import your private key in localstorage or Vault run (make sure ISSUER_KMS_ETH_PROVIDER is set to `localstorage` or `vault`):
-
-```shel
-make private_key=XXX import-private-key-to-kms
-```
-
-
-
-If you want to use Vault just change the `ISSUER_KMS_BJJ_PLUGIN` and `ISSUER_KMS_ETH_PLUGIN` to `vault` and follow the steps in the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section. 
+then you can access the UI in the following URL:
+>**UI** - http://localhost:8088/
 
 
 ## Quick Start Demo

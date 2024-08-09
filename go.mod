@@ -55,6 +55,7 @@ require (
 	github.com/pressly/goose/v3 v3.17.0
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
+	github.com/valkey-io/valkey-go v1.0.43
 	golang.org/x/crypto v0.23.0
 	golang.org/x/exp v0.0.0-20240409090435-93d18d7e34b8
 	gopkg.in/yaml.v3 v3.0.1

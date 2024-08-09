@@ -77,21 +77,14 @@ build-ui:
 # Run the api, pending_publisher and notifications services
 .PHONY: run
 run:
-	@if [ -f ./resolvers_settings.yaml ]; then \
-  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications; \
-	else \
-  		echo "./resolvers_settings.yaml not found"; \
-  	fi
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications;
+
 
 # Run the ui, api, pending_publisher and notifications services
 # First build the ui image and the api image
 .PHONY: run-ui
 run-ui: build-ui build add-host-url-swagger
-	@if [ -f ./resolvers_settings.yaml ]; then \
-  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications; \
-	else \
-  		echo "./resolvers_settings.yaml not found"; \
-  	fi
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications;
 
 .PHONY: down
 down:

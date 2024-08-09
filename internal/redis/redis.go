@@ -7,13 +7,13 @@ import (
 )
 
 // Open opens a connection to redis and returns it
-func Open(url string) (*redis.Client, error) {
+func Open(ctx context.Context, url string) (*redis.Client, error) {
 	opts, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, err
 	}
 	rdb := redis.NewClient(opts)
-	if err := Status(context.Background(), rdb); err != nil {
+	if err := Status(ctx, rdb); err != nil {
 		return nil, err
 	}
 	return rdb, nil

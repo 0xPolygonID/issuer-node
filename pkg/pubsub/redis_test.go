@@ -34,7 +34,7 @@ func TestRedisHappyPath(t *testing.T) {
 	t.Skip("timeout redis in ga")
 	ctx, cancel := context.WithCancel(context.Background())
 	s := miniredis.RunT(t)
-	client, err := redis.Open("redis://" + s.Addr())
+	client, err := redis.Open(ctx, "redis://"+s.Addr())
 	require.NoError(t, err)
 	defer func() { assert.NoError(t, client.Close()) }()
 
@@ -73,7 +73,7 @@ func TestRedisRecover(t *testing.T) {
 	defer cancel()
 
 	s := miniredis.RunT(t)
-	client, err := redis.Open("redis://" + s.Addr())
+	client, err := redis.Open(ctx, "redis://"+s.Addr())
 	require.NoError(t, err)
 	defer func() { assert.NoError(t, client.Close()) }()
 

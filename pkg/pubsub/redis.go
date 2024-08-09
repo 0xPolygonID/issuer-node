@@ -95,3 +95,8 @@ func (rdb *RedisClient) Subscribe(ctx context.Context, topic string, callback Ev
 		}
 	}()
 }
+
+// Close closes the pubsub client
+func (rdb *RedisClient) Close() error {
+	return rdb.conn.Close()
+}
