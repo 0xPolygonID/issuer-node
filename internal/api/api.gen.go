@@ -200,6 +200,7 @@ type CreateIdentityRequest struct {
 		Network                 string                                                   `json:"network"`
 		Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 	} `json:"didMetadata"`
+	DisplayName *string `json:"displayName,omitempty"`
 }
 
 // CreateIdentityRequestDidMetadataAuthBJJCredentialStatus defines model for CreateIdentityRequest.DidMetadata.AuthBJJCredentialStatus.
@@ -210,9 +211,10 @@ type CreateIdentityRequestDidMetadataType string
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
-	Address    *string        `json:"address"`
-	Identifier *string        `json:"identifier,omitempty"`
-	State      *IdentityState `json:"state,omitempty"`
+	Address     *string        `json:"address"`
+	DisplayName *string        `json:"displayName,omitempty"`
+	Identifier  *string        `json:"identifier,omitempty"`
+	State       *IdentityState `json:"state,omitempty"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
@@ -346,6 +348,7 @@ type GetConnectionsResponse = []GetConnectionResponse
 type GetIdentitiesResponse struct {
 	AuthBJJCredentialStatus *GetIdentitiesResponseAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
 	Blockchain              string                                        `json:"blockchain"`
+	DisplayName             string                                        `json:"displayName"`
 	Identifier              string                                        `json:"identifier"`
 	Method                  string                                        `json:"method"`
 	Network                 string                                        `json:"network"`
@@ -632,6 +635,11 @@ type CreateLinkQrCodeCallbackParams struct {
 	CredentialStatusType *CredentialStatusType `form:"credentialStatusType,omitempty" json:"credentialStatusType,omitempty"`
 }
 
+// UpdateIdentityDisplayNameJSONBody defines parameters for UpdateIdentityDisplayName.
+type UpdateIdentityDisplayNameJSONBody struct {
+	DisplayName string `json:"displayName"`
+}
+
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
 type GetQrFromStoreParams struct {
 	Id *uuid.UUID `form:"id,omitempty" json:"id,omitempty"`
@@ -815,6 +823,9 @@ type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
 // CreateIdentityJSONRequestBody defines body for CreateIdentity for application/json ContentType.
 type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
+// UpdateIdentityDisplayNameJSONRequestBody defines body for UpdateIdentityDisplayName for application/json ContentType.
+type UpdateIdentityDisplayNameJSONRequestBody UpdateIdentityDisplayNameJSONBody
+
 // CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
 
@@ -868,6 +879,9 @@ type ServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
+	// Update Identity DisplayName field
+	// (PATCH /v1/identities/{identifier})
+	UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -1048,6 +1062,12 @@ func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
 // Create Identity
 // (POST /v1/identities)
 func (_ Unimplemented) CreateIdentity(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Update Identity DisplayName field
+// (PATCH /v1/identities/{identifier})
+func (_ Unimplemented) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1520,6 +1540,34 @@ func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateIdentity(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// UpdateIdentityDisplayName operation middleware
+func (siw *ServerInterfaceWrapper) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateIdentityDisplayName(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3193,6 +3241,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
 	})
 	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v1/identities/{identifier}", wrapper.UpdateIdentityDisplayName)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities/{identifier}/details", wrapper.GetIdentityDetails)
 	})
 	r.Group(func(r chi.Router) {
@@ -3661,6 +3712,60 @@ func (response CreateIdentity403JSONResponse) VisitCreateIdentityResponse(w http
 type CreateIdentity500JSONResponse struct{ N500CreateIdentityJSONResponse }
 
 func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayNameRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *UpdateIdentityDisplayNameJSONRequestBody
+}
+
+type UpdateIdentityDisplayNameResponseObject interface {
+	VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error
+}
+
+type UpdateIdentityDisplayName200JSONResponse GenericMessage
+
+func (response UpdateIdentityDisplayName200JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateIdentityDisplayName400JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName401JSONResponse struct{ N401JSONResponse }
+
+func (response UpdateIdentityDisplayName401JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName403JSONResponse struct{ N403JSONResponse }
+
+func (response UpdateIdentityDisplayName403JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName500JSONResponse struct{ N500CreateIdentityJSONResponse }
+
+func (response UpdateIdentityDisplayName500JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5294,6 +5399,9 @@ type StrictServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
+	// Update Identity DisplayName field
+	// (PATCH /v1/identities/{identifier})
+	UpdateIdentityDisplayName(ctx context.Context, request UpdateIdentityDisplayNameRequestObject) (UpdateIdentityDisplayNameResponseObject, error)
 	// Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error)
@@ -5730,6 +5838,39 @@ func (sh *strictHandler) CreateIdentity(w http.ResponseWriter, r *http.Request) 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateIdentityResponseObject); ok {
 		if err := validResponse.VisitCreateIdentityResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateIdentityDisplayName operation middleware
+func (sh *strictHandler) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request UpdateIdentityDisplayNameRequestObject
+
+	request.Identifier = identifier
+
+	var body UpdateIdentityDisplayNameJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateIdentityDisplayName(ctx, request.(UpdateIdentityDisplayNameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateIdentityDisplayName")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateIdentityDisplayNameResponseObject); ok {
+		if err := validResponse.VisitUpdateIdentityDisplayNameResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

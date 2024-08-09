@@ -25,12 +25,18 @@ var ErrInvalidIdentifier = errors.New("invalid identifier")
 type Identity struct {
 	Identifier                    string
 	State                         IdentityState
+	DisplayName                   *string                       `json:"displayName"`
 	Relay                         string                        `json:"relay"`
 	Immutable                     bool                          `json:"immutable"`
 	KeyType                       string                        `json:"keyType"`
 	Address                       *string                       `json:"address"`
 	Balance                       *big.Int                      `json:"balance"`
 	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
+}
+
+type IdentityDisplayName struct {
+	Identifier  string `json:"identifier"`
+	DisplayName string `json:"displayName"`
 }
 
 // NewIdentityFromIdentifier default identity model from identity and root state

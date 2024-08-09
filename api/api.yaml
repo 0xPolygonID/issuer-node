@@ -217,6 +217,47 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v1/identities/{identifier}:
+    patch:
+      summary: Update Identity DisplayName field
+      operationId: UpdateIdentityDisplayName
+      description: |
+        Endpoint to update the displayName field of an identity.
+        The displayName field is used to identify the identity in the UI.
+      tags:
+        - Identity
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - displayName
+              properties:
+                displayName:
+                  type: string
+                  example: "KYCAgeCredential Issuer identity"
+      responses:
+        '200':
+          description: Identity updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '500':
+          $ref: '#/components/responses/500-CreateIdentity'
+    
   /v1/identities/{identifier}/details:
     get:
       summary: Identity Detail
@@ -1531,6 +1572,10 @@ components:
               x-omitempty: true
               example: "Iden3ReverseSparseMerkleTreeProof"
               enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        displayName:
+              type: string
+              x-omitempty: true
+              example: "KYCAgeCredential Issuer identity"
 
     CreateIdentityResponse:
       type: object
@@ -1539,6 +1584,8 @@ components:
         - status
       properties:
         identifier:
+          type: string
+        displayName:
           type: string
         state:
           $ref: '#/components/schemas/IdentityState'
@@ -1699,6 +1746,7 @@ components:
         - method
         - blockchain
         - network
+        - displayName
       properties:
         identifier:
           type: string
@@ -1721,6 +1769,10 @@ components:
           type: string
           x-omitempty: false
           example: "amoy"
+        displayName:
+          type: string
+          x-omitempty: false
+          example: "KYCAgeCredential Issuer identity"
 
     GetConnectionResponse:
       type: object
