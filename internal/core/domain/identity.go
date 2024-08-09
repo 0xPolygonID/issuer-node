@@ -34,6 +34,7 @@ type Identity struct {
 	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
 }
 
+// IdentityDisplayName struct
 type IdentityDisplayName struct {
 	Identifier  string `json:"identifier"`
 	DisplayName string `json:"displayName"`
