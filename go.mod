@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.45
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.43
 	github.com/aws/aws-sdk-go-v2/service/kms v1.35.1
+	github.com/caarlos0/env/v11 v11.2.2
 	github.com/ethereum/go-ethereum v1.14.7
 	github.com/getkin/kin-openapi v0.124.0
 	github.com/go-chi/chi/v5 v5.0.11
@@ -17,7 +18,6 @@ require (
 	github.com/golangci/golangci-lint v1.56.2
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
-	github.com/hashicorp/vault-client-go v0.4.3
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
 	github.com/iden3/contracts-abi/onchain-credential-status-resolver/go/abi v0.0.0-20231116131043-966af42c9b58
@@ -141,7 +141,6 @@ require (
 	github.com/firefart/nonamedreturns v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fzipp/gocyclo v0.6.0 // indirect
-	github.com/gballet/go-verkle v0.1.1-0.20231031103413-a67434b50f46 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/ghostiam/protogetter v0.3.4 // indirect
 	github.com/go-critic/go-critic v0.11.1 // indirect

@@ -37,20 +37,10 @@ func NewProverService(config *ProverConfig) *ProverService {
 // If NativeProofGenerationEnabled is true it will return a NativeProverService
 // If NativeProofGenerationEnabled is false it will return an external ProverService
 func NewProver(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
-	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
-	if config.NativeProofGenerationEnabled {
-		proverConfig := &services.NativeProverConfig{
-			CircuitsLoader: circuitLoaderService,
-		}
-		return services.NewNativeProverService(proverConfig)
+	proverConfig := &services.NativeProverConfig{
+		CircuitsLoader: circuitLoaderService,
 	}
-
-	proverConfig := &ProverConfig{
-		ServerURL:       config.Prover.ServerURL,
-		ResponseTimeout: config.Prover.ResponseTimeout,
-	}
-
-	return NewProverService(proverConfig)
+	return services.NewNativeProverService(proverConfig)
 }
 
 // Verify calls prover server for proof verification

@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 )
 
@@ -63,15 +62,9 @@ func TestServer_GetStateStatus(t *testing.T) {
 	didWithRevokedClaim, err := w3c.ParseDID(idenWithRevokedClaim.Identifier)
 	require.NoError(t, err)
 
-	cfgWithRevokedClaim := &config.Configuration{
-		APIUI: config.APIUI{
-			IssuerDID: *didWithRevokedClaim,
-		},
-	}
-
 	cred, err := serverWithRevokedClaim.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(didWithRevokedClaim, nil, schema, credentialSubject, nil, typeC, nil, nil, &merklizedRootPosition, ports.ClaimRequestProofs{BJJSignatureProof2021: true, Iden3SparseMerkleTreeProof: false}, nil, true, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
 	require.NoError(t, err)
-	require.NoError(t, serverWithRevokedClaim.Services.credentials.Revoke(ctx, cfgWithRevokedClaim.APIUI.IssuerDID, uint64(cred.RevNonce), "not valid"))
+	require.NoError(t, serverWithRevokedClaim.Services.credentials.Revoke(ctx, *didWithRevokedClaim, uint64(cred.RevNonce), "not valid"))
 	handlerWithRevokedClaim := getHandler(ctx, serverWithRevokedClaim)
 
 	type expected struct {

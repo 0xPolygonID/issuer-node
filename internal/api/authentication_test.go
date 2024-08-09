@@ -78,8 +78,6 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 	require.NoError(t, err)
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qKDJmySKNi4GD4vYdqfLb37MSTSijg77NoRZaKfDX")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
-	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
 
 	fixture := tests.NewFixture(storage)
@@ -176,8 +174,6 @@ func TestServer_AuthQRCode(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.IssuerDID = *issuerDID
-	server.cfg.APIUI.ServerURL = "https://testing.env"
 	handler := getHandler(context.Background(), server)
 
 	did, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
