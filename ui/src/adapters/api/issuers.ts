@@ -50,12 +50,18 @@ export async function getIssuers({
 }
 
 export type CreateIssuer = {
-  authBJJCredentialStatus?: AuthBJJCredentialStatus;
   blockchain: string;
   method: string;
   network: string;
-  type: IssuerType;
-};
+} & (
+  | {
+      authBJJCredentialStatus: AuthBJJCredentialStatus;
+      type: IssuerType.BJJ;
+    }
+  | {
+      type: IssuerType.ETH;
+    }
+);
 
 export async function createIssuer({
   env,

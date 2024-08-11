@@ -178,7 +178,7 @@ export async function getCredential({
     });
 
     if (!credentialDetail.success) {
-      return buildErrorResponse(credentialDetail.error);
+      return credentialDetail;
     }
 
     const {
@@ -196,12 +196,12 @@ export async function getCredential({
     const revocationStatus = await getRevocationStatus({
       env,
       issuerIdentifier,
-      params: { nonce: credentialStatus.revocationNonce },
+      nonce: credentialStatus.revocationNonce,
       signal,
     });
 
     if (!revocationStatus.success) {
-      return buildErrorResponse(revocationStatus.error);
+      return revocationStatus;
     }
 
     const proofTypes = proof.map(({ type }) => type);
@@ -265,14 +265,12 @@ export async function getCredentialDetail({
 export async function getRevocationStatus({
   env,
   issuerIdentifier,
-  params: { nonce },
+  nonce,
   signal,
 }: {
   env: Env;
   issuerIdentifier: IssuerIdentifier;
-  params: {
-    nonce: number;
-  };
+  nonce: number;
   signal?: AbortSignal;
 }): Promise<Response<RevocationStatus>> {
   try {
