@@ -27,14 +27,6 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: "1.20"
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
       - name: Create .env-api
         run: |
