@@ -14,7 +14,7 @@ import (
 )
 
 // InitPackageManager initializes the iden3comm package manager
-func InitPackageManager(_ context.Context, stateContract map[string]*abi.State, circuitsPath string) (*iden3comm.PackageManager, error) {
+func InitPackageManager(_ context.Context, stateContract map[string]*abi.State, circuitsPath string, contracts, rpcs map[string]string) (*iden3comm.PackageManager, error) {
 	circuitsLoaderService := loaders.NewCircuits(circuitsPath)
 	authV2Set, err := circuitsLoaderService.Load(circuits.AuthV2CircuitID)
 	if err != nil {
@@ -22,7 +22,7 @@ func InitPackageManager(_ context.Context, stateContract map[string]*abi.State, 
 	}
 
 	verifications := make(map[jwz.ProvingMethodAlg]packers.VerificationParams)
-	verifications[jwz.AuthV2Groth16Alg] = packers.NewVerificationParams(authV2Set.VerificationKey, stateVerificationHandler(stateContract))
+	verifications[jwz.AuthV2Groth16Alg] = packers.NewVerificationParams(authV2Set.VerificationKey, stateVerificationHandler(stateContract, contracts, rpcs))
 
 	zkpPackerV2 := packers.NewZKPPacker(nil, verifications)
 	packageManager := iden3comm.NewPackageManager()

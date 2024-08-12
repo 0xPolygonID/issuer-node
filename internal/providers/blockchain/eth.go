@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/pkg/blockchain/eth"
 )
 
@@ -24,6 +26,8 @@ func InitEthClient(addresses map[string]string, rpcs map[string]string) (map[str
 		if err != nil {
 			return nil, fmt.Errorf("failed connect to eth node '%s': %v", rpcs[chainID], err)
 		}
+
+		log.Info(context.Background(), "Connected to ethereum node", "rpc", rpcs[chainID], "address", address)
 		stateContract, err := abi.NewState(common.HexToAddress(address), ec)
 		if err != nil {
 			return nil, fmt.Errorf(

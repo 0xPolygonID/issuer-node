@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/pkg/errors"
+	"github.com/polygonid/sh-id-platform/internal/log"
 )
 
 // ErrStateNotFound issuer state is genesis state.
@@ -19,11 +21,11 @@ var (
 	ErrStateNotFound = errors.New("Identity does not exist")
 )
 
-func stateVerificationHandler(ethStateContracts map[string]*abi.State) packers.VerificationHandlerFunc {
+func stateVerificationHandler(ethStateContracts map[string]*abi.State, contracts, rpcs map[string]string) packers.VerificationHandlerFunc {
 	return func(id circuits.CircuitID, pubsignals []string) error {
 		switch id {
 		case circuits.AuthV2CircuitID:
-			return authV2CircuitStateVerification(ethStateContracts, pubsignals)
+			return authV2CircuitStateVerification(ethStateContracts, pubsignals, contracts, rpcs)
 		default:
 			return errors.Errorf("'%s' unknow circuit ID", id)
 		}
@@ -31,7 +33,7 @@ func stateVerificationHandler(ethStateContracts map[string]*abi.State) packers.V
 }
 
 // authV2CircuitStateVerification `authV2` circuit state verification
-func authV2CircuitStateVerification(contracts map[string]*abi.State, pubsignals []string) error {
+func authV2CircuitStateVerification(contracts map[string]*abi.State, pubsignals []string, rawContracts, rpcs map[string]string) error {
 	bytePubsig, err := json.Marshal(pubsignals)
 	if err != nil {
 		return err
@@ -58,6 +60,8 @@ func authV2CircuitStateVerification(contracts map[string]*abi.State, pubsignals 
 	if !ok {
 		return errors.Errorf("not supported blockchain for chainID '%s'", chainIDStr)
 	}
+
+	log.Info(context.Background(), "verifying authV2 circuit state", "chainID", chainIDStr, "did", did.String(), "contract_address", rawContracts[chainIDStr], "rpc", rpcs[chainIDStr])
 
 	globalState := authPubSignals.GISTRoot.BigInt()
 	globalStateInfo, err := contract.GetGISTRootInfo(&bind.CallOpts{}, globalState)

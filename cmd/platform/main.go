@@ -177,7 +177,7 @@ func main() {
 
 	publisher := gateways.NewPublisher(storage, identityService, claimsService, mtService, keyStore, transactionService, proofService, publisherGateway, cfg.Ethereum.ConfirmationTimeout, ps)
 
-	packageManager, err := protocol.InitPackageManager(context.Background(), stateContract, cfg.Circuit.Path)
+	packageManager, err := protocol.InitPackageManager(context.Background(), stateContract, cfg.Circuit.Path, a, c)
 	if err != nil {
 		log.Error(ctx, "failed init package protocol", "err", err)
 		return
