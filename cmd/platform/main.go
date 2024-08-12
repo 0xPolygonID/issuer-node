@@ -47,7 +47,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log.Info(ctx, "starting issuer node...", "revision:", build)
+	log.Info(ctx, "starting issuer node...", "revision: ", build)
 
 	cfg, err := config.Load("")
 	if err != nil {
