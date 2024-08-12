@@ -20,7 +20,13 @@ func NewIdentity() ports.IndentityRepository {
 
 // Save - Create new identity
 func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error {
-	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier, address, keyType) VALUES ($1, $2, $3)`, identity.Identifier, identity.Address, identity.KeyType)
+	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier, address, keyType, display_name) VALUES ($1, $2, $3, $4)`, identity.Identifier, identity.Address, identity.KeyType, identity.DisplayName)
+	return err
+}
+
+// UpdateDisplayName - Update identity displayName field
+func (i *identity) UpdateDisplayName(ctx context.Context, conn db.Querier, identity *domain.Identity) error {
+	_, err := conn.Exec(ctx, `UPDATE identities SET display_name = $1 where identifier = $2`, identity.DisplayName, identity.Identifier)
 	return err
 }
 
@@ -74,8 +80,8 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 	return &identity, err
 }
 
-func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []string, err error) {
-	rows, err := conn.Query(ctx, `SELECT identifier FROM identities`)
+func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []domain.IdentityDisplayName, err error) {
+	rows, err := conn.Query(ctx, `SELECT identifier, display_name FROM identities`)
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +89,12 @@ func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []strin
 	defer rows.Close()
 
 	for rows.Next() {
-		var identifier string
-		err = rows.Scan(&identifier)
+		var identityDisplayName domain.IdentityDisplayName
+		err = rows.Scan(&identityDisplayName.Identifier, &identityDisplayName.DisplayName)
 		if err != nil {
 			return nil, err
 		}
-		identities = append(identities, identifier)
+		identities = append(identities, identityDisplayName)
 	}
 
 	return identities, err

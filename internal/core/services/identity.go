@@ -246,7 +246,7 @@ func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 }
 
 // Get - returns all the identities
-func (i *identity) Get(ctx context.Context) (identities []string, err error) {
+func (i *identity) Get(ctx context.Context) (identities []domain.IdentityDisplayName, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
 }
 
@@ -404,6 +404,25 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 	}
 
 	return newState, err
+}
+
+// UpdateIdentityDisplayName implements ports.IdentityService.
+func (i *identity) UpdateIdentityDisplayName(ctx context.Context, did w3c.DID, displayName string) error {
+	return i.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			identity, err := i.identityRepository.GetByID(ctx, tx, did)
+			if err != nil {
+				log.Error(ctx, "getting identity for update display name", "err", err)
+				return err
+			}
+			identity.DisplayName = &displayName
+			err = i.identityRepository.UpdateDisplayName(ctx, tx, identity)
+			if err != nil {
+				log.Error(ctx, "updating identity display name", "err", err)
+				return err
+			}
+			return nil
+		})
 }
 
 func (i *identity) processClaims(ctx context.Context, tx pgx.Tx, did w3c.DID, iTrees *domain.IdentityMerkleTrees) (bool, error) {
@@ -641,6 +660,8 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
+	identity.DisplayName = didOptions.DisplayName
+
 	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
 		log.Error(ctx, "saving identity", "err", err)
 		return nil, nil, errors.Join(err, errors.New("can't save identity"))
@@ -731,6 +752,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		log.Error(ctx, "adding genesis claims to tree", "err", err)
 		return nil, nil, fmt.Errorf("can't add genesis claims to tree: %w", err)
 	}
+	identity.DisplayName = didOptions.DisplayName
 
 	claimsTree, err := mts.ClaimsTree()
 	if err != nil {

@@ -13,21 +13,23 @@ import (
 
 // Fixture - Handle testing fixture configuration
 type Fixture struct {
-	storage               *db.Storage
-	identityRepository    ports.IndentityRepository
-	claimRepository       ports.ClaimsRepository
-	connectionsRepository ports.ConnectionsRepository
-	schemaRepository      ports.SchemaRepository
+	storage                 *db.Storage
+	identityRepository      ports.IndentityRepository
+	claimRepository         ports.ClaimsRepository
+	connectionsRepository   ports.ConnectionsRepository
+	schemaRepository        ports.SchemaRepository
+	identityStateRepository ports.IdentityStateRepository
 }
 
 // NewFixture - constructor
 func NewFixture(storage *db.Storage) *Fixture {
 	return &Fixture{
-		storage:               storage,
-		identityRepository:    repositories.NewIdentity(),
-		claimRepository:       repositories.NewClaims(),
-		connectionsRepository: repositories.NewConnections(),
-		schemaRepository:      repositories.NewSchema(*storage),
+		storage:                 storage,
+		identityRepository:      repositories.NewIdentity(),
+		claimRepository:         repositories.NewClaims(),
+		connectionsRepository:   repositories.NewConnections(),
+		schemaRepository:        repositories.NewSchema(*storage),
+		identityStateRepository: repositories.NewIdentityState(),
 	}
 }
 
