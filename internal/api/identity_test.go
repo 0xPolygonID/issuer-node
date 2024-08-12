@@ -40,6 +40,8 @@ func TestServer_CreateIdentity(t *testing.T) {
 		expected expected
 	}
 
+	authBJJCredentialStatus := (*CreateIdentityRequestDidMetadataAuthBJJCredentialStatus)(common.ToPointer("Iden3commRevocationStatusV1.0"))
+	authBJJCredentialStatusOnChain := (*CreateIdentityRequestDidMetadataAuthBJJCredentialStatus)(common.ToPointer("Iden3OnchainSparseMerkleTreeProof2023"))
 	for _, tc := range []testConfig{
 		{
 			name: "No auth header",
@@ -58,7 +60,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method                  string                                                   `json:"method"`
 					Network                 string                                                   `json:"network"`
 					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
+				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
 			},
 			expected: expected{
 				httpCode: 201,
@@ -75,7 +77,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method                  string                                                   `json:"method"`
 					Network                 string                                                   `json:"network"`
 					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
+				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
 			},
 			expected: expected{
 				httpCode: 201,
@@ -92,8 +94,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method                  string                                                   `json:"method"`
 					Network                 string                                                   `json:"network"`
 					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
-				DisplayName: common.ToPointer("my display name"),
+				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("my display name"),
 			},
 			expected: expected{
 				httpCode: 201,
@@ -110,7 +111,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method                  string                                                   `json:"method"`
 					Network                 string                                                   `json:"network"`
 					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: network, Type: ETH},
+				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: network, Type: ETH},
 			},
 			expected: expected{
 				httpCode: 201,
@@ -127,7 +128,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method                  string                                                   `json:"method"`
 					Network                 string                                                   `json:"network"`
 					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{Blockchain: blockchain, Method: method, Network: "mynetwork", Type: BJJ},
+				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: "mynetwork", Type: BJJ},
 			},
 			expected: expected{
 				httpCode: 400,
@@ -183,6 +184,23 @@ func TestServer_CreateIdentity(t *testing.T) {
 			expected: expected{
 				httpCode: 400,
 				message:  common.ToPointer("Type must be BJJ or ETH"),
+			},
+		},
+		{
+			name: "should return an error wrong auth core claim",
+			auth: authOk,
+			input: CreateIdentityRequest{
+				DidMetadata: struct {
+					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
+					Blockchain              string                                                   `json:"blockchain"`
+					Method                  string                                                   `json:"method"`
+					Network                 string                                                   `json:"network"`
+					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
+				}{AuthBJJCredentialStatus: authBJJCredentialStatusOnChain, Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
+			},
+			expected: expected{
+				httpCode: 400,
+				message:  common.ToPointer("Credential Status Type 'Iden3OnchainSparseMerkleTreeProof2023' is not supported by the issuer"),
 			},
 		},
 	} {
