@@ -87,12 +87,13 @@ build-ui:
 run: up
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications
 
-# Run the ui, api, pending_publisher and notifications services
+# Run the ui.
 # First build the ui image and the api image
 .PHONY: run-ui
 run-ui: build-ui add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui
 
+# Run all services
 .PHONE: run-all
 run-all: build build-ui add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications
