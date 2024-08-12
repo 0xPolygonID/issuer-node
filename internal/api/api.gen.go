@@ -541,6 +541,12 @@ type StateTransactionsResponse struct {
 	Transactions []StateTransaction `json:"transactions"`
 }
 
+// SupportedNetworks defines model for SupportedNetworks.
+type SupportedNetworks struct {
+	Blockchain string   `json:"blockchain"`
+	Networks   []string `json:"networks"`
+}
+
 // TimeUTC defines model for TimeUTC.
 type TimeUTC = timeapi.Time
 
@@ -888,6 +894,9 @@ type ServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
+	// Get Supported Networks
+	// (GET /v1/supported-networks)
+	GetSupportedNetworks(w http.ResponseWriter, r *http.Request)
 	// Get Connection QRCode
 	// (POST /v1/{identifier}/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams)
@@ -1080,6 +1089,12 @@ func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request
 // QrCode body
 // (GET /v1/qr-store)
 func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Supported Networks
+// (GET /v1/supported-networks)
+func (_ Unimplemented) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1624,6 +1639,23 @@ func (siw *ServerInterfaceWrapper) GetQrFromStore(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetQrFromStore(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetSupportedNetworks operation middleware
+func (siw *ServerInterfaceWrapper) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSupportedNetworks(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3250,6 +3282,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/supported-networks", wrapper.GetSupportedNetworks)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/authentication/qrcode", wrapper.AuthQRCode)
 	})
 	r.Group(func(r chi.Router) {
@@ -3854,6 +3889,58 @@ func (response GetQrFromStore404JSONResponse) VisitGetQrFromStoreResponse(w http
 type GetQrFromStore500JSONResponse struct{ N500JSONResponse }
 
 func (response GetQrFromStore500JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworksRequestObject struct {
+}
+
+type GetSupportedNetworksResponseObject interface {
+	VisitGetSupportedNetworksResponse(w http.ResponseWriter) error
+}
+
+type GetSupportedNetworks200JSONResponse []SupportedNetworks
+
+func (response GetSupportedNetworks200JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSupportedNetworks400JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks401JSONResponse struct{ N401JSONResponse }
+
+func (response GetSupportedNetworks401JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks404JSONResponse struct{ N404JSONResponse }
+
+func (response GetSupportedNetworks404JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSupportedNetworks500JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5408,6 +5495,9 @@ type StrictServerInterface interface {
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
+	// Get Supported Networks
+	// (GET /v1/supported-networks)
+	GetSupportedNetworks(ctx context.Context, request GetSupportedNetworksRequestObject) (GetSupportedNetworksResponseObject, error)
 	// Get Connection QRCode
 	// (POST /v1/{identifier}/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
@@ -5923,6 +6013,30 @@ func (sh *strictHandler) GetQrFromStore(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetQrFromStoreResponseObject); ok {
 		if err := validResponse.VisitGetQrFromStoreResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSupportedNetworks operation middleware
+func (sh *strictHandler) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
+	var request GetSupportedNetworksRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSupportedNetworks(ctx, request.(GetSupportedNetworksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSupportedNetworks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSupportedNetworksResponseObject); ok {
+		if err := validResponse.VisitGetSupportedNetworksResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

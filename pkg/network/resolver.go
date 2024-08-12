@@ -53,6 +53,13 @@ type Resolver struct {
 	rhsSettings        map[resolverPrefix]RhsSettings
 	supportedContracts map[string]*abi.State
 	stateResolvers     map[string]pubsignals.StateResolver
+	supportedNetworks  []SupportedNetworks
+}
+
+// SupportedNetworks holds the chain and networks supoprted
+type SupportedNetworks struct {
+	Blockchain string   `yaml:"blockchain"`
+	Networks   []string `yaml:"networks"`
 }
 
 // RhsSettings holds the rhs settings
@@ -102,10 +109,14 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
 	var printer strings.Builder
+	var supportedNetworks []SupportedNetworks
 	for chainName, chainSettings := range rs {
 		printer.WriteString(fmt.Sprintf("chainName: %s", chainName))
+		var supportedNetwork SupportedNetworks
+		supportedNetwork.Blockchain = chainName
 		for networkName, networkSettings := range chainSettings {
 			printer.WriteString(fmt.Sprintf(", networkName: %s", networkName))
+			supportedNetwork.Networks = append(supportedNetwork.Networks, networkName)
 			if networkSettings.NetworkFlag != 0 {
 				if err := registerCustomDIDMethod(ctx, chainName, networkName, networkSettings.ChainID, networkSettings.Method, networkSettings.NetworkFlag); err != nil {
 					return nil, fmt.Errorf("failed to register custom DID method: %w", err)
@@ -164,6 +175,8 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 				ContractAddress: common.HexToAddress(networkSettings.ContractAddress),
 			}
 		}
+		supportedNetworks = append(supportedNetworks, supportedNetwork)
+
 	}
 
 	log.Info(ctx, "resolver settings", "settings:", printer.String())
@@ -173,6 +186,7 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 		rhsSettings:        rhsSettings,
 		supportedContracts: supportedContracts,
 		stateResolvers:     stateResolvers,
+		supportedNetworks:  supportedNetworks,
 	}, nil
 }
 
@@ -244,6 +258,11 @@ func (r *Resolver) GetConfirmationTimeout(resolverPrefixKey string) (time.Durati
 // GetSupportedContracts returns the supported contracts
 func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
 	return r.supportedContracts
+}
+
+// GetSupportedNetworks returns the supported networks
+func (r *Resolver) GetSupportedNetworks() []SupportedNetworks {
+	return r.supportedNetworks
 }
 
 // IsCredentialStatusTypeSupported returns true if the credential status type is supported

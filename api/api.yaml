@@ -70,6 +70,34 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+      
+  /v1/supported-networks:
+    get:
+      summary: Get Supported Networks
+      operationId: GetSupportedNetworks
+      description: get supported blockchains and networks
+      security:
+        - basicAuth: [ ]
+      tags:
+        - Network
+      responses:
+        '200':
+          description: Supported Networks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupportedNetworks'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+
   #authentication
   /v1/authentication/sessions/{id}:
     get:
@@ -2519,7 +2547,23 @@ components:
         issuerDoc:
           type: object
           format: byte
-
+    
+    SupportedNetworks:
+      type: object
+      x-omitempty: false
+      required:
+        - blockchain
+        - networks
+      properties:
+        blockchain:
+          type: string
+          example: "polygon"
+        networks:
+          type: array
+          items:
+            type: string
+          example: ["amoy", "mumbai"]
+            
   parameters:
     credentialStatusType:
       name: credentialStatusType
