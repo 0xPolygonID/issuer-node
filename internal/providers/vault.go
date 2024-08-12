@@ -17,11 +17,6 @@ const (
 	user      = "issuernode"
 )
 
-var (
-	// VaultConnErr error
-	VaultConnErr = errors.New("vault connection error")
-)
-
 // HTTPClientTimeout http client timeout TODO: move to config
 const HTTPClientTimeout = 10 * time.Second
 
