@@ -29,7 +29,9 @@ export function ImportSchemaPreview({
   const bigintResult = getBigint(jsonLdType);
   const bigint = bigintResult && bigintResult.success ? bigintResult.data : null;
   const schemaHashResult = getSchemaHash(jsonLdType);
-  const schemaHash = schemaHashResult && schemaHashResult.success ? schemaHashResult.data : null;
+  const schemaHash = schemaHashResult.success
+    ? schemaHashResult.data
+    : schemaHashResult.error.message;
   const version = jsonSchema.jsonSchemaProps.$metadata.version;
 
   return (
@@ -59,11 +61,7 @@ export function ImportSchemaPreview({
             text={bigint || "An error occurred while calculating BigInt."}
           />
 
-          <Detail
-            copyable={schemaHash !== null}
-            label="Hash"
-            text={schemaHash || "An error occurred while calculating Hash."}
-          />
+          <Detail copyable={schemaHashResult.success} label="Hash" text={schemaHash} />
 
           <Detail copyable href={url} label="URL" text={url} />
 

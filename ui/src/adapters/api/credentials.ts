@@ -211,6 +211,10 @@ export async function getCredential({
       name: credentialSubject.type,
     });
 
+    if (!schemaHash.success) {
+      return schemaHash;
+    }
+
     const revoked = revocationStatus.data.mtp.existence;
     const expired = expirationDate ? new Date() > new Date(expirationDate) : false;
 
@@ -224,7 +228,7 @@ export async function getCredential({
         proofTypes,
         revNonce: credentialStatus.revocationNonce,
         revoked,
-        schemaHash: schemaHash.success ? schemaHash.data : "",
+        schemaHash: schemaHash.data,
         schemaType: credentialSubject.type,
         schemaUrl: credentialSchema.id,
         userID: issuer,
