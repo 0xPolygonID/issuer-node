@@ -36,8 +36,8 @@ type Identity struct {
 
 // IdentityDisplayName struct
 type IdentityDisplayName struct {
-	Identifier  string `json:"identifier"`
-	DisplayName string `json:"displayName"`
+	Identifier  string  `json:"identifier"`
+	DisplayName *string `json:"displayName"`
 }
 
 // NewIdentityFromIdentifier default identity model from identity and root state

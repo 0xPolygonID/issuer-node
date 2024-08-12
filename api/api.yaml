@@ -1746,7 +1746,6 @@ components:
         - method
         - blockchain
         - network
-        - displayName
       properties:
         identifier:
           type: string
@@ -1771,7 +1770,7 @@ components:
           example: "amoy"
         displayName:
           type: string
-          x-omitempty: false
+          x-omitempty: true
           example: "KYCAgeCredential Issuer identity"
 
     GetConnectionResponse:
