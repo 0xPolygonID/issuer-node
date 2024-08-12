@@ -14,7 +14,7 @@ jobs:
           touch .env-issuer
           touch .env-ui
       - name: Docker Compose
-        uses: isbang/compose-action@v1.4.1 # Needs actions/checkout before
+        uses: hoverkraft-tech/compose-action@v2.0.1 # Needs actions/checkout before
         with:
           compose-file: './infrastructure/local/docker-compose-infra.yml'
           services: |
