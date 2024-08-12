@@ -977,7 +977,7 @@ components:
           schema:
             $ref: '#/components/schemas/GenericErrorMessage'
     '500':
-      description: 'Internal Server error'
+      description: 'Internal Server  error'
       content:
         application/json:
           schema:
