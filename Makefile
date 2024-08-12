@@ -54,10 +54,18 @@ $(BIN)/oapi-codegen: tools.go go.mod go.sum ## install code generator for API fi
 api: $(BIN)/oapi-codegen
 	$(BIN)/oapi-codegen -config ./api/config-oapi-codegen.yaml ./api/api.yaml > ./internal/api/api.gen.go
 
-# If you want to use vault as a KMS provider, you need to run this command
+# Starts the infrastructure services
 .PHONY: up
 up:
+ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
+ifeq ($(ISSUER_KMS_BJJ_PROVIDER), localstorage)
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
+else
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
+endif
+else
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
+endif
 
 # If you want to use localstorage as a KMS provider, you need to run this command
 .PHONY: up/localstorage
@@ -76,22 +84,19 @@ build-ui:
 
 # Run the api, pending_publisher and notifications services
 .PHONY: run
-run:
-	@if [ -f ./resolvers_settings.yaml ]; then \
-  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications; \
-	else \
-  		echo "./resolvers_settings.yaml not found"; \
-  	fi
+run: up
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications
 
 # Run the ui, api, pending_publisher and notifications services
 # First build the ui image and the api image
 .PHONY: run-ui
-run-ui: build-ui build add-host-url-swagger
-	@if [ -f ./resolvers_settings.yaml ]; then \
-  		COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications; \
-	else \
-  		echo "./resolvers_settings.yaml not found"; \
-  	fi
+run-ui: build-ui add-host-url-swagger
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui
+
+.PHONE: run-all
+run-all: build build-ui add-host-url-swagger
+	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications
+
 
 .PHONY: down
 down:
@@ -100,20 +105,17 @@ down:
 
 .PHONY: stop
 stop:
+	$(DOCKER_COMPOSE_CMD) stop
+
+.PHONY: stop-all
+stop-all:
 	$(DOCKER_COMPOSE_INFRA_CMD) stop
 	$(DOCKER_COMPOSE_CMD) stop
+
 
 .PHONY: up-test
 up-test:
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d test_postgres vault test_local_files_apache
-
-# Clean the vault data
-.PHONY: clean-vault
-clean-vault:
-	rm -R infrastructure/local/.vault/data/init.out
-	rm -R infrastructure/local/.vault/file/core/
-	rm -R infrastructure/local/.vault/file/logical/
-	rm -R infrastructure/local/.vault/file/sys/
 
 $(BIN)/platformid-migrate:
 	$(BUILD_CMD) ./cmd/migrate
@@ -205,7 +207,6 @@ vault-import-keys:
 	docker build -t issuer-vault-import-keys .
 	docker run --rm -it --network=issuer-network -v $(shell pwd)/keys.json:/keys.json issuer-vault-import-keys ./vault-migrator -operation=import -input-file=keys.json -vault-token=$(vault_token) -vault-addr=http://vault:8200
 
-
 # usage: make new_password=xxx change-vault-password
 .PHONY: change-vault-password
 change-vault-password:
@@ -215,3 +216,8 @@ change-vault-password:
 .PHONY: print-commands
 print-commands:
 	@grep '^\s*\.[a-zA-Z_][a-zA-Z0-9_]*' Makefile
+
+
+.PHONY: clean-volumes
+clean-volumes:
+	$(DOCKER_COMPOSE_INFRA_CMD) down -v

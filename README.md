@@ -24,10 +24,9 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
   - [Table of Contents](#table-of-contents)
   - [Quick Start Installation](#quick-start-installation)
     - [Prerequisites](#prerequisites)
-    - [Issuer Node API](#issuer-node-api)
-      - [Deploy Issuer Node Infrastructure](#deploy-issuer-node-infrastructure)
-      - [Run Issuer Node API](#run-issuer-node-api)
-    - [Issuer Node UI](#issuer-node-ui)
+    - [Install and run Issuer Node API and UI](#install-and-run-issuer-node-api-and-ui)
+    - [Running only Issuer Node API](#running-only-issuer-node-api)
+  - [KMS Providers Configuration](#kms-providers-configuration)
   - [Quick Start Demo](#quick-start-demo)
   - [Documentation](#documentation)
   - [Tools](#tools)
@@ -52,168 +51,118 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
     - [Alchemy](https://www.alchemy.com/)
     - [Infura](https://www.infura.io/)
 
-### Issuer Node API
-
-In this section we will cover the installation of the Issuer Node API.
-
+### Install and run Issuer Node API and UI
 > [!NOTE]
-> This Quick Installation Guide is prepared for Polygon Amoy (Testnet) both for the state contract and issuer dids. If you want to deploy the node with Polygon Main configuration, please visit our [advanced Issuer Node configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/)).
+> This Quick Installation Guide is prepared for Polygon Amoy (Testnet) both for the state contract and issuer dids.
 
+In this section we will see how to install the issuer node api and the UI along with the necessary infrastructure in 
+the most basic way, without too much customization.
 
-#### Deploy Issuer Node Infrastructure
-
-1. Copy the config sample files:
-
-    ```shell
-    cp .env-issuer.sample .env-issuer
-    cp .env-api.sample .env-api
-    ```
+1. Copy the config sample file:
+```shell
+cp .env-issuer.sample .env-issuer
+```
 
 2. Fill the .env-issuer config file with the proper variables:
 
-   *.env-issuer*
-    ```bash
-    ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
-    ```
-3. Start the infrastructure:
+*.env-issuer*
+```bash
+ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+ISSUER_API_AUTH_USER=user-issuer
+ISSUER_API_AUTH_PASSWORD=password-issuer
+```
+3. Create a file with the networks' configuration. You can copy and modify the provided sample file:
 
-    ```bash
-    make up
-    ```
+```bash
+cp resolvers_settings_sample.yaml resolvers_settings.yaml
+```
+then modify the file with the proper values. The most important fields to run the issuer node are RPC (`networkURL`) fields.
+In this file you can define customizations for each type of blockchain and network. For this example, we only need to 
+define the RPCs. that will use.
 
-4. Enable vault authentication:
+4. Copy .env-ui sample file and fill the needed env variables:
 
-    ```bash
-    make add-vault-token
-    ```
+```bash 
+cp .env-ui.sample .env-ui
+```
+The default UI has basic authentication configured, you must establish the credentials by modifying the value of
+the following variables
 
-5. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
+*.env-ui*
+```bash
+ISSUER_UI_AUTH_USERNAME=user-ui
+ISSUER_UI_AUTH_PASSWORD=password-ui
+```
+If you want to disable UI authentication, you must change the value of the following variable to true:
 
-    ```bash
-    make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
-    ```
+```bash
+ISSUER_UI_INSECURE=true
+```
 
+5. Import your private Key:
+Write the private key in Vault. This step is needed in order to be able to transit the issuer's state. To perform that
+action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
+```bash
+make private_key=<private-key> import-private-key-to-kms
+```
+
+6. Run API, UI and infrastructure (Postgres, Vault and Redis)
+
+To do a build and start both the API and the UI in a single step, you can use the following command:
+```bash
+make run-all
+```
+then visit 
+* http://localhost:8088/ to access the UI
+* http://localhost:3001/ to access the API.
+
+
+### Running only Issuer Node API
+
+If you want to run only the API, you can follow the steps below. You have to have the .env-issuer file filled with 
+the proper values and the resolver_settings.yaml file with the proper RPCs.
+Then run: 
+```
+make run
+```
 ----
 **Troubleshooting:**
 
-In order to **stop** and **delete** all the containers.
+In order to **stop** **all** the containers, run the following command:
 
-> [!WARNING]
-> This will permanently delete all data, making it necessary to create an Issuer DID again.
-
-``` bash
-make down
-```
-
-If you experience **problems** with the **vault**, follow these commands:
+> [!NOTE] This will not delete the data in the vault and the database.
 
 ``` bash
-docker stop issuer-vault-1    // Stops the container issuer-vault-1 
-docker rm issuer-vault-1      // Removes container issuer-vault-1
-make clean-vault              // Removes all the data in the vault, including the token
-make up                       // Starts the database, cache and vault storage (i.e, postgres, redis and vault)
+make stop-all
 ```
-Wait 20 secs so the vault can boot and generate a token.
+
+To stop only the API and UI container, run:
 
 ``` bash
-make add-vault-token                                          // Adds the generated token to the ISSUER_KEY_STORE_TOKEN var in .env-issuer
-make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key    // Stores the private key in the vault
+make stop
 ```
 
-----
-#### Run Issuer Node API
+If you want to **delete** all the data in the vault and the database, run:
 
-The issuer node is extensively configurable, for a detailed list of the configuration, please visit our [detailed configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/).
+``` bash
+make clean-volumes
+```
 
-1. Fill the .env-issuer config file with the proper variables:
+If for some reason you only need to restart the UI, run:
 
-   *.env-issuer*
-    ```bash
-    ISSUER_API_AUTH_USER=user-issuer
-    ISSUER_API_AUTH_PASSWORD=password-issuer
-    ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
-    ```
+``` bash
+make run-ui
+```
 
-2. Run api:
-
-    ```bash
-    make run
-    ```
-
-> Core API specification - http://localhost:3001/
-
----
-
-**Troubleshooting:**
-
-Restart the api.
+To restart the api after changes (pull code with changes):
 
 ```bash 
-make restart-api
+make build && make run
 ```
 
----
+### KMS Providers Configuration
 
-### Issuer Node UI
-
-In this section we will cover the installation of the Issuer Node UI, before continuing with these steps, make sure that you have followed the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section before continuing.
-
-In order to make the UI work, we will need configure some env variables in the `.env-api` file
-
-1. Copy .env-ui sample file and fill the needed env variables:
-
-
-    ```bash 
-    cp .env-ui.sample .env-ui
-    ```
-
-    *.env-ui*
-    ```bash
-    ISSUER_UI_AUTH_USERNAME=user-ui
-    ISSUER_UI_AUTH_PASSWORD=password-ui
-    ```
-    
-    *.env-api*
-    ```bash
-    ISSUER_API_UI_SERVER_URL={PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_API_UI_SERVER_PORT}
-    ```
-
-    > **_NOTE:_**  It is possible to register custom did methods. This field accepts an array of objects in JSON format.</br>
-    > Example:
-        ```
-        ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
-        ```
-
-2. Generate Issuer DID:
-
-    ```bash
-    make generate-issuer-did
-    ```
-
-3. Run UI:
-
-    ```bash
-    make run-ui
-    ```
-
-
->**API UI specification** - http://localhost:3002/
-> 
->**UI** - http://localhost:8088/
-
----
-**Troubleshooting:**
-
-Restart the ui:
-
-```bash 
-make restart-ui
-```
----
-
-## Issuer Node V2 Notes
-
-### Running issuer node with local storage file instead of Vault
+#### Running issuer node with local storage file instead of Vault
 Setup environment variables in `.env-issuer` file:
 
 ```bash
@@ -221,22 +170,20 @@ ISSUER_KMS_BJJ_PROVIDER=localstorage
 ISSUER_KMS_ETH_PROVIDER=localstorage
 ```
 
-To import the private key in AWS Kms run (make sure ISSUER_KMS_ETH_PROVIDER is set to `aws`):
 
+#### Running issuer node with AWS KMS Service instead of Vault for ETH Keys
+
+```bash
+ISSUER_KMS_BJJ_PROVIDER=<localstorage or vault>
+ISSUER_KMS_ETH_PROVIDER=aws
+ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=<AWS-ACCESS-KEY>
+ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=<AWS-SECRET-KEY>
+ISSUER_KMS_ETH_PLUGIN_AWS_REGION=<AWS-REGION>
+```
+In this case, to import the private key in AWS KMS run:
 ```shell
 make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
 ```
-
-To import your private key in localstorage or Vault run (make sure ISSUER_KMS_ETH_PROVIDER is set to `localstorage` or `vault`):
-
-```shel
-make private_key=XXX import-private-key-to-kms
-```
-
-
-
-If you want to use Vault just change the `ISSUER_KMS_BJJ_PLUGIN` and `ISSUER_KMS_ETH_PLUGIN` to `vault` and follow the steps in the [Deploy Issuer Node Infrastructure](#Deploy-Issuer-Node-Infrastructure) section. 
-
 
 ## Quick Start Demo
 

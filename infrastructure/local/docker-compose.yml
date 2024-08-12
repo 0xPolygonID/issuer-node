@@ -23,6 +23,7 @@ services:
       - ../../.env-issuer
     volumes:
       - ../../localstoragekeys:/localstoragekeys:rw
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     healthcheck:
       test: [ "CMD", "curl", "-f", "localhost:3001/status" ]
       interval: 10s
