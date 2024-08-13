@@ -138,7 +138,7 @@ func (s *Server) UpdateIdentityDisplayName(ctx context.Context, request UpdateId
 		}, err
 	}
 
-	return UpdateIdentityDisplayName200JSONResponse{}, nil
+	return UpdateIdentityDisplayName200JSONResponse{Message: "Identity display name updated"}, nil
 }
 
 // GetIdentities is the controller to get identities
