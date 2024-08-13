@@ -106,13 +106,14 @@ func Test_UnsupportedMediaType(t *testing.T) {
 		require.Equal(t, http.StatusBadRequest, rr.Code)
 		var agentResponse Agent400JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &agentResponse))
-		testt, err := json.Marshal(agentFetch)
+		require.Equal(t, agentResponse.Message, "unsupported media type 'application/iden3comm-plain-json' for message type 'https://iden3-communication.io/credentials/1.0/fetch-request'")
+		agentFetchJson, err := json.Marshal(agentFetch)
 		require.NoError(t, err)
 
-		bodyJWZ, err := server.packageManager.Pack("application/iden3-zkp-json", testt, nil)
+		bodyJWZ, err := server.packageManager.Pack("application/iden3-zkp-json", agentFetchJson, nil)
 		require.NoError(t, err)
 		rr = httptest.NewRecorder()
-		agentReqJWZ, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t,bodyJWZ))
+		agentReqJWZ, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t, bodyJWZ))
 		credReq.SetBasicAuth(authOk())
 		require.NoError(t, err)
 		handler.ServeHTTP(rr, agentReqJWZ)
