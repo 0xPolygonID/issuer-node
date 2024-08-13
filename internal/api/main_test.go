@@ -2,8 +2,12 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -30,8 +34,8 @@ import (
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/helpers"
 	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
+	issuerProtocolPkg "github.com/polygonid/sh-id-platform/pkg/protocol"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
-	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
 )
 
 var (
@@ -123,7 +127,11 @@ func TestMain(m *testing.M) {
 
 	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
+	cfg.Circuit = config.Circuit{
+		Path: "./pkg/credentials/circuits",
+	}
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
+
 	m.Run()
 }
 
@@ -200,9 +208,24 @@ func (kpm *KMSMock) LinkToIdentity(ctx context.Context, keyID kms.KeyID, identit
 	return key, nil
 }
 
-// TODO: add package manager mocks
-func NewPackageManagerMock() *iden3comm.PackageManager {
-	return &iden3comm.PackageManager{}
+func NewPackageManagerMockWithPacker(t *testing.T, ctx context.Context, networkResolver networkPkg.Resolver) *iden3comm.PackageManager {
+	pwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	path := pwd + "pkg/credentials/circuits"
+	if strings.Contains(pwd, "internal") {
+		parts := strings.Split(pwd, "internal")
+		if len(parts) < 2 {
+			t.Fail()
+		}
+		path = parts[0] + "pkg/credentials/circuits"
+	}
+
+	pkgM, err := issuerProtocolPkg.InitPackageManager(ctx, networkResolver.GetSupportedContracts(), path)
+	assert.NoError(t, err)
+	return pkgM
 }
 
 func NewPublisherMock() ports.Publisher {
@@ -261,6 +284,7 @@ type testServer struct {
 
 func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	t.Helper()
+	ctx := context.Background()
 	if st == nil {
 		st = storage
 	}
@@ -300,7 +324,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub)
-	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)
+	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMockWithPacker(t, ctx, *networkResolver), *networkResolver, nil, schemaService, linkService)
 
 	return &testServer{
 		Server: server,
