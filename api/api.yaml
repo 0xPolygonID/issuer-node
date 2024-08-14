@@ -1627,6 +1627,7 @@ components:
         - identity
         - status
         - authCoreClaimRevocationStatus
+        - keyType
       properties:
         identifier:
           type: string
@@ -1635,6 +1636,10 @@ components:
         address:
           type: string
         balance:
+          type: string
+        keyType:
+          type: string
+        displayName:
           type: string
         authCoreClaimRevocationStatus:
           $ref: '#/components/schemas/authCoreClaimRevocationStatus'
