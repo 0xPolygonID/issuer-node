@@ -293,7 +293,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qQ8S2VKdQv7xYgzCn7KW2xgzUWrTRQjoZDYavJHBq", DisplayName: common.ToPointer("my display name"), KeyType: "BJJ"}
+	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qa2gW8iU1nTbgYZVxAvbXX5XMMXFh6GHkVWX3KQJA", DisplayName: common.ToPointer("my display name"), KeyType: "BJJ"}
 	fixture := tests.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
