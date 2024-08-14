@@ -365,7 +365,6 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestServer_UpdateDisplayName(t *testing.T) {
