@@ -104,7 +104,6 @@ func Test_UnsupportedMediaType(t *testing.T) {
 
 		rr = httptest.NewRecorder()
 		agentReq, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t, agentFetch))
-		agentReq.SetBasicAuth(authOk())
 		require.NoError(t, err)
 		handler.ServeHTTP(rr, agentReq)
 		require.Equal(t, http.StatusBadRequest, rr.Code)
@@ -124,7 +123,6 @@ func Test_UnsupportedMediaType(t *testing.T) {
 		require.NoError(t, err)
 		rr = httptest.NewRecorder()
 		agentReqJWZ, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t, bodyJWZ))
-		agentReqJWZ.SetBasicAuth(authOk())
 		require.NoError(t, err)
 		handler.ServeHTTP(rr, agentReqJWZ)
 		require.Equal(t, http.StatusBadRequest, rr.Code)
@@ -229,7 +227,6 @@ func Test_RevocationStatusMessageType(t *testing.T) {
 		}
 		rr = httptest.NewRecorder()
 		agentReq, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t, agentRequestStatus))
-		credReq.SetBasicAuth(authOk())
 		require.NoError(t, err)
 		handler.ServeHTTP(rr, agentReq)
 		require.Equal(t, http.StatusBadRequest, rr.Code)
