@@ -362,7 +362,9 @@ type GetIdentityDetailsResponse struct {
 	Address                       *string                       `json:"address,omitempty"`
 	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
 	Balance                       *string                       `json:"balance,omitempty"`
+	DisplayName                   *string                       `json:"displayName,omitempty"`
 	Identifier                    *string                       `json:"identifier,omitempty"`
+	KeyType                       string                        `json:"keyType"`
 	State                         *IdentityState                `json:"state,omitempty"`
 }
 

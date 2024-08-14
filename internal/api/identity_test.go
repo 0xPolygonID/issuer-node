@@ -289,6 +289,84 @@ func TestServer_GetIdentities(t *testing.T) {
 	}
 }
 
+func TestServer_GetIdentityDetails(t *testing.T) {
+	server := newTestServer(t, nil)
+	handler := getHandler(context.Background(), server)
+
+	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qa2gW8iU1nTbgYZVxAvbXX5XMMXFh6GHkVWX3KQJA", DisplayName: common.ToPointer("my display name"), KeyType: "BJJ"}
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	state := domain.IdentityState{
+		Identifier: identity.Identifier,
+		State:      common.ToPointer("state"),
+		Status:     domain.StatusCreated,
+		ModifiedAt: time.Now(),
+		CreatedAt:  time.Now(),
+	}
+	fixture.CreateIdentityStatus(t, state)
+
+	type expected struct {
+		httpCode    int
+		displayName *string
+		status      string
+		state       string
+		identifier  *string
+		keyType     string
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "should retrieve identity details",
+			auth: authOk,
+			expected: expected{
+				httpCode:    200,
+				identifier:  &identity.Identifier,
+				displayName: common.ToPointer("my display name"),
+				status:      "created",
+				state:       "state",
+				keyType:     "BJJ",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/v1/identities/%s/details", identity.Identifier)
+			req, err := http.NewRequest("GET", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			if tc.expected.httpCode == http.StatusOK {
+				var response GetIdentityDetails200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.identifier, response.Identifier)
+				assert.Equal(t, tc.expected.displayName, response.DisplayName)
+				assert.Equal(t, tc.expected.status, response.State.Status)
+				assert.Equal(t, tc.expected.state, *response.State.State)
+				assert.Equal(t, tc.expected.keyType, response.KeyType)
+				assert.Nil(t, identity.Address)
+				assert.Nil(t, identity.Balance)
+			}
+		})
+	}
+}
+
 func TestServer_UpdateDisplayName(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
