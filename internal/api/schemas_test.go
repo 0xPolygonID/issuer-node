@@ -26,7 +26,7 @@ func TestServer_GetSchema(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.ServerURL = "https://testing.env"
+	server.cfg.ServerUrl = "https://testing.env"
 	fixture := tests.NewFixture(storage)
 
 	s := &domain.Schema{
@@ -145,7 +145,7 @@ func TestServer_GetSchemas(t *testing.T) {
 
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.ServerURL = "https://testing.env"
+	server.cfg.ServerUrl = "https://testing.env"
 	fixture := tests.NewFixture(storage)
 
 	for i := 0; i < 20; i++ {
@@ -268,7 +268,7 @@ func TestServer_ImportSchema(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.ServerURL = "https://testing.env"
+	server.cfg.ServerUrl = "https://testing.env"
 
 	handler := getHandler(ctx, server)
 
@@ -364,7 +364,7 @@ func TestServer_ImportSchemaIPFS(t *testing.T) {
 	server := newTestServer(t, nil)
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
-	server.cfg.APIUI.ServerURL = "https://testing.env"
+	server.cfg.ServerUrl = "https://testing.env"
 
 	handler := getHandler(ctx, server)
 

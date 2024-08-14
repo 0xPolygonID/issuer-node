@@ -200,6 +200,7 @@ type CreateIdentityRequest struct {
 		Network                 string                                                   `json:"network"`
 		Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
 	} `json:"didMetadata"`
+	DisplayName *string `json:"displayName,omitempty"`
 }
 
 // CreateIdentityRequestDidMetadataAuthBJJCredentialStatus defines model for CreateIdentityRequest.DidMetadata.AuthBJJCredentialStatus.
@@ -210,9 +211,10 @@ type CreateIdentityRequestDidMetadataType string
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
-	Address    *string        `json:"address"`
-	Identifier *string        `json:"identifier,omitempty"`
-	State      *IdentityState `json:"state,omitempty"`
+	Address     *string        `json:"address"`
+	DisplayName *string        `json:"displayName,omitempty"`
+	Identifier  *string        `json:"identifier,omitempty"`
+	State       *IdentityState `json:"state,omitempty"`
 }
 
 // CreateLinkRequest defines model for CreateLinkRequest.
@@ -346,6 +348,7 @@ type GetConnectionsResponse = []GetConnectionResponse
 type GetIdentitiesResponse struct {
 	AuthBJJCredentialStatus *GetIdentitiesResponseAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
 	Blockchain              string                                        `json:"blockchain"`
+	DisplayName             *string                                       `json:"displayName,omitempty"`
 	Identifier              string                                        `json:"identifier"`
 	Method                  string                                        `json:"method"`
 	Network                 string                                        `json:"network"`
@@ -538,6 +541,12 @@ type StateTransactionsResponse struct {
 	Transactions []StateTransaction `json:"transactions"`
 }
 
+// SupportedNetworks defines model for SupportedNetworks.
+type SupportedNetworks struct {
+	Blockchain string   `json:"blockchain"`
+	Networks   []string `json:"networks"`
+}
+
 // TimeUTC defines model for TimeUTC.
 type TimeUTC = timeapi.Time
 
@@ -630,6 +639,11 @@ type CreateLinkQrCodeCallbackParams struct {
 
 	// CredentialStatusType credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
 	CredentialStatusType *CredentialStatusType `form:"credentialStatusType,omitempty" json:"credentialStatusType,omitempty"`
+}
+
+// UpdateIdentityDisplayNameJSONBody defines parameters for UpdateIdentityDisplayName.
+type UpdateIdentityDisplayNameJSONBody struct {
+	DisplayName string `json:"displayName"`
 }
 
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
@@ -815,6 +829,9 @@ type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
 // CreateIdentityJSONRequestBody defines body for CreateIdentity for application/json ContentType.
 type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
+// UpdateIdentityDisplayNameJSONRequestBody defines body for UpdateIdentityDisplayName for application/json ContentType.
+type UpdateIdentityDisplayNameJSONRequestBody UpdateIdentityDisplayNameJSONBody
+
 // CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
 
@@ -868,12 +885,18 @@ type ServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
+	// Update Identity DisplayName field
+	// (PATCH /v1/identities/{identifier})
+	UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
+	// Get Supported Networks
+	// (GET /v1/supported-networks)
+	GetSupportedNetworks(w http.ResponseWriter, r *http.Request)
 	// Get Connection QRCode
 	// (POST /v1/{identifier}/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams)
@@ -1051,6 +1074,12 @@ func (_ Unimplemented) CreateIdentity(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Update Identity DisplayName field
+// (PATCH /v1/identities/{identifier})
+func (_ Unimplemented) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Identity Detail
 // (GET /v1/identities/{identifier}/details)
 func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
@@ -1060,6 +1089,12 @@ func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request
 // QrCode body
 // (GET /v1/qr-store)
 func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Supported Networks
+// (GET /v1/supported-networks)
+func (_ Unimplemented) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1529,6 +1564,34 @@ func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// UpdateIdentityDisplayName operation middleware
+func (siw *ServerInterfaceWrapper) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateIdentityDisplayName(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetIdentityDetails operation middleware
 func (siw *ServerInterfaceWrapper) GetIdentityDetails(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1576,6 +1639,23 @@ func (siw *ServerInterfaceWrapper) GetQrFromStore(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetQrFromStore(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetSupportedNetworks operation middleware
+func (siw *ServerInterfaceWrapper) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSupportedNetworks(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3193,10 +3273,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
 	})
 	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v1/identities/{identifier}", wrapper.UpdateIdentityDisplayName)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities/{identifier}/details", wrapper.GetIdentityDetails)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/supported-networks", wrapper.GetSupportedNetworks)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/authentication/qrcode", wrapper.AuthQRCode)
@@ -3667,6 +3753,60 @@ func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
+type UpdateIdentityDisplayNameRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *UpdateIdentityDisplayNameJSONRequestBody
+}
+
+type UpdateIdentityDisplayNameResponseObject interface {
+	VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error
+}
+
+type UpdateIdentityDisplayName200JSONResponse GenericMessage
+
+func (response UpdateIdentityDisplayName200JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName400JSONResponse struct{ N400JSONResponse }
+
+func (response UpdateIdentityDisplayName400JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName401JSONResponse struct{ N401JSONResponse }
+
+func (response UpdateIdentityDisplayName401JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName403JSONResponse struct{ N403JSONResponse }
+
+func (response UpdateIdentityDisplayName403JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(403)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type UpdateIdentityDisplayName500JSONResponse struct{ N500CreateIdentityJSONResponse }
+
+func (response UpdateIdentityDisplayName500JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type GetIdentityDetailsRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 }
@@ -3749,6 +3889,58 @@ func (response GetQrFromStore404JSONResponse) VisitGetQrFromStoreResponse(w http
 type GetQrFromStore500JSONResponse struct{ N500JSONResponse }
 
 func (response GetQrFromStore500JSONResponse) VisitGetQrFromStoreResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworksRequestObject struct {
+}
+
+type GetSupportedNetworksResponseObject interface {
+	VisitGetSupportedNetworksResponse(w http.ResponseWriter) error
+}
+
+type GetSupportedNetworks200JSONResponse []SupportedNetworks
+
+func (response GetSupportedNetworks200JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSupportedNetworks400JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks401JSONResponse struct{ N401JSONResponse }
+
+func (response GetSupportedNetworks401JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks404JSONResponse struct{ N404JSONResponse }
+
+func (response GetSupportedNetworks404JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSupportedNetworks500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSupportedNetworks500JSONResponse) VisitGetSupportedNetworksResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5294,12 +5486,18 @@ type StrictServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
+	// Update Identity DisplayName field
+	// (PATCH /v1/identities/{identifier})
+	UpdateIdentityDisplayName(ctx context.Context, request UpdateIdentityDisplayNameRequestObject) (UpdateIdentityDisplayNameResponseObject, error)
 	// Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error)
 	// QrCode body
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
+	// Get Supported Networks
+	// (GET /v1/supported-networks)
+	GetSupportedNetworks(ctx context.Context, request GetSupportedNetworksRequestObject) (GetSupportedNetworksResponseObject, error)
 	// Get Connection QRCode
 	// (POST /v1/{identifier}/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
@@ -5737,6 +5935,39 @@ func (sh *strictHandler) CreateIdentity(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// UpdateIdentityDisplayName operation middleware
+func (sh *strictHandler) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request UpdateIdentityDisplayNameRequestObject
+
+	request.Identifier = identifier
+
+	var body UpdateIdentityDisplayNameJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateIdentityDisplayName(ctx, request.(UpdateIdentityDisplayNameRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateIdentityDisplayName")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateIdentityDisplayNameResponseObject); ok {
+		if err := validResponse.VisitUpdateIdentityDisplayNameResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetIdentityDetails operation middleware
 func (sh *strictHandler) GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	var request GetIdentityDetailsRequestObject
@@ -5782,6 +6013,30 @@ func (sh *strictHandler) GetQrFromStore(w http.ResponseWriter, r *http.Request, 
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetQrFromStoreResponseObject); ok {
 		if err := validResponse.VisitGetQrFromStoreResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSupportedNetworks operation middleware
+func (sh *strictHandler) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
+	var request GetSupportedNetworksRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSupportedNetworks(ctx, request.(GetSupportedNetworksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSupportedNetworks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSupportedNetworksResponseObject); ok {
+		if err := validResponse.VisitGetSupportedNetworksResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

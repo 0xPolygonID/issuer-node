@@ -20,8 +20,12 @@ func GetReaderFromConfig(cfg *config.Configuration, ctx context.Context) (io.Rea
 	var err error
 	if cfg.NetworkResolverPath != "" {
 		reader, err = readFileFromPath(ctx, cfg.NetworkResolverPath)
+	} else if cfg.NetworkResolverFile != nil && *cfg.NetworkResolverFile != "" {
+		reader, err = readFile(ctx, *cfg.NetworkResolverFile)
 	} else {
-		reader, err = readFile(ctx, cfg.NetworkResolverFile)
+		log.Info(ctx, "resolver settings file or path not found")
+		log.Info(ctx, "issuer node wil not run supporting multi chain feature")
+		return nil, errors.New("resolver settings file not found")
 	}
 	return reader, err
 }

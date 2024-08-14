@@ -66,6 +66,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		Blockchain:              core.Blockchain(blockchain),
 		KeyType:                 kms.KeyType(keyType),
 		AuthBJJCredentialStatus: authBJJCredentialStatus,
+		DisplayName:             request.Body.DisplayName,
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -96,7 +97,8 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	}
 
 	return CreateIdentity201JSONResponse{
-		Identifier: &identity.Identifier,
+		Identifier:  &identity.Identifier,
+		DisplayName: identity.DisplayName,
 		State: &IdentityState{
 			BlockNumber:        identity.State.BlockNumber,
 			BlockTimestamp:     identity.State.BlockTimestamp,
@@ -114,6 +116,31 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	}, nil
 }
 
+// UpdateIdentityDisplayName is update identity display name controller
+func (s *Server) UpdateIdentityDisplayName(ctx context.Context, request UpdateIdentityDisplayNameRequestObject) (UpdateIdentityDisplayNameResponseObject, error) {
+	userDID, err := w3c.ParseDID(request.Identifier)
+	if err != nil {
+		log.Error(ctx, "update identity display name. Parsing did", "err", err)
+		return UpdateIdentityDisplayName400JSONResponse{
+			N400JSONResponse{
+				Message: "invalid did",
+			},
+		}, err
+	}
+
+	err = s.identityService.UpdateIdentityDisplayName(ctx, *userDID, request.Body.DisplayName)
+	if err != nil {
+		log.Error(ctx, "update identity display name. updating display name", "err", err)
+		return UpdateIdentityDisplayName400JSONResponse{
+			N400JSONResponse{
+				Message: "invalid identity",
+			},
+		}, err
+	}
+
+	return UpdateIdentityDisplayName200JSONResponse{Message: "Identity display name updated"}, nil
+}
+
 // GetIdentities is the controller to get identities
 func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error) {
 	var err error
@@ -127,7 +154,7 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 
 	partsLength := 4
 	for _, identity := range identities {
-		did, err := w3c.ParseDID(identity)
+		did, err := w3c.ParseDID(identity.Identifier)
 		if err != nil {
 			return GetIdentities500JSONResponse{N500JSONResponse{
 				Message: err.Error(),
@@ -145,7 +172,7 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 			}
 		}
 
-		items := strings.Split(identity, ":")
+		items := strings.Split(identity.Identifier, ":")
 		if len(items) < partsLength {
 			return GetIdentities500JSONResponse{N500JSONResponse{
 				Message: "Invalid identity",
@@ -153,11 +180,12 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 		}
 
 		response = append(response, GetIdentitiesResponse{
-			Identifier:              identity,
+			Identifier:              identity.Identifier,
 			Method:                  items[1],
 			Blockchain:              items[2],
 			Network:                 items[3],
 			AuthBJJCredentialStatus: authBjjCredStatus,
+			DisplayName:             identity.DisplayName,
 		})
 	}
 
