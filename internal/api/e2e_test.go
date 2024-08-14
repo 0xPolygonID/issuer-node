@@ -14,7 +14,11 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 
+	"github.com/iden3/go-circuits/v2"
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-iden3-core/v2/w3c"
+	"github.com/iden3/go-jwz/v2"
+	"github.com/iden3/iden3comm/v2/packers"
 )
 
 func Test_UnsupportedMediaType(t *testing.T) {
@@ -100,21 +104,27 @@ func Test_UnsupportedMediaType(t *testing.T) {
 
 		rr = httptest.NewRecorder()
 		agentReq, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t, agentFetch))
-		credReq.SetBasicAuth(authOk())
+		agentReq.SetBasicAuth(authOk())
 		require.NoError(t, err)
 		handler.ServeHTTP(rr, agentReq)
 		require.Equal(t, http.StatusBadRequest, rr.Code)
 		var agentResponse Agent400JSONResponse
 		require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &agentResponse))
 		require.Equal(t, agentResponse.Message, "unsupported media type 'application/iden3comm-plain-json' for message type 'https://iden3-communication.io/credentials/1.0/fetch-request'")
+		senderID,err := w3c.ParseDID(*idResponse.Identifier)
+		require.NoError(t, err)
+
 		agentFetchJson, err := json.Marshal(agentFetch)
 		require.NoError(t, err)
 
-		bodyJWZ, err := server.packageManager.Pack("application/iden3-zkp-json", agentFetchJson, nil)
+		zkpParams := packers.ZKPPackerParams{SenderID: senderID, ProvingMethodAlg: jwz.ProvingMethodAlg{Alg: jwz.Groth16,
+			CircuitID: string(circuits.AuthV2CircuitID)}}
+			
+		bodyJWZ, err := server.packageManager.Pack(packers.MediaTypeZKPMessage, agentFetchJson, zkpParams)
 		require.NoError(t, err)
 		rr = httptest.NewRecorder()
 		agentReqJWZ, err := http.NewRequest(http.MethodPost, "/v1/agent", tests.JSONBody(t, bodyJWZ))
-		credReq.SetBasicAuth(authOk())
+		agentReqJWZ.SetBasicAuth(authOk())
 		require.NoError(t, err)
 		handler.ServeHTTP(rr, agentReqJWZ)
 		require.Equal(t, http.StatusBadRequest, rr.Code)
