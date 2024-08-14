@@ -17,6 +17,9 @@ ENVIRONMENT := ${ISSUER_ENVIRONMENT}
 ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH}
 ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
 
+ISSUER_RESOLVER_FILE := ${ISSUER_RESOLVER_FILE}
+REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
+
 # Local environment overrides via godotenv
 DOTENV_CMD = $(BIN)/godotenv
 ENV = $(DOTENV_CMD) -f .env-issuer
@@ -57,12 +60,8 @@ api: $(BIN)/oapi-codegen
 # Starts the infrastructure services
 .PHONY: up
 up:
-ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
-ifeq ($(ISSUER_KMS_BJJ_PROVIDER), localstorage)
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
-else
-	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
-endif
+ifeq ($(ISSUER_KMS_ETH_PROVIDER)$(ISSUER_KMS_BJJ_PROVIDER), localstoragelocalstorage)
+		$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres
 else
 	$(DOCKER_COMPOSE_INFRA_CMD) up -d redis postgres vault
 endif
@@ -82,9 +81,23 @@ build:
 build-ui:
 	docker build -t issuer-ui:local -f ./ui/Dockerfile ./ui
 
+
+.PHOMY: validate_issuer_resolver_file
+validate_issuer_resolver_file:
+	@if [ ! -f "$(REQUIRED_FILE)" ]; then \
+  		if [ -z "$(ISSUER_RESOLVER_FILE)" ]; then \
+			echo "ISSUER_RESOLVER_FILE env var is empty, and the file $(REQUIRED_FILE) doesn't exists."; \
+			exit 1; \
+		else \
+			echo "ISSUER_RESOLVER_FILE is set, using it..."; \
+		fi \
+	else \
+		echo "$(REQUIRED_FILE) environment is present, using it "; \
+	fi
+
 # Run the api, pending_publisher and notifications services
 .PHONY: run
-run: up
+run: validate_issuer_resolver_file up
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications
 
 # Run the ui.
