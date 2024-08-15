@@ -98,6 +98,9 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c
 			log.Error(ctx, "failed to create tx opts", "err", err)
 			return nil, err
 		}
+		log.Info(ctx, "Transaction metadata", "opts.GasPrice:", opts.GasPrice)
+		log.Info(ctx, "Transaction metadata", "opts.GasLimit:", opts.GasLimit)
+		log.Info(ctx, "Transaction metadata", "opts.GasTipCap:", opts.GasTipCap)
 
 		resolverPrefix, err := identity.GetResolverPrefix()
 		if err != nil {
@@ -131,6 +134,9 @@ func (pb *PublisherEthGateway) PublishState(ctx context.Context, identifier *w3c
 			log.Error(ctx, "failed to create tx opts", "err", err)
 			return nil, err
 		}
+		log.Info(ctx, "Transaction metadata", "opts.GasPrice:", opts.GasPrice)
+		log.Info(ctx, "Transaction metadata", "opts.GasLimit:", opts.GasLimit)
+		log.Info(ctx, "Transaction metadata", "opts.GasTipCap:", opts.GasTipCap)
 
 		a, b, c, err := pb.adaptProofToAbi(proof)
 		if err != nil {
