@@ -2,15 +2,14 @@ import { Col, Divider, Menu, Row, Space, Tag, Typography, message } from "antd";
 import { useState } from "react";
 import { generatePath, matchRoutes, useLocation, useNavigate } from "react-router-dom";
 
-import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconCredentials from "src/assets/icons/credit-card-refresh.svg?react";
 import IconFile from "src/assets/icons/file-05.svg?react";
 import IconSchema from "src/assets/icons/file-search-02.svg?react";
+import IconIssuers from "src/assets/icons/fingerprint-02.svg?react";
 import IconLink from "src/assets/icons/link-external-01.svg?react";
 import IconSettings from "src/assets/icons/settings-01.svg?react";
 import IconIssuerState from "src/assets/icons/switch-horizontal.svg?react";
 import IconConnections from "src/assets/icons/users-01.svg?react";
-import { SelectedIssuer } from "src/components/issuers/SelectedIssuer";
 import { LogoLink } from "src/components/shared/LogoLink";
 import { SettingsModal } from "src/components/shared/SettingsModal";
 import { UserDisplay } from "src/components/shared/UserDisplay";
@@ -102,17 +101,13 @@ export function SiderMenu({
         className="menu-sider-layout"
         justify="space-between"
         style={{
-          padding: isBreakpoint ? "32px 24px" : "96px 24px 32px",
+          padding: isBreakpoint ? "32px 16px" : "96px 16px 32px",
         }}
       >
         <Col>
           <UserDisplay />
 
-          <Divider style={{ marginBottom: 8 }} />
-
-          <SelectedIssuer />
-
-          <Divider style={{ marginTop: 8 }} />
+          <Divider />
 
           <Menu
             items={[

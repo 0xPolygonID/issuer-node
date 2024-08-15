@@ -17,6 +17,7 @@ type StyleVariables = {
   primaryColor: string;
   successBg: string;
   successColor: string;
+  successLightColor: string;
   tagBg: string;
   tagBgSuccess: string;
   tagColor: string;
@@ -39,6 +40,7 @@ const parsedStyleVariables = getStrictParser<StyleVariables>()(
     primaryColor: z.string(),
     successBg: z.string(),
     successColor: z.string(),
+    successLightColor: z.string(),
     tagBg: z.string(),
     tagBgSuccess: z.string(),
     tagColor: z.string(),

@@ -19,9 +19,10 @@ export const ISSUE_DATE = "Issue date";
 export const ISSUED = "Issued";
 export const ISSUED_CREDENTIALS = "Issued credentials";
 export const ISSUER_STATE = "Issuer state";
-export const ISSUER_ADD = "Add new issuer";
-export const ISSUER_DETAILS = "Issuer details";
-export const ISSUERS = "Issuers";
+export const ISSUER_ADD_NEW = "Add new identity";
+export const ISSUER_ADD = "Add identity";
+export const ISSUER_DETAILS = "Identity details";
+export const ISSUERS = "Identities";
 export const LINKS = "Links";
 export const REVOCATION = "Revocation";
 export const REVOKE = "Revoke";
@@ -32,6 +33,7 @@ export const SCHEMAS = "Schemas";
 export const STATUS = "Status";
 export const VALUE_REQUIRED = "Value required";
 export const NOT_PUBLISHED_STATE = "State not published";
+export const FINALISE_SETUP = "Finalise setup";
 
 // URL params
 export const DID_SEARCH_PARAM = "did";

@@ -23,6 +23,7 @@ import { IDENTIFIER_LOCAL_STORAGE_KEY } from "src/utils/constants";
 type IssuerState = {
   fetchIssuers: (signal: AbortSignal) => void;
   handleChange: (identifier: IssuerIdentifier) => void;
+  issuerDisplayName: string;
   issuerIdentifier: IssuerIdentifier;
   issuersList: AsyncTask<Issuer[], AppError>;
 };
@@ -30,6 +31,7 @@ type IssuerState = {
 const defaultIssuerState: IssuerState = {
   fetchIssuers: () => void {},
   handleChange: () => void {},
+  issuerDisplayName: "",
   issuerIdentifier: "",
   issuersList: { status: "pending" },
 };
@@ -43,6 +45,10 @@ export function IssuerProvider(props: PropsWithChildren) {
     status: "pending",
   });
   const [issuerIdentifier, setIssuerIdentifier] = useState<IssuerIdentifier>("");
+  const issuer =
+    issuersList.status === "successful" &&
+    issuersList.data.find(({ identifier }) => identifier === issuerIdentifier);
+  const issuerDisplayName = issuer ? issuer.displayName : "";
 
   const fetchIssuers = useCallback(
     async (signal: AbortSignal) => {
@@ -104,8 +110,14 @@ export function IssuerProvider(props: PropsWithChildren) {
   }, [fetchIssuers]);
 
   const value = useMemo(() => {
-    return { fetchIssuers, handleChange, issuerIdentifier, issuersList };
-  }, [issuerIdentifier, issuersList, handleChange, fetchIssuers]);
+    return {
+      fetchIssuers,
+      handleChange,
+      issuerDisplayName,
+      issuerIdentifier,
+      issuersList,
+    };
+  }, [issuerIdentifier, issuerDisplayName, issuersList, handleChange, fetchIssuers]);
 
   return (
     <>

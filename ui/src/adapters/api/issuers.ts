@@ -4,22 +4,30 @@ import { z } from "zod";
 import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
-import { AuthBJJCredentialStatus, Env, Issuer, IssuerIdentifier, IssuerType } from "src/domain";
+import {
+  AuthBJJCredentialStatus,
+  Blockchain,
+  Env,
+  Issuer,
+  IssuerIdentifier,
+  IssuerInfo,
+  IssuerType,
+  Method,
+  PolygonNetwork,
+  PrivadoNetwork,
+} from "src/domain";
 
 import { API_VERSION } from "src/utils/constants";
 import { List } from "src/utils/types";
 
 const apiIssuerParser = getStrictParser<Issuer>()(
   z.object({
-    authBJJCredentialStatus: z.enum([
-      AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023,
-      AuthBJJCredentialStatus.Iden3ReverseSparseMerkleTreeProof,
-      AuthBJJCredentialStatus["Iden3commRevocationStatusV1.0"],
-    ]),
-    blockchain: z.string(),
+    authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
+    blockchain: z.nativeEnum(Blockchain),
+    displayName: z.string(),
     identifier: z.string(),
-    method: z.string(),
-    network: z.string(),
+    method: z.nativeEnum(Method),
+    network: z.union([z.nativeEnum(PolygonNetwork), z.nativeEnum(PrivadoNetwork)]),
   })
 );
 
@@ -51,6 +59,7 @@ export async function getIssuers({
 
 export type CreateIssuer = {
   blockchain: string;
+  displayName: string;
   method: string;
   network: string;
 } & (
@@ -71,14 +80,80 @@ export async function createIssuer({
   payload: CreateIssuer;
 }): Promise<Response<void>> {
   try {
+    const { displayName, ...didMetadata } = payload;
     await axios({
       baseURL: env.api.url,
-      data: { didMetadata: payload },
+      data: { didMetadata, displayName },
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
       url: `${API_VERSION}/identities`,
+    });
+
+    return buildSuccessResponse(undefined);
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export const issuerDetailsParser = getStrictParser<IssuerInfo>()(
+  z.object({
+    authCoreClaimRevocationStatus: z.object({
+      type: z.nativeEnum(AuthBJJCredentialStatus),
+    }),
+
+    displayName: z.string(),
+    identifier: z.string(),
+    keyType: z.nativeEnum(IssuerType),
+  })
+);
+
+export async function getIssuerDetails({
+  env,
+  identifier,
+  signal,
+}: {
+  env: Env;
+  identifier: IssuerIdentifier;
+  signal?: AbortSignal;
+}): Promise<Response<IssuerInfo>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/identities/${identifier}/details`,
+    });
+
+    return buildSuccessResponse(issuerDetailsParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export async function updateIssuerDisplayName({
+  displayName,
+  env,
+  identifier,
+}: {
+  displayName: string;
+  env: Env;
+  identifier: IssuerIdentifier;
+}): Promise<Response<void>> {
+  try {
+    await axios({
+      baseURL: env.api.url,
+      data: { displayName },
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "PATCH",
+      url: `${API_VERSION}/identities/${identifier}`,
     });
 
     return buildSuccessResponse(undefined);

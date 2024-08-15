@@ -5,6 +5,7 @@ import IconCopy from "src/assets/icons/copy-01.svg?react";
 
 export function Detail({
   copyable,
+  copyableText,
   ellipsisPosition,
   href,
   label,
@@ -12,6 +13,7 @@ export function Detail({
   text,
 }: {
   copyable?: boolean;
+  copyableText?: string;
   ellipsisPosition?: number;
   href?: string;
   label: string;
@@ -25,7 +27,7 @@ export function Detail({
       copyable={
         copyable && {
           icon: [<IconCopy key={0} />, <IconCheckMark key={1} />],
-          text,
+          text: copyableText || text,
         }
       }
       ellipsis={ellipsisPosition ? { suffix: text.slice(-ellipsisPosition) } : true}

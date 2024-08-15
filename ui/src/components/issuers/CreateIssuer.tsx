@@ -5,8 +5,15 @@ import { IssuerFormData } from "src/adapters/parsers/view";
 import { IssuerForm } from "src/components/issuers/IssuerForm";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
+import {
+  AuthBJJCredentialStatus,
+  Blockchain,
+  IssuerType,
+  Method,
+  PrivadoNetwork,
+} from "src/domain";
 import { ROUTES } from "src/routes";
-import { ISSUER_ADD, ISSUER_DETAILS } from "src/utils/constants";
+import { ISSUER_ADD, ISSUER_ADD_NEW, ISSUER_DETAILS } from "src/utils/constants";
 
 export function CreateIssuer() {
   const env = useEnvContext();
@@ -16,9 +23,8 @@ export function CreateIssuer() {
   const handleSubmit = (formValues: IssuerFormData) =>
     void createIssuer({ env, payload: formValues }).then((response) => {
       if (response.success) {
+        void messageAPI.success("Identity added successfully");
         navigate(ROUTES.issuers.path);
-
-        void messageAPI.success("Issuer added");
       } else {
         void messageAPI.error(response.error.message);
       }
@@ -29,14 +35,26 @@ export function CreateIssuer() {
       {messageContext}
 
       <SiderLayoutContent
-        description="Add a new issuer to get the required credential."
+        description="View identity details and edit name"
         showBackButton
         showDivider
-        title={ISSUER_ADD}
+        title={ISSUER_ADD_NEW}
       >
         <Card className="issuers-card" title={ISSUER_DETAILS}>
           <Space direction="vertical">
-            <IssuerForm onBack={() => navigate(ROUTES.issuers.path)} onSubmit={handleSubmit} />
+            <IssuerForm
+              initialValues={{
+                authBJJCredentialStatus:
+                  AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023,
+                blockchain: Blockchain.privado,
+                displayName: "",
+                method: Method.privado,
+                network: PrivadoNetwork.main,
+                type: IssuerType.BJJ,
+              }}
+              onSubmit={handleSubmit}
+              submitBtnText={ISSUER_ADD}
+            />
           </Space>
         </Card>
       </SiderLayoutContent>

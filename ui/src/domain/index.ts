@@ -61,6 +61,13 @@ export type {
 
 export type { Schema as ApiSchema } from "src/domain/schema";
 
-export type { IssuerIdentifier, Issuer } from "src/domain/issuer";
+export type { IssuerIdentifier, Issuer, Network, IssuerInfo } from "src/domain/issuer";
 
-export { IssuerType, AuthBJJCredentialStatus } from "src/domain/issuer";
+export {
+  IssuerType,
+  AuthBJJCredentialStatus,
+  Blockchain,
+  PolygonNetwork,
+  PrivadoNetwork,
+  Method,
+} from "src/domain/issuer";

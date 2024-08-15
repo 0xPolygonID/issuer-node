@@ -10,12 +10,17 @@ import {
   Attribute,
   AttributeValue,
   AuthBJJCredentialStatus,
+  Blockchain,
   CredentialProofType,
   IssuerType,
   Json,
   JsonLiteral,
   JsonObject,
+  Method,
+  Network,
   ObjectAttribute,
+  PolygonNetwork,
+  PrivadoNetwork,
   ProofType,
 } from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
@@ -45,7 +50,16 @@ export type CredentialLinkIssuance = CredentialIssuance & {
   type: "credentialLink";
 };
 
-export type IssuerFormData = { blockchain: string; method: string; network: string } & (
+export type IssuerDetailsFormData = {
+  displayName: string;
+};
+
+export type IssuerFormData = {
+  blockchain: Blockchain;
+  displayName: string;
+  method: Method;
+  network: Network[Blockchain.polygon] | Network[Blockchain.privado];
+} & (
   | {
       authBJJCredentialStatus: AuthBJJCredentialStatus;
       type: IssuerType.BJJ;
@@ -53,6 +67,25 @@ export type IssuerFormData = { blockchain: string; method: string; network: stri
   | {
       type: IssuerType.ETH;
     }
+);
+export const issuerFormDataParser = getStrictParser<IssuerFormData>()(
+  z.union([
+    z.object({
+      authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
+      blockchain: z.nativeEnum(Blockchain),
+      displayName: z.string(),
+      method: z.nativeEnum(Method),
+      network: z.union([z.nativeEnum(PolygonNetwork), z.nativeEnum(PrivadoNetwork)]),
+      type: z.literal(IssuerType.BJJ),
+    }),
+    z.object({
+      blockchain: z.nativeEnum(Blockchain),
+      displayName: z.string(),
+      method: z.nativeEnum(Method),
+      network: z.union([z.nativeEnum(PolygonNetwork), z.nativeEnum(PrivadoNetwork)]),
+      type: z.literal(IssuerType.ETH),
+    }),
+  ])
 );
 
 // Parsers
