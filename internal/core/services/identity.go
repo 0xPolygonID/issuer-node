@@ -1051,7 +1051,7 @@ func (i *identity) addGenesisClaimsToTree(ctx context.Context,
 		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
 	}
 
-	// TODO: add config options for blockchain and network
+	// TODO: add config options for blockchain and net
 	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
 	if err != nil {
 		return nil, nil, ErrWrongDIDMetada
