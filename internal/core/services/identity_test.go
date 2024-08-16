@@ -77,7 +77,7 @@ func Test_identity_CreateIdentity(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			identity, err := identityService.Create(ctx, "polygon-test", tc.options)
+			identity, err := identityService.Create(ctx, cfg.ServerUrl, tc.options)
 			if tc.shouldReturnErr {
 				assert.Error(t, err)
 			} else {
