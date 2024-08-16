@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -12,11 +13,13 @@ import (
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
+	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/helpers"
@@ -100,6 +103,274 @@ func Test_identity_CreateIdentity(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtService := NewIdentityMerkleTrees(mtRepo)
+	connectionsRepository := repositories.NewConnections()
+
+	reader := helpers.CreateFile(t)
+	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
+	require.NoError(t, err)
+
+	t.Run("should create BJJ identity with RHS", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		assert.NotNil(t, identity.State.ClaimsTreeRoot)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+
+	t.Run("should return an error when publish state fail", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(errors.New("error"))
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		_, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+		assert.Error(t, err)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+
+	t.Run("should create ETH identity with RHS", func(t *testing.T) {
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: ETH})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		rhsFactoryMock.AssertNumberOfCalls(t, "BuildPublishers", 0)
+	})
+
+	t.Run("should create BJJ identity with RHS and 2 publishers", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+		rhsPublisherOnChainMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherOnChainMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock, rhsPublisherOnChainMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		assert.NotNil(t, identity.State.ClaimsTreeRoot)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+		rhsPublisherOnChainMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+
+	t.Run("should create BJJ identity with RHS Iden3commRevocationStatusV1 ", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, "http://localhost:3001/v1/agent", identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		assert.NotNil(t, identity.State.ClaimsTreeRoot)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+}
+
+func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
+	ctx := context.Background()
+	identityRepo := repositories.NewIdentity()
+	claimsRepo := repositories.NewClaims()
+	mtRepo := repositories.NewIdentityMerkleTreeRepository()
+	identityStateRepo := repositories.NewIdentityState()
+	revocationRepository := repositories.NewRevocation()
+	mtService := NewIdentityMerkleTrees(mtRepo)
+	connectionsRepository := repositories.NewConnections()
+
+	reader := helpers.CreateFileWithRHSOffChain(t)
+	networkResolver, err := network.NewResolver(ctx, cfg, keyStore, reader)
+	require.NoError(t, err)
+
+	t.Run("should create BJJ identity with RHS", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		assert.NotNil(t, identity.State.ClaimsTreeRoot)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+
+	t.Run("should return an error when publish state fail", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(errors.New("error"))
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		_, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+		assert.Error(t, err)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+
+	t.Run("should create ETH identity with RHS", func(t *testing.T) {
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: ETH})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		rhsFactoryMock.AssertNumberOfCalls(t, "BuildPublishers", 0)
+	})
+
+	t.Run("should create BJJ identity with RHS and 2 publishers", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+		rhsPublisherOnChainMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherOnChainMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock, rhsPublisherOnChainMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("%s/v1/agent", cfg.ServerUrl), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		assert.NotNil(t, identity.State.ClaimsTreeRoot)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+		rhsPublisherOnChainMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
+
+	t.Run("should create BJJ identity with RHS Iden3ReverseSparseMerkleTreeProof ", func(t *testing.T) {
+		rhsPublishers := make([]reverse_hash.RhsPublisher, 0)
+		rhsPublisherReverseHashServiceMock := reverse_hash.NewMockRhsPublisher(t)
+		rhsPublisherReverseHashServiceMock.On("PublishNodesToRHS", ctx, mock.Anything).Return(nil)
+
+		rhsPublishers = append(rhsPublishers, rhsPublisherReverseHashServiceMock)
+		rhsFactoryMock := reverse_hash.NewMockFactory(t)
+		rhsFactoryMock.On("BuildPublishers", mock.Anything, "polygon:amoy", &kms.KeyID{
+			Type: kms.KeyTypeEthereum,
+			ID:   "pbkey",
+		}).Return(rhsPublishers, nil)
+
+		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
+		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthBJJCredentialStatus: verifiable.Iden3ReverseSparseMerkleTreeProof})
+		assert.NoError(t, err)
+		assert.NotNil(t, identity.Identifier)
+		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
+		assert.Equal(t, uint(0), identity.AuthCoreClaimRevocationStatus.RevocationNonce)
+		assert.Equal(t, string(verifiable.Iden3ReverseSparseMerkleTreeProof), identity.AuthCoreClaimRevocationStatus.Type)
+		assert.Equal(t, fmt.Sprintf("https://rhs-staging.polygonid.me/node?state=%s", *identity.State.State), identity.AuthCoreClaimRevocationStatus.ID)
+		assert.NotNil(t, identity.State.State)
+		assert.Equal(t, "confirmed", string(identity.State.Status))
+		assert.NotNil(t, identity.State.ClaimsTreeRoot)
+		rhsPublisherReverseHashServiceMock.AssertNumberOfCalls(t, "PublishNodesToRHS", 1)
+	})
 }
 
 func Test_identity_UpdateState(t *testing.T) {
