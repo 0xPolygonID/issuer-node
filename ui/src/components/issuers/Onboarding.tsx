@@ -1,7 +1,7 @@
 import { Avatar, Card, Divider, Flex, Grid, Typography, message } from "antd";
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { createIssuer } from "src/adapters/api/issuers";
+import { createIssuer } from "../../adapters/api/issuers";
 import { IssuerFormData } from "src/adapters/parsers/view";
 import IconCheck from "src/assets/icons/check.svg?react";
 import IconIssue from "src/assets/icons/credential-card.svg?react";
@@ -10,14 +10,9 @@ import IconIdentity from "src/assets/icons/fingerprint-02.svg?react";
 
 import { IssuerForm } from "src/components/issuers/IssuerForm";
 import { useEnvContext } from "src/contexts/Env";
-import {
-  AuthBJJCredentialStatus,
-  Blockchain,
-  IssuerType,
-  Method,
-  PrivadoNetwork,
-} from "src/domain";
+
 import { ROUTES } from "src/routes";
+
 import { FINALISE_SETUP } from "src/utils/constants";
 
 const cards = [
@@ -42,6 +37,7 @@ export function Onboarding() {
   const env = useEnvContext();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
+
   const { lg } = Grid.useBreakpoint();
 
   const handleSubmit = (formValues: IssuerFormData) =>
@@ -127,19 +123,8 @@ export function Onboarding() {
           <Typography.Text style={{ fontSize: 20 }}>
             Finalise the setup by adding a new identity
           </Typography.Text>
-          <IssuerForm
-            initialValues={{
-              authBJJCredentialStatus:
-                AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023,
-              blockchain: Blockchain.privado,
-              displayName: "",
-              method: Method.privado,
-              network: PrivadoNetwork.main,
-              type: IssuerType.BJJ,
-            }}
-            onSubmit={handleSubmit}
-            submitBtnText={FINALISE_SETUP}
-          />
+
+          <IssuerForm onSubmit={handleSubmit} submitBtnText={FINALISE_SETUP} />
         </Flex>
       </Flex>
     </>

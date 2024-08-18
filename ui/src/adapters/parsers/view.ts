@@ -10,17 +10,13 @@ import {
   Attribute,
   AttributeValue,
   AuthBJJCredentialStatus,
-  Blockchain,
   CredentialProofType,
   IssuerType,
   Json,
   JsonLiteral,
   JsonObject,
   Method,
-  Network,
   ObjectAttribute,
-  PolygonNetwork,
-  PrivadoNetwork,
   ProofType,
 } from "src/domain";
 import { ACCESSIBLE_UNTIL } from "src/utils/constants";
@@ -55,10 +51,10 @@ export type IssuerDetailsFormData = {
 };
 
 export type IssuerFormData = {
-  blockchain: Blockchain;
+  blockchain: string;
   displayName: string;
   method: Method;
-  network: Network[Blockchain.polygon] | Network[Blockchain.privado];
+  network: string;
 } & (
   | {
       authBJJCredentialStatus: AuthBJJCredentialStatus;
@@ -72,17 +68,17 @@ export const issuerFormDataParser = getStrictParser<IssuerFormData>()(
   z.union([
     z.object({
       authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
-      blockchain: z.nativeEnum(Blockchain),
+      blockchain: z.string(),
       displayName: z.string(),
       method: z.nativeEnum(Method),
-      network: z.union([z.nativeEnum(PolygonNetwork), z.nativeEnum(PrivadoNetwork)]),
+      network: z.string(),
       type: z.literal(IssuerType.BJJ),
     }),
     z.object({
-      blockchain: z.nativeEnum(Blockchain),
+      blockchain: z.string(),
       displayName: z.string(),
       method: z.nativeEnum(Method),
-      network: z.union([z.nativeEnum(PolygonNetwork), z.nativeEnum(PrivadoNetwork)]),
+      network: z.string(),
       type: z.literal(IssuerType.ETH),
     }),
   ])

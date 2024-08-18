@@ -34,9 +34,13 @@ export function UserDisplay() {
                 vertical
               >
                 <Tooltip title={displayName}>
-                  <Typography.Text ellipsis>{displayName}</Typography.Text>
+                  <Typography.Text ellipsis style={{ fontSize: 12 }}>
+                    {displayName}
+                  </Typography.Text>
                 </Tooltip>
-                <Typography.Text type="secondary">{formatIdentifier(identifier)}</Typography.Text>
+                <Typography.Text style={{ fontSize: 12 }} type="secondary">
+                  {formatIdentifier(identifier)}
+                </Typography.Text>
               </Flex>
               {currentIssuer && <IconCheck />}
             </Flex>

@@ -446,7 +446,7 @@ svg {
 .dotted-divider {
   width: 2px;
   height: inherit;
-  background-image: radial-gradient(#acacac 1px, transparent 0);
+  background-image: radial-gradient($border-color 1px, transparent 0);
   background-size: 24px 24px;
   background-position: center;
 }
@@ -468,7 +468,7 @@ svg {
 .issuers-dropdown {
   .ant-dropdown-menu {
     border-radius: 8px;
-    border: 1px solid #e3e3e3;
+    border: 1px solid $border-color;
     padding: 0;
     max-height: 100vh;
     overflow: scroll;
@@ -484,7 +484,7 @@ svg {
       padding: 16px;
 
       &:not(:last-child) {
-        border-bottom: 1px solid #e3e3e3;
+        border-bottom: 1px solid $border-color;
       }
 
       &:nth-last-child(2) {

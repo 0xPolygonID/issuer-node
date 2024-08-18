@@ -6,15 +6,13 @@ import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import {
   AuthBJJCredentialStatus,
-  Blockchain,
   Env,
   Issuer,
   IssuerIdentifier,
   IssuerInfo,
   IssuerType,
   Method,
-  PolygonNetwork,
-  PrivadoNetwork,
+  SupportedNetwork,
 } from "src/domain";
 
 import { API_VERSION } from "src/utils/constants";
@@ -23,11 +21,11 @@ import { List } from "src/utils/types";
 const apiIssuerParser = getStrictParser<Issuer>()(
   z.object({
     authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
-    blockchain: z.nativeEnum(Blockchain),
+    blockchain: z.string(),
     displayName: z.string(),
     identifier: z.string(),
     method: z.nativeEnum(Method),
-    network: z.union([z.nativeEnum(PolygonNetwork), z.nativeEnum(PrivadoNetwork)]),
+    network: z.string(),
   })
 );
 
@@ -157,6 +155,37 @@ export async function updateIssuerDisplayName({
     });
 
     return buildSuccessResponse(undefined);
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
+export const supportedNetworkParser = getStrictParser<SupportedNetwork>()(
+  z.object({
+    blockchain: z.string(),
+    networks: z.array(z.string()).nonempty(),
+  })
+);
+
+export async function getSupportedNetwork({
+  env,
+  signal,
+}: {
+  env: Env;
+  signal: AbortSignal;
+}): Promise<Response<List<SupportedNetwork>>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/supported-networks`,
+    });
+
+    return buildSuccessResponse(getListParser(supportedNetworkParser).parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }

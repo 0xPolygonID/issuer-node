@@ -5,13 +5,6 @@ import { IssuerFormData } from "src/adapters/parsers/view";
 import { IssuerForm } from "src/components/issuers/IssuerForm";
 import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import {
-  AuthBJJCredentialStatus,
-  Blockchain,
-  IssuerType,
-  Method,
-  PrivadoNetwork,
-} from "src/domain";
 import { ROUTES } from "src/routes";
 import { ISSUER_ADD, ISSUER_ADD_NEW, ISSUER_DETAILS } from "src/utils/constants";
 
@@ -42,19 +35,7 @@ export function CreateIssuer() {
       >
         <Card className="issuers-card" title={ISSUER_DETAILS}>
           <Space direction="vertical">
-            <IssuerForm
-              initialValues={{
-                authBJJCredentialStatus:
-                  AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023,
-                blockchain: Blockchain.privado,
-                displayName: "",
-                method: Method.privado,
-                network: PrivadoNetwork.main,
-                type: IssuerType.BJJ,
-              }}
-              onSubmit={handleSubmit}
-              submitBtnText={ISSUER_ADD}
-            />
+            <IssuerForm onSubmit={handleSubmit} submitBtnText={ISSUER_ADD} />
           </Space>
         </Card>
       </SiderLayoutContent>

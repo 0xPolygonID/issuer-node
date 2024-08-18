@@ -11,37 +11,23 @@ export enum AuthBJJCredentialStatus {
   "Iden3commRevocationStatusV1.0" = "Iden3commRevocationStatusV1.0",
 }
 
-export enum Blockchain {
-  polygon = "polygon",
-  privado = "privado",
-}
-
-export enum PolygonNetwork {
-  amoy = "amoy",
-  mainnet = "mainnet",
-}
-
-export enum PrivadoNetwork {
-  main = "main",
-  test = "test",
-}
-
-export type Network = {
-  [Blockchain.polygon]: PolygonNetwork;
-  [Blockchain.privado]: PrivadoNetwork;
-};
-
 export enum Method {
-  privado = "privado",
+  iden3 = "iden3",
+  polygonid = "polygonid",
 }
+
+export type SupportedNetwork = {
+  blockchain: string;
+  networks: [string, ...string[]];
+};
 
 export type Issuer = {
   authBJJCredentialStatus: AuthBJJCredentialStatus;
-  blockchain: Blockchain;
+  blockchain: string;
   displayName: string;
   identifier: string;
   method: Method;
-  network: PolygonNetwork | PrivadoNetwork;
+  network: string;
 };
 
 export type IssuerInfo = {
