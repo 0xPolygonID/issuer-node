@@ -20,7 +20,7 @@ export function CredentialDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -32,7 +32,7 @@ export function CredentialDeleteModal({
   const handleDeleteCredential = () => {
     setIsLoading(true);
 
-    void deleteCredential({ env, id, identifier }).then((response) => {
+    void deleteCredential({ env, id, issuerIdentifier }).then((response) => {
       if (response.success) {
         onClose();
         onDelete();
@@ -49,7 +49,7 @@ export function CredentialDeleteModal({
   const handleRevokeCredential = () => {
     setIsLoading(true);
 
-    void revokeCredential({ env, identifier, nonce }).then((response) => {
+    void revokeCredential({ env, issuerIdentifier, nonce }).then((response) => {
       if (response.success) {
         handleDeleteCredential();
 

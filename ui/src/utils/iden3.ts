@@ -1,6 +1,8 @@
 import { keccak256 } from "js-sha3";
+import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters";
 
 import { JsonLdType } from "src/domain";
+import { buildAppError } from "src/utils/error";
 
 const HEX_TABLE = "0123456789abcdef";
 
@@ -111,18 +113,12 @@ export function getBigint(
   }
 }
 
-export function getSchemaHash(
-  jsonLdType: JsonLdType
-): { data: string; success: true } | { success: false } {
+export function getSchemaHash(jsonLdType: JsonLdType): Response<string> {
   try {
-    const data = encodeString(schemaIdToBytes(new TextEncoder().encode(jsonLdType.id)));
-    return {
-      data,
-      success: true,
-    };
+    return buildSuccessResponse(
+      encodeString(schemaIdToBytes(new TextEncoder().encode(jsonLdType.id)))
+    );
   } catch (e) {
-    return {
-      success: false,
-    };
+    return buildErrorResponse(buildAppError(e));
   }
 }

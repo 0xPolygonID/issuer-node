@@ -39,7 +39,7 @@ import { formatDate } from "src/utils/forms";
 
 export function SchemasTable() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [apiSchemas, setApiSchemas] = useState<AsyncTask<ApiSchema[], AppError>>({
     status: "pending",
@@ -130,7 +130,7 @@ export function SchemasTable() {
       );
       const response = await getApiSchemas({
         env,
-        identifier,
+        issuerIdentifier,
         params: {
           query: queryParam || undefined,
         },
@@ -145,7 +145,7 @@ export function SchemasTable() {
         }
       }
     },
-    [env, queryParam, identifier]
+    [env, queryParam, issuerIdentifier]
   );
 
   const onSearch = useCallback(

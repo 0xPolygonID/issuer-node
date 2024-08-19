@@ -18,17 +18,20 @@ import {
   getStrictParser,
 } from "src/adapters/parsers";
 import {
+  AuthBJJCredentialStatus,
   Credential,
+  CredentialDetail,
+  CredentialProofType,
   Env,
   IssuedQRCode,
+  IssuerIdentifier,
   Json,
   Link,
   LinkStatus,
   ProofType,
   RefreshService,
+  RevocationStatus,
 } from "src/domain";
-import { CredentialDetail, CredentialProofType, RevocationStatus } from "src/domain/credential";
-import { Identifier } from "src/domain/identifier";
 import { API_VERSION, QUERY_SEARCH_PARAM, STATUS_SEARCH_PARAM } from "src/utils/constants";
 import { getSchemaHash } from "src/utils/iden3";
 import { List, Resource } from "src/utils/types";
@@ -109,6 +112,46 @@ export const credentialParser = getStrictParser<CredentialInput, Credential>()(
   })
 );
 
+type CredentialDetailInput = Omit<CredentialDetail, "refreshService"> & {
+  refreshService?: RefreshService | null;
+};
+
+export const credentialDetailParser = getStrictParser<CredentialDetailInput, CredentialDetail>()(
+  z.object({
+    "@context": z.array(z.string()),
+    credentialSchema: z.object({
+      id: z.string(),
+      type: z.string(),
+    }),
+    credentialStatus: z.object({
+      id: z.string(),
+      revocationNonce: z.number(),
+      type: z.nativeEnum(AuthBJJCredentialStatus),
+    }),
+    credentialSubject: z
+      .object({
+        type: z.string(),
+      })
+      .catchall(z.unknown()),
+    expirationDate: z.string().nullable(),
+    id: z.string(),
+    issuanceDate: z.string(),
+    issuer: z.string(),
+    proof: z.array(
+      z.object({
+        coreClaim: z.string(),
+        issuerData: z.record(z.unknown()),
+        signature: z.string(),
+        type: z.nativeEnum(CredentialProofType),
+      })
+    ),
+    refreshService: z
+      .object({ id: z.string(), type: z.literal("Iden3RefreshService2023") })
+      .nullable()
+      .default(null),
+  })
+);
+
 export type CredentialStatus = "all" | "revoked" | "expired";
 
 export const credentialStatusParser = getStrictParser<CredentialStatus>()(
@@ -118,24 +161,25 @@ export const credentialStatusParser = getStrictParser<CredentialStatus>()(
 export async function getCredential({
   credentialID,
   env,
-  identifier,
+  issuerIdentifier,
   signal,
 }: {
   credentialID: string;
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   signal?: AbortSignal;
 }): Promise<Response<Credential>> {
   try {
-    const response: { data: CredentialDetail } = await axios({
-      baseURL: env.api.url,
-      headers: {
-        Authorization: buildAuthorizationHeader(env),
-      },
-      method: "GET",
+    const credentialDetail = await getCredentialDetail({
+      credentialID,
+      env,
+      issuerIdentifier,
       signal,
-      url: `${API_VERSION}/${identifier}/credentials/${credentialID}`,
     });
+
+    if (!credentialDetail.success) {
+      return credentialDetail;
+    }
 
     const {
       "@context": context,
@@ -147,13 +191,18 @@ export async function getCredential({
       issuanceDate,
       issuer,
       proof,
-    } = response.data;
+    } = credentialDetail.data;
 
-    const revocationStatusResponse: { data: RevocationStatus } = await axios({
-      baseURL: env.api.url,
-      method: "GET",
-      url: `${API_VERSION}/${identifier}/credentials/revocation/status/${credentialStatus.revocationNonce}`,
+    const revocationStatus = await getRevocationStatus({
+      env,
+      issuerIdentifier,
+      nonce: credentialStatus.revocationNonce,
+      signal,
     });
+
+    if (!revocationStatus.success) {
+      return revocationStatus;
+    }
 
     const proofTypes = proof.map(({ type }) => type);
 
@@ -162,7 +211,11 @@ export async function getCredential({
       name: credentialSubject.type,
     });
 
-    const revoked = revocationStatusResponse.data.mtp.existence;
+    if (!schemaHash.success) {
+      return schemaHash;
+    }
+
+    const revoked = revocationStatus.data.mtp.existence;
     const expired = expirationDate ? new Date() > new Date(expirationDate) : false;
 
     return buildSuccessResponse(
@@ -175,7 +228,7 @@ export async function getCredential({
         proofTypes,
         revNonce: credentialStatus.revocationNonce,
         revoked,
-        schemaHash: schemaHash.success ? schemaHash.data : "",
+        schemaHash: schemaHash.data,
         schemaType: credentialSubject.type,
         schemaUrl: credentialSchema.id,
         userID: issuer,
@@ -186,22 +239,50 @@ export async function getCredential({
   }
 }
 
+export async function getCredentialDetail({
+  credentialID,
+  env,
+  issuerIdentifier,
+  signal,
+}: {
+  credentialID: string;
+  env: Env;
+  issuerIdentifier: IssuerIdentifier;
+  signal?: AbortSignal;
+}): Promise<Response<CredentialDetail>> {
+  try {
+    const response = await axios({
+      baseURL: env.api.url,
+      headers: {
+        Authorization: buildAuthorizationHeader(env),
+      },
+      method: "GET",
+      signal,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/${credentialID}`,
+    });
+    return buildSuccessResponse(credentialDetailParser.parse(response.data));
+  } catch (error) {
+    return buildErrorResponse(error);
+  }
+}
+
 export async function getRevocationStatus({
   env,
-  identifier,
-  params: { nonce },
+  issuerIdentifier,
+  nonce,
+  signal,
 }: {
   env: Env;
-  identifier: Identifier;
-  params: {
-    nonce: number;
-  };
+  issuerIdentifier: IssuerIdentifier;
+  nonce: number;
+  signal?: AbortSignal;
 }): Promise<Response<RevocationStatus>> {
   try {
     const response = await axios({
       baseURL: env.api.url,
       method: "GET",
-      url: `${API_VERSION}/${identifier}/credentials/revocation/status/${nonce}`,
+      signal,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/revocation/status/${nonce}`,
     });
     return buildSuccessResponse(revocationStatusParser.parse(response.data));
   } catch (error) {
@@ -211,12 +292,12 @@ export async function getRevocationStatus({
 
 export async function getCredentials({
   env,
-  identifier,
+  issuerIdentifier,
   params: { did, maxResults, page, query, sorters, status },
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   params: {
     did?: string;
     maxResults?: number;
@@ -243,7 +324,7 @@ export async function getCredentials({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${identifier}/credentials/search`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/search`,
     });
     return buildSuccessResponse(getResourceParser(credentialParser).parse(response.data));
   } catch (error) {
@@ -262,11 +343,11 @@ export type CreateCredential = {
 
 export async function createCredential({
   env,
-  identifier,
+  issuerIdentifier,
   payload,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   payload: CreateCredential;
 }): Promise<Response<ID>> {
   try {
@@ -277,7 +358,7 @@ export async function createCredential({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${identifier}/credentials`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -287,11 +368,11 @@ export async function createCredential({
 
 export async function revokeCredential({
   env,
-  identifier,
+  issuerIdentifier,
   nonce,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   nonce: number;
 }): Promise<Response<Message>> {
   try {
@@ -301,7 +382,7 @@ export async function revokeCredential({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${identifier}/credentials/revoke/${nonce}`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/revoke/${nonce}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -312,11 +393,11 @@ export async function revokeCredential({
 export async function deleteCredential({
   env,
   id,
-  identifier,
+  issuerIdentifier,
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
 }): Promise<Response<Message>> {
   try {
     const response = await axios({
@@ -325,7 +406,7 @@ export async function deleteCredential({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "DELETE",
-      url: `${API_VERSION}/${identifier}/credentials/${id}`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -366,12 +447,12 @@ const linkParser = getStrictParser<LinkInput, Link>()(
 
 export async function getLink({
   env,
-  identifier,
+  issuerIdentifier,
   linkID,
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   linkID: string;
   signal: AbortSignal;
 }): Promise<Response<Link>> {
@@ -383,7 +464,7 @@ export async function getLink({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${identifier}/credentials/links/${linkID}`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${linkID}`,
     });
     return buildSuccessResponse(linkParser.parse(response.data));
   } catch (error) {
@@ -393,12 +474,12 @@ export async function getLink({
 
 export async function getLinks({
   env,
-  identifier,
+  issuerIdentifier,
   params: { query, status },
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   params: {
     query?: string;
     status?: LinkStatus;
@@ -417,7 +498,7 @@ export async function getLinks({
         ...(status !== undefined ? { [STATUS_SEARCH_PARAM]: status } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${identifier}/credentials/links`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links`,
     });
     return buildSuccessResponse(
       getListParser(linkParser)
@@ -435,12 +516,12 @@ export async function getLinks({
 export async function updateLink({
   env,
   id,
-  identifier,
+  issuerIdentifier,
   payload,
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   payload: {
     active: boolean;
   };
@@ -453,7 +534,7 @@ export async function updateLink({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "PATCH",
-      url: `${API_VERSION}/${identifier}/credentials/links/${id}`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -464,11 +545,11 @@ export async function updateLink({
 export async function deleteLink({
   env,
   id,
-  identifier,
+  issuerIdentifier,
 }: {
   env: Env;
   id: string;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
 }): Promise<Response<Message>> {
   try {
     const response = await axios({
@@ -477,7 +558,7 @@ export async function deleteLink({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "DELETE",
-      url: `${API_VERSION}/${identifier}/credentials/links/${id}`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -498,11 +579,11 @@ export type CreateLink = {
 
 export async function createLink({
   env,
-  identifier,
+  issuerIdentifier,
   payload,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   payload: CreateLink;
 }): Promise<Response<ID>> {
   try {
@@ -513,7 +594,7 @@ export async function createLink({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${identifier}/credentials/links`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -543,12 +624,12 @@ const authQRCodeParser = getStrictParser<AuthQRCodeInput, AuthQRCode>()(
 
 export async function createAuthQRCode({
   env,
-  identifier,
+  issuerIdentifier,
   linkID,
   signal,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   linkID: string;
   signal?: AbortSignal;
 }): Promise<Response<AuthQRCode>> {
@@ -557,7 +638,7 @@ export async function createAuthQRCode({
       baseURL: env.api.url,
       method: "POST",
       signal,
-      url: `${API_VERSION}/${identifier}/credentials/links/${linkID}/qrcode`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
     });
     return buildSuccessResponse(authQRCodeParser.parse(response.data));
   } catch (error) {
@@ -582,12 +663,12 @@ const issuedQRCodeParser = getStrictParser<IssuedQRCodeInput, IssuedQRCode>()(
 export async function getIssuedQRCodes({
   credentialID,
   env,
-  identifier,
+  issuerIdentifier,
   signal,
 }: {
   credentialID: string;
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   signal: AbortSignal;
 }): Promise<Response<[IssuedQRCode, IssuedQRCode]>> {
   try {
@@ -600,7 +681,7 @@ export async function getIssuedQRCodes({
         method: "GET",
         params: { type: "link" },
         signal,
-        url: `${API_VERSION}/${identifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
       }),
       axios({
         baseURL: env.api.url,
@@ -610,7 +691,7 @@ export async function getIssuedQRCodes({
         method: "GET",
         params: { type: "raw" },
         signal,
-        url: `${API_VERSION}/${identifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
       }),
     ]);
 
@@ -637,12 +718,12 @@ const importQRCodeParser = getStrictParser<ImportQRCode>()(
 
 export async function getImportQRCode({
   env,
-  identifier,
+  issuerIdentifier,
   linkID,
   sessionID,
 }: {
   env: Env;
-  identifier: Identifier;
+  issuerIdentifier: IssuerIdentifier;
   linkID: string;
   sessionID: string;
 }): Promise<Response<ImportQRCode>> {
@@ -653,7 +734,7 @@ export async function getImportQRCode({
       params: {
         sessionID,
       },
-      url: `${API_VERSION}/${identifier}/credentials/links/${linkID}/qrcode`,
+      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
     });
     return buildSuccessResponse(importQRCodeParser.parse(response.data));
   } catch (error) {

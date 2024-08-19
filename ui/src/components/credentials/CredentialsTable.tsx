@@ -62,7 +62,7 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const navigate = useNavigate();
 
@@ -249,7 +249,7 @@ export function CredentialsTable() {
 
       const response = await getCredentials({
         env,
-        identifier,
+        issuerIdentifier,
         params: {
           maxResults: paginationMaxResults,
           page: paginationPage,
@@ -283,7 +283,7 @@ export function CredentialsTable() {
       paginationPage,
       queryParam,
       sortParam,
-      identifier,
+      issuerIdentifier,
       updateUrlParams,
     ]
   );

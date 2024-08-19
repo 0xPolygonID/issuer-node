@@ -10,7 +10,11 @@ export type {
   LinkStatus,
   ProofType,
   RefreshService,
+  CredentialDetail,
+  RevocationStatus,
 } from "src/domain/credential";
+
+export { CredentialProofType } from "src/domain/credential";
 
 export type { Env } from "src/domain/env";
 
@@ -56,3 +60,7 @@ export type {
 } from "src/domain/jsonSchema";
 
 export type { Schema as ApiSchema } from "src/domain/schema";
+
+export type { IssuerIdentifier, Issuer } from "src/domain/issuer";
+
+export { IssuerType, AuthBJJCredentialStatus } from "src/domain/issuer";

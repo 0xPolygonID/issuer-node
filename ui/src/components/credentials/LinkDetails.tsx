@@ -33,7 +33,7 @@ export function LinkDetails() {
   const { linkID } = useParams();
 
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [credentialSubjectValue, setCredentialSubjectValue] = useState<
     AsyncTask<ObjectAttributeValue, AppError>
@@ -108,7 +108,7 @@ export function LinkDetails() {
 
         const response = await getLink({
           env,
-          identifier,
+          issuerIdentifier,
           linkID,
           signal,
         });
@@ -123,7 +123,7 @@ export function LinkDetails() {
         }
       }
     },
-    [env, fetchJsonSchemaFromUrl, linkID, identifier]
+    [env, fetchJsonSchemaFromUrl, linkID, issuerIdentifier]
   );
 
   useEffect(() => {

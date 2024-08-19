@@ -19,7 +19,7 @@ export function ConnectionDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
   const { notifyChange } = useIssuerStateContext();
 
   const [messageAPI, messageContext] = message.useMessage();
@@ -28,7 +28,7 @@ export function ConnectionDeleteModal({
   const [deleteCredentials, setDeleteCredentials] = useState<boolean>(false);
 
   const handleDeleteConnection = () => {
-    void deleteConnection({ deleteCredentials, env, id, identifier, revokeCredentials }).then(
+    void deleteConnection({ deleteCredentials, env, id, issuerIdentifier, revokeCredentials }).then(
       (response) => {
         if (response.success) {
           onClose();

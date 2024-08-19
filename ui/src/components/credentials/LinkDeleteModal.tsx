@@ -16,12 +16,12 @@ export function LinkDeleteModal({
   onDelete: () => void;
 }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [messageAPI, messageContext] = message.useMessage();
 
   const handleDeleteLink = () => {
-    void deleteLink({ env, id, identifier }).then((response) => {
+    void deleteLink({ env, id, issuerIdentifier }).then((response) => {
       if (response.success) {
         onClose();
         onDelete();

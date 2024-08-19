@@ -145,7 +145,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), *issuerDID, *userDID, request.Params.LinkID, s.cfg.APIUI.ServerURL, credentialStatusType)
+	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), *issuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
 	if err != nil {
 		log.Error(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
@@ -261,8 +261,8 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 
 	return CreateLinkQrCode200JSONResponse{
 		Issuer: IssuerDescription{
-			DisplayName: s.cfg.APIUI.IssuerName,
-			Logo:        s.cfg.APIUI.IssuerLogo,
+			DisplayName: s.cfg.IssuerName,
+			Logo:        s.cfg.IssuerLogo,
 		},
 		QrCodeLink: createLinkQrCodeResponse.QrCode,
 		QrCodeRaw:  string(qrCodeRaw),

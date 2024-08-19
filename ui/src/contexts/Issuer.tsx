@@ -8,25 +8,29 @@ import {
   useMemo,
   useState,
 } from "react";
-import { useEnvContext } from "./Env";
-import { getApiIssuers } from "src/adapters/api/issuers";
-import { AppError } from "src/domain";
-import { Identifier, Issuer } from "src/domain/identifier";
+import { getIssuers, identifierParser } from "src/adapters/api/issuers";
+import { useEnvContext } from "src/contexts/Env";
+import { AppError, Issuer, IssuerIdentifier } from "src/domain";
 import { AsyncTask, isAsyncTaskDataAvailable } from "src/utils/async";
-import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
+import {
+  getStorageByKey,
+  isAbortedError,
+  makeRequestAbortable,
+  setStorageByKey,
+} from "src/utils/browser";
 import { IDENTIFIER_LOCAL_STORAGE_KEY } from "src/utils/constants";
 
 type IssuerState = {
   fetchIssuers: (signal: AbortSignal) => void;
-  handleChange: (identifier: Identifier) => void;
-  identifier: Identifier;
+  handleChange: (identifier: IssuerIdentifier) => void;
+  issuerIdentifier: IssuerIdentifier;
   issuersList: AsyncTask<Issuer[], AppError>;
 };
 
 const defaultIssuerState: IssuerState = {
-  fetchIssuers: function (): void {},
-  handleChange: function (): void {},
-  identifier: null,
+  fetchIssuers: () => void {},
+  handleChange: () => void {},
+  issuerIdentifier: "",
   issuersList: { status: "pending" },
 };
 
@@ -38,7 +42,7 @@ export function IssuerProvider(props: PropsWithChildren) {
   const [issuersList, setIssuersList] = useState<AsyncTask<Issuer[], AppError>>({
     status: "pending",
   });
-  const [identifier, setIdentifier] = useState<Identifier>(null);
+  const [issuerIdentifier, setIssuerIdentifier] = useState<IssuerIdentifier>("");
 
   const fetchIssuers = useCallback(
     async (signal: AbortSignal) => {
@@ -48,7 +52,7 @@ export function IssuerProvider(props: PropsWithChildren) {
           : { status: "loading" }
       );
 
-      const response = await getApiIssuers({
+      const response = await getIssuers({
         env,
         signal,
       });
@@ -56,18 +60,22 @@ export function IssuerProvider(props: PropsWithChildren) {
       if (response.success) {
         const issuers = response.data.successful;
         const [firstIssuer] = issuers;
-        const savedIdentifier = window.localStorage.getItem(IDENTIFIER_LOCAL_STORAGE_KEY);
+        const savedIdentifier = getStorageByKey({
+          defaultValue: "",
+          key: IDENTIFIER_LOCAL_STORAGE_KEY,
+          parser: identifierParser,
+        });
 
         setIssuersList({ data: issuers, status: "successful" });
 
         if (issuers.length === 1 && firstIssuer) {
-          setIdentifier(firstIssuer.identifier);
+          setIssuerIdentifier(firstIssuer.identifier);
         } else if (
           issuers.length > 1 &&
           savedIdentifier &&
           issuers.some(({ identifier }) => identifier === savedIdentifier)
         ) {
-          setIdentifier(savedIdentifier);
+          setIssuerIdentifier(savedIdentifier);
         }
       } else {
         if (!isAbortedError(response.error)) {
@@ -79,15 +87,15 @@ export function IssuerProvider(props: PropsWithChildren) {
     [env, messageAPI]
   );
 
-  const handleChange = useCallback((identifier: Identifier) => {
-    setIdentifier(identifier);
+  const handleChange = useCallback((identifier: IssuerIdentifier) => {
+    setIssuerIdentifier(identifier);
   }, []);
 
   useEffect(() => {
-    if (identifier) {
-      window.localStorage.setItem(IDENTIFIER_LOCAL_STORAGE_KEY, identifier);
+    if (issuerIdentifier) {
+      setStorageByKey({ key: IDENTIFIER_LOCAL_STORAGE_KEY, value: issuerIdentifier });
     }
-  }, [identifier]);
+  }, [issuerIdentifier]);
 
   useEffect(() => {
     const { aborter } = makeRequestAbortable(fetchIssuers);
@@ -96,8 +104,8 @@ export function IssuerProvider(props: PropsWithChildren) {
   }, [fetchIssuers]);
 
   const value = useMemo(() => {
-    return { fetchIssuers, handleChange, identifier, issuersList };
-  }, [identifier, issuersList, handleChange, fetchIssuers]);
+    return { fetchIssuers, handleChange, issuerIdentifier, issuersList };
+  }, [issuerIdentifier, issuersList, handleChange, fetchIssuers]);
 
   return (
     <>

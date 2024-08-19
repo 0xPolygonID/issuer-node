@@ -54,7 +54,7 @@ import { formatDate } from "src/utils/forms";
 
 export function CredentialsTable({ userID }: { userID: string }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [credentials, setCredentials] = useState<AsyncTask<Credential[], AppError>>({
     status: "pending",
@@ -186,7 +186,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         );
         const response = await getCredentials({
           env,
-          identifier,
+          issuerIdentifier,
           params: {
             did: userID,
             query: query || undefined,
@@ -207,7 +207,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
         }
       }
     },
-    [userID, env, query, credentialStatus, identifier]
+    [userID, env, query, credentialStatus, issuerIdentifier]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {

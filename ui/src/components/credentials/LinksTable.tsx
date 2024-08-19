@@ -51,7 +51,7 @@ import { formatDate } from "src/utils/forms";
 
 export function LinksTable() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const { md, sm } = Grid.useBreakpoint();
   const [messageAPI, messageContext] = message.useMessage();
@@ -221,7 +221,7 @@ export function LinksTable() {
 
       const response = await getLinks({
         env,
-        identifier,
+        issuerIdentifier,
         params: {
           query: queryParam || undefined,
           status: status,
@@ -238,7 +238,7 @@ export function LinksTable() {
         }
       }
     },
-    [env, queryParam, status, identifier]
+    [env, queryParam, status, issuerIdentifier]
   );
 
   const handleStatusChange = ({ target: { value } }: RadioChangeEvent) => {
@@ -289,7 +289,7 @@ export function LinksTable() {
     void updateLink({
       env,
       id,
-      identifier,
+      issuerIdentifier,
       payload: { active },
     }).then((response) => {
       if (response.success) {

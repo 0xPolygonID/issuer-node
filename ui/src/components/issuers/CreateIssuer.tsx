@@ -1,10 +1,10 @@
 import { Card, Space, message } from "antd";
 import { useNavigate } from "react-router-dom";
-import { SiderLayoutContent } from "../shared/SiderLayoutContent";
-import { IssuerForm } from "./IssuerForm";
 import { createIssuer } from "src/adapters/api/issuers";
+import { IssuerFormData } from "src/adapters/parsers/view";
+import { IssuerForm } from "src/components/issuers/IssuerForm";
+import { SiderLayoutContent } from "src/components/shared/SiderLayoutContent";
 import { useEnvContext } from "src/contexts/Env";
-import { IssuerFormData } from "src/domain/identifier";
 import { ROUTES } from "src/routes";
 import { ISSUER_ADD, ISSUER_DETAILS } from "src/utils/constants";
 

@@ -12,20 +12,20 @@ import {
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ErrorResult } from "../shared/ErrorResult";
-import { NoResults } from "../shared/NoResults";
-import { TableCard } from "../shared/TableCard";
 import { identifierParser } from "src/adapters/api/issuers";
-import IconIssuers from "src/assets/icons/building.svg?react";
+import IconIssuers from "src/assets/icons/building-08.svg?react";
 import IconPlus from "src/assets/icons/plus.svg?react";
+import { ErrorResult } from "src/components/shared/ErrorResult";
+import { NoResults } from "src/components/shared/NoResults";
+import { TableCard } from "src/components/shared/TableCard";
 import { useIssuerContext } from "src/contexts/Issuer";
-import { Issuer } from "src/domain/identifier";
+import { Issuer } from "src/domain";
 import { isAsyncTaskDataAvailable, isAsyncTaskStarting } from "src/utils/async";
 
-import { QUERY_SEARCH_PARAM } from "src/utils/constants";
+import { ISSUER_ADD, QUERY_SEARCH_PARAM } from "src/utils/constants";
 
 export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void }) {
-  const { handleChange, identifier, issuersList } = useIssuerContext();
+  const { handleChange, issuerIdentifier, issuersList } = useIssuerContext();
   const [filteredIdentifiers, setFilteredIdentifiers] = useState<Issuer[]>(() =>
     isAsyncTaskDataAvailable(issuersList) ? issuersList.data : []
   );
@@ -39,7 +39,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
     if (parsedIdentifier.success) {
       handleChange(parsedIdentifier.data);
     } else {
-      handleChange(null);
+      handleChange("");
     }
   };
 
@@ -119,7 +119,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
 
   const addButton = (
     <Button icon={<IconPlus />} onClick={handleAddIssuer} type="primary">
-      Add new issuer
+      {ISSUER_ADD}
     </Button>
   );
 
@@ -129,7 +129,7 @@ export function IssuersTable({ handleAddIssuer }: { handleAddIssuer: () => void 
       optionType="default"
       size="small"
       style={{ width: "100%" }}
-      value={identifier}
+      value={issuerIdentifier}
     >
       <TableCard
         defaultContents={

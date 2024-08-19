@@ -37,7 +37,7 @@ export function IssuanceMethodForm({
   onSubmit: (values: IssuanceMethodFormData) => void;
 }) {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [issuanceMethod, setIssuanceMethod] = useState<IssuanceMethodFormData>(initialValues);
   const [connections, setConnections] = useState<AsyncTask<Connection[], AppError>>({
@@ -57,7 +57,7 @@ export function IssuanceMethodForm({
       const response = await getConnections({
         credentials: false,
         env,
-        identifier,
+        issuerIdentifier,
         params: {},
         signal,
       });
@@ -69,7 +69,7 @@ export function IssuanceMethodForm({
         setConnections({ error: response.error, status: "failed" });
       }
     },
-    [env, identifier]
+    [env, issuerIdentifier]
   );
 
   useEffect(() => {

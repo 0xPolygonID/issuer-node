@@ -1,7 +1,8 @@
 import { Button, Col, Divider, Form, Input, Row, Select } from "antd";
 import { useState } from "react";
+import { IssuerFormData } from "src/adapters/parsers/view";
 import IconBack from "src/assets/icons/arrow-narrow-left.svg?react";
-import { AuthBJJCredentialStatus, IssuerFormData, IssuerType } from "src/domain/identifier";
+import { AuthBJJCredentialStatus, IssuerType } from "src/domain";
 import { VALUE_REQUIRED } from "src/utils/constants";
 
 export function IssuerForm({

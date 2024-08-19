@@ -13,8 +13,9 @@ import (
 type IndentityRepository interface {
 	Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error
 	GetByID(ctx context.Context, conn db.Querier, identifier w3c.DID) (*domain.Identity, error)
-	Get(ctx context.Context, conn db.Querier) (identities []string, err error)
+	Get(ctx context.Context, conn db.Querier) (identities []domain.IdentityDisplayName, err error)
 	GetUnprocessedIssuersIDs(ctx context.Context, conn db.Querier) (issuersIDs []*w3c.DID, err error)
 	HasUnprocessedStatesByID(ctx context.Context, conn db.Querier, identifier *w3c.DID) (bool, error)
 	HasUnprocessedAndFailedStatesByID(ctx context.Context, conn db.Querier, identifier *w3c.DID) (bool, error)
+	UpdateDisplayName(ctx context.Context, conn db.Querier, identity *domain.Identity) error
 }

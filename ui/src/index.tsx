@@ -5,9 +5,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
-import { IssuerProvider } from "./contexts/Issuer";
 import { Router } from "src/components/shared/Router";
 import { EnvProvider } from "src/contexts/Env";
+import { IssuerProvider } from "src/contexts/Issuer";
 import { IssuerStateProvider } from "src/contexts/IssuerState";
 import { theme } from "src/styles/theme";
 import { TOAST_NOTIFICATION_TIMEOUT } from "src/utils/constants";

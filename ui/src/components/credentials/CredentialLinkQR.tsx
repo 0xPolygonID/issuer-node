@@ -28,7 +28,7 @@ const PUSH_NOTIFICATIONS_REMINDER =
 
 export function CredentialLinkQR() {
   const env = useEnvContext();
-  const { identifier } = useIssuerContext();
+  const { issuerIdentifier } = useIssuerContext();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authQRCode, setAuthQRCode] = useState<AsyncTask<AuthQRCode, AppError>>({
@@ -46,7 +46,7 @@ export function CredentialLinkQR() {
       if (linkID) {
         setAuthQRCode({ status: "loading" });
 
-        const response = await createAuthQRCode({ env, identifier, linkID, signal });
+        const response = await createAuthQRCode({ env, issuerIdentifier, linkID, signal });
 
         if (response.success) {
           setAuthQRCode({ data: response.data, status: "successful" });
@@ -57,7 +57,7 @@ export function CredentialLinkQR() {
         }
       }
     },
-    [linkID, env, identifier]
+    [linkID, env, issuerIdentifier]
   );
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export function CredentialLinkQR() {
       if (isAsyncTaskDataAvailable(authQRCode) && linkID) {
         const response = await getImportQRCode({
           env,
-          identifier,
+          issuerIdentifier,
           linkID,
           sessionID: authQRCode.data.sessionID,
         });
@@ -110,7 +110,7 @@ export function CredentialLinkQR() {
     }, POLLING_INTERVAL);
 
     return () => clearInterval(checkQRCredentialStatusTimer);
-  }, [authQRCode, env, importQRCheck, linkID, messageAPI, identifier]);
+  }, [authQRCode, env, importQRCheck, linkID, messageAPI, issuerIdentifier]);
 
   const onStartAgain = () => {
     makeRequestAbortable(createCredentialQR);

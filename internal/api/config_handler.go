@@ -18,20 +18,6 @@ func (s *Server) GetConfig(_ context.Context, _ GetConfigRequestObject) (GetConf
 			Key:   "ISSUER_DATABASE_URL",
 			Value: s.cfg.Database.URL,
 		},
-		KeyValue{
-			Key:   "ISSUER_ETHEREUM_URL",
-			Value: s.cfg.Ethereum.URL,
-		},
-
-		KeyValue{
-			Key:   "ISSUER_ETHEREUM_CONTRACT_ADDRESS",
-			Value: s.cfg.Ethereum.ContractAddress,
-		},
-
-		KeyValue{
-			Key:   "ISSUER_ETHEREUM_RESOLVER_PREFIX",
-			Value: s.cfg.Ethereum.ResolverPrefix,
-		},
 
 		KeyValue{
 			Key:   "ISSUER_KEY_STORE_TOKEN",
