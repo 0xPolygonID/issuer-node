@@ -99,14 +99,8 @@ If you want to disable UI authentication, you must change the value of the follo
 ISSUER_UI_INSECURE=true
 ```
 
-5. Import your private Key:
-Write the private key in Vault. This step is needed in order to be able to transit the issuer's state. To perform that
-action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
-```bash
-make private_key=<private-key> import-private-key-to-kms
-```
 
-6. Run API, UI and infrastructure (Postgres, Vault and Redis)
+5. Run API, UI and infrastructure (Postgres, Vault and Redis)
 
 To do a build and start both the API and the UI in a single step, you can use the following command:
 ```bash
@@ -115,6 +109,13 @@ make run-all
 then visit 
 * http://localhost:8088/ to access the UI
 * http://localhost:3001/ to access the API.
+
+6. Import your private Key:
+   Write the private key in Vault. This step is needed in order to be able to transit the issuer's state. To perform that
+   action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy)
+```bash
+make private_key=<private-key> import-private-key-to-kms
+```
 
 
 ### Running only Issuer Node API
