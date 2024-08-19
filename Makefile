@@ -161,7 +161,7 @@ lint-fix: $(BIN)/golangci-lint
 .PHONY: import-private-key-to-kms
 import-private-key-to-kms:
 ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
-	@echo "AWS"
+	@echo ">>> importing private key to AWS KMS"
 	docker build --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_ACCESS_KEY=$(aws_access_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_SECRET_KEY=$(aws_secret_key) \
     		  --build-arg ISSUER_KMS_ETH_PROVIDER_AWS_REGION=$(aws_region) -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
@@ -177,16 +177,19 @@ ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
 		echo "something went wrong because keyID is empty"; \
 	fi
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
-	@echo "LOCALSTORAGE"
-	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	echo ">>> importing private key to LOCALSTORAGE"
+	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
-		--network issuer-network \
-		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
-	@echo "VAULT"
-	docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	@echo ">>> importing private key to VAULT"
+	$(DOCKER_COMPOSE_INFRA_CMD) up -d vault
+	@echo "waiting for vault to start..."
+	sleep 10
+	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
 	docker run --rm -it -v ./.env-issuer:/.env-issuer --network issuer-network \
 		privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
+	$(DOCKER_COMPOSE_INFRA_CMD) stop
 else
 	@echo "ISSUER_KMS_ETH_PROVIDER is not set"
 endif
