@@ -14,3 +14,9 @@ func (f *Fixture) CreateIdentity(t *testing.T, identity *domain.Identity) {
 	t.Helper()
 	assert.NoError(t, f.identityRepository.Save(context.Background(), f.storage.Pgx, identity))
 }
+
+// CreateIdentityStatus creates a new state for an identity
+func (f *Fixture) CreateIdentityStatus(t *testing.T, state domain.IdentityState) {
+	t.Helper()
+	assert.NoError(t, f.identityStateRepository.Save(context.Background(), f.storage.Pgx, state))
+}

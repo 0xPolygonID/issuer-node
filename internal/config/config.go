@@ -30,7 +30,12 @@ const (
 	// Vault is the vault plugin
 	Vault = "vault"
 	// AWS is the AWS plugin
-	AWS         = "aws"
+	AWS = "aws"
+	// CacheProviderRedis is the redis cache provider
+	CacheProviderRedis = "redis"
+	// CacheProviderValKey is the valkey cache provider
+	CacheProviderValKey = "valkey"
+
 	ipfsGateway = "https://cloudflare-ipfs.com"
 )
 
@@ -65,7 +70,8 @@ type Database struct {
 
 // Cache configurations
 type Cache struct {
-	RedisUrl string `env:"ISSUER_REDIS_URL" envDefault:"redis://@localhost:6379/1"`
+	Provider string `env:"ISSUER_CACHE_PROVIDER" envDefault:"redis"`
+	Url      string `env:"ISSUER_CACHE_URL"`
 }
 
 // IPFS configurations
@@ -287,8 +293,9 @@ func checkEnvVars(ctx context.Context, cfg *Configuration) error {
 		log.Info(ctx, "ISSUER_CIRCUIT_PATH value is missing")
 	}
 
-	if cfg.Cache.RedisUrl == "" {
-		log.Info(ctx, "ISSUER_REDIS_URL value is missing")
+	if cfg.Cache.Url == "" {
+		log.Error(ctx, "ISSUER_CACHE_URL value is missing")
+		return errors.New("ISSUER_CACHE_URL value is missing")
 	}
 
 	if cfg.SchemaCache == nil {

@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/stretchr/testify/assert"
@@ -92,7 +94,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Method                  string                                                   `json:"method"`
 					Network                 string                                                   `json:"network"`
 					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
+				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("my display name"),
 			},
 			expected: expected{
 				httpCode: 201,
@@ -282,6 +284,150 @@ func TestServer_GetIdentities(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.httpCode, rr.Code)
 				assert.True(t, len(response) >= 2)
+			}
+		})
+	}
+}
+
+func TestServer_GetIdentityDetails(t *testing.T) {
+	server := newTestServer(t, nil)
+	handler := getHandler(context.Background(), server)
+
+	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qa2gW8iU1nTbgYZVxAvbXX5XMMXFh6GHkVWX3KQJA", DisplayName: common.ToPointer("my display name"), KeyType: "BJJ"}
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	state := domain.IdentityState{
+		Identifier: identity.Identifier,
+		State:      common.ToPointer("state"),
+		Status:     domain.StatusCreated,
+		ModifiedAt: time.Now(),
+		CreatedAt:  time.Now(),
+	}
+	fixture.CreateIdentityStatus(t, state)
+
+	type expected struct {
+		httpCode    int
+		displayName *string
+		status      string
+		state       string
+		identifier  *string
+		keyType     string
+	}
+
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode: http.StatusUnauthorized,
+			},
+		},
+		{
+			name: "should retrieve identity details",
+			auth: authOk,
+			expected: expected{
+				httpCode:    200,
+				identifier:  &identity.Identifier,
+				displayName: common.ToPointer("my display name"),
+				status:      "created",
+				state:       "state",
+				keyType:     "BJJ",
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/v1/identities/%s/details", identity.Identifier)
+			req, err := http.NewRequest("GET", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			if tc.expected.httpCode == http.StatusOK {
+				var response GetIdentityDetails200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.Equal(t, tc.expected.identifier, response.Identifier)
+				assert.Equal(t, tc.expected.displayName, response.DisplayName)
+				assert.Equal(t, tc.expected.status, response.State.Status)
+				assert.Equal(t, tc.expected.state, *response.State.State)
+				assert.Equal(t, tc.expected.keyType, response.KeyType)
+				assert.Nil(t, identity.Address)
+				assert.Nil(t, identity.Balance)
+			}
+		})
+	}
+}
+
+func TestServer_UpdateDisplayName(t *testing.T) {
+	server := newTestServer(t, nil)
+	handler := getHandler(context.Background(), server)
+
+	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qQ8S2VKdQv7xYgzCn7KW2xgzUWrTRQjoZDYavJHBq"}
+	fixture := tests.NewFixture(storage)
+	fixture.CreateIdentity(t, identity)
+
+	state := domain.IdentityState{
+		Identifier: identity.Identifier,
+		State:      common.ToPointer("state"),
+		Status:     domain.StatusCreated,
+		ModifiedAt: time.Now(),
+		CreatedAt:  time.Now(),
+	}
+	fixture.CreateIdentityStatus(t, state)
+
+	type expected struct {
+		httpCode    int
+		displayName *string
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name: "No auth header",
+			auth: authWrong,
+			expected: expected{
+				httpCode:    http.StatusUnauthorized,
+				displayName: common.ToPointer("new display name"),
+			},
+		},
+		{
+			name: "should update display name",
+			auth: authOk,
+			expected: expected{
+				httpCode:    200,
+				displayName: common.ToPointer("new display name"),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			body := UpdateIdentityDisplayNameJSONBody{
+				DisplayName: *tc.expected.displayName,
+			}
+
+			url := fmt.Sprintf("/v1/identities/%s", identity.Identifier)
+			req, err := http.NewRequest("PATCH", url, tests.JSONBody(t, body))
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+			if tc.expected.httpCode == http.StatusOK {
+				var response UpdateIdentityDisplayName200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 			}
 		})
 	}
