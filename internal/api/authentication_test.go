@@ -20,7 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_AuthCallback(t *testing.T) {
@@ -80,7 +80,7 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 	require.NoError(t, err)
 	handler := getHandler(context.Background(), server)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	conn := &domain.Connection{
 		ID:         uuid.New(),
 		IssuerDID:  *issuerDID,
