@@ -9,7 +9,9 @@ COPY ./internal ./internal
 COPY ./pkg ./pkg
 COPY ./go.mod ./
 COPY ./go.sum ./
-COPY ./resolvers_settings.* ./
+
+# uncoment if you want to use resolvers_settings.yaml file in the build
+# COPY ./resolvers_settings.* ./
 
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./cmd/...
 RUN go install -buildvcs=false -ldflags "-X main.build=${VERSION}" ./tools/...

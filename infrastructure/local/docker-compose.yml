@@ -6,7 +6,6 @@ services:
     ports:
       - "8088:80"
     env_file:
-      - ../../.env-api
       - ../../.env-ui
     healthcheck:
       test: [ "CMD", "curl", "-f", "localhost:8088/health" ]
@@ -19,10 +18,10 @@ services:
     ports:
       - "3001:3001"
     env_file:
-      - ../../.env-api
       - ../../.env-issuer
     volumes:
       - ../../localstoragekeys:/localstoragekeys:rw
+      - ../../resolvers_settings.yaml:/resolvers_settings.yaml
     healthcheck:
       test: [ "CMD", "curl", "-f", "localhost:3001/status" ]
       interval: 10s
@@ -35,7 +34,6 @@ services:
     ports:
       - "3004:3004"
     env_file:
-      - ../../.env-api
       - ../../.env-issuer
     command: sh -c "sleep 4s && ./notifications"
 
@@ -44,7 +42,6 @@ services:
     ports:
       - "3005:3005"
     env_file:
-      - ../../.env-api
       - ../../.env-issuer
     command: sh -c "sleep 4s &&  ./pending_publisher"
 

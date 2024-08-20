@@ -29,6 +29,11 @@ func (ps *Mock) Publish(_ context.Context, topic string, payload Event) error {
 // Not implemented
 func (ps *Mock) Subscribe(_ context.Context, topic string, callback EventHandler) {}
 
+// Close the connection
+func (ps *Mock) Close() error {
+	return nil
+}
+
 // AllPublishedEvents returns the list of all published events allowing test inspection
 func (ps *Mock) AllPublishedEvents(topic string) []Event {
 	collection, found := ps.events[topic]
