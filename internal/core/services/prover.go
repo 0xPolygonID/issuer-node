@@ -1,4 +1,4 @@
-package gateways
+package services
 
 import (
 	"context"
@@ -8,10 +8,8 @@ import (
 
 	"github.com/iden3/go-rapidsnark/types"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	client "github.com/polygonid/sh-id-platform/pkg/http"
 	"github.com/polygonid/sh-id-platform/pkg/loaders"
@@ -28,19 +26,13 @@ type ProverService struct {
 	proverConfig *ProverConfig
 }
 
-// NewProverService new prover service that works with zero knowledge proofs
-func NewProverService(config *ProverConfig) *ProverService {
-	return &ProverService{proverConfig: config}
-}
-
 // NewProver returns a new prover with the given configuration.
 // If NativeProofGenerationEnabled is true it will return a NativeProverService
-// If NativeProofGenerationEnabled is false it will return an external ProverService
-func NewProver(ctx context.Context, config *config.Configuration, circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
-	proverConfig := &services.NativeProverConfig{
+func NewProver(circuitLoaderService *loaders.Circuits) ports.ZKGenerator {
+	proverConfig := &NativeProverConfig{
 		CircuitsLoader: circuitLoaderService,
 	}
-	return services.NewNativeProverService(proverConfig)
+	return NewNativeProverService(proverConfig)
 }
 
 // Verify calls prover server for proof verification
