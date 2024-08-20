@@ -108,7 +108,7 @@ run-ui: build-ui add-host-url-swagger
 
 # Run all services
 .PHONE: run-all
-run-all: build build-ui add-host-url-swagger
+run-all: build build-ui up add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications
 
 
