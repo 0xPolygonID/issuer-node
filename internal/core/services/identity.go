@@ -246,7 +246,7 @@ func (i *identity) getKeyIDFromAuthClaim(ctx context.Context, authClaim *domain.
 }
 
 // Get - returns all the identities
-func (i *identity) Get(ctx context.Context) (identities []string, err error) {
+func (i *identity) Get(ctx context.Context) (identities []domain.IdentityDisplayName, err error) {
 	return i.identityRepository.Get(ctx, i.storage.Pgx)
 }
 
@@ -406,6 +406,25 @@ func (i *identity) UpdateState(ctx context.Context, did w3c.DID) (*domain.Identi
 	return newState, err
 }
 
+// UpdateIdentityDisplayName implements ports.IdentityService.
+func (i *identity) UpdateIdentityDisplayName(ctx context.Context, did w3c.DID, displayName string) error {
+	return i.storage.Pgx.BeginFunc(ctx,
+		func(tx pgx.Tx) error {
+			identity, err := i.identityRepository.GetByID(ctx, tx, did)
+			if err != nil {
+				log.Error(ctx, "getting identity for update display name", "err", err)
+				return err
+			}
+			identity.DisplayName = &displayName
+			err = i.identityRepository.UpdateDisplayName(ctx, tx, identity)
+			if err != nil {
+				log.Error(ctx, "updating identity display name", "err", err)
+				return err
+			}
+			return nil
+		})
+}
+
 func (i *identity) processClaims(ctx context.Context, tx pgx.Tx, did w3c.DID, iTrees *domain.IdentityMerkleTrees) (bool, error) {
 	lc, err := i.claimsRepository.GetAllByState(ctx, tx, &did, nil)
 	if err != nil {
@@ -446,7 +465,7 @@ func (i *identity) UpdateIdentityState(ctx context.Context, state *domain.Identi
 	return err
 }
 
-func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string, issuerDID w3c.DID) (*protocol.AuthorizationResponseMessage, error) {
+func (i *identity) Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error) {
 	authReq, err := i.sessionManager.Get(ctx, sessionID.String())
 	if err != nil {
 		log.Warn(ctx, "authentication session not found")
@@ -459,7 +478,14 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	issuerDoc := newDIDDocument(serverURL, issuerDID)
+	from := authReq.From
+	issuerDID, err := w3c.ParseDID(from)
+	if err != nil {
+		log.Error(ctx, "failed to parse issuerDID", "err", err)
+		return nil, err
+	}
+
+	issuerDoc := newDIDDocument(serverURL, *issuerDID)
 	bytesIssuerDoc, err := json.Marshal(issuerDoc)
 	if err != nil {
 		log.Error(ctx, "failed to marshal issuerDoc", "err", err)
@@ -475,7 +501,7 @@ func (i *identity) Authenticate(ctx context.Context, message string, sessionID u
 
 	conn := &domain.Connection{
 		ID:         uuid.New(),
-		IssuerDID:  issuerDID,
+		IssuerDID:  *issuerDID,
 		UserDID:    *userDID,
 		IssuerDoc:  bytesIssuerDoc,
 		UserDoc:    arm.Body.DIDDoc,
@@ -634,6 +660,8 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
+	identity.DisplayName = didOptions.DisplayName
+
 	if err = i.identityRepository.Save(ctx, tx, identity); err != nil {
 		log.Error(ctx, "saving identity", "err", err)
 		return nil, nil, errors.Join(err, errors.New("can't save identity"))
@@ -692,7 +720,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 			Blockchain:              core.NoChain,
 			Network:                 core.NoNetwork,
 			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: verifiable.SparseMerkleTreeProof,
+			AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1,
 		}
 	}
 
@@ -724,6 +752,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		log.Error(ctx, "adding genesis claims to tree", "err", err)
 		return nil, nil, fmt.Errorf("can't add genesis claims to tree: %w", err)
 	}
+	identity.DisplayName = didOptions.DisplayName
 
 	claimsTree, err := mts.ClaimsTree()
 	if err != nil {
@@ -796,7 +825,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 }
 
 func (i *identity) createEthIdentityFromKeyID(ctx context.Context, mts *domain.IdentityMerkleTrees, key *kms.KeyID, didOptions *ports.DIDCreationOptions, tx db.Querier) (*domain.Identity, *w3c.DID, error) {
-	pubKey, err := ethPubKey(i.kms, *key)
+	pubKey, err := ethPubKey(ctx, i.kms, *key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -895,8 +924,8 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID) ([]domain.IdentityState, error) {
-	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID)
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
+	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
 }
 
 func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {
@@ -1022,7 +1051,7 @@ func (i *identity) addGenesisClaimsToTree(ctx context.Context,
 		return nil, nil, fmt.Errorf("can't add get current state from merkle tree: %w", err)
 	}
 
-	// TODO: add config options for blockchain and network
+	// TODO: add config options for blockchain and net
 	didType, err := core.BuildDIDType(didOptions.Method, didOptions.Blockchain, didOptions.Network)
 	if err != nil {
 		return nil, nil, ErrWrongDIDMetada
@@ -1098,7 +1127,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v1/claim/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = fmt.Sprintf("%s/api/v1/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
@@ -1195,10 +1224,35 @@ func sanitizeIssuerDoc(issDoc []byte) []byte {
 	return []byte(str)
 }
 
-func ethPubKey(keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
+// ethPubKey returns the public key from the key manager service.
+// the public key is either uncompressed or compressed, so we need to handle both cases.
+func ethPubKey(ctx context.Context, keyMS kms.KMSType, keyID kms.KeyID) (*ecdsa.PublicKey, error) {
+	const (
+		uncompressedKeyLength = 65
+		awsKeyLength          = 88
+		defaultKeyLength      = 33
+	)
+
 	keyBytes, err := keyMS.PublicKey(keyID)
 	if err != nil {
+		log.Error(ctx, "can't get bytes from public key", "err", err)
 		return nil, err
 	}
-	return kms.DecodeETHPubKey(keyBytes)
+
+	// public key is uncompressed. It's 65 bytes long.
+	if len(keyBytes) == uncompressedKeyLength {
+		return crypto.UnmarshalPubkey(keyBytes)
+	}
+
+	// public key is AWS format. It's 88 bytes long.
+	if len(keyBytes) == awsKeyLength {
+		return kms.DecodeAWSETHPubKey(ctx, keyBytes)
+	}
+
+	// public key is compressed. It's 33 bytes long.
+	if len(keyBytes) == defaultKeyLength {
+		return kms.DecodeETHPubKey(keyBytes)
+	}
+
+	return nil, errors.New("unsupported public key format")
 }

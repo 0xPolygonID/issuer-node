@@ -13,6 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/iden3/contracts-abi/state/go/abi"
+	"github.com/iden3/go-iden3-auth/v2/pubsignals"
+	"github.com/iden3/go-iden3-auth/v2/state"
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"gopkg.in/yaml.v3"
@@ -24,6 +26,8 @@ import (
 )
 
 const (
+	// All is the type for revocation status on chain and off chain
+	All = "All"
 	// OnChain is the type for revocation status on chain
 	OnChain = "OnChain"
 	// OffChain is the type for revocation status off chain
@@ -33,6 +37,9 @@ const (
 )
 
 type resolverPrefix string
+
+// StateResolvers type
+type StateResolvers map[string]pubsignals.StateResolver
 
 // ResolverClientConfig holds the resolver client config
 type ResolverClientConfig struct {
@@ -45,6 +52,14 @@ type Resolver struct {
 	ethereumClients    map[resolverPrefix]ResolverClientConfig
 	rhsSettings        map[resolverPrefix]RhsSettings
 	supportedContracts map[string]*abi.State
+	stateResolvers     map[string]pubsignals.StateResolver
+	supportedNetworks  []SupportedNetworks
+}
+
+// SupportedNetworks holds the chain and networks supoprted
+type SupportedNetworks struct {
+	Blockchain string   `yaml:"blockchain"`
+	Networks   []string `yaml:"networks"`
 }
 
 // RhsSettings holds the rhs settings
@@ -56,7 +71,6 @@ type RhsSettings struct {
 	ChainID              *string `yaml:"chainID"`
 	PublishingKey        string  `yaml:"publishingKey"`
 	SingleIssuer         bool
-	CredentialStatusType verifiable.CredentialStatusType
 }
 
 // ResolverSettings holds the resolver settings
@@ -91,14 +105,18 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 	ethereumClients := make(map[resolverPrefix]ResolverClientConfig)
 	rhsSettings := make(map[resolverPrefix]RhsSettings)
 	supportedContracts := make(map[string]*abi.State)
+	stateResolvers := make(map[string]pubsignals.StateResolver)
 
-	log.Info(ctx, "resolver settings file found", "path", cfg.NetworkResolverPath)
 	log.Info(ctx, "the issuer node will use the resolver settings file for configuring multi chain feature")
 	var printer strings.Builder
+	var supportedNetworks []SupportedNetworks
 	for chainName, chainSettings := range rs {
 		printer.WriteString(fmt.Sprintf("chainName: %s", chainName))
+		var supportedNetwork SupportedNetworks
+		supportedNetwork.Blockchain = chainName
 		for networkName, networkSettings := range chainSettings {
 			printer.WriteString(fmt.Sprintf(", networkName: %s", networkName))
+			supportedNetwork.Networks = append(supportedNetwork.Networks, networkName)
 			if networkSettings.NetworkFlag != 0 {
 				if err := registerCustomDIDMethod(ctx, chainName, networkName, networkSettings.ChainID, networkSettings.Method, networkSettings.NetworkFlag); err != nil {
 					return nil, fmt.Errorf("failed to register custom DID method: %w", err)
@@ -131,32 +149,18 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 
 			ethereumClients[resolverPrefix(resolverPrefixKey)] = *resolverClientConfig
 			settings := networkSettings.RhsSettings
+			settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.ServerUrl, "/")
 
-			// TODO: Change this when two apis are merged
-			if cfg.CredentialStatus.SingleIssuer {
-				settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.APIUI.ServerURL, "/")
-			} else {
-				settings.Iden3CommAgentStatus = strings.TrimSuffix(cfg.ServerUrl, "/")
-			}
-
-			settings.SingleIssuer = cfg.CredentialStatus.SingleIssuer
-
-			if settings.Mode == None {
-				settings.CredentialStatusType = verifiable.Iden3commRevocationStatusV1
-			}
-
-			if settings.Mode == OffChain {
+			if settings.Mode == OffChain || settings.Mode == All {
 				if settings.RhsUrl == nil {
 					return nil, fmt.Errorf("rhs url not found for %s", resolverPrefixKey)
 				}
-				settings.CredentialStatusType = verifiable.Iden3ReverseSparseMerkleTreeProof
 			}
 
-			if settings.Mode == OnChain {
+			if settings.Mode == OnChain || settings.Mode == All {
 				if settings.ContractAddress == nil {
 					return nil, fmt.Errorf("contract address not found for %s", resolverPrefixKey)
 				}
-				settings.CredentialStatusType = verifiable.Iden3OnchainSparseMerkleTreeProof2023
 			}
 
 			rhsSettings[resolverPrefix(resolverPrefixKey)] = settings
@@ -165,7 +169,14 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 				return nil, fmt.Errorf("error failed create state contract client: %s", err.Error())
 			}
 			supportedContracts[resolverPrefixKey] = stateContract
+
+			stateResolvers[resolverPrefixKey] = state.ETHResolver{
+				RPCUrl:          networkSettings.NetworkURL,
+				ContractAddress: common.HexToAddress(networkSettings.ContractAddress),
+			}
 		}
+		supportedNetworks = append(supportedNetworks, supportedNetwork)
+
 	}
 
 	log.Info(ctx, "resolver settings", "settings:", printer.String())
@@ -174,6 +185,8 @@ func NewResolver(ctx context.Context, cfg config.Configuration, kms *kms.KMS, re
 		ethereumClients:    ethereumClients,
 		rhsSettings:        rhsSettings,
 		supportedContracts: supportedContracts,
+		stateResolvers:     stateResolvers,
+		supportedNetworks:  supportedNetworks,
 	}, nil
 }
 
@@ -195,6 +208,11 @@ func (r *Resolver) GetContractAddress(resolverPrefixKey string) (*common.Address
 
 	contractAddress := common.HexToAddress(resolverClientConfig.contractAddress)
 	return &contractAddress, nil
+}
+
+// GetStateResolvers returns the state resolvers
+func (r *Resolver) GetStateResolvers() StateResolvers {
+	return r.stateResolvers
 }
 
 // GetRhsSettings returns the rhs settings
@@ -240,6 +258,25 @@ func (r *Resolver) GetConfirmationTimeout(resolverPrefixKey string) (time.Durati
 // GetSupportedContracts returns the supported contracts
 func (r *Resolver) GetSupportedContracts() map[string]*abi.State {
 	return r.supportedContracts
+}
+
+// GetSupportedNetworks returns the supported networks
+func (r *Resolver) GetSupportedNetworks() []SupportedNetworks {
+	return r.supportedNetworks
+}
+
+// IsCredentialStatusTypeSupported returns true if the credential status type is supported
+func (r *Resolver) IsCredentialStatusTypeSupported(rhsSettings *RhsSettings, credentialStatusType verifiable.CredentialStatusType) bool {
+	if credentialStatusType == verifiable.Iden3ReverseSparseMerkleTreeProof &&
+		rhsSettings.Mode != All && rhsSettings.Mode != OffChain {
+		return false
+	}
+	if credentialStatusType == verifiable.Iden3OnchainSparseMerkleTreeProof2023 &&
+		rhsSettings.Mode != All && rhsSettings.Mode != OnChain {
+		return false
+	}
+
+	return true
 }
 
 func getResolverPrefixKey(blockchain, network string) string {

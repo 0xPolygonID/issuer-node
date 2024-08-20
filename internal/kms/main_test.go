@@ -9,11 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/providers"
 )
 
-var cfg config.KeyStore
+var cfg providers.Config
 
 type TestKMS struct {
 	KMS        *KMS
@@ -22,12 +21,25 @@ type TestKMS struct {
 	t          testing.TB
 }
 
+// VaultTest returns the vault configuration to be used in tests.
+// The vault token is obtained from environment vars.
+// If there is no env var, it will try to parse the init.out file
+// created by local docker image provided for TESTING purposes.
+func vaultTest() providers.Config {
+	return providers.Config{
+		Address:             "http://localhost:8200",
+		UserPassAuthEnabled: true,
+		Pass:                "issuernodepwd",
+		MountPath:           "iden3",
+	}
+}
+
 func TestMain(m *testing.M) {
 	os.Exit(testMain(m))
 }
 
 func testMain(m *testing.M) int {
-	cfg = config.VaultTest()
+	cfg = vaultTest()
 	return m.Run()
 }
 
@@ -37,11 +49,7 @@ func testKMSSetup(t testing.TB) TestKMS {
 	k := TestKMS{t: t}
 	var err error
 
-	k.VaultCli, err = providers.VaultClient(context.Background(), providers.Config{
-		Address:             cfg.Address,
-		UserPassAuthEnabled: cfg.UserPassEnabled,
-		Pass:                cfg.UserPassPassword,
-	})
+	k.VaultCli, err = providers.VaultClient(context.Background(), vaultTest())
 	require.NoError(t, err)
 
 	k.KMS = NewKMS()

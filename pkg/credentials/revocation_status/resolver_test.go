@@ -133,10 +133,6 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 			cfg := &config.Configuration{
 				ServerUrl:           "https://issuer-node.privado.id",
 				NetworkResolverPath: "",
-				Ethereum: config.Ethereum{
-					URL:            "https://polygon-mumbai.g.alchemy.com/v2/xaP2_",
-					ResolverPrefix: "polygon:mumbai",
-				},
 			}
 			networkResolver, err := network.NewResolver(context.Background(), *cfg, nil, helpers.CreateFile(t))
 			require.NoError(t, err)

@@ -2,13 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	vault "github.com/hashicorp/vault/api"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -24,7 +22,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -42,7 +39,7 @@ func main() {
 
 	log.Info(ctx, "starting issuer node...", "revision", build)
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load()
 	if err != nil {
 		log.Error(ctx, "cannot load config", "err", err)
 		return
@@ -50,14 +47,14 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	if err := cfg.SanitizeAPIUI(ctx); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize cache", "err", err)
 		return
 	}
-
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
 		return
 	}
 
@@ -67,40 +64,26 @@ func main() {
 		return
 	}
 
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
-
 	connectionsRepository := repositories.NewConnections()
 	claimsRepository := repositories.NewClaims()
 
-	var vaultCli *vault.Client
-	var vaultErr error
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
+		TLSEnabled:          cfg.KeyStore.TLSEnabled,
+		CertPath:            cfg.KeyStore.CertPath,
 	}
 
-	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-	if vaultErr != nil {
-		log.Error(ctx, "cannot initialize vault client", "err", err)
-		return
-	}
-
-	if vaultCfg.UserPassAuthEnabled {
-		go providers.RenewToken(ctx, vaultCli, vaultCfg)
-	}
-
-	err = config.CheckDID(ctx, cfg, vaultCli)
+	keyStore, err := config.KeyStoreConfig(ctx, cfg, vaultCfg)
 	if err != nil {
-		log.Error(ctx, "cannot initialize did", "err", err)
+		log.Error(ctx, "cannot initialize key store", "err", err)
 		return
 	}
 
 	connectionsService := services.NewConnection(connectionsRepository, claimsRepository, storage)
-	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, vaultCli)
+	credentialsService, err := newCredentialsService(ctx, cfg, storage, cachex, ps, keyStore)
 	if err != nil {
 		log.Error(ctx, "cannot initialize the credential service", "err", err)
 		return
@@ -112,7 +95,7 @@ func main() {
 	defer func() {
 		log.Info(ctx, "Shutting down...")
 		cancel()
-		if err := rdb.Close(); err != nil {
+		if err := ps.Close(); err != nil {
 			log.Error(ctx, "closing redis connection", "err", err)
 		}
 	}()
@@ -141,19 +124,14 @@ func main() {
 	<-gracefulShutdown
 }
 
-func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, vaultCli *vault.Client) (ports.ClaimsService, error) {
+func newCredentialsService(ctx context.Context, cfg *config.Configuration, storage *db.Storage, cachex cache.Cache, ps pubsub.Client, keyStore *kms.KMS) (ports.ClaimsService, error) {
 	identityRepository := repositories.NewIdentity()
 	claimsRepository := repositories.NewClaims()
 	mtRepository := repositories.NewIdentityMerkleTreeRepository()
 	identityStateRepository := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
-	keyStore, err := kms.Open(cfg.KeyStore.PluginIden3MountPath, vaultCli)
-	if err != nil {
-		return nil, fmt.Errorf("cannot initialize kms: err %s", err.Error())
-	}
 
-	cfg.CredentialStatus.SingleIssuer = true
-	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "cannot read network resolver file", "err", err)
 		return nil, err
@@ -181,7 +159,7 @@ func newCredentialsService(ctx context.Context, cfg *config.Configuration, stora
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, nil, storage, nil, nil, ps, *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	return claimsService, nil
 }

@@ -11,18 +11,33 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/kms"
 )
 
+// AuthCoreClaimRevocationStatus - auth core claim revocation status
+type AuthCoreClaimRevocationStatus struct {
+	ID              string `json:"id"`
+	Type            string `json:"type"`
+	RevocationNonce uint   `json:"revocationNonce"`
+}
+
 // ErrInvalidIdentifier - invalid identifier error
 var ErrInvalidIdentifier = errors.New("invalid identifier")
 
 // Identity struct
 type Identity struct {
-	Identifier string
-	State      IdentityState
-	Relay      string   `json:"relay"`
-	Immutable  bool     `json:"immutable"`
-	KeyType    string   `json:"keyType"`
-	Address    *string  `json:"address"`
-	Balance    *big.Int `json:"balance"`
+	Identifier                    string
+	State                         IdentityState
+	DisplayName                   *string                       `json:"displayName"`
+	Relay                         string                        `json:"relay"`
+	Immutable                     bool                          `json:"immutable"`
+	KeyType                       string                        `json:"keyType"`
+	Address                       *string                       `json:"address"`
+	Balance                       *big.Int                      `json:"balance"`
+	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
+}
+
+// IdentityDisplayName struct
+type IdentityDisplayName struct {
+	Identifier  string  `json:"identifier"`
+	DisplayName *string `json:"displayName"`
 }
 
 // NewIdentityFromIdentifier default identity model from identity and root state

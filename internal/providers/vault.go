@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	vault "github.com/hashicorp/vault/api"
@@ -14,17 +13,8 @@ import (
 )
 
 const (
-	didMountPath = "kv"
-	secretPath   = "did"
-	increment    = 1440
-	user         = "issuernode"
-)
-
-var (
-	// DidNotFound error
-	DidNotFound = errors.New("did not found in vault")
-	// VaultConnErr error
-	VaultConnErr = errors.New("vault connection error")
+	increment = 1440
+	user      = "issuernode"
 )
 
 // HTTPClientTimeout http client timeout TODO: move to config
@@ -37,6 +27,9 @@ type Config struct {
 	UserPassAuthEnabled bool
 	Token               string
 	Pass                string
+	TLSEnabled          bool
+	CertPath            string
+	MountPath           string
 }
 
 // VaultClient checks vault configuration and creates new vault client
@@ -49,7 +42,7 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 			log.Error(ctx, "Vault userpass auth enabled but password not provided")
 			return nil, errors.New("Vault userpass auth enabled but password not provided")
 		}
-		vaultCli, _, err = newVaultClientWithUserPassAuth(ctx, cfg.Address, cfg.Pass)
+		vaultCli, _, err = newVaultClientWithUserPassAuth(ctx, cfg)
 		if err != nil {
 			log.Error(ctx, "cannot init vault client with userpass auth: ", "err", err)
 			return nil, err
@@ -60,7 +53,7 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 			log.Error(ctx, "Vault userpass auth not enabled but token not provided")
 			return nil, errors.New("Vault userpass auth not enabled but token not provided")
 		}
-		vaultCli, err = newVaultClientWithToken(cfg.Address, cfg.Token)
+		vaultCli, err = newVaultClientWithToken(cfg)
 		if err != nil {
 			log.Error(ctx, "cannot init vault client: ", "err", err)
 			return nil, err
@@ -71,32 +64,48 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 }
 
 // newVaultClientWithToken checks vault configuration and creates new vault client
-func newVaultClientWithToken(address, token string) (*vault.Client, error) {
-	if address == "" {
+func newVaultClientWithToken(cfg Config) (*vault.Client, error) {
+	if cfg.Address == "" {
 		return nil, errors.New("vault address is not specified")
 	}
-	if token == "" {
+	if cfg.Token == "" {
 		return nil, errors.New("vault access token is not specified")
 	}
 
 	config := vault.DefaultConfig()
-	config.Address = address
+	if cfg.TLSEnabled {
+		err := config.ConfigureTLS(&vault.TLSConfig{
+			CACert: cfg.CertPath,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	config.Address = cfg.Address
 	config.HttpClient.Timeout = HTTPClientTimeout
-
 	client, err := vault.NewClient(config)
 	if err != nil {
 		return nil, err
 	}
 
-	client.SetToken(token)
+	client.SetToken(cfg.Token)
 	return client, nil
 }
 
 // newVaultClientWithUserPassAuth checks vault configuration and creates new vault client with userpass auth
-func newVaultClientWithUserPassAuth(ctx context.Context, address string, pass string) (*vault.Client, *vault.Secret, error) {
+func newVaultClientWithUserPassAuth(ctx context.Context, cfg Config) (*vault.Client, *vault.Secret, error) {
 	config := vault.DefaultConfig()
-	config.Address = address
+	config.Address = cfg.Address
 	config.HttpClient.Timeout = HTTPClientTimeout
+
+	if cfg.TLSEnabled {
+		err := config.ConfigureTLS(&vault.TLSConfig{
+			CACert: cfg.CertPath,
+		})
+		if err != nil {
+			return nil, nil, err
+		}
+	}
 
 	client, err := vault.NewClient(config)
 	if err != nil {
@@ -104,7 +113,7 @@ func newVaultClientWithUserPassAuth(ctx context.Context, address string, pass st
 		return nil, nil, err
 	}
 
-	secret, err := login(ctx, client, user, pass)
+	secret, err := login(ctx, client, user, cfg.Pass)
 	if err != nil {
 		log.Error(ctx, "error logging in to vault with userpass auth", "error", err)
 		return nil, nil, err
@@ -184,43 +193,4 @@ func manageTokenLifecycle(ctx context.Context, client *vault.Client, token *vaul
 			log.Info(ctx, "Vault token successfully renewed", "renewal", renewal.RenewedAt)
 		}
 	}
-}
-
-// GetDID gets did from vault
-func GetDID(ctx context.Context, vaultCli *vault.Client) (string, error) {
-	did, err := vaultCli.KVv2(didMountPath).Get(ctx, secretPath)
-	if err != nil {
-		if strings.Contains(err.Error(), "403") {
-			log.Error(ctx, "error getting did from vault, access denied", "error", err)
-			return "", errors.Join(err, VaultConnErr)
-		}
-		log.Error(ctx, "error getting did from vault", "error", err)
-		return "", DidNotFound
-	}
-
-	if did.Data["did"] == nil {
-		log.Info(ctx, "did not found in vault")
-		return "", DidNotFound
-	}
-
-	didToReturn, ok := did.Data["did"].(string)
-	if !ok {
-		log.Error(ctx, "error casting did to string")
-		return "", DidNotFound
-	}
-	return didToReturn, nil
-}
-
-// SaveDID saves did to vault
-func SaveDID(ctx context.Context, vaultCli *vault.Client, did string) error {
-	_, err := vaultCli.KVv2(didMountPath).Put(ctx, secretPath, map[string]interface{}{
-		"did": did,
-	})
-	if err != nil {
-		log.Error(ctx, "error saving did to vault", "error", err)
-		return err
-	}
-
-	log.Info(ctx, "did saved to vault")
-	return nil
 }

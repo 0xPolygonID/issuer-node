@@ -19,6 +19,8 @@ import (
 type RHSMode string
 
 const (
+	// RHSModeAll is a mode when we use both on-chain and off-chain RHS
+	RHSModeAll RHSMode = "All"
 	// RHSModeOffChain is a mode when we use off-chain RHS
 	RHSModeOffChain RHSMode = "OffChain"
 	// RHSModeOnChain is a mode when we use on-chain RHS
@@ -28,27 +30,43 @@ const (
 )
 
 // Factory is a factory for creating RhsPublishers
-type Factory struct {
+type Factory interface {
+	BuildPublishers(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) ([]RhsPublisher, error)
+}
+
+// Factory is a factory for creating RhsPublishers
+type factory struct {
 	responseTimeout time.Duration
 	networkResolver network.Resolver
 }
 
 // NewFactory creates new instance of Factory
 func NewFactory(networkResolver network.Resolver, rpcTimeout time.Duration) Factory {
-	return Factory{
+	return &factory{
 		networkResolver: networkResolver,
 		responseTimeout: rpcTimeout,
 	}
 }
 
 // BuildPublishers creates new instance of RhsPublisher
-func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
+func (f *factory) BuildPublishers(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) ([]RhsPublisher, error) {
 	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
 	}
 	rhsMode := RHSMode(rhsSettings.Mode)
+
 	switch rhsMode {
+	case RHSModeAll:
+		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
+		if err != nil {
+			return nil, err
+		}
+		onChainCli, err := f.initOnChainRHSCli(ctx, resolverPrefix, kmsKey)
+		if err != nil {
+			return nil, err
+		}
+		return []RhsPublisher{NewRhsPublisher(rhsCli, false), NewRhsPublisher(onChainCli, false)}, nil
 	case RHSModeOffChain:
 		rhsCli, err := f.initOffChainRHS(ctx, resolverPrefix)
 		if err != nil {
@@ -68,7 +86,7 @@ func (f *Factory) BuildPublishers(ctx context.Context, resolverPrefix string, km
 	}
 }
 
-func (f *Factory) initOffChainRHS(ctx context.Context, resolverPrefix string) (proof.ReverseHashCli, error) {
+func (f *factory) initOffChainRHS(ctx context.Context, resolverPrefix string) (proof.ReverseHashCli, error) {
 	rhsSettings, err := f.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
 		return nil, err
@@ -82,7 +100,7 @@ func (f *Factory) initOffChainRHS(ctx context.Context, resolverPrefix string) (p
 	}, nil
 }
 
-func (f *Factory) initOnChainRHSCli(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) (proof.ReverseHashCli, error) {
+func (f *factory) initOnChainRHSCli(ctx context.Context, resolverPrefix string, kmsKey *kms.KeyID) (proof.ReverseHashCli, error) {
 	// TODO:
 	// This can be a  problem in the future.
 	// Since between counting the miner tip and using this transaction option can be a big time gap.

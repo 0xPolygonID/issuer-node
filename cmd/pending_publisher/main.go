@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	vault "github.com/hashicorp/vault/api"
 	"github.com/iden3/iden3comm/v2"
 	"github.com/iden3/iden3comm/v2/packers"
 	"github.com/iden3/iden3comm/v2/protocol"
@@ -19,11 +18,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
-	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/loader"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/providers"
-	"github.com/polygonid/sh-id-platform/internal/redis"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/cache"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -41,7 +38,7 @@ func main() {
 
 	log.Info(ctx, "starting pending publisher...", "revision", build)
 
-	cfg, err := config.Load("")
+	cfg, err := config.Load()
 	if err != nil {
 		log.Error(ctx, "cannot load config", "err", err)
 		panic(err)
@@ -49,19 +46,16 @@ func main() {
 
 	log.Config(cfg.Log.Level, cfg.Log.Mode, os.Stdout)
 
-	if err := cfg.Sanitize(ctx); err != nil {
-		log.Error(ctx, "there are errors in the configuration that prevent server to start", "err", err)
-		return
-	}
-
-	rdb, err := redis.Open(cfg.Cache.RedisUrl)
+	cachex, err := cache.NewCacheClient(ctx, *cfg)
 	if err != nil {
-		log.Error(ctx, "cannot connect to redis", "err", err, "host", cfg.Cache.RedisUrl)
+		log.Error(ctx, "cannot initialize cache", "err", err)
 		return
 	}
-	ps := pubsub.NewRedis(rdb)
-	ps.WithLogger(log.Error)
-	cachex := cache.NewRedisCache(rdb)
+	ps, err := pubsub.NewPubSub(ctx, *cfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize pubsub", "err", err)
+		return
+	}
 
 	storage, err := db.NewStorage(cfg.Database.URL)
 	if err != nil {
@@ -79,57 +73,22 @@ func main() {
 	// TODO: Cache only if cfg.APIUI.SchemaCache == true
 	schemaLoader := loader.NewDocumentLoader(cfg.IPFS.GatewayURL)
 
-	var vaultCli *vault.Client
-	var vaultErr error
 	vaultCfg := providers.Config{
-		UserPassAuthEnabled: cfg.VaultUserPassAuthEnabled,
+		UserPassAuthEnabled: cfg.KeyStore.VaultUserPassAuthEnabled,
+		Pass:                cfg.KeyStore.VaultUserPassAuthPassword,
 		Address:             cfg.KeyStore.Address,
 		Token:               cfg.KeyStore.Token,
-		Pass:                cfg.VaultUserPassAuthPassword,
+		TLSEnabled:          cfg.KeyStore.TLSEnabled,
+		CertPath:            cfg.KeyStore.CertPath,
 	}
 
-	vaultCli, vaultErr = providers.VaultClient(ctx, vaultCfg)
-	if vaultErr != nil {
-		log.Error(ctx, "cannot initialize vault client", "err", err)
+	keyStore, err := config.KeyStoreConfig(ctx, cfg, vaultCfg)
+	if err != nil {
+		log.Error(ctx, "cannot initialize key store", "err", err)
 		return
 	}
 
-	if vaultCfg.UserPassAuthEnabled {
-		go providers.RenewToken(ctx, vaultCli, vaultCfg)
-	}
-
-	bjjKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeBabyJubJub)
-	if err != nil {
-		log.Error(ctx, "cannot create BabyJubJub key provider", "err", err)
-		panic(err)
-	}
-
-	ethKeyProvider, err := kms.NewVaultPluginIden3KeyProvider(vaultCli, cfg.KeyStore.PluginIden3MountPath, kms.KeyTypeEthereum)
-	if err != nil {
-		log.Error(ctx, "cannot create Ethereum key provider", "err", err)
-		panic(err)
-	}
-
-	keyStore := kms.NewKMS()
-	err = keyStore.RegisterKeyProvider(kms.KeyTypeBabyJubJub, bjjKeyProvider)
-	if err != nil {
-		log.Error(ctx, "cannot register BabyJubJub key provider", "err", err)
-		panic(err)
-	}
-
-	err = keyStore.RegisterKeyProvider(kms.KeyTypeEthereum, ethKeyProvider)
-	if err != nil {
-		log.Error(ctx, "cannot register Ethereum key provider", "err", err)
-		panic(err)
-	}
-
-	err = config.CheckDID(ctx, cfg, vaultCli)
-	if err != nil {
-		log.Error(ctx, "cannot initialize did", "err", err)
-		return
-	}
-
-	reader, err := network.ReadFile(ctx, cfg.NetworkResolverPath)
+	reader, err := network.GetReaderFromConfig(cfg, ctx)
 	if err != nil {
 		log.Error(ctx, "cannot read network resolver file", "err", err)
 		return
@@ -162,10 +121,10 @@ func main() {
 	)
 
 	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, qrService, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.APIUI.ServerURL, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(claimsRepo, identityService, qrService, mtService, identityStateRepo, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
 
 	circuitsLoaderService := circuitLoaders.NewCircuits(cfg.Circuit.Path)
-	proofService := initProofService(ctx, cfg, circuitsLoaderService)
+	proofService := initProofService(circuitsLoaderService)
 
 	transactionService, err := gateways.NewTransaction(*networkResolver)
 	if err != nil {
@@ -215,18 +174,9 @@ func main() {
 	log.Info(ctx, "Finished")
 }
 
-func initProofService(ctx context.Context, config *config.Configuration, circuitLoaderService *circuitLoaders.Circuits) ports.ZKGenerator {
-	log.Info(ctx, "native prover enabled", "enabled", config.NativeProofGenerationEnabled)
-	if config.NativeProofGenerationEnabled {
-		proverConfig := &services.NativeProverConfig{
-			CircuitsLoader: circuitLoaderService,
-		}
-		return services.NewNativeProverService(proverConfig)
+func initProofService(circuitLoaderService *circuitLoaders.Circuits) ports.ZKGenerator {
+	proverConfig := &services.NativeProverConfig{
+		CircuitsLoader: circuitLoaderService,
 	}
-
-	proverConfig := &gateways.ProverConfig{
-		ServerURL:       config.Prover.ServerURL,
-		ResponseTimeout: config.Prover.ResponseTimeout,
-	}
-	return gateways.NewProverService(proverConfig)
+	return services.NewNativeProverService(proverConfig)
 }

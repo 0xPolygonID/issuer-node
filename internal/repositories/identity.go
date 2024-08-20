@@ -20,7 +20,13 @@ func NewIdentity() ports.IndentityRepository {
 
 // Save - Create new identity
 func (i *identity) Save(ctx context.Context, conn db.Querier, identity *domain.Identity) error {
-	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier, address, keyType) VALUES ($1, $2, $3)`, identity.Identifier, identity.Address, identity.KeyType)
+	_, err := conn.Exec(ctx, `INSERT INTO identities (identifier, address, keyType, display_name) VALUES ($1, $2, $3, $4)`, identity.Identifier, identity.Address, identity.KeyType, identity.DisplayName)
+	return err
+}
+
+// UpdateDisplayName - Update identity displayName field
+func (i *identity) UpdateDisplayName(ctx context.Context, conn db.Querier, identity *domain.Identity) error {
+	_, err := conn.Exec(ctx, `UPDATE identities SET display_name = $1 where identifier = $2`, identity.DisplayName, identity.Identifier)
 	return err
 }
 
@@ -32,6 +38,7 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 		`SELECT  identities.identifier,
 						identities.keyType,
 						identities.address,
+						identities.display_name,
        					state_id,
    						state,           
     					root_of_roots,
@@ -43,9 +50,11 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
     					previous_state,
     					status,               
     					modified_at,
-    					created_at          
+    					identity_states.created_at,
+				        claims.credential_status
 			   FROM identities
 			   LEFT JOIN identity_states ON identities.identifier = identity_states.identifier
+               LEFT JOIN claims ON claims.identifier = identities.identifier and claims.schema_type = 'https://schema.iden3.io/core/jsonld/auth.jsonld#AuthBJJCredential'
 			   WHERE identities.identifier=$1 
 			        AND ( status = 'transacted' OR status = 'confirmed')
     				OR (identities.identifier=$1 AND status = 'created' AND previous_state is null
@@ -55,6 +64,7 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 	err := row.Scan(&identity.Identifier,
 		&identity.KeyType,
 		&identity.Address,
+		&identity.DisplayName,
 		&identity.State.StateID,
 		&identity.State.State,
 		&identity.State.RootOfRoots,
@@ -66,13 +76,14 @@ func (i *identity) GetByID(ctx context.Context, conn db.Querier, identifier w3c.
 		&identity.State.PreviousState,
 		&identity.State.Status,
 		&identity.State.ModifiedAt,
-		&identity.State.CreatedAt)
+		&identity.State.CreatedAt,
+		&identity.AuthCoreClaimRevocationStatus)
 
 	return &identity, err
 }
 
-func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []string, err error) {
-	rows, err := conn.Query(ctx, `SELECT identifier FROM identities`)
+func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []domain.IdentityDisplayName, err error) {
+	rows, err := conn.Query(ctx, `SELECT identifier, display_name FROM identities`)
 	if err != nil {
 		return nil, err
 	}
@@ -80,12 +91,12 @@ func (i *identity) Get(ctx context.Context, conn db.Querier) (identities []strin
 	defer rows.Close()
 
 	for rows.Next() {
-		var identifier string
-		err = rows.Scan(&identifier)
+		var identityDisplayName domain.IdentityDisplayName
+		err = rows.Scan(&identityDisplayName.Identifier, &identityDisplayName.DisplayName)
 		if err != nil {
 			return nil, err
 		}
-		identities = append(identities, identifier)
+		identities = append(identities, identityDisplayName)
 	}
 
 	return identities, err

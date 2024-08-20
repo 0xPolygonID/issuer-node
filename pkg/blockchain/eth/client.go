@@ -48,6 +48,8 @@ var (
 	ErrTransactionNotFound = errors.New("transaction not found")
 	// CompressedPublicKeyLength is the length of a compressed public key
 	CompressedPublicKeyLength = 33
+	// AwsKmsPublicKeyLength is the length of a public key from AWS KMS
+	AwsKmsPublicKeyLength = 88
 )
 
 // Client is an ethereum client to call Smart Contract methods.
@@ -321,6 +323,7 @@ func (c *Client) GetTransactionByID(ctx context.Context, txID string) (*types.Tr
 
 // CreateTxOpts creates a new transaction signer
 func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.TransactOpts, error) {
+	//nolint:all
 	addr, err := c.getAddress(kmsKey)
 	if err != nil {
 		return nil, err
@@ -328,15 +331,9 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 
 	sigFn := c.signerFnFactory(ctx, kmsKey)
 
-	// tip := big.NewInt(0)
-	gasLimit := uint64(c.Config.DefaultGasLimit)
-
 	opts := &bind.TransactOpts{
-		From:     addr,
-		Signer:   sigFn,
-		GasLimit: gasLimit, // go-ethereum library will estimate gas limit automatically if it is 0
-		Context:  ctx,
-		NoSend:   false,
+		From:   addr,
+		Signer: sigFn,
 	}
 
 	if !c.Config.GasLess { // Some Ethereum nodes don't support eth_maxPriorityFeePerGas so we set GasLess = true
@@ -344,9 +341,26 @@ func (c *Client) CreateTxOpts(ctx context.Context, kmsKey kms.KeyID) (*bind.Tran
 		if err != nil {
 			return nil, err
 		}
-		gasLimit = uint64(0)
+		opts.GasPrice = nil
+		gasLimit := uint64(0)
 		opts.GasLimit = gasLimit
 		opts.GasTipCap = tip
+		return opts, nil
+	}
+
+	gasPrice, err := c.getGasPrice(ctx)
+	if err != nil {
+		log.Error(ctx, "failed to get gas price", "err", err)
+		return nil, err
+	}
+
+	opts = &bind.TransactOpts{
+		From:     addr,
+		Signer:   sigFn,
+		GasPrice: gasPrice,
+		GasLimit: uint64(c.Config.DefaultGasLimit),
+		Context:  ctx,
+		NoSend:   false,
 	}
 
 	return opts, nil
@@ -513,6 +527,11 @@ func (c *Client) getAddress(k kms.KeyID) (common.Address, error) {
 	switch len(bytesPubKey) {
 	case CompressedPublicKeyLength:
 		pubKey, err = crypto.DecompressPubkey(bytesPubKey)
+	case AwsKmsPublicKeyLength:
+		pubKey, err = kms.DecodeAWSETHPubKey(context.Background(), bytesPubKey)
+		if err != nil {
+			return common.Address{}, err
+		}
 	default:
 		pubKey, err = crypto.UnmarshalPubkey(bytesPubKey)
 	}

@@ -21,11 +21,6 @@ type vaultBJJKeyProvider struct {
 	reAnonKeyPathHex *regexp.Regexp // RE of key path not bounded to identity
 }
 
-const (
-	defaultLength = 32
-	partsNumber   = 2
-)
-
 // NewVaultBJJKeyProvider creates new key provider for BabyJubJub keys stored
 // in vault
 func NewVaultBJJKeyProvider(vaultCli *api.Client, keyType KeyType) KeyProvider {
