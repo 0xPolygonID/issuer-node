@@ -16,6 +16,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_CreateIdentity(t *testing.T) {
@@ -242,7 +243,7 @@ func TestServer_GetIdentities(t *testing.T) {
 
 	identity1 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ"}
 	identity2 := &domain.Identity{Identifier: "did:polygonid:polygon:mumbai:2qMHFTHn2SC3XkBEJrR4eH4Yk8jRGg5bzYYG1ZGECa"}
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	fixture.CreateIdentity(t, identity1)
 	fixture.CreateIdentity(t, identity2)
 
@@ -294,7 +295,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qa2gW8iU1nTbgYZVxAvbXX5XMMXFh6GHkVWX3KQJA", DisplayName: common.ToPointer("my display name"), KeyType: "BJJ"}
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	state := domain.IdentityState{
@@ -372,7 +373,7 @@ func TestServer_UpdateDisplayName(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qQ8S2VKdQv7xYgzCn7KW2xgzUWrTRQjoZDYavJHBq"}
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	state := domain.IdentityState{

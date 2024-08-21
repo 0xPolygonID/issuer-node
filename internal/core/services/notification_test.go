@@ -16,7 +16,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/gateways"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
@@ -72,7 +71,7 @@ func TestNotification_SendNotification(t *testing.T) {
 	notificationGateway := gateways.NewPushNotificationClient(http.DefaultHTTPClientWithRetry)
 	notificationService := NewNotification(notificationGateway, connectionsService, credentialsService)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	credID := fixture.CreateClaim(t, &domain.Claim{
 		Identifier:      common.ToPointer(did.String()),
 		Issuer:          did.String(),
