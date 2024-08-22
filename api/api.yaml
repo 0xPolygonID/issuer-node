@@ -2581,25 +2581,6 @@ components:
       x-go-type-import:
         name: protocol
         path: github.com/iden3/iden3comm/v2/protocol
-      example: |
-        {
-          "id": "a2e21046-af21-4d10-8ea4-5396391b476b",
-          "id": "5734cb72-7557-46c2-b7aa-760f8f8efda7",
-          "type": "https://iden3-communication.io/credentials/1.0/offer",
-          "typ": "application/iden3comm-plain-json",
-          "threadID" : "f780a169-8959-4380-9461-f7200e2ed3f4",
-          "body": {
-            url: "https://issuer-node-public-ip/v1/agent",
-            credentials: [
-              {
-                id: "f780a169-8959-4380-9461-f7200e2ed3f4",
-                description: "KYCAgeCredential"
-              }
-            ]
-          },
-          "from": "did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs",
-          "to": "did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe"
-        }
 
   parameters:
     credentialStatusType:

@@ -89,27 +89,11 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 }
 
 // CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
+// It's processed after the user scans the qr code and the mobile app sends the callback.
 func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error) {
 	if request.Body == nil || *request.Body == "" {
 		log.Error(ctx, "empty request body auth-callback request")
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
-	}
-
-	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.ServerUrl)
-	if err != nil {
-		log.Error(ctx, "error authenticating", err.Error())
-		return CreateLinkQrCodeCallback500JSONResponse{}, nil
-	}
-
-	userDID, err := w3c.ParseDID(arm.From)
-	if err != nil {
-		log.Error(ctx, "error getting user DID", err.Error())
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "expecting a did in From"}}, nil
-	}
-	issuerDID, err := w3c.ParseDID(arm.To)
-	if err != nil {
-		log.Error(ctx, "error getting issuer DID", err.Error())
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "expecting a did in To"}}, nil
 	}
 
 	var credentialStatusType verifiable.CredentialStatusType
@@ -128,27 +112,14 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		credentialStatusType = (verifiable.CredentialStatusType)(*request.Params.CredentialStatusType)
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(issuerDID)
-	if err != nil {
-		log.Error(ctx, "error getting resolver prefix", "err", err, "did", issuerDID)
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error parsing issuer did"}}, nil
-	}
-
-	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "error getting reverse hash service settings", "err", err)
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
-	}
-
-	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
-		log.Error(ctx, "unsupported credential status type", "type", credentialStatusType)
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
-	}
-
-	offer, err := s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), *issuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
+	offer, err := s.linkService.ProcessCallBack(ctx, *request.Body, request.Params.SessionID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
 	if err != nil {
 		log.Error(ctx, "error issuing the claim", "error", err)
-		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+		return CreateLinkQrCodeCallback500JSONResponse{
+			N500JSONResponse{
+				Message: "error processing the callback",
+			},
+		}, nil
 	}
 
 	var offerResponse CreateLinkQrCodeCallback200JSONResponse

@@ -15,6 +15,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
+	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -24,6 +25,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	linkState "github.com/polygonid/sh-id-platform/pkg/link"
+	"github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/notifications"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 )
@@ -41,6 +43,8 @@ var (
 	ErrLinkInactive = errors.New("cannot issue a credential for an inactive link")
 	// ErrClaimAlreadyIssued - claim already issued
 	ErrClaimAlreadyIssued = errors.New("the claim was already issued for the user")
+	// ErrUnsupportedCredentialStatusType - unsupported credential status type
+	ErrUnsupportedCredentialStatusType = errors.New("unsupported credential status type")
 )
 
 // Link - represents a link in the issuer node
@@ -54,10 +58,12 @@ type Link struct {
 	loader           loader.DocumentLoader
 	sessionManager   ports.SessionRepository
 	publisher        pubsub.Publisher
+	identityService  ports.IdentityService
+	networkResolver  network.Resolver
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -68,6 +74,8 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrSe
 		loader:           ld,
 		sessionManager:   sessionManager,
 		publisher:        publisher,
+		identityService:  identityService,
+		networkResolver:  networkResolver,
 	}
 }
 
@@ -346,6 +354,51 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePendingPublish())
 		return nil, err
 	}
+}
+
+// ProcessCallBack - process the callback.
+func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
+	arm, err := ls.identityService.Authenticate(ctx, message, sessionID, hostURL)
+	if err != nil {
+		log.Error(ctx, "error authenticating", "err", err.Error())
+		return nil, err
+	}
+
+	userDID, err := w3c.ParseDID(arm.From)
+	if err != nil {
+		log.Error(ctx, "parsing user did", "err", err)
+		return nil, err
+	}
+
+	issuerDID, err := w3c.ParseDID(arm.To)
+	if err != nil {
+		log.Error(ctx, "parsing issuer did", "err", err)
+		return nil, err
+	}
+
+	resolverPrefix, err := common.ResolverPrefix(issuerDID)
+	if err != nil {
+		log.Error(ctx, "error getting resolver prefix", "err", err)
+		return nil, err
+	}
+
+	rhsSettings, err := ls.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "error getting rhs settings", "err", err)
+		return nil, err
+	}
+
+	if !ls.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
+		log.Error(ctx, "unsupported credential status type", "type", credentialStatusType)
+		return nil, ErrUnsupportedCredentialStatusType
+	}
+
+	offer, err := ls.IssueClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL, credentialStatusType)
+	if err != nil {
+		log.Error(ctx, "error issuing claim", "err", err)
+		return nil, err
+	}
+	return offer, nil
 }
 
 // GetQRCode - return the link qr code.
