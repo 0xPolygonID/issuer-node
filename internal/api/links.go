@@ -145,13 +145,26 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), *issuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
+	offer, err := s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), *issuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
 	if err != nil {
 		log.Error(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{}, nil
 	}
 
-	return CreateLinkQrCodeCallback200Response{}, nil
+	var offerResponse CreateLinkQrCodeCallback200JSONResponse
+	if offer != nil {
+		offerResponse = CreateLinkQrCodeCallback200JSONResponse{
+			Body:     offer.Body,
+			From:     offer.From,
+			ThreadID: offer.ThreadID,
+			ID:       offer.ID,
+			To:       offer.To,
+			Typ:      offer.Typ,
+			Type:     offer.Type,
+		}
+	}
+
+	return offerResponse, nil
 }
 
 // DeleteLink - delete a link

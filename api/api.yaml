@@ -1498,7 +1498,12 @@ paths:
               example: jwz-token
       responses:
         '200':
-          description: ok
+          description: |
+            Return the offer for fetching the credential if the link was created for a Signature Credential or just 200 http status if the link was created for MTP Credential.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -2496,6 +2501,7 @@ components:
         linkDetail:
           $ref: '#/components/schemas/LinkSimple'
 
+
     IssuerDescription:
       type: object
       required:
@@ -2568,7 +2574,33 @@ components:
           items:
             type: string
           example: ["amoy", "mumbai"]
-            
+
+    Offer:
+      type: object
+      x-go-type: protocol.CredentialsOfferMessage
+      x-go-type-import:
+        name: protocol
+        path: github.com/iden3/iden3comm/v2/protocol
+      example: |
+        {
+          "id": "a2e21046-af21-4d10-8ea4-5396391b476b",
+          "id": "5734cb72-7557-46c2-b7aa-760f8f8efda7",
+          "type": "https://iden3-communication.io/credentials/1.0/offer",
+          "typ": "application/iden3comm-plain-json",
+          "threadID" : "f780a169-8959-4380-9461-f7200e2ed3f4",
+          "body": {
+            url: "https://issuer-node-public-ip/v1/agent",
+            credentials: [
+              {
+                id: "f780a169-8959-4380-9461-f7200e2ed3f4",
+                description: "KYCAgeCredential"
+              }
+            ]
+          },
+          "from": "did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs",
+          "to": "did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe"
+        }
+
   parameters:
     credentialStatusType:
       name: credentialStatusType
@@ -2642,7 +2674,6 @@ components:
       schema:
         type: integer
         format: int64
-
 
   responses:
     '400':
