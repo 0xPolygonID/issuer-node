@@ -89,7 +89,7 @@ func Test_link_issueClaim(t *testing.T) {
 
 	linkRepository := repositories.NewLink(*storage)
 	qrService := NewQrStoreService(cachex)
-	linkService := NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock())
+	linkService := NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock(), identityService, *networkResolver)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
@@ -104,6 +104,7 @@ func Test_link_issueClaim(t *testing.T) {
 		err          error
 		status       string
 		issuedClaims int
+		offer        *protocol.CredentialsOfferMessage
 	}
 
 	type testConfig struct {
@@ -124,6 +125,22 @@ func Test_link_issueClaim(t *testing.T) {
 				err:          nil,
 				status:       "done",
 				issuedClaims: 1,
+				offer: &protocol.CredentialsOfferMessage{
+					ID:   "1",
+					Typ:  packers.MediaTypePlainMessage,
+					Type: protocol.CredentialOfferMessageType,
+					Body: protocol.CredentialsOfferMessageBody{
+						URL: "host_url/v1/agent",
+						Credentials: []protocol.CredentialOffer{
+							{
+								ID:          "1",
+								Description: "KYCAgeCredential",
+							},
+						},
+					},
+					From: identity.Identifier,
+					To:   userDID1.String(),
+				},
 			},
 		},
 		{
@@ -169,7 +186,7 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
+			offer, err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)
@@ -180,6 +197,20 @@ func Test_link_issueClaim(t *testing.T) {
 				claims, err := claimsRepo.GetClaimsIssuedForUser(ctx, storage.Pgx, tc.did, tc.userDID, tc.LinkID)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expected.issuedClaims, len(claims))
+				if tc.expected.offer != nil {
+					assert.Equal(t, tc.expected.offer.From, offer.From)
+					assert.Equal(t, tc.expected.offer.To, offer.To)
+					assert.Equal(t, tc.expected.offer.Body.URL, offer.Body.URL)
+					assert.NotNil(t, offer.Body.Credentials)
+					assert.Len(t, offer.Body.Credentials, 1)
+					assert.NotNil(t, offer.Body.Credentials[0].ID)
+					assert.NotNil(t, tc.expected.offer.ThreadID)
+					assert.NotNil(t, offer.ID)
+					assert.Equal(t, tc.expected.offer.Typ, offer.Typ)
+					assert.Equal(t, tc.expected.offer.Type, offer.Type)
+				} else {
+					assert.Nil(t, offer)
+				}
 			}
 		})
 	}

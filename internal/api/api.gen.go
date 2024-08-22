@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	uuid "github.com/google/uuid"
+	protocol "github.com/iden3/iden3comm/v2/protocol"
 	"github.com/oapi-codegen/runtime"
 	strictnethttp "github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 	timeapi "github.com/polygonid/sh-id-platform/internal/timeapi"
@@ -446,6 +447,9 @@ type LinkSimple struct {
 	SchemaType string    `json:"schemaType"`
 	SchemaUrl  string    `json:"schemaUrl"`
 }
+
+// Offer defines model for Offer.
+type Offer = protocol.CredentialsOfferMessage
 
 // PaginatedMetadata defines model for PaginatedMetadata.
 type PaginatedMetadata struct {
@@ -3642,12 +3646,13 @@ type CreateLinkQrCodeCallbackResponseObject interface {
 	VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error
 }
 
-type CreateLinkQrCodeCallback200Response struct {
-}
+type CreateLinkQrCodeCallback200JSONResponse Offer
 
-func (response CreateLinkQrCodeCallback200Response) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
+func (response CreateLinkQrCodeCallback200JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type CreateLinkQrCodeCallback400JSONResponse struct{ N400JSONResponse }
