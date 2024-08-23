@@ -65,7 +65,6 @@ export function IssuerProvider(props: PropsWithChildren) {
 
       if (response.success) {
         const issuers = response.data.successful;
-        const [firstIssuer] = issuers;
         const savedIdentifier = getStorageByKey({
           defaultValue: "",
           key: IDENTIFIER_LOCAL_STORAGE_KEY,
@@ -73,15 +72,10 @@ export function IssuerProvider(props: PropsWithChildren) {
         });
 
         setIssuersList({ data: issuers, status: "successful" });
-
-        if (issuers.length === 1 && firstIssuer) {
-          setIssuerIdentifier(firstIssuer.identifier);
-        } else if (
-          issuers.length > 1 &&
-          savedIdentifier &&
-          issuers.some(({ identifier }) => identifier === savedIdentifier)
-        ) {
+        if (issuers.some(({ identifier }) => identifier === savedIdentifier)) {
           setIssuerIdentifier(savedIdentifier);
+        } else if (issuers.length > 0 && issuers[0]) {
+          setIssuerIdentifier(issuers[0].identifier);
         }
       } else {
         if (!isAbortedError(response.error)) {

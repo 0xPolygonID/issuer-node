@@ -25,7 +25,7 @@ const initialValues: IssuerFormData = {
   authBJJCredentialStatus: AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023,
   blockchain: "",
   displayName: "",
-  method: Method.polygonid,
+  method: Method.iden3,
   network: "",
   type: IssuerType.BJJ,
 };
@@ -48,8 +48,6 @@ export function IssuerForm({
   >({
     status: "pending",
   });
-
-  const showCredentialStatusField: boolean = formData.type === IssuerType.BJJ;
 
   const fetchNetworks = useCallback(
     async (signal: AbortSignal) => {
@@ -127,14 +125,6 @@ export function IssuerForm({
                 onFinish={onSubmit}
                 onValuesChange={(changedValue: Partial<IssuerFormData>, allValues) => {
                   const updatedFormData = { ...allValues };
-
-                  if (
-                    updatedFormData.type === IssuerType.BJJ &&
-                    !updatedFormData.authBJJCredentialStatus
-                  ) {
-                    updatedFormData.authBJJCredentialStatus =
-                      AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023;
-                  }
 
                   if (changedValue.blockchain) {
                     const networks = supportedNetworks.data.find(
@@ -230,28 +220,26 @@ export function IssuerForm({
                   </Select>
                 </Form.Item>
 
-                {showCredentialStatusField && (
-                  <Form.Item>
-                    <Form.Item
-                      label="Credential Status"
-                      name="authBJJCredentialStatus"
-                      rules={[{ message: VALUE_REQUIRED, required: true }]}
-                    >
-                      <Select className="full-width" placeholder="Credential Status">
-                        {Object.values(AuthBJJCredentialStatus).map((credentialStatus) => (
-                          <Select.Option key={credentialStatus} value={credentialStatus}>
-                            {credentialStatus}
-                          </Select.Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                    <Typography.Text type="secondary">
-                      Credential status * Iden3OnchainSparskeMerkleTreeProof2023 @olivia Identity
-                      signing key&apos;s credential status is checked by clients to generate
-                      zero-knowledge proofs using signed credentials.
-                    </Typography.Text>
+                <Form.Item>
+                  <Form.Item
+                    label="Credential Status"
+                    name="authBJJCredentialStatus"
+                    rules={[{ message: VALUE_REQUIRED, required: true }]}
+                  >
+                    <Select className="full-width" placeholder="Credential Status">
+                      {Object.values(AuthBJJCredentialStatus).map((credentialStatus) => (
+                        <Select.Option key={credentialStatus} value={credentialStatus}>
+                          {credentialStatus}
+                        </Select.Option>
+                      ))}
+                    </Select>
                   </Form.Item>
-                )}
+                  <Typography.Text type="secondary">
+                    Identity signing key&apos;s credential status is checked by clients to generate
+                    zero-knowledge proofs using signed credentials.
+                  </Typography.Text>
+                </Form.Item>
+
                 <>
                   <Divider />
                   <Row gutter={[8, 8]} justify="end">

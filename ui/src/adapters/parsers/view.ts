@@ -51,37 +51,23 @@ export type IssuerDetailsFormData = {
 };
 
 export type IssuerFormData = {
+  authBJJCredentialStatus: AuthBJJCredentialStatus;
   blockchain: string;
   displayName: string;
   method: Method;
   network: string;
-} & (
-  | {
-      authBJJCredentialStatus: AuthBJJCredentialStatus;
-      type: IssuerType.BJJ;
-    }
-  | {
-      type: IssuerType.ETH;
-    }
-);
+  type: IssuerType;
+};
+
 export const issuerFormDataParser = getStrictParser<IssuerFormData>()(
-  z.union([
-    z.object({
-      authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
-      blockchain: z.string(),
-      displayName: z.string(),
-      method: z.nativeEnum(Method),
-      network: z.string(),
-      type: z.literal(IssuerType.BJJ),
-    }),
-    z.object({
-      blockchain: z.string(),
-      displayName: z.string(),
-      method: z.nativeEnum(Method),
-      network: z.string(),
-      type: z.literal(IssuerType.ETH),
-    }),
-  ])
+  z.object({
+    authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
+    blockchain: z.string(),
+    displayName: z.string(),
+    method: z.nativeEnum(Method),
+    network: z.string(),
+    type: z.nativeEnum(IssuerType),
+  })
 );
 
 // Parsers

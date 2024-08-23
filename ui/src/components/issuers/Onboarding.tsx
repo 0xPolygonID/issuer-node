@@ -11,6 +11,7 @@ import IconIdentity from "src/assets/icons/fingerprint-02.svg?react";
 import { IssuerForm } from "src/components/issuers/IssuerForm";
 import { useEnvContext } from "src/contexts/Env";
 
+import { useIssuerContext } from "src/contexts/Issuer";
 import { ROUTES } from "src/routes";
 
 import { FINALISE_SETUP } from "src/utils/constants";
@@ -35,6 +36,7 @@ const cards = [
 
 export function Onboarding() {
   const env = useEnvContext();
+  const { handleChange } = useIssuerContext();
   const navigate = useNavigate();
   const [messageAPI, messageContext] = message.useMessage();
 
@@ -43,8 +45,12 @@ export function Onboarding() {
   const handleSubmit = (formValues: IssuerFormData) =>
     void createIssuer({ env, payload: formValues }).then((response) => {
       if (response.success) {
+        const {
+          data: { identifier },
+        } = response;
         void messageAPI.success("Identity added successfully");
-        navigate(ROUTES.issuers.path);
+        handleChange(identifier);
+        navigate(ROUTES.schemas.path);
       } else {
         void messageAPI.error(response.error.message);
       }

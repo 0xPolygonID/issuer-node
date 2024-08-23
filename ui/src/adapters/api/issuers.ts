@@ -56,18 +56,22 @@ export async function getIssuers({
 }
 
 export type CreateIssuer = {
+  authBJJCredentialStatus: AuthBJJCredentialStatus;
   blockchain: string;
   displayName: string;
   method: string;
   network: string;
-} & (
-  | {
-      authBJJCredentialStatus: AuthBJJCredentialStatus;
-      type: IssuerType.BJJ;
-    }
-  | {
-      type: IssuerType.ETH;
-    }
+  type: IssuerType;
+};
+
+type CreatedIssuer = {
+  identifier: string;
+};
+
+export const createIssuerParser = getStrictParser<CreatedIssuer>()(
+  z.object({
+    identifier: z.string(),
+  })
 );
 
 export async function createIssuer({
@@ -76,10 +80,10 @@ export async function createIssuer({
 }: {
   env: Env;
   payload: CreateIssuer;
-}): Promise<Response<void>> {
+}): Promise<Response<CreatedIssuer>> {
   try {
     const { displayName, ...didMetadata } = payload;
-    await axios({
+    const response = await axios({
       baseURL: env.api.url,
       data: { didMetadata, displayName },
       headers: {
@@ -89,7 +93,7 @@ export async function createIssuer({
       url: `${API_VERSION}/identities`,
     });
 
-    return buildSuccessResponse(undefined);
+    return buildSuccessResponse(createIssuerParser.parse(response.data));
   } catch (error) {
     return buildErrorResponse(error);
   }
