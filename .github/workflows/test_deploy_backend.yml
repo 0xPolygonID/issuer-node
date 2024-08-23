@@ -3,7 +3,7 @@ name: Deploy Issuer Node Backend to Testing AWS Environment
 on:
   workflow_run:
     workflows: ["Checks"]
-    branches:  ["develop"]
+    branches:  ["develop-v2"]
     types:
       - completed
 
