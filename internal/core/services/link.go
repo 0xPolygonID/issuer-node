@@ -220,8 +220,8 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 	}, nil
 }
 
-// IssueClaim - Create a new claim
-func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
+// IssueOrFetchClaim - Create a new claim
+func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
@@ -306,7 +306,6 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 	}
 
 	credentialIssued.ID = credentialIssuedID
-
 	if link.CredentialSignatureProof {
 		err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{credentialIssued.ID.String()}, IssuerID: issuerDID.String()})
 		if err != nil {
@@ -314,45 +313,16 @@ func (ls *Link) IssueClaim(ctx context.Context, sessionID string, issuerDID w3c.
 		}
 	}
 
-	r := &linkState.QRCodeMessage{
-		ID:       uuid.NewString(),
-		Typ:      "application/iden3comm-plain-json",
-		Type:     linkState.CredentialOfferMessageType,
-		ThreadID: uuid.NewString(),
-		Body: linkState.CredentialsLinkMessageBody{
-			URL: fmt.Sprintf("%s/v1/agent", hostURL),
-			Credentials: []linkState.CredentialLink{{
-				ID:          credentialIssued.ID.String(),
-				Description: schema.Type,
-			}},
-		},
-		From: issuerDID.String(),
-		To:   userDID.String(),
-	}
-
-	qrCodeBytes, err := json.Marshal(r)
-	if err != nil {
-		log.Error(ctx, "cannot marshal the qr code", "err", err)
-		return nil, err
-	}
-
-	id, err := ls.qrService.Store(ctx, qrCodeBytes, DefaultQRBodyTTL)
-	if err != nil {
-		log.Error(ctx, "cannot store the qr code", "err", err)
-		return nil, err
-	}
-
 	if link.CredentialSignatureProof {
-		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStateDone(ls.qrService.ToURL(hostURL, id)))
-		if err != nil {
-			log.Error(ctx, "cannot set the state", "err", err)
-			return nil, err
-		}
 		credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v1/agent", hostURL), credentialIssued)
 		return credOffer, err
 	} else {
-		err = ls.sessionManager.SetLink(ctx, linkState.CredentialStateCacheKey(linkID.String(), sessionID), *linkState.NewStatePendingPublish())
-		return nil, err
+		if credentialIssued.MTPProof.Bytes != nil {
+			credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v1/agent", hostURL), credentialIssued)
+			return credOffer, err
+		}
+		log.Info(ctx, "credential issued without MTP proof. Publishing state have to be done", "credential", credentialIssued.ID.String())
+		return nil, nil
 	}
 }
 
@@ -393,7 +363,7 @@ func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID u
 		return nil, ErrUnsupportedCredentialStatusType
 	}
 
-	offer, err := ls.IssueClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL, credentialStatusType)
+	offer, err := ls.IssueOrFetchClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL, credentialStatusType)
 	if err != nil {
 		log.Error(ctx, "error issuing claim", "err", err)
 		return nil, err
