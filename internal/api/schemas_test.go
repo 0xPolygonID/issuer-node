@@ -19,6 +19,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_GetSchema(t *testing.T) {
@@ -27,7 +28,7 @@ func TestServer_GetSchema(t *testing.T) {
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.ServerUrl = "https://testing.env"
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	s := &domain.Schema{
 		ID:        uuid.New(),
@@ -146,7 +147,7 @@ func TestServer_GetSchemas(t *testing.T) {
 	issuerDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ")
 	require.NoError(t, err)
 	server.cfg.ServerUrl = "https://testing.env"
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	for i := 0; i < 20; i++ {
 		s := &domain.Schema{

@@ -1,4 +1,4 @@
-package services_tests
+package services
 
 import (
 	"context"
@@ -18,11 +18,9 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -36,7 +34,7 @@ func Test_link_issueClaim(t *testing.T) {
 	identityStateRepo := repositories.NewIdentityState()
 	revocationRepository := repositories.NewRevocation()
 	schemaRepository := repositories.NewSchema(*storage)
-	mtService := services.NewIdentityMerkleTrees(mtRepo)
+	mtService := NewIdentityMerkleTrees(mtRepo)
 	connectionsRepository := repositories.NewConnections()
 
 	reader := helpers.CreateFile(t)
@@ -45,11 +43,11 @@ func Test_link_issueClaim(t *testing.T) {
 
 	rhsFactory := reverse_hash.NewFactory(*networkResolver, reverse_hash.DefaultRHSTimeOut)
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
-	identityService := services.NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
+	identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactory, revocationStatusResolver)
 	sessionRepository := repositories.NewSessionCached(cachex)
-	schemaService := services.NewSchema(schemaRepository, docLoader)
+	schemaService := NewSchema(schemaRepository, docLoader)
 
-	mediaTypeManager := services.NewMediaTypeManager(
+	mediaTypeManager := NewMediaTypeManager(
 		map[iden3comm.ProtocolMessage][]string{
 			protocol.CredentialFetchRequestMessageType:  {string(packers.MediaTypeZKPMessage)},
 			protocol.RevocationStatusRequestMessageType: {"*"},
@@ -57,11 +55,11 @@ func Test_link_issueClaim(t *testing.T) {
 		true,
 	)
 
-	claimsService := services.NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
-	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	claimsService := NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
+	identity, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 	assert.NoError(t, err)
 
-	identity2, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	identity2, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ})
 	assert.NoError(t, err)
 
 	schemaUrl := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
@@ -89,8 +87,8 @@ func Test_link_issueClaim(t *testing.T) {
 	assert.NoError(t, err)
 
 	linkRepository := repositories.NewLink(*storage)
-	qrService := services.NewQrStoreService(cachex)
-	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock())
+	qrService := NewQrStoreService(cachex)
+	linkService := NewLinkService(storage, claimsService, qrService, claimsRepo, linkRepository, schemaRepository, docLoader, sessionRepository, pubsub.NewMock(), identityService, *networkResolver)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
@@ -103,8 +101,8 @@ func Test_link_issueClaim(t *testing.T) {
 
 	type expected struct {
 		err          error
-		status       string
 		issuedClaims int
+		offer        *protocol.CredentialsOfferMessage
 	}
 
 	type testConfig struct {
@@ -123,8 +121,23 @@ func Test_link_issueClaim(t *testing.T) {
 			LinkID:  link.ID,
 			expected: expected{
 				err:          nil,
-				status:       "done",
 				issuedClaims: 1,
+				offer: &protocol.CredentialsOfferMessage{
+					ID:   "1",
+					Typ:  packers.MediaTypePlainMessage,
+					Type: protocol.CredentialOfferMessageType,
+					Body: protocol.CredentialsOfferMessageBody{
+						URL: "host_url/v1/agent",
+						Credentials: []protocol.CredentialOffer{
+							{
+								ID:          "1",
+								Description: "KYCAgeCredential",
+							},
+						},
+					},
+					From: identity.Identifier,
+					To:   userDID1.String(),
+				},
 			},
 		},
 		{
@@ -134,7 +147,6 @@ func Test_link_issueClaim(t *testing.T) {
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          nil,
-				status:       "pendingPublish",
 				issuedClaims: 1,
 			},
 		},
@@ -145,7 +157,6 @@ func Test_link_issueClaim(t *testing.T) {
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          nil,
-				status:       "pendingPublish",
 				issuedClaims: 1,
 			},
 		},
@@ -170,17 +181,28 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
+			offer, err := linkService.IssueOrFetchClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)
 			} else {
-				status, err := sessionRepository.GetLink(ctx, linkState.CredentialStateCacheKey(tc.LinkID.String(), sessionID))
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expected.status, status.Status)
 				claims, err := claimsRepo.GetClaimsIssuedForUser(ctx, storage.Pgx, tc.did, tc.userDID, tc.LinkID)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expected.issuedClaims, len(claims))
+				if tc.expected.offer != nil {
+					assert.Equal(t, tc.expected.offer.From, offer.From)
+					assert.Equal(t, tc.expected.offer.To, offer.To)
+					assert.Equal(t, tc.expected.offer.Body.URL, offer.Body.URL)
+					assert.NotNil(t, offer.Body.Credentials)
+					assert.Len(t, offer.Body.Credentials, 1)
+					assert.NotNil(t, offer.Body.Credentials[0].ID)
+					assert.NotNil(t, tc.expected.offer.ThreadID)
+					assert.NotNil(t, offer.ID)
+					assert.Equal(t, tc.expected.offer.Typ, offer.Typ)
+					assert.Equal(t, tc.expected.offer.Type, offer.Type)
+				} else {
+					assert.Nil(t, offer)
+				}
 			}
 		})
 	}

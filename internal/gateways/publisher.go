@@ -409,6 +409,7 @@ func (p *publisher) updateTransactionStatus(ctx context.Context, identity *domai
 		log.Debug(ctx, "Waiting for confirmation", "tx", receipt.TxHash.Hex())
 		confirmed, rErr := p.transactionService.WaitForConfirmation(ctx, identity, receipt)
 		if rErr != nil {
+			log.Error(ctx, "transaction receipt is found, but not confirmed - ", "err", rErr, "tx", *state.TxID)
 			return fmt.Errorf("transaction receipt is found, but not confirmed - %s", *state.TxID)
 		}
 		if !confirmed {

@@ -20,7 +20,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
-	"github.com/polygonid/sh-id-platform/internal/db/tests"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_CreateConnection(t *testing.T) {
@@ -219,7 +219,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	issuerDID, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)
@@ -352,7 +352,7 @@ func TestServer_DeleteConnectionCredentials(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	issuerDID, err := w3c.ParseDID("did:iden3:polygon:mumbai:wyFiV4w71QgWPn6bYLsZoysFay66gKtVa9kfu6yMZ")
 	require.NoError(t, err)
@@ -450,7 +450,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	issuerDID, err := w3c.ParseDID(iden.Identifier)
 	require.NoError(t, err)
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 
 	userDID, err := w3c.ParseDID("did:polygonid:polygon:mumbai:2qH7XAwYQzCp9VfhpNgeLtK2iCehDDrfMWUCEg5ig5")
 	require.NoError(t, err)

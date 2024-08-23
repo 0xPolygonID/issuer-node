@@ -28,6 +28,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/kms"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 func TestServer_RevokeClaim(t *testing.T) {
@@ -37,7 +38,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	identity := &domain.Identity{
 		Identifier: idStr,
 	}
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	idClaim, err := uuid.NewUUID()
@@ -59,7 +60,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 		Status:          nil,
 	})
 
-	query := tests.ExecQueryParams{
+	query := repositories.ExecQueryParams{
 		Query: `INSERT INTO identity_mts (identifier, type) VALUES 
                                                     ($1, 0),
                                                     ($1, 1),
@@ -461,7 +462,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 	handler := getHandler(ctx, server)
 	identity, err := server.Services.identity.Create(ctx, "http://polygon-test", &ports.DIDCreationOptions{Method: core.DIDMethodIden3, Blockchain: core.Polygon, Network: core.Amoy, KeyType: kms.KeyTypeBabyJubJub})
 	require.NoError(t, err)
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
@@ -544,7 +545,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		Identifier: idStr,
 	}
 
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
@@ -675,13 +676,13 @@ func TestServer_GetCredential(t *testing.T) {
 	identity := &domain.Identity{
 		Identifier: idStr,
 	}
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	fixture.CreateIdentity(t, identity)
 
 	claim := fixture.NewClaim(t, identity.Identifier)
 	fixture.CreateClaim(t, claim)
 
-	query := tests.ExecQueryParams{
+	query := repositories.ExecQueryParams{
 		Query: `INSERT INTO identity_mts (identifier, type) VALUES 
                                                     ($1, 0),
                                                     ($1, 1),
@@ -834,7 +835,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	server := newTestServer(t, nil)
 	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
-	fixture := tests.NewFixture(storage)
+	fixture := repositories.NewFixture(storage)
 	claim := fixture.NewClaim(t, identityMultipleClaims.Identifier)
 	_ = fixture.CreateClaim(t, claim)
 

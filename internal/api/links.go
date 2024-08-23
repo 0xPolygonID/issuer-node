@@ -10,13 +10,11 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/link"
 )
 
 // GetLinks - Returns a list of links based on a search criteria.
@@ -89,27 +87,11 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 }
 
 // CreateLinkQrCodeCallback - Callback endpoint for the link qr code creation.
+// It's processed after the user scans the qr code and the mobile app sends the callback.
 func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error) {
 	if request.Body == nil || *request.Body == "" {
 		log.Error(ctx, "empty request body auth-callback request")
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
-	}
-
-	arm, err := s.identityService.Authenticate(ctx, *request.Body, request.Params.SessionID, s.cfg.ServerUrl)
-	if err != nil {
-		log.Error(ctx, "error authenticating", err.Error())
-		return CreateLinkQrCodeCallback500JSONResponse{}, nil
-	}
-
-	userDID, err := w3c.ParseDID(arm.From)
-	if err != nil {
-		log.Error(ctx, "error getting user DID", err.Error())
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "expecting a did in From"}}, nil
-	}
-	issuerDID, err := w3c.ParseDID(arm.To)
-	if err != nil {
-		log.Error(ctx, "error getting issuer DID", err.Error())
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "expecting a did in To"}}, nil
 	}
 
 	var credentialStatusType verifiable.CredentialStatusType
@@ -128,30 +110,30 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		credentialStatusType = (verifiable.CredentialStatusType)(*request.Params.CredentialStatusType)
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(issuerDID)
-	if err != nil {
-		log.Error(ctx, "error getting resolver prefix", "err", err, "did", issuerDID)
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error parsing issuer did"}}, nil
-	}
-
-	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "error getting reverse hash service settings", "err", err)
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
-	}
-
-	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
-		log.Error(ctx, "unsupported credential status type", "type", credentialStatusType)
-		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
-	}
-
-	err = s.linkService.IssueClaim(ctx, request.Params.SessionID.String(), *issuerDID, *userDID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
+	offer, err := s.linkService.ProcessCallBack(ctx, *request.Body, request.Params.SessionID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
 	if err != nil {
 		log.Error(ctx, "error issuing the claim", "error", err)
-		return CreateLinkQrCodeCallback500JSONResponse{}, nil
+		return CreateLinkQrCodeCallback500JSONResponse{
+			N500JSONResponse{
+				Message: "error processing the callback",
+			},
+		}, nil
 	}
 
-	return CreateLinkQrCodeCallback200Response{}, nil
+	var offerResponse CreateLinkQrCodeCallback200JSONResponse
+	if offer != nil {
+		offerResponse = CreateLinkQrCodeCallback200JSONResponse{
+			Body:     offer.Body,
+			From:     offer.From,
+			ThreadID: offer.ThreadID,
+			ID:       offer.ID,
+			To:       offer.To,
+			Typ:      offer.Typ,
+			Type:     offer.Type,
+		}
+	}
+
+	return offerResponse, nil
 }
 
 // DeleteLink - delete a link
@@ -203,34 +185,6 @@ func (s *Server) ActivateLink(ctx context.Context, request ActivateLinkRequestOb
 		return ActivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return ActivateLink200JSONResponse{Message: "Link updated"}, nil
-}
-
-// GetLinkQRCode - returns te qr code for adding the credential
-func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
-	issuerDID, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
-		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
-	}
-	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, *issuerDID, request.Id)
-	if err != nil {
-		if errors.Is(services.ErrLinkNotFound, err) {
-			return GetLinkQRCode404JSONResponse{Message: "error: link not found"}, nil
-		}
-		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-	}
-
-	if getQRCodeResponse.State.Status == link.StatusPending || getQRCodeResponse.State.Status == link.StatusDone || getQRCodeResponse.State.Status == link.StatusPendingPublish {
-		return GetLinkQRCode200JSONResponse{
-			Status:     common.ToPointer(getQRCodeResponse.State.Status),
-			QrCode:     getQRCodeResponse.State.QRCode,
-			LinkDetail: getLinkSimpleResponse(*getQRCodeResponse.Link),
-		}, nil
-	}
-
-	return GetLinkQRCode400JSONResponse{N400JSONResponse{
-		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
-	}}, nil
 }
 
 // CreateLinkQrCode - Creates a link QrCode
