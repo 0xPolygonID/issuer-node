@@ -1451,33 +1451,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-    get:
-      summary: Get Credential Link QRCode
-      operationId: GetLinkQRCode
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/id'
-        - $ref: '#/components/parameters/sessionID'
-      tags:
-        - Links
-      responses:
-        '200':
-          description: Credential link QRCode
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetLinkQrCodeResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '404':
-          description: 'Entity not found'
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericErrorMessage'
-        '500':
-          $ref: '#/components/responses/500'
-
   /v1/credentials/links/callback:
     post:
       summary: Create Link QR Code Callback

@@ -10,13 +10,11 @@ import (
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
-	"github.com/polygonid/sh-id-platform/pkg/link"
 )
 
 // GetLinks - Returns a list of links based on a search criteria.
@@ -187,34 +185,6 @@ func (s *Server) ActivateLink(ctx context.Context, request ActivateLinkRequestOb
 		return ActivateLink500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	return ActivateLink200JSONResponse{Message: "Link updated"}, nil
-}
-
-// GetLinkQRCode - returns te qr code for adding the credential
-func (s *Server) GetLinkQRCode(ctx context.Context, request GetLinkQRCodeRequestObject) (GetLinkQRCodeResponseObject, error) {
-	issuerDID, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		log.Error(ctx, "parsing issuer did", "err", err, "did", request.Identifier)
-		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: "invalid issuer did"}}, nil
-	}
-	getQRCodeResponse, err := s.linkService.GetQRCode(ctx, request.Params.SessionID, *issuerDID, request.Id)
-	if err != nil {
-		if errors.Is(services.ErrLinkNotFound, err) {
-			return GetLinkQRCode404JSONResponse{Message: "error: link not found"}, nil
-		}
-		return GetLinkQRCode400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
-	}
-
-	if getQRCodeResponse.State.Status == link.StatusPending || getQRCodeResponse.State.Status == link.StatusDone || getQRCodeResponse.State.Status == link.StatusPendingPublish {
-		return GetLinkQRCode200JSONResponse{
-			Status:     common.ToPointer(getQRCodeResponse.State.Status),
-			QrCode:     getQRCodeResponse.State.QRCode,
-			LinkDetail: getLinkSimpleResponse(*getQRCodeResponse.Link),
-		}, nil
-	}
-
-	return GetLinkQRCode400JSONResponse{N400JSONResponse{
-		Message: fmt.Sprintf("error fetching the link qr code: %s", err),
-	}}, nil
 }
 
 // CreateLinkQrCode - Creates a link QrCode

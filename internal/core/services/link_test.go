@@ -21,7 +21,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/credentials/revocation_status"
 	"github.com/polygonid/sh-id-platform/pkg/helpers"
-	linkState "github.com/polygonid/sh-id-platform/pkg/link"
 	networkPkg "github.com/polygonid/sh-id-platform/pkg/network"
 	"github.com/polygonid/sh-id-platform/pkg/pubsub"
 	"github.com/polygonid/sh-id-platform/pkg/reverse_hash"
@@ -102,7 +101,6 @@ func Test_link_issueClaim(t *testing.T) {
 
 	type expected struct {
 		err          error
-		status       string
 		issuedClaims int
 		offer        *protocol.CredentialsOfferMessage
 	}
@@ -123,7 +121,6 @@ func Test_link_issueClaim(t *testing.T) {
 			LinkID:  link.ID,
 			expected: expected{
 				err:          nil,
-				status:       "done",
 				issuedClaims: 1,
 				offer: &protocol.CredentialsOfferMessage{
 					ID:   "1",
@@ -150,7 +147,6 @@ func Test_link_issueClaim(t *testing.T) {
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          nil,
-				status:       "pendingPublish",
 				issuedClaims: 1,
 			},
 		},
@@ -161,7 +157,6 @@ func Test_link_issueClaim(t *testing.T) {
 			LinkID:  link2.ID,
 			expected: expected{
 				err:          nil,
-				status:       "pendingPublish",
 				issuedClaims: 1,
 			},
 		},
@@ -186,14 +181,11 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			offer, err := linkService.IssueClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
+			offer, err := linkService.IssueOrFetchClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)
 			} else {
-				status, err := sessionRepository.GetLink(ctx, linkState.CredentialStateCacheKey(tc.LinkID.String(), sessionID))
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expected.status, status.Status)
 				claims, err := claimsRepo.GetClaimsIssuedForUser(ctx, storage.Pgx, tc.did, tc.userDID, tc.LinkID)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expected.issuedClaims, len(claims))
