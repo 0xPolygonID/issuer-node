@@ -12,6 +12,8 @@ tags:
     description: Collection of endpoints related to Credentials
   - name: Agent
     description: Collection of endpoints related to Mobile
+  - name: config
+    description: Collection of endpoints related to Config
 
 paths:
 
@@ -39,7 +41,7 @@ paths:
       security:
         - basicAuth: [ ]
       tags:
-        - Network
+        - Config
       responses:
         '200':
           description: Supported Networks
@@ -1135,11 +1137,11 @@ paths:
 
   /v1/qr-store:
     get:
-      summary: QrCode body
+      summary: Get QrCode from store
       operationId: GetQrFromStore
       description: Returns a previously generated QR code via url shortener method
       tags:
-        - Agent
+        - Auth
       parameters:
         - in: query
           name: id
