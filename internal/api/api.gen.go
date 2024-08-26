@@ -36,11 +36,11 @@ const (
 	Iden3SparseMerkleTreeProof CreateClaimRequestProofs = "Iden3SparseMerkleTreeProof"
 )
 
-// Defines values for CreateIdentityRequestDidMetadataAuthBJJCredentialStatus.
+// Defines values for CreateIdentityRequestCredentialStatusType.
 const (
-	CreateIdentityRequestDidMetadataAuthBJJCredentialStatusIden3OnchainSparseMerkleTreeProof2023 CreateIdentityRequestDidMetadataAuthBJJCredentialStatus = "Iden3OnchainSparseMerkleTreeProof2023"
-	CreateIdentityRequestDidMetadataAuthBJJCredentialStatusIden3ReverseSparseMerkleTreeProof     CreateIdentityRequestDidMetadataAuthBJJCredentialStatus = "Iden3ReverseSparseMerkleTreeProof"
-	CreateIdentityRequestDidMetadataAuthBJJCredentialStatusIden3commRevocationStatusV10          CreateIdentityRequestDidMetadataAuthBJJCredentialStatus = "Iden3commRevocationStatusV1.0"
+	CreateIdentityRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateIdentityRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateIdentityRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateIdentityRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateIdentityRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for CreateIdentityRequestDidMetadataType.
@@ -81,6 +81,12 @@ const (
 	Published StateTransactionStatus = "published"
 )
 
+// Defines values for GetStateTransactionsParamsFilter.
+const (
+	GetStateTransactionsParamsFilterAll    GetStateTransactionsParamsFilter = "all"
+	GetStateTransactionsParamsFilterLatest GetStateTransactionsParamsFilter = "latest"
+)
+
 // Defines values for AuthQRCodeParamsType.
 const (
 	AuthQRCodeParamsTypeLink AuthQRCodeParamsType = "link"
@@ -105,9 +111,9 @@ const (
 
 // Defines values for GetCredentialsPaginatedParamsStatus.
 const (
-	All     GetCredentialsPaginatedParamsStatus = "all"
-	Expired GetCredentialsPaginatedParamsStatus = "expired"
-	Revoked GetCredentialsPaginatedParamsStatus = "revoked"
+	GetCredentialsPaginatedParamsStatusAll     GetCredentialsPaginatedParamsStatus = "all"
+	GetCredentialsPaginatedParamsStatusExpired GetCredentialsPaginatedParamsStatus = "expired"
+	GetCredentialsPaginatedParamsStatusRevoked GetCredentialsPaginatedParamsStatus = "revoked"
 )
 
 // Defines values for GetCredentialsPaginatedParamsSort.
@@ -147,9 +153,6 @@ type AuthenticationConnection struct {
 	ModifiedAt TimeUTC    `json:"modifiedAt"`
 	UserID     UUIDString `json:"userID"`
 }
-
-// Config defines model for Config.
-type Config = []KeyValue
 
 // ConnectionsPaginated defines model for ConnectionsPaginated.
 type ConnectionsPaginated struct {
@@ -194,27 +197,29 @@ type CreateConnectionRequest struct {
 
 // CreateIdentityRequest defines model for CreateIdentityRequest.
 type CreateIdentityRequest struct {
-	DidMetadata struct {
-		AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-		Blockchain              string                                                   `json:"blockchain"`
-		Method                  string                                                   `json:"method"`
-		Network                 string                                                   `json:"network"`
-		Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
+	CredentialStatusType *CreateIdentityRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	DidMetadata          struct {
+		Blockchain string                               `json:"blockchain"`
+		Method     string                               `json:"method"`
+		Network    string                               `json:"network"`
+		Type       CreateIdentityRequestDidMetadataType `json:"type"`
 	} `json:"didMetadata"`
 	DisplayName *string `json:"displayName,omitempty"`
 }
 
-// CreateIdentityRequestDidMetadataAuthBJJCredentialStatus defines model for CreateIdentityRequest.DidMetadata.AuthBJJCredentialStatus.
-type CreateIdentityRequestDidMetadataAuthBJJCredentialStatus string
+// CreateIdentityRequestCredentialStatusType defines model for CreateIdentityRequest.CredentialStatusType.
+type CreateIdentityRequestCredentialStatusType string
 
 // CreateIdentityRequestDidMetadataType defines model for CreateIdentityRequest.DidMetadata.Type.
 type CreateIdentityRequestDidMetadataType string
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
-	Address     *string        `json:"address"`
+	Address     *string        `json:"address,omitempty"`
+	Balance     *string        `json:"balance,omitempty"`
 	DisplayName *string        `json:"displayName,omitempty"`
 	Identifier  *string        `json:"identifier,omitempty"`
+	KeyType     string         `json:"keyType"`
 	State       *IdentityState `json:"state,omitempty"`
 }
 
@@ -360,13 +365,12 @@ type GetIdentitiesResponseAuthBJJCredentialStatus string
 
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {
-	Address                       *string                       `json:"address,omitempty"`
-	AuthCoreClaimRevocationStatus AuthCoreClaimRevocationStatus `json:"authCoreClaimRevocationStatus"`
-	Balance                       *string                       `json:"balance,omitempty"`
-	DisplayName                   *string                       `json:"displayName,omitempty"`
-	Identifier                    *string                       `json:"identifier,omitempty"`
-	KeyType                       string                        `json:"keyType"`
-	State                         *IdentityState                `json:"state,omitempty"`
+	Address     *string        `json:"address,omitempty"`
+	Balance     *string        `json:"balance,omitempty"`
+	DisplayName *string        `json:"displayName,omitempty"`
+	Identifier  *string        `json:"identifier,omitempty"`
+	KeyType     string         `json:"keyType"`
+	State       *IdentityState `json:"state,omitempty"`
 }
 
 // Health defines model for Health.
@@ -402,12 +406,6 @@ type ImportSchemaRequest struct {
 type IssuerDescription struct {
 	DisplayName string `json:"displayName"`
 	Logo        string `json:"logo"`
-}
-
-// KeyValue defines model for KeyValue.
-type KeyValue struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
 }
 
 // Link defines model for Link.
@@ -557,13 +555,6 @@ type UUIDResponse struct {
 // UUIDString defines model for UUIDString.
 type UUIDString = string
 
-// AuthCoreClaimRevocationStatus defines model for authCoreClaimRevocationStatus.
-type AuthCoreClaimRevocationStatus struct {
-	ID              string `json:"ID"`
-	RevocationNonce int    `json:"revocationNonce"`
-	Type            string `json:"type"`
-}
-
 // CredentialStatusType defines model for credentialStatusType.
 type CredentialStatusType = string
 
@@ -640,10 +631,24 @@ type CreateLinkQrCodeCallbackParams struct {
 	CredentialStatusType *CredentialStatusType `form:"credentialStatusType,omitempty" json:"credentialStatusType,omitempty"`
 }
 
-// UpdateIdentityDisplayNameJSONBody defines parameters for UpdateIdentityDisplayName.
-type UpdateIdentityDisplayNameJSONBody struct {
+// UpdateIdentityJSONBody defines parameters for UpdateIdentity.
+type UpdateIdentityJSONBody struct {
 	DisplayName string `json:"displayName"`
 }
+
+// GetStateTransactionsParams defines parameters for GetStateTransactions.
+type GetStateTransactionsParams struct {
+	Filter *GetStateTransactionsParamsFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Page Page to fetch. First is 1. If not provided, default is 1.
+	Page *uint `form:"page,omitempty" json:"page,omitempty"`
+
+	// MaxResults Number of items to fetch on each page. Default is 10.
+	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+}
+
+// GetStateTransactionsParamsFilter defines parameters for GetStateTransactions.
+type GetStateTransactionsParamsFilter string
 
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
 type GetQrFromStoreParams struct {
@@ -801,15 +806,6 @@ type GetSchemasParams struct {
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 }
 
-// GetStateTransactionsParams defines parameters for GetStateTransactions.
-type GetStateTransactionsParams struct {
-	// Page Page to fetch. First is 1. If not provided, default is 1.
-	Page *uint `form:"page,omitempty" json:"page,omitempty"`
-
-	// MaxResults Number of items to fetch on each page. Default is 10.
-	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
-}
-
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
 type AgentTextRequestBody = AgentTextBody
 
@@ -822,8 +818,8 @@ type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
 // CreateIdentityJSONRequestBody defines body for CreateIdentity for application/json ContentType.
 type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
-// UpdateIdentityDisplayNameJSONRequestBody defines body for UpdateIdentityDisplayName for application/json ContentType.
-type UpdateIdentityDisplayNameJSONRequestBody UpdateIdentityDisplayNameJSONBody
+// UpdateIdentityJSONRequestBody defines body for UpdateIdentity for application/json ContentType.
+type UpdateIdentityJSONRequestBody UpdateIdentityJSONBody
 
 // CreateClaimJSONRequestBody defines body for CreateClaim for application/json ContentType.
 type CreateClaimJSONRequestBody = CreateClaimRequest
@@ -845,18 +841,6 @@ type ImportSchemaJSONRequestBody = ImportSchemaRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get the documentation
-	// (GET /)
-	GetDocumentation(w http.ResponseWriter, r *http.Request)
-	// Get Config
-	// (GET /config)
-	GetConfig(w http.ResponseWriter, r *http.Request)
-	// Gets the favicon
-	// (GET /favicon.ico)
-	GetFavicon(w http.ResponseWriter, r *http.Request)
-	// Get the documentation yaml file
-	// (GET /static/docs/api/api.yaml)
-	GetYaml(w http.ResponseWriter, r *http.Request)
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
@@ -878,12 +862,24 @@ type ServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
-	// Update Identity DisplayName field
+	// Update Identity
 	// (PATCH /v1/identities/{identifier})
-	UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Identity Detail
+	UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Publish Identity State
+	// (POST /v1/identities/{identifier}/state/publish)
+	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Retry Publish Identity State
+	// (POST /v1/identities/{identifier}/state/retry)
+	RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Identity State Status
+	// (GET /v1/identities/{identifier}/state/status)
+	GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Identity State Transactions
+	// (GET /v1/identities/{identifier}/state/transactions)
+	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
 	// Get QrCode from store
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
@@ -980,47 +976,11 @@ type ServerInterface interface {
 	// Get Schema
 	// (GET /v1/{identifier}/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Publish Identity State
-	// (POST /v1/{identifier}/state/publish)
-	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Retry Publish Identity State
-	// (POST /v1/{identifier}/state/retry)
-	RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Identity State Status
-	// (GET /v1/{identifier}/state/status)
-	GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Identity State Transactions
-	// (GET /v1/{identifier}/state/transactions)
-	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
-
-// Get the documentation
-// (GET /)
-func (_ Unimplemented) GetDocumentation(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get Config
-// (GET /config)
-func (_ Unimplemented) GetConfig(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Gets the favicon
-// (GET /favicon.ico)
-func (_ Unimplemented) GetFavicon(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get the documentation yaml file
-// (GET /static/docs/api/api.yaml)
-func (_ Unimplemented) GetYaml(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
 
 // Healthcheck
 // (GET /status)
@@ -1064,15 +1024,39 @@ func (_ Unimplemented) CreateIdentity(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Update Identity DisplayName field
+// Update Identity
 // (PATCH /v1/identities/{identifier})
-func (_ Unimplemented) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+func (_ Unimplemented) UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Identity Detail
+// Get Identity Detail
 // (GET /v1/identities/{identifier}/details)
 func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Publish Identity State
+// (POST /v1/identities/{identifier}/state/publish)
+func (_ Unimplemented) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Retry Publish Identity State
+// (POST /v1/identities/{identifier}/state/retry)
+func (_ Unimplemented) RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Identity State Status
+// (GET /v1/identities/{identifier}/state/status)
+func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Identity State Transactions
+// (GET /v1/identities/{identifier}/state/transactions)
+func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1268,30 +1252,6 @@ func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, identif
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Publish Identity State
-// (POST /v1/{identifier}/state/publish)
-func (_ Unimplemented) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Retry Publish Identity State
-// (POST /v1/{identifier}/state/retry)
-func (_ Unimplemented) RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get Identity State Status
-// (GET /v1/{identifier}/state/status)
-func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get Identity State Transactions
-// (GET /v1/{identifier}/state/transactions)
-func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // ServerInterfaceWrapper converts contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler            ServerInterface
@@ -1300,68 +1260,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
-
-// GetDocumentation operation middleware
-func (siw *ServerInterfaceWrapper) GetDocumentation(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetDocumentation(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetConfig operation middleware
-func (siw *ServerInterfaceWrapper) GetConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetConfig(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetFavicon operation middleware
-func (siw *ServerInterfaceWrapper) GetFavicon(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetFavicon(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetYaml operation middleware
-func (siw *ServerInterfaceWrapper) GetYaml(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetYaml(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
 
 // Health operation middleware
 func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request) {
@@ -1548,8 +1446,8 @@ func (siw *ServerInterfaceWrapper) CreateIdentity(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// UpdateIdentityDisplayName operation middleware
-func (siw *ServerInterfaceWrapper) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request) {
+// UpdateIdentity operation middleware
+func (siw *ServerInterfaceWrapper) UpdateIdentity(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -1566,7 +1464,7 @@ func (siw *ServerInterfaceWrapper) UpdateIdentityDisplayName(w http.ResponseWrit
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.UpdateIdentityDisplayName(w, r, identifier)
+		siw.Handler.UpdateIdentity(w, r, identifier)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1595,6 +1493,145 @@ func (siw *ServerInterfaceWrapper) GetIdentityDetails(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetIdentityDetails(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PublishIdentityState operation middleware
+func (siw *ServerInterfaceWrapper) PublishIdentityState(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PublishIdentityState(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// RetryPublishState operation middleware
+func (siw *ServerInterfaceWrapper) RetryPublishState(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RetryPublishState(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetStateStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetStateStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStateStatus(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetStateTransactions operation middleware
+func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetStateTransactionsParams
+
+	// ------------- Optional query parameter "filter" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter", r.URL.Query(), &params.Filter)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "max_results" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetStateTransactions(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2926,137 +2963,6 @@ func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// PublishIdentityState operation middleware
-func (siw *ServerInterfaceWrapper) PublishIdentityState(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PublishIdentityState(w, r, identifier)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// RetryPublishState operation middleware
-func (siw *ServerInterfaceWrapper) RetryPublishState(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.RetryPublishState(w, r, identifier)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetStateStatus operation middleware
-func (siw *ServerInterfaceWrapper) GetStateStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetStateStatus(w, r, identifier)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetStateTransactions operation middleware
-func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetStateTransactionsParams
-
-	// ------------- Optional query parameter "page" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "max_results" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetStateTransactions(w, r, identifier, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -3171,18 +3077,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/", wrapper.GetDocumentation)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/config", wrapper.GetConfig)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/favicon.ico", wrapper.GetFavicon)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/static/docs/api/api.yaml", wrapper.GetYaml)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
@@ -3204,10 +3098,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
 	})
 	r.Group(func(r chi.Router) {
-		r.Patch(options.BaseURL+"/v1/identities/{identifier}", wrapper.UpdateIdentityDisplayName)
+		r.Patch(options.BaseURL+"/v1/identities/{identifier}", wrapper.UpdateIdentity)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities/{identifier}/details", wrapper.GetIdentityDetails)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/state/publish", wrapper.PublishIdentityState)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/state/retry", wrapper.RetryPublishState)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/state/status", wrapper.GetStateStatus)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
@@ -3305,18 +3211,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/schemas/{id}", wrapper.GetSchema)
 	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/{identifier}/state/publish", wrapper.PublishIdentityState)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/{identifier}/state/retry", wrapper.RetryPublishState)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/state/status", wrapper.GetStateStatus)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/state/transactions", wrapper.GetStateTransactions)
-	})
 
 	return r
 }
@@ -3339,76 +3233,6 @@ type N500CreateIdentityJSONResponse struct {
 	Code      *int    `json:"code,omitempty"`
 	Error     *string `json:"error,omitempty"`
 	RequestID *string `json:"requestID,omitempty"`
-}
-
-type GetDocumentationRequestObject struct {
-}
-
-type GetDocumentationResponseObject interface {
-	VisitGetDocumentationResponse(w http.ResponseWriter) error
-}
-
-type GetDocumentation200Response struct {
-}
-
-func (response GetDocumentation200Response) VisitGetDocumentationResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type GetConfigRequestObject struct {
-}
-
-type GetConfigResponseObject interface {
-	VisitGetConfigResponse(w http.ResponseWriter) error
-}
-
-type GetConfig200JSONResponse Config
-
-func (response GetConfig200JSONResponse) VisitGetConfigResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetConfig500JSONResponse struct{ N500JSONResponse }
-
-func (response GetConfig500JSONResponse) VisitGetConfigResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetFaviconRequestObject struct {
-}
-
-type GetFaviconResponseObject interface {
-	VisitGetFaviconResponse(w http.ResponseWriter) error
-}
-
-type GetFavicon200Response struct {
-}
-
-func (response GetFavicon200Response) VisitGetFaviconResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
-}
-
-type GetYamlRequestObject struct {
-}
-
-type GetYamlResponseObject interface {
-	VisitGetYamlResponse(w http.ResponseWriter) error
-}
-
-type GetYaml200Response struct {
-}
-
-func (response GetYaml200Response) VisitGetYamlResponse(w http.ResponseWriter) error {
-	w.WriteHeader(200)
-	return nil
 }
 
 type HealthRequestObject struct {
@@ -3673,7 +3497,7 @@ func (response CreateIdentity403JSONResponse) VisitCreateIdentityResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
-type CreateIdentity500JSONResponse struct{ N500CreateIdentityJSONResponse }
+type CreateIdentity500JSONResponse struct{ N500JSONResponse }
 
 func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
@@ -3682,54 +3506,54 @@ func (response CreateIdentity500JSONResponse) VisitCreateIdentityResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateIdentityDisplayNameRequestObject struct {
+type UpdateIdentityRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
-	Body       *UpdateIdentityDisplayNameJSONRequestBody
+	Body       *UpdateIdentityJSONRequestBody
 }
 
-type UpdateIdentityDisplayNameResponseObject interface {
-	VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error
+type UpdateIdentityResponseObject interface {
+	VisitUpdateIdentityResponse(w http.ResponseWriter) error
 }
 
-type UpdateIdentityDisplayName200JSONResponse GenericMessage
+type UpdateIdentity200JSONResponse GenericMessage
 
-func (response UpdateIdentityDisplayName200JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+func (response UpdateIdentity200JSONResponse) VisitUpdateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateIdentityDisplayName400JSONResponse struct{ N400JSONResponse }
+type UpdateIdentity400JSONResponse struct{ N400JSONResponse }
 
-func (response UpdateIdentityDisplayName400JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+func (response UpdateIdentity400JSONResponse) VisitUpdateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateIdentityDisplayName401JSONResponse struct{ N401JSONResponse }
+type UpdateIdentity401JSONResponse struct{ N401JSONResponse }
 
-func (response UpdateIdentityDisplayName401JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+func (response UpdateIdentity401JSONResponse) VisitUpdateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(401)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateIdentityDisplayName403JSONResponse struct{ N403JSONResponse }
+type UpdateIdentity403JSONResponse struct{ N403JSONResponse }
 
-func (response UpdateIdentityDisplayName403JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+func (response UpdateIdentity403JSONResponse) VisitUpdateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(403)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type UpdateIdentityDisplayName500JSONResponse struct{ N500CreateIdentityJSONResponse }
+type UpdateIdentity500JSONResponse struct{ N500CreateIdentityJSONResponse }
 
-func (response UpdateIdentityDisplayName500JSONResponse) VisitUpdateIdentityDisplayNameResponse(w http.ResponseWriter) error {
+func (response UpdateIdentity500JSONResponse) VisitUpdateIdentityResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -3774,6 +3598,165 @@ func (response GetIdentityDetails401JSONResponse) VisitGetIdentityDetailsRespons
 type GetIdentityDetails500JSONResponse struct{ N500JSONResponse }
 
 func (response GetIdentityDetails500JSONResponse) VisitGetIdentityDetailsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PublishIdentityStateRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type PublishIdentityStateResponseObject interface {
+	VisitPublishIdentityStateResponse(w http.ResponseWriter) error
+}
+
+type PublishIdentityState200JSONResponse GenericMessage
+
+func (response PublishIdentityState200JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PublishIdentityState202JSONResponse PublishIdentityStateResponse
+
+func (response PublishIdentityState202JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PublishIdentityState400JSONResponse struct{ N400JSONResponse }
+
+func (response PublishIdentityState400JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PublishIdentityState401JSONResponse struct{ N401JSONResponse }
+
+func (response PublishIdentityState401JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(401)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type PublishIdentityState500JSONResponse struct{ N500JSONResponse }
+
+func (response PublishIdentityState500JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RetryPublishStateRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type RetryPublishStateResponseObject interface {
+	VisitRetryPublishStateResponse(w http.ResponseWriter) error
+}
+
+type RetryPublishState202JSONResponse PublishIdentityStateResponse
+
+func (response RetryPublishState202JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RetryPublishState400JSONResponse struct{ N400JSONResponse }
+
+func (response RetryPublishState400JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type RetryPublishState500JSONResponse struct{ N500JSONResponse }
+
+func (response RetryPublishState500JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateStatusRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+}
+
+type GetStateStatusResponseObject interface {
+	VisitGetStateStatusResponse(w http.ResponseWriter) error
+}
+
+type GetStateStatus200JSONResponse StateStatusResponse
+
+func (response GetStateStatus200JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateStatus400JSONResponse struct{ N400JSONResponse }
+
+func (response GetStateStatus400JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateStatus500JSONResponse struct{ N500JSONResponse }
+
+func (response GetStateStatus500JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactionsRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetStateTransactionsParams
+}
+
+type GetStateTransactionsResponseObject interface {
+	VisitGetStateTransactionsResponse(w http.ResponseWriter) error
+}
+
+type GetStateTransactions200JSONResponse StateTransactionsResponse
+
+func (response GetStateTransactions200JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactions400JSONResponse struct{ N400JSONResponse }
+
+func (response GetStateTransactions400JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetStateTransactions500JSONResponse struct{ N500JSONResponse }
+
+func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -5175,179 +5158,8 @@ func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseW
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PublishIdentityStateRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-}
-
-type PublishIdentityStateResponseObject interface {
-	VisitPublishIdentityStateResponse(w http.ResponseWriter) error
-}
-
-type PublishIdentityState200JSONResponse GenericErrorMessage
-
-func (response PublishIdentityState200JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PublishIdentityState202JSONResponse PublishIdentityStateResponse
-
-func (response PublishIdentityState202JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(202)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PublishIdentityState400JSONResponse struct{ N400JSONResponse }
-
-func (response PublishIdentityState400JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PublishIdentityState401JSONResponse struct{ N401JSONResponse }
-
-func (response PublishIdentityState401JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type PublishIdentityState500JSONResponse struct{ N500JSONResponse }
-
-func (response PublishIdentityState500JSONResponse) VisitPublishIdentityStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type RetryPublishStateRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-}
-
-type RetryPublishStateResponseObject interface {
-	VisitRetryPublishStateResponse(w http.ResponseWriter) error
-}
-
-type RetryPublishState202JSONResponse PublishIdentityStateResponse
-
-func (response RetryPublishState202JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(202)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type RetryPublishState400JSONResponse struct{ N400JSONResponse }
-
-func (response RetryPublishState400JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type RetryPublishState500JSONResponse struct{ N500JSONResponse }
-
-func (response RetryPublishState500JSONResponse) VisitRetryPublishStateResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetStateStatusRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-}
-
-type GetStateStatusResponseObject interface {
-	VisitGetStateStatusResponse(w http.ResponseWriter) error
-}
-
-type GetStateStatus200JSONResponse StateStatusResponse
-
-func (response GetStateStatus200JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetStateStatus400JSONResponse struct{ N400JSONResponse }
-
-func (response GetStateStatus400JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetStateStatus500JSONResponse struct{ N500JSONResponse }
-
-func (response GetStateStatus500JSONResponse) VisitGetStateStatusResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetStateTransactionsRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Params     GetStateTransactionsParams
-}
-
-type GetStateTransactionsResponseObject interface {
-	VisitGetStateTransactionsResponse(w http.ResponseWriter) error
-}
-
-type GetStateTransactions200JSONResponse StateTransactionsResponse
-
-func (response GetStateTransactions200JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetStateTransactions400JSONResponse struct{ N400JSONResponse }
-
-func (response GetStateTransactions400JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetStateTransactions500JSONResponse struct{ N500JSONResponse }
-
-func (response GetStateTransactions500JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-	// Get the documentation
-	// (GET /)
-	GetDocumentation(ctx context.Context, request GetDocumentationRequestObject) (GetDocumentationResponseObject, error)
-	// Get Config
-	// (GET /config)
-	GetConfig(ctx context.Context, request GetConfigRequestObject) (GetConfigResponseObject, error)
-	// Gets the favicon
-	// (GET /favicon.ico)
-	GetFavicon(ctx context.Context, request GetFaviconRequestObject) (GetFaviconResponseObject, error)
-	// Get the documentation yaml file
-	// (GET /static/docs/api/api.yaml)
-	GetYaml(ctx context.Context, request GetYamlRequestObject) (GetYamlResponseObject, error)
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
@@ -5369,12 +5181,24 @@ type StrictServerInterface interface {
 	// Create Identity
 	// (POST /v1/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
-	// Update Identity DisplayName field
+	// Update Identity
 	// (PATCH /v1/identities/{identifier})
-	UpdateIdentityDisplayName(ctx context.Context, request UpdateIdentityDisplayNameRequestObject) (UpdateIdentityDisplayNameResponseObject, error)
-	// Identity Detail
+	UpdateIdentity(ctx context.Context, request UpdateIdentityRequestObject) (UpdateIdentityResponseObject, error)
+	// Get Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error)
+	// Publish Identity State
+	// (POST /v1/identities/{identifier}/state/publish)
+	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
+	// Retry Publish Identity State
+	// (POST /v1/identities/{identifier}/state/retry)
+	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
+	// Get Identity State Status
+	// (GET /v1/identities/{identifier}/state/status)
+	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
+	// Get Identity State Transactions
+	// (GET /v1/identities/{identifier}/state/transactions)
+	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 	// Get QrCode from store
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
@@ -5471,18 +5295,6 @@ type StrictServerInterface interface {
 	// Get Schema
 	// (GET /v1/{identifier}/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
-	// Publish Identity State
-	// (POST /v1/{identifier}/state/publish)
-	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
-	// Retry Publish Identity State
-	// (POST /v1/{identifier}/state/retry)
-	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
-	// Get Identity State Status
-	// (GET /v1/{identifier}/state/status)
-	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
-	// Get Identity State Transactions
-	// (GET /v1/{identifier}/state/transactions)
-	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -5512,102 +5324,6 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
-}
-
-// GetDocumentation operation middleware
-func (sh *strictHandler) GetDocumentation(w http.ResponseWriter, r *http.Request) {
-	var request GetDocumentationRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetDocumentation(ctx, request.(GetDocumentationRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetDocumentation")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetDocumentationResponseObject); ok {
-		if err := validResponse.VisitGetDocumentationResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetConfig operation middleware
-func (sh *strictHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
-	var request GetConfigRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetConfig(ctx, request.(GetConfigRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetConfig")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetConfigResponseObject); ok {
-		if err := validResponse.VisitGetConfigResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetFavicon operation middleware
-func (sh *strictHandler) GetFavicon(w http.ResponseWriter, r *http.Request) {
-	var request GetFaviconRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetFavicon(ctx, request.(GetFaviconRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetFavicon")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetFaviconResponseObject); ok {
-		if err := validResponse.VisitGetFaviconResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetYaml operation middleware
-func (sh *strictHandler) GetYaml(w http.ResponseWriter, r *http.Request) {
-	var request GetYamlRequestObject
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetYaml(ctx, request.(GetYamlRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetYaml")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetYamlResponseObject); ok {
-		if err := validResponse.VisitGetYamlResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
 }
 
 // Health operation middleware
@@ -5815,13 +5531,13 @@ func (sh *strictHandler) CreateIdentity(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// UpdateIdentityDisplayName operation middleware
-func (sh *strictHandler) UpdateIdentityDisplayName(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request UpdateIdentityDisplayNameRequestObject
+// UpdateIdentity operation middleware
+func (sh *strictHandler) UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request UpdateIdentityRequestObject
 
 	request.Identifier = identifier
 
-	var body UpdateIdentityDisplayNameJSONRequestBody
+	var body UpdateIdentityJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -5829,18 +5545,18 @@ func (sh *strictHandler) UpdateIdentityDisplayName(w http.ResponseWriter, r *htt
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.UpdateIdentityDisplayName(ctx, request.(UpdateIdentityDisplayNameRequestObject))
+		return sh.ssi.UpdateIdentity(ctx, request.(UpdateIdentityRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "UpdateIdentityDisplayName")
+		handler = middleware(handler, "UpdateIdentity")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(UpdateIdentityDisplayNameResponseObject); ok {
-		if err := validResponse.VisitUpdateIdentityDisplayNameResponse(w); err != nil {
+	} else if validResponse, ok := response.(UpdateIdentityResponseObject); ok {
+		if err := validResponse.VisitUpdateIdentityResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -5867,6 +5583,111 @@ func (sh *strictHandler) GetIdentityDetails(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetIdentityDetailsResponseObject); ok {
 		if err := validResponse.VisitGetIdentityDetailsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PublishIdentityState operation middleware
+func (sh *strictHandler) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request PublishIdentityStateRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PublishIdentityState(ctx, request.(PublishIdentityStateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PublishIdentityState")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PublishIdentityStateResponseObject); ok {
+		if err := validResponse.VisitPublishIdentityStateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RetryPublishState operation middleware
+func (sh *strictHandler) RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request RetryPublishStateRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RetryPublishState(ctx, request.(RetryPublishStateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RetryPublishState")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RetryPublishStateResponseObject); ok {
+		if err := validResponse.VisitRetryPublishStateResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetStateStatus operation middleware
+func (sh *strictHandler) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request GetStateStatusRequestObject
+
+	request.Identifier = identifier
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStateStatus(ctx, request.(GetStateStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStateStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStateStatusResponseObject); ok {
+		if err := validResponse.VisitGetStateStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetStateTransactions operation middleware
+func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
+	var request GetStateTransactionsRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetStateTransactions(ctx, request.(GetStateTransactionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetStateTransactions")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
+		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -6766,111 +6587,6 @@ func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, ident
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
 		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// PublishIdentityState operation middleware
-func (sh *strictHandler) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request PublishIdentityStateRequestObject
-
-	request.Identifier = identifier
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.PublishIdentityState(ctx, request.(PublishIdentityStateRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PublishIdentityState")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(PublishIdentityStateResponseObject); ok {
-		if err := validResponse.VisitPublishIdentityStateResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// RetryPublishState operation middleware
-func (sh *strictHandler) RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request RetryPublishStateRequestObject
-
-	request.Identifier = identifier
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.RetryPublishState(ctx, request.(RetryPublishStateRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "RetryPublishState")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(RetryPublishStateResponseObject); ok {
-		if err := validResponse.VisitRetryPublishStateResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetStateStatus operation middleware
-func (sh *strictHandler) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request GetStateStatusRequestObject
-
-	request.Identifier = identifier
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetStateStatus(ctx, request.(GetStateStatusRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetStateStatus")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetStateStatusResponseObject); ok {
-		if err := validResponse.VisitGetStateStatusResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetStateTransactions operation middleware
-func (sh *strictHandler) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
-	var request GetStateTransactionsRequestObject
-
-	request.Identifier = identifier
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetStateTransactions(ctx, request.(GetStateTransactionsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetStateTransactions")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetStateTransactionsResponseObject); ok {
-		if err := validResponse.VisitGetStateTransactionsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

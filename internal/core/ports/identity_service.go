@@ -15,12 +15,12 @@ import (
 
 // DIDCreationOptions represents options for DID creation
 type DIDCreationOptions struct {
-	Method                  core.DIDMethod                  `json:"method"`
-	Blockchain              core.Blockchain                 `json:"blockchain"`
-	Network                 core.NetworkID                  `json:"network"`
-	KeyType                 kms.KeyType                     `json:"keyType"`
-	AuthBJJCredentialStatus verifiable.CredentialStatusType `json:"authBJJCredentialStatus,omitempty"`
-	DisplayName             *string                         `json:"displayName,omitempty"`
+	Method               core.DIDMethod                  `json:"method"`
+	Blockchain           core.Blockchain                 `json:"blockchain"`
+	Network              core.NetworkID                  `json:"network"`
+	KeyType              kms.KeyType                     `json:"keyType"`
+	AuthCredentialStatus verifiable.CredentialStatusType `json:"authCredentialStatus,omitempty"`
+	DisplayName          *string                         `json:"displayName,omitempty"`
 }
 
 // CreateAuthenticationQRCodeResponse represents the response of the CreateAuthenticationQRCode method
@@ -46,7 +46,7 @@ type IdentityService interface {
 	GetNonTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
 	UpdateIdentityState(ctx context.Context, state *domain.IdentityState) error
 	GetTransactedStates(ctx context.Context) ([]domain.IdentityState, error)
-	GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]IdentityStatePaginationDto, error)
+	GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint, filter string) ([]IdentityStatePaginationDto, error)
 	CreateAuthenticationQRCode(ctx context.Context, serverURL string, issuerDID w3c.DID) (*CreateAuthenticationQRCodeResponse, error)
 	Authenticate(ctx context.Context, message string, sessionID uuid.UUID, serverURL string) (*protocol.AuthorizationResponseMessage, error)
 	GetFailedState(ctx context.Context, identifier w3c.DID) (*domain.IdentityState, error)

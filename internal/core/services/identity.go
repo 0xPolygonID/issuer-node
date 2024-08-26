@@ -697,7 +697,7 @@ func (i *identity) createEthIdentity(ctx context.Context, tx db.Querier, hostURL
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthBJJCredentialStatus, false)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, bjjPubKey, hostURL, didOptions.AuthCredentialStatus, false)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -716,11 +716,11 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 	if didOptions == nil {
 		// nolint : it's a right assignment
 		didOptions = &ports.DIDCreationOptions{
-			Method:                  core.DIDMethodIden3,
-			Blockchain:              core.NoChain,
-			Network:                 core.NoNetwork,
-			KeyType:                 kms.KeyTypeBabyJubJub,
-			AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1,
+			Method:               core.DIDMethodIden3,
+			Blockchain:           core.NoChain,
+			Network:              core.NoNetwork,
+			KeyType:              kms.KeyTypeBabyJubJub,
+			AuthCredentialStatus: verifiable.Iden3commRevocationStatusV1,
 		}
 	}
 
@@ -759,7 +759,7 @@ func (i *identity) createIdentity(ctx context.Context, tx db.Querier, hostURL st
 		return nil, nil, err
 	}
 
-	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthBJJCredentialStatus, true)
+	authClaimModel, err := i.authClaimToModel(ctx, did, identity, authClaim, claimsTree, pubKey, hostURL, didOptions.AuthCredentialStatus, true)
 	if err != nil {
 		log.Error(ctx, "auth claim to model", "err", err)
 		return nil, nil, err
@@ -924,8 +924,26 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint) ([]ports.IdentityStatePaginationDto, error) {
-	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint, filter string) ([]ports.IdentityStatePaginationDto, error) {
+	if filter == "all" {
+		return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
+	}
+
+	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &issuerDID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]ports.IdentityStatePaginationDto, 0)
+	if state.TxID != nil {
+		resultDto := ports.IdentityStatePaginationDto{
+			IdentityState: *state,
+			Total:         1,
+		}
+		result = append(result, resultDto)
+	}
+
+	return result, nil
 }
 
 func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {

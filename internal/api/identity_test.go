@@ -41,8 +41,8 @@ func TestServer_CreateIdentity(t *testing.T) {
 		expected expected
 	}
 
-	authBJJCredentialStatus := (*CreateIdentityRequestDidMetadataAuthBJJCredentialStatus)(common.ToPointer("Iden3commRevocationStatusV1.0"))
-	authBJJCredentialStatusOnChain := (*CreateIdentityRequestDidMetadataAuthBJJCredentialStatus)(common.ToPointer("Iden3OnchainSparseMerkleTreeProof2023"))
+	authBJJCredentialStatus := (*CreateIdentityRequestCredentialStatusType)(common.ToPointer("Iden3commRevocationStatusV1.0"))
+	authBJJCredentialStatusOnChain := (*CreateIdentityRequestCredentialStatusType)(common.ToPointer("Iden3OnchainSparseMerkleTreeProof2023"))
 	for _, tc := range []testConfig{
 		{
 			name: "No auth header",
@@ -56,12 +56,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
+				CredentialStatusType: authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 201,
@@ -73,12 +73,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: ETH},
 			},
 			expected: expected{
 				httpCode: 201,
@@ -90,12 +89,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("my display name"),
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("my display name"),
+				CredentialStatusType: authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 201,
@@ -107,12 +106,11 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: network, Type: ETH},
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: network, Type: ETH},
 			},
 			expected: expected{
 				httpCode: 201,
@@ -124,12 +122,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatus, Blockchain: blockchain, Method: method, Network: "mynetwork", Type: BJJ},
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: "mynetwork", Type: BJJ},
+				CredentialStatusType: authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -141,12 +139,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: blockchain, Method: "my method", Network: network, Type: BJJ},
+				CredentialStatusType: authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -158,12 +156,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: "my blockchain", Method: method, Network: network, Type: BJJ},
+				CredentialStatusType: authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -175,12 +173,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: "my blockchain", Method: method, Network: network, Type: "a wrong type"},
+				CredentialStatusType: authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -192,12 +190,12 @@ func TestServer_CreateIdentity(t *testing.T) {
 			auth: authOk,
 			input: CreateIdentityRequest{
 				DidMetadata: struct {
-					AuthBJJCredentialStatus *CreateIdentityRequestDidMetadataAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-					Blockchain              string                                                   `json:"blockchain"`
-					Method                  string                                                   `json:"method"`
-					Network                 string                                                   `json:"network"`
-					Type                    CreateIdentityRequestDidMetadataType                     `json:"type"`
-				}{AuthBJJCredentialStatus: authBJJCredentialStatusOnChain, Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
+					Blockchain string                               `json:"blockchain"`
+					Method     string                               `json:"method"`
+					Network    string                               `json:"network"`
+					Type       CreateIdentityRequestDidMetadataType `json:"type"`
+				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
+				CredentialStatusType: authBJJCredentialStatusOnChain,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -368,7 +366,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 	}
 }
 
-func TestServer_UpdateDisplayName(t *testing.T) {
+func TestServer_UpdateIdentity(t *testing.T) {
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
@@ -415,7 +413,7 @@ func TestServer_UpdateDisplayName(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			body := UpdateIdentityDisplayNameJSONBody{
+			body := UpdateIdentityJSONBody{
 				DisplayName: *tc.expected.displayName,
 			}
 
@@ -427,7 +425,7 @@ func TestServer_UpdateDisplayName(t *testing.T) {
 
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 			if tc.expected.httpCode == http.StatusOK {
-				var response UpdateIdentityDisplayName200JSONResponse
+				var response UpdateIdentity200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 			}
 		})
