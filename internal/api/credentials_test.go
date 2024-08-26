@@ -788,9 +788,9 @@ func TestServer_GetCredential(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetCredential200JSONResponse:
-				var response GetClaimResponse
+				var response GetCredentialResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				validateClaim(t, response, GetClaimResponse(v))
+				validateCredential(t, response, GetCredentialResponse(v))
 
 			case GetCredential400JSONResponse:
 				var response GetCredential404JSONResponse
@@ -903,7 +903,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				httpCode: http.StatusOK,
 				len:      1,
 				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
+					GetCredentialResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
 							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -943,7 +943,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				httpCode: http.StatusOK,
 				len:      1,
 				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
+					GetCredentialResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
 							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -984,7 +984,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				httpCode: http.StatusOK,
 				len:      1,
 				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
+					GetCredentialResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
 							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -1037,7 +1037,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				httpCode: http.StatusOK,
 				len:      1,
 				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
+					GetCredentialResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
 							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -1077,7 +1077,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				httpCode: http.StatusOK,
 				len:      1,
 				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
+					GetCredentialResponse{
 						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 						CredentialSchema: CredentialSchema{
 							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
@@ -1124,7 +1124,7 @@ func TestServer_GetCredentials(t *testing.T) {
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.len, len(response))
 				for i := range response {
-					validateClaim(t, response[i], v[i])
+					validateCredential(t, response[i], v[i])
 				}
 			case GetCredentials400JSONResponse:
 				var response GetCredentials400JSONResponse
@@ -1704,7 +1704,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	}
 }
 
-func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
+func validateCredential(t *testing.T, resp, tc GetCredentialResponse) {
 	t.Helper()
 	var responseCredentialStatus verifiable.CredentialStatus
 

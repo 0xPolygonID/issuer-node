@@ -816,7 +816,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetClaimResponse'
+                $ref: '#/components/schemas/GetCredentialResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -1737,7 +1737,7 @@ components:
           enum:
             - "Iden3BasicDisplayMethodV1"
 
-    #claims
+    #Credentials
     CreateCredentialRequest:
       type: object
       required:
@@ -1901,9 +1901,9 @@ components:
     GetClaimsResponse:
       type: array
       items:
-        $ref: '#/components/schemas/GetClaimResponse'
+        $ref: '#/components/schemas/GetCredentialResponse'
 
-    GetClaimResponse:
+    GetCredentialResponse:
       type: object
       required:
         - id

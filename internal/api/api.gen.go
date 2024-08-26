@@ -297,8 +297,23 @@ type GetAuthenticationConnectionResponse struct {
 	Connection AuthenticationConnection `json:"connection"`
 }
 
-// GetClaimResponse defines model for GetClaimResponse.
-type GetClaimResponse struct {
+// GetClaimsResponse defines model for GetClaimsResponse.
+type GetClaimsResponse = []GetCredentialResponse
+
+// GetConnectionResponse defines model for GetConnectionResponse.
+type GetConnectionResponse struct {
+	CreatedAt   TimeUTC      `json:"createdAt"`
+	Credentials []Credential `json:"credentials"`
+	Id          string       `json:"id"`
+	IssuerID    string       `json:"issuerID"`
+	UserID      string       `json:"userID"`
+}
+
+// GetConnectionsResponse defines model for GetConnectionsResponse.
+type GetConnectionsResponse = []GetConnectionResponse
+
+// GetCredentialResponse defines model for GetCredentialResponse.
+type GetCredentialResponse struct {
 	Context           []string               `json:"@context"`
 	CredentialSchema  CredentialSchema       `json:"credentialSchema"`
 	CredentialStatus  interface{}            `json:"credentialStatus"`
@@ -312,21 +327,6 @@ type GetClaimResponse struct {
 	RefreshService    *RefreshService        `json:"refreshService,omitempty"`
 	Type              []string               `json:"type"`
 }
-
-// GetClaimsResponse defines model for GetClaimsResponse.
-type GetClaimsResponse = []GetClaimResponse
-
-// GetConnectionResponse defines model for GetConnectionResponse.
-type GetConnectionResponse struct {
-	CreatedAt   TimeUTC      `json:"createdAt"`
-	Credentials []Credential `json:"credentials"`
-	Id          string       `json:"id"`
-	IssuerID    string       `json:"issuerID"`
-	UserID      string       `json:"userID"`
-}
-
-// GetConnectionsResponse defines model for GetConnectionsResponse.
-type GetConnectionsResponse = []GetConnectionResponse
 
 // GetIdentitiesResponse defines model for GetIdentitiesResponse.
 type GetIdentitiesResponse struct {
@@ -4284,7 +4284,7 @@ type GetCredentialResponseObject interface {
 	VisitGetCredentialResponse(w http.ResponseWriter) error
 }
 
-type GetCredential200JSONResponse GetClaimResponse
+type GetCredential200JSONResponse GetCredentialResponse
 
 func (response GetCredential200JSONResponse) VisitGetCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

@@ -272,7 +272,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 		return GetCredential500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
 
-	return GetCredential200JSONResponse(toGetClaim200Response(w3c)), nil
+	return GetCredential200JSONResponse(toGetCredential200Response(w3c)), nil
 }
 
 // GetCredentials is the controller to get multiple credentials of a determined identity
@@ -381,13 +381,13 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 func toGetCredentials200Response(claims []*verifiable.W3CCredential) GetClaimsResponse {
 	response := make(GetCredentials200JSONResponse, len(claims))
 	for i := range claims {
-		response[i] = toGetClaim200Response(claims[i])
+		response[i] = toGetCredential200Response(claims[i])
 	}
 
 	return response
 }
 
-func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
+func toGetCredential200Response(claim *verifiable.W3CCredential) GetCredentialResponse {
 	var claimExpiration, claimIssuanceDate *TimeUTC
 	if claim.Expiration != nil {
 		claimExpiration = common.ToPointer(TimeUTC(*claim.Expiration))
@@ -412,7 +412,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		}
 	}
 
-	return GetClaimResponse{
+	return GetCredentialResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
 			claim.CredentialSchema.ID,
