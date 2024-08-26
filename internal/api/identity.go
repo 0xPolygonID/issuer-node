@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"slices"
 	"strings"
 
@@ -24,7 +25,7 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 	blockchain := request.Body.DidMetadata.Blockchain
 	network := request.Body.DidMetadata.Network
 	keyType := request.Body.DidMetadata.Type
-	authBJJCredentialStatusString := request.Body.DidMetadata.AuthBJJCredentialStatus
+	credentialStatusTypeRequest := request.Body.CredentialStatusType
 
 	if keyType != "BJJ" && keyType != "ETH" {
 		return CreateIdentity400JSONResponse{
@@ -34,20 +35,20 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		}, nil
 	}
 
-	var authBJJCredentialStatus verifiable.CredentialStatusType
-	if authBJJCredentialStatusString != nil && *authBJJCredentialStatusString != "" {
+	var credentialStatusType verifiable.CredentialStatusType
+	if credentialStatusTypeRequest != nil && *credentialStatusTypeRequest != "" {
 		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
-		if !slices.Contains(allowedCredentialStatuses, string(*authBJJCredentialStatusString)) {
+		if !slices.Contains(allowedCredentialStatuses, string(*credentialStatusTypeRequest)) {
 			log.Warn(ctx, "invalid credential status type", "req", request)
 			return CreateIdentity400JSONResponse{
 				N400JSONResponse{
-					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *authBJJCredentialStatusString),
+					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *credentialStatusTypeRequest),
 				},
 			}, nil
 		}
-		authBJJCredentialStatus = (verifiable.CredentialStatusType)(*authBJJCredentialStatusString)
+		credentialStatusType = (verifiable.CredentialStatusType)(*credentialStatusTypeRequest)
 	} else {
-		authBJJCredentialStatus = verifiable.Iden3commRevocationStatusV1
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
 	}
 
 	rhsSettings, err := s.networkResolver.GetRhsSettingsForBlockchainAndNetwork(ctx, blockchain, network)
@@ -55,18 +56,18 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("error getting reverse hash service settings: %s", err.Error())}}, nil
 	}
 
-	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, authBJJCredentialStatus) {
+	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
-		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", authBJJCredentialStatus)}}, nil
+		return CreateIdentity400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
 	identity, err := s.identityService.Create(ctx, s.cfg.ServerUrl, &ports.DIDCreationOptions{
-		Method:                  core.DIDMethod(method),
-		Network:                 core.NetworkID(network),
-		Blockchain:              core.Blockchain(blockchain),
-		KeyType:                 kms.KeyType(keyType),
-		AuthBJJCredentialStatus: authBJJCredentialStatus,
-		DisplayName:             request.Body.DisplayName,
+		Method:               core.DIDMethod(method),
+		Network:              core.NetworkID(network),
+		Blockchain:           core.Blockchain(blockchain),
+		KeyType:              kms.KeyType(keyType),
+		AuthCredentialStatus: credentialStatusType,
+		DisplayName:          request.Body.DisplayName,
 	})
 	if err != nil {
 		if errors.Is(err, services.ErrWrongDIDMetada) {
@@ -96,6 +97,11 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 		return nil, err
 	}
 
+	var responseAddress *string
+	if identity.Address != nil && *identity.Address != "" {
+		responseAddress = identity.Address
+	}
+
 	return CreateIdentity201JSONResponse{
 		Identifier:  &identity.Identifier,
 		DisplayName: identity.DisplayName,
@@ -112,16 +118,18 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 			Status:             string(identity.State.Status),
 			TxID:               identity.State.TxID,
 		},
-		Address: identity.Address,
+		Address: responseAddress,
+		KeyType: identity.KeyType,
+		Balance: nil,
 	}, nil
 }
 
-// UpdateIdentityDisplayName is update identity display name controller
-func (s *Server) UpdateIdentityDisplayName(ctx context.Context, request UpdateIdentityDisplayNameRequestObject) (UpdateIdentityDisplayNameResponseObject, error) {
+// UpdateIdentity is update identity display name controller
+func (s *Server) UpdateIdentity(ctx context.Context, request UpdateIdentityRequestObject) (UpdateIdentityResponseObject, error) {
 	userDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		log.Error(ctx, "update identity display name. Parsing did", "err", err)
-		return UpdateIdentityDisplayName400JSONResponse{
+		log.Error(ctx, "update identity.. Parsing did", "err", err)
+		return UpdateIdentity400JSONResponse{
 			N400JSONResponse{
 				Message: "invalid did",
 			},
@@ -130,15 +138,15 @@ func (s *Server) UpdateIdentityDisplayName(ctx context.Context, request UpdateId
 
 	err = s.identityService.UpdateIdentityDisplayName(ctx, *userDID, request.Body.DisplayName)
 	if err != nil {
-		log.Error(ctx, "update identity display name. updating display name", "err", err)
-		return UpdateIdentityDisplayName400JSONResponse{
+		log.Error(ctx, "update identity. updating display name", "err", err)
+		return UpdateIdentity400JSONResponse{
 			N400JSONResponse{
 				Message: "invalid identity",
 			},
 		}, err
 	}
 
-	return UpdateIdentityDisplayName200JSONResponse{Message: "Identity display name updated"}, nil
+	return UpdateIdentity200JSONResponse{Message: "Identity display name updated"}, nil
 }
 
 // GetIdentities is the controller to get identities
@@ -214,18 +222,29 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 		}, err
 	}
 
+	var balance *big.Int
 	if identity.KeyType == string(kms.KeyTypeEthereum) {
 		did, err := w3c.ParseDID(identity.Identifier)
 		if err != nil {
 			log.Error(ctx, "get identity details. Parsing did", "err", err)
 			return GetIdentityDetails400JSONResponse{N400JSONResponse{Message: "invalid did"}}, nil
 		}
-		balance, err := s.accountService.GetBalanceByDID(ctx, did)
+		balance, err = s.accountService.GetBalanceByDID(ctx, did)
 		if err != nil {
 			log.Error(ctx, "get identity details. Getting balance", "err", err)
 			return GetIdentityDetails500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 		}
 		identity.Balance = balance
+	}
+
+	var responseBalance *string
+	if balance != nil {
+		responseBalance = common.ToPointer(balance.String())
+	}
+
+	var responseAddress *string
+	if identity.Address != nil && *identity.Address != "" {
+		responseAddress = identity.Address
 	}
 
 	response := GetIdentityDetails200JSONResponse{
@@ -243,21 +262,10 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 			Status:             string(identity.State.Status),
 			TxID:               identity.State.TxID,
 		},
-		AuthCoreClaimRevocationStatus: AuthCoreClaimRevocationStatus{
-			ID:              identity.AuthCoreClaimRevocationStatus.ID,
-			Type:            identity.AuthCoreClaimRevocationStatus.Type,
-			RevocationNonce: int(identity.AuthCoreClaimRevocationStatus.RevocationNonce),
-		},
 		KeyType:     identity.KeyType,
 		DisplayName: identity.DisplayName,
-	}
-
-	if identity.Address != nil && *identity.Address != "" {
-		response.Address = identity.Address
-	}
-
-	if identity.Balance != nil {
-		response.Balance = common.ToPointer(identity.Balance.String())
+		Address:     responseAddress,
+		Balance:     responseBalance,
 	}
 
 	return response, nil
