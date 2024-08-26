@@ -54,6 +54,7 @@ paths:
                 $ref: '#/components/schemas/Health'
         '500':
           $ref: '#/components/responses/500'
+
   /config:
     get:
       summary: Get Config
@@ -797,103 +798,9 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims:
-    post:
-      summary: Create Claim (Deprecated)
-      operationId: CreateClaim
-      description: Endpoint to create a Claim. Deprecated, use /v1/{identifier}/credentials instead
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateClaimRequest'
-      responses:
-        '201':
-          description: Claim created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '422':
-          $ref: '#/components/responses/422'
-        '500':
-          $ref: '#/components/responses/500'
-    get:
-      summary: Get Claims (Deprecated)
-      operationId: GetClaims
-      description: |
-        Endpoint to retrieve claims. Deprecated, use /v1/{identifier}/credentials instead
-        > ⚠️ **self** and **subject** filter cannot be used together
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - in: query
-          name: schemaType
-          schema:
-            type: string
-          description: Filter per schema type. Example - KYCAgeCredential
-        - in: query
-          name: schemaHash
-          schema:
-            type: string
-          description: Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
-        - in: query
-          name: subject
-          schema:
-            type: string
-          description: Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
-        - in: query
-          name: revoked
-          schema:
-            type: boolean
-          description: Filter per claims revoked or not - Example - true.
-        - in: query
-          name: self
-          schema:
-            type: boolean
-          description: Filter per retrieve claims of the provided identifier. Example - true
-        - in: query
-          name: query_field
-          schema:
-            type: string
-          description: Filter this field inside the data of the claim
-        - in: query
-          name: query_value
-          schema:
-            type: string
-          description: Filter this value inside the data of the claim for the specified field in query_field
-      responses:
-        '200':
-          description: Claims found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimsResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
-
   /v1/{identifier}/credentials/{id}:
     get:
-      summary: Get Claim
+      summary: Credential
       operationId: GetCredential
       description: Endpoint to retrieve a created Credential
       tags:
@@ -931,7 +838,7 @@ paths:
         - $ref: '#/components/parameters/pathClaim'
       responses:
         '200':
-          description: Claim deleted
+          description: Credential deleted
           content:
             application/json:
               schema:
@@ -943,67 +850,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims/{id}:
-    get:
-      summary: Get Claim
-      operationId: GetClaim
-      description: Endpoint to retrieve a created Claim
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathClaim'
-      responses:
-        '200':
-          description: Claim found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '404':
-          $ref: '#/components/responses/404'
-        '500':
-          $ref: '#/components/responses/500'
-
   /v1/{identifier}/credentials/revoke/{nonce}:
     post:
       summary: Revoke Credential
       operationId: RevokeCredential
       description: Endpoint to revoke a credential
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathNonce'
-      responses:
-        '202':
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RevokeClaimResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '404':
-          $ref: '#/components/responses/404'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/{identifier}/claims/revoke/{nonce}:
-    post:
-      summary: Revoke Claim (Deprecated)
-      operationId: RevokeClaim
-      description: Endpoint to revoke a claim. DEPRECATED, use /v1/{identifier}/credentials/revoke/{nonce} instead
       tags:
         - Credentials
       security:
@@ -1077,7 +928,7 @@ paths:
       operationId: GetCredentialQrCode
       description: Returns a a json that can be used to create the QR Code to scan for accepting a claim.
       tags:
-        - Claim
+        - Credentials
       security:
         - basicAuth: [ ]
       parameters:
@@ -1109,39 +960,12 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/claims/{id}/qrcode:
-    get:
-      summary: Get Claim QR code (Deprecated)
-      operationId: GetClaimQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. DEPRECATED use /v1/{identifier}/credentials/{id}/qrcode instead
-      tags:
-        - Claim
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathClaim'
-      responses:
-        '200':
-          description: ok
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimQrCodeResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '404':
-          $ref: '#/components/responses/404'
-        '409':
-          $ref: '#/components/responses/409'
-        '500':
-          $ref: '#/components/responses/500'
   #agent
   /v1/agent:
     post:
       summary: Agent
       operationId: Agent
-      description: Mobile agent endpoint
+      description: Identity Agent Endpoint
       tags:
         - Agent
       requestBody:

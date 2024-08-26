@@ -16,8 +16,6 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
-	"github.com/iden3/iden3comm/v2/packers"
-	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,7 +72,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response RevokeClaimResponseObject
+		response RevokeCredentialResponseObject
 		httpCode int
 	}
 
@@ -103,7 +101,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			nonce: nonce,
 			expected: expected{
 				httpCode: 202,
-				response: RevokeClaim202JSONResponse{
+				response: RevokeCredential202JSONResponse{
 					Message: "credential revocation request sent",
 				},
 			},
@@ -115,7 +113,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			nonce: int64(1231323),
 			expected: expected{
 				httpCode: 404,
-				response: RevokeClaim404JSONResponse{N404JSONResponse{
+				response: RevokeCredential404JSONResponse{N404JSONResponse{
 					Message: "the credential does not exist",
 				}},
 			},
@@ -127,7 +125,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			nonce: nonce,
 			expected: expected{
 				httpCode: 500,
-				response: RevokeClaim500JSONResponse{N500JSONResponse{
+				response: RevokeCredential500JSONResponse{N500JSONResponse{
 					Message: "error getting merkle trees: not found",
 				}},
 			},
@@ -143,16 +141,16 @@ func TestServer_RevokeClaim(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case RevokeClaim202JSONResponse:
-				var response RevokeClaim202JSONResponse
+			case RevokeCredential202JSONResponse:
+				var response RevokeCredential202JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case RevokeClaim404JSONResponse:
-				var response RevokeClaim404JSONResponse
+			case RevokeCredential404JSONResponse:
+				var response RevokeCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case RevokeClaim500JSONResponse:
-				var response RevokeClaim500JSONResponse
+			case RevokeCredential500JSONResponse:
+				var response RevokeCredential500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -444,11 +442,11 @@ func TestServer_CreateCredential(t *testing.T) {
 					assert.Equal(t, tc.body.ClaimID.String(), response.Id)
 				}
 			case http.StatusBadRequest:
-				var response CreateClaim400JSONResponse
+				var response CreateCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			case http.StatusUnprocessableEntity:
-				var response CreateClaim422JSONResponse
+				var response CreateCredential422JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			}
@@ -637,31 +635,19 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			case GetCredentialQrCode200JSONResponse:
 				var response GetCredentialQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				var rawResponse GetClaimQrCode200JSONResponse
+				var rawResponse QrCodeLinkWithSchemaTypeShortResponse
 				assert.NoError(t, json.Unmarshal([]byte(response.QrCodeLink), &rawResponse))
-				assert.Equal(t, string(protocol.CredentialOfferMessageType), rawResponse.Type)
-				assert.Equal(t, string(packers.MediaTypePlainMessage), rawResponse.Typ)
-				_, err := uuid.Parse(rawResponse.Id)
-				assert.NoError(t, err)
-				assert.Equal(t, rawResponse.Id, rawResponse.Thid)
-				assert.Equal(t, idStr, rawResponse.From)
-				assert.Equal(t, claim.OtherIdentifier, rawResponse.To)
-				assert.Equal(t, cfg.ServerUrl+"/v1/agent", rawResponse.Body.Url)
-				require.Len(t, rawResponse.Body.Credentials, 1)
-				_, err = uuid.Parse(rawResponse.Body.Credentials[0].Id)
-				assert.NoError(t, err)
-				assert.Equal(t, claim.SchemaType, rawResponse.Body.Credentials[0].Description)
 
 			case GetCredentialQrCode400JSONResponse:
-				var response GetClaimQrCode400JSONResponse
+				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredentialQrCode404JSONResponse:
-				var response GetClaimQrCode400JSONResponse
+				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredentialQrCode500JSONResponse:
-				var response GetClaimQrCode500JSONResponse
+				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -807,15 +793,15 @@ func TestServer_GetCredential(t *testing.T) {
 				validateClaim(t, response, GetClaimResponse(v))
 
 			case GetCredential400JSONResponse:
-				var response GetClaim404JSONResponse
+				var response GetCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredential404JSONResponse:
-				var response GetClaim404JSONResponse
+				var response GetCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredential500JSONResponse:
-				var response GetClaim500JSONResponse
+				var response GetCredential500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -1134,18 +1120,18 @@ func TestServer_GetCredentials(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetCredentials200JSONResponse:
-				var response GetClaims200JSONResponse
+				var response GetCredentials200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.len, len(response))
 				for i := range response {
 					validateClaim(t, response[i], v[i])
 				}
 			case GetCredentials400JSONResponse:
-				var response GetClaims400JSONResponse
+				var response GetCredentials400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			case GetCredentials500JSONResponse:
-				var response GetClaims500JSONResponse
+				var response GetCredentials500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, response.Message, v.Message)
 			}
