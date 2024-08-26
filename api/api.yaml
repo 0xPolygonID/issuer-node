@@ -271,7 +271,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/retry:
+  /v1/identities/{identifier}/state/retry:
     post:
       summary: Retry Publish Identity State
       operationId: RetryPublishState
