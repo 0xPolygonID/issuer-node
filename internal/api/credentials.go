@@ -151,25 +151,7 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 	}, nil
 }
 
-// GetRevocationStatusV2 is the controller to get revocation status
-func (s *Server) GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error) {
-	resp, err := s.GetRevocationStatus(ctx, GetRevocationStatusRequestObject(request))
-	if err != nil {
-		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	switch ret := resp.(type) {
-	case GetRevocationStatus200JSONResponse:
-		return GetRevocationStatusV2200JSONResponse(ret), nil
-	case GetRevocationStatus500JSONResponse:
-		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{Message: ret.Message}}, nil
-	default:
-		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
-		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
-	}
-}
-
 // GetRevocationStatus is the controller to get revocation status
-// Deprecated - use GetRevocationStatusV2 instead
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
 	issuerDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {

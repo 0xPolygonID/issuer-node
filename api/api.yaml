@@ -881,30 +881,8 @@ paths:
   /v1/{identifier}/credentials/revocation/status/{nonce}:
     get:
       summary: Get Revocation Status
-      operationId: GetRevocationStatusV2
-      description: Endpoint to get the revocation status
-      tags:
-        - Credentials
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - $ref: '#/components/parameters/pathNonce'
-      responses:
-        '200':
-          description: Proof
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RevocationStatusResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/{identifier}/claims/revocation/status/{nonce}:
-    get:
-      summary: Get Revocation Status (Deprecated)
       operationId: GetRevocationStatus
-      description: Endpoint to get the revocation status. DEPRECATED use /v1/{identifier}/credentials/revocation/status/{nonce} instead
+      description: Endpoint to get the revocation status
       tags:
         - Credentials
       parameters:
