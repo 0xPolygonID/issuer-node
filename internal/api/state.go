@@ -63,6 +63,7 @@ func (s *Server) GetStateTransactions(ctx context.Context, request GetStateTrans
 	const (
 		defaultPage       = uint(1)
 		defaultMaxResults = uint(10)
+		defaultFilter     = "all"
 	)
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
@@ -79,7 +80,12 @@ func (s *Server) GetStateTransactions(ctx context.Context, request GetStateTrans
 		maxResults = *request.Params.MaxResults
 	}
 
-	states, err := s.identityService.GetStates(ctx, *did, page, maxResults)
+	filter := defaultFilter
+	if request.Params.Filter != nil {
+		filter = string(*request.Params.Filter)
+	}
+
+	states, err := s.identityService.GetStates(ctx, *did, page, maxResults, filter)
 	if err != nil {
 		log.Error(ctx, "get state transactions", "err", err)
 		return GetStateTransactions500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil

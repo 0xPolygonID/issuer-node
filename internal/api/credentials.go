@@ -443,11 +443,11 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsPaginatedReques
 	}
 	if req.Params.Status != nil {
 		switch GetCredentialsPaginatedParamsStatus(strings.ToLower(string(*req.Params.Status))) {
-		case Revoked:
+		case GetCredentialsPaginatedParamsStatusRevoked:
 			filter.Revoked = common.ToPointer(true)
-		case Expired:
+		case GetCredentialsPaginatedParamsStatusExpired:
 			filter.ExpiredOn = common.ToPointer(time.Now())
-		case All:
+		case GetCredentialsPaginatedParamsStatusAll:
 			// Nothing to be done
 		default:
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")

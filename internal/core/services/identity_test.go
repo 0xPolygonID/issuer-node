@@ -225,7 +225,7 @@ func Test_identity_CreateIdentityWithRHSNone(t *testing.T) {
 
 		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
-		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthBJJCredentialStatus: verifiable.Iden3commRevocationStatusV1})
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthCredentialStatus: verifiable.Iden3commRevocationStatusV1})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)
@@ -359,7 +359,7 @@ func Test_identity_CreateIdentityWithRHSOffChain(t *testing.T) {
 
 		revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 		identityService := NewIdentity(keyStore, identityRepo, mtRepo, identityStateRepo, mtService, nil, claimsRepo, revocationRepository, connectionsRepository, storage, nil, nil, pubsub.NewMock(), *networkResolver, rhsFactoryMock, revocationStatusResolver)
-		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthBJJCredentialStatus: verifiable.Iden3ReverseSparseMerkleTreeProof})
+		identity, err := identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: net, KeyType: BJJ, AuthCredentialStatus: verifiable.Iden3ReverseSparseMerkleTreeProof})
 		assert.NoError(t, err)
 		assert.NotNil(t, identity.Identifier)
 		assert.NotNil(t, identity.AuthCoreClaimRevocationStatus)

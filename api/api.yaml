@@ -14,37 +14,13 @@ tags:
     description: Collection of endpoints related to Mobile
 
 paths:
-  /:
-    get:
-      summary: Get the documentation
-      operationId: GetDocumentation
-      x-internal: true
-      responses:
-        200:
-          description: success and returns the documentation in HTML format
-
-  /favicon.ico:
-    get:
-      summary: Gets the favicon
-      operationId: GetFavicon
-      x-internal: true
-      responses:
-        200:
-          description: success and returns a favicon
-
-  /static/docs/api/api.yaml:
-    get:
-      summary: Get the documentation yaml file
-      operationId: GetYaml
-      x-internal: true
-      responses:
-        200:
-          description: success and returns the documentation in Yaml format
 
   /status:
     get:
       summary: Healthcheck
       operationId: Health
+      tags:
+        - Config
       responses:
         '200':
           description: All services are running
@@ -55,23 +31,6 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /config:
-    get:
-      summary: Get Config
-      operationId: GetConfig
-      security:
-        - basicAuth: [ ]
-      responses:
-        '200':
-          description: Config
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Config'
-        '500':
-          $ref: '#/components/responses/500'
-
-      
   /v1/supported-networks:
     get:
       summary: Get Supported Networks
@@ -196,7 +155,7 @@ paths:
         * BJJ Keys
         * ETH Keys
         
-        `authBJJCredentialStatus` field is optional and and defines how the auth core claim will be evaluated during 
+        `credentialStatusType` field is optional and and defines how the auth core claim will be evaluated during 
         the process to verify that it has not been revoked.
       tags:
         - Identity
@@ -222,7 +181,7 @@ paths:
         '403':
           $ref: '#/components/responses/403'
         '500':
-          $ref: '#/components/responses/500-CreateIdentity'
+          $ref: '#/components/responses/500'
     get:
       summary: Get Identities
       operationId: GetIdentities
@@ -248,10 +207,10 @@ paths:
 
   /v1/identities/{identifier}:
     patch:
-      summary: Update Identity DisplayName field
-      operationId: UpdateIdentityDisplayName
+      summary: Update Identity
+      operationId: UpdateIdentity
       description: |
-        Endpoint to update the displayName field of an identity.
+        Endpoint to update the identity.
         The displayName field is used to identify the identity in the UI.
       tags:
         - Identity
@@ -289,7 +248,7 @@ paths:
     
   /v1/identities/{identifier}/details:
     get:
-      summary: Identity Detail
+      summary: Get Identity Detail
       operationId: GetIdentityDetails
       description: Endpoint to get an identity details
       tags:
@@ -312,10 +271,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/retry:
+  /v1/identities/{identifier}/state/retry:
     post:
       summary: Retry Publish Identity State
       operationId: RetryPublishState
+      description: Endpoint to retry publish identity state. If the publish state failed, this endpoint can be used to retry the publish.
       security:
         - basicAuth: [ ]
       parameters:
@@ -334,11 +294,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/publish:
+  /v1/identities/{identifier}/state/publish:
     post:
       summary: Publish Identity State
       operationId: PublishIdentityState
-      description: Endpoint to publish identity state
+      description: Endpoint to publish identity state.
       tags:
         - Identity
       security:
@@ -351,7 +311,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericErrorMessage'
+                $ref: '#/components/schemas/GenericMessage'
         '202':
           description: Transaction ID of the published  state
           content:
@@ -365,16 +325,25 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/transactions:
+  /v1/identities/{identifier}/state/transactions:
     get:
       summary: Get Identity State Transactions
       operationId: GetStateTransactions
+      description: |
+        Endpoint to get identity state transactions.
+        To get all transactions, use the filter `all`. To get the latest transaction, use the filter `latest`.
+        The transactions are paginated for `filter=all`. If the filter is not provided, the default is `all`.
       security:
         - basicAuth: [ ]
       tags:
         - Identity
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
+        - in: query
+          name: filter
+          schema:
+            type: string
+            enum: [ all, latest ]
         - in: query
           name: page
           schema:
@@ -403,12 +372,12 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/state/status:
+  /v1/identities/{identifier}/state/status:
     get:
       summary: Get Identity State Status
       operationId: GetStateStatus
       description: |
-        Endpoint to get identity state status, if the identity is published or not.
+        Endpoint to get identity state status, if the identity status is published or not.
         If the status is `pendingActions` is true it means that the identity has pending actions to be published.
       security:
         - basicAuth: [ ]
@@ -1375,11 +1344,11 @@ components:
               x-omitempty: false
               example: "BJJ"
               enum: [ BJJ, ETH ]
-            authBJJCredentialStatus:
-              type: string
-              x-omitempty: true
-              example: "Iden3ReverseSparseMerkleTreeProof"
-              enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+        credentialStatusType:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
               type: string
               x-omitempty: true
@@ -1390,6 +1359,7 @@ components:
       required:
         - identity
         - status
+        - keyType
       properties:
         identifier:
           type: string
@@ -1399,30 +1369,35 @@ components:
           $ref: '#/components/schemas/IdentityState'
         address:
           type: string
-          x-omitempty: false
+          x-omitempty: true
+        balance:
+          type: string
+          x-omitempty: true
+        keyType:
+          type: string
+
 
     GetIdentityDetailsResponse:
       type: object
       required:
         - identity
         - status
-        - authCoreClaimRevocationStatus
         - keyType
       properties:
         identifier:
+          type: string
+        displayName:
           type: string
         state:
           $ref: '#/components/schemas/IdentityState'
         address:
           type: string
+          x-omitempty: true
         balance:
           type: string
+          x-omitempty: true
         keyType:
           type: string
-        displayName:
-          type: string
-        authCoreClaimRevocationStatus:
-          $ref: '#/components/schemas/authCoreClaimRevocationStatus'
 
     authCoreClaimRevocationStatus:
       type: object
@@ -1528,7 +1503,7 @@ components:
           example: 1
         txID:
           type: string
-          example: 0x8f271174b45ba7892d83d7210c9b54b70ee1e02a63a0f7abf6308663bc462eac
+          example: 0x8f271174b45ba7892d83...
         state:
           type: string
           example: 13f9aadd4801d775e85a7ef45c2f6d02cdf83f0d724250417b165ff9cd88ee21
