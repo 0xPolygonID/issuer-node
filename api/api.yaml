@@ -644,14 +644,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateClaimRequest'
+              $ref: '#/components/schemas/CreateCredentialRequest'
       responses:
         '201':
           description: Credential Created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateClaimResponse'
+                $ref: '#/components/schemas/CreateCredentialResponse'
         '400':
           $ref: '#/components/responses/400'
         '401':
@@ -1738,7 +1738,7 @@ components:
             - "Iden3BasicDisplayMethodV1"
 
     #claims
-    CreateClaimRequest:
+    CreateCredentialRequest:
       type: object
       required:
         - credentialSchema
@@ -1796,7 +1796,7 @@ components:
           documentType: 2
         expiration: 1903357766
 
-    CreateClaimResponse:
+    CreateCredentialResponse:
       type: object
       required:
         - id

@@ -23,17 +23,17 @@ const (
 	BasicAuthScopes = "basicAuth.Scopes"
 )
 
-// Defines values for CreateClaimRequestCredentialStatusType.
+// Defines values for CreateCredentialRequestCredentialStatusType.
 const (
-	CreateClaimRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateClaimRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
-	CreateClaimRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateClaimRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateClaimRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateClaimRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	CreateCredentialRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateCredentialRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateCredentialRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateCredentialRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateCredentialRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
-// Defines values for CreateClaimRequestProofs.
+// Defines values for CreateCredentialRequestProofs.
 const (
-	BJJSignature2021           CreateClaimRequestProofs = "BJJSignature2021"
-	Iden3SparseMerkleTreeProof CreateClaimRequestProofs = "Iden3SparseMerkleTreeProof"
+	BJJSignature2021           CreateCredentialRequestProofs = "BJJSignature2021"
+	Iden3SparseMerkleTreeProof CreateCredentialRequestProofs = "Iden3SparseMerkleTreeProof"
 )
 
 // Defines values for CreateIdentityRequestDidMetadataAuthBJJCredentialStatus.
@@ -157,39 +157,39 @@ type ConnectionsPaginated struct {
 	Meta  PaginatedMetadata      `json:"meta"`
 }
 
-// CreateClaimRequest defines model for CreateClaimRequest.
-type CreateClaimRequest struct {
-	ClaimID               *uuid.UUID                              `json:"claimID"`
-	CredentialSchema      string                                  `json:"credentialSchema"`
-	CredentialStatusType  *CreateClaimRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
-	CredentialSubject     map[string]interface{}                  `json:"credentialSubject"`
-	DisplayMethod         *DisplayMethod                          `json:"displayMethod,omitempty"`
-	Expiration            *int64                                  `json:"expiration,omitempty"`
-	MerklizedRootPosition *string                                 `json:"merklizedRootPosition,omitempty"`
-	Proofs                *[]CreateClaimRequestProofs             `json:"proofs,omitempty"`
-	RefreshService        *RefreshService                         `json:"refreshService,omitempty"`
-	RevNonce              *uint64                                 `json:"revNonce,omitempty"`
-	SubjectPosition       *string                                 `json:"subjectPosition,omitempty"`
-	Type                  string                                  `json:"type"`
-	Version               *uint32                                 `json:"version,omitempty"`
-}
-
-// CreateClaimRequestCredentialStatusType defines model for CreateClaimRequest.CredentialStatusType.
-type CreateClaimRequestCredentialStatusType string
-
-// CreateClaimRequestProofs defines model for CreateClaimRequest.Proofs.
-type CreateClaimRequestProofs string
-
-// CreateClaimResponse defines model for CreateClaimResponse.
-type CreateClaimResponse struct {
-	Id string `json:"id"`
-}
-
 // CreateConnectionRequest defines model for CreateConnectionRequest.
 type CreateConnectionRequest struct {
 	IssuerDoc map[string]interface{} `json:"issuerDoc"`
 	UserDID   string                 `json:"userDID"`
 	UserDoc   map[string]interface{} `json:"userDoc"`
+}
+
+// CreateCredentialRequest defines model for CreateCredentialRequest.
+type CreateCredentialRequest struct {
+	ClaimID               *uuid.UUID                                   `json:"claimID"`
+	CredentialSchema      string                                       `json:"credentialSchema"`
+	CredentialStatusType  *CreateCredentialRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	CredentialSubject     map[string]interface{}                       `json:"credentialSubject"`
+	DisplayMethod         *DisplayMethod                               `json:"displayMethod,omitempty"`
+	Expiration            *int64                                       `json:"expiration,omitempty"`
+	MerklizedRootPosition *string                                      `json:"merklizedRootPosition,omitempty"`
+	Proofs                *[]CreateCredentialRequestProofs             `json:"proofs,omitempty"`
+	RefreshService        *RefreshService                              `json:"refreshService,omitempty"`
+	RevNonce              *uint64                                      `json:"revNonce,omitempty"`
+	SubjectPosition       *string                                      `json:"subjectPosition,omitempty"`
+	Type                  string                                       `json:"type"`
+	Version               *uint32                                      `json:"version,omitempty"`
+}
+
+// CreateCredentialRequestCredentialStatusType defines model for CreateCredentialRequest.CredentialStatusType.
+type CreateCredentialRequestCredentialStatusType string
+
+// CreateCredentialRequestProofs defines model for CreateCredentialRequest.Proofs.
+type CreateCredentialRequestProofs string
+
+// CreateCredentialResponse defines model for CreateCredentialResponse.
+type CreateCredentialResponse struct {
+	Id string `json:"id"`
 }
 
 // CreateIdentityRequest defines model for CreateIdentityRequest.
@@ -788,7 +788,7 @@ type UpdateIdentityDisplayNameJSONRequestBody UpdateIdentityDisplayNameJSONBody
 type CreateConnectionJSONRequestBody = CreateConnectionRequest
 
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
-type CreateCredentialJSONRequestBody = CreateClaimRequest
+type CreateCredentialJSONRequestBody = CreateCredentialRequest
 
 // CreateLinkJSONRequestBody defines body for CreateLink for application/json ContentType.
 type CreateLinkJSONRequestBody = CreateLinkRequest
@@ -3806,7 +3806,7 @@ type CreateCredentialResponseObject interface {
 	VisitCreateCredentialResponse(w http.ResponseWriter) error
 }
 
-type CreateCredential201JSONResponse CreateClaimResponse
+type CreateCredential201JSONResponse CreateCredentialResponse
 
 func (response CreateCredential201JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

@@ -187,7 +187,7 @@ func TestServer_CreateCredential(t *testing.T) {
 		name     string
 		auth     func() (string, string)
 		did      string
-		body     CreateClaimRequest
+		body     CreateCredentialRequest
 		expected expected
 	}
 	for _, tc := range []testConfig{
@@ -203,7 +203,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -223,7 +223,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with two proofs",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -232,7 +232,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"BJJSignature2021",
 					"Iden3SparseMerkleTreeProof",
 				},
@@ -247,7 +247,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with bjjSignature proof",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -256,7 +256,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"BJJSignature2021",
 				},
 			},
@@ -270,7 +270,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with Iden3SparseMerkleTreeProof proof",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -279,7 +279,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"Iden3SparseMerkleTreeProof",
 				},
 			},
@@ -293,7 +293,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with ipfs schema",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
 				Type:             "testNewType",
 				CredentialSubject: map[string]any{
@@ -312,7 +312,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with refresh service",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
 				Type:             "testNewType",
 				CredentialSubject: map[string]any{
@@ -335,7 +335,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with credentials id",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				ClaimID:          common.ToPointer(claimID),
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
@@ -345,7 +345,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"BJJSignature2021",
 					"Iden3SparseMerkleTreeProof",
 				},
@@ -362,7 +362,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Wrong credential url",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "wrong url",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -381,7 +381,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Unreachable well formed credential url",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -400,7 +400,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Wrong proof type",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -409,7 +409,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs:     &[]CreateClaimRequestProofs{"wrong proof"},
+				Proofs:     &[]CreateCredentialRequestProofs{"wrong proof"},
 			},
 			expected: expected{
 				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
@@ -434,7 +434,7 @@ func TestServer_CreateCredential(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
-				var response CreateClaimResponse
+				var response CreateCredentialResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
