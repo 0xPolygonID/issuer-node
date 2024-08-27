@@ -11,38 +11,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
-	"github.com/iden3/iden3comm/v2/packers"
-	"github.com/iden3/iden3comm/v2/protocol"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
-	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/log"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
 )
-
-// CreateCredential is the creation credential controller. It creates a credential and returns the id
-func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
-	ret, err := s.CreateClaim(ctx, CreateClaimRequestObject(request))
-	if err != nil {
-		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, err
-	}
-	switch ret := ret.(type) {
-	case CreateClaim201JSONResponse:
-		return CreateCredential201JSONResponse(ret), nil
-	case CreateClaim400JSONResponse:
-		return CreateCredential400JSONResponse{N400JSONResponse{Message: ret.Message}}, nil
-	case CreateClaim422JSONResponse:
-		return CreateCredential422JSONResponse{N422JSONResponse{Message: ret.Message}}, nil
-	case CreateClaim500JSONResponse:
-		return CreateCredential500JSONResponse{N500JSONResponse{Message: ret.Message}}, nil
-	default:
-		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
-		return CreateCredential500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
-	}
-}
 
 // DeleteCredential deletes a credential
 func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error) {
@@ -62,12 +38,11 @@ func (s *Server) DeleteCredential(ctx context.Context, request DeleteCredentialR
 	return DeleteCredential200JSONResponse{Message: "Credential successfully deleted"}, nil
 }
 
-// CreateClaim is claim creation controller
-// deprecated - Use CreateCredential instead
-func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObject) (CreateClaimResponseObject, error) {
+// CreateCredential is the creation credential controller. It creates a credential and returns the id
+func (s *Server) CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error) {
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 	var expiration *time.Time
 	if request.Body.Expiration != nil {
@@ -88,7 +63,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 				claimRequestProofs.Iden3SparseMerkleTreeProof = true
 				continue
 			}
-			return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unsupported proof type: %s", proof)}}, nil
+			return CreateCredential400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("unsupported proof type: %s", proof)}}, nil
 		}
 	}
 
@@ -99,7 +74,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
 		if !slices.Contains(allowedCredentialStatuses, string(*request.Body.CredentialStatusType)) {
 			log.Warn(ctx, "invalid credential status type", "req", request)
-			return CreateClaim400JSONResponse{
+			return CreateCredential400JSONResponse{
 				N400JSONResponse{
 					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *request.Body.CredentialStatusType),
 				},
@@ -110,17 +85,17 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 
 	resolverPrefix, err := common.ResolverPrefix(did)
 	if err != nil {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error parsing did"}}, nil
 	}
 
 	rhsSettings, err := s.networkResolver.GetRhsSettings(ctx, resolverPrefix)
 	if err != nil {
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: "error getting reverse hash service settings"}}, nil
 	}
 
 	if !s.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
 		log.Warn(ctx, "unsupported credential status type", "req", request)
-		return CreateClaim400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
+		return CreateCredential400JSONResponse{N400JSONResponse{Message: fmt.Sprintf("Credential Status Type '%s' is not supported by the issuer", credentialStatusType)}}, nil
 	}
 
 	req := ports.NewCreateClaimRequest(did, request.Body.ClaimID, request.Body.CredentialSchema, request.Body.CredentialSubject, expiration, request.Body.Type, request.Body.Version, request.Body.SubjectPosition, request.Body.MerklizedRootPosition, claimRequestProofs, nil, false, credentialStatusType, toVerifiableRefreshService(request.Body.RefreshService), request.Body.RevNonce,
@@ -129,7 +104,7 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 	resp, err := s.claimService.Save(ctx, req)
 	if err != nil {
 		if errors.Is(err, services.ErrLoadingSchema) {
-			return CreateClaim422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
+			return CreateCredential422JSONResponse{N422JSONResponse{Message: err.Error()}}, nil
 		}
 		errs := []error{
 			services.ErrJSONLdContext,
@@ -146,19 +121,19 @@ func (s *Server) CreateClaim(ctx context.Context, request CreateClaimRequestObje
 		}
 		for _, e := range errs {
 			if errors.Is(err, e) {
-				return CreateClaim400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+				return CreateCredential400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 			}
 		}
-		return CreateClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+		return CreateCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
-	return CreateClaim201JSONResponse{Id: resp.ID.String()}, nil
+	return CreateCredential201JSONResponse{Id: resp.ID.String()}, nil
 }
 
 // RevokeCredential is the revocation claim controller
 func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error) {
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		log.Warn(ctx, "revoke credential: invalid did", "err", err, "req", request)
+		log.Warn(ctx, "revoke claim invalid did", "err", err, "req", request)
 		return RevokeCredential400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
@@ -176,48 +151,7 @@ func (s *Server) RevokeCredential(ctx context.Context, request RevokeCredentialR
 	}, nil
 }
 
-// RevokeClaim is the revocation claim controller.
-// Deprecated - use RevokeCredential instead
-func (s *Server) RevokeClaim(ctx context.Context, request RevokeClaimRequestObject) (RevokeClaimResponseObject, error) {
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		log.Warn(ctx, "revoke claim invalid did", "err", err, "req", request)
-		return RevokeClaim400JSONResponse{N400JSONResponse{err.Error()}}, nil
-	}
-
-	if err := s.claimService.Revoke(ctx, *did, uint64(request.Nonce), ""); err != nil {
-		if errors.Is(err, repositories.ErrClaimDoesNotExist) {
-			return RevokeClaim404JSONResponse{N404JSONResponse{
-				Message: "the claim does not exist",
-			}}, nil
-		}
-
-		return RevokeClaim500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	return RevokeClaim202JSONResponse{
-		Message: "claim revocation request sent",
-	}, nil
-}
-
-// GetRevocationStatusV2 is the controller to get revocation status
-func (s *Server) GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error) {
-	resp, err := s.GetRevocationStatus(ctx, GetRevocationStatusRequestObject(request))
-	if err != nil {
-		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	switch ret := resp.(type) {
-	case GetRevocationStatus200JSONResponse:
-		return GetRevocationStatusV2200JSONResponse(ret), nil
-	case GetRevocationStatus500JSONResponse:
-		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{Message: ret.Message}}, nil
-	default:
-		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
-		return GetRevocationStatusV2500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
-	}
-}
-
 // GetRevocationStatus is the controller to get revocation status
-// Deprecated - use GetRevocationStatusV2 instead
 func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error) {
 	issuerDID, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
@@ -264,43 +198,6 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	return response, err
 }
 
-// GetCredential is the controller to get a credential
-func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
-	resp, err := s.GetClaim(ctx, GetClaimRequestObject(request))
-	if err != nil {
-		return GetCredential500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	switch ret := resp.(type) {
-	case GetClaim200JSONResponse:
-		return GetCredential200JSONResponse{
-			Context: ret.Context,
-			CredentialSchema: CredentialSchema{
-				Id:   ret.CredentialSchema.Id,
-				Type: ret.CredentialSchema.Type,
-			},
-			CredentialStatus:  ret.CredentialStatus,
-			CredentialSubject: ret.CredentialSubject,
-			DisplayMethod:     ret.DisplayMethod,
-			ExpirationDate:    ret.ExpirationDate,
-			Id:                ret.Id,
-			IssuanceDate:      ret.IssuanceDate,
-			Issuer:            ret.Issuer,
-			Proof:             ret.Proof,
-			RefreshService:    ret.RefreshService,
-			Type:              ret.Type,
-		}, nil
-	case GetClaim400JSONResponse:
-		return GetCredential400JSONResponse{N400JSONResponse{Message: ret.Message}}, nil
-	case GetClaim404JSONResponse:
-		return GetCredential404JSONResponse{N404JSONResponse{Message: ret.Message}}, nil
-	case GetClaim500JSONResponse:
-		return GetCredential500JSONResponse{N500JSONResponse{Message: ret.Message}}, nil
-	default:
-		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
-		return GetCredential500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
-	}
-}
-
 // GetCredentialsPaginated returns a collection of credentials that matches the request.
 func (s *Server) GetCredentialsPaginated(ctx context.Context, request GetCredentialsPaginatedRequestObject) (GetCredentialsPaginatedResponseObject, error) {
 	filter, err := getCredentialsFilter(ctx, request)
@@ -342,75 +239,51 @@ func (s *Server) GetCredentialsPaginated(ctx context.Context, request GetCredent
 	return resp, nil
 }
 
-// GetClaim is the controller to get a claim.
-// Deprecated - use GetCredential instead
-func (s *Server) GetClaim(ctx context.Context, request GetClaimRequestObject) (GetClaimResponseObject, error) {
+// GetCredential is the controller to get a credential
+func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error) {
 	if request.Identifier == "" {
-		return GetClaim400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
+		return GetCredential400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		return GetClaim400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+		return GetCredential400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
 	if request.Id == "" {
-		return GetClaim400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
+		return GetCredential400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
 	}
 
 	clID, err := uuid.Parse(request.Id)
 	if err != nil {
-		return GetClaim400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
+		return GetCredential400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
 	}
 
 	claim, err := s.claimService.GetByID(ctx, did, clID)
 	if err != nil {
 		if errors.Is(err, services.ErrCredentialNotFound) {
-			return GetClaim404JSONResponse{N404JSONResponse{err.Error()}}, nil
+			return GetCredential404JSONResponse{N404JSONResponse{err.Error()}}, nil
 		}
-		return GetClaim500JSONResponse{N500JSONResponse{err.Error()}}, nil
+		return GetCredential500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
 
 	w3c, err := schema.FromClaimModelToW3CCredential(*claim)
 	if err != nil {
-		return GetClaim500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
+		return GetCredential500JSONResponse{N500JSONResponse{"invalid claim format"}}, nil
 	}
 
-	return GetClaim200JSONResponse(toGetClaim200Response(w3c)), nil
+	return GetCredential200JSONResponse(toGetCredential200Response(w3c)), nil
 }
 
 // GetCredentials is the controller to get multiple credentials of a determined identity
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	resp, err := s.GetClaims(ctx, GetClaimsRequestObject{
-		Identifier: request.Identifier,
-		Params:     GetClaimsParams(request.Params),
-	})
-	if err != nil {
-		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
-	}
-	switch ret := resp.(type) {
-	case GetClaims200JSONResponse:
-		return GetCredentials200JSONResponse(ret), nil
-	case GetClaims400JSONResponse:
-		return GetCredentials400JSONResponse{N400JSONResponse{Message: ret.Message}}, nil
-	case GetClaims500JSONResponse:
-		return GetCredentials500JSONResponse{N500JSONResponse{Message: ret.Message}}, nil
-	default:
-		log.Error(ctx, "unexpected return type", "type", fmt.Sprintf("%T", ret))
-		return GetCredentials500JSONResponse{N500JSONResponse{Message: fmt.Sprintf("unexpected return type: %T", ret)}}, nil
-	}
-}
-
-// GetClaims is the controller to get multiple claims of a determined identity
-// deprecated: use GetCredentials instead
-func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) (GetClaimsResponseObject, error) {
 	if request.Identifier == "" {
-		return GetClaims400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
+		return GetCredentials400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
 	}
 
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		return GetClaims400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+		return GetCredentials400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
 	filter, err := ports.NewClaimsFilter(
@@ -422,20 +295,20 @@ func (s *Server) GetClaims(ctx context.Context, request GetClaimsRequestObject) 
 		request.Params.Self,
 		request.Params.Revoked)
 	if err != nil {
-		return GetClaims400JSONResponse{N400JSONResponse{err.Error()}}, nil
+		return GetCredentials400JSONResponse{N400JSONResponse{err.Error()}}, nil
 	}
 
 	claims, _, err := s.claimService.GetAll(ctx, *did, filter)
 	if err != nil && !errors.Is(err, services.ErrCredentialNotFound) {
-		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
+		return GetCredentials500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
 	}
 
 	w3Claims, err := schema.FromClaimsModelToW3CCredential(claims)
 	if err != nil {
-		return GetClaims500JSONResponse{N500JSONResponse{"there was an internal error parsing the claims"}}, nil
+		return GetCredentials500JSONResponse{N500JSONResponse{"there was an internal error parsing the claims"}}, nil
 	}
 
-	return GetClaims200JSONResponse(toGetClaims200Response(w3Claims)), nil
+	return GetCredentials200JSONResponse(toGetCredentials200Response(w3Claims)), nil
 }
 
 // GetCredentialQrCode returns a GetCredentialQrCodeResponseObject raw or link type based on query parameter `type`
@@ -485,43 +358,6 @@ func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQ
 	}, nil
 }
 
-// GetClaimQrCode returns a GetClaimQrCodeResponseObject that can be used with any QR generator to create a QR and
-// scan it with polygon wallet to accept the claim
-// deprecated - use GetCredentialQrCode instead
-func (s *Server) GetClaimQrCode(ctx context.Context, request GetClaimQrCodeRequestObject) (GetClaimQrCodeResponseObject, error) {
-	if request.Identifier == "" {
-		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
-	}
-
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-
-	if request.Id == "" {
-		return GetClaimQrCode400JSONResponse{N400JSONResponse{"cannot proceed with an empty claim id"}}, nil
-	}
-
-	claimID, err := uuid.Parse(request.Id)
-	if err != nil {
-		return GetClaimQrCode400JSONResponse{N400JSONResponse{"invalid claim id"}}, nil
-	}
-
-	claim, err := s.claimService.GetByID(ctx, did, claimID)
-	if err != nil {
-		if errors.Is(err, services.ErrCredentialNotFound) {
-			return GetClaimQrCode404JSONResponse{N404JSONResponse{err.Error()}}, nil
-		}
-		return GetClaimQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
-	}
-
-	if !claim.ValidProof() {
-		return GetClaimQrCode409JSONResponse{N409JSONResponse{"State must be published before fetching MTP type credential"}}, nil
-	}
-
-	return toGetClaimQrCode200JSONResponse(claim, s.cfg.ServerUrl), nil
-}
-
 func toVerifiableRefreshService(s *RefreshService) *verifiable.RefreshService {
 	if s == nil {
 		return nil
@@ -542,16 +378,16 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 	}
 }
 
-func toGetClaims200Response(claims []*verifiable.W3CCredential) GetClaimsResponse {
-	response := make(GetClaims200JSONResponse, len(claims))
+func toGetCredentials200Response(claims []*verifiable.W3CCredential) GetClaimsResponse {
+	response := make(GetCredentials200JSONResponse, len(claims))
 	for i := range claims {
-		response[i] = toGetClaim200Response(claims[i])
+		response[i] = toGetCredential200Response(claims[i])
 	}
 
 	return response
 }
 
-func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
+func toGetCredential200Response(claim *verifiable.W3CCredential) GetCredentialResponse {
 	var claimExpiration, claimIssuanceDate *TimeUTC
 	if claim.Expiration != nil {
 		claimExpiration = common.ToPointer(TimeUTC(*claim.Expiration))
@@ -576,7 +412,7 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		}
 	}
 
-	return GetClaimResponse{
+	return GetCredentialResponse{
 		Context: claim.Context,
 		CredentialSchema: CredentialSchema{
 			claim.CredentialSchema.ID,
@@ -592,36 +428,6 @@ func toGetClaim200Response(claim *verifiable.W3CCredential) GetClaimResponse {
 		Type:              claim.Type,
 		RefreshService:    refreshService,
 		DisplayMethod:     displayMethod,
-	}
-}
-
-func toGetClaimQrCode200JSONResponse(claim *domain.Claim, hostURL string) GetClaimQrCode200JSONResponse {
-	id := uuid.New()
-	return GetClaimQrCode200JSONResponse{
-		Body: struct {
-			Credentials []struct {
-				Description string `json:"description"`
-				Id          string `json:"id"`
-			} `json:"credentials"`
-			Url string `json:"url"`
-		}{
-			Credentials: []struct {
-				Description string `json:"description"`
-				Id          string `json:"id"`
-			}{
-				{
-					Description: claim.SchemaType,
-					Id:          claim.ID.String(),
-				},
-			},
-			Url: fmt.Sprintf("%s/v1/agent", strings.TrimSuffix(hostURL, "/")),
-		},
-		From: claim.Issuer,
-		Id:   id.String(),
-		Thid: id.String(),
-		To:   claim.OtherIdentifier,
-		Typ:  string(packers.MediaTypePlainMessage),
-		Type: string(protocol.CredentialOfferMessageType),
 	}
 }
 
