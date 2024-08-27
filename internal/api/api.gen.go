@@ -830,7 +830,7 @@ type ServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v1/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
-	// QrCode body
+	// Get QrCode from store
 	// (GET /v1/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
 	// Get Supported Networks
@@ -1010,7 +1010,7 @@ func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// QrCode body
+// Get QrCode from store
 // (GET /v1/qr-store)
 func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -4375,7 +4375,7 @@ type StrictServerInterface interface {
 	// Get Identity State Transactions
 	// (GET /v1/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
-	// QrCode body
+	// Get QrCode from store
 	// (GET /v1/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
 	// Get Supported Networks
