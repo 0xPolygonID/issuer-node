@@ -179,6 +179,11 @@ ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
 	echo ">>> importing private key to LOCALSTORAGE"
 	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	@if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+	  mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+	  touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+	  echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+	fi
 	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
 	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)
