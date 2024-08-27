@@ -601,7 +601,7 @@ paths:
     post:
       summary: Create Credential
       operationId: CreateCredential
-      description: Endpoint to create a Credential
+      description: Creates a credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -633,10 +633,10 @@ paths:
       summary: Get Credentials
       operationId: GetCredentials
       description: |
-        Endpoint to retrieve Credentials 
+        Return the list of credentials for the provided identity with the possibility to filter by schema type, schema hash, subject, revoked, self and query_field and query_value. | 
         > ⚠️ **self** and **subject** filter cannot be used together
       tags:
-        - Claim
+        - Credentials
       security:
         - basicAuth: [ ]
       parameters:
@@ -769,9 +769,9 @@ paths:
 
   /v1/identities/{identifier}/credentials/{id}:
     get:
-      summary: Credential
+      summary: Get Credential
       operationId: GetCredential
-      description: Endpoint to retrieve a created Credential
+      description: Get a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -797,7 +797,7 @@ paths:
     delete:
       summary: Delete Credential
       operationId: DeleteCredential
-      description: Endpoint to delete a Credential
+      description: Remove a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -823,7 +823,7 @@ paths:
     post:
       summary: Revoke Credential
       operationId: RevokeCredential
-      description: Endpoint to revoke a credential
+      description: Revokes a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -873,7 +873,8 @@ paths:
     get:
       summary: Get Credentials QR code
       operationId: GetCredentialQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim.
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
+        Response can be in two formats `raw` or `link`. Default is `link`. Raw is the raw QR code and link is a QR code with a link to the raw content.
       tags:
         - Credentials
       security:

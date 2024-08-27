@@ -839,7 +839,7 @@ type ServerInterface interface {
 	// Delete Credential
 	// (DELETE /v1/identities/{identifier}/credentials/{id})
 	DeleteCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
-	// Credential
+	// Get Credential
 	// (GET /v1/identities/{identifier}/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Get Credentials QR code
@@ -1004,7 +1004,7 @@ func (_ Unimplemented) DeleteCredential(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Credential
+// Get Credential
 // (GET /v1/identities/{identifier}/credentials/{id})
 func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -4528,7 +4528,7 @@ type StrictServerInterface interface {
 	// Delete Credential
 	// (DELETE /v1/identities/{identifier}/credentials/{id})
 	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
-	// Credential
+	// Get Credential
 	// (GET /v1/identities/{identifier}/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
 	// Get Credentials QR code
