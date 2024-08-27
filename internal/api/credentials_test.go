@@ -16,8 +16,6 @@ import (
 	core "github.com/iden3/go-iden3-core/v2"
 	"github.com/iden3/go-iden3-core/v2/w3c"
 	"github.com/iden3/go-schema-processor/v2/verifiable"
-	"github.com/iden3/iden3comm/v2/packers"
-	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,7 +72,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	handler := getHandler(context.Background(), server)
 
 	type expected struct {
-		response RevokeClaimResponseObject
+		response RevokeCredentialResponseObject
 		httpCode int
 	}
 
@@ -103,7 +101,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			nonce: nonce,
 			expected: expected{
 				httpCode: 202,
-				response: RevokeClaim202JSONResponse{
+				response: RevokeCredential202JSONResponse{
 					Message: "credential revocation request sent",
 				},
 			},
@@ -115,7 +113,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			nonce: int64(1231323),
 			expected: expected{
 				httpCode: 404,
-				response: RevokeClaim404JSONResponse{N404JSONResponse{
+				response: RevokeCredential404JSONResponse{N404JSONResponse{
 					Message: "the credential does not exist",
 				}},
 			},
@@ -127,7 +125,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 			nonce: nonce,
 			expected: expected{
 				httpCode: 500,
-				response: RevokeClaim500JSONResponse{N500JSONResponse{
+				response: RevokeCredential500JSONResponse{N500JSONResponse{
 					Message: "error getting merkle trees: not found",
 				}},
 			},
@@ -135,7 +133,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/revoke/%d", tc.did, tc.nonce)
+			url := fmt.Sprintf("/v1/identities/%s/credentials/revoke/%d", tc.did, tc.nonce)
 			req, err := http.NewRequest(http.MethodPost, url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -143,16 +141,16 @@ func TestServer_RevokeClaim(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 
 			switch v := tc.expected.response.(type) {
-			case RevokeClaim202JSONResponse:
-				var response RevokeClaim202JSONResponse
+			case RevokeCredential202JSONResponse:
+				var response RevokeCredential202JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case RevokeClaim404JSONResponse:
-				var response RevokeClaim404JSONResponse
+			case RevokeCredential404JSONResponse:
+				var response RevokeCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
-			case RevokeClaim500JSONResponse:
-				var response RevokeClaim500JSONResponse
+			case RevokeCredential500JSONResponse:
+				var response RevokeCredential500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -189,7 +187,7 @@ func TestServer_CreateCredential(t *testing.T) {
 		name     string
 		auth     func() (string, string)
 		did      string
-		body     CreateClaimRequest
+		body     CreateCredentialRequest
 		expected expected
 	}
 	for _, tc := range []testConfig{
@@ -205,7 +203,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -225,7 +223,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with two proofs",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -234,7 +232,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"BJJSignature2021",
 					"Iden3SparseMerkleTreeProof",
 				},
@@ -249,7 +247,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with bjjSignature proof",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -258,7 +256,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"BJJSignature2021",
 				},
 			},
@@ -272,7 +270,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with Iden3SparseMerkleTreeProof proof",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -281,7 +279,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"Iden3SparseMerkleTreeProof",
 				},
 			},
@@ -295,7 +293,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with ipfs schema",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
 				Type:             "testNewType",
 				CredentialSubject: map[string]any{
@@ -314,7 +312,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with refresh service",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "ipfs://QmQVeb5dkz5ekDqBrYVVxBFQZoCbzamnmMUn9B8twCEgDL",
 				Type:             "testNewType",
 				CredentialSubject: map[string]any{
@@ -337,7 +335,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Happy path with credentials id",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				ClaimID:          common.ToPointer(claimID),
 				CredentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
 				Type:             "KYCAgeCredential",
@@ -347,7 +345,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs: &[]CreateClaimRequestProofs{
+				Proofs: &[]CreateCredentialRequestProofs{
 					"BJJSignature2021",
 					"Iden3SparseMerkleTreeProof",
 				},
@@ -364,7 +362,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Wrong credential url",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "wrong url",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -383,7 +381,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Unreachable well formed credential url",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -402,7 +400,7 @@ func TestServer_CreateCredential(t *testing.T) {
 			name: "Wrong proof type",
 			auth: authOk,
 			did:  did,
-			body: CreateClaimRequest{
+			body: CreateCredentialRequest{
 				CredentialSchema: "http://www.wrong.url/cannot/get/the/credential",
 				Type:             "KYCAgeCredential",
 				CredentialSubject: map[string]any{
@@ -411,7 +409,7 @@ func TestServer_CreateCredential(t *testing.T) {
 					"documentType": 2,
 				},
 				Expiration: common.ToPointer(time.Now().Unix()),
-				Proofs:     &[]CreateClaimRequestProofs{"wrong proof"},
+				Proofs:     &[]CreateCredentialRequestProofs{"wrong proof"},
 			},
 			expected: expected{
 				response: CreateCredential400JSONResponse{N400JSONResponse{Message: "unsupported proof type: wrong proof"}},
@@ -422,7 +420,7 @@ func TestServer_CreateCredential(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server.Infra.pubSub.Clear(event.CreateCredentialEvent)
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials", tc.did)
+			url := fmt.Sprintf("/v1/identities/%s/credentials", tc.did)
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -436,7 +434,7 @@ func TestServer_CreateCredential(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusCreated:
-				var response CreateClaimResponse
+				var response CreateCredentialResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				_, err := uuid.Parse(response.Id)
 				assert.NoError(t, err)
@@ -444,11 +442,11 @@ func TestServer_CreateCredential(t *testing.T) {
 					assert.Equal(t, tc.body.ClaimID.String(), response.Id)
 				}
 			case http.StatusBadRequest:
-				var response CreateClaim400JSONResponse
+				var response CreateCredential400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			case http.StatusUnprocessableEntity:
-				var response CreateClaim422JSONResponse
+				var response CreateCredential422JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.EqualValues(t, tc.expected.response, response)
 			}
@@ -516,7 +514,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/%s", *claim.Identifier, tc.credentialID.String())
+			url := fmt.Sprintf("/v1/identities/%s/credentials/%s", *claim.Identifier, tc.credentialID.String())
 			req, err := http.NewRequest("DELETE", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -624,7 +622,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/%s/qrcode?type=raw", tc.did, tc.claim)
+			url := fmt.Sprintf("/v1/identities/%s/credentials/%s/qrcode?type=raw", tc.did, tc.claim)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -637,31 +635,19 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			case GetCredentialQrCode200JSONResponse:
 				var response GetCredentialQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				var rawResponse GetClaimQrCode200JSONResponse
+				var rawResponse QrCodeLinkWithSchemaTypeShortResponse
 				assert.NoError(t, json.Unmarshal([]byte(response.QrCodeLink), &rawResponse))
-				assert.Equal(t, string(protocol.CredentialOfferMessageType), rawResponse.Type)
-				assert.Equal(t, string(packers.MediaTypePlainMessage), rawResponse.Typ)
-				_, err := uuid.Parse(rawResponse.Id)
-				assert.NoError(t, err)
-				assert.Equal(t, rawResponse.Id, rawResponse.Thid)
-				assert.Equal(t, idStr, rawResponse.From)
-				assert.Equal(t, claim.OtherIdentifier, rawResponse.To)
-				assert.Equal(t, cfg.ServerUrl+"/v1/agent", rawResponse.Body.Url)
-				require.Len(t, rawResponse.Body.Credentials, 1)
-				_, err = uuid.Parse(rawResponse.Body.Credentials[0].Id)
-				assert.NoError(t, err)
-				assert.Equal(t, claim.SchemaType, rawResponse.Body.Credentials[0].Description)
 
 			case GetCredentialQrCode400JSONResponse:
-				var response GetClaimQrCode400JSONResponse
+				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredentialQrCode404JSONResponse:
-				var response GetClaimQrCode400JSONResponse
+				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredentialQrCode500JSONResponse:
-				var response GetClaimQrCode500JSONResponse
+				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -791,7 +777,7 @@ func TestServer_GetCredential(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/%s", tc.did, tc.claimID.String())
+			url := fmt.Sprintf("/v1/identities/%s/credentials/%s", tc.did, tc.claimID.String())
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -802,20 +788,20 @@ func TestServer_GetCredential(t *testing.T) {
 
 			switch v := tc.expected.response.(type) {
 			case GetCredential200JSONResponse:
-				var response GetClaimResponse
+				var response GetCredentialResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				validateClaim(t, response, GetClaimResponse(v))
+				validateCredential(t, response, GetCredentialResponse(v))
 
 			case GetCredential400JSONResponse:
-				var response GetClaim404JSONResponse
+				var response GetCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredential404JSONResponse:
-				var response GetClaim404JSONResponse
+				var response GetCredential404JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			case GetCredential500JSONResponse:
-				var response GetClaim500JSONResponse
+				var response GetCredential500JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, v.Message, response.Message)
 			}
@@ -824,336 +810,6 @@ func TestServer_GetCredential(t *testing.T) {
 }
 
 func TestServer_GetCredentials(t *testing.T) {
-	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
-		BJJ        = "BJJ"
-	)
-	ctx := context.Background()
-
-	server := newTestServer(t, nil)
-	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
-	require.NoError(t, err)
-	fixture := repositories.NewFixture(storage)
-	claim := fixture.NewClaim(t, identityMultipleClaims.Identifier)
-	_ = fixture.CreateClaim(t, claim)
-
-	emptyIdentityStr := "did:polygonid:polygon:mumbai:2qLQGgjpP5Yq7r7jbRrQZbWy8ikADvxamSLB7CqR4F"
-
-	handler := getHandler(context.Background(), server)
-
-	type expected struct {
-		response GetCredentialsResponseObject
-		len      int
-		httpCode int
-	}
-
-	type filter struct {
-		schemaHash *string
-		schemaType *string
-		subject    *string
-		revoked    *string
-		self       *string
-		queryField *string
-	}
-
-	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		did      string
-		expected expected
-		filter   filter
-	}
-
-	for _, tc := range []testConfig{
-		{
-			name: "No auth header",
-			auth: authWrong,
-			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
-			name: "should get an error wrong did invalid format",
-			auth: authOk,
-			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-				response: GetCredentials400JSONResponse{N400JSONResponse{
-					Message: "invalid did",
-				}},
-			},
-		},
-		{
-			name: "should get an error self and subject filter cannot be used together",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				self:    common.ToPointer("true"),
-				subject: common.ToPointer("some subject"),
-			},
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-				response: GetCredentials400JSONResponse{N400JSONResponse{"self and subject filter cannot be used together"}},
-			},
-		},
-		{
-			name: "should get 0 claims",
-			auth: authOk,
-			did:  emptyIdentityStr,
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      0,
-				response: GetCredentials200JSONResponse{},
-			},
-		},
-		{
-			name: "should get the default credentials plus another one that has been created",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get 1 credential with the given schemaHash filter",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				schemaHash: common.ToPointer(claim.SchemaHash),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get 1 credential with multiple filters",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				schemaHash: common.ToPointer(claim.SchemaHash),
-				revoked:    common.ToPointer("false"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get 0 revoked credentials",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				revoked: common.ToPointer("true"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      0,
-				response: GetCredentials200JSONResponse{},
-			},
-		},
-		{
-			name: "should get two non revoked credentials",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				revoked: common.ToPointer("false"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get one credential with the given schemaType filter",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				schemaType: common.ToPointer("AuthBJJCredential"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetClaimResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			rr := httptest.NewRecorder()
-			tURL := createGetClaimsURL(tc.did, tc.filter.schemaHash, tc.filter.schemaType, tc.filter.subject, tc.filter.revoked, tc.filter.self, tc.filter.queryField)
-			req, err := http.NewRequest("GET", tURL, nil)
-			req.SetBasicAuth(tc.auth())
-			require.NoError(t, err)
-
-			handler.ServeHTTP(rr, req)
-
-			require.Equal(t, tc.expected.httpCode, rr.Code)
-
-			switch v := tc.expected.response.(type) {
-			case GetCredentials200JSONResponse:
-				var response GetClaims200JSONResponse
-				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, tc.expected.len, len(response))
-				for i := range response {
-					validateClaim(t, response[i], v[i])
-				}
-			case GetCredentials400JSONResponse:
-				var response GetClaims400JSONResponse
-				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
-			case GetCredentials500JSONResponse:
-				var response GetClaims500JSONResponse
-				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
-			}
-		})
-	}
-}
-
-func TestServer_GetCredentialsPaginated(t *testing.T) {
 	const (
 		method     = "polygonid"
 		blockchain = "polygon"
@@ -1584,7 +1240,7 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := url.URL{Path: fmt.Sprintf("/v1/%s/credentials/search", identityMultipleClaims.Identifier)}
+			endpoint := url.URL{Path: fmt.Sprintf("/v1/identities/%s/credentials/search", identityMultipleClaims.Identifier)}
 			queryParams := make([]string, 0)
 			if tc.query != nil {
 				queryParams = append(queryParams, "query="+*tc.query)
@@ -1596,7 +1252,7 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 				queryParams = append(queryParams, "status="+*tc.status)
 			}
 			if tc.did != nil {
-				queryParams = append(queryParams, "did="+*tc.did)
+				queryParams = append(queryParams, "credentialSubject="+*tc.did)
 			}
 			if tc.page != nil {
 				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
@@ -1614,7 +1270,7 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				var response GetCredentialsPaginated200JSONResponse
+				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.total, response.Meta.Total)
 				assert.Equal(t, tc.expected.credentialsCount, len(response.Items))
@@ -1622,12 +1278,12 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 				assert.Equal(t, tc.expected.page, response.Meta.Page)
 
 			case http.StatusBadRequest:
-				var response GetCredentialsPaginated400JSONResponse
+				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.errorMsg, response.Message)
 
 			case http.StatusInternalServerError:
-				var response GetCredentialsPaginated400JSONResponse
+				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.errorMsg, response.Message)
 			}
@@ -1697,7 +1353,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
+			url := fmt.Sprintf("/v1/identities/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -1718,7 +1374,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	}
 }
 
-func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
+func validateCredential(t *testing.T, resp, tc GetCredentialResponse) {
 	t.Helper()
 	var responseCredentialStatus verifiable.CredentialStatus
 
@@ -1766,36 +1422,4 @@ func validateClaim(t *testing.T, resp, tc GetClaimResponse) {
 	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
 	require.True(t, ok)
 	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
-}
-
-func createGetClaimsURL(did string, schemaHash *string, schemaType *string, subject *string, revoked *string, self *string, queryField *string) string {
-	tURL := &url.URL{Path: fmt.Sprintf("/v1/%s/credentials", did)}
-	q := tURL.Query()
-
-	if self != nil {
-		q.Add("self", *self)
-	}
-
-	if schemaHash != nil {
-		q.Add("schemaHash", *schemaHash)
-	}
-
-	if schemaType != nil {
-		q.Add("schemaType", *schemaType)
-	}
-
-	if revoked != nil {
-		q.Add("revoked", *revoked)
-	}
-
-	if subject != nil {
-		q.Add("subject", *subject)
-	}
-
-	if queryField != nil {
-		q.Add("queryField", *queryField)
-	}
-
-	tURL.RawQuery = q.Encode()
-	return tURL.String()
 }
