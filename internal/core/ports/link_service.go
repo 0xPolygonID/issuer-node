@@ -50,13 +50,13 @@ type GetQRCodeResponse struct {
 
 // LinkService - the interface that defines the available methods
 type LinkService interface {
-	Save(ctx context.Context, did w3c.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes domain.CredentialSubject, refreshService *verifiable.RefreshService, displayMethod *verifiable.DisplayMethod) (*domain.Link, error)
+	Save(ctx context.Context, did w3c.DID, maxIssuance *int, validUntil *time.Time, schemaID uuid.UUID, credentialExpiration *time.Time, credentialSignatureProof bool, credentialMTPProof bool, credentialAttributes domain.CredentialSubject, refreshService *verifiable.RefreshService, displayMethod *verifiable.DisplayMethod, credentialStatusType verifiable.CredentialStatusType) (*domain.Link, error)
 	Activate(ctx context.Context, issuerID w3c.DID, linkID uuid.UUID, active bool) error
 	Delete(ctx context.Context, id uuid.UUID, did w3c.DID) error
 	GetByID(ctx context.Context, issuerID w3c.DID, id uuid.UUID) (*domain.Link, error)
 	GetAll(ctx context.Context, issuerDID w3c.DID, status LinkStatus, query *string) ([]domain.Link, error)
 	CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid.UUID, serverURL string) (*CreateQRCodeResponse, error)
-	IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, CredentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error)
-	ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error)
+	IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
+	ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error)
 	GetQRCode(ctx context.Context, sessionID uuid.UUID, issuerID w3c.DID, linkID uuid.UUID) (*GetQRCodeResponse, error)
 }

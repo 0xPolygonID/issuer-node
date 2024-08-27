@@ -1037,6 +1037,7 @@ paths:
     post:
       summary: Create Link
       operationId: CreateLink
+      description: Create a link to issue a credential.
       security:
         - basicAuth: [ ]
       tags:
@@ -1145,8 +1146,9 @@ paths:
 
   /v1/{identifier}/credentials/links/{id}/qrcode:
     post:
-      summary: Create Authentication Link QRCode
+      summary: Create Link QR Code
       operationId: CreateLinkQrCode
+      description: Create Link QR Code for a specific link.
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
@@ -1170,13 +1172,12 @@ paths:
     post:
       summary: Create Link QR Code Callback
       operationId: CreateLinkQrCodeCallback
-      description: Create Link QR Code Callback
+      description: Callback for the QR code generation.
       tags:
-        - Auth
+        - Links
       parameters:
         - $ref: '#/components/parameters/sessionID'
         - $ref: '#/components/parameters/linkID'
-        - $ref: '#/components/parameters/credentialStatusType'
       requestBody:
         required: true
         content:
@@ -2157,6 +2158,11 @@ components:
           $ref: '#/components/schemas/RefreshService'
         displayMethod:
           $ref: '#/components/schemas/DisplayMethod'
+        credentialStatusType:
+          type: string
+          x-omitempty: true
+          example: "Iden3ReverseSparseMerkleTreeProof"
+          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
     CredentialLinkQrCodeResponse:
       type: object

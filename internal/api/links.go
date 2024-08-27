@@ -70,12 +70,28 @@ func (s *Server) CreateLink(ctx context.Context, request CreateLinkRequestObject
 		}
 	}
 
+	var credentialStatusType verifiable.CredentialStatusType
+	if request.Body.CredentialStatusType == nil || *request.Body.CredentialStatusType == "" {
+		credentialStatusType = verifiable.Iden3commRevocationStatusV1
+	} else {
+		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
+		if !slices.Contains(allowedCredentialStatuses, string(*request.Body.CredentialStatusType)) {
+			log.Warn(ctx, "invalid credential status type", "req", request)
+			return CreateLink400JSONResponse{
+				N400JSONResponse{
+					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *request.Body.CredentialStatusType),
+				},
+			}, nil
+		}
+		credentialStatusType = (verifiable.CredentialStatusType)(*request.Body.CredentialStatusType)
+	}
+
 	var expirationDate *time.Time
 	if request.Body.CredentialExpiration != nil {
 		expirationDate = request.Body.CredentialExpiration
 	}
 
-	createdLink, err := s.linkService.Save(ctx, *issuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService), toDisplayMethodService(request.Body.DisplayMethod))
+	createdLink, err := s.linkService.Save(ctx, *issuerDID, request.Body.LimitedClaims, request.Body.Expiration, request.Body.SchemaID, expirationDate, request.Body.SignatureProof, request.Body.MtProof, credSubject, toVerifiableRefreshService(request.Body.RefreshService), toDisplayMethodService(request.Body.DisplayMethod), credentialStatusType)
 	if err != nil {
 		log.Error(ctx, "error saving the link", "err", err.Error())
 		if errors.Is(err, services.ErrLoadingSchema) {
@@ -94,23 +110,7 @@ func (s *Server) CreateLinkQrCodeCallback(ctx context.Context, request CreateLin
 		return CreateLinkQrCodeCallback400JSONResponse{N400JSONResponse{"Cannot proceed with empty body"}}, nil
 	}
 
-	var credentialStatusType verifiable.CredentialStatusType
-	if request.Params.CredentialStatusType == nil || *request.Params.CredentialStatusType == "" {
-		credentialStatusType = verifiable.Iden3commRevocationStatusV1
-	} else {
-		allowedCredentialStatuses := []string{string(verifiable.Iden3commRevocationStatusV1), string(verifiable.Iden3ReverseSparseMerkleTreeProof), string(verifiable.Iden3OnchainSparseMerkleTreeProof2023)}
-		if !slices.Contains(allowedCredentialStatuses, *request.Params.CredentialStatusType) {
-			log.Warn(ctx, "invalid credential status type", "req", request)
-			return CreateLinkQrCodeCallback400JSONResponse{
-				N400JSONResponse{
-					Message: fmt.Sprintf("Invalid Credential Status Type '%s'. Allowed Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof or Iden3OnchainSparseMerkleTreeProof2023.", *request.Params.CredentialStatusType),
-				},
-			}, nil
-		}
-		credentialStatusType = (verifiable.CredentialStatusType)(*request.Params.CredentialStatusType)
-	}
-
-	offer, err := s.linkService.ProcessCallBack(ctx, *request.Body, request.Params.SessionID, request.Params.LinkID, s.cfg.ServerUrl, credentialStatusType)
+	offer, err := s.linkService.ProcessCallBack(ctx, *request.Body, request.Params.SessionID, request.Params.LinkID, s.cfg.ServerUrl)
 	if err != nil {
 		log.Error(ctx, "error issuing the claim", "error", err)
 		return CreateLinkQrCodeCallback500JSONResponse{

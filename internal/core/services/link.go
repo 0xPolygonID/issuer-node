@@ -92,6 +92,7 @@ func (ls *Link) Save(
 	credentialSubject domain.CredentialSubject,
 	refreshService *verifiable.RefreshService,
 	displayMethod *verifiable.DisplayMethod,
+	credentialStatusType verifiable.CredentialStatusType,
 ) (*domain.Link, error) {
 	schemaDB, err := ls.schemaRepository.GetByID(ctx, did, schemaID)
 	if err != nil {
@@ -111,7 +112,7 @@ func (ls *Link) Save(
 		return nil, err
 	}
 
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod)
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod, credentialStatusType)
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -221,11 +222,32 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 }
 
 // IssueOrFetchClaim - Create a new claim
-func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
+func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
 		return nil, err
+	}
+
+	if link.CredentialStatusType == "" {
+		link.CredentialStatusType = verifiable.Iden3commRevocationStatusV1
+	}
+
+	resolverPrefix, err := common.ResolverPrefix(&issuerDID)
+	if err != nil {
+		log.Error(ctx, "error getting resolver prefix", "err", err)
+		return nil, err
+	}
+
+	rhsSettings, err := ls.networkResolver.GetRhsSettings(ctx, resolverPrefix)
+	if err != nil {
+		log.Error(ctx, "error getting rhs settings", "err", err)
+		return nil, err
+	}
+
+	if !ls.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, link.CredentialStatusType) {
+		log.Error(ctx, "unsupported credential status type", "type", link.CredentialStatusType)
+		return nil, ErrUnsupportedCredentialStatusType
 	}
 
 	issuedByUser, err := ls.claimRepository.GetClaimsIssuedForUser(ctx, ls.storage.Pgx, issuerDID, userDID, linkID)
@@ -270,7 +292,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 			claimRequestProofs,
 			&linkID,
 			true,
-			credentialStatusType,
+			link.CredentialStatusType,
 			link.RefreshService,
 			nil,
 			link.DisplayMethod,
@@ -327,7 +349,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 }
 
 // ProcessCallBack - process the callback.
-func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
+func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
 	arm, err := ls.identityService.Authenticate(ctx, message, sessionID, hostURL)
 	if err != nil {
 		log.Error(ctx, "error authenticating", "err", err.Error())
@@ -346,24 +368,7 @@ func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(issuerDID)
-	if err != nil {
-		log.Error(ctx, "error getting resolver prefix", "err", err)
-		return nil, err
-	}
-
-	rhsSettings, err := ls.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "error getting rhs settings", "err", err)
-		return nil, err
-	}
-
-	if !ls.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
-		log.Error(ctx, "unsupported credential status type", "type", credentialStatusType)
-		return nil, ErrUnsupportedCredentialStatusType
-	}
-
-	offer, err := ls.IssueOrFetchClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL, credentialStatusType)
+	offer, err := ls.IssueOrFetchClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL)
 	if err != nil {
 		log.Error(ctx, "error issuing claim", "err", err)
 		return nil, err

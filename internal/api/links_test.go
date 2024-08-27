@@ -248,7 +248,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	assert.NoError(t, err)
 
 	tomorrow := time.Now().Add(24 * time.Hour)
-	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, CredentialSubject{"birthday": 19790911, "documentType": 12}, nil, nil)
+	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, nil, true, true, CredentialSubject{"birthday": 19790911, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -378,11 +378,11 @@ func TestServer_GetLink(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	yesterday := time.Now().Add(-24 * time.Hour)
 
-	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &tomorrow, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	require.NoError(t, err)
 	hash, _ := link.Schema.Hash.MarshalText()
 
-	linkExpired, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	linkExpired, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, common.ToPointer(tomorrow), true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)
@@ -542,6 +542,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 			ID:   "https://display.xyz",
 			Type: verifiable.Iden3BasicDisplayMethodV1,
 		},
+		verifiable.Iden3commRevocationStatusV1,
 	)
 	require.NoError(t, err)
 	linkActive := getLinkResponse(*link1)
@@ -557,13 +558,14 @@ func TestServer_GetAllLinks(t *testing.T) {
 			ID:   "https://display.xyz",
 			Type: verifiable.Iden3BasicDisplayMethodV1,
 		},
+		verifiable.Iden3commRevocationStatusV1,
 	)
 	require.NoError(t, err)
 	linkExpired := getLinkResponse(*link2)
 	require.NoError(t, err)
 	time.Sleep(10 * time.Millisecond)
 
-	link3, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link3, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, &tomorrow, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	link3.Active = false
 	require.NoError(t, err)
 	require.NoError(t, server.Services.links.Activate(ctx, *did, link3.ID, false))
@@ -745,7 +747,7 @@ func TestServer_DeleteLink(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -843,7 +845,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 
 	validUntil := common.ToPointer(time.Date(2023, 8, 15, 14, 30, 45, 100, time.Local))
 	credentialExpiration := common.ToPointer(time.Date(2025, 8, 15, 14, 30, 45, 100, time.Local))
-	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	assert.NoError(t, err)
 	handler := getHandler(ctx, server)
 
@@ -929,11 +931,11 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	validUntil := common.ToPointer(time.Now().Add(365 * 24 * time.Hour))
 	credentialExpiration := common.ToPointer(validUntil.Add(365 * 24 * time.Hour))
 
-	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), validUntil, importedSchema.ID, credentialExpiration, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	assert.NoError(t, err)
 
 	yesterday := time.Now().Add(-24 * time.Hour)
-	linkExpired, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	linkExpired, err := server.Services.links.Save(ctx, *did, common.ToPointer(10), &yesterday, importedSchema.ID, nil, true, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	require.NoError(t, err)
 
 	handler := getHandler(ctx, server)

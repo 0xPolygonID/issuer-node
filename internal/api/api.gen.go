@@ -49,6 +49,13 @@ const (
 	ETH CreateIdentityRequestDidMetadataType = "ETH"
 )
 
+// Defines values for CreateLinkRequestCredentialStatusType.
+const (
+	CreateLinkRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateLinkRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateLinkRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateLinkRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateLinkRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateLinkRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
 // Defines values for DisplayMethodType.
 const (
 	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
@@ -56,9 +63,9 @@ const (
 
 // Defines values for GetIdentitiesResponseAuthBJJCredentialStatus.
 const (
-	Iden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3OnchainSparseMerkleTreeProof2023"
-	Iden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusV10          GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3commRevocationStatusV1.0"
+	GetIdentitiesResponseAuthBJJCredentialStatusIden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3OnchainSparseMerkleTreeProof2023"
+	GetIdentitiesResponseAuthBJJCredentialStatusIden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3ReverseSparseMerkleTreeProof"
+	GetIdentitiesResponseAuthBJJCredentialStatusIden3commRevocationStatusV10          GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for LinkStatus.
@@ -225,16 +232,20 @@ type CreateIdentityResponse struct {
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
-	CredentialExpiration *time.Time        `json:"credentialExpiration,omitempty"`
-	CredentialSubject    CredentialSubject `json:"credentialSubject"`
-	DisplayMethod        *DisplayMethod    `json:"displayMethod,omitempty"`
-	Expiration           *time.Time        `json:"expiration,omitempty"`
-	LimitedClaims        *int              `json:"limitedClaims"`
-	MtProof              bool              `json:"mtProof"`
-	RefreshService       *RefreshService   `json:"refreshService,omitempty"`
-	SchemaID             uuid.UUID         `json:"schemaID"`
-	SignatureProof       bool              `json:"signatureProof"`
+	CredentialExpiration *time.Time                             `json:"credentialExpiration,omitempty"`
+	CredentialStatusType *CreateLinkRequestCredentialStatusType `json:"credentialStatusType,omitempty"`
+	CredentialSubject    CredentialSubject                      `json:"credentialSubject"`
+	DisplayMethod        *DisplayMethod                         `json:"displayMethod,omitempty"`
+	Expiration           *time.Time                             `json:"expiration,omitempty"`
+	LimitedClaims        *int                                   `json:"limitedClaims"`
+	MtProof              bool                                   `json:"mtProof"`
+	RefreshService       *RefreshService                        `json:"refreshService,omitempty"`
+	SchemaID             uuid.UUID                              `json:"schemaID"`
+	SignatureProof       bool                                   `json:"signatureProof"`
 }
+
+// CreateLinkRequestCredentialStatusType defines model for CreateLinkRequest.CredentialStatusType.
+type CreateLinkRequestCredentialStatusType string
 
 // Credential defines model for Credential.
 type Credential struct {
@@ -535,9 +546,6 @@ type UUIDResponse struct {
 // UUIDString defines model for UUIDString.
 type UUIDString = string
 
-// CredentialStatusType defines model for credentialStatusType.
-type CredentialStatusType = string
-
 // Id defines model for id.
 type Id = uuid.UUID
 
@@ -606,9 +614,6 @@ type CreateLinkQrCodeCallbackParams struct {
 
 	// LinkID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
 	LinkID LinkID `form:"linkID" json:"linkID"`
-
-	// CredentialStatusType credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
-	CredentialStatusType *CredentialStatusType `form:"credentialStatusType,omitempty" json:"credentialStatusType,omitempty"`
 }
 
 // UpdateIdentityJSONBody defines parameters for UpdateIdentity.
@@ -872,7 +877,7 @@ type ServerInterface interface {
 	// Activate | Deactivate Link
 	// (PATCH /v1/{identifier}/credentials/links/{id})
 	ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Create Authentication Link QRCode
+	// Create Link QR Code
 	// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Schemas
@@ -1094,7 +1099,7 @@ func (_ Unimplemented) ActivateLink(w http.ResponseWriter, r *http.Request, iden
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create Authentication Link QRCode
+// Create Link QR Code
 // (POST /v1/{identifier}/credentials/links/{id}/qrcode)
 func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -1256,14 +1261,6 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCodeCallback(w http.ResponseWrite
 	err = runtime.BindQueryParameter("form", true, true, "linkID", r.URL.Query(), &params.LinkID)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "linkID", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "credentialStatusType" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "credentialStatusType", r.URL.Query(), &params.CredentialStatusType)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentialStatusType", Err: err})
 		return
 	}
 
@@ -4417,7 +4414,7 @@ type StrictServerInterface interface {
 	// Activate | Deactivate Link
 	// (PATCH /v1/{identifier}/credentials/links/{id})
 	ActivateLink(ctx context.Context, request ActivateLinkRequestObject) (ActivateLinkResponseObject, error)
-	// Create Authentication Link QRCode
+	// Create Link QR Code
 	// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
 	// Get Schemas

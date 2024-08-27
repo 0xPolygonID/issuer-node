@@ -93,10 +93,10 @@ func Test_link_issueClaim(t *testing.T) {
 	tomorrow := time.Now().Add(24 * time.Hour)
 	nextWeek := time.Now().Add(7 * 24 * time.Hour)
 
-	link, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, true, false, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, true, false, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	assert.NoError(t, err)
 
-	link2, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, false, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil)
+	link2, err := linkService.Save(ctx, *did, common.ToPointer(100), &tomorrow, schema.ID, &nextWeek, false, true, domain.CredentialSubject{"birthday": 19791109, "documentType": 12}, nil, nil, verifiable.Iden3commRevocationStatusV1)
 	assert.NoError(t, err)
 
 	type expected struct {
@@ -181,7 +181,7 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			offer, err := linkService.IssueOrFetchClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
+			offer, err := linkService.IssueOrFetchClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url")
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)
