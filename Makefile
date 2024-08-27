@@ -16,6 +16,7 @@ ENVIRONMENT := ${ISSUER_ENVIRONMENT}
 
 ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH := ${ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH}
 ISSUER_KMS_ETH_PROVIDER := ${ISSUER_KMS_ETH_PROVIDER}
+ISSUER_KMS_BJJ_PROVIDER := ${ISSUER_KMS_BJJ_PROVIDER}
 
 ISSUER_RESOLVER_FILE := ${ISSUER_RESOLVER_FILE}
 REQUIRED_FILE := ${ISSUER_RESOLVER_PATH}
@@ -82,10 +83,10 @@ build-ui:
 	docker build -t issuer-ui:local -f ./ui/Dockerfile ./ui
 
 
-.PHOMY: validate_issuer_resolver_file
+.PHONY: validate_issuer_resolver_file
 validate_issuer_resolver_file:
 	@if [ ! -f "$(REQUIRED_FILE)" ]; then \
-  		if [ -z "$(ISSUER_RESOLVER_FILE)" ]; then \
+		if [ -z "$(ISSUER_RESOLVER_FILE)" ]; then \
 			echo "ISSUER_RESOLVER_FILE env var is empty, and the file $(REQUIRED_FILE) doesn't exists."; \
 			exit 1; \
 		else \
@@ -95,9 +96,26 @@ validate_issuer_resolver_file:
 		echo "$(REQUIRED_FILE) environment is present, using it "; \
 	fi
 
+.PHONY: validate_localstorage_file
+validate_localstorage_file:
+	@if [ "$(ISSUER_KMS_ETH_PROVIDER)" = "localstorage" ]; then \
+		if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+			mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+			touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+			echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+		fi \
+	fi
+	@if [ "$(ISSUER_KMS_BJJ_PROVIDER)" = "localstorage" ]; then \
+		if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+			mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+			touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+			echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+		fi \
+	fi
+
 # Run the api, pending_publisher and notifications services
 .PHONY: run
-run: validate_issuer_resolver_file up
+run: validate_issuer_resolver_file validate_localstorage_file up
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d api pending_publisher notifications
 
 # Run the ui.
@@ -108,7 +126,7 @@ run-ui: build-ui add-host-url-swagger
 
 # Run all services
 .PHONE: run-all
-run-all: build build-ui up add-host-url-swagger
+run-all: build build-ui validate_localstorage_file up add-host-url-swagger
 	COMPOSE_DOCKER_CLI_BUILD=1 $(DOCKER_COMPOSE_CMD) up -d ui api pending_publisher notifications
 
 
@@ -179,6 +197,11 @@ ifeq ($(ISSUER_KMS_ETH_PROVIDER), aws)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), localstorage)
 	echo ">>> importing private key to LOCALSTORAGE"
 	@docker build -t privadoid-kms-importer -f ./Dockerfile-kms-importer .
+	@if [ ! -f "$(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json" ]; then \
+	  mkdir -p $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH); \
+	  touch $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+	  echo "[]" > $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json; \
+	fi
 	docker run --rm -it -v ./.env-issuer:/.env-issuer -v $(ISSUER_KMS_PROVIDER_LOCAL_STORAGE_FILE_PATH)/kms_localstorage_keys.json:/localstoragekeys/kms_localstorage_keys.json \
 	privadoid-kms-importer ./kms_priv_key_importer --privateKey=$(private_key)
 else ifeq ($(ISSUER_KMS_ETH_PROVIDER), vault)

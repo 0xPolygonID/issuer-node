@@ -12,7 +12,7 @@ COPY go.mod .
 COPY go.sum .
 COPY ./cmd/kms_priv_key_importer/ ./cmd/kms_priv_key_importer/
 COPY ./internal ./internal
-COPY ./pkg ./pkg
+
 
 
 
