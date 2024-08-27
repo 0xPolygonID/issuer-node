@@ -198,34 +198,34 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	return response, err
 }
 
-// GetCredentialsPaginated returns a collection of credentials that matches the request.
-func (s *Server) GetCredentialsPaginated(ctx context.Context, request GetCredentialsPaginatedRequestObject) (GetCredentialsPaginatedResponseObject, error) {
+// GetCredentials returns a collection of credentials that matches the request.
+func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
 	filter, err := getCredentialsFilter(ctx, request)
 	if err != nil {
-		return GetCredentialsPaginated400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
+		return GetCredentials400JSONResponse{N400JSONResponse{Message: err.Error()}}, nil
 	}
 
 	did, err := w3c.ParseDID(request.Identifier)
 	if err != nil {
-		return GetCredentialsPaginated400JSONResponse{N400JSONResponse{"invalid did"}}, nil
+		return GetCredentials400JSONResponse{N400JSONResponse{"invalid did"}}, nil
 	}
 
 	credentials, total, err := s.claimService.GetAll(ctx, *did, filter)
 	if err != nil {
 		log.Error(ctx, "loading credentials", "err", err, "req", request)
-		return GetCredentialsPaginated500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
+		return GetCredentials500JSONResponse{N500JSONResponse{Message: err.Error()}}, nil
 	}
 	response := make([]Credential, len(credentials))
 	for i, credential := range credentials {
 		w3c, err := schema.FromClaimModelToW3CCredential(*credential)
 		if err != nil {
 			log.Error(ctx, "creating credentials response", "err", err, "req", request)
-			return GetCredentialsPaginated500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
+			return GetCredentials500JSONResponse{N500JSONResponse{"Invalid claim format"}}, nil
 		}
 		response[i] = credentialResponse(w3c, credential)
 	}
 
-	resp := GetCredentialsPaginated200JSONResponse{
+	resp := GetCredentials200JSONResponse{
 		Items: response,
 		Meta: PaginatedMetadata{
 			MaxResults: filter.MaxResults,
@@ -273,42 +273,6 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	}
 
 	return GetCredential200JSONResponse(toGetCredential200Response(w3c)), nil
-}
-
-// GetCredentials is the controller to get multiple credentials of a determined identity
-func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
-	if request.Identifier == "" {
-		return GetCredentials400JSONResponse{N400JSONResponse{"invalid did, cannot be empty"}}, nil
-	}
-
-	did, err := w3c.ParseDID(request.Identifier)
-	if err != nil {
-		return GetCredentials400JSONResponse{N400JSONResponse{"invalid did"}}, nil
-	}
-
-	filter, err := ports.NewClaimsFilter(
-		request.Params.SchemaHash,
-		request.Params.SchemaType,
-		request.Params.Subject,
-		request.Params.QueryField,
-		request.Params.QueryValue,
-		request.Params.Self,
-		request.Params.Revoked)
-	if err != nil {
-		return GetCredentials400JSONResponse{N400JSONResponse{err.Error()}}, nil
-	}
-
-	claims, _, err := s.claimService.GetAll(ctx, *did, filter)
-	if err != nil && !errors.Is(err, services.ErrCredentialNotFound) {
-		return GetCredentials500JSONResponse{N500JSONResponse{"there was an internal error trying to retrieve claims for the requested identifier"}}, nil
-	}
-
-	w3Claims, err := schema.FromClaimsModelToW3CCredential(claims)
-	if err != nil {
-		return GetCredentials500JSONResponse{N500JSONResponse{"there was an internal error parsing the claims"}}, nil
-	}
-
-	return GetCredentials200JSONResponse(toGetCredentials200Response(w3Claims)), nil
 }
 
 // GetCredentialQrCode returns a GetCredentialQrCodeResponseObject raw or link type based on query parameter `type`
@@ -378,15 +342,6 @@ func toVerifiableDisplayMethod(s *DisplayMethod) *verifiable.DisplayMethod {
 	}
 }
 
-func toGetCredentials200Response(claims []*verifiable.W3CCredential) GetClaimsResponse {
-	response := make(GetCredentials200JSONResponse, len(claims))
-	for i := range claims {
-		response[i] = toGetCredential200Response(claims[i])
-	}
-
-	return response
-}
-
 func toGetCredential200Response(claim *verifiable.W3CCredential) GetCredentialResponse {
 	var claimExpiration, claimIssuanceDate *TimeUTC
 	if claim.Expiration != nil {
@@ -431,10 +386,10 @@ func toGetCredential200Response(claim *verifiable.W3CCredential) GetCredentialRe
 	}
 }
 
-func getCredentialsFilter(ctx context.Context, req GetCredentialsPaginatedRequestObject) (*ports.ClaimsFilter, error) {
+func getCredentialsFilter(ctx context.Context, req GetCredentialsRequestObject) (*ports.ClaimsFilter, error) {
 	filter := &ports.ClaimsFilter{}
-	if req.Params.Did != nil {
-		did, err := w3c.ParseDID(*req.Params.Did)
+	if req.Params.CredentialSubject != nil {
+		did, err := w3c.ParseDID(*req.Params.CredentialSubject)
 		if err != nil {
 			log.Warn(ctx, "get credentials. Parsing did", "err", err, "did", did)
 			return nil, errors.New("cannot parse did parameter: wrong format")
@@ -442,12 +397,12 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsPaginatedReques
 		filter.Subject, filter.FTSAndCond = did.String(), true
 	}
 	if req.Params.Status != nil {
-		switch GetCredentialsPaginatedParamsStatus(strings.ToLower(string(*req.Params.Status))) {
-		case GetCredentialsPaginatedParamsStatusRevoked:
+		switch GetCredentialsParamsStatus(strings.ToLower(string(*req.Params.Status))) {
+		case GetCredentialsParamsStatusRevoked:
 			filter.Revoked = common.ToPointer(true)
-		case GetCredentialsPaginatedParamsStatusExpired:
+		case GetCredentialsParamsStatusExpired:
 			filter.ExpiredOn = common.ToPointer(time.Now())
-		case GetCredentialsPaginatedParamsStatusAll:
+		case GetCredentialsParamsStatusAll:
 			// Nothing to be done
 		default:
 			return nil, errors.New("wrong type value. Allowed values: [all, revoked, expired]")
@@ -477,14 +432,14 @@ func getCredentialsFilter(ctx context.Context, req GetCredentialsPaginatedReques
 		for _, sortBy := range *req.Params.Sort {
 			var err error
 			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
-			switch GetCredentialsPaginatedParamsSort(field) {
-			case GetCredentialsPaginatedParamsSortSchemaType:
+			switch GetCredentialsParamsSort(field) {
+			case GetCredentialsParamsSortSchemaType:
 				err = filter.OrderBy.Add(ports.CredentialSchemaType, desc)
-			case GetCredentialsPaginatedParamsSortCreatedAt:
+			case GetCredentialsParamsSortCreatedAt:
 				err = filter.OrderBy.Add(ports.CredentialCreatedAt, desc)
-			case GetCredentialsPaginatedParamsSortExpiresAt:
+			case GetCredentialsParamsSortExpiresAt:
 				err = filter.OrderBy.Add(ports.CredentialExpiresAt, desc)
-			case GetCredentialsPaginatedParamsSortRevoked:
+			case GetCredentialsParamsSortRevoked:
 				err = filter.OrderBy.Add(ports.CredentialRevoked, desc)
 			default:
 				return nil, errors.New("wrong sort by value")

@@ -51,7 +51,7 @@ func VaultClient(ctx context.Context, cfg Config) (*vault.Client, error) {
 		log.Info(ctx, "Vault userpass auth not enabled")
 		if cfg.Token == "" {
 			log.Error(ctx, "Vault userpass auth not enabled but token not provided")
-			return nil, errors.New("Vault userpass auth not enabled but token not provided")
+			return nil, errors.New("vault userpass auth not enabled but token not provided")
 		}
 		vaultCli, err = newVaultClientWithToken(cfg)
 		if err != nil {

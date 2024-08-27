@@ -599,11 +599,11 @@ paths:
           $ref: '#/components/responses/500'
 
   #credentials:
-  /v1/{identifier}/credentials:
+  /v1/identities/{identifier}/credentials:
     post:
       summary: Create Credential
       operationId: CreateCredential
-      description: Endpoint to create a Credential
+      description: Creates a credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -631,73 +631,14 @@ paths:
           $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
+
+
+  /v1/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials
       operationId: GetCredentials
       description: |
-        Endpoint to retrieve Credentials 
-        > ⚠️ **self** and **subject** filter cannot be used together
-      tags:
-        - Claim
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - in: query
-          name: schemaType
-          schema:
-            type: string
-          description: Filter per schema type. Example - KYCAgeCredential
-        - in: query
-          name: schemaHash
-          schema:
-            type: string
-          description: Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
-        - in: query
-          name: subject
-          schema:
-            type: string
-          description: Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
-        - in: query
-          name: revoked
-          schema:
-            type: boolean
-          description: Filter per credentials revoked or not - Example - true.
-        - in: query
-          name: self
-          schema:
-            type: boolean
-          description: Filter per retrieve credentials of the provided identifier. Example - true
-        - in: query
-          name: query_field
-          schema:
-            type: string
-          description: Filter this field inside the data of the claim
-        - in: query
-          name: query_value
-          schema:
-            type: string
-          description: Filter this value inside the data of the claim for the specified field in query_field
-      responses:
-        '200':
-          description: Credentials found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimsResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/{identifier}/credentials/search:
-    get:
-      summary: Get Credentials Paginated
-      operationId: GetCredentialsPaginated
-      description: |
-        Return all the credentials for page.
+        Returns a list of credentials for the provided identity. Results are paginated.
         Filter between all | revoked | expired credentials and also perform a full text search with the query parameter.
       tags:
         - Credentials
@@ -714,7 +655,7 @@ paths:
             example: 1
           description: Page to fetch. First is one. If omitted, all results will be returned.
         - in: query
-          name: did
+          name: credentialSubject
           schema:
             type: string
             example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
@@ -769,11 +710,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/{id}:
+  /v1/identities/{identifier}/credentials/{id}:
     get:
-      summary: Credential
+      summary: Get Credential
       operationId: GetCredential
-      description: Endpoint to retrieve a created Credential
+      description: Get a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -799,7 +740,7 @@ paths:
     delete:
       summary: Delete Credential
       operationId: DeleteCredential
-      description: Endpoint to delete a Credential
+      description: Remove a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -821,11 +762,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/revoke/{nonce}:
+  /v1/identities/{identifier}/credentials/revoke/{nonce}:
     post:
       summary: Revoke Credential
       operationId: RevokeCredential
-      description: Endpoint to revoke a credential
+      description: Revokes a specific credential for the provided identity.
       tags:
         - Credentials
       security:
@@ -849,7 +790,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/revocation/status/{nonce}:
+  /v1/identities/{identifier}/credentials/revocation/status/{nonce}:
     get:
       summary: Get Revocation Status
       operationId: GetRevocationStatus
@@ -871,11 +812,12 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/{id}/qrcode:
+  /v1/identities/{identifier}/credentials/{id}/qrcode:
     get:
       summary: Get Credentials QR code
       operationId: GetCredentialQrCode
-      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim.
+      description: Returns a a json that can be used to create the QR Code to scan for accepting a claim. |
+        Response can be in two formats `raw` or `link`. Default is `link`. Raw is the raw QR code and link is a QR code with a link to the raw content.
       tags:
         - Credentials
       security:
