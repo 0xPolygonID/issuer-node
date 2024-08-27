@@ -597,7 +597,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #credentials:
-  /v1/{identifier}/credentials:
+  /v1/identities/{identifier}/credentials:
     post:
       summary: Create Credential
       operationId: CreateCredential
@@ -690,7 +690,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/search:
+  /v1/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials Paginated
       operationId: GetCredentialsPaginated
@@ -767,7 +767,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/{id}:
+  /v1/identities/{identifier}/credentials/{id}:
     get:
       summary: Credential
       operationId: GetCredential
@@ -819,7 +819,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/revoke/{nonce}:
+  /v1/identities/{identifier}/credentials/revoke/{nonce}:
     post:
       summary: Revoke Credential
       operationId: RevokeCredential
@@ -847,7 +847,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/revocation/status/{nonce}:
+  /v1/identities/{identifier}/credentials/revocation/status/{nonce}:
     get:
       summary: Get Revocation Status
       operationId: GetRevocationStatus
@@ -869,7 +869,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/{id}/qrcode:
+  /v1/identities/{identifier}/credentials/{id}/qrcode:
     get:
       summary: Get Credentials QR code
       operationId: GetCredentialQrCode

@@ -212,9 +212,9 @@ func getConnectionsFilter(req GetConnectionsRequestObject) (*ports.NewGetAllConn
 			var err error
 			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
 			switch GetConnectionsParamsSort(field) {
-			case GetConnectionsParamsSortCreatedAt:
+			case CreatedAt:
 				err = orderBy.Add(ports.ConnectionsCreatedAt, desc)
-			case GetConnectionsParamsSortUserID:
+			case UserID:
 				err = orderBy.Add(ports.ConnectionsUserID, desc)
 			default:
 				return nil, errors.New("wrong sort by value")
