@@ -821,336 +821,6 @@ func TestServer_GetCredentials(t *testing.T) {
 	server := newTestServer(t, nil)
 	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)
-	fixture := repositories.NewFixture(storage)
-	claim := fixture.NewClaim(t, identityMultipleClaims.Identifier)
-	_ = fixture.CreateClaim(t, claim)
-
-	emptyIdentityStr := "did:polygonid:polygon:mumbai:2qLQGgjpP5Yq7r7jbRrQZbWy8ikADvxamSLB7CqR4F"
-
-	handler := getHandler(context.Background(), server)
-
-	type expected struct {
-		response GetCredentialsResponseObject
-		len      int
-		httpCode int
-	}
-
-	type filter struct {
-		schemaHash *string
-		schemaType *string
-		subject    *string
-		revoked    *string
-		self       *string
-		queryField *string
-	}
-
-	type testConfig struct {
-		name     string
-		auth     func() (string, string)
-		did      string
-		expected expected
-		filter   filter
-	}
-
-	for _, tc := range []testConfig{
-		{
-			name: "No auth header",
-			auth: authWrong,
-			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
-			expected: expected{
-				httpCode: http.StatusUnauthorized,
-			},
-		},
-		{
-			name: "should get an error wrong did invalid format",
-			auth: authOk,
-			did:  ":polygon:mumbai:2qPUUYXa98tQWZKSaRidf2QTDyZicFFxkTWNWjk2HJ",
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-				response: GetCredentials400JSONResponse{N400JSONResponse{
-					Message: "invalid did",
-				}},
-			},
-		},
-		{
-			name: "should get an error self and subject filter cannot be used together",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				self:    common.ToPointer("true"),
-				subject: common.ToPointer("some subject"),
-			},
-			expected: expected{
-				httpCode: http.StatusBadRequest,
-				response: GetCredentials400JSONResponse{N400JSONResponse{"self and subject filter cannot be used together"}},
-			},
-		},
-		{
-			name: "should get 0 claims",
-			auth: authOk,
-			did:  emptyIdentityStr,
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      0,
-				response: GetCredentials200JSONResponse{},
-			},
-		},
-		{
-			name: "should get the default credentials plus another one that has been created",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetCredentialResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get 1 credential with the given schemaHash filter",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				schemaHash: common.ToPointer(claim.SchemaHash),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetCredentialResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get 1 credential with multiple filters",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				schemaHash: common.ToPointer(claim.SchemaHash),
-				revoked:    common.ToPointer("false"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetCredentialResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get 0 revoked credentials",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				revoked: common.ToPointer("true"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      0,
-				response: GetCredentials200JSONResponse{},
-			},
-		},
-		{
-			name: "should get two non revoked credentials",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				revoked: common.ToPointer("false"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetCredentialResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "should get one credential with the given schemaType filter",
-			auth: authOk,
-			did:  identityMultipleClaims.Identifier,
-			filter: filter{
-				schemaType: common.ToPointer("AuthBJJCredential"),
-			},
-			expected: expected{
-				httpCode: http.StatusOK,
-				len:      1,
-				response: GetCredentials200JSONResponse{
-					GetCredentialResponse{
-						Context: []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
-						CredentialSchema: CredentialSchema{
-							"https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json",
-							"JsonSchemaValidator2018",
-						},
-						CredentialStatus: verifiable.CredentialStatus{
-							ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identityMultipleClaims.Identifier, claim.RevNonce),
-							Type:            "SparseMerkleTreeProof",
-							RevocationNonce: uint64(claim.RevNonce),
-						},
-						CredentialSubject: map[string]interface{}{
-							"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
-							"birthday":     float64(19960424),
-							"documentType": float64(2),
-							"type":         "KYCAgeCredential",
-						},
-						Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
-						IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
-						Issuer:       identityMultipleClaims.Identifier,
-						Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
-						RefreshService: &RefreshService{
-							Id:   "https://refresh-service.xyz",
-							Type: RefreshServiceType(verifiable.Iden3RefreshService2023),
-						},
-					},
-				},
-			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			rr := httptest.NewRecorder()
-			tURL := createGetClaimsURL(tc.did, tc.filter.schemaHash, tc.filter.schemaType, tc.filter.subject, tc.filter.revoked, tc.filter.self, tc.filter.queryField)
-			req, err := http.NewRequest("GET", tURL, nil)
-			req.SetBasicAuth(tc.auth())
-			require.NoError(t, err)
-
-			handler.ServeHTTP(rr, req)
-
-			require.Equal(t, tc.expected.httpCode, rr.Code)
-
-			switch v := tc.expected.response.(type) {
-			case GetCredentials200JSONResponse:
-				var response GetCredentials200JSONResponse
-				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, tc.expected.len, len(response))
-				for i := range response {
-					validateCredential(t, response[i], v[i])
-				}
-			case GetCredentials400JSONResponse:
-				var response GetCredentials400JSONResponse
-				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
-			case GetCredentials500JSONResponse:
-				var response GetCredentials500JSONResponse
-				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, response.Message, v.Message)
-			}
-		})
-	}
-}
-
-func TestServer_GetCredentialsPaginated(t *testing.T) {
-	const (
-		method     = "polygonid"
-		blockchain = "polygon"
-		network    = "amoy"
-		BJJ        = "BJJ"
-	)
-	ctx := context.Background()
-
-	server := newTestServer(t, nil)
-	identityMultipleClaims, err := server.identityService.Create(ctx, "https://localhost.com", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
-	require.NoError(t, err)
 
 	did, err := w3c.ParseDID(identityMultipleClaims.Identifier)
 	require.NoError(t, err)
@@ -1582,7 +1252,7 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 				queryParams = append(queryParams, "status="+*tc.status)
 			}
 			if tc.did != nil {
-				queryParams = append(queryParams, "did="+*tc.did)
+				queryParams = append(queryParams, "credentialSubject="+*tc.did)
 			}
 			if tc.page != nil {
 				queryParams = append(queryParams, "page="+strconv.Itoa(*tc.page))
@@ -1600,7 +1270,7 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 			require.Equal(t, tc.expected.httpCode, rr.Code)
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				var response GetCredentialsPaginated200JSONResponse
+				var response GetCredentials200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.total, response.Meta.Total)
 				assert.Equal(t, tc.expected.credentialsCount, len(response.Items))
@@ -1608,12 +1278,12 @@ func TestServer_GetCredentialsPaginated(t *testing.T) {
 				assert.Equal(t, tc.expected.page, response.Meta.Page)
 
 			case http.StatusBadRequest:
-				var response GetCredentialsPaginated400JSONResponse
+				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.errorMsg, response.Message)
 
 			case http.StatusInternalServerError:
-				var response GetCredentialsPaginated400JSONResponse
+				var response GetCredentials400JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 				assert.Equal(t, tc.expected.errorMsg, response.Message)
 			}
@@ -1752,36 +1422,4 @@ func validateCredential(t *testing.T, resp, tc GetCredentialResponse) {
 	credentialStatusTC, ok := tc.CredentialStatus.(verifiable.CredentialStatus)
 	require.True(t, ok)
 	assert.EqualValues(t, responseCredentialStatus, credentialStatusTC)
-}
-
-func createGetClaimsURL(did string, schemaHash *string, schemaType *string, subject *string, revoked *string, self *string, queryField *string) string {
-	tURL := &url.URL{Path: fmt.Sprintf("/v1/identities/%s/credentials", did)}
-	q := tURL.Query()
-
-	if self != nil {
-		q.Add("self", *self)
-	}
-
-	if schemaHash != nil {
-		q.Add("schemaHash", *schemaHash)
-	}
-
-	if schemaType != nil {
-		q.Add("schemaType", *schemaType)
-	}
-
-	if revoked != nil {
-		q.Add("revoked", *revoked)
-	}
-
-	if subject != nil {
-		q.Add("subject", *subject)
-	}
-
-	if queryField != nil {
-		q.Add("queryField", *queryField)
-	}
-
-	tURL.RawQuery = q.Encode()
-	return tURL.String()
 }

@@ -81,23 +81,23 @@ const (
 	Published StateTransactionStatus = "published"
 )
 
-// Defines values for GetCredentialsPaginatedParamsStatus.
+// Defines values for GetCredentialsParamsStatus.
 const (
-	GetCredentialsPaginatedParamsStatusAll     GetCredentialsPaginatedParamsStatus = "all"
-	GetCredentialsPaginatedParamsStatusExpired GetCredentialsPaginatedParamsStatus = "expired"
-	GetCredentialsPaginatedParamsStatusRevoked GetCredentialsPaginatedParamsStatus = "revoked"
+	GetCredentialsParamsStatusAll     GetCredentialsParamsStatus = "all"
+	GetCredentialsParamsStatusExpired GetCredentialsParamsStatus = "expired"
+	GetCredentialsParamsStatusRevoked GetCredentialsParamsStatus = "revoked"
 )
 
-// Defines values for GetCredentialsPaginatedParamsSort.
+// Defines values for GetCredentialsParamsSort.
 const (
-	GetCredentialsPaginatedParamsSortCreatedAt       GetCredentialsPaginatedParamsSort = "createdAt"
-	GetCredentialsPaginatedParamsSortExpiresAt       GetCredentialsPaginatedParamsSort = "expiresAt"
-	GetCredentialsPaginatedParamsSortMinusCreatedAt  GetCredentialsPaginatedParamsSort = "-createdAt"
-	GetCredentialsPaginatedParamsSortMinusExpiresAt  GetCredentialsPaginatedParamsSort = "-expiresAt"
-	GetCredentialsPaginatedParamsSortMinusRevoked    GetCredentialsPaginatedParamsSort = "-revoked"
-	GetCredentialsPaginatedParamsSortMinusSchemaType GetCredentialsPaginatedParamsSort = "-schemaType"
-	GetCredentialsPaginatedParamsSortRevoked         GetCredentialsPaginatedParamsSort = "revoked"
-	GetCredentialsPaginatedParamsSortSchemaType      GetCredentialsPaginatedParamsSort = "schemaType"
+	GetCredentialsParamsSortCreatedAt       GetCredentialsParamsSort = "createdAt"
+	GetCredentialsParamsSortExpiresAt       GetCredentialsParamsSort = "expiresAt"
+	GetCredentialsParamsSortMinusCreatedAt  GetCredentialsParamsSort = "-createdAt"
+	GetCredentialsParamsSortMinusExpiresAt  GetCredentialsParamsSort = "-expiresAt"
+	GetCredentialsParamsSortMinusRevoked    GetCredentialsParamsSort = "-revoked"
+	GetCredentialsParamsSortMinusSchemaType GetCredentialsParamsSort = "-schemaType"
+	GetCredentialsParamsSortRevoked         GetCredentialsParamsSort = "revoked"
+	GetCredentialsParamsSortSchemaType      GetCredentialsParamsSort = "schemaType"
 )
 
 // Defines values for GetCredentialQrCodeParamsType.
@@ -301,9 +301,6 @@ type GenericMessage struct {
 type GetAuthenticationConnectionResponse struct {
 	Connection AuthenticationConnection `json:"connection"`
 }
-
-// GetClaimsResponse defines model for GetClaimsResponse.
-type GetClaimsResponse = []GetCredentialResponse
 
 // GetConnectionResponse defines model for GetConnectionResponse.
 type GetConnectionResponse struct {
@@ -621,53 +618,29 @@ type UpdateIdentityJSONBody struct {
 
 // GetCredentialsParams defines parameters for GetCredentials.
 type GetCredentialsParams struct {
-	// SchemaType Filter per schema type. Example - KYCAgeCredential
-	SchemaType *string `form:"schemaType,omitempty" json:"schemaType,omitempty"`
-
-	// SchemaHash Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
-	SchemaHash *string `form:"schemaHash,omitempty" json:"schemaHash,omitempty"`
-
-	// Subject Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
-	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
-
-	// Revoked Filter per credentials revoked or not - Example - true.
-	Revoked *bool `form:"revoked,omitempty" json:"revoked,omitempty"`
-
-	// Self Filter per retrieve credentials of the provided identifier. Example - true
-	Self *bool `form:"self,omitempty" json:"self,omitempty"`
-
-	// QueryField Filter this field inside the data of the claim
-	QueryField *string `form:"query_field,omitempty" json:"query_field,omitempty"`
-
-	// QueryValue Filter this value inside the data of the claim for the specified field in query_field
-	QueryValue *string `form:"query_value,omitempty" json:"query_value,omitempty"`
-}
-
-// GetCredentialsPaginatedParams defines parameters for GetCredentialsPaginated.
-type GetCredentialsPaginatedParams struct {
 	// Page Page to fetch. First is one. If omitted, all results will be returned.
-	Page *uint   `form:"page,omitempty" json:"page,omitempty"`
-	Did  *string `form:"did,omitempty" json:"did,omitempty"`
+	Page              *uint   `form:"page,omitempty" json:"page,omitempty"`
+	CredentialSubject *string `form:"credentialSubject,omitempty" json:"credentialSubject,omitempty"`
 
 	// Status Credential status:
 	//   * `all` - All Credentials. (default value)
 	//   * `revoked` - Only revoked credentials
 	//   * `expired` - Only expired credentials
-	Status *GetCredentialsPaginatedParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+	Status *GetCredentialsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 
 	// Query Query string to do full text search
 	Query *string `form:"query,omitempty" json:"query,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Minimum is 10. Default is 50. No maximum by the moment.
-	MaxResults *uint                                `form:"max_results,omitempty" json:"max_results,omitempty"`
-	Sort       *[]GetCredentialsPaginatedParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
+	MaxResults *uint                       `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetCredentialsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
-// GetCredentialsPaginatedParamsStatus defines parameters for GetCredentialsPaginated.
-type GetCredentialsPaginatedParamsStatus string
+// GetCredentialsParamsStatus defines parameters for GetCredentials.
+type GetCredentialsParamsStatus string
 
-// GetCredentialsPaginatedParamsSort defines parameters for GetCredentialsPaginated.
-type GetCredentialsPaginatedParamsSort string
+// GetCredentialsParamsSort defines parameters for GetCredentials.
+type GetCredentialsParamsSort string
 
 // GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
 type GetCredentialQrCodeParams struct {
@@ -821,9 +794,6 @@ type ServerInterface interface {
 	// Update Identity
 	// (PATCH /v1/identities/{identifier})
 	UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Credentials
-	// (GET /v1/identities/{identifier}/credentials)
-	GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams)
 	// Create Credential
 	// (POST /v1/identities/{identifier}/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -833,9 +803,9 @@ type ServerInterface interface {
 	// Revoke Credential
 	// (POST /v1/identities/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
-	// Get Credentials Paginated
+	// Get Credentials
 	// (GET /v1/identities/{identifier}/credentials/search)
-	GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsPaginatedParams)
+	GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams)
 	// Delete Credential
 	// (DELETE /v1/identities/{identifier}/credentials/{id})
 	DeleteCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
@@ -968,12 +938,6 @@ func (_ Unimplemented) UpdateIdentity(w http.ResponseWriter, r *http.Request, id
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credentials
-// (GET /v1/identities/{identifier}/credentials)
-func (_ Unimplemented) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Create Credential
 // (POST /v1/identities/{identifier}/credentials)
 func (_ Unimplemented) CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
@@ -992,9 +956,9 @@ func (_ Unimplemented) RevokeCredential(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Credentials Paginated
+// Get Credentials
 // (GET /v1/identities/{identifier}/credentials/search)
-func (_ Unimplemented) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsPaginatedParams) {
+func (_ Unimplemented) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1376,93 +1340,6 @@ func (siw *ServerInterfaceWrapper) UpdateIdentity(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetCredentials operation middleware
-func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetCredentialsParams
-
-	// ------------- Optional query parameter "schemaType" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "schemaType", r.URL.Query(), &params.SchemaType)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schemaType", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "schemaHash" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "schemaHash", r.URL.Query(), &params.SchemaHash)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "schemaHash", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "subject" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "subject", r.URL.Query(), &params.Subject)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "revoked" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "revoked", r.URL.Query(), &params.Revoked)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "revoked", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "self" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "self", r.URL.Query(), &params.Self)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "self", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "query_field" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "query_field", r.URL.Query(), &params.QueryField)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_field", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "query_value" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "query_value", r.URL.Query(), &params.QueryValue)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query_value", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCredentials(w, r, identifier, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 // CreateCredential operation middleware
 func (siw *ServerInterfaceWrapper) CreateCredential(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1563,8 +1440,8 @@ func (siw *ServerInterfaceWrapper) RevokeCredential(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetCredentialsPaginated operation middleware
-func (siw *ServerInterfaceWrapper) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request) {
+// GetCredentials operation middleware
+func (siw *ServerInterfaceWrapper) GetCredentials(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -1581,7 +1458,7 @@ func (siw *ServerInterfaceWrapper) GetCredentialsPaginated(w http.ResponseWriter
 	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetCredentialsPaginatedParams
+	var params GetCredentialsParams
 
 	// ------------- Optional query parameter "page" -------------
 
@@ -1591,11 +1468,11 @@ func (siw *ServerInterfaceWrapper) GetCredentialsPaginated(w http.ResponseWriter
 		return
 	}
 
-	// ------------- Optional query parameter "did" -------------
+	// ------------- Optional query parameter "credentialSubject" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "did", r.URL.Query(), &params.Did)
+	err = runtime.BindQueryParameter("form", true, false, "credentialSubject", r.URL.Query(), &params.CredentialSubject)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "did", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentialSubject", Err: err})
 		return
 	}
 
@@ -1632,7 +1509,7 @@ func (siw *ServerInterfaceWrapper) GetCredentialsPaginated(w http.ResponseWriter
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetCredentialsPaginated(w, r, identifier, params)
+		siw.Handler.GetCredentials(w, r, identifier, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2742,9 +2619,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/v1/identities/{identifier}", wrapper.UpdateIdentity)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials", wrapper.GetCredentials)
-	})
-	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials", wrapper.CreateCredential)
 	})
 	r.Group(func(r chi.Router) {
@@ -2754,7 +2628,7 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/revoke/{nonce}", wrapper.RevokeCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/search", wrapper.GetCredentialsPaginated)
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/search", wrapper.GetCredentials)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/v1/identities/{identifier}/credentials/{id}", wrapper.DeleteCredential)
@@ -3183,51 +3057,6 @@ func (response UpdateIdentity500JSONResponse) VisitUpdateIdentityResponse(w http
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialsRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Params     GetCredentialsParams
-}
-
-type GetCredentialsResponseObject interface {
-	VisitGetCredentialsResponse(w http.ResponseWriter) error
-}
-
-type GetCredentials200JSONResponse GetClaimsResponse
-
-func (response GetCredentials200JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetCredentials400JSONResponse struct{ N400JSONResponse }
-
-func (response GetCredentials400JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetCredentials401JSONResponse struct{ N401JSONResponse }
-
-func (response GetCredentials401JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(401)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetCredentials500JSONResponse struct{ N500JSONResponse }
-
-func (response GetCredentials500JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type CreateCredentialRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Body       *CreateCredentialJSONRequestBody
@@ -3372,45 +3201,45 @@ func (response RevokeCredential500JSONResponse) VisitRevokeCredentialResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialsPaginatedRequestObject struct {
+type GetCredentialsRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
-	Params     GetCredentialsPaginatedParams
+	Params     GetCredentialsParams
 }
 
-type GetCredentialsPaginatedResponseObject interface {
-	VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error
+type GetCredentialsResponseObject interface {
+	VisitGetCredentialsResponse(w http.ResponseWriter) error
 }
 
-type GetCredentialsPaginated200JSONResponse CredentialsPaginated
+type GetCredentials200JSONResponse CredentialsPaginated
 
-func (response GetCredentialsPaginated200JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+func (response GetCredentials200JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialsPaginated400JSONResponse struct{ N400JSONResponse }
+type GetCredentials400JSONResponse struct{ N400JSONResponse }
 
-func (response GetCredentialsPaginated400JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+func (response GetCredentials400JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialsPaginated404JSONResponse struct{ N404JSONResponse }
+type GetCredentials404JSONResponse struct{ N404JSONResponse }
 
-func (response GetCredentialsPaginated404JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+func (response GetCredentials404JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetCredentialsPaginated500JSONResponse struct{ N500JSONResponse }
+type GetCredentials500JSONResponse struct{ N500JSONResponse }
 
-func (response GetCredentialsPaginated500JSONResponse) VisitGetCredentialsPaginatedResponse(w http.ResponseWriter) error {
+func (response GetCredentials500JSONResponse) VisitGetCredentialsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -4510,9 +4339,6 @@ type StrictServerInterface interface {
 	// Update Identity
 	// (PATCH /v1/identities/{identifier})
 	UpdateIdentity(ctx context.Context, request UpdateIdentityRequestObject) (UpdateIdentityResponseObject, error)
-	// Get Credentials
-	// (GET /v1/identities/{identifier}/credentials)
-	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
 	// Create Credential
 	// (POST /v1/identities/{identifier}/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
@@ -4522,9 +4348,9 @@ type StrictServerInterface interface {
 	// Revoke Credential
 	// (POST /v1/identities/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
-	// Get Credentials Paginated
+	// Get Credentials
 	// (GET /v1/identities/{identifier}/credentials/search)
-	GetCredentialsPaginated(ctx context.Context, request GetCredentialsPaginatedRequestObject) (GetCredentialsPaginatedResponseObject, error)
+	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
 	// Delete Credential
 	// (DELETE /v1/identities/{identifier}/credentials/{id})
 	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
@@ -4872,33 +4698,6 @@ func (sh *strictHandler) UpdateIdentity(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// GetCredentials operation middleware
-func (sh *strictHandler) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
-	var request GetCredentialsRequestObject
-
-	request.Identifier = identifier
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetCredentials(ctx, request.(GetCredentialsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetCredentials")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetCredentialsResponseObject); ok {
-		if err := validResponse.VisitGetCredentialsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // CreateCredential operation middleware
 func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	var request CreateCredentialRequestObject
@@ -4986,26 +4785,26 @@ func (sh *strictHandler) RevokeCredential(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// GetCredentialsPaginated operation middleware
-func (sh *strictHandler) GetCredentialsPaginated(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsPaginatedParams) {
-	var request GetCredentialsPaginatedRequestObject
+// GetCredentials operation middleware
+func (sh *strictHandler) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
+	var request GetCredentialsRequestObject
 
 	request.Identifier = identifier
 	request.Params = params
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetCredentialsPaginated(ctx, request.(GetCredentialsPaginatedRequestObject))
+		return sh.ssi.GetCredentials(ctx, request.(GetCredentialsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetCredentialsPaginated")
+		handler = middleware(handler, "GetCredentials")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetCredentialsPaginatedResponseObject); ok {
-		if err := validResponse.VisitGetCredentialsPaginatedResponse(w); err != nil {
+	} else if validResponse, ok := response.(GetCredentialsResponseObject); ok {
+		if err := validResponse.VisitGetCredentialsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

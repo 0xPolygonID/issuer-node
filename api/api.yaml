@@ -629,73 +629,14 @@ paths:
           $ref: '#/components/responses/422'
         '500':
           $ref: '#/components/responses/500'
+
+
+  /v1/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials
       operationId: GetCredentials
       description: |
-        Return the list of credentials for the provided identity with the possibility to filter by schema type, schema hash, subject, revoked, self and query_field and query_value. | 
-        > ⚠️ **self** and **subject** filter cannot be used together
-      tags:
-        - Credentials
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/pathIdentifier'
-        - in: query
-          name: schemaType
-          schema:
-            type: string
-          description: Filter per schema type. Example - KYCAgeCredential
-        - in: query
-          name: schemaHash
-          schema:
-            type: string
-          description: Filter per schema hash. Example - c9b2370371b7fa8b3dab2a5ba81b6838
-        - in: query
-          name: subject
-          schema:
-            type: string
-          description: Filter per subject. Example - did:polygonid:polygon:amoy:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ
-        - in: query
-          name: revoked
-          schema:
-            type: boolean
-          description: Filter per credentials revoked or not - Example - true.
-        - in: query
-          name: self
-          schema:
-            type: boolean
-          description: Filter per retrieve credentials of the provided identifier. Example - true
-        - in: query
-          name: query_field
-          schema:
-            type: string
-          description: Filter this field inside the data of the claim
-        - in: query
-          name: query_value
-          schema:
-            type: string
-          description: Filter this value inside the data of the claim for the specified field in query_field
-      responses:
-        '200':
-          description: Credentials found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetClaimsResponse'
-        '400':
-          $ref: '#/components/responses/400'
-        '401':
-          $ref: '#/components/responses/401'
-        '500':
-          $ref: '#/components/responses/500'
-
-  /v1/identities/{identifier}/credentials/search:
-    get:
-      summary: Get Credentials Paginated
-      operationId: GetCredentialsPaginated
-      description: |
-        Return all the credentials for page.
+        Returns a list of credentials for the provided identity. Results are paginated.
         Filter between all | revoked | expired credentials and also perform a full text search with the query parameter.
       tags:
         - Credentials
@@ -712,7 +653,7 @@ paths:
             example: 1
           description: Page to fetch. First is one. If omitted, all results will be returned.
         - in: query
-          name: did
+          name: credentialSubject
           schema:
             type: string
             example: did:polygonid:polygon:amoy:2qFpPHotk6oyaX1fcrpQFT4BMnmg8YszUwxYtaoGoe
