@@ -175,7 +175,7 @@ func TestServer_CreateConnection(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			urlTest := fmt.Sprintf("/v1/%s/connections", tc.issuerDID)
+			urlTest := fmt.Sprintf("/v1/identities/%s/connections", tc.issuerDID)
 			parsedURL, err := url.Parse(urlTest)
 			require.NoError(t, err)
 
@@ -316,7 +316,7 @@ func TestServer_DeleteConnection(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			urlTest := fmt.Sprintf("/v1/%s/connections/%s", issuerDID, tc.connID.String())
+			urlTest := fmt.Sprintf("/v1/identities/%s/connections/%s", issuerDID, tc.connID.String())
 			parsedURL, err := url.Parse(urlTest)
 			require.NoError(t, err)
 			values := parsedURL.Query()
@@ -416,7 +416,7 @@ func TestServer_DeleteConnectionCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/connections/%s/credentials", issuerDID, tc.connID.String())
+			url := fmt.Sprintf("/v1/identities/%s/connections/%s/credentials", issuerDID, tc.connID.String())
 			req, err := http.NewRequest("DELETE", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -512,7 +512,7 @@ func TestServer_RevokeConnectionCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/%s/connections/%s/credentials/revoke", issuerDID, tc.connID.String())
+			url := fmt.Sprintf("/v1/identities/%s/connections/%s/credentials/revoke", issuerDID, tc.connID.String())
 			req, err := http.NewRequest("POST", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
