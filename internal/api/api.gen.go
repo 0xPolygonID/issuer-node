@@ -668,6 +668,12 @@ type GetCredentialQrCodeParams struct {
 // GetCredentialQrCodeParamsType defines parameters for GetCredentialQrCode.
 type GetCredentialQrCodeParamsType string
 
+// GetSchemasParams defines parameters for GetSchemas.
+type GetSchemasParams struct {
+	// Query Query string to do full text search in schema types and attributes.
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+}
+
 // GetStateTransactionsParams defines parameters for GetStateTransactions.
 type GetStateTransactionsParams struct {
 	Filter *GetStateTransactionsParamsFilter `form:"filter,omitempty" json:"filter,omitempty"`
@@ -726,12 +732,6 @@ type DeleteConnectionParams struct {
 	DeleteCredentials *bool `form:"deleteCredentials,omitempty" json:"deleteCredentials,omitempty"`
 }
 
-// GetSchemasParams defines parameters for GetSchemas.
-type GetSchemasParams struct {
-	// Query Query string to do full text search in schema types and attributes.
-	Query *string `form:"query,omitempty" json:"query,omitempty"`
-}
-
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
 type AgentTextRequestBody = AgentTextBody
 
@@ -756,11 +756,11 @@ type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
 // ActivateLinkJSONRequestBody defines body for ActivateLink for application/json ContentType.
 type ActivateLinkJSONRequestBody ActivateLinkJSONBody
 
-// CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
-type CreateConnectionJSONRequestBody = CreateConnectionRequest
-
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
+
+// CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
+type CreateConnectionJSONRequestBody = CreateConnectionRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -830,6 +830,15 @@ type ServerInterface interface {
 	// Get Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Schemas
+	// (GET /v1/identities/{identifier}/schemas)
+	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
+	// Import JSON schema
+	// (POST /v1/identities/{identifier}/schemas)
+	ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Schema
+	// (GET /v1/identities/{identifier}/schemas/{id})
+	GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Publish Identity State
 	// (POST /v1/identities/{identifier}/state/publish)
 	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
@@ -869,15 +878,6 @@ type ServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Get Schemas
-	// (GET /v1/{identifier}/schemas)
-	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
-	// Import JSON schema
-	// (POST /v1/{identifier}/schemas)
-	ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Get Schema
-	// (GET /v1/{identifier}/schemas/{id})
-	GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -1016,6 +1016,24 @@ func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get Schemas
+// (GET /v1/identities/{identifier}/schemas)
+func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Import JSON schema
+// (POST /v1/identities/{identifier}/schemas)
+func (_ Unimplemented) ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Schema
+// (GET /v1/identities/{identifier}/schemas/{id})
+func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Publish Identity State
 // (POST /v1/identities/{identifier}/state/publish)
 func (_ Unimplemented) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
@@ -1091,24 +1109,6 @@ func (_ Unimplemented) DeleteConnectionCredentials(w http.ResponseWriter, r *htt
 // Revoke Connection Credentials
 // (POST /v1/{identifier}/connections/{id}/credentials/revoke)
 func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get Schemas
-// (GET /v1/{identifier}/schemas)
-func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Import JSON schema
-// (POST /v1/{identifier}/schemas)
-func (_ Unimplemented) ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get Schema
-// (GET /v1/{identifier}/schemas/{id})
-func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1885,6 +1885,110 @@ func (siw *ServerInterfaceWrapper) GetIdentityDetails(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetSchemas operation middleware
+func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetSchemasParams
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSchemas(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ImportSchema operation middleware
+func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ImportSchema(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetSchema operation middleware
+func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSchema(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // PublishIdentityState operation middleware
 func (siw *ServerInterfaceWrapper) PublishIdentityState(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2372,110 +2476,6 @@ func (siw *ServerInterfaceWrapper) RevokeConnectionCredentials(w http.ResponseWr
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetSchemas operation middleware
-func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetSchemasParams
-
-	// ------------- Optional query parameter "query" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetSchemas(w, r, identifier, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// ImportSchema operation middleware
-func (siw *ServerInterfaceWrapper) ImportSchema(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ImportSchema(w, r, identifier)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetSchema operation middleware
-func (siw *ServerInterfaceWrapper) GetSchema(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id Id
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetSchema(w, r, identifier, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -2656,6 +2656,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/identities/{identifier}/details", wrapper.GetIdentityDetails)
 	})
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/schemas", wrapper.GetSchemas)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/schemas", wrapper.ImportSchema)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/schemas/{id}", wrapper.GetSchema)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/identities/{identifier}/state/publish", wrapper.PublishIdentityState)
 	})
 	r.Group(func(r chi.Router) {
@@ -2693,15 +2702,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/connections/{id}/credentials/revoke", wrapper.RevokeConnectionCredentials)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/schemas", wrapper.GetSchemas)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/{identifier}/schemas", wrapper.ImportSchema)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/schemas/{id}", wrapper.GetSchema)
 	})
 
 	return r
@@ -3684,6 +3684,123 @@ func (response GetIdentityDetails500JSONResponse) VisitGetIdentityDetailsRespons
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetSchemasRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetSchemasParams
+}
+
+type GetSchemasResponseObject interface {
+	VisitGetSchemasResponse(w http.ResponseWriter) error
+}
+
+type GetSchemas200JSONResponse []Schema
+
+func (response GetSchemas200JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchemas400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSchemas400JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchemas500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSchemas500JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchemaRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *ImportSchemaJSONRequestBody
+}
+
+type ImportSchemaResponseObject interface {
+	VisitImportSchemaResponse(w http.ResponseWriter) error
+}
+
+type ImportSchema201JSONResponse UUIDResponse
+
+func (response ImportSchema201JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response ImportSchema400JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ImportSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchemaRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetSchemaResponseObject interface {
+	VisitGetSchemaResponse(w http.ResponseWriter) error
+}
+
+type GetSchema200JSONResponse Schema
+
+func (response GetSchema200JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema400JSONResponse struct{ N400JSONResponse }
+
+func (response GetSchema400JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema404JSONResponse struct{ N404JSONResponse }
+
+func (response GetSchema404JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetSchema500JSONResponse struct{ N500JSONResponse }
+
+func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type PublishIdentityStateRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 }
@@ -4192,123 +4309,6 @@ func (response RevokeConnectionCredentials500JSONResponse) VisitRevokeConnection
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetSchemasRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Params     GetSchemasParams
-}
-
-type GetSchemasResponseObject interface {
-	VisitGetSchemasResponse(w http.ResponseWriter) error
-}
-
-type GetSchemas200JSONResponse []Schema
-
-func (response GetSchemas200JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetSchemas400JSONResponse struct{ N400JSONResponse }
-
-func (response GetSchemas400JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetSchemas500JSONResponse struct{ N500JSONResponse }
-
-func (response GetSchemas500JSONResponse) VisitGetSchemasResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ImportSchemaRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Body       *ImportSchemaJSONRequestBody
-}
-
-type ImportSchemaResponseObject interface {
-	VisitImportSchemaResponse(w http.ResponseWriter) error
-}
-
-type ImportSchema201JSONResponse UUIDResponse
-
-func (response ImportSchema201JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ImportSchema400JSONResponse struct{ N400JSONResponse }
-
-func (response ImportSchema400JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ImportSchema500JSONResponse struct{ N500JSONResponse }
-
-func (response ImportSchema500JSONResponse) VisitImportSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetSchemaRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Id         Id             `json:"id"`
-}
-
-type GetSchemaResponseObject interface {
-	VisitGetSchemaResponse(w http.ResponseWriter) error
-}
-
-type GetSchema200JSONResponse Schema
-
-func (response GetSchema200JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetSchema400JSONResponse struct{ N400JSONResponse }
-
-func (response GetSchema400JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetSchema404JSONResponse struct{ N404JSONResponse }
-
-func (response GetSchema404JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetSchema500JSONResponse struct{ N500JSONResponse }
-
-func (response GetSchema500JSONResponse) VisitGetSchemaResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Healthcheck
@@ -4377,6 +4377,15 @@ type StrictServerInterface interface {
 	// Get Identity Detail
 	// (GET /v1/identities/{identifier}/details)
 	GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error)
+	// Get Schemas
+	// (GET /v1/identities/{identifier}/schemas)
+	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
+	// Import JSON schema
+	// (POST /v1/identities/{identifier}/schemas)
+	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
+	// Get Schema
+	// (GET /v1/identities/{identifier}/schemas/{id})
+	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 	// Publish Identity State
 	// (POST /v1/identities/{identifier}/state/publish)
 	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
@@ -4416,15 +4425,6 @@ type StrictServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
-	// Get Schemas
-	// (GET /v1/{identifier}/schemas)
-	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
-	// Import JSON schema
-	// (POST /v1/{identifier}/schemas)
-	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
-	// Get Schema
-	// (GET /v1/{identifier}/schemas/{id})
-	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHTTPHandlerFunc
@@ -5092,6 +5092,93 @@ func (sh *strictHandler) GetIdentityDetails(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// GetSchemas operation middleware
+func (sh *strictHandler) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
+	var request GetSchemasRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchemas(ctx, request.(GetSchemasRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchemas")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSchemasResponseObject); ok {
+		if err := validResponse.VisitGetSchemasResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ImportSchema operation middleware
+func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request ImportSchemaRequestObject
+
+	request.Identifier = identifier
+
+	var body ImportSchemaJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ImportSchema(ctx, request.(ImportSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ImportSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ImportSchemaResponseObject); ok {
+		if err := validResponse.VisitImportSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetSchema operation middleware
+func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetSchemaRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSchema(ctx, request.(GetSchemaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSchema")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
+		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // PublishIdentityState operation middleware
 func (sh *strictHandler) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	var request PublishIdentityStateRequestObject
@@ -5436,93 +5523,6 @@ func (sh *strictHandler) RevokeConnectionCredentials(w http.ResponseWriter, r *h
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeConnectionCredentialsResponseObject); ok {
 		if err := validResponse.VisitRevokeConnectionCredentialsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetSchemas operation middleware
-func (sh *strictHandler) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
-	var request GetSchemasRequestObject
-
-	request.Identifier = identifier
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetSchemas(ctx, request.(GetSchemasRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetSchemas")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetSchemasResponseObject); ok {
-		if err := validResponse.VisitGetSchemasResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ImportSchema operation middleware
-func (sh *strictHandler) ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request ImportSchemaRequestObject
-
-	request.Identifier = identifier
-
-	var body ImportSchemaJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ImportSchema(ctx, request.(ImportSchemaRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ImportSchema")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ImportSchemaResponseObject); ok {
-		if err := validResponse.VisitImportSchemaResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetSchema operation middleware
-func (sh *strictHandler) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	var request GetSchemaRequestObject
-
-	request.Identifier = identifier
-	request.Id = id
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetSchema(ctx, request.(GetSchemaRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetSchema")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetSchemaResponseObject); ok {
-		if err := validResponse.VisitGetSchemaResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
