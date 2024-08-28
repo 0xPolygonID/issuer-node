@@ -6,7 +6,7 @@ services:
     ports:
       - "8088:80"
     env_file:
-      - ../../.env-api
+      - ../../.env-issuer
       - ../../.env-ui
     healthcheck:
       test: [ "CMD", "curl", "-f", "localhost:8088/health" ]
