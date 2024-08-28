@@ -81,6 +81,14 @@ const (
 	Published StateTransactionStatus = "published"
 )
 
+// Defines values for GetLinksParamsStatus.
+const (
+	GetLinksParamsStatusActive   GetLinksParamsStatus = "active"
+	GetLinksParamsStatusAll      GetLinksParamsStatus = "all"
+	GetLinksParamsStatusExceeded GetLinksParamsStatus = "exceeded"
+	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
+)
+
 // Defines values for GetCredentialsParamsStatus.
 const (
 	GetCredentialsParamsStatusAll     GetCredentialsParamsStatus = "all"
@@ -124,14 +132,6 @@ const (
 	MinusCreatedAt GetConnectionsParamsSort = "-createdAt"
 	MinusUserID    GetConnectionsParamsSort = "-userID"
 	UserID         GetConnectionsParamsSort = "userID"
-)
-
-// Defines values for GetLinksParamsStatus.
-const (
-	GetLinksParamsStatusActive   GetLinksParamsStatus = "active"
-	GetLinksParamsStatusAll      GetLinksParamsStatus = "all"
-	GetLinksParamsStatusExceeded GetLinksParamsStatus = "exceeded"
-	GetLinksParamsStatusInactive GetLinksParamsStatus = "inactive"
 )
 
 // AgentResponse defines model for AgentResponse.
@@ -535,9 +535,6 @@ type UUIDResponse struct {
 // UUIDString defines model for UUIDString.
 type UUIDString = string
 
-// CredentialStatusType defines model for credentialStatusType.
-type CredentialStatusType = string
-
 // Id defines model for id.
 type Id = uuid.UUID
 
@@ -596,6 +593,27 @@ type AuthCallbackParams struct {
 	SessionID SessionID `form:"sessionID" json:"sessionID"`
 }
 
+// UpdateIdentityJSONBody defines parameters for UpdateIdentity.
+type UpdateIdentityJSONBody struct {
+	DisplayName string `json:"displayName"`
+}
+
+// GetLinksParams defines parameters for GetLinks.
+type GetLinksParams struct {
+	// Query Query string to do full text search in schema types and attributes.
+	Query *string `form:"query,omitempty" json:"query,omitempty"`
+
+	// Status Schema type:
+	//   * `all` - All links. (default value)
+	//   * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
+	//   * `inactive` - Only deactivated links
+	//   * `exceeded` - Expired or maximum issuance exceeded
+	Status *GetLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// GetLinksParamsStatus defines parameters for GetLinks.
+type GetLinksParamsStatus string
+
 // CreateLinkQrCodeCallbackTextBody defines parameters for CreateLinkQrCodeCallback.
 type CreateLinkQrCodeCallbackTextBody = string
 
@@ -606,14 +624,11 @@ type CreateLinkQrCodeCallbackParams struct {
 
 	// LinkID Session ID e.g: 89d298fa-15a6-4a1d-ab13-d1069467eedd
 	LinkID LinkID `form:"linkID" json:"linkID"`
-
-	// CredentialStatusType credential status type, e.g: Iden3ReverseSparseMerkleTreeProof
-	CredentialStatusType *CredentialStatusType `form:"credentialStatusType,omitempty" json:"credentialStatusType,omitempty"`
 }
 
-// UpdateIdentityJSONBody defines parameters for UpdateIdentity.
-type UpdateIdentityJSONBody struct {
-	DisplayName string `json:"displayName"`
+// ActivateLinkJSONBody defines parameters for ActivateLink.
+type ActivateLinkJSONBody struct {
+	Active bool `json:"active"`
 }
 
 // GetCredentialsParams defines parameters for GetCredentials.
@@ -711,27 +726,6 @@ type DeleteConnectionParams struct {
 	DeleteCredentials *bool `form:"deleteCredentials,omitempty" json:"deleteCredentials,omitempty"`
 }
 
-// GetLinksParams defines parameters for GetLinks.
-type GetLinksParams struct {
-	// Query Query string to do full text search in schema types and attributes.
-	Query *string `form:"query,omitempty" json:"query,omitempty"`
-
-	// Status Schema type:
-	//   * `all` - All links. (default value)
-	//   * `active` - Only active links. (Not expired, no issuance exceeded and not deactivated
-	//   * `inactive` - Only deactivated links
-	//   * `exceeded` - Expired or maximum issuance exceeded
-	Status *GetLinksParamsStatus `form:"status,omitempty" json:"status,omitempty"`
-}
-
-// GetLinksParamsStatus defines parameters for GetLinks.
-type GetLinksParamsStatus string
-
-// ActivateLinkJSONBody defines parameters for ActivateLink.
-type ActivateLinkJSONBody struct {
-	Active bool `json:"active"`
-}
-
 // GetSchemasParams defines parameters for GetSchemas.
 type GetSchemasParams struct {
 	// Query Query string to do full text search in schema types and attributes.
@@ -744,9 +738,6 @@ type AgentTextRequestBody = AgentTextBody
 // AuthCallbackTextRequestBody defines body for AuthCallback for text/plain ContentType.
 type AuthCallbackTextRequestBody = AuthCallbackTextBody
 
-// CreateLinkQrCodeCallbackTextRequestBody defines body for CreateLinkQrCodeCallback for text/plain ContentType.
-type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
-
 // CreateIdentityJSONRequestBody defines body for CreateIdentity for application/json ContentType.
 type CreateIdentityJSONRequestBody = CreateIdentityRequest
 
@@ -756,14 +747,17 @@ type UpdateIdentityJSONRequestBody UpdateIdentityJSONBody
 // CreateCredentialJSONRequestBody defines body for CreateCredential for application/json ContentType.
 type CreateCredentialJSONRequestBody = CreateCredentialRequest
 
-// CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
-type CreateConnectionJSONRequestBody = CreateConnectionRequest
-
 // CreateLinkJSONRequestBody defines body for CreateLink for application/json ContentType.
 type CreateLinkJSONRequestBody = CreateLinkRequest
 
+// CreateLinkQrCodeCallbackTextRequestBody defines body for CreateLinkQrCodeCallback for text/plain ContentType.
+type CreateLinkQrCodeCallbackTextRequestBody = CreateLinkQrCodeCallbackTextBody
+
 // ActivateLinkJSONRequestBody defines body for ActivateLink for application/json ContentType.
 type ActivateLinkJSONRequestBody ActivateLinkJSONBody
+
+// CreateConnectionJSONRequestBody defines body for CreateConnection for application/json ContentType.
+type CreateConnectionJSONRequestBody = CreateConnectionRequest
 
 // ImportSchemaJSONRequestBody defines body for ImportSchema for application/json ContentType.
 type ImportSchemaJSONRequestBody = ImportSchemaRequest
@@ -782,9 +776,6 @@ type ServerInterface interface {
 	// Get Authentication Connection
 	// (GET /v1/authentication/sessions/{id})
 	GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id)
-	// Create Link QR Code Callback
-	// (POST /v1/credentials/links/callback)
-	CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, params CreateLinkQrCodeCallbackParams)
 	// Get Identities
 	// (GET /v1/identities)
 	GetIdentities(w http.ResponseWriter, r *http.Request)
@@ -797,6 +788,27 @@ type ServerInterface interface {
 	// Create Credential
 	// (POST /v1/identities/{identifier}/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Get Links
+	// (GET /v1/identities/{identifier}/credentials/links)
+	GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams)
+	// Create Link
+	// (POST /v1/identities/{identifier}/credentials/links)
+	CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
+	// Create Link QR Code Callback
+	// (POST /v1/identities/{identifier}/credentials/links/callback)
+	CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackParams)
+	// Delete Link
+	// (DELETE /v1/identities/{identifier}/credentials/links/{id})
+	DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Get Link
+	// (GET /v1/identities/{identifier}/credentials/links/{id})
+	GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Activate | Deactivate Link
+	// (PATCH /v1/identities/{identifier}/credentials/links/{id})
+	ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
+	// Create Link QR Code
+	// (POST /v1/identities/{identifier}/credentials/links/{id}/qrcode)
+	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Revocation Status
 	// (GET /v1/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
@@ -857,24 +869,6 @@ type ServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Get Links
-	// (GET /v1/{identifier}/credentials/links)
-	GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams)
-	// Create Link
-	// (POST /v1/{identifier}/credentials/links)
-	CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
-	// Delete Link
-	// (DELETE /v1/{identifier}/credentials/links/{id})
-	DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Get Link
-	// (GET /v1/{identifier}/credentials/links/{id})
-	GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Activate | Deactivate Link
-	// (PATCH /v1/{identifier}/credentials/links/{id})
-	ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Create Authentication Link QRCode
-	// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
-	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Schemas
 	// (GET /v1/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
@@ -914,12 +908,6 @@ func (_ Unimplemented) GetAuthenticationConnection(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Create Link QR Code Callback
-// (POST /v1/credentials/links/callback)
-func (_ Unimplemented) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, params CreateLinkQrCodeCallbackParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Get Identities
 // (GET /v1/identities)
 func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
@@ -941,6 +929,48 @@ func (_ Unimplemented) UpdateIdentity(w http.ResponseWriter, r *http.Request, id
 // Create Credential
 // (POST /v1/identities/{identifier}/credentials)
 func (_ Unimplemented) CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Links
+// (GET /v1/identities/{identifier}/credentials/links)
+func (_ Unimplemented) GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Link
+// (POST /v1/identities/{identifier}/credentials/links)
+func (_ Unimplemented) CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Link QR Code Callback
+// (POST /v1/identities/{identifier}/credentials/links/callback)
+func (_ Unimplemented) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Delete Link
+// (DELETE /v1/identities/{identifier}/credentials/links/{id})
+func (_ Unimplemented) DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Link
+// (GET /v1/identities/{identifier}/credentials/links/{id})
+func (_ Unimplemented) GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Activate | Deactivate Link
+// (PATCH /v1/identities/{identifier}/credentials/links/{id})
+func (_ Unimplemented) ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Create Link QR Code
+// (POST /v1/identities/{identifier}/credentials/links/{id}/qrcode)
+func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1064,42 +1094,6 @@ func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Links
-// (GET /v1/{identifier}/credentials/links)
-func (_ Unimplemented) GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Create Link
-// (POST /v1/{identifier}/credentials/links)
-func (_ Unimplemented) CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Delete Link
-// (DELETE /v1/{identifier}/credentials/links/{id})
-func (_ Unimplemented) DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Get Link
-// (GET /v1/{identifier}/credentials/links/{id})
-func (_ Unimplemented) GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Activate | Deactivate Link
-// (PATCH /v1/{identifier}/credentials/links/{id})
-func (_ Unimplemented) ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Create Authentication Link QRCode
-// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
-func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Get Schemas
 // (GET /v1/{identifier}/schemas)
 func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
@@ -1220,64 +1214,6 @@ func (siw *ServerInterfaceWrapper) GetAuthenticationConnection(w http.ResponseWr
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// CreateLinkQrCodeCallback operation middleware
-func (siw *ServerInterfaceWrapper) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateLinkQrCodeCallbackParams
-
-	// ------------- Required query parameter "sessionID" -------------
-
-	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
-		return
-	}
-
-	// ------------- Required query parameter "linkID" -------------
-
-	if paramValue := r.URL.Query().Get("linkID"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "linkID"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "linkID", r.URL.Query(), &params.LinkID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "linkID", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "credentialStatusType" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "credentialStatusType", r.URL.Query(), &params.CredentialStatusType)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "credentialStatusType", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateLinkQrCodeCallback(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 // GetIdentities operation middleware
 func (siw *ServerInterfaceWrapper) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1359,6 +1295,286 @@ func (siw *ServerInterfaceWrapper) CreateCredential(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateCredential(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetLinks operation middleware
+func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetLinksParams
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLinks(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateLink operation middleware
+func (siw *ServerInterfaceWrapper) CreateLink(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLink(w, r, identifier)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateLinkQrCodeCallback operation middleware
+func (siw *ServerInterfaceWrapper) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params CreateLinkQrCodeCallbackParams
+
+	// ------------- Required query parameter "sessionID" -------------
+
+	if paramValue := r.URL.Query().Get("sessionID"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "sessionID"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "sessionID", r.URL.Query(), &params.SessionID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sessionID", Err: err})
+		return
+	}
+
+	// ------------- Required query parameter "linkID" -------------
+
+	if paramValue := r.URL.Query().Get("linkID"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "linkID"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "linkID", r.URL.Query(), &params.LinkID)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "linkID", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLinkQrCodeCallback(w, r, identifier, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteLink operation middleware
+func (siw *ServerInterfaceWrapper) DeleteLink(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteLink(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetLink operation middleware
+func (siw *ServerInterfaceWrapper) GetLink(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLink(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ActivateLink operation middleware
+func (siw *ServerInterfaceWrapper) ActivateLink(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ActivateLink(w, r, identifier, id)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// CreateLinkQrCode operation middleware
+func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "id" -------------
+	var id Id
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateLinkQrCode(w, r, identifier, id)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2156,227 +2372,6 @@ func (siw *ServerInterfaceWrapper) RevokeConnectionCredentials(w http.ResponseWr
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetLinks operation middleware
-func (siw *ServerInterfaceWrapper) GetLinks(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetLinksParams
-
-	// ------------- Optional query parameter "query" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "query", r.URL.Query(), &params.Query)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "query", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "status" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "status", r.URL.Query(), &params.Status)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetLinks(w, r, identifier, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// CreateLink operation middleware
-func (siw *ServerInterfaceWrapper) CreateLink(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateLink(w, r, identifier)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// DeleteLink operation middleware
-func (siw *ServerInterfaceWrapper) DeleteLink(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id Id
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteLink(w, r, identifier, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// GetLink operation middleware
-func (siw *ServerInterfaceWrapper) GetLink(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id Id
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetLink(w, r, identifier, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// ActivateLink operation middleware
-func (siw *ServerInterfaceWrapper) ActivateLink(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id Id
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	ctx = context.WithValue(ctx, BasicAuthScopes, []string{})
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ActivateLink(w, r, identifier, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// CreateLinkQrCode operation middleware
-func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "id" -------------
-	var id Id
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", chi.URLParam(r, "id"), &id, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "id", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateLinkQrCode(w, r, identifier, id)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 // GetSchemas operation middleware
 func (siw *ServerInterfaceWrapper) GetSchemas(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2607,9 +2602,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/v1/authentication/sessions/{id}", wrapper.GetAuthenticationConnection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/credentials/links/callback", wrapper.CreateLinkQrCodeCallback)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities", wrapper.GetIdentities)
 	})
 	r.Group(func(r chi.Router) {
@@ -2620,6 +2612,27 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials", wrapper.CreateCredential)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/links", wrapper.GetLinks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/links", wrapper.CreateLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/links/callback", wrapper.CreateLinkQrCodeCallback)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}", wrapper.DeleteLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}", wrapper.GetLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}", wrapper.ActivateLink)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatus)
@@ -2680,24 +2693,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v1/{identifier}/connections/{id}/credentials/revoke", wrapper.RevokeConnectionCredentials)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/credentials/links", wrapper.GetLinks)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/{identifier}/credentials/links", wrapper.CreateLink)
-	})
-	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v1/{identifier}/credentials/links/{id}", wrapper.DeleteLink)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/{identifier}/credentials/links/{id}", wrapper.GetLink)
-	})
-	r.Group(func(r chi.Router) {
-		r.Patch(options.BaseURL+"/v1/{identifier}/credentials/links/{id}", wrapper.ActivateLink)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/{identifier}/schemas", wrapper.GetSchemas)
@@ -2874,42 +2869,6 @@ func (response GetAuthenticationConnection404JSONResponse) VisitGetAuthenticatio
 type GetAuthenticationConnection500JSONResponse struct{ N500JSONResponse }
 
 func (response GetAuthenticationConnection500JSONResponse) VisitGetAuthenticationConnectionResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCodeCallbackRequestObject struct {
-	Params CreateLinkQrCodeCallbackParams
-	Body   *CreateLinkQrCodeCallbackTextRequestBody
-}
-
-type CreateLinkQrCodeCallbackResponseObject interface {
-	VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error
-}
-
-type CreateLinkQrCodeCallback200JSONResponse Offer
-
-func (response CreateLinkQrCodeCallback200JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCodeCallback400JSONResponse struct{ N400JSONResponse }
-
-func (response CreateLinkQrCodeCallback400JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCodeCallback500JSONResponse struct{ N500JSONResponse }
-
-func (response CreateLinkQrCodeCallback500JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -3105,6 +3064,287 @@ func (response CreateCredential422JSONResponse) VisitCreateCredentialResponse(w 
 type CreateCredential500JSONResponse struct{ N500JSONResponse }
 
 func (response CreateCredential500JSONResponse) VisitCreateCredentialResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinksRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     GetLinksParams
+}
+
+type GetLinksResponseObject interface {
+	VisitGetLinksResponse(w http.ResponseWriter) error
+}
+
+type GetLinks200JSONResponse []Link
+
+func (response GetLinks200JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinks400JSONResponse struct{ N400JSONResponse }
+
+func (response GetLinks400JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinks404JSONResponse struct{ N404JSONResponse }
+
+func (response GetLinks404JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinks500JSONResponse struct{ N500JSONResponse }
+
+func (response GetLinks500JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Body       *CreateLinkJSONRequestBody
+}
+
+type CreateLinkResponseObject interface {
+	VisitCreateLinkResponse(w http.ResponseWriter) error
+}
+
+type CreateLink201JSONResponse UUIDResponse
+
+func (response CreateLink201JSONResponse) VisitCreateLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLink400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateLink400JSONResponse) VisitCreateLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLink500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateLink500JSONResponse) VisitCreateLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeCallbackRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Params     CreateLinkQrCodeCallbackParams
+	Body       *CreateLinkQrCodeCallbackTextRequestBody
+}
+
+type CreateLinkQrCodeCallbackResponseObject interface {
+	VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error
+}
+
+type CreateLinkQrCodeCallback200JSONResponse Offer
+
+func (response CreateLinkQrCodeCallback200JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeCallback400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateLinkQrCodeCallback400JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeCallback500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateLinkQrCodeCallback500JSONResponse) VisitCreateLinkQrCodeCallbackResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteLinkRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type DeleteLinkResponseObject interface {
+	VisitDeleteLinkResponse(w http.ResponseWriter) error
+}
+
+type DeleteLink200JSONResponse GenericMessage
+
+func (response DeleteLink200JSONResponse) VisitDeleteLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteLink400JSONResponse struct{ N400JSONResponse }
+
+func (response DeleteLink400JSONResponse) VisitDeleteLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteLink500JSONResponse struct{ N500JSONResponse }
+
+func (response DeleteLink500JSONResponse) VisitDeleteLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLinkRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type GetLinkResponseObject interface {
+	VisitGetLinkResponse(w http.ResponseWriter) error
+}
+
+type GetLink200JSONResponse Link
+
+func (response GetLink200JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLink400JSONResponse struct{ N400JSONResponse }
+
+func (response GetLink400JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLink404JSONResponse struct{ N404JSONResponse }
+
+func (response GetLink404JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetLink500JSONResponse struct{ N500JSONResponse }
+
+func (response GetLink500JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ActivateLinkRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+	Body       *ActivateLinkJSONRequestBody
+}
+
+type ActivateLinkResponseObject interface {
+	VisitActivateLinkResponse(w http.ResponseWriter) error
+}
+
+type ActivateLink200JSONResponse GenericMessage
+
+func (response ActivateLink200JSONResponse) VisitActivateLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ActivateLink400JSONResponse struct{ N400JSONResponse }
+
+func (response ActivateLink400JSONResponse) VisitActivateLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ActivateLink500JSONResponse struct{ N500JSONResponse }
+
+func (response ActivateLink500JSONResponse) VisitActivateLinkResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCodeRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Id         Id             `json:"id"`
+}
+
+type CreateLinkQrCodeResponseObject interface {
+	VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error
+}
+
+type CreateLinkQrCode200JSONResponse CredentialLinkQrCodeResponse
+
+func (response CreateLinkQrCode200JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCode400JSONResponse struct{ N400JSONResponse }
+
+func (response CreateLinkQrCode400JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCode404JSONResponse struct{ N404JSONResponse }
+
+func (response CreateLinkQrCode404JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type CreateLinkQrCode500JSONResponse struct{ N500JSONResponse }
+
+func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -3952,250 +4192,6 @@ func (response RevokeConnectionCredentials500JSONResponse) VisitRevokeConnection
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetLinksRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Params     GetLinksParams
-}
-
-type GetLinksResponseObject interface {
-	VisitGetLinksResponse(w http.ResponseWriter) error
-}
-
-type GetLinks200JSONResponse []Link
-
-func (response GetLinks200JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLinks400JSONResponse struct{ N400JSONResponse }
-
-func (response GetLinks400JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLinks404JSONResponse struct{ N404JSONResponse }
-
-func (response GetLinks404JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLinks500JSONResponse struct{ N500JSONResponse }
-
-func (response GetLinks500JSONResponse) VisitGetLinksResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Body       *CreateLinkJSONRequestBody
-}
-
-type CreateLinkResponseObject interface {
-	VisitCreateLinkResponse(w http.ResponseWriter) error
-}
-
-type CreateLink201JSONResponse UUIDResponse
-
-func (response CreateLink201JSONResponse) VisitCreateLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLink400JSONResponse struct{ N400JSONResponse }
-
-func (response CreateLink400JSONResponse) VisitCreateLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLink500JSONResponse struct{ N500JSONResponse }
-
-func (response CreateLink500JSONResponse) VisitCreateLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteLinkRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Id         Id             `json:"id"`
-}
-
-type DeleteLinkResponseObject interface {
-	VisitDeleteLinkResponse(w http.ResponseWriter) error
-}
-
-type DeleteLink200JSONResponse GenericMessage
-
-func (response DeleteLink200JSONResponse) VisitDeleteLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteLink400JSONResponse struct{ N400JSONResponse }
-
-func (response DeleteLink400JSONResponse) VisitDeleteLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type DeleteLink500JSONResponse struct{ N500JSONResponse }
-
-func (response DeleteLink500JSONResponse) VisitDeleteLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLinkRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Id         Id             `json:"id"`
-}
-
-type GetLinkResponseObject interface {
-	VisitGetLinkResponse(w http.ResponseWriter) error
-}
-
-type GetLink200JSONResponse Link
-
-func (response GetLink200JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLink400JSONResponse struct{ N400JSONResponse }
-
-func (response GetLink400JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLink404JSONResponse struct{ N404JSONResponse }
-
-func (response GetLink404JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetLink500JSONResponse struct{ N500JSONResponse }
-
-func (response GetLink500JSONResponse) VisitGetLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ActivateLinkRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Id         Id             `json:"id"`
-	Body       *ActivateLinkJSONRequestBody
-}
-
-type ActivateLinkResponseObject interface {
-	VisitActivateLinkResponse(w http.ResponseWriter) error
-}
-
-type ActivateLink200JSONResponse GenericMessage
-
-func (response ActivateLink200JSONResponse) VisitActivateLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ActivateLink400JSONResponse struct{ N400JSONResponse }
-
-func (response ActivateLink400JSONResponse) VisitActivateLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type ActivateLink500JSONResponse struct{ N500JSONResponse }
-
-func (response ActivateLink500JSONResponse) VisitActivateLinkResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCodeRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Id         Id             `json:"id"`
-}
-
-type CreateLinkQrCodeResponseObject interface {
-	VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error
-}
-
-type CreateLinkQrCode200JSONResponse CredentialLinkQrCodeResponse
-
-func (response CreateLinkQrCode200JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCode400JSONResponse struct{ N400JSONResponse }
-
-func (response CreateLinkQrCode400JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCode404JSONResponse struct{ N404JSONResponse }
-
-func (response CreateLinkQrCode404JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type CreateLinkQrCode500JSONResponse struct{ N500JSONResponse }
-
-func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type GetSchemasRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Params     GetSchemasParams
@@ -4327,9 +4323,6 @@ type StrictServerInterface interface {
 	// Get Authentication Connection
 	// (GET /v1/authentication/sessions/{id})
 	GetAuthenticationConnection(ctx context.Context, request GetAuthenticationConnectionRequestObject) (GetAuthenticationConnectionResponseObject, error)
-	// Create Link QR Code Callback
-	// (POST /v1/credentials/links/callback)
-	CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error)
 	// Get Identities
 	// (GET /v1/identities)
 	GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error)
@@ -4342,6 +4335,27 @@ type StrictServerInterface interface {
 	// Create Credential
 	// (POST /v1/identities/{identifier}/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
+	// Get Links
+	// (GET /v1/identities/{identifier}/credentials/links)
+	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
+	// Create Link
+	// (POST /v1/identities/{identifier}/credentials/links)
+	CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error)
+	// Create Link QR Code Callback
+	// (POST /v1/identities/{identifier}/credentials/links/callback)
+	CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error)
+	// Delete Link
+	// (DELETE /v1/identities/{identifier}/credentials/links/{id})
+	DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error)
+	// Get Link
+	// (GET /v1/identities/{identifier}/credentials/links/{id})
+	GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error)
+	// Activate | Deactivate Link
+	// (PATCH /v1/identities/{identifier}/credentials/links/{id})
+	ActivateLink(ctx context.Context, request ActivateLinkRequestObject) (ActivateLinkResponseObject, error)
+	// Create Link QR Code
+	// (POST /v1/identities/{identifier}/credentials/links/{id}/qrcode)
+	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
 	// Get Revocation Status
 	// (GET /v1/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
@@ -4402,24 +4416,6 @@ type StrictServerInterface interface {
 	// Revoke Connection Credentials
 	// (POST /v1/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
-	// Get Links
-	// (GET /v1/{identifier}/credentials/links)
-	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
-	// Create Link
-	// (POST /v1/{identifier}/credentials/links)
-	CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error)
-	// Delete Link
-	// (DELETE /v1/{identifier}/credentials/links/{id})
-	DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error)
-	// Get Link
-	// (GET /v1/{identifier}/credentials/links/{id})
-	GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error)
-	// Activate | Deactivate Link
-	// (PATCH /v1/{identifier}/credentials/links/{id})
-	ActivateLink(ctx context.Context, request ActivateLinkRequestObject) (ActivateLinkResponseObject, error)
-	// Create Authentication Link QRCode
-	// (POST /v1/{identifier}/credentials/links/{id}/qrcode)
-	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
 	// Get Schemas
 	// (GET /v1/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
@@ -4576,40 +4572,6 @@ func (sh *strictHandler) GetAuthenticationConnection(w http.ResponseWriter, r *h
 	}
 }
 
-// CreateLinkQrCodeCallback operation middleware
-func (sh *strictHandler) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, params CreateLinkQrCodeCallbackParams) {
-	var request CreateLinkQrCodeCallbackRequestObject
-
-	request.Params = params
-
-	data, err := io.ReadAll(r.Body)
-	if err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
-		return
-	}
-	body := CreateLinkQrCodeCallbackTextRequestBody(data)
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateLinkQrCodeCallback(ctx, request.(CreateLinkQrCodeCallbackRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateLinkQrCodeCallback")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CreateLinkQrCodeCallbackResponseObject); ok {
-		if err := validResponse.VisitCreateLinkQrCodeCallbackResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // GetIdentities operation middleware
 func (sh *strictHandler) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	var request GetIdentitiesRequestObject
@@ -4724,6 +4686,216 @@ func (sh *strictHandler) CreateCredential(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateCredentialResponseObject); ok {
 		if err := validResponse.VisitCreateCredentialResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLinks operation middleware
+func (sh *strictHandler) GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams) {
+	var request GetLinksRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLinks(ctx, request.(GetLinksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLinks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLinksResponseObject); ok {
+		if err := validResponse.VisitGetLinksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateLink operation middleware
+func (sh *strictHandler) CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
+	var request CreateLinkRequestObject
+
+	request.Identifier = identifier
+
+	var body CreateLinkJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLink(ctx, request.(CreateLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLinkResponseObject); ok {
+		if err := validResponse.VisitCreateLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateLinkQrCodeCallback operation middleware
+func (sh *strictHandler) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackParams) {
+	var request CreateLinkQrCodeCallbackRequestObject
+
+	request.Identifier = identifier
+	request.Params = params
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := CreateLinkQrCodeCallbackTextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLinkQrCodeCallback(ctx, request.(CreateLinkQrCodeCallbackRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLinkQrCodeCallback")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLinkQrCodeCallbackResponseObject); ok {
+		if err := validResponse.VisitCreateLinkQrCodeCallbackResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteLink operation middleware
+func (sh *strictHandler) DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request DeleteLinkRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteLink(ctx, request.(DeleteLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteLinkResponseObject); ok {
+		if err := validResponse.VisitDeleteLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLink operation middleware
+func (sh *strictHandler) GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request GetLinkRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLink(ctx, request.(GetLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLinkResponseObject); ok {
+		if err := validResponse.VisitGetLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ActivateLink operation middleware
+func (sh *strictHandler) ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request ActivateLinkRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	var body ActivateLinkJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ActivateLink(ctx, request.(ActivateLinkRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ActivateLink")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ActivateLinkResponseObject); ok {
+		if err := validResponse.VisitActivateLinkResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateLinkQrCode operation middleware
+func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
+	var request CreateLinkQrCodeRequestObject
+
+	request.Identifier = identifier
+	request.Id = id
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateLinkQrCode(ctx, request.(CreateLinkQrCodeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateLinkQrCode")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateLinkQrCodeResponseObject); ok {
+		if err := validResponse.VisitCreateLinkQrCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -5264,181 +5436,6 @@ func (sh *strictHandler) RevokeConnectionCredentials(w http.ResponseWriter, r *h
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RevokeConnectionCredentialsResponseObject); ok {
 		if err := validResponse.VisitRevokeConnectionCredentialsResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetLinks operation middleware
-func (sh *strictHandler) GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams) {
-	var request GetLinksRequestObject
-
-	request.Identifier = identifier
-	request.Params = params
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetLinks(ctx, request.(GetLinksRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetLinks")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetLinksResponseObject); ok {
-		if err := validResponse.VisitGetLinksResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// CreateLink operation middleware
-func (sh *strictHandler) CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
-	var request CreateLinkRequestObject
-
-	request.Identifier = identifier
-
-	var body CreateLinkJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateLink(ctx, request.(CreateLinkRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateLink")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CreateLinkResponseObject); ok {
-		if err := validResponse.VisitCreateLinkResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteLink operation middleware
-func (sh *strictHandler) DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	var request DeleteLinkRequestObject
-
-	request.Identifier = identifier
-	request.Id = id
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteLink(ctx, request.(DeleteLinkRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteLink")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DeleteLinkResponseObject); ok {
-		if err := validResponse.VisitDeleteLinkResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetLink operation middleware
-func (sh *strictHandler) GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	var request GetLinkRequestObject
-
-	request.Identifier = identifier
-	request.Id = id
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetLink(ctx, request.(GetLinkRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetLink")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetLinkResponseObject); ok {
-		if err := validResponse.VisitGetLinkResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// ActivateLink operation middleware
-func (sh *strictHandler) ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	var request ActivateLinkRequestObject
-
-	request.Identifier = identifier
-	request.Id = id
-
-	var body ActivateLinkJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.ActivateLink(ctx, request.(ActivateLinkRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ActivateLink")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(ActivateLinkResponseObject); ok {
-		if err := validResponse.VisitActivateLinkResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// CreateLinkQrCode operation middleware
-func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
-	var request CreateLinkQrCodeRequestObject
-
-	request.Identifier = identifier
-	request.Id = id
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateLinkQrCode(ctx, request.(CreateLinkQrCodeRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateLinkQrCode")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(CreateLinkQrCodeResponseObject); ok {
-		if err := validResponse.VisitCreateLinkQrCodeResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

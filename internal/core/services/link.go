@@ -15,9 +15,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
-	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
 	"github.com/polygonid/sh-id-platform/internal/jsonschema"
@@ -186,7 +184,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v1/credentials/links/callback?sessionID=%s&linkID=%s", serverURL, sessionID, linkID.String()),
+			CallbackURL: fmt.Sprintf("%s/v1/identities/%s/credentials/links/callback?sessionID=%s&linkID=%s", serverURL, issuerDID.String(), sessionID, linkID.String()),
 			Reason:      authReason,
 			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
@@ -221,7 +219,7 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 }
 
 // IssueOrFetchClaim - Create a new claim
-func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
+func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerDID w3c.DID, userDID w3c.DID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
 	link, err := ls.linkRepository.GetByID(ctx, issuerDID, linkID)
 	if err != nil {
 		log.Error(ctx, "cannot fetch the link", "err", err)
@@ -258,8 +256,13 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 		Iden3SparseMerkleTreeProof: link.CredentialMTPProof,
 	}
 	if len(issuedByUser) == 0 {
+		identity, err := ls.identityService.GetByDID(ctx, issuerDID)
+		if err != nil {
+			log.Error(ctx, "cannot fetch the identity", "err", err)
+			return nil, err
+		}
+		credentialStatusType := verifiable.CredentialStatusType(identity.AuthCoreClaimRevocationStatus.Type)
 		link.CredentialSubject["id"] = userDID.String()
-
 		claimReq := ports.NewCreateClaimRequest(&issuerDID,
 			nil,
 			schema.URL,
@@ -307,13 +310,6 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 
 	credentialIssued.ID = credentialIssuedID
 	if link.CredentialSignatureProof {
-		err = ls.publisher.Publish(ctx, event.CreateCredentialEvent, &event.CreateCredential{CredentialIDs: []string{credentialIssued.ID.String()}, IssuerID: issuerDID.String()})
-		if err != nil {
-			log.Error(ctx, "publish CreateCredentialEvent", "err", err.Error(), "credential", credentialIssued.ID.String())
-		}
-	}
-
-	if link.CredentialSignatureProof {
 		credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v1/agent", hostURL), credentialIssued)
 		return credOffer, err
 	} else {
@@ -327,7 +323,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 }
 
 // ProcessCallBack - process the callback.
-func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string, credentialStatusType verifiable.CredentialStatusType) (*protocol.CredentialsOfferMessage, error) {
+func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID uuid.UUID, linkID uuid.UUID, hostURL string) (*protocol.CredentialsOfferMessage, error) {
 	arm, err := ls.identityService.Authenticate(ctx, message, sessionID, hostURL)
 	if err != nil {
 		log.Error(ctx, "error authenticating", "err", err.Error())
@@ -346,24 +342,7 @@ func (ls *Link) ProcessCallBack(ctx context.Context, message string, sessionID u
 		return nil, err
 	}
 
-	resolverPrefix, err := common.ResolverPrefix(issuerDID)
-	if err != nil {
-		log.Error(ctx, "error getting resolver prefix", "err", err)
-		return nil, err
-	}
-
-	rhsSettings, err := ls.networkResolver.GetRhsSettings(ctx, resolverPrefix)
-	if err != nil {
-		log.Error(ctx, "error getting rhs settings", "err", err)
-		return nil, err
-	}
-
-	if !ls.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, credentialStatusType) {
-		log.Error(ctx, "unsupported credential status type", "type", credentialStatusType)
-		return nil, ErrUnsupportedCredentialStatusType
-	}
-
-	offer, err := ls.IssueOrFetchClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL, credentialStatusType)
+	offer, err := ls.IssueOrFetchClaim(ctx, sessionID.String(), *issuerDID, *userDID, linkID, hostURL)
 	if err != nil {
 		log.Error(ctx, "error issuing claim", "err", err)
 		return nil, err
