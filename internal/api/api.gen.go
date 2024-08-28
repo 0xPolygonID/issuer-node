@@ -49,6 +49,13 @@ const (
 	ETH CreateIdentityRequestDidMetadataType = "ETH"
 )
 
+// Defines values for CreateIdentityResponseCredentialStatusType.
+const (
+	CreateIdentityResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateIdentityResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	CreateIdentityResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateIdentityResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	CreateIdentityResponseCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
 // Defines values for DisplayMethodType.
 const (
 	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
@@ -56,9 +63,16 @@ const (
 
 // Defines values for GetIdentitiesResponseCredentialStatusType.
 const (
-	Iden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
-	Iden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusV10          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	GetIdentitiesResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	GetIdentitiesResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	GetIdentitiesResponseCredentialStatusTypeIden3commRevocationStatusV10          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+)
+
+// Defines values for GetIdentityDetailsResponseCredentialStatusType.
+const (
+	Iden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	Iden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	Iden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for LinkStatus.
@@ -215,13 +229,17 @@ type CreateIdentityRequestDidMetadataType string
 
 // CreateIdentityResponse defines model for CreateIdentityResponse.
 type CreateIdentityResponse struct {
-	Address     *string        `json:"address,omitempty"`
-	Balance     *string        `json:"balance,omitempty"`
-	DisplayName *string        `json:"displayName,omitempty"`
-	Identifier  *string        `json:"identifier,omitempty"`
-	KeyType     string         `json:"keyType"`
-	State       *IdentityState `json:"state,omitempty"`
+	Address              *string                                    `json:"address,omitempty"`
+	Balance              *string                                    `json:"balance,omitempty"`
+	CredentialStatusType CreateIdentityResponseCredentialStatusType `json:"credentialStatusType"`
+	DisplayName          *string                                    `json:"displayName,omitempty"`
+	Identifier           *string                                    `json:"identifier,omitempty"`
+	KeyType              string                                     `json:"keyType"`
+	State                *IdentityState                             `json:"state,omitempty"`
 }
+
+// CreateIdentityResponseCredentialStatusType defines model for CreateIdentityResponse.CredentialStatusType.
+type CreateIdentityResponseCredentialStatusType string
 
 // CreateLinkRequest defines model for CreateLinkRequest.
 type CreateLinkRequest struct {
@@ -345,13 +363,17 @@ type GetIdentitiesResponseCredentialStatusType string
 
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {
-	Address     *string        `json:"address,omitempty"`
-	Balance     *string        `json:"balance,omitempty"`
-	DisplayName *string        `json:"displayName,omitempty"`
-	Identifier  *string        `json:"identifier,omitempty"`
-	KeyType     string         `json:"keyType"`
-	State       *IdentityState `json:"state,omitempty"`
+	Address              *string                                        `json:"address,omitempty"`
+	Balance              *string                                        `json:"balance,omitempty"`
+	CredentialStatusType GetIdentityDetailsResponseCredentialStatusType `json:"credentialStatusType"`
+	DisplayName          *string                                        `json:"displayName,omitempty"`
+	Identifier           *string                                        `json:"identifier,omitempty"`
+	KeyType              string                                         `json:"keyType"`
+	State                *IdentityState                                 `json:"state,omitempty"`
 }
+
+// GetIdentityDetailsResponseCredentialStatusType defines model for GetIdentityDetailsResponse.CredentialStatusType.
+type GetIdentityDetailsResponseCredentialStatusType string
 
 // Health defines model for Health.
 type Health map[string]bool
