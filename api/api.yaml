@@ -910,10 +910,11 @@ paths:
           $ref: '#/components/responses/500'
 
   #schemas:
-  /v1/{identifier}/schemas:
+  /v1/identities/{identifier}/schemas:
     post:
       summary: Import JSON schema
       operationId: ImportSchema
+      description: Import a JSON schema to be used in the credentials.
       security:
         - basicAuth: [ ]
       tags:
@@ -965,10 +966,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/schemas/{id}:
+  /v1/identities/{identifier}/schemas/{id}:
     get:
       summary: Get Schema
       operationId: GetSchema
+      description: Get a specific schema for the provided identity.
       security:
         - basicAuth: [ ]
       tags:
