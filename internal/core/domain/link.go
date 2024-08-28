@@ -77,7 +77,7 @@ type Link struct {
 	IssuedClaims             int // TODO: Give a value when link redemption is implemented
 	RefreshService           *verifiable.RefreshService
 	DisplayMethod            *verifiable.DisplayMethod
-	CredentialStatusType     verifiable.CredentialStatusType
+	CredentialStatusType     *verifiable.CredentialStatusType
 }
 
 // NewLink - Constructor
@@ -92,7 +92,7 @@ func NewLink(
 	credentialSubject CredentialSubject,
 	refreshService *verifiable.RefreshService,
 	displayMethod *verifiable.DisplayMethod,
-	credentialStatusType verifiable.CredentialStatusType,
+	credentialStatusType *verifiable.CredentialStatusType,
 ) *Link {
 	return &Link{
 		ID:                       uuid.New(),

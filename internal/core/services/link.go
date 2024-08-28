@@ -112,7 +112,7 @@ func (ls *Link) Save(
 		return nil, err
 	}
 
-	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod, credentialStatusType)
+	link := domain.NewLink(did, maxIssuance, validUntil, schemaID, credentialExpiration, credentialSignatureProof, credentialMTPProof, credentialSubject, refreshService, displayMethod, &credentialStatusType)
 	_, err = ls.linkRepository.Save(ctx, ls.storage.Pgx, link)
 	if err != nil {
 		return nil, err
@@ -229,8 +229,8 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 		return nil, err
 	}
 
-	if link.CredentialStatusType == "" {
-		link.CredentialStatusType = verifiable.Iden3commRevocationStatusV1
+	if link.CredentialStatusType == nil {
+		link.CredentialStatusType = common.ToPointer(verifiable.Iden3commRevocationStatusV1)
 	}
 
 	resolverPrefix, err := common.ResolverPrefix(&issuerDID)
@@ -245,7 +245,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 		return nil, err
 	}
 
-	if !ls.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, link.CredentialStatusType) {
+	if !ls.networkResolver.IsCredentialStatusTypeSupported(rhsSettings, *link.CredentialStatusType) {
 		log.Error(ctx, "unsupported credential status type", "type", link.CredentialStatusType)
 		return nil, ErrUnsupportedCredentialStatusType
 	}
@@ -292,7 +292,7 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 			claimRequestProofs,
 			&linkID,
 			true,
-			link.CredentialStatusType,
+			*link.CredentialStatusType,
 			link.RefreshService,
 			nil,
 			link.DisplayMethod,

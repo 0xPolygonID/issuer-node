@@ -43,7 +43,7 @@ func TestSaveLink(t *testing.T) {
 			ID:   "https://display.xyz",
 			Type: verifiable.Iden3BasicDisplayMethodV1,
 		},
-		verifiable.Iden3commRevocationStatusV1,
+		common.ToPointer(verifiable.Iden3commRevocationStatusV1),
 	)
 
 	linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
@@ -145,7 +145,7 @@ func TestGetLinkById(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+	linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 	linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 	assert.NoError(t, err)
 	assert.NotNil(t, linkID)
@@ -177,28 +177,28 @@ func TestGetAll(t *testing.T) {
 	past := time.Now().Add(-100 * 24 * time.Hour)
 	// 10  not expired links and no max issuance
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(*did, nil, &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+		linkToSave := domain.NewLink(*did, nil, &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
 	}
 	// 10  not expired links
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
 	}
 	// 10 expired ones
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &past, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &past, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
 		assert.NotNil(t, linkID)
 	}
 	// 10 valid but over used
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 		linkToSave.MaxIssuance = common.ToPointer(100)
 
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
@@ -228,7 +228,7 @@ func TestGetAll(t *testing.T) {
 	}
 	// 10 inactive
 	for i := 0; i < 10; i++ {
-		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+		linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &tomorrow, schemaID, &nextWeek, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 		linkToSave.Active = false
 		linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 		require.NoError(t, err)
@@ -368,7 +368,7 @@ func TestDeleteLink(t *testing.T) {
 
 	validUntil := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
 	credentialExpiration := time.Date(2050, 8, 15, 14, 30, 45, 100, time.Local)
-	linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{}, nil, nil, verifiable.Iden3commRevocationStatusV1)
+	linkToSave := domain.NewLink(*did, common.ToPointer[int](10), &validUntil, schemaID, &credentialExpiration, true, false, domain.CredentialSubject{}, nil, nil, common.ToPointer(verifiable.Iden3commRevocationStatusV1))
 
 	linkID, err := linkStore.Save(ctx, storage.Pgx, linkToSave)
 	assert.NoError(t, err)
