@@ -169,13 +169,13 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 			}}, nil
 		}
 
-		var authBjjCredStatus *GetIdentitiesResponseAuthBJJCredentialStatus
+		var authBjjCredStatus *GetIdentitiesResponseCredentialStatusType
 		authClaim, _ := s.claimService.GetAuthClaim(ctx, did)
 		if authClaim != nil {
 			credentialStatus, _ := authClaim.GetCredentialStatus()
 
 			if credentialStatus != nil {
-				credStatusType := GetIdentitiesResponseAuthBJJCredentialStatus(credentialStatus.Type)
+				credStatusType := GetIdentitiesResponseCredentialStatusType(credentialStatus.Type)
 				authBjjCredStatus = &credStatusType
 			}
 		}
@@ -188,12 +188,12 @@ func (s *Server) GetIdentities(ctx context.Context, request GetIdentitiesRequest
 		}
 
 		response = append(response, GetIdentitiesResponse{
-			Identifier:              identity.Identifier,
-			Method:                  items[1],
-			Blockchain:              items[2],
-			Network:                 items[3],
-			AuthBJJCredentialStatus: authBjjCredStatus,
-			DisplayName:             identity.DisplayName,
+			Identifier:           identity.Identifier,
+			Method:               items[1],
+			Blockchain:           items[2],
+			Network:              items[3],
+			CredentialStatusType: authBjjCredStatus,
+			DisplayName:          identity.DisplayName,
 		})
 	}
 
