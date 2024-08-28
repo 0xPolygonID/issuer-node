@@ -404,7 +404,7 @@ paths:
     get:
       summary: Get Connection
       operationId: getConnection
-      description: get connection
+      description: Returns a connection of the provided identity by connection id.
       tags:
         - Connection
       security:
@@ -426,7 +426,7 @@ paths:
     delete:
       summary: Delete Connection
       operationId: deleteConnection
-      description: delete connection
+      description: Removes a specific connection of the provided identity.
       tags:
         - Connection
       security:
@@ -464,7 +464,7 @@ paths:
     delete:
       summary: Delete Connection Credentials
       operationId: deleteConnectionCredentials
-      description: delete connection credentials
+      description: Delete a connection and its credentials for a specific identity.
       tags:
         - Connection
       security:
@@ -488,7 +488,7 @@ paths:
     get:
       summary: Get Connections
       operationId: getConnections
-      description: get connections
+      description: Get all the connections of the provided identity.
       tags:
         - Connection
       security:
@@ -549,7 +549,7 @@ paths:
     post:
       summary: Create Connection
       operationId: createConnection
-      description: create connection
+      description: Creates a connection between two identities.
       tags:
         - Connection
       security:
@@ -578,7 +578,7 @@ paths:
     post:
       summary: Revoke Connection Credentials
       operationId: revokeConnectionCredentials
-      description: revoke connection credentials
+      description: Revoke all the credentials of a connection for a specific identity.
       tags:
         - Connection
       security:
