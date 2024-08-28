@@ -54,11 +54,11 @@ const (
 	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
 )
 
-// Defines values for GetIdentitiesResponseAuthBJJCredentialStatus.
+// Defines values for GetIdentitiesResponseCredentialStatusType.
 const (
-	Iden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3OnchainSparseMerkleTreeProof2023"
-	Iden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusV10          GetIdentitiesResponseAuthBJJCredentialStatus = "Iden3commRevocationStatusV1.0"
+	Iden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
+	Iden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
+	Iden3commRevocationStatusV10          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
 )
 
 // Defines values for LinkStatus.
@@ -332,16 +332,16 @@ type GetCredentialResponse struct {
 
 // GetIdentitiesResponse defines model for GetIdentitiesResponse.
 type GetIdentitiesResponse struct {
-	AuthBJJCredentialStatus *GetIdentitiesResponseAuthBJJCredentialStatus `json:"authBJJCredentialStatus,omitempty"`
-	Blockchain              string                                        `json:"blockchain"`
-	DisplayName             *string                                       `json:"displayName,omitempty"`
-	Identifier              string                                        `json:"identifier"`
-	Method                  string                                        `json:"method"`
-	Network                 string                                        `json:"network"`
+	Blockchain           string                                     `json:"blockchain"`
+	CredentialStatusType *GetIdentitiesResponseCredentialStatusType `json:"credentialStatusType,omitempty"`
+	DisplayName          *string                                    `json:"displayName,omitempty"`
+	Identifier           string                                     `json:"identifier"`
+	Method               string                                     `json:"method"`
+	Network              string                                     `json:"network"`
 }
 
-// GetIdentitiesResponseAuthBJJCredentialStatus defines model for GetIdentitiesResponse.AuthBJJCredentialStatus.
-type GetIdentitiesResponseAuthBJJCredentialStatus string
+// GetIdentitiesResponseCredentialStatusType defines model for GetIdentitiesResponse.CredentialStatusType.
+type GetIdentitiesResponseCredentialStatusType string
 
 // GetIdentityDetailsResponse defines model for GetIdentityDetailsResponse.
 type GetIdentityDetailsResponse struct {

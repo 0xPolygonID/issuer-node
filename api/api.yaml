@@ -1492,7 +1492,7 @@ components:
           type: string
           x-omitempty: false
           example: did:polygonid:polygon:amoy:2qMZrfBsXuGFTwSqkqYki78zF3pe1vtXoqH4yRLsfs
-        authBJJCredentialStatus:
+        credentialStatusType:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
