@@ -326,6 +326,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 	for _, tc := range []testConfig{
 		{
 			name: "No auth header",
+			did:  identity.Identifier,
 			auth: authWrong,
 			expected: expected{
 				httpCode: http.StatusUnauthorized,
