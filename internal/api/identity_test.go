@@ -10,11 +10,13 @@ import (
 	"time"
 
 	core "github.com/iden3/go-iden3-core/v2"
+	"github.com/iden3/go-schema-processor/v2/verifiable"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
+	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db/tests"
 	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
@@ -41,8 +43,8 @@ func TestServer_CreateIdentity(t *testing.T) {
 		expected expected
 	}
 
-	authBJJCredentialStatus := (*CreateIdentityRequestCredentialStatusType)(common.ToPointer("Iden3commRevocationStatusV1.0"))
-	authBJJCredentialStatusOnChain := (*CreateIdentityRequestCredentialStatusType)(common.ToPointer("Iden3OnchainSparseMerkleTreeProof2023"))
+	authBJJCredentialStatus := (CreateIdentityRequestCredentialStatusType)(verifiable.Iden3commRevocationStatusV1)
+	authBJJCredentialStatusOnChain := (CreateIdentityRequestCredentialStatusType)(verifiable.Iden3OnchainSparseMerkleTreeProof2023)
 	for _, tc := range []testConfig{
 		{
 			name: "No auth header",
@@ -61,7 +63,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: string(core.Amoy), Type: BJJ},
-				CredentialStatusType: authBJJCredentialStatus,
+				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 201,
@@ -94,7 +96,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ}, DisplayName: common.ToPointer("my display name"),
-				CredentialStatusType: authBJJCredentialStatus,
+				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 201,
@@ -127,7 +129,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: "mynetwork", Type: BJJ},
-				CredentialStatusType: authBJJCredentialStatus,
+				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -144,7 +146,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: blockchain, Method: "my method", Network: network, Type: BJJ},
-				CredentialStatusType: authBJJCredentialStatus,
+				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -161,7 +163,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: "my blockchain", Method: method, Network: network, Type: BJJ},
-				CredentialStatusType: authBJJCredentialStatus,
+				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -178,7 +180,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: "my blockchain", Method: method, Network: network, Type: "a wrong type"},
-				CredentialStatusType: authBJJCredentialStatus,
+				CredentialStatusType: &authBJJCredentialStatus,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -195,7 +197,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 					Network    string                               `json:"network"`
 					Type       CreateIdentityRequestDidMetadataType `json:"type"`
 				}{Blockchain: blockchain, Method: method, Network: network, Type: BJJ},
-				CredentialStatusType: authBJJCredentialStatusOnChain,
+				CredentialStatusType: &authBJJCredentialStatusOnChain,
 			},
 			expected: expected{
 				httpCode: 400,
@@ -220,6 +222,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 				assert.NotNil(t, response.State.ModifiedAt)
 				assert.NotNil(t, response.State.State)
 				assert.NotNil(t, response.State.Status)
+				assert.Equal(t, string(verifiable.Iden3commRevocationStatusV1), string(response.CredentialStatusType))
 				if tc.input.DidMetadata.Type == BJJ {
 					assert.NotNil(t, *response.State.ClaimsTreeRoot)
 				}
@@ -289,34 +292,34 @@ func TestServer_GetIdentities(t *testing.T) {
 }
 
 func TestServer_GetIdentityDetails(t *testing.T) {
+	ctx := context.Background()
 	server := newTestServer(t, nil)
 	handler := getHandler(context.Background(), server)
 
-	identity := &domain.Identity{Identifier: "did:polygonid:polygon:amoy:2qa2gW8iU1nTbgYZVxAvbXX5XMMXFh6GHkVWX3KQJA", DisplayName: common.ToPointer("my display name"), KeyType: "BJJ"}
-	fixture := repositories.NewFixture(storage)
-	fixture.CreateIdentity(t, identity)
-
-	state := domain.IdentityState{
-		Identifier: identity.Identifier,
-		State:      common.ToPointer("state"),
-		Status:     domain.StatusCreated,
-		ModifiedAt: time.Now(),
-		CreatedAt:  time.Now(),
-	}
-	fixture.CreateIdentityStatus(t, state)
+	identity, err := server.identityService.Create(ctx, cfg.ServerUrl, &ports.DIDCreationOptions{
+		Method:               "polygonid",
+		Blockchain:           "polygon",
+		Network:              "amoy",
+		KeyType:              "BJJ",
+		DisplayName:          common.ToPointer("my display name"),
+		AuthCredentialStatus: verifiable.Iden3commRevocationStatusV1,
+	})
+	require.NoError(t, err)
 
 	type expected struct {
-		httpCode    int
-		displayName *string
-		status      string
-		state       string
-		identifier  *string
-		keyType     string
+		httpCode             int
+		displayName          *string
+		status               string
+		state                string
+		identifier           *string
+		keyType              string
+		credentialStatusType verifiable.CredentialStatusType
 	}
 
 	type testConfig struct {
 		name     string
 		auth     func() (string, string)
+		did      string
 		expected expected
 	}
 
@@ -329,22 +332,32 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 			},
 		},
 		{
+			name: "identity not found",
+			auth: authOk,
+			did:  "did:polygonid:polygon:amoy:2qE1ZT16aqEWhh9mX9aqM2pe2ZwV995dTkReeKwCaQ",
+			expected: expected{
+				httpCode: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "should retrieve identity details",
 			auth: authOk,
+			did:  identity.Identifier,
 			expected: expected{
-				httpCode:    200,
-				identifier:  &identity.Identifier,
-				displayName: common.ToPointer("my display name"),
-				status:      "created",
-				state:       "state",
-				keyType:     "BJJ",
+				httpCode:             200,
+				identifier:           &identity.Identifier,
+				displayName:          common.ToPointer("my display name"),
+				status:               "confirmed",
+				state:                "state",
+				keyType:              "BJJ",
+				credentialStatusType: verifiable.Iden3commRevocationStatusV1,
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/v1/identities/%s/details", identity.Identifier)
+			url := fmt.Sprintf("/v1/identities/%s/details", tc.did)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -357,9 +370,11 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 				assert.Equal(t, tc.expected.identifier, response.Identifier)
 				assert.Equal(t, tc.expected.displayName, response.DisplayName)
 				assert.Equal(t, tc.expected.status, response.State.Status)
-				assert.Equal(t, tc.expected.state, *response.State.State)
+				assert.NotNil(t, response.State.State)
+				assert.NotNil(t, response.State.ClaimsTreeRoot)
 				assert.Equal(t, tc.expected.keyType, response.KeyType)
-				assert.Nil(t, identity.Address)
+				assert.Equal(t, tc.expected.credentialStatusType, verifiable.CredentialStatusType(response.CredentialStatusType))
+				assert.Equal(t, "", *identity.Address)
 				assert.Nil(t, identity.Balance)
 			}
 		})
