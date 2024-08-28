@@ -58,7 +58,7 @@ export async function importSchema({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${issuerIdentifier}/schemas`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/schemas`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -85,7 +85,7 @@ export async function getApiSchema({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/schemas/${schemaID}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/schemas/${schemaID}`,
     });
     return buildSuccessResponse(apiSchemaParser.parse(response.data));
   } catch (error) {
