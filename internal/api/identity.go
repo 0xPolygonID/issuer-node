@@ -118,9 +118,10 @@ func (s *Server) CreateIdentity(ctx context.Context, request CreateIdentityReque
 			Status:             string(identity.State.Status),
 			TxID:               identity.State.TxID,
 		},
-		Address: responseAddress,
-		KeyType: identity.KeyType,
-		Balance: nil,
+		Address:              responseAddress,
+		KeyType:              identity.KeyType,
+		Balance:              nil,
+		CredentialStatusType: CreateIdentityResponseCredentialStatusType(identity.AuthCoreClaimRevocationStatus.Type),
 	}, nil
 }
 
@@ -262,10 +263,11 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 			Status:             string(identity.State.Status),
 			TxID:               identity.State.TxID,
 		},
-		KeyType:     identity.KeyType,
-		DisplayName: identity.DisplayName,
-		Address:     responseAddress,
-		Balance:     responseBalance,
+		KeyType:              identity.KeyType,
+		DisplayName:          identity.DisplayName,
+		Address:              responseAddress,
+		Balance:              responseBalance,
+		CredentialStatusType: GetIdentityDetailsResponseCredentialStatusType(identity.AuthCoreClaimRevocationStatus.Type),
 	}
 
 	return response, nil
