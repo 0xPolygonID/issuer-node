@@ -994,10 +994,13 @@ paths:
 
 
   # Links
-  /v1/{identifier}/credentials/links:
+  /v1/identities/{identifier}/credentials/links:
     get:
       summary: Get Links
       operationId: GetLinks
+      description: |
+        Returns a list of links for the provided identity.
+        Filter between all | active | inactive | exceeded links and also perform a full text search with the query parameter.
       security:
         - basicAuth: [ ]
       tags:
@@ -1039,6 +1042,7 @@ paths:
     post:
       summary: Create Link
       operationId: CreateLink
+      description: Create a link for the provided identity. With this link, the identity can issue credentials.
       security:
         - basicAuth: [ ]
       tags:
@@ -1063,10 +1067,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/credentials/links/{id}:
+  /v1/identities/{identifier}/credentials/links/{id}:
     get:
       summary: Get Link
       operationId: GetLink
+      description: Get a specific link for the provided identity.
       security:
         - basicAuth: [ ]
       tags:
@@ -1125,6 +1130,7 @@ paths:
     delete:
       summary: Delete Link
       operationId: DeleteLink
+      description: Remove a specific link for the provided identity.
       security:
         - basicAuth: [ ]
       parameters:
@@ -1145,10 +1151,11 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v1/{identifier}/credentials/links/{id}/qrcode:
+  /v1/identities/{identifier}/credentials/links/{id}/qrcode:
     post:
-      summary: Create Authentication Link QRCode
+      summary: Create Link QR Code
       operationId: CreateLinkQrCode
+      description: Create a QR code for the provided link
       parameters:
         - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/id'
@@ -1168,17 +1175,17 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/credentials/links/callback:
+  /v1/identities/{identifier}/credentials/links/callback:
     post:
       summary: Create Link QR Code Callback
       operationId: CreateLinkQrCodeCallback
-      description: Create Link QR Code Callback
+      description: Process the callback from the QR code link
       tags:
-        - Auth
+        - Links
       parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
         - $ref: '#/components/parameters/sessionID'
         - $ref: '#/components/parameters/linkID'
-        - $ref: '#/components/parameters/credentialStatusType'
       requestBody:
         required: true
         content:

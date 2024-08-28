@@ -181,7 +181,7 @@ func Test_link_issueClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			sessionID := uuid.New().String()
-			offer, err := linkService.IssueOrFetchClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url", verifiable.Iden3commRevocationStatusV1)
+			offer, err := linkService.IssueOrFetchClaim(ctx, sessionID, tc.did, tc.userDID, tc.LinkID, "host_url")
 			if tc.expected.err != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expected.err, err)
