@@ -54,7 +54,7 @@ export async function getConnection({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/connections/${id}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/connections/${id}`,
     });
     return buildSuccessResponse(connectionParser.parse(response.data));
   } catch (error) {
@@ -95,7 +95,7 @@ export async function getConnections({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/connections`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/connections`,
     });
     return buildSuccessResponse(getResourceParser(connectionParser).parse(response.data));
   } catch (error) {
@@ -127,7 +127,7 @@ export async function deleteConnection({
         ...(revokeCredentials ? { revokeCredentials: "true" } : {}),
         ...(deleteCredentials ? { deleteCredentials: "true" } : {}),
       }),
-      url: `${API_VERSION}/${issuerIdentifier}/connections/${id}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/connections/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {

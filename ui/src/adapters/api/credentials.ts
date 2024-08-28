@@ -258,7 +258,7 @@ export async function getCredentialDetail({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/${credentialID}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/${credentialID}`,
     });
     return buildSuccessResponse(credentialDetailParser.parse(response.data));
   } catch (error) {
@@ -282,7 +282,7 @@ export async function getRevocationStatus({
       baseURL: env.api.url,
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/revocation/status/${nonce}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/revocation/status/${nonce}`,
     });
     return buildSuccessResponse(revocationStatusParser.parse(response.data));
   } catch (error) {
@@ -324,7 +324,7 @@ export async function getCredentials({
         ...(sorters !== undefined && sorters.length ? { sort: serializeSorters(sorters) } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/search`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/search`,
     });
     return buildSuccessResponse(getResourceParser(credentialParser).parse(response.data));
   } catch (error) {
@@ -358,7 +358,7 @@ export async function createCredential({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${issuerIdentifier}/credentials`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -382,7 +382,7 @@ export async function revokeCredential({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/revoke/${nonce}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/revoke/${nonce}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -406,7 +406,7 @@ export async function deleteCredential({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "DELETE",
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/${id}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -464,7 +464,7 @@ export async function getLink({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${linkID}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links/${linkID}`,
     });
     return buildSuccessResponse(linkParser.parse(response.data));
   } catch (error) {
@@ -498,7 +498,7 @@ export async function getLinks({
         ...(status !== undefined ? { [STATUS_SEARCH_PARAM]: status } : {}),
       }),
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links`,
     });
     return buildSuccessResponse(
       getListParser(linkParser)
@@ -534,7 +534,7 @@ export async function updateLink({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "PATCH",
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${id}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -558,7 +558,7 @@ export async function deleteLink({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "DELETE",
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${id}`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links/${id}`,
     });
     return buildSuccessResponse(messageParser.parse(response.data));
   } catch (error) {
@@ -594,7 +594,7 @@ export async function createLink({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links`,
     });
     return buildSuccessResponse(IDParser.parse(response.data));
   } catch (error) {
@@ -638,7 +638,7 @@ export async function createAuthQRCode({
       baseURL: env.api.url,
       method: "POST",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
     });
     return buildSuccessResponse(authQRCodeParser.parse(response.data));
   } catch (error) {
@@ -681,7 +681,7 @@ export async function getIssuedQRCodes({
         method: "GET",
         params: { type: "link" },
         signal,
-        url: `${API_VERSION}/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
       }),
       axios({
         baseURL: env.api.url,
@@ -691,7 +691,7 @@ export async function getIssuedQRCodes({
         method: "GET",
         params: { type: "raw" },
         signal,
-        url: `${API_VERSION}/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
+        url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/${credentialID}/qrcode`,
       }),
     ]);
 
@@ -734,7 +734,7 @@ export async function getImportQRCode({
       params: {
         sessionID,
       },
-      url: `${API_VERSION}/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/credentials/links/${linkID}/qrcode`,
     });
     return buildSuccessResponse(importQRCodeParser.parse(response.data));
   } catch (error) {

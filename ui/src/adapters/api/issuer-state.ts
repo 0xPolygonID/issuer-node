@@ -46,7 +46,7 @@ export async function publishState({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${issuerIdentifier}/state/publish`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/state/publish`,
     });
     return buildSuccessResponse(null);
   } catch (error) {
@@ -68,7 +68,7 @@ export async function retryPublishState({
         Authorization: buildAuthorizationHeader(env),
       },
       method: "POST",
-      url: `${API_VERSION}/${issuerIdentifier}/state/retry`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/state/retry`,
     });
     return buildSuccessResponse(null);
   } catch (error) {
@@ -93,7 +93,7 @@ export async function getStatus({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/state/status`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/state/status`,
     });
     return buildSuccessResponse(issuerStatusParser.parse(response.data));
   } catch (error) {
@@ -122,7 +122,7 @@ export async function getTransactions({
       },
       method: "GET",
       signal,
-      url: `${API_VERSION}/${issuerIdentifier}/state/transactions`,
+      url: `${API_VERSION}/identities/${issuerIdentifier}/state/transactions`,
     });
     return buildSuccessResponse(
       getListParser(transactionParser)
