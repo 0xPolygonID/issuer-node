@@ -27,7 +27,7 @@ const (
 const (
 	CreateCredentialRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateCredentialRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	CreateCredentialRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateCredentialRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateCredentialRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateCredentialRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	CreateCredentialRequestCredentialStatusTypeIden3commRevocationStatusv20          CreateCredentialRequestCredentialStatusType = "Iden3commRevocationStatusv2.0"
 )
 
 // Defines values for CreateCredentialRequestProofs.
@@ -40,7 +40,7 @@ const (
 const (
 	CreateIdentityRequestCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateIdentityRequestCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	CreateIdentityRequestCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateIdentityRequestCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateIdentityRequestCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityRequestCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	CreateIdentityRequestCredentialStatusTypeIden3commRevocationStatusv20          CreateIdentityRequestCredentialStatusType = "Iden3commRevocationStatusv2.0"
 )
 
 // Defines values for CreateIdentityRequestDidMetadataType.
@@ -53,26 +53,26 @@ const (
 const (
 	CreateIdentityResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 CreateIdentityResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	CreateIdentityResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     CreateIdentityResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	CreateIdentityResponseCredentialStatusTypeIden3commRevocationStatusV10          CreateIdentityResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	CreateIdentityResponseCredentialStatusTypeIden3commRevocationStatusv20          CreateIdentityResponseCredentialStatusType = "Iden3commRevocationStatusv2.0"
 )
 
 // Defines values for DisplayMethodType.
 const (
-	Iden3BasicDisplayMethodV1 DisplayMethodType = "Iden3BasicDisplayMethodV1"
+	Iden3BasicDisplayMethodv2 DisplayMethodType = "Iden3BasicDisplayMethodv2"
 )
 
 // Defines values for GetIdentitiesResponseCredentialStatusType.
 const (
 	GetIdentitiesResponseCredentialStatusTypeIden3OnchainSparseMerkleTreeProof2023 GetIdentitiesResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	GetIdentitiesResponseCredentialStatusTypeIden3ReverseSparseMerkleTreeProof     GetIdentitiesResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	GetIdentitiesResponseCredentialStatusTypeIden3commRevocationStatusV10          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	GetIdentitiesResponseCredentialStatusTypeIden3commRevocationStatusv20          GetIdentitiesResponseCredentialStatusType = "Iden3commRevocationStatusv2.0"
 )
 
 // Defines values for GetIdentityDetailsResponseCredentialStatusType.
 const (
 	Iden3OnchainSparseMerkleTreeProof2023 GetIdentityDetailsResponseCredentialStatusType = "Iden3OnchainSparseMerkleTreeProof2023"
 	Iden3ReverseSparseMerkleTreeProof     GetIdentityDetailsResponseCredentialStatusType = "Iden3ReverseSparseMerkleTreeProof"
-	Iden3commRevocationStatusV10          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusV1.0"
+	Iden3commRevocationStatusv20          GetIdentityDetailsResponseCredentialStatusType = "Iden3commRevocationStatusv2.0"
 )
 
 // Defines values for LinkStatus.
@@ -790,115 +790,115 @@ type ServerInterface interface {
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
 	// Agent
-	// (POST /v1/agent)
+	// (POST /v2/agent)
 	Agent(w http.ResponseWriter, r *http.Request)
 	// Authentication Callback
-	// (POST /v1/authentication/callback)
+	// (POST /v2/authentication/callback)
 	AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams)
 	// Get Authentication Connection
-	// (GET /v1/authentication/sessions/{id})
+	// (GET /v2/authentication/sessions/{id})
 	GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id)
 	// Get Identities
-	// (GET /v1/identities)
+	// (GET /v2/identities)
 	GetIdentities(w http.ResponseWriter, r *http.Request)
 	// Create Identity
-	// (POST /v1/identities)
+	// (POST /v2/identities)
 	CreateIdentity(w http.ResponseWriter, r *http.Request)
 	// Update Identity
-	// (PATCH /v1/identities/{identifier})
+	// (PATCH /v2/identities/{identifier})
 	UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Connections
-	// (GET /v1/identities/{identifier}/connections)
+	// (GET /v2/identities/{identifier}/connections)
 	GetConnections(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetConnectionsParams)
 	// Create Connection
-	// (POST /v1/identities/{identifier}/connections)
+	// (POST /v2/identities/{identifier}/connections)
 	CreateConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Delete Connection
-	// (DELETE /v1/identities/{identifier}/connections/{id})
+	// (DELETE /v2/identities/{identifier}/connections/{id})
 	DeleteConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id, params DeleteConnectionParams)
 	// Get Connection
-	// (GET /v1/identities/{identifier}/connections/{id})
+	// (GET /v2/identities/{identifier}/connections/{id})
 	GetConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Delete Connection Credentials
-	// (DELETE /v1/identities/{identifier}/connections/{id}/credentials)
+	// (DELETE /v2/identities/{identifier}/connections/{id}/credentials)
 	DeleteConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Revoke Connection Credentials
-	// (POST /v1/identities/{identifier}/connections/{id}/credentials/revoke)
+	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Create Credential
-	// (POST /v1/identities/{identifier}/credentials)
+	// (POST /v2/identities/{identifier}/credentials)
 	CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Links
-	// (GET /v1/identities/{identifier}/credentials/links)
+	// (GET /v2/identities/{identifier}/credentials/links)
 	GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams)
 	// Create Link
-	// (POST /v1/identities/{identifier}/credentials/links)
+	// (POST /v2/identities/{identifier}/credentials/links)
 	CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Create Link QR Code Callback
-	// (POST /v1/identities/{identifier}/credentials/links/callback)
+	// (POST /v2/identities/{identifier}/credentials/links/callback)
 	CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackParams)
 	// Delete Link
-	// (DELETE /v1/identities/{identifier}/credentials/links/{id})
+	// (DELETE /v2/identities/{identifier}/credentials/links/{id})
 	DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Link
-	// (GET /v1/identities/{identifier}/credentials/links/{id})
+	// (GET /v2/identities/{identifier}/credentials/links/{id})
 	GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Activate | Deactivate Link
-	// (PATCH /v1/identities/{identifier}/credentials/links/{id})
+	// (PATCH /v2/identities/{identifier}/credentials/links/{id})
 	ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Create Link QR Code
-	// (POST /v1/identities/{identifier}/credentials/links/{id}/qrcode)
+	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Get Revocation Status
-	// (GET /v1/identities/{identifier}/credentials/revocation/status/{nonce})
+	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Credential
-	// (POST /v1/identities/{identifier}/credentials/revoke/{nonce})
+	// (POST /v2/identities/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Get Credentials
-	// (GET /v1/identities/{identifier}/credentials/search)
+	// (GET /v2/identities/{identifier}/credentials/search)
 	GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams)
 	// Delete Credential
-	// (DELETE /v1/identities/{identifier}/credentials/{id})
+	// (DELETE /v2/identities/{identifier}/credentials/{id})
 	DeleteCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Get Credential
-	// (GET /v1/identities/{identifier}/credentials/{id})
+	// (GET /v2/identities/{identifier}/credentials/{id})
 	GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim)
 	// Get Credentials QR code
-	// (GET /v1/identities/{identifier}/credentials/{id}/qrcode)
+	// (GET /v2/identities/{identifier}/credentials/{id}/qrcode)
 	GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams)
 	// Get Identity Detail
-	// (GET /v1/identities/{identifier}/details)
+	// (GET /v2/identities/{identifier}/details)
 	GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Schemas
-	// (GET /v1/identities/{identifier}/schemas)
+	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams)
 	// Import JSON schema
-	// (POST /v1/identities/{identifier}/schemas)
+	// (POST /v2/identities/{identifier}/schemas)
 	ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Schema
-	// (GET /v1/identities/{identifier}/schemas/{id})
+	// (GET /v2/identities/{identifier}/schemas/{id})
 	GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
 	// Publish Identity State
-	// (POST /v1/identities/{identifier}/state/publish)
+	// (POST /v2/identities/{identifier}/state/publish)
 	PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Retry Publish Identity State
-	// (POST /v1/identities/{identifier}/state/retry)
+	// (POST /v2/identities/{identifier}/state/retry)
 	RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Identity State Status
-	// (GET /v1/identities/{identifier}/state/status)
+	// (GET /v2/identities/{identifier}/state/status)
 	GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier)
 	// Get Identity State Transactions
-	// (GET /v1/identities/{identifier}/state/transactions)
+	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams)
 	// Get QrCode from store
-	// (GET /v1/qr-store)
+	// (GET /v2/qr-store)
 	GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams)
 	// Get Supported Networks
-	// (GET /v1/supported-networks)
+	// (GET /v2/supported-networks)
 	GetSupportedNetworks(w http.ResponseWriter, r *http.Request)
 	// Get Connection QRCode
-	// (POST /v1/{identifier}/authentication/qrcode)
+	// (POST /v2/{identifier}/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams)
 }
 
@@ -913,223 +913,223 @@ func (_ Unimplemented) Health(w http.ResponseWriter, r *http.Request) {
 }
 
 // Agent
-// (POST /v1/agent)
+// (POST /v2/agent)
 func (_ Unimplemented) Agent(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Authentication Callback
-// (POST /v1/authentication/callback)
+// (POST /v2/authentication/callback)
 func (_ Unimplemented) AuthCallback(w http.ResponseWriter, r *http.Request, params AuthCallbackParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Authentication Connection
-// (GET /v1/authentication/sessions/{id})
+// (GET /v2/authentication/sessions/{id})
 func (_ Unimplemented) GetAuthenticationConnection(w http.ResponseWriter, r *http.Request, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Identities
-// (GET /v1/identities)
+// (GET /v2/identities)
 func (_ Unimplemented) GetIdentities(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create Identity
-// (POST /v1/identities)
+// (POST /v2/identities)
 func (_ Unimplemented) CreateIdentity(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Update Identity
-// (PATCH /v1/identities/{identifier})
+// (PATCH /v2/identities/{identifier})
 func (_ Unimplemented) UpdateIdentity(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Connections
-// (GET /v1/identities/{identifier}/connections)
+// (GET /v2/identities/{identifier}/connections)
 func (_ Unimplemented) GetConnections(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetConnectionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create Connection
-// (POST /v1/identities/{identifier}/connections)
+// (POST /v2/identities/{identifier}/connections)
 func (_ Unimplemented) CreateConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Delete Connection
-// (DELETE /v1/identities/{identifier}/connections/{id})
+// (DELETE /v2/identities/{identifier}/connections/{id})
 func (_ Unimplemented) DeleteConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id, params DeleteConnectionParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Connection
-// (GET /v1/identities/{identifier}/connections/{id})
+// (GET /v2/identities/{identifier}/connections/{id})
 func (_ Unimplemented) GetConnection(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Delete Connection Credentials
-// (DELETE /v1/identities/{identifier}/connections/{id}/credentials)
+// (DELETE /v2/identities/{identifier}/connections/{id}/credentials)
 func (_ Unimplemented) DeleteConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Revoke Connection Credentials
-// (POST /v1/identities/{identifier}/connections/{id}/credentials/revoke)
+// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 func (_ Unimplemented) RevokeConnectionCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create Credential
-// (POST /v1/identities/{identifier}/credentials)
+// (POST /v2/identities/{identifier}/credentials)
 func (_ Unimplemented) CreateCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Links
-// (GET /v1/identities/{identifier}/credentials/links)
+// (GET /v2/identities/{identifier}/credentials/links)
 func (_ Unimplemented) GetLinks(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetLinksParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create Link
-// (POST /v1/identities/{identifier}/credentials/links)
+// (POST /v2/identities/{identifier}/credentials/links)
 func (_ Unimplemented) CreateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create Link QR Code Callback
-// (POST /v1/identities/{identifier}/credentials/links/callback)
+// (POST /v2/identities/{identifier}/credentials/links/callback)
 func (_ Unimplemented) CreateLinkQrCodeCallback(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params CreateLinkQrCodeCallbackParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Delete Link
-// (DELETE /v1/identities/{identifier}/credentials/links/{id})
+// (DELETE /v2/identities/{identifier}/credentials/links/{id})
 func (_ Unimplemented) DeleteLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Link
-// (GET /v1/identities/{identifier}/credentials/links/{id})
+// (GET /v2/identities/{identifier}/credentials/links/{id})
 func (_ Unimplemented) GetLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Activate | Deactivate Link
-// (PATCH /v1/identities/{identifier}/credentials/links/{id})
+// (PATCH /v2/identities/{identifier}/credentials/links/{id})
 func (_ Unimplemented) ActivateLink(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Create Link QR Code
-// (POST /v1/identities/{identifier}/credentials/links/{id}/qrcode)
+// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Revocation Status
-// (GET /v1/identities/{identifier}/credentials/revocation/status/{nonce})
+// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Revoke Credential
-// (POST /v1/identities/{identifier}/credentials/revoke/{nonce})
+// (POST /v2/identities/{identifier}/credentials/revoke/{nonce})
 func (_ Unimplemented) RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Credentials
-// (GET /v1/identities/{identifier}/credentials/search)
+// (GET /v2/identities/{identifier}/credentials/search)
 func (_ Unimplemented) GetCredentials(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetCredentialsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Delete Credential
-// (DELETE /v1/identities/{identifier}/credentials/{id})
+// (DELETE /v2/identities/{identifier}/credentials/{id})
 func (_ Unimplemented) DeleteCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Credential
-// (GET /v1/identities/{identifier}/credentials/{id})
+// (GET /v2/identities/{identifier}/credentials/{id})
 func (_ Unimplemented) GetCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Credentials QR code
-// (GET /v1/identities/{identifier}/credentials/{id}/qrcode)
+// (GET /v2/identities/{identifier}/credentials/{id}/qrcode)
 func (_ Unimplemented) GetCredentialQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id PathClaim, params GetCredentialQrCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Identity Detail
-// (GET /v1/identities/{identifier}/details)
+// (GET /v2/identities/{identifier}/details)
 func (_ Unimplemented) GetIdentityDetails(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Schemas
-// (GET /v1/identities/{identifier}/schemas)
+// (GET /v2/identities/{identifier}/schemas)
 func (_ Unimplemented) GetSchemas(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetSchemasParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Import JSON schema
-// (POST /v1/identities/{identifier}/schemas)
+// (POST /v2/identities/{identifier}/schemas)
 func (_ Unimplemented) ImportSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Schema
-// (GET /v1/identities/{identifier}/schemas/{id})
+// (GET /v2/identities/{identifier}/schemas/{id})
 func (_ Unimplemented) GetSchema(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Publish Identity State
-// (POST /v1/identities/{identifier}/state/publish)
+// (POST /v2/identities/{identifier}/state/publish)
 func (_ Unimplemented) PublishIdentityState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Retry Publish Identity State
-// (POST /v1/identities/{identifier}/state/retry)
+// (POST /v2/identities/{identifier}/state/retry)
 func (_ Unimplemented) RetryPublishState(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Identity State Status
-// (GET /v1/identities/{identifier}/state/status)
+// (GET /v2/identities/{identifier}/state/status)
 func (_ Unimplemented) GetStateStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Identity State Transactions
-// (GET /v1/identities/{identifier}/state/transactions)
+// (GET /v2/identities/{identifier}/state/transactions)
 func (_ Unimplemented) GetStateTransactions(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params GetStateTransactionsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get QrCode from store
-// (GET /v1/qr-store)
+// (GET /v2/qr-store)
 func (_ Unimplemented) GetQrFromStore(w http.ResponseWriter, r *http.Request, params GetQrFromStoreParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Supported Networks
-// (GET /v1/supported-networks)
+// (GET /v2/supported-networks)
 func (_ Unimplemented) GetSupportedNetworks(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // Get Connection QRCode
-// (POST /v1/{identifier}/authentication/qrcode)
+// (POST /v2/{identifier}/authentication/qrcode)
 func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
@@ -2615,115 +2615,115 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/agent", wrapper.Agent)
+		r.Post(options.BaseURL+"/v2/agent", wrapper.Agent)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/authentication/callback", wrapper.AuthCallback)
+		r.Post(options.BaseURL+"/v2/authentication/callback", wrapper.AuthCallback)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/authentication/sessions/{id}", wrapper.GetAuthenticationConnection)
+		r.Get(options.BaseURL+"/v2/authentication/sessions/{id}", wrapper.GetAuthenticationConnection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities", wrapper.GetIdentities)
+		r.Get(options.BaseURL+"/v2/identities", wrapper.GetIdentities)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities", wrapper.CreateIdentity)
+		r.Post(options.BaseURL+"/v2/identities", wrapper.CreateIdentity)
 	})
 	r.Group(func(r chi.Router) {
-		r.Patch(options.BaseURL+"/v1/identities/{identifier}", wrapper.UpdateIdentity)
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}", wrapper.UpdateIdentity)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/connections", wrapper.GetConnections)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/connections", wrapper.GetConnections)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/connections", wrapper.CreateConnection)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/connections", wrapper.CreateConnection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v1/identities/{identifier}/connections/{id}", wrapper.DeleteConnection)
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/connections/{id}", wrapper.DeleteConnection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/connections/{id}", wrapper.GetConnection)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/connections/{id}", wrapper.GetConnection)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v1/identities/{identifier}/connections/{id}/credentials", wrapper.DeleteConnectionCredentials)
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/connections/{id}/credentials", wrapper.DeleteConnectionCredentials)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/connections/{id}/credentials/revoke", wrapper.RevokeConnectionCredentials)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/connections/{id}/credentials/revoke", wrapper.RevokeConnectionCredentials)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials", wrapper.CreateCredential)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials", wrapper.CreateCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/links", wrapper.GetLinks)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/links", wrapper.GetLinks)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/links", wrapper.CreateLink)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/links", wrapper.CreateLink)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/links/callback", wrapper.CreateLinkQrCodeCallback)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/links/callback", wrapper.CreateLinkQrCodeCallback)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}", wrapper.DeleteLink)
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}", wrapper.DeleteLink)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}", wrapper.GetLink)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}", wrapper.GetLink)
 	})
 	r.Group(func(r chi.Router) {
-		r.Patch(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}", wrapper.ActivateLink)
+		r.Patch(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}", wrapper.ActivateLink)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatus)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatus)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/credentials/revoke/{nonce}", wrapper.RevokeCredential)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/revoke/{nonce}", wrapper.RevokeCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/search", wrapper.GetCredentials)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/search", wrapper.GetCredentials)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/v1/identities/{identifier}/credentials/{id}", wrapper.DeleteCredential)
+		r.Delete(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}", wrapper.DeleteCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/{id}", wrapper.GetCredential)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}", wrapper.GetCredential)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/credentials/{id}/qrcode", wrapper.GetCredentialQrCode)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/{id}/qrcode", wrapper.GetCredentialQrCode)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/details", wrapper.GetIdentityDetails)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/details", wrapper.GetIdentityDetails)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/schemas", wrapper.GetSchemas)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.GetSchemas)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/schemas", wrapper.ImportSchema)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/schemas", wrapper.ImportSchema)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/schemas/{id}", wrapper.GetSchema)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/schemas/{id}", wrapper.GetSchema)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/state/publish", wrapper.PublishIdentityState)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/state/publish", wrapper.PublishIdentityState)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/identities/{identifier}/state/retry", wrapper.RetryPublishState)
+		r.Post(options.BaseURL+"/v2/identities/{identifier}/state/retry", wrapper.RetryPublishState)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/state/status", wrapper.GetStateStatus)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/status", wrapper.GetStateStatus)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
+		r.Get(options.BaseURL+"/v2/identities/{identifier}/state/transactions", wrapper.GetStateTransactions)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/qr-store", wrapper.GetQrFromStore)
+		r.Get(options.BaseURL+"/v2/qr-store", wrapper.GetQrFromStore)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v1/supported-networks", wrapper.GetSupportedNetworks)
+		r.Get(options.BaseURL+"/v2/supported-networks", wrapper.GetSupportedNetworks)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/v1/{identifier}/authentication/qrcode", wrapper.AuthQRCode)
+		r.Post(options.BaseURL+"/v2/{identifier}/authentication/qrcode", wrapper.AuthQRCode)
 	})
 
 	return r
@@ -4337,115 +4337,115 @@ type StrictServerInterface interface {
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
 	// Agent
-	// (POST /v1/agent)
+	// (POST /v2/agent)
 	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
 	// Authentication Callback
-	// (POST /v1/authentication/callback)
+	// (POST /v2/authentication/callback)
 	AuthCallback(ctx context.Context, request AuthCallbackRequestObject) (AuthCallbackResponseObject, error)
 	// Get Authentication Connection
-	// (GET /v1/authentication/sessions/{id})
+	// (GET /v2/authentication/sessions/{id})
 	GetAuthenticationConnection(ctx context.Context, request GetAuthenticationConnectionRequestObject) (GetAuthenticationConnectionResponseObject, error)
 	// Get Identities
-	// (GET /v1/identities)
+	// (GET /v2/identities)
 	GetIdentities(ctx context.Context, request GetIdentitiesRequestObject) (GetIdentitiesResponseObject, error)
 	// Create Identity
-	// (POST /v1/identities)
+	// (POST /v2/identities)
 	CreateIdentity(ctx context.Context, request CreateIdentityRequestObject) (CreateIdentityResponseObject, error)
 	// Update Identity
-	// (PATCH /v1/identities/{identifier})
+	// (PATCH /v2/identities/{identifier})
 	UpdateIdentity(ctx context.Context, request UpdateIdentityRequestObject) (UpdateIdentityResponseObject, error)
 	// Get Connections
-	// (GET /v1/identities/{identifier}/connections)
+	// (GET /v2/identities/{identifier}/connections)
 	GetConnections(ctx context.Context, request GetConnectionsRequestObject) (GetConnectionsResponseObject, error)
 	// Create Connection
-	// (POST /v1/identities/{identifier}/connections)
+	// (POST /v2/identities/{identifier}/connections)
 	CreateConnection(ctx context.Context, request CreateConnectionRequestObject) (CreateConnectionResponseObject, error)
 	// Delete Connection
-	// (DELETE /v1/identities/{identifier}/connections/{id})
+	// (DELETE /v2/identities/{identifier}/connections/{id})
 	DeleteConnection(ctx context.Context, request DeleteConnectionRequestObject) (DeleteConnectionResponseObject, error)
 	// Get Connection
-	// (GET /v1/identities/{identifier}/connections/{id})
+	// (GET /v2/identities/{identifier}/connections/{id})
 	GetConnection(ctx context.Context, request GetConnectionRequestObject) (GetConnectionResponseObject, error)
 	// Delete Connection Credentials
-	// (DELETE /v1/identities/{identifier}/connections/{id}/credentials)
+	// (DELETE /v2/identities/{identifier}/connections/{id}/credentials)
 	DeleteConnectionCredentials(ctx context.Context, request DeleteConnectionCredentialsRequestObject) (DeleteConnectionCredentialsResponseObject, error)
 	// Revoke Connection Credentials
-	// (POST /v1/identities/{identifier}/connections/{id}/credentials/revoke)
+	// (POST /v2/identities/{identifier}/connections/{id}/credentials/revoke)
 	RevokeConnectionCredentials(ctx context.Context, request RevokeConnectionCredentialsRequestObject) (RevokeConnectionCredentialsResponseObject, error)
 	// Create Credential
-	// (POST /v1/identities/{identifier}/credentials)
+	// (POST /v2/identities/{identifier}/credentials)
 	CreateCredential(ctx context.Context, request CreateCredentialRequestObject) (CreateCredentialResponseObject, error)
 	// Get Links
-	// (GET /v1/identities/{identifier}/credentials/links)
+	// (GET /v2/identities/{identifier}/credentials/links)
 	GetLinks(ctx context.Context, request GetLinksRequestObject) (GetLinksResponseObject, error)
 	// Create Link
-	// (POST /v1/identities/{identifier}/credentials/links)
+	// (POST /v2/identities/{identifier}/credentials/links)
 	CreateLink(ctx context.Context, request CreateLinkRequestObject) (CreateLinkResponseObject, error)
 	// Create Link QR Code Callback
-	// (POST /v1/identities/{identifier}/credentials/links/callback)
+	// (POST /v2/identities/{identifier}/credentials/links/callback)
 	CreateLinkQrCodeCallback(ctx context.Context, request CreateLinkQrCodeCallbackRequestObject) (CreateLinkQrCodeCallbackResponseObject, error)
 	// Delete Link
-	// (DELETE /v1/identities/{identifier}/credentials/links/{id})
+	// (DELETE /v2/identities/{identifier}/credentials/links/{id})
 	DeleteLink(ctx context.Context, request DeleteLinkRequestObject) (DeleteLinkResponseObject, error)
 	// Get Link
-	// (GET /v1/identities/{identifier}/credentials/links/{id})
+	// (GET /v2/identities/{identifier}/credentials/links/{id})
 	GetLink(ctx context.Context, request GetLinkRequestObject) (GetLinkResponseObject, error)
 	// Activate | Deactivate Link
-	// (PATCH /v1/identities/{identifier}/credentials/links/{id})
+	// (PATCH /v2/identities/{identifier}/credentials/links/{id})
 	ActivateLink(ctx context.Context, request ActivateLinkRequestObject) (ActivateLinkResponseObject, error)
 	// Create Link QR Code
-	// (POST /v1/identities/{identifier}/credentials/links/{id}/qrcode)
+	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
 	// Get Revocation Status
-	// (GET /v1/identities/{identifier}/credentials/revocation/status/{nonce})
+	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Revoke Credential
-	// (POST /v1/identities/{identifier}/credentials/revoke/{nonce})
+	// (POST /v2/identities/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
 	// Get Credentials
-	// (GET /v1/identities/{identifier}/credentials/search)
+	// (GET /v2/identities/{identifier}/credentials/search)
 	GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error)
 	// Delete Credential
-	// (DELETE /v1/identities/{identifier}/credentials/{id})
+	// (DELETE /v2/identities/{identifier}/credentials/{id})
 	DeleteCredential(ctx context.Context, request DeleteCredentialRequestObject) (DeleteCredentialResponseObject, error)
 	// Get Credential
-	// (GET /v1/identities/{identifier}/credentials/{id})
+	// (GET /v2/identities/{identifier}/credentials/{id})
 	GetCredential(ctx context.Context, request GetCredentialRequestObject) (GetCredentialResponseObject, error)
 	// Get Credentials QR code
-	// (GET /v1/identities/{identifier}/credentials/{id}/qrcode)
+	// (GET /v2/identities/{identifier}/credentials/{id}/qrcode)
 	GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error)
 	// Get Identity Detail
-	// (GET /v1/identities/{identifier}/details)
+	// (GET /v2/identities/{identifier}/details)
 	GetIdentityDetails(ctx context.Context, request GetIdentityDetailsRequestObject) (GetIdentityDetailsResponseObject, error)
 	// Get Schemas
-	// (GET /v1/identities/{identifier}/schemas)
+	// (GET /v2/identities/{identifier}/schemas)
 	GetSchemas(ctx context.Context, request GetSchemasRequestObject) (GetSchemasResponseObject, error)
 	// Import JSON schema
-	// (POST /v1/identities/{identifier}/schemas)
+	// (POST /v2/identities/{identifier}/schemas)
 	ImportSchema(ctx context.Context, request ImportSchemaRequestObject) (ImportSchemaResponseObject, error)
 	// Get Schema
-	// (GET /v1/identities/{identifier}/schemas/{id})
+	// (GET /v2/identities/{identifier}/schemas/{id})
 	GetSchema(ctx context.Context, request GetSchemaRequestObject) (GetSchemaResponseObject, error)
 	// Publish Identity State
-	// (POST /v1/identities/{identifier}/state/publish)
+	// (POST /v2/identities/{identifier}/state/publish)
 	PublishIdentityState(ctx context.Context, request PublishIdentityStateRequestObject) (PublishIdentityStateResponseObject, error)
 	// Retry Publish Identity State
-	// (POST /v1/identities/{identifier}/state/retry)
+	// (POST /v2/identities/{identifier}/state/retry)
 	RetryPublishState(ctx context.Context, request RetryPublishStateRequestObject) (RetryPublishStateResponseObject, error)
 	// Get Identity State Status
-	// (GET /v1/identities/{identifier}/state/status)
+	// (GET /v2/identities/{identifier}/state/status)
 	GetStateStatus(ctx context.Context, request GetStateStatusRequestObject) (GetStateStatusResponseObject, error)
 	// Get Identity State Transactions
-	// (GET /v1/identities/{identifier}/state/transactions)
+	// (GET /v2/identities/{identifier}/state/transactions)
 	GetStateTransactions(ctx context.Context, request GetStateTransactionsRequestObject) (GetStateTransactionsResponseObject, error)
 	// Get QrCode from store
-	// (GET /v1/qr-store)
+	// (GET /v2/qr-store)
 	GetQrFromStore(ctx context.Context, request GetQrFromStoreRequestObject) (GetQrFromStoreResponseObject, error)
 	// Get Supported Networks
-	// (GET /v1/supported-networks)
+	// (GET /v2/supported-networks)
 	GetSupportedNetworks(ctx context.Context, request GetSupportedNetworksRequestObject) (GetSupportedNetworksResponseObject, error)
 	// Get Connection QRCode
-	// (POST /v1/{identifier}/authentication/qrcode)
+	// (POST /v2/{identifier}/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
 }
 

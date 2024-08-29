@@ -207,7 +207,7 @@ func TestServer_CreateIdentity(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("POST", "/v1/identities", tests.JSONBody(t, tc.input))
+			req, err := http.NewRequest("POST", "/v2/identities", tests.JSONBody(t, tc.input))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
@@ -275,7 +275,7 @@ func TestServer_GetIdentities(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			req, err := http.NewRequest("GET", "/v1/identities", nil)
+			req, err := http.NewRequest("GET", "/v2/identities", nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
 			handler.ServeHTTP(rr, req)
@@ -358,7 +358,7 @@ func TestServer_GetIdentityDetails(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/v1/identities/%s/details", tc.did)
+			url := fmt.Sprintf("/v2/identities/%s/details", tc.did)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -433,7 +433,7 @@ func TestServer_UpdateIdentity(t *testing.T) {
 				DisplayName: *tc.expected.displayName,
 			}
 
-			url := fmt.Sprintf("/v1/identities/%s", identity.Identifier)
+			url := fmt.Sprintf("/v2/identities/%s", identity.Identifier)
 			req, err := http.NewRequest("PATCH", url, tests.JSONBody(t, body))
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)

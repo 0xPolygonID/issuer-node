@@ -49,7 +49,7 @@ func TestServer_AuthCallback(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := "/v1/authentication/callback"
+			url := "/v2/authentication/callback"
 			if tc.sessionID != nil {
 				url += "?sessionID=" + tc.sessionID.String()
 			}
@@ -144,7 +144,7 @@ func TestServer_GetAuthenticationConnection(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/authentication/sessions/%s", tc.id.String())
+			url := fmt.Sprintf("/v2/authentication/sessions/%s", tc.id.String())
 			req, err := http.NewRequest("GET", url, nil)
 			require.NoError(t, err)
 			req.SetBasicAuth(tc.auth())
@@ -199,7 +199,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				qrWithLink: true,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -217,7 +217,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				qrWithLink: true,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -235,7 +235,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 				qrWithLink: false,
 				response: protocol.AuthorizationRequestMessage{
 					Body: protocol.AuthorizationRequestMessageBody{
-						CallbackURL: "https://testing.env/v1/authentication/callback?sessionID=",
+						CallbackURL: "https://testing.env/v2/authentication/callback?sessionID=",
 						Reason:      "authentication",
 						Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 					},
@@ -248,7 +248,7 @@ func TestServer_AuthQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v1/%s/authentication/qrcode", did.String())
+			apiURL := fmt.Sprintf("/v2/%s/authentication/qrcode", did.String())
 			if tc.request.Params.Type != nil {
 				apiURL += fmt.Sprintf("?type=%s", *tc.request.Params.Type)
 			}
