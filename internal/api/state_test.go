@@ -122,7 +122,7 @@ func TestServer_GetStateStatus(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/state/status", tc.issuerDID.String())
+			url := fmt.Sprintf("/v2/identities/%s/state/status", tc.issuerDID.String())
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			req.SetBasicAuth(tc.auth())
@@ -255,7 +255,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/state/transactions?page=2&max_results=3", tc.did)
+			url := fmt.Sprintf("/v2/identities/%s/state/transactions?page=2&max_results=3", tc.did)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)

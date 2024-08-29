@@ -133,7 +133,7 @@ func TestServer_RevokeClaim(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/revoke/%d", tc.did, tc.nonce)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/revoke/%d", tc.did, tc.nonce)
 			req, err := http.NewRequest(http.MethodPost, url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -420,7 +420,7 @@ func TestServer_CreateCredential(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server.Infra.pubSub.Clear(event.CreateCredentialEvent)
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials", tc.did)
+			url := fmt.Sprintf("/v2/identities/%s/credentials", tc.did)
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -514,7 +514,7 @@ func TestServer_DeleteCredential(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/%s", *claim.Identifier, tc.credentialID.String())
+			url := fmt.Sprintf("/v2/identities/%s/credentials/%s", *claim.Identifier, tc.credentialID.String())
 			req, err := http.NewRequest("DELETE", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -622,7 +622,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/%s/qrcode?type=raw", tc.did, tc.claim)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode?type=raw", tc.did, tc.claim)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -753,7 +753,7 @@ func TestServer_GetCredential(t *testing.T) {
 						"JsonSchemaValidator2018",
 					},
 					CredentialStatus: verifiable.CredentialStatus{
-						ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", idStr, claim.RevNonce),
+						ID:              fmt.Sprintf("http://localhost/v2/%s/credentials/revocation/status/%d", idStr, claim.RevNonce),
 						Type:            "SparseMerkleTreeProof",
 						RevocationNonce: uint64(claim.RevNonce),
 					},
@@ -763,7 +763,7 @@ func TestServer_GetCredential(t *testing.T) {
 						"documentType": float64(2),
 						"type":         "KYCAgeCredential",
 					},
-					Id:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claim.ID),
+					Id:           fmt.Sprintf("http://localhost/api/v2/credentials/%s", claim.ID),
 					IssuanceDate: common.ToPointer(TimeUTC(time.Now())),
 					Issuer:       idStr,
 					Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
@@ -777,7 +777,7 @@ func TestServer_GetCredential(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/%s", tc.did, tc.claimID.String())
+			url := fmt.Sprintf("/v2/identities/%s/credentials/%s", tc.did, tc.claimID.String())
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -1240,7 +1240,7 @@ func TestServer_GetCredentials(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := url.URL{Path: fmt.Sprintf("/v1/identities/%s/credentials/search", identityMultipleClaims.Identifier)}
+			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials/search", identityMultipleClaims.Identifier)}
 			queryParams := make([]string, 0)
 			if tc.query != nil {
 				queryParams = append(queryParams, "query="+*tc.query)
@@ -1353,7 +1353,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
