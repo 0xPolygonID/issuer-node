@@ -924,26 +924,20 @@ func (i *identity) GetTransactedStates(ctx context.Context) ([]domain.IdentitySt
 	return states, nil
 }
 
-func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, page uint, maxResults uint, filter string) ([]ports.IdentityStatePaginationDto, error) {
-	if filter == "all" {
-		return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, page, maxResults)
-	}
-
-	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &issuerDID)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]ports.IdentityStatePaginationDto, 0)
-	if state.TxID != nil {
-		resultDto := ports.IdentityStatePaginationDto{
-			IdentityState: *state,
-			Total:         1,
+func (i *identity) GetStates(ctx context.Context, issuerDID w3c.DID, filter *ports.GetStateTransactionsRequest) ([]domain.IdentityState, uint, error) {
+	if filter.Filter == "latest" {
+		state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &issuerDID)
+		if err != nil {
+			return nil, 0, err
 		}
-		result = append(result, resultDto)
+		result := make([]domain.IdentityState, 0)
+		if state.TxID != nil {
+			result = append(result, *state)
+		}
+		return result, uint(len(result)), nil
 	}
 
-	return result, nil
+	return i.identityStateRepository.GetStates(ctx, i.storage.Pgx, issuerDID, filter)
 }
 
 func (i *identity) GetUnprocessedIssuersIDs(ctx context.Context) ([]*w3c.DID, error) {

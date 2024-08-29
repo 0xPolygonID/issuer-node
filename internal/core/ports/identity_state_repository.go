@@ -20,7 +20,7 @@ type IdentityStateRepository interface {
 	Save(ctx context.Context, conn db.Querier, state domain.IdentityState) error
 	GetLatestStateByIdentifier(ctx context.Context, conn db.Querier, identifier *w3c.DID) (*domain.IdentityState, error)
 	GetStatesByStatus(ctx context.Context, conn db.Querier, status domain.IdentityStatus) ([]domain.IdentityState, error)
-	GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, page uint, maxResults uint) ([]IdentityStatePaginationDto, error)
+	GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *GetStateTransactionsRequest) ([]domain.IdentityState, uint, error)
 	GetStatesByStatusAndIssuerID(ctx context.Context, conn db.Querier, status domain.IdentityStatus, issuerID w3c.DID) ([]domain.IdentityState, error)
 	UpdateState(ctx context.Context, conn db.Querier, state *domain.IdentityState) (int64, error)
 	GetGenesisState(ctx context.Context, conn db.Querier, identifier string) (*domain.IdentityState, error)
