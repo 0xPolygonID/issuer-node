@@ -18,10 +18,10 @@ import {
   getStrictParser,
 } from "src/adapters/parsers";
 import {
-  AuthBJJCredentialStatus,
   Credential,
   CredentialDetail,
   CredentialProofType,
+  CredentialStatusType,
   Env,
   IssuedQRCode,
   IssuerIdentifier,
@@ -126,7 +126,7 @@ export const credentialDetailParser = getStrictParser<CredentialDetailInput, Cre
     credentialStatus: z.object({
       id: z.string(),
       revocationNonce: z.number(),
-      type: z.nativeEnum(AuthBJJCredentialStatus),
+      type: z.nativeEnum(CredentialStatusType),
     }),
     credentialSubject: z
       .object({
@@ -293,13 +293,13 @@ export async function getRevocationStatus({
 export async function getCredentials({
   env,
   issuerIdentifier,
-  params: { did, maxResults, page, query, sorters, status },
+  params: { credentialSubject, maxResults, page, query, sorters, status },
   signal,
 }: {
   env: Env;
   issuerIdentifier: IssuerIdentifier;
   params: {
-    did?: string;
+    credentialSubject?: string;
     maxResults?: number;
     page?: number;
     query?: string;
@@ -316,7 +316,7 @@ export async function getCredentials({
       },
       method: "GET",
       params: new URLSearchParams({
-        ...(did !== undefined ? { did } : {}),
+        ...(credentialSubject !== undefined ? { credentialSubject } : {}),
         ...(query !== undefined ? { [QUERY_SEARCH_PARAM]: query } : {}),
         ...(status !== undefined && status !== "all" ? { [STATUS_SEARCH_PARAM]: status } : {}),
         ...(maxResults !== undefined ? { max_results: maxResults.toString() } : {}),

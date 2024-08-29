@@ -5,7 +5,7 @@ import { Response, buildErrorResponse, buildSuccessResponse } from "src/adapters
 import { buildAuthorizationHeader } from "src/adapters/api";
 import { getListParser, getStrictParser } from "src/adapters/parsers";
 import {
-  AuthBJJCredentialStatus,
+  CredentialStatusType,
   Env,
   Issuer,
   IssuerIdentifier,
@@ -20,8 +20,8 @@ import { List } from "src/utils/types";
 
 const apiIssuerParser = getStrictParser<Issuer>()(
   z.object({
-    authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
     blockchain: z.string(),
+    credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string(),
     identifier: z.string(),
     method: z.nativeEnum(Method),
@@ -56,8 +56,8 @@ export async function getIssuers({
 }
 
 export type CreateIssuer = {
-  authBJJCredentialStatus: AuthBJJCredentialStatus;
   blockchain: string;
+  credentialStatusType: CredentialStatusType;
   displayName: string;
   method: string;
   network: string;
@@ -82,10 +82,10 @@ export async function createIssuer({
   payload: CreateIssuer;
 }): Promise<Response<CreatedIssuer>> {
   try {
-    const { displayName, ...didMetadata } = payload;
+    const { credentialStatusType, displayName, ...didMetadata } = payload;
     const response = await axios({
       baseURL: env.api.url,
-      data: { didMetadata, displayName },
+      data: { credentialStatusType, didMetadata, displayName },
       headers: {
         Authorization: buildAuthorizationHeader(env),
       },
@@ -101,10 +101,7 @@ export async function createIssuer({
 
 export const issuerDetailsParser = getStrictParser<IssuerInfo>()(
   z.object({
-    authCoreClaimRevocationStatus: z.object({
-      type: z.nativeEnum(AuthBJJCredentialStatus),
-    }),
-
+    credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string(),
     identifier: z.string(),
     keyType: z.nativeEnum(IssuerType),

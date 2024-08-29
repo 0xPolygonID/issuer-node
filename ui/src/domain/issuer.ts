@@ -5,7 +5,7 @@ export enum IssuerType {
   ETH = "ETH",
 }
 
-export enum AuthBJJCredentialStatus {
+export enum CredentialStatusType {
   "Iden3OnchainSparseMerkleTreeProof2023" = "Iden3OnchainSparseMerkleTreeProof2023",
   "Iden3ReverseSparseMerkleTreeProof" = "Iden3ReverseSparseMerkleTreeProof",
   "Iden3commRevocationStatusV1.0" = "Iden3commRevocationStatusV1.0",
@@ -22,8 +22,8 @@ export type SupportedNetwork = {
 };
 
 export type Issuer = {
-  authBJJCredentialStatus: AuthBJJCredentialStatus;
   blockchain: string;
+  credentialStatusType: CredentialStatusType;
   displayName: string;
   identifier: string;
   method: Method;
@@ -31,9 +31,7 @@ export type Issuer = {
 };
 
 export type IssuerInfo = {
-  authCoreClaimRevocationStatus: {
-    type: AuthBJJCredentialStatus;
-  };
+  credentialStatusType: CredentialStatusType;
   displayName: string;
   identifier: IssuerIdentifier;
   keyType: IssuerType;

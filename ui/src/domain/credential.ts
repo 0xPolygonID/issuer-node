@@ -1,4 +1,4 @@
-import { AuthBJJCredentialStatus } from "src/domain/issuer";
+import { CredentialStatusType } from "src/domain/issuer";
 
 export type CredentialsTabIDs = "issued" | "links";
 
@@ -29,7 +29,7 @@ export type CredentialSchema = {
 export type CredentialStatus = {
   id: string;
   revocationNonce: number;
-  type: AuthBJJCredentialStatus;
+  type: CredentialStatusType;
 };
 
 export type CredentialDetail = {

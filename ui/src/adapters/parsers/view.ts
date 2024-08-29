@@ -9,8 +9,8 @@ import { getAttributeValueParser } from "src/adapters/parsers/jsonSchemas";
 import {
   Attribute,
   AttributeValue,
-  AuthBJJCredentialStatus,
   CredentialProofType,
+  CredentialStatusType,
   IssuerType,
   Json,
   JsonLiteral,
@@ -51,8 +51,8 @@ export type IssuerDetailsFormData = {
 };
 
 export type IssuerFormData = {
-  authBJJCredentialStatus: AuthBJJCredentialStatus;
   blockchain: string;
+  credentialStatusType: CredentialStatusType;
   displayName: string;
   method: Method;
   network: string;
@@ -61,8 +61,8 @@ export type IssuerFormData = {
 
 export const issuerFormDataParser = getStrictParser<IssuerFormData>()(
   z.object({
-    authBJJCredentialStatus: z.nativeEnum(AuthBJJCredentialStatus),
     blockchain: z.string(),
+    credentialStatusType: z.nativeEnum(CredentialStatusType),
     displayName: z.string(),
     method: z.nativeEnum(Method),
     network: z.string(),

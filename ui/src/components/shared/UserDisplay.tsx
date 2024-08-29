@@ -16,42 +16,38 @@ export function UserDisplay() {
   const navigate = useNavigate();
 
   const issuerItems = isAsyncTaskDataAvailable(issuersList)
-    ? issuersList.data.map(({ displayName, identifier }, index) => {
-        const currentIssuer = identifier === issuerIdentifier;
-        return {
-          key: `${index}`,
-          label: (
-            <Flex
-              align="center"
-              className={currentIssuer ? "active" : ""}
-              gap={16}
-              justify="space-between"
-            >
+    ? issuersList.data
+        .toSorted((item) => (item.identifier === issuerIdentifier ? -1 : 0))
+        .map(({ displayName, identifier }, index) => {
+          const currentIssuer = identifier === issuerIdentifier;
+          return {
+            key: `${index}`,
+            label: (
               <Flex
-                style={{
-                  width: 242,
-                }}
-                vertical
+                align="center"
+                className={currentIssuer ? "active" : ""}
+                gap={16}
+                justify="space-between"
               >
-                <Tooltip title={displayName}>
-                  <Typography.Text ellipsis style={{ fontSize: 12 }}>
-                    {displayName}
-                  </Typography.Text>
-                </Tooltip>
-                <Typography.Text style={{ fontSize: 12 }} type="secondary">
-                  {formatIdentifier(identifier)}
-                </Typography.Text>
+                <Flex
+                  style={{
+                    width: 242,
+                  }}
+                  vertical
+                >
+                  <Tooltip title={displayName}>
+                    <Typography.Text ellipsis>{displayName}</Typography.Text>
+                  </Tooltip>
+                </Flex>
+                {currentIssuer && <IconCheck />}
               </Flex>
-              {currentIssuer && <IconCheck />}
-            </Flex>
-          ),
-          onClick: () => handleChange(identifier),
-        };
-      })
+            ),
+            onClick: () => handleChange(identifier),
+          };
+        })
     : [];
 
   const items = [
-    ...issuerItems,
     {
       key: "test",
       label: (
@@ -62,6 +58,7 @@ export function UserDisplay() {
       ),
       onClick: () => navigate(ROUTES.createIssuer.path),
     },
+    ...issuerItems,
   ];
 
   return (
@@ -84,7 +81,7 @@ export function UserDisplay() {
           placement="bottom"
           trigger={["click"]}
         >
-          <Row>
+          <Row style={{ cursor: "pointer" }}>
             <IconChevron />
           </Row>
         </Dropdown>

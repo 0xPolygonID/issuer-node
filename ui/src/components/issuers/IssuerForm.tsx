@@ -5,13 +5,7 @@ import { IssuerFormData, issuerFormDataParser } from "src/adapters/parsers/view"
 import { ErrorResult } from "src/components/shared/ErrorResult";
 import { LoadingResult } from "src/components/shared/LoadingResult";
 import { useEnvContext } from "src/contexts/Env";
-import {
-  AppError,
-  AuthBJJCredentialStatus,
-  IssuerType,
-  Method,
-  SupportedNetwork,
-} from "src/domain";
+import { AppError, CredentialStatusType, IssuerType, Method, SupportedNetwork } from "src/domain";
 import {
   AsyncTask,
   hasAsyncTaskFailed,
@@ -22,8 +16,8 @@ import { isAbortedError, makeRequestAbortable } from "src/utils/browser";
 import { VALUE_REQUIRED } from "src/utils/constants";
 
 const initialValues: IssuerFormData = {
-  authBJJCredentialStatus: AuthBJJCredentialStatus.Iden3OnchainSparseMerkleTreeProof2023,
   blockchain: "",
+  credentialStatusType: CredentialStatusType.Iden3OnchainSparseMerkleTreeProof2023,
   displayName: "",
   method: Method.iden3,
   network: "",
@@ -223,11 +217,11 @@ export function IssuerForm({
                 <Form.Item>
                   <Form.Item
                     label="Credential Status"
-                    name="authBJJCredentialStatus"
+                    name="credentialStatusType"
                     rules={[{ message: VALUE_REQUIRED, required: true }]}
                   >
                     <Select className="full-width" placeholder="Credential Status">
-                      {Object.values(AuthBJJCredentialStatus).map((credentialStatus) => (
+                      {Object.values(CredentialStatusType).map((credentialStatus) => (
                         <Select.Option key={credentialStatus} value={credentialStatus}>
                           {credentialStatus}
                         </Select.Option>

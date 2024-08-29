@@ -63,4 +63,4 @@ export type { Schema as ApiSchema } from "src/domain/schema";
 
 export type { IssuerIdentifier, Issuer, IssuerInfo, SupportedNetwork } from "src/domain/issuer";
 
-export { IssuerType, AuthBJJCredentialStatus, Method } from "src/domain/issuer";
+export { IssuerType, CredentialStatusType, Method } from "src/domain/issuer";

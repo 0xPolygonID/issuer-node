@@ -188,7 +188,7 @@ export function CredentialsTable({ userID }: { userID: string }) {
           env,
           issuerIdentifier,
           params: {
-            did: userID,
+            credentialSubject: userID,
             query: query || undefined,
             status: credentialStatus,
           },

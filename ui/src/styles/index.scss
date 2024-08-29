@@ -470,7 +470,7 @@ svg {
     border-radius: 8px;
     border: 1px solid $border-color;
     padding: 0;
-    max-height: 100vh;
+    max-height: 336px;
     overflow: scroll;
     transform: translateX(-116px);
 
@@ -483,17 +483,13 @@ svg {
       font-size: 12px;
       padding: 16px;
 
+      &:first-child {
+        padding: 10px 16px;
+      }
+
       &:not(:last-child) {
         border-bottom: 1px solid $border-color;
-      }
-
-      &:nth-last-child(2) {
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
-      }
-
-      &:last-child {
-        padding: 10px 16px;
+        background-color: $bg-light;
       }
 
       &:has(.active) {

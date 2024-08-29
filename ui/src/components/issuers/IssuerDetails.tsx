@@ -169,10 +169,7 @@ export function IssuerDetails() {
                     <Detail label="Network" text={network} />
 
                     <Detail label="Type" text={issuer.data.keyType} />
-                    <Detail
-                      label="Credential status"
-                      text={issuer.data.authCoreClaimRevocationStatus.type}
-                    />
+                    <Detail label="Credential status" text={issuer.data.credentialStatusType} />
                   </Space>
                 </Card>
               </Card>
