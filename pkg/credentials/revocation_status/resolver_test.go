@@ -52,7 +52,7 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 					RevocationNonce: 12345,
 					StatusIssuer: &verifiable.CredentialStatus{
 						Type:            verifiable.Iden3commRevocationStatusV1,
-						ID:              "https://issuer-node.privado.id/v1/agent",
+						ID:              "https://issuer-node.privado.id/v2/agent",
 						RevocationNonce: 12345,
 					},
 				},
@@ -76,7 +76,7 @@ func TestRevocationStatusResolver_GetCredentialRevocationStatus(t *testing.T) {
 					RevocationNonce: 12345,
 					StatusIssuer: &verifiable.CredentialStatus{
 						Type:            verifiable.Iden3commRevocationStatusV1,
-						ID:              "https://issuer-node.privado.id/v1/agent",
+						ID:              "https://issuer-node.privado.id/v2/agent",
 						RevocationNonce: 12345,
 					},
 				},

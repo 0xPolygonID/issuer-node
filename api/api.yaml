@@ -33,7 +33,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/supported-networks:
+  /v2/supported-networks:
     get:
       summary: Get Supported Networks
       operationId: GetSupportedNetworks
@@ -61,7 +61,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #authentication
-  /v1/authentication/sessions/{id}:
+  /v2/authentication/sessions/{id}:
     get:
       summary: Get Authentication Connection
       operationId: getAuthenticationConnection
@@ -89,7 +89,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/{identifier}/authentication/qrcode:
+  /v2/{identifier}/authentication/qrcode:
     post:
       summary: Get Connection QRCode
       operationId: authQRCode
@@ -121,7 +121,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/authentication/callback:
+  /v2/authentication/callback:
     post:
       summary: Authentication Callback
       operationId: authCallback
@@ -147,7 +147,7 @@ paths:
 
 
   #identity:
-  /v1/identities:
+  /v2/identities:
     post:
       summary: Create Identity
       operationId: CreateIdentity
@@ -207,7 +207,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}:
+  /v2/identities/{identifier}:
     patch:
       summary: Update Identity
       operationId: UpdateIdentity
@@ -248,7 +248,7 @@ paths:
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
     
-  /v1/identities/{identifier}/details:
+  /v2/identities/{identifier}/details:
     get:
       summary: Get Identity Detail
       operationId: GetIdentityDetails
@@ -273,7 +273,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/state/retry:
+  /v2/identities/{identifier}/state/retry:
     post:
       summary: Retry Publish Identity State
       operationId: RetryPublishState
@@ -296,7 +296,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/state/publish:
+  /v2/identities/{identifier}/state/publish:
     post:
       summary: Publish Identity State
       operationId: PublishIdentityState
@@ -327,7 +327,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/state/transactions:
+  /v2/identities/{identifier}/state/transactions:
     get:
       summary: Get Identity State Transactions
       operationId: GetStateTransactions
@@ -374,7 +374,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/state/status:
+  /v2/identities/{identifier}/state/status:
     get:
       summary: Get Identity State Status
       operationId: GetStateStatus
@@ -400,7 +400,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #connections:
-  /v1/identities/{identifier}/connections/{id}:
+  /v2/identities/{identifier}/connections/{id}:
     get:
       summary: Get Connection
       operationId: getConnection
@@ -460,7 +460,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/connections/{id}/credentials:
+  /v2/identities/{identifier}/connections/{id}/credentials:
     delete:
       summary: Delete Connection Credentials
       operationId: deleteConnectionCredentials
@@ -484,7 +484,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/connections:
+  /v2/identities/{identifier}/connections:
     get:
       summary: Get Connections
       operationId: getConnections
@@ -574,7 +574,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/connections/{id}/credentials/revoke:
+  /v2/identities/{identifier}/connections/{id}/credentials/revoke:
     post:
       summary: Revoke Connection Credentials
       operationId: revokeConnectionCredentials
@@ -599,7 +599,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #credentials:
-  /v1/identities/{identifier}/credentials:
+  /v2/identities/{identifier}/credentials:
     post:
       summary: Create Credential
       operationId: CreateCredential
@@ -633,7 +633,7 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v1/identities/{identifier}/credentials/search:
+  /v2/identities/{identifier}/credentials/search:
     get:
       summary: Get Credentials
       operationId: GetCredentials
@@ -710,7 +710,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/credentials/{id}:
+  /v2/identities/{identifier}/credentials/{id}:
     get:
       summary: Get Credential
       operationId: GetCredential
@@ -762,7 +762,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/credentials/revoke/{nonce}:
+  /v2/identities/{identifier}/credentials/revoke/{nonce}:
     post:
       summary: Revoke Credential
       operationId: RevokeCredential
@@ -790,7 +790,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/credentials/revocation/status/{nonce}:
+  /v2/identities/{identifier}/credentials/revocation/status/{nonce}:
     get:
       summary: Get Revocation Status
       operationId: GetRevocationStatus
@@ -812,7 +812,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/credentials/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/{id}/qrcode:
     get:
       summary: Get Credentials QR code
       operationId: GetCredentialQrCode
@@ -852,7 +852,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #agent
-  /v1/agent:
+  /v2/agent:
     post:
       summary: Agent
       operationId: Agent
@@ -878,7 +878,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/qr-store:
+  /v2/qr-store:
     get:
       summary: Get QrCode from store
       operationId: GetQrFromStore
@@ -910,7 +910,7 @@ paths:
           $ref: '#/components/responses/500'
 
   #schemas:
-  /v1/identities/{identifier}/schemas:
+  /v2/identities/{identifier}/schemas:
     post:
       summary: Import JSON schema
       operationId: ImportSchema
@@ -966,7 +966,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/schemas/{id}:
+  /v2/identities/{identifier}/schemas/{id}:
     get:
       summary: Get Schema
       operationId: GetSchema
@@ -994,7 +994,7 @@ paths:
 
 
   # Links
-  /v1/identities/{identifier}/credentials/links:
+  /v2/identities/{identifier}/credentials/links:
     get:
       summary: Get Links
       operationId: GetLinks
@@ -1067,7 +1067,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/credentials/links/{id}:
+  /v2/identities/{identifier}/credentials/links/{id}:
     get:
       summary: Get Link
       operationId: GetLink
@@ -1151,7 +1151,7 @@ paths:
           $ref: '#/components/responses/500'
 
 
-  /v1/identities/{identifier}/credentials/links/{id}/qrcode:
+  /v2/identities/{identifier}/credentials/links/{id}/qrcode:
     post:
       summary: Create Link QR Code
       operationId: CreateLinkQrCode
@@ -1175,7 +1175,7 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v1/identities/{identifier}/credentials/links/callback:
+  /v2/identities/{identifier}/credentials/links/callback:
     post:
       summary: Create Link QR Code Callback
       operationId: CreateLinkQrCodeCallback
@@ -1301,7 +1301,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
               type: string
               x-omitempty: true
@@ -1332,7 +1332,7 @@ components:
         credentialStatusType:
           type: string
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
 
     GetIdentityDetailsResponse:
@@ -1360,7 +1360,7 @@ components:
         credentialStatusType:
           type: string
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
 
     authCoreClaimRevocationStatus:
       type: object
@@ -1506,7 +1506,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         method:
           type: string
           x-omitempty: false
@@ -1673,7 +1673,7 @@ components:
           type: string
           x-omitempty: false
           enum:
-            - "Iden3BasicDisplayMethodV1"
+            - "Iden3BasicDisplayMethodv2"
 
     #Credentials
     CreateCredentialRequest:
@@ -1724,7 +1724,7 @@ components:
           type: string
           x-omitempty: true
           example: "Iden3ReverseSparseMerkleTreeProof"
-          enum: [ Iden3commRevocationStatusV1.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
+          enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
       example:
         credentialSchema: "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
         type: "KYCAgeCredential"

@@ -75,7 +75,7 @@ func (f *Fixture) NewClaim(t *testing.T, identity string) *domain.Claim {
 	}
 
 	vc := verifiable.W3CCredential{
-		ID:           fmt.Sprintf("http://localhost/api/v1/credentials/%s", claimID),
+		ID:           fmt.Sprintf("http://localhost/api/v2/credentials/%s", claimID),
 		Context:      []string{"https://www.w3.org/2018/credentials/v1", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/iden3credential-v2.json-ld", "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json-ld/kyc-v3.json-ld"},
 		Type:         []string{"VerifiableCredential", "KYCAgeCredential"},
 		IssuanceDate: common.ToPointer(time.Now().UTC()),
@@ -86,7 +86,7 @@ func (f *Fixture) NewClaim(t *testing.T, identity string) *domain.Claim {
 			"type":         "KYCAgeCredential",
 		},
 		CredentialStatus: verifiable.CredentialStatus{
-			ID:              fmt.Sprintf("http://localhost/v1/%s/credentials/revocation/status/%d", identity, revNonce),
+			ID:              fmt.Sprintf("http://localhost/v2/%s/credentials/revocation/status/%d", identity, revNonce),
 			Type:            "SparseMerkleTreeProof",
 			RevocationNonce: uint64(revNonce),
 		},

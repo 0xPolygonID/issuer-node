@@ -541,7 +541,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		Typ:      packers.MediaTypePlainMessage,
 		Type:     protocol.AuthorizationRequestMessageType,
 		Body: protocol.AuthorizationRequestMessageBody{
-			CallbackURL: fmt.Sprintf("%s/v1/authentication/callback?sessionID=%s", serverURL, sessionID),
+			CallbackURL: fmt.Sprintf("%s/v2/authentication/callback?sessionID=%s", serverURL, sessionID),
 			Reason:      authReason,
 			Scope:       make([]protocol.ZeroKnowledgeProofRequest, 0),
 		},
@@ -1145,7 +1145,7 @@ func (i *identity) authClaimToModel(ctx context.Context, did *w3c.DID, identity 
 		return nil, err
 	}
 
-	authCred.ID = fmt.Sprintf("%s/api/v1/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
+	authCred.ID = fmt.Sprintf("%s/api/v2/credentials/%s", strings.TrimSuffix(hostURL, "/"), authClaimID)
 	cs, err := i.revocationStatusResolver.GetCredentialRevocationStatus(ctx, *did, revNonce, *identity.State.State, status)
 	if err != nil {
 		log.Error(ctx, "get credential status", "err", err)
@@ -1231,7 +1231,7 @@ func newDIDDocument(serverURL string, issuerDID w3c.DID) verifiable.DIDDocument 
 			verifiable.Service{
 				ID:              fmt.Sprintf("%s#%s", issuerDID, verifiable.Iden3CommServiceType),
 				Type:            verifiable.Iden3CommServiceType,
-				ServiceEndpoint: fmt.Sprintf("%s/v1/agent", serverURL),
+				ServiceEndpoint: fmt.Sprintf("%s/v2/agent", serverURL),
 			},
 		},
 	}

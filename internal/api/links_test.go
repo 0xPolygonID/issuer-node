@@ -203,7 +203,7 @@ func TestServer_CreateLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/links", did)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links", did)
 
 			req, err := http.NewRequest(http.MethodPost, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -326,7 +326,7 @@ func TestServer_ActivateLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/links/%s", did, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did, tc.id)
 
 			req, err := http.NewRequest(http.MethodPatch, url, tests.JSONBody(t, tc.body))
 			req.SetBasicAuth(tc.auth())
@@ -464,7 +464,7 @@ func TestServer_GetLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/links/%s", did, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did, tc.id)
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			req.SetBasicAuth(tc.auth())
@@ -677,7 +677,7 @@ func TestServer_GetAllLinks(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			endpoint := url.URL{Path: fmt.Sprintf("/v1/identities/%s/credentials/links", did)}
+			endpoint := url.URL{Path: fmt.Sprintf("/v2/identities/%s/credentials/links", did)}
 			if tc.status != nil {
 				endpoint.RawQuery = endpoint.RawQuery + "status=" + string(*tc.status)
 			}
@@ -791,7 +791,7 @@ func TestServer_DeleteLink(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/links/%s", did, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did, tc.id)
 
 			req, err := http.NewRequest(http.MethodDelete, url, tests.JSONBody(t, nil))
 			req.SetBasicAuth(tc.auth())
@@ -880,7 +880,7 @@ func TestServer_DeleteLinkForDifferentDID(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/credentials/links/%s", did2, tc.id)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/links/%s", did2, tc.id)
 
 			req, err := http.NewRequest(http.MethodDelete, url, tests.JSONBody(t, nil))
 			req.SetBasicAuth(tc.auth())
@@ -984,7 +984,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			apiURL := fmt.Sprintf("/v1/identities/%s/credentials/links/%s/qrcode", did, tc.request.Id.String())
+			apiURL := fmt.Sprintf("/v2/identities/%s/credentials/links/%s/qrcode", did, tc.request.Id.String())
 
 			req, err := http.NewRequest(http.MethodPost, apiURL, tests.JSONBody(t, nil))
 			require.NoError(t, err)
@@ -995,7 +995,7 @@ func TestServer_CreateLinkQRCode(t *testing.T) {
 
 			switch tc.expected.httpCode {
 			case http.StatusOK:
-				callBack := cfg.ServerUrl + fmt.Sprintf("/v1/identities/%s/credentials/links/callback?", iden.Identifier)
+				callBack := cfg.ServerUrl + fmt.Sprintf("/v2/identities/%s/credentials/links/callback?", iden.Identifier)
 				var response CreateLinkQrCode200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
 
