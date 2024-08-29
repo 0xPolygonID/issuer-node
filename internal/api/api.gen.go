@@ -897,7 +897,7 @@ type ServerInterface interface {
 	// Get Supported Networks
 	// (GET /v2/supported-networks)
 	GetSupportedNetworks(w http.ResponseWriter, r *http.Request)
-	// Get Connection QRCode
+	// Get Authentication QRCode
 	// (POST /v2/{identifier}/authentication/qrcode)
 	AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams)
 }
@@ -1128,7 +1128,7 @@ func (_ Unimplemented) GetSupportedNetworks(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Connection QRCode
+// Get Authentication QRCode
 // (POST /v2/{identifier}/authentication/qrcode)
 func (_ Unimplemented) AuthQRCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, params AuthQRCodeParams) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -4444,7 +4444,7 @@ type StrictServerInterface interface {
 	// Get Supported Networks
 	// (GET /v2/supported-networks)
 	GetSupportedNetworks(ctx context.Context, request GetSupportedNetworksRequestObject) (GetSupportedNetworksResponseObject, error)
-	// Get Connection QRCode
+	// Get Authentication QRCode
 	// (POST /v2/{identifier}/authentication/qrcode)
 	AuthQRCode(ctx context.Context, request AuthQRCodeRequestObject) (AuthQRCodeResponseObject, error)
 }

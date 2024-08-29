@@ -91,9 +91,9 @@ paths:
 
   /v2/{identifier}/authentication/qrcode:
     post:
-      summary: Get Connection QRCode
+      summary: Get Authentication QRCode
       operationId: authQRCode
-      description: Authentication qrcode
+      description: This endpoint returns a QR code to authenticate, when scanned it a callback is made to the callback endpoint.
       tags:
         - Auth
       parameters:
@@ -125,7 +125,7 @@ paths:
     post:
       summary: Authentication Callback
       operationId: authCallback
-      description: Authentication callback
+      description: This endpoint is called when the QR code is scanned and the user is authenticated. A connection is created.
       tags:
         - Auth
       parameters:
@@ -884,7 +884,7 @@ paths:
       operationId: GetQrFromStore
       description: Returns a previously generated QR code via url shortener method
       tags:
-        - Auth
+        - QR Store
       parameters:
         - in: query
           name: id
