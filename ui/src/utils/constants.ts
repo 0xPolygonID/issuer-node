@@ -49,7 +49,7 @@ export const DEFAULT_PAGINATION_PAGE = 1;
 export const DEFAULT_PAGINATION_MAX_RESULTS = 10;
 export const DEFAULT_PAGINATION_TOTAL = 0;
 
-export const API_VERSION = "v1";
+export const API_VERSION = "v2";
 
 type CredentialsTab = { id: CredentialsTabIDs; tabID: string; title: string };
 
