@@ -310,11 +310,11 @@ func (ls *Link) IssueOrFetchClaim(ctx context.Context, sessionID string, issuerD
 
 	credentialIssued.ID = credentialIssuedID
 	if link.CredentialSignatureProof {
-		credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v1/agent", hostURL), credentialIssued)
+		credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v2/agent", hostURL), credentialIssued)
 		return credOffer, err
 	} else {
 		if credentialIssued.MTPProof.Bytes != nil {
-			credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v1/agent", hostURL), credentialIssued)
+			credOffer, err := notifications.NewOfferMsg(fmt.Sprintf("%s/v2/agent", hostURL), credentialIssued)
 			return credOffer, err
 		}
 		log.Info(ctx, "credential issued without MTP proof. Publishing state have to be done", "credential", credentialIssued.ID.String())
