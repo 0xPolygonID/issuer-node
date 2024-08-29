@@ -346,6 +346,7 @@ paths:
           schema:
             type: string
             enum: [ all, latest ]
+            default: all
         - in: query
           name: page
           schema:
@@ -360,7 +361,7 @@ paths:
             type: integer
             format: uint
             example: 10
-            default: 10
+            default: 50
           description: Number of items to fetch on each page. Default is 10.
       responses:
         '200':
@@ -368,7 +369,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StateTransactionsResponse'
+                $ref: '#/components/schemas/StateTransactionsPaginated'
         '400':
           $ref: '#/components/responses/400'
         '500':
@@ -1429,18 +1430,19 @@ components:
         rootOfRoots:
           type: string
 
-    StateTransactionsResponse:
+    StateTransactionsPaginated:
       type: object
-      required:
-        - total
-        - transactions
+      required: [ items, meta ]
       properties:
-        total:
-          type: integer
-        transactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/StateTransaction'
+        items:
+          $ref: '#/components/schemas/StateTransactions'
+        meta:
+          $ref: '#/components/schemas/PaginatedMetadata'
+
+    StateTransactions:
+      type: array
+      items:
+        $ref: '#/components/schemas/StateTransaction'
 
     StateStatusResponse:
       type: object

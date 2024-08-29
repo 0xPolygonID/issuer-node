@@ -37,6 +37,23 @@ func NewGetAllRequest(withCredentials *bool, query *string, page *uint, maxResul
 	}
 }
 
+// GetStateTransactionsRequest is a request for GetStateTransitions
+type GetStateTransactionsRequest struct {
+	Filter     string
+	Pagination pagination.Filter
+	OrderBy    sqltools.OrderByFilters
+}
+
+// NewGetStateTransactionsRequest creates a new GetStateTransactionsRequest
+func NewGetStateTransactionsRequest(filter string, page *uint, maxResults *uint, orderBy sqltools.OrderByFilters) *GetStateTransactionsRequest {
+	pagFilter := pagination.NewFilter(maxResults, page)
+	return &GetStateTransactionsRequest{
+		Filter:     filter,
+		Pagination: *pagFilter,
+		OrderBy:    orderBy,
+	}
+}
+
 // DeleteRequest struct
 type DeleteRequest struct {
 	ConnID            uuid.UUID

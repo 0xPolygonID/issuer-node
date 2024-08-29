@@ -213,7 +213,13 @@ func TestServer_GetStateTransactions(t *testing.T) {
 			auth: authOk,
 			did:  didWithoutTxs,
 			expected: expected{
-				response: GetStateTransactions200JSONResponse{},
+				response: GetStateTransactions200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 3,
+						Page:       2,
+						Total:      0,
+					},
+				},
 				httpCode: http.StatusOK,
 			},
 		},
@@ -223,8 +229,12 @@ func TestServer_GetStateTransactions(t *testing.T) {
 			did:  didWithTxsW3c,
 			expected: expected{
 				response: GetStateTransactions200JSONResponse{
-					Total: 5,
-					Transactions: []StateTransaction{
+					Meta: PaginatedMetadata{
+						MaxResults: 3,
+						Total:      3,
+						Page:       2,
+					},
+					Items: []StateTransaction{
 						{
 							PublishDate: TimeUTC(date1.UTC()),
 							State:       "6a62b311d83a406ae21d4e21c84fe44876aa069c17706d90637bf038e8ad0b1c",
@@ -255,18 +265,90 @@ func TestServer_GetStateTransactions(t *testing.T) {
 			case http.StatusOK:
 				var response GetStateTransactions200JSONResponse
 				require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				assert.Equal(t, len(tc.expected.response.Transactions), len(response.Transactions))
-				if len(tc.expected.response.Transactions) > 0 {
-					assert.Equal(t, tc.expected.response.Transactions[0].PublishDate, response.Transactions[0].PublishDate)
-					assert.Equal(t, tc.expected.response.Transactions[0].State, response.Transactions[0].State)
-					assert.Equal(t, tc.expected.response.Transactions[0].Status, response.Transactions[0].Status)
-					assert.Equal(t, tc.expected.response.Transactions[0].TxID, response.Transactions[0].TxID)
-					assert.Equal(t, tc.expected.response.Transactions[1].PublishDate, response.Transactions[1].PublishDate)
-					assert.Equal(t, tc.expected.response.Transactions[1].State, response.Transactions[1].State)
-					assert.Equal(t, tc.expected.response.Transactions[1].Status, response.Transactions[1].Status)
-					assert.Equal(t, tc.expected.response.Transactions[1].TxID, response.Transactions[1].TxID)
+				assert.Equal(t, len(tc.expected.response.Items), len(response.Items))
+				assert.Equal(t, tc.expected.response.Meta.MaxResults, response.Meta.MaxResults)
+				assert.Equal(t, tc.expected.response.Meta.Page, response.Meta.Page)
+				if len(tc.expected.response.Items) > 0 {
+					assert.Equal(t, tc.expected.response.Items[0].PublishDate, response.Items[0].PublishDate)
+					assert.Equal(t, tc.expected.response.Items[0].State, response.Items[0].State)
+					assert.Equal(t, tc.expected.response.Items[0].Status, response.Items[0].Status)
+					assert.Equal(t, tc.expected.response.Items[0].TxID, response.Items[0].TxID)
+					assert.Equal(t, tc.expected.response.Items[1].PublishDate, response.Items[1].PublishDate)
+					assert.Equal(t, tc.expected.response.Items[1].State, response.Items[1].State)
+					assert.Equal(t, tc.expected.response.Items[1].Status, response.Items[1].Status)
+					assert.Equal(t, tc.expected.response.Items[1].TxID, response.Items[1].TxID)
 				}
 			}
+		})
+	}
+
+	type expectedPaginated struct {
+		response GetStateTransactions200JSONResponse
+	}
+	type testConfigPaginated struct {
+		name       string
+		page       int
+		maxResults int
+		expected   expectedPaginated
+	}
+	for _, tc := range []testConfigPaginated{
+		{
+			name:       "fist page of 100",
+			page:       1,
+			maxResults: 100,
+			expected: expectedPaginated{
+				response: GetStateTransactions200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 100,
+						Page:       1,
+						Total:      5,
+					},
+				},
+			},
+		},
+		{
+			name:       "second page of 100",
+			page:       2,
+			maxResults: 100,
+			expected: expectedPaginated{
+				response: GetStateTransactions200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 100,
+						Page:       2,
+						Total:      5,
+					},
+				},
+			},
+		},
+		{
+			name:       "first page  of 2",
+			page:       1,
+			maxResults: 2,
+			expected: expectedPaginated{
+				response: GetStateTransactions200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 2,
+						Page:       1,
+						Total:      5,
+					},
+				},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v2/identities/%s/state/transactions?page=%d&max_results=%d", didWithTxsW3c, tc.page, tc.maxResults)
+			req, err := http.NewRequest(http.MethodGet, url, nil)
+			req.SetBasicAuth(authOk())
+			require.NoError(t, err)
+			handler.ServeHTTP(rr, req)
+			require.Equal(t, http.StatusOK, rr.Code)
+			var response GetStateTransactions200JSONResponse
+			require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+
+			assert.Equal(t, tc.expected.response.Meta.MaxResults, response.Meta.MaxResults)
+			assert.Equal(t, tc.expected.response.Meta.Page, response.Meta.Page)
+			assert.Equal(t, tc.expected.response.Meta.Total, response.Meta.Total)
 		})
 	}
 }

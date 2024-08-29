@@ -534,10 +534,13 @@ type StateTransaction struct {
 // StateTransactionStatus defines model for StateTransaction.Status.
 type StateTransactionStatus string
 
-// StateTransactionsResponse defines model for StateTransactionsResponse.
-type StateTransactionsResponse struct {
-	Total        int                `json:"total"`
-	Transactions []StateTransaction `json:"transactions"`
+// StateTransactions defines model for StateTransactions.
+type StateTransactions = []StateTransaction
+
+// StateTransactionsPaginated defines model for StateTransactionsPaginated.
+type StateTransactionsPaginated struct {
+	Items StateTransactions `json:"items"`
+	Meta  PaginatedMetadata `json:"meta"`
 }
 
 // SupportedNetworks defines model for SupportedNetworks.
@@ -4172,7 +4175,7 @@ type GetStateTransactionsResponseObject interface {
 	VisitGetStateTransactionsResponse(w http.ResponseWriter) error
 }
 
-type GetStateTransactions200JSONResponse StateTransactionsResponse
+type GetStateTransactions200JSONResponse StateTransactionsPaginated
 
 func (response GetStateTransactions200JSONResponse) VisitGetStateTransactionsResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

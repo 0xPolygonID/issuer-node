@@ -9,7 +9,6 @@ import (
 
 	"github.com/polygonid/sh-id-platform/internal/common"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
-	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/timeapi"
 	"github.com/polygonid/sh-id-platform/pkg/pagination"
 	"github.com/polygonid/sh-id-platform/pkg/schema"
@@ -288,25 +287,28 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 	return msg
 }
 
-func stateTransactionsResponse(states []ports.IdentityStatePaginationDto) StateTransactionsResponse {
-	stateTransactions := make([]StateTransaction, len(states))
-	for i := range states {
-		stateTransactions[i] = toStateTransaction(states[i])
+func stateTransactionsPaginatedResponse(idState []domain.IdentityState, pagFilter pagination.Filter, total uint) StateTransactionsPaginated {
+	var states []StateTransaction
+	for _, state := range idState {
+		states = append(states, toStateTransaction(state))
 	}
-	total := 0
-	if len(states) > 0 {
-		total = states[0].Total
+	statesPag := StateTransactionsPaginated{
+		Items: states,
+		Meta: PaginatedMetadata{
+			MaxResults: pagFilter.MaxResults,
+			Page:       1, // default
+			Total:      total,
+		},
 	}
-	result := StateTransactionsResponse{
-		Transactions: stateTransactions,
-		Total:        total,
+	if pagFilter.Page != nil {
+		statesPag.Meta.Page = *pagFilter.Page
 	}
-	return result
+	return statesPag
 }
 
-func toStateTransaction(stateDto ports.IdentityStatePaginationDto) StateTransaction {
+func toStateTransaction(state domain.IdentityState) StateTransaction {
 	var stateTran, txID string
-	state := stateDto.IdentityState
+
 	if state.State != nil {
 		stateTran = *state.State
 	}
