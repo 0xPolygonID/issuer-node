@@ -17,6 +17,7 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/services"
 	"github.com/polygonid/sh-id-platform/internal/kms"
 	"github.com/polygonid/sh-id-platform/internal/log"
+	"github.com/polygonid/sh-id-platform/internal/repositories"
 )
 
 // CreateIdentity is created identity controller
@@ -216,6 +217,14 @@ func (s *Server) GetIdentityDetails(ctx context.Context, request GetIdentityDeta
 	identity, err := s.identityService.GetByDID(ctx, *userDID)
 	if err != nil {
 		log.Error(ctx, "get identity details. Getting identity", "err", err)
+		if errors.Is(err, repositories.ErrIdentityNotFound) {
+			return GetIdentityDetails400JSONResponse{
+				N400JSONResponse{
+					Message: "identity not found",
+				},
+			}, nil
+		}
+
 		return GetIdentityDetails500JSONResponse{
 			N500JSONResponse{
 				Message: err.Error(),
