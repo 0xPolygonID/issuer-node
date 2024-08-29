@@ -288,7 +288,7 @@ func deleteConnection500Response(deleteCredentials bool, revokeCredentials bool)
 }
 
 func stateTransactionsPaginatedResponse(idState []domain.IdentityState, pagFilter pagination.Filter, total uint) StateTransactionsPaginated {
-	var states []StateTransaction
+	states := make([]StateTransaction, 0)
 	for _, state := range idState {
 		states = append(states, toStateTransaction(state))
 	}
