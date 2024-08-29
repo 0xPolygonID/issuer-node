@@ -337,7 +337,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v1/identities/%s/state/transactions?page=%d&max_results=%d", didWithTxsW3c, tc.page, tc.maxResults)
+			url := fmt.Sprintf("/v2/identities/%s/state/transactions?page=%d&max_results=%d", didWithTxsW3c, tc.page, tc.maxResults)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			req.SetBasicAuth(authOk())
 			require.NoError(t, err)
