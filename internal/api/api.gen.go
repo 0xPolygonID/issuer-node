@@ -606,6 +606,9 @@ type N500CreateIdentity struct {
 	RequestID *string `json:"requestID,omitempty"`
 }
 
+// AgentV1TextBody defines parameters for AgentV1.
+type AgentV1TextBody = string
+
 // AgentTextBody defines parameters for Agent.
 type AgentTextBody = string
 
@@ -757,6 +760,9 @@ type AuthQRCodeParams struct {
 // AuthQRCodeParamsType defines parameters for AuthQRCode.
 type AuthQRCodeParamsType string
 
+// AgentV1TextRequestBody defines body for AgentV1 for text/plain ContentType.
+type AgentV1TextRequestBody = AgentV1TextBody
+
 // AgentTextRequestBody defines body for Agent for text/plain ContentType.
 type AgentTextRequestBody = AgentTextBody
 
@@ -792,6 +798,12 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
+	// Agent
+	// (POST /v1/agent)
+	AgentV1(w http.ResponseWriter, r *http.Request)
+	// Get Revocation Status
+	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
+	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Agent
 	// (POST /v2/agent)
 	Agent(w http.ResponseWriter, r *http.Request)
@@ -852,9 +864,6 @@ type ServerInterface interface {
 	// Create Link QR Code
 	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Get Revocation Status
-	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
-	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Credential
 	// (POST /v2/identities/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
@@ -912,6 +921,18 @@ type Unimplemented struct{}
 // Healthcheck
 // (GET /status)
 func (_ Unimplemented) Health(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Agent
+// (POST /v1/agent)
+func (_ Unimplemented) AgentV1(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Revocation Status
+// (GET /v1/{identifier}/claims/revocation/status/{nonce})
+func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1035,12 +1056,6 @@ func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Revocation Status
-// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
-func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // Revoke Credential
 // (POST /v2/identities/{identifier}/credentials/revoke/{nonce})
 func (_ Unimplemented) RevokeCredential(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
@@ -1152,6 +1167,56 @@ func (siw *ServerInterfaceWrapper) Health(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Health(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AgentV1 operation middleware
+func (siw *ServerInterfaceWrapper) AgentV1(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AgentV1(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetRevocationStatus operation middleware
+func (siw *ServerInterfaceWrapper) GetRevocationStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "identifier" -------------
+	var identifier PathIdentifier
+
+	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "nonce" -------------
+	var nonce PathNonce
+
+	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRevocationStatus(w, r, identifier, nonce)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1875,41 +1940,6 @@ func (siw *ServerInterfaceWrapper) CreateLinkQrCode(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetRevocationStatus operation middleware
-func (siw *ServerInterfaceWrapper) GetRevocationStatus(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	// ------------- Path parameter "identifier" -------------
-	var identifier PathIdentifier
-
-	err = runtime.BindStyledParameterWithOptions("simple", "identifier", chi.URLParam(r, "identifier"), &identifier, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "identifier", Err: err})
-		return
-	}
-
-	// ------------- Path parameter "nonce" -------------
-	var nonce PathNonce
-
-	err = runtime.BindStyledParameterWithOptions("simple", "nonce", chi.URLParam(r, "nonce"), &nonce, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "nonce", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetRevocationStatus(w, r, identifier, nonce)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 // RevokeCredential operation middleware
 func (siw *ServerInterfaceWrapper) RevokeCredential(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -2618,6 +2648,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/status", wrapper.Health)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/agent", wrapper.AgentV1)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/{identifier}/claims/revocation/status/{nonce}", wrapper.GetRevocationStatus)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/agent", wrapper.Agent)
 	})
 	r.Group(func(r chi.Router) {
@@ -2676,9 +2712,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/links/{id}/qrcode", wrapper.CreateLinkQrCode)
-	})
-	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/v2/identities/{identifier}/credentials/revocation/status/{nonce}", wrapper.GetRevocationStatus)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/v2/identities/{identifier}/credentials/revoke/{nonce}", wrapper.RevokeCredential)
@@ -2771,6 +2804,77 @@ func (response Health200JSONResponse) VisitHealthResponse(w http.ResponseWriter)
 type Health500JSONResponse struct{ N500JSONResponse }
 
 func (response Health500JSONResponse) VisitHealthResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentV1RequestObject struct {
+	Body *AgentV1TextRequestBody
+}
+
+type AgentV1ResponseObject interface {
+	VisitAgentV1Response(w http.ResponseWriter) error
+}
+
+type AgentV1200JSONResponse AgentResponse
+
+func (response AgentV1200JSONResponse) VisitAgentV1Response(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentV1400JSONResponse struct{ N400JSONResponse }
+
+func (response AgentV1400JSONResponse) VisitAgentV1Response(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type AgentV1500JSONResponse struct{ N500JSONResponse }
+
+func (response AgentV1500JSONResponse) VisitAgentV1Response(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatusRequestObject struct {
+	Identifier PathIdentifier `json:"identifier"`
+	Nonce      PathNonce      `json:"nonce"`
+}
+
+type GetRevocationStatusResponseObject interface {
+	VisitGetRevocationStatusResponse(w http.ResponseWriter) error
+}
+
+type GetRevocationStatus200JSONResponse RevocationStatusResponse
+
+func (response GetRevocationStatus200JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatus400JSONResponse struct{ N400JSONResponse }
+
+func (response GetRevocationStatus400JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetRevocationStatus500JSONResponse struct{ N500JSONResponse }
+
+func (response GetRevocationStatus500JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
 
@@ -3593,42 +3697,6 @@ func (response CreateLinkQrCode500JSONResponse) VisitCreateLinkQrCodeResponse(w 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type GetRevocationStatusRequestObject struct {
-	Identifier PathIdentifier `json:"identifier"`
-	Nonce      PathNonce      `json:"nonce"`
-}
-
-type GetRevocationStatusResponseObject interface {
-	VisitGetRevocationStatusResponse(w http.ResponseWriter) error
-}
-
-type GetRevocationStatus200JSONResponse RevocationStatusResponse
-
-func (response GetRevocationStatus200JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRevocationStatus400JSONResponse struct{ N400JSONResponse }
-
-func (response GetRevocationStatus400JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type GetRevocationStatus500JSONResponse struct{ N500JSONResponse }
-
-func (response GetRevocationStatus500JSONResponse) VisitGetRevocationStatusResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(500)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type RevokeCredentialRequestObject struct {
 	Identifier PathIdentifier `json:"identifier"`
 	Nonce      PathNonce      `json:"nonce"`
@@ -4340,6 +4408,12 @@ type StrictServerInterface interface {
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
 	// Agent
+	// (POST /v1/agent)
+	AgentV1(ctx context.Context, request AgentV1RequestObject) (AgentV1ResponseObject, error)
+	// Get Revocation Status
+	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
+	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
+	// Agent
 	// (POST /v2/agent)
 	Agent(ctx context.Context, request AgentRequestObject) (AgentResponseObject, error)
 	// Authentication Callback
@@ -4399,9 +4473,6 @@ type StrictServerInterface interface {
 	// Create Link QR Code
 	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
-	// Get Revocation Status
-	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
-	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Revoke Credential
 	// (POST /v2/identities/{identifier}/credentials/revoke/{nonce})
 	RevokeCredential(ctx context.Context, request RevokeCredentialRequestObject) (RevokeCredentialResponseObject, error)
@@ -4498,6 +4569,65 @@ func (sh *strictHandler) Health(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(HealthResponseObject); ok {
 		if err := validResponse.VisitHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// AgentV1 operation middleware
+func (sh *strictHandler) AgentV1(w http.ResponseWriter, r *http.Request) {
+	var request AgentV1RequestObject
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't read body: %w", err))
+		return
+	}
+	body := AgentV1TextRequestBody(data)
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.AgentV1(ctx, request.(AgentV1RequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "AgentV1")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(AgentV1ResponseObject); ok {
+		if err := validResponse.VisitAgentV1Response(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRevocationStatus operation middleware
+func (sh *strictHandler) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
+	var request GetRevocationStatusRequestObject
+
+	request.Identifier = identifier
+	request.Nonce = nonce
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRevocationStatus(ctx, request.(GetRevocationStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRevocationStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRevocationStatusResponseObject); ok {
+		if err := validResponse.VisitGetRevocationStatusResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -5090,33 +5220,6 @@ func (sh *strictHandler) CreateLinkQrCode(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CreateLinkQrCodeResponseObject); ok {
 		if err := validResponse.VisitCreateLinkQrCodeResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// GetRevocationStatus operation middleware
-func (sh *strictHandler) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
-	var request GetRevocationStatusRequestObject
-
-	request.Identifier = identifier
-	request.Nonce = nonce
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.GetRevocationStatus(ctx, request.(GetRevocationStatusRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "GetRevocationStatus")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(GetRevocationStatusResponseObject); ok {
-		if err := validResponse.VisitGetRevocationStatusResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
