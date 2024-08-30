@@ -791,10 +791,11 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
-  /v2/identities/{identifier}/credentials/revocation/status/{nonce}:
+  /v1/{identifier}/claims/revocation/status/{nonce}:
     get:
       summary: Get Revocation Status
       operationId: GetRevocationStatus
+      deprecated: true
       description: Endpoint to get the revocation status
       tags:
         - Credentials
@@ -878,6 +879,34 @@ paths:
           $ref: '#/components/responses/400'
         '500':
           $ref: '#/components/responses/500'
+
+  /v1/agent:
+    post:
+      summary: Agent
+      operationId: AgentV1
+      description: Identity Agent Endpoint for v1.
+      deprecated: true
+      tags:
+        - Agent
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: jwz-token
+      responses:
+        '200':
+          description: TBD
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
 
   /v2/qr-store:
     get:

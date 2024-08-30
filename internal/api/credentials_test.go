@@ -1353,7 +1353,7 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
+			url := fmt.Sprintf("/v1/%s/claims/revocation/status/%d", identity.Identifier, tc.nonce)
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
