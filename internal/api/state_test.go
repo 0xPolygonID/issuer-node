@@ -289,6 +289,7 @@ func TestServer_GetStateTransactions(t *testing.T) {
 		name       string
 		page       int
 		maxResults int
+		sortBy     string
 		expected   expectedPaginated
 	}
 	for _, tc := range []testConfigPaginated{
@@ -334,10 +335,43 @@ func TestServer_GetStateTransactions(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:       "first page of 100, some sort fields #1",
+			page:       1,
+			maxResults: 100,
+			sortBy:     "-status",
+			expected: expectedPaginated{
+				response: GetStateTransactions200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 100,
+						Page:       1,
+						Total:      5,
+					},
+				},
+			},
+		},
+		{
+			name:       "first page of 100, some sort fields #2",
+			page:       1,
+			maxResults: 100,
+			sortBy:     "-status, publishDate",
+			expected: expectedPaginated{
+				response: GetStateTransactions200JSONResponse{
+					Meta: PaginatedMetadata{
+						MaxResults: 100,
+						Page:       1,
+						Total:      5,
+					},
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
 			url := fmt.Sprintf("/v2/identities/%s/state/transactions?page=%d&max_results=%d", didWithTxsW3c, tc.page, tc.maxResults)
+			if tc.sortBy != "" {
+				url += fmt.Sprintf("&sort=%s", tc.sortBy)
+			}
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			req.SetBasicAuth(authOk())
 			require.NoError(t, err)

@@ -106,6 +106,23 @@ func getStateTransitionsFilter(req GetStateTransactionsRequestObject) (request *
 	if req.Params.Filter != nil && !slices.Contains([]string{"all", "latest"}, strings.ToLower(string(*req.Params.Filter))) {
 		return nil, errors.New("invalid filter")
 	}
-
-	return ports.NewGetStateTransactionsRequest(filter, req.Params.Page, req.Params.MaxResults, sqltools.OrderByFilters{}), nil
+	orderBy := sqltools.OrderByFilters{}
+	if req.Params.Sort != nil {
+		for _, sortBy := range *req.Params.Sort {
+			var err error
+			field, desc := strings.CutPrefix(strings.TrimSpace(string(sortBy)), "-")
+			switch GetStateTransactionsParamsSort(field) {
+			case PublishDate:
+				err = orderBy.Add(ports.StateTransitionsPublishDate, desc)
+			case Status:
+				err = orderBy.Add(ports.StateTransitionsStatus, desc)
+			default:
+				return nil, errors.New("wrong sort field")
+			}
+			if err != nil {
+				return nil, errors.New("repeated sort by value field")
+			}
+		}
+	}
+	return ports.NewGetStateTransactionsRequest(filter, req.Params.Page, req.Params.MaxResults, orderBy), nil
 }

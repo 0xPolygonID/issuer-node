@@ -142,6 +142,14 @@ const (
 	GetStateTransactionsParamsFilterLatest GetStateTransactionsParamsFilter = "latest"
 )
 
+// Defines values for GetStateTransactionsParamsSort.
+const (
+	MinusPublishDate GetStateTransactionsParamsSort = "-publishDate"
+	MinusStatus      GetStateTransactionsParamsSort = "-status"
+	PublishDate      GetStateTransactionsParamsSort = "publishDate"
+	Status           GetStateTransactionsParamsSort = "status"
+)
+
 // Defines values for AuthQRCodeParamsType.
 const (
 	AuthQRCodeParamsTypeLink AuthQRCodeParamsType = "link"
@@ -735,11 +743,15 @@ type GetStateTransactionsParams struct {
 	Page *uint `form:"page,omitempty" json:"page,omitempty"`
 
 	// MaxResults Number of items to fetch on each page. Default is 10.
-	MaxResults *uint `form:"max_results,omitempty" json:"max_results,omitempty"`
+	MaxResults *uint                             `form:"max_results,omitempty" json:"max_results,omitempty"`
+	Sort       *[]GetStateTransactionsParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
 
 // GetStateTransactionsParamsFilter defines parameters for GetStateTransactions.
 type GetStateTransactionsParamsFilter string
+
+// GetStateTransactionsParamsSort defines parameters for GetStateTransactions.
+type GetStateTransactionsParamsSort string
 
 // GetQrFromStoreParams defines parameters for GetQrFromStore.
 type GetQrFromStoreParams struct {
@@ -2405,6 +2417,14 @@ func (siw *ServerInterfaceWrapper) GetStateTransactions(w http.ResponseWriter, r
 	err = runtime.BindQueryParameter("form", true, false, "max_results", r.URL.Query(), &params.MaxResults)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "max_results", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "sort" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "sort", r.URL.Query(), &params.Sort)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 

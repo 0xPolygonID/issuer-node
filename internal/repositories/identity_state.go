@@ -11,7 +11,6 @@ import (
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
-	"github.com/polygonid/sh-id-platform/pkg/pagination"
 )
 
 type identityState struct{}
@@ -93,41 +92,11 @@ func (isr *identityState) GetStatesByStatus(ctx context.Context, conn db.Querier
 	return toIdentityStatesDomain(rows)
 }
 
-func buildGetStatesQuery(pag pagination.Filter) (string, string) {
-	fields := []string{
-		"state_id",
-		"identifier",
-		"state",
-		"root_of_roots",
-		"claims_tree_root",
-		"revocation_tree_root",
-		"block_timestamp",
-		"block_number",
-		"tx_id",
-		"previous_state",
-		"status",
-		"modified_at",
-		"created_at",
-	}
-
-	q := `
-SELECT ##QUERYFIELDS##
-FROM identity_states 
-WHERE identifier = $1 
-AND previous_state IS NOT NULL`
-
-	countQuery := strings.Replace(q, "##QUERYFIELDS##", "COUNT(*)", 1)
-	sqlQuery := strings.Replace(q, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
-	sqlQuery += " ORDER BY state_id ASC OFFSET $2 LIMIT $3;"
-
-	return sqlQuery, countQuery
-}
-
 // GetStates returns all the states
 func (isr *identityState) GetStates(ctx context.Context, conn db.Querier, issuerDID w3c.DID, filter *ports.GetStateTransactionsRequest) ([]domain.IdentityState, uint, error) {
 	var count int
 
-	sqlQuery, countQuery := buildGetStatesQuery(filter.Pagination)
+	sqlQuery, countQuery := buildGetStatesQuery(filter)
 
 	if err := conn.QueryRow(ctx, countQuery, issuerDID.String()).Scan(&count); err != nil {
 		return nil, 0, err
@@ -155,35 +124,6 @@ func (isr *identityState) UpdateState(ctx context.Context, conn db.Querier, stat
 	}
 
 	return tag.RowsAffected(), nil
-}
-
-func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
-	var states []domain.IdentityState
-	for rows.Next() {
-		var state domain.IdentityState
-		if err := rows.Scan(&state.StateID,
-			&state.Identifier,
-			&state.State,
-			&state.RootOfRoots,
-			&state.ClaimsTreeRoot,
-			&state.RevocationTreeRoot,
-			&state.BlockTimestamp,
-			&state.BlockNumber,
-			&state.TxID,
-			&state.PreviousState,
-			&state.Status,
-			&state.ModifiedAt,
-			&state.CreatedAt); err != nil {
-			return nil, err
-		}
-		states = append(states, state)
-	}
-
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	return states, nil
 }
 
 // GetStatesByStatusAndIssuerID returns states which are not transacted
@@ -246,4 +186,66 @@ func (isr *identityState) GetGenesisState(ctx context.Context, conn db.Querier, 
 	}
 
 	return &state, nil
+}
+
+func buildGetStatesQuery(filter *ports.GetStateTransactionsRequest) (string, string) {
+	fields := []string{
+		"state_id",
+		"identifier",
+		"state",
+		"root_of_roots",
+		"claims_tree_root",
+		"revocation_tree_root",
+		"block_timestamp",
+		"block_number",
+		"tx_id",
+		"previous_state",
+		"status",
+		"modified_at",
+		"created_at",
+	}
+
+	q := `
+SELECT ##QUERYFIELDS##
+FROM identity_states 
+WHERE identifier = $1 
+AND previous_state IS NOT NULL`
+
+	countQuery := strings.Replace(q, "##QUERYFIELDS##", "COUNT(*)", 1)
+	sqlQuery := strings.Replace(q, "##QUERYFIELDS##", strings.Join(fields, ","), 1)
+
+	_ = filter.OrderBy.Add(ports.StateTransitionsPublishDate, false)
+	sqlQuery += " ORDER BY " + filter.OrderBy.String()
+	sqlQuery += " OFFSET $2 LIMIT $3;"
+
+	return sqlQuery, countQuery
+}
+
+func toIdentityStatesDomain(rows pgx.Rows) ([]domain.IdentityState, error) {
+	var states []domain.IdentityState
+	for rows.Next() {
+		var state domain.IdentityState
+		if err := rows.Scan(&state.StateID,
+			&state.Identifier,
+			&state.State,
+			&state.RootOfRoots,
+			&state.ClaimsTreeRoot,
+			&state.RevocationTreeRoot,
+			&state.BlockTimestamp,
+			&state.BlockNumber,
+			&state.TxID,
+			&state.PreviousState,
+			&state.Status,
+			&state.ModifiedAt,
+			&state.CreatedAt); err != nil {
+			return nil, err
+		}
+		states = append(states, state)
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return states, nil
 }
