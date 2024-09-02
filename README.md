@@ -21,17 +21,17 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 
 ## Table of Contents
 - [Privado ID Issuer Node](#privado-id-issuer-node)
-  - [Table of Contents](#table-of-contents)
-  - [Quick Start Installation](#quick-start-installation)
-    - [Prerequisites](#prerequisites)
-    - [Issuer Node API](#issuer-node-api)
-      - [Deploy Issuer Node Infrastructure](#deploy-issuer-node-infrastructure)
-      - [Run Issuer Node API](#run-issuer-node-api)
-    - [Issuer Node UI](#issuer-node-ui)
-  - [Quick Start Demo](#quick-start-demo)
-  - [Documentation](#documentation)
-  - [Tools](#tools)
-  - [License](#license)
+    - [Table of Contents](#table-of-contents)
+    - [Quick Start Installation](#quick-start-installation)
+        - [Prerequisites](#prerequisites)
+        - [Issuer Node API](#issuer-node-api)
+            - [Deploy Issuer Node Infrastructure](#deploy-issuer-node-infrastructure)
+            - [Run Issuer Node API](#run-issuer-node-api)
+        - [Issuer Node UI](#issuer-node-ui)
+    - [Quick Start Demo](#quick-start-demo)
+    - [Documentation](#documentation)
+    - [Tools](#tools)
+    - [License](#license)
 
 ## Quick Start Installation
 > [!NOTE]
@@ -44,7 +44,7 @@ Streamline the **Verifiable Credentials issuance** process with the user-friendl
 - Unix-based operating system (e.g. Debian, Arch, Mac OS)
 - [Docker Engine](https://docs.docker.com/engine/) `1.27+`
 - Makefile toolchain `GNU Make 3.81`
-- Publicly accessible URL - The issuer node API must be publicly reachable. Please make sure you properly configure your proxy or use a tool like [Localtunnel](https://theboroer.github.io/localtunnel-www/) for testing purposes.
+- Publicly accessible URL - The issuer node API must be publicly reachable. Please make sure you properly configure your proxy or use a tool like [Localtunnel](https://theboroer.github.io/localtunnel-www/) or ngrok (https://ngrok.com/) for testing purposes. Localtunnel requires a one time password for each use, and the free version of ngrok only allows one tunnel.
 - Polygon Amoy or Main RPC - You can get one in any of the providers of this list
     - [Chainstack](https://chainstack.com/)
     - [Ankr](https://ankr.com/)
@@ -69,25 +69,29 @@ In this section we will cover the installation of the Issuer Node API.
     cp .env-api.sample .env-api
     ```
 
-2. Fill the .env-issuer config file with the proper variables:
+1. Fill the .env-issuer config file with the proper variables:
 
    *.env-issuer*
     ```bash
     ISSUER_ETHEREUM_URL=<YOUR_RPC_PROVIDER_URI_ENDPOINT>
     ```
-3. Start the infrastructure:
+
+ 1. Start the infrastructure:
 
     ```bash
     make up
     ```
 
-4. Enable vault authentication:
+1. After initialization, ensure that instances (redis, vault and postgres) are active before proceeding to enable vault authentication. You can do this with `docker ps`
+
+1. Enable vault authentication:
 
     ```bash
     make add-vault-token
     ```
 
-5. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
+1. Wait approximately 20 seconds to generate and store the token.
+1. Write the private key in the vault. This step is needed in order to be able to transit the issuer's state. To perform that action the given account has to be funded. Make sure the account that you are using has sufficient amount of Amoy Test tokens. For Amoy network you can request some testing Matic [here](https://www.alchemy.com/faucets/polygon-amoy).
 
     ```bash
     make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key
@@ -110,7 +114,8 @@ If you experience **problems** with the **vault**, follow these commands:
 ``` bash
 docker stop issuer-vault-1    // Stops the container issuer-vault-1 
 docker rm issuer-vault-1      // Removes container issuer-vault-1
-make clean-vault              // Removes all the data in the vault, including the token
+sudo make clean-vault         // Removes all the data in the vault, including the token
+docker volume prune           // remove unused docker volumes
 make up                       // Starts the database, cache and vault storage (i.e, postgres, redis and vault)
 ```
 Wait 20 secs so the vault can boot and generate a token.
@@ -125,6 +130,23 @@ make private_key=<YOUR_WALLET_PRIVATE_KEY> add-private-key    // Stores the priv
 
 The issuer node is extensively configurable, for a detailed list of the configuration, please visit our [detailed configuration guide](https://devs.polygonid.com/docs/issuer/issuer-configuration/).
 
+1. You can use ngrok to create tunnels for public access. The free version of ngrok allows only one agent, but you can create several tunnels with that one agent. For example put the following in your ~/.config/ngrok.yml file
+  ```
+version: "2"
+authtoken: *******************************
+tunnels:
+  issuernode:
+    proto: http
+    addr: 3001
+  issuerapi:
+    proto: http
+    addr: 3002
+  issuerui:
+    proto: http
+    addre: 8088    
+  ```
+ If using localtunnel, run `lt --port 3001 --subdomain issuer-identities &` to create the public ISSUER_SERVER_URL. It yields: `https://issuer-identities.loca.lt`.
+ If you are using the free version of ngrok or localtunnel, you may need to add a browser plugin like "simple-modify-headers" to inject headers into every request to avoid the warning message that is returned on first access to thwart abuse.
 1. Fill the .env-issuer config file with the proper variables:
 
    *.env-issuer*
@@ -132,9 +154,10 @@ The issuer node is extensively configurable, for a detailed list of the configur
     ISSUER_API_AUTH_USER=user-issuer
     ISSUER_API_AUTH_PASSWORD=password-issuer
     ISSUER_SERVER_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
+    ISSUER_CREDENTIAL_STATUS_RHS_URL=<PUBLICLY_ACCESSIBLE_URL_POINTING_TO_ISSUER_SERVER_PORT>
     ```
 
-2. Run api:
+1. Run api:
 
     ```bash
     make run
@@ -146,11 +169,7 @@ The issuer node is extensively configurable, for a detailed list of the configur
 
 **Troubleshooting:**
 
-Restart the api.
-
-```bash 
-make restart-api
-```
+When running `docker ps`, if you see that a container did not start, or is unhealthy, you can use `docker logs <container-name>` to see what went wrong.
 
 ---
 
@@ -179,6 +198,7 @@ In order to make the UI work, we will need configure some env variables in the `
     ```
 
     > **_NOTE:_**  It is possible to register custom did methods. This field accepts an array of objects in JSON format.</br>
+     If you are using Polygon Amoy blockchain you can remove the below env variable from *.env-api*.
     > Example:
         ```
         ISSUER_CUSTOM_DID_METHODS='[{"blockchain":"linea","network":"testnet","networkFlag":"0b01000001","chainID":59140}]'
@@ -198,7 +218,7 @@ In order to make the UI work, we will need configure some env variables in the `
 
 
 >**API UI specification** - http://localhost:3002/
-> 
+>
 >**UI** - http://localhost:8088/
 
 ---
@@ -234,4 +254,4 @@ This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will 
 
 ## License
 
-See [LICENSE](LICENSE.md).
+See [MIT-LICENSE](LICENSE-MIT), [APACHE-LICENSE](LICENSE-APACHE).
