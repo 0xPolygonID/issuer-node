@@ -198,6 +198,22 @@ func (s *Server) GetRevocationStatus(ctx context.Context, request GetRevocationS
 	return response, err
 }
 
+// GetRevocationStatusV2 is the controller to get revocation status
+func (s *Server) GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error) {
+	response, err := s.GetRevocationStatus(ctx, GetRevocationStatusRequestObject(request))
+	if err != nil {
+		log.Error(ctx, "getting revocation status", "err", err, "req", request)
+		return nil, err
+	}
+	switch response := response.(type) {
+	case GetRevocationStatus200JSONResponse:
+		return GetRevocationStatusV2200JSONResponse(response), nil
+	case GetRevocationStatus500JSONResponse:
+		return GetRevocationStatusV2500JSONResponse(response), nil
+	}
+	return nil, nil
+}
+
 // GetCredentials returns a collection of credentials that matches the request.
 func (s *Server) GetCredentials(ctx context.Context, request GetCredentialsRequestObject) (GetCredentialsResponseObject, error) {
 	filter, err := getCredentialsFilter(ctx, request)
