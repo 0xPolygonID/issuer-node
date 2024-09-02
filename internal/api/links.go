@@ -200,10 +200,11 @@ func (s *Server) CreateLinkQrCode(ctx context.Context, req CreateLinkQrCodeReque
 			DisplayName: s.cfg.IssuerName,
 			Logo:        s.cfg.IssuerLogo,
 		},
-		QrCodeLink: createLinkQrCodeResponse.QrCode,
-		QrCodeRaw:  string(qrCodeRaw),
-		SessionID:  createLinkQrCodeResponse.SessionID,
-		LinkDetail: getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
+		DeepLink:      createLinkQrCodeResponse.DeepLink,
+		UniversalLink: createLinkQrCodeResponse.UniversalLink,
+		QrCodeRaw:     string(qrCodeRaw),
+		SessionID:     createLinkQrCodeResponse.SessionID,
+		LinkDetail:    getLinkSimpleResponse(*createLinkQrCodeResponse.Link),
 	}, nil
 }
 

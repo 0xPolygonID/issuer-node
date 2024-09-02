@@ -151,7 +151,7 @@ paths:
     post:
       summary: Create Identity
       operationId: CreateIdentity
-      description: | 
+      description: |
         Endpoint to create an identity to issue credentials.
         Issuer node supports two types of keys (field `type`):
         * BJJ Keys
@@ -247,7 +247,7 @@ paths:
           $ref: '#/components/responses/403'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
-    
+
   /v2/identities/{identifier}/details:
     get:
       summary: Get Identity Detail
@@ -1345,9 +1345,9 @@ components:
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
-              type: string
-              x-omitempty: true
-              example: "KYCAgeCredential Issuer identity"
+          type: string
+          x-omitempty: true
+          example: "KYCAgeCredential Issuer identity"
 
     CreateIdentityResponse:
       type: object
@@ -1999,7 +1999,7 @@ components:
         type:
           type: string
           x-omitempty: false
-      
+
     QrCodeLinkWithSchemaTypeShortResponse:
       type: object
       required:
@@ -2012,7 +2012,7 @@ components:
         schemaType:
           type: string
           example: "vaccinationCertificate"
-      
+
     CredentialsPaginated:
       type: object
       required: [ items, meta ]
@@ -2224,7 +2224,8 @@ components:
       type: object
       required:
         - issuer
-        - qrCodeLink
+        - deepLink
+        - universalLink
         - qrCodeRaw
         - sessionID
         - linkID
@@ -2234,9 +2235,12 @@ components:
           $ref: '#/components/schemas/IssuerDescription'
         qrCodeRaw:
           type: string
-        qrCodeLink:
+        deepLink:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        universalLink:
+          type: string
+          example: https://wallet.privado.id#i_m=eyJib2R5Ijp7ImNhbGxiYWNrVXJsIjoiaHR0cHM6Ly9pc3N1ZXIucG9seWdvbmlkLm1lL2FwaS9jYWxsYmFjaz9zZXNzaW9uSWQ9NzAyNTU3IiwicmVhc29uIjoidGVzdCBmbG93Iiwic2NvcGUiOltdfSwiZnJvbSI6ImRpZDpwb2x5Z29uaWQ6cG9seWdvbjphbW95OjJxV25Ta1h4SDVyakVDczVha3pCTkJrU2s1OGhDS0E5eXpWZGFuN3djZyIsImlkIjoiMGQwMmI5ZTEtMDExMy00MjJmLWI5MWItMDI2MThhMTc4YmZjIiwidGhpZCI6IjBkMDJiOWUxLTAxMTMtNDIyZi1iOTFiLTAyNjE4YTE3OGJmYyIsInR5cCI6ImFwcGxpY2F0aW9uL2lkZW4zY29tbS1wbGFpbi1qc29uIiwidHlwZSI6Imh0dHBzOi8vaWRlbjMtY29tbXVuaWNhdGlvbi5pby9hdXRob3JpemF0aW9uLzEuMC9yZXF1ZXN0In0=&back_url=https%3A%2F%2Fissuer.polygonid.me%2F&finish_url=https%3A%2F%2Fissuer.polygonid.me%2Fmain
         sessionID:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
@@ -2329,7 +2333,7 @@ components:
           type: array
           items:
             type: string
-          example: ["amoy", "mumbai"]
+          example: [ "amoy", "mumbai" ]
 
     Offer:
       type: object

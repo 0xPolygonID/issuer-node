@@ -559,7 +559,7 @@ func (i *identity) CreateAuthenticationQRCode(ctx context.Context, serverURL str
 		return nil, err
 	}
 	return &ports.CreateAuthenticationQRCodeResponse{
-		QRCodeURL: i.qrService.ToURL(serverURL, linkID),
+		QRCodeURL: i.qrService.ToDeepLink(serverURL, linkID),
 		SessionID: sessionID,
 		QrID:      linkID,
 	}, nil

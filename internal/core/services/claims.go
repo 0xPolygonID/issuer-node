@@ -368,7 +368,7 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
-		QrCodeURL:  c.qrService.ToURL(hostURL, qrID),
+		QrCodeURL:  c.qrService.ToDeepLink(hostURL, qrID),
 		SchemaType: getCredentialType(*claim),
 		QrID:       qrID,
 	}, nil

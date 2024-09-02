@@ -282,11 +282,12 @@ type Credential struct {
 
 // CredentialLinkQrCodeResponse defines model for CredentialLinkQrCodeResponse.
 type CredentialLinkQrCodeResponse struct {
-	Issuer     IssuerDescription `json:"issuer"`
-	LinkDetail LinkSimple        `json:"linkDetail"`
-	QrCodeLink string            `json:"qrCodeLink"`
-	QrCodeRaw  string            `json:"qrCodeRaw"`
-	SessionID  string            `json:"sessionID"`
+	DeepLink      string            `json:"deepLink"`
+	Issuer        IssuerDescription `json:"issuer"`
+	LinkDetail    LinkSimple        `json:"linkDetail"`
+	QrCodeRaw     string            `json:"qrCodeRaw"`
+	SessionID     string            `json:"sessionID"`
+	UniversalLink string            `json:"universalLink"`
 }
 
 // CredentialSchema defines model for CredentialSchema.
