@@ -814,6 +814,28 @@ paths:
         '500':
           $ref: '#/components/responses/500'
 
+  /v2/identities/{identifier}/credentials/revocation/status/{nonce}:
+    get:
+      summary: Get Revocation Status V2
+      operationId: GetRevocationStatusV2
+      description: Endpoint to get the revocation status
+      tags:
+        - Credentials
+      parameters:
+        - $ref: '#/components/parameters/pathIdentifier'
+        - $ref: '#/components/parameters/pathNonce'
+      responses:
+        '200':
+          description: Proof
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevocationStatusResponse'
+        '400':
+          $ref: '#/components/responses/400'
+        '500':
+          $ref: '#/components/responses/500'
+
   /v2/identities/{identifier}/credentials/{id}/qrcode:
     get:
       summary: Get Credentials QR code
