@@ -19,6 +19,7 @@ $text-color: #131313;
 $text-color-secondary: #667085;
 $text-color-warning: #b54708;
 $primary-color-light: #93f558;
+$primary-color-dark: #24580f;
 
 :export {
   avatarBg: $avatar-bg;
@@ -42,4 +43,5 @@ $primary-color-light: #93f558;
   textColor: $text-color;
   textColorSecondary: $text-color-secondary;
   textColorWarning: $text-color-warning;
+  primaryColorDark: $primary-color-dark;
 }

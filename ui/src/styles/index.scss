@@ -312,24 +312,6 @@
   padding-inline-end: 24px;
 }
 
-.ant-btn-primary {
-  border: 1px solid #54db06;
-  box-shadow: none;
-
-  &:not(:disabled .ant-btn-disable) {
-    background: $primary-color-light;
-
-    &:hover {
-      color: $text-color;
-    }
-
-    &:active {
-      color: $text-color;
-      background: $primary-color-light;
-    }
-  }
-}
-
 .ant-typography.ant-typography-secondary {
   color: $text-color-secondary;
 }
