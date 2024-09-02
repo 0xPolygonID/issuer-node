@@ -810,10 +810,10 @@ type ServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(w http.ResponseWriter, r *http.Request)
-	// Agent
+	// Agent V1
 	// (POST /v1/agent)
 	AgentV1(w http.ResponseWriter, r *http.Request)
-	// Get Revocation Status
+	// Get Revocation Status V1
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Agent
@@ -876,7 +876,7 @@ type ServerInterface interface {
 	// Create Link QR Code
 	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, id Id)
-	// Get Revocation Status V2
+	// Get Revocation Status
 	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce)
 	// Revoke Credential
@@ -939,13 +939,13 @@ func (_ Unimplemented) Health(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Agent
+// Agent V1
 // (POST /v1/agent)
 func (_ Unimplemented) AgentV1(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Revocation Status
+// Get Revocation Status V1
 // (GET /v1/{identifier}/claims/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatus(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -1071,7 +1071,7 @@ func (_ Unimplemented) CreateLinkQrCode(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Get Revocation Status V2
+// Get Revocation Status
 // (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 func (_ Unimplemented) GetRevocationStatusV2(w http.ResponseWriter, r *http.Request, identifier PathIdentifier, nonce PathNonce) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -4510,10 +4510,10 @@ type StrictServerInterface interface {
 	// Healthcheck
 	// (GET /status)
 	Health(ctx context.Context, request HealthRequestObject) (HealthResponseObject, error)
-	// Agent
+	// Agent V1
 	// (POST /v1/agent)
 	AgentV1(ctx context.Context, request AgentV1RequestObject) (AgentV1ResponseObject, error)
-	// Get Revocation Status
+	// Get Revocation Status V1
 	// (GET /v1/{identifier}/claims/revocation/status/{nonce})
 	GetRevocationStatus(ctx context.Context, request GetRevocationStatusRequestObject) (GetRevocationStatusResponseObject, error)
 	// Agent
@@ -4576,7 +4576,7 @@ type StrictServerInterface interface {
 	// Create Link QR Code
 	// (POST /v2/identities/{identifier}/credentials/links/{id}/qrcode)
 	CreateLinkQrCode(ctx context.Context, request CreateLinkQrCodeRequestObject) (CreateLinkQrCodeResponseObject, error)
-	// Get Revocation Status V2
+	// Get Revocation Status
 	// (GET /v2/identities/{identifier}/credentials/revocation/status/{nonce})
 	GetRevocationStatusV2(ctx context.Context, request GetRevocationStatusV2RequestObject) (GetRevocationStatusV2ResponseObject, error)
 	// Revoke Credential
