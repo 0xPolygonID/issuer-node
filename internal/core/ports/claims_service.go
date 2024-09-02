@@ -56,15 +56,17 @@ type AgentRequest struct {
 	Type      comm.ProtocolMessage
 }
 
-// Defines values for GetCredentialsParamsStatus.
+// Constants defining sort by fields passed from the API
 // TIP: Use the sql field name in these constants. A little bit coupled but easy to construct the ORDER BY clause later
 const (
-	ConnectionsCreatedAt sqltools.SQLFieldName = "connections.created_at"
-	ConnectionsUserID    sqltools.SQLFieldName = "connections.user_id"
-	CredentialSchemaType sqltools.SQLFieldName = "claims.schema_type"
-	CredentialCreatedAt  sqltools.SQLFieldName = "claims.created_at"
-	CredentialExpiresAt  sqltools.SQLFieldName = "claims.expiration"
-	CredentialRevoked    sqltools.SQLFieldName = "claims.revoked"
+	ConnectionsCreatedAt        sqltools.SQLFieldName = "connections.created_at"
+	ConnectionsUserID           sqltools.SQLFieldName = "connections.user_id"
+	CredentialSchemaType        sqltools.SQLFieldName = "claims.schema_type"
+	CredentialCreatedAt         sqltools.SQLFieldName = "claims.created_at"
+	CredentialExpiresAt         sqltools.SQLFieldName = "claims.expiration"
+	CredentialRevoked           sqltools.SQLFieldName = "claims.revoked"
+	StateTransitionsPublishDate sqltools.SQLFieldName = "created_at"
+	StateTransitionsStatus      sqltools.SQLFieldName = "status"
 )
 
 // ClaimsFilter struct
