@@ -1423,6 +1423,89 @@ func TestServer_GetRevocationStatus(t *testing.T) {
 	}
 }
 
+func TestServer_GetRevocationStatusV2(t *testing.T) {
+	const (
+		method     = "polygonid"
+		blockchain = "polygon"
+		network    = "amoy"
+		BJJ        = "BJJ"
+	)
+	ctx := context.Background()
+
+	server := newTestServer(t, nil)
+	identity, err := server.Services.identity.Create(context.Background(), "http://localhost:3001", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
+	assert.NoError(t, err)
+	handler := getHandler(context.Background(), server)
+
+	schema := "https://raw.githubusercontent.com/iden3/claim-schema-vocab/main/schemas/json/KYCAgeCredential-v3.json"
+	did, _ := w3c.ParseDID(identity.Identifier)
+	credentialSubject := map[string]any{
+		"id":           "did:polygonid:polygon:mumbai:2qE1BZ7gcmEoP2KppvFPCZqyzyb5tK9T6Gec5HFANQ",
+		"birthday":     19960424,
+		"documentType": 2,
+	}
+	typeC := "KYCAgeCredential"
+
+	merklizedRootPosition := "value"
+	claimRequestProofs := ports.ClaimRequestProofs{
+		BJJSignatureProof2021:      true,
+		Iden3SparseMerkleTreeProof: true,
+	}
+	credential, err := server.Services.credentials.Save(ctx, ports.NewCreateClaimRequest(did, nil, schema, credentialSubject, common.ToPointer(time.Now()), typeC, nil, nil, &merklizedRootPosition, claimRequestProofs, nil, false, verifiable.Iden3commRevocationStatusV1, nil, nil, nil))
+	assert.NoError(t, err)
+
+	type expected struct {
+		httpCode int
+	}
+	type testConfig struct {
+		name     string
+		auth     func() (string, string)
+		nonce    int64
+		expected expected
+	}
+
+	for _, tc := range []testConfig{
+		{
+			name:  "should get revocation status",
+			auth:  authOk,
+			nonce: int64(credential.RevNonce),
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+
+		{
+			name:  "should get revocation status wrong nonce",
+			auth:  authOk,
+			nonce: 123456,
+			expected: expected{
+				httpCode: http.StatusOK,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			url := fmt.Sprintf("/v2/identities/%s/credentials/revocation/status/%d", identity.Identifier, tc.nonce)
+			req, err := http.NewRequest("GET", url, nil)
+			req.SetBasicAuth(tc.auth())
+			require.NoError(t, err)
+
+			handler.ServeHTTP(rr, req)
+
+			require.Equal(t, tc.expected.httpCode, rr.Code)
+
+			if tc.expected.httpCode == http.StatusOK {
+				var response GetRevocationStatusV2200JSONResponse
+				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
+				assert.NotNil(t, response.Issuer.ClaimsTreeRoot)
+				assert.NotNil(t, response.Issuer.State)
+				assert.NotNil(t, response.Mtp.Existence)
+				assert.NotNil(t, response.Mtp.Siblings)
+			}
+		})
+	}
+}
+
 func validateCredential(t *testing.T, resp, tc GetCredentialResponse) {
 	t.Helper()
 	var responseCredentialStatus verifiable.CredentialStatus
