@@ -178,23 +178,6 @@ ISSUER_KMS_ETH_PROVIDER=localstorage
 
 To import the private key necessary to transition onchain states, the command is the same as [explained before](#install-and-run-issuer-node-api-and-ui).
 
-#### Running issuer node with AWS KMS Service instead of Vault for ETH Keys
-Another alternative for eth keys associated with the identities created in the issuer node is to use the AWS KMS service. 
-In this case you have to change some variables in the .env-issuer file:
-
-```bash
-ISSUER_KMS_BJJ_PROVIDER=<localstorage or vault>
-ISSUER_KMS_ETH_PROVIDER=aws
-ISSUER_KMS_ETH_PLUGIN_AWS_ACCESS_KEY=<AWS-ACCESS-KEY>
-ISSUER_KMS_ETH_PLUGIN_AWS_SECRET_KEY=<AWS-SECRET-KEY>
-ISSUER_KMS_ETH_PLUGIN_AWS_REGION=<AWS-REGION>
-```
-
-In this case, to import the private key in AWS KMS run:
-```shell
-make private_key=XXX aws_access_key=YYY aws_secret_key=ZZZ aws_region=your-region import-private-key-to-kms
-```
-
 ## Quick Start Demo
 
 This [Quick Start Demo](https://devs.polygonid.com/docs/quick-start-demo/) will walk you through the process of **issuing** and **verifying** your **first credential**.
