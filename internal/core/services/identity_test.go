@@ -688,5 +688,4 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 			}
 		})
 	}
-
 }
