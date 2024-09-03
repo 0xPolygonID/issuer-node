@@ -19,6 +19,7 @@ import { Sorter, parseSorters, serializeSorters } from "src/adapters/api";
 
 import { getTransactions, publishState, retryPublishState } from "src/adapters/api/issuer-state";
 import { positiveIntegerFromStringParser } from "src/adapters/parsers";
+import { tableSorterParser } from "src/adapters/parsers/view";
 import IconAlert from "src/assets/icons/alert-circle.svg?react";
 import IconSwitch from "src/assets/icons/switch-horizontal.svg?react";
 import { ErrorResult } from "src/components/shared/ErrorResult";
@@ -347,6 +348,15 @@ export function IssuerState() {
                   emptyText: transactions.status === "failed" && (
                     <ErrorResult error={transactions.error.message} />
                   ),
+                }}
+                onChange={({ current, pageSize, total }, _, sorters) => {
+                  setPaginationTotal(total || DEFAULT_PAGINATION_TOTAL);
+                  const parsedSorters = tableSorterParser.safeParse(sorters);
+                  updateUrlParams({
+                    maxResults: pageSize,
+                    page: current,
+                    sorters: parsedSorters.success ? parsedSorters.data : [],
+                  });
                 }}
                 pagination={{
                   current: paginationPage,
