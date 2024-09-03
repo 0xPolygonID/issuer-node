@@ -5,7 +5,7 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "ajv-formats-draft2019": "^1.6.1",
-    "antd": "^5.18.0",
+    "antd": "^5.20.4",
     "axios": "^1.7.4",
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.10",
