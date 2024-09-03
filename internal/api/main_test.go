@@ -120,6 +120,7 @@ func TestMain(m *testing.M) {
 
 	cfg.ServerUrl = "https://testing.env"
 	cfg.Ethereum = cfgForTesting.Ethereum
+	cfg.UniversalLinks = config.UniversalLinks{BaseUrl: "https://testing.env"}
 	schemaLoader = loader.NewDocumentLoader(ipfsGatewayURL)
 	m.Run()
 }
@@ -294,7 +295,7 @@ func newTestServer(t *testing.T, st *db.Storage) *testServer {
 		true,
 	)
 
-	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(repos.claims, identityService, qrService, mtService, repos.identityState, schemaLoader, st, cfg.ServerUrl, pubSub, ipfsGatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	accountService := services.NewAccountService(*networkResolver)
 	linkService := services.NewLinkService(storage, claimsService, qrService, repos.claims, repos.links, repos.schemas, schemaLoader, repos.sessions, pubSub, identityService, *networkResolver, cfg.UniversalLinks)
 	server := NewServer(&cfg, identityService, accountService, connectionService, claimsService, qrService, NewPublisherMock(), NewPackageManagerMock(), *networkResolver, nil, schemaService, linkService)

@@ -132,8 +132,9 @@ const (
 
 // Defines values for GetCredentialQrCodeParamsType.
 const (
-	GetCredentialQrCodeParamsTypeLink GetCredentialQrCodeParamsType = "link"
-	GetCredentialQrCodeParamsTypeRaw  GetCredentialQrCodeParamsType = "raw"
+	GetCredentialQrCodeParamsTypeDeepLink      GetCredentialQrCodeParamsType = "deepLink"
+	GetCredentialQrCodeParamsTypeRaw           GetCredentialQrCodeParamsType = "raw"
+	GetCredentialQrCodeParamsTypeUniversalLink GetCredentialQrCodeParamsType = "universalLink"
 )
 
 // Defines values for GetStateTransactionsParamsFilter.
@@ -477,8 +478,8 @@ type QrCodeLinkShortResponse struct {
 
 // QrCodeLinkWithSchemaTypeShortResponse defines model for QrCodeLinkWithSchemaTypeShortResponse.
 type QrCodeLinkWithSchemaTypeShortResponse struct {
-	QrCodeLink string `json:"qrCodeLink"`
-	SchemaType string `json:"schemaType"`
+	SchemaType    string `json:"schemaType"`
+	UniversalLink string `json:"universalLink"`
 }
 
 // RefreshService defines model for RefreshService.
@@ -725,8 +726,9 @@ type GetCredentialsParamsSort string
 // GetCredentialQrCodeParams defines parameters for GetCredentialQrCode.
 type GetCredentialQrCodeParams struct {
 	// Type Type:
-	//   * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.
-	//   * `raw` - Return the raw QR code.
+	//   * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the QR
+	//   * `deepLink` -  Returns a QR code with a link redirection to the raw content.
+	//   * `raw` - Returns the raw QR code.
 	Type *GetCredentialQrCodeParamsType `form:"type,omitempty" json:"type,omitempty"`
 }
 

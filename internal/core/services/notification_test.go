@@ -57,7 +57,7 @@ func TestNotification_SendNotification(t *testing.T) {
 		true,
 	)
 
-	credentialsService := NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager)
+	credentialsService := NewClaim(claimsRepo, identityService, nil, mtService, identityStateRepo, docLoader, storage, cfg.ServerUrl, pubsub.NewMock(), ipfsGateway, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	connectionsService := NewConnection(connectionsRepository, claimsRepo, storage)
 	iden, err := identityService.Create(ctx, "polygon-test", &ports.DIDCreationOptions{Method: method, Blockchain: blockchain, Network: network, KeyType: BJJ})
 	require.NoError(t, err)

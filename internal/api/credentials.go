@@ -275,7 +275,7 @@ func (s *Server) GetCredential(ctx context.Context, request GetCredentialRequest
 	return GetCredential200JSONResponse(toGetCredential200Response(w3c)), nil
 }
 
-// GetCredentialQrCode returns a GetCredentialQrCodeResponseObject raw or link type based on query parameter `type`
+// GetCredentialQrCode returns a GetCredentialQrCodeResponseObject universalLink, raw or deeplink type based on query parameter `type`
 // scan it with privado.id wallet to accept the claim
 func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQrCodeRequestObject) (GetCredentialQrCodeResponseObject, error) {
 	if request.Identifier == "" {
@@ -306,19 +306,22 @@ func (s *Server) GetCredentialQrCode(ctx context.Context, request GetCredentialQ
 		}
 		return GetCredentialQrCode500JSONResponse{N500JSONResponse{err.Error()}}, nil
 	}
-	qrContent := resp.QrCodeURL
-	// Backward compatibility. If the type is raw, we return the raw qr code
-	if request.Params.Type != nil && *request.Params.Type == GetCredentialQrCodeParamsTypeRaw {
-		rawQrCode, err := s.qrService.Find(ctx, resp.QrID)
-		if err != nil {
-			log.Error(ctx, "qr store. Finding qr", "err", err, "id", resp.QrID)
-			return GetCredentialQrCode500JSONResponse{N500JSONResponse{"error looking for qr body"}}, nil
-		}
-		qrContent = string(rawQrCode)
+	qrContent, qrType := resp.UniversalLink, GetCredentialQrCodeParamsTypeUniversalLink
+	if request.Params.Type != nil {
+		qrType = *request.Params.Type
 	}
+	switch qrType {
+	case GetCredentialQrCodeParamsTypeDeepLink:
+		qrContent = resp.DeepLink
+	case GetCredentialQrCodeParamsTypeUniversalLink:
+		qrContent = resp.UniversalLink
+	case GetCredentialQrCodeParamsTypeRaw:
+		qrContent = resp.QrRaw
+	}
+
 	return GetCredentialQrCode200JSONResponse{
-		QrCodeLink: qrContent,
-		SchemaType: resp.SchemaType,
+		UniversalLink: qrContent,
+		SchemaType:    resp.SchemaType,
 	}, nil
 }
 

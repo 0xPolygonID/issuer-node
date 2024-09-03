@@ -135,7 +135,7 @@ func main() {
 
 	revocationStatusResolver := revocation_status.NewRevocationStatusResolver(*networkResolver)
 	identityService := services.NewIdentity(keyStore, identityRepository, mtRepository, identityStateRepository, mtService, qrService, claimsRepository, revocationRepository, connectionsRepository, storage, verifier, sessionRepository, ps, *networkResolver, rhsFactory, revocationStatusResolver)
-	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager)
+	claimsService := services.NewClaim(claimsRepository, identityService, qrService, mtService, identityStateRepository, schemaLoader, storage, cfg.ServerUrl, ps, cfg.IPFS.GatewayURL, revocationStatusResolver, mediaTypeManager, cfg.UniversalLinks)
 	proofService := services.NewProver(circuitsLoaderService)
 	schemaService := services.NewSchema(schemaRepository, schemaLoader)
 	linkService := services.NewLinkService(storage, claimsService, qrService, claimsRepository, linkRepository, schemaRepository, schemaLoader, sessionRepository, ps, identityService, *networkResolver, cfg.UniversalLinks)

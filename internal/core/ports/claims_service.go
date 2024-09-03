@@ -203,9 +203,11 @@ func NewAgentRequest(basicMessage *comm.BasicMessage) (*AgentRequest, error) {
 
 // GetCredentialQrCodeResponse is the response of the GetCredentialQrCode method
 type GetCredentialQrCodeResponse struct {
-	QrCodeURL  string
-	SchemaType string
-	QrID       uuid.UUID
+	DeepLink      string
+	UniversalLink string
+	QrRaw         string
+	SchemaType    string
+	QrID          uuid.UUID
 }
 
 // ClaimsService is the interface implemented by the claim service
