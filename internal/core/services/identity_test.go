@@ -668,7 +668,7 @@ func Test_identity_GetLatestStateByID(t *testing.T) {
 			},
 		},
 		{
-			name: "should return an error",
+			name: "should return an error non existing identity",
 			did:  did2,
 			shouldReturnErr: shouldReturnErr{
 				err:     true,
