@@ -151,7 +151,7 @@ paths:
     post:
       summary: Create Identity
       operationId: CreateIdentity
-      description: | 
+      description: |
         Endpoint to create an identity to issue credentials.
         Issuer node supports two types of keys (field `type`):
         * BJJ Keys
@@ -247,7 +247,7 @@ paths:
           $ref: '#/components/responses/403'
         '500':
           $ref: '#/components/responses/500-CreateIdentity'
-    
+
   /v2/identities/{identifier}/details:
     get:
       summary: Get Identity Detail
@@ -866,11 +866,12 @@ paths:
           required: false
           schema:
             type: string
-            enum: [ raw, link ]
+            enum: [ universalLink, deepLink, raw ]
           description: >
             Type:
-              * `link` - (default value) Return a QR code with a link redirection to the raw content. Easier to scan.   
-              * `raw` - Return the raw QR code.
+              * `universalLink` - (default value) Returns a deeplink. The preferred and more standard way to access the QR  
+              * `deepLink` -  Returns a QR code with a link redirection to the raw content.   
+              * `raw` - Returns the raw QR code.
       responses:
         '200':
           description: ok
@@ -1367,9 +1368,9 @@ components:
           example: "Iden3ReverseSparseMerkleTreeProof"
           enum: [ Iden3commRevocationStatusv2.0, Iden3ReverseSparseMerkleTreeProof, Iden3OnchainSparseMerkleTreeProof2023 ]
         displayName:
-              type: string
-              x-omitempty: true
-              example: "KYCAgeCredential Issuer identity"
+          type: string
+          x-omitempty: true
+          example: "KYCAgeCredential Issuer identity"
 
     CreateIdentityResponse:
       type: object
@@ -2021,20 +2022,20 @@ components:
         type:
           type: string
           x-omitempty: false
-      
+
     QrCodeLinkWithSchemaTypeShortResponse:
       type: object
       required:
-        - qrCodeLink
+        - universalLink
         - schemaType
       properties:
-        qrCodeLink:
+        universalLink:
           type: string
-          example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+          example: https://wallet.privado.id#request_uri=https%3A%2F%2Fissuer-demo.polygonid.me%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
         schemaType:
           type: string
           example: "vaccinationCertificate"
-      
+
     CredentialsPaginated:
       type: object
       required: [ items, meta ]
@@ -2246,7 +2247,8 @@ components:
       type: object
       required:
         - issuer
-        - qrCodeLink
+        - deepLink
+        - universalLink
         - qrCodeRaw
         - sessionID
         - linkID
@@ -2256,9 +2258,12 @@ components:
           $ref: '#/components/schemas/IssuerDescription'
         qrCodeRaw:
           type: string
-        qrCodeLink:
+        deepLink:
           type: string
           example: iden3comm://?request_uri=https%3A%2F%2Fissuer-demo.privado.id%2Fapi%2Fqr-store%3Fid%3Df780a169-8959-4380-9461-f7200e2ed3f4
+        universalLink:
+          type: string
+          example: https://wallet.privado.id#request_uri=url
         sessionID:
           type: string
           example: ab5d5dbf-aaaa-bbbb-b983-f48afea64e05
@@ -2351,7 +2356,7 @@ components:
           type: array
           items:
             type: string
-          example: ["amoy", "mumbai"]
+          example: [ "amoy", "mumbai" ]
 
     Offer:
       type: object

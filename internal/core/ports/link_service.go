@@ -3,6 +3,7 @@ package ports
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -17,10 +18,11 @@ import (
 
 // CreateQRCodeResponse - is the result of creating a link QRcode.
 type CreateQRCodeResponse struct {
-	Link      *domain.Link
-	QrCode    string
-	QrID      uuid.UUID
-	SessionID string
+	Link          *domain.Link
+	DeepLink      string
+	UniversalLink string
+	QrID          uuid.UUID
+	SessionID     string
 }
 
 // LinkStatus is a Link type request. All|Active|Inactive|Exceeded
@@ -36,7 +38,7 @@ const (
 // LinkTypeReqFromString constructs a LinkStatus from a string
 func LinkTypeReqFromString(s string) (LinkStatus, error) {
 	s = strings.ToLower(s)
-	if s != "all" && s != "active" && s != "inactive" && s != "exceeded" {
+	if !slices.Contains([]string{string(LinkAll), string(LinkActive), string(LinkInactive), string(LinkExceeded)}, s) {
 		return "", fmt.Errorf("unknown linkTypeReq: %s", s)
 	}
 	return LinkStatus(s), nil

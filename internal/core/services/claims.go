@@ -24,6 +24,7 @@ import (
 	"github.com/jackc/pgx/v4"
 
 	"github.com/polygonid/sh-id-platform/internal/common"
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/event"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
@@ -58,7 +59,9 @@ var (
 )
 
 type claim struct {
-	host                     string
+	host string
+	cfg  config.UniversalLinks
+
 	icRepo                   ports.ClaimsRepository
 	identitySrv              ports.IdentityService
 	mtService                ports.MtService
@@ -73,7 +76,7 @@ type claim struct {
 }
 
 // NewClaim creates a new claim service
-func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager) ports.ClaimsService {
+func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrService ports.QrStoreService, mtService ports.MtService, identityStateRepository ports.IdentityStateRepository, ld loader.DocumentLoader, storage *db.Storage, host string, ps pubsub.Publisher, ipfsGatewayURL string, revocationStatusResolver *revocation_status.RevocationStatusResolver, mediatypeManager ports.MediatypeManager, cfg config.UniversalLinks) ports.ClaimsService {
 	s := &claim{
 		host:                     host,
 		icRepo:                   repo,
@@ -86,6 +89,7 @@ func NewClaim(repo ports.ClaimsRepository, idenSrv ports.IdentityService, qrServ
 		publisher:                ps,
 		revocationStatusResolver: revocationStatusResolver,
 		mediatypeManager:         mediatypeManager,
+		cfg:                      cfg,
 	}
 	if ipfsGatewayURL != "" {
 		s.ipfsClient = shell.NewShell(ipfsGatewayURL)
@@ -368,9 +372,11 @@ func (c *claim) GetCredentialQrCode(ctx context.Context, issID *w3c.DID, id uuid
 		return nil, err
 	}
 	return &ports.GetCredentialQrCodeResponse{
-		QrCodeURL:  c.qrService.ToURL(hostURL, qrID),
-		SchemaType: getCredentialType(*claim),
-		QrID:       qrID,
+		DeepLink:      c.qrService.ToDeepLink(hostURL, qrID),
+		UniversalLink: c.qrService.ToUniversalLink(c.cfg.BaseUrl, hostURL, qrID),
+		QrRaw:         string(raw),
+		SchemaType:    getCredentialType(*claim),
+		QrID:          qrID,
 	}, nil
 }
 

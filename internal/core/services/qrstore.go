@@ -58,9 +58,14 @@ func (s *QrStoreService) Store(ctx context.Context, qrCode []byte, ttl time.Dura
 	return id, nil
 }
 
-// ToURL constructs the url that will be used to get the body of a QR code.
-func (s *QrStoreService) ToURL(hostURL string, id uuid.UUID) string {
+// ToDeepLink constructs a deeplink that will be used to get the body of a QR code.
+func (s *QrStoreService) ToDeepLink(hostURL string, id uuid.UUID) string {
 	return fmt.Sprintf("iden3comm://?request_uri=%s/v2/qr-store?id=%s", hostURL, id.String())
+}
+
+// ToUniversalLink constructs a universal link
+func (s *QrStoreService) ToUniversalLink(uLinkBaseUrl string, hostURL string, id uuid.UUID) string {
+	return fmt.Sprintf("%s#request_uri=%s/v2/qr-store?id=%s", uLinkBaseUrl, hostURL, id.String())
 }
 
 func (s *QrStoreService) key(id uuid.UUID) string {

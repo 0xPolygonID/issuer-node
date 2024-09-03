@@ -554,6 +554,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 	type expected struct {
 		response GetCredentialQrCodeResponseObject
 		httpCode int
+		qrType   string
 	}
 
 	type testConfig struct {
@@ -561,6 +562,7 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 		auth     func() (string, string)
 		did      string
 		claim    uuid.UUID
+		qrType   *string
 		expected expected
 	}
 	for _, tc := range []testConfig{
@@ -610,19 +612,60 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			},
 		},
 		{
-			name:  "should get a json QR",
-			auth:  authOk,
-			did:   idStr,
-			claim: claim.ID,
+			name:   "Happy path, no type",
+			auth:   authOk,
+			did:    idStr,
+			claim:  claim.ID,
+			qrType: nil,
 			expected: expected{
 				response: GetCredentialQrCode200JSONResponse{},
 				httpCode: http.StatusOK,
+				qrType:   "universalLink",
+			},
+		},
+		{
+			name:   "Happy path, type universalLink",
+			auth:   authOk,
+			did:    idStr,
+			claim:  claim.ID,
+			qrType: common.ToPointer("universalLink"),
+			expected: expected{
+				response: GetCredentialQrCode200JSONResponse{},
+				httpCode: http.StatusOK,
+				qrType:   "universalLink",
+			},
+		},
+		{
+			name:   "Happy path, type deeplink",
+			auth:   authOk,
+			did:    idStr,
+			claim:  claim.ID,
+			qrType: common.ToPointer("deepLink"),
+			expected: expected{
+				response: GetCredentialQrCode200JSONResponse{},
+				httpCode: http.StatusOK,
+				qrType:   "deepLink",
+			},
+		},
+		{
+			name:   "Happy path, type raw",
+			auth:   authOk,
+			did:    idStr,
+			claim:  claim.ID,
+			qrType: common.ToPointer("raw"),
+			expected: expected{
+				response: GetCredentialQrCode200JSONResponse{},
+				httpCode: http.StatusOK,
+				qrType:   "raw",
 			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
-			url := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode?type=raw", tc.did, tc.claim)
+			url := fmt.Sprintf("/v2/identities/%s/credentials/%s/qrcode", tc.did, tc.claim)
+			if tc.qrType != nil {
+				url = fmt.Sprintf("%s?type=%s", url, *tc.qrType)
+			}
 			req, err := http.NewRequest("GET", url, nil)
 			req.SetBasicAuth(tc.auth())
 			require.NoError(t, err)
@@ -635,9 +678,15 @@ func TestServer_GetCredentialQrCode(t *testing.T) {
 			case GetCredentialQrCode200JSONResponse:
 				var response GetCredentialQrCode200JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))
-				var rawResponse QrCodeLinkWithSchemaTypeShortResponse
-				assert.NoError(t, json.Unmarshal([]byte(response.QrCodeLink), &rawResponse))
-
+				switch tc.expected.qrType {
+				case "raw":
+					var rawResponse QrCodeLinkWithSchemaTypeShortResponse
+					assert.NoError(t, json.Unmarshal([]byte(response.UniversalLink), &rawResponse))
+				case "universalLink":
+					assert.True(t, strings.HasPrefix(response.UniversalLink, "https://testing.env#request_uri=https://testing.env/v2/qr-store?id="))
+				case "deepLink":
+					assert.True(t, strings.HasPrefix(response.UniversalLink, "iden3comm://?request_uri=https://testing.env/v2/qr-store?id="))
+				}
 			case GetCredentialQrCode400JSONResponse:
 				var response GetCredentialQrCode400JSONResponse
 				assert.NoError(t, json.Unmarshal(rr.Body.Bytes(), &response))

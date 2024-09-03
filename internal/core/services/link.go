@@ -15,6 +15,7 @@ import (
 	"github.com/iden3/iden3comm/v2/protocol"
 	"github.com/jackc/pgx/v4"
 
+	"github.com/polygonid/sh-id-platform/internal/config"
 	"github.com/polygonid/sh-id-platform/internal/core/domain"
 	"github.com/polygonid/sh-id-platform/internal/core/ports"
 	"github.com/polygonid/sh-id-platform/internal/db"
@@ -47,6 +48,7 @@ var (
 
 // Link - represents a link in the issuer node
 type Link struct {
+	cfg              config.UniversalLinks
 	storage          *db.Storage
 	claimsService    ports.ClaimsService
 	qrService        ports.QrStoreService
@@ -61,7 +63,7 @@ type Link struct {
 }
 
 // NewLinkService - constructor
-func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver) ports.LinkService {
+func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrService ports.QrStoreService, claimRepository ports.ClaimsRepository, linkRepository ports.LinkRepository, schemaRepository ports.SchemaRepository, ld loader.DocumentLoader, sessionManager ports.SessionRepository, publisher pubsub.Publisher, identityService ports.IdentityService, networkResolver network.Resolver, cfg config.UniversalLinks) ports.LinkService {
 	return &Link{
 		storage:          storage,
 		claimsService:    claimsService,
@@ -74,6 +76,7 @@ func NewLinkService(storage *db.Storage, claimsService ports.ClaimsService, qrSe
 		publisher:        publisher,
 		identityService:  identityService,
 		networkResolver:  networkResolver,
+		cfg:              cfg,
 	}
 }
 
@@ -211,10 +214,11 @@ func (ls *Link) CreateQRCode(ctx context.Context, issuerDID w3c.DID, linkID uuid
 	}
 
 	return &ports.CreateQRCodeResponse{
-		SessionID: sessionID,
-		QrCode:    ls.qrService.ToURL(serverURL, id),
-		QrID:      id,
-		Link:      link,
+		SessionID:     sessionID,
+		DeepLink:      ls.qrService.ToDeepLink(serverURL, id),
+		UniversalLink: ls.qrService.ToUniversalLink(ls.cfg.BaseUrl, serverURL, id),
+		QrID:          id,
+		Link:          link,
 	}, nil
 }
 

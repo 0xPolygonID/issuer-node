@@ -60,6 +60,7 @@ type Configuration struct {
 	IPFS                        IPFS
 	CustomDIDMethods            []CustomDIDMethods `mapstructure:"-"`
 	MediaTypeManager            MediaTypeManager
+	UniversalLinks              UniversalLinks
 }
 
 // Database has the database configuration
@@ -172,6 +173,11 @@ type HTTPBasicAuth struct {
 // MediaTypeManager enables or disables the media types manager
 type MediaTypeManager struct {
 	Enabled *bool `env:"ISSUER_MEDIA_TYPE_MANAGER_ENABLED"`
+}
+
+// UniversalLinks configuration
+type UniversalLinks struct {
+	BaseUrl string `env:"ISSUER_UNIVERSAL_LINKS_BASE_URL" envDefault:"https://wallet.privado.id"`
 }
 
 // Load loads the configuration from a file
