@@ -255,11 +255,14 @@ func (i *identity) GetLatestStateByID(ctx context.Context, identifier w3c.DID) (
 	// check that identity exists in the db
 	state, err := i.identityStateRepository.GetLatestStateByIdentifier(ctx, i.storage.Pgx, &identifier)
 	if err != nil {
+		log.Error(ctx, "getting latest state by identifier", "err", err)
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, fmt.Errorf("state is not found for identifier: %s. Please check if the identifier was created in this issuer node", identifier.String())
+		}
 		return nil, err
 	}
 	if state == nil {
-		return nil, fmt.Errorf("state is not found for identifier: %s",
-			identifier.String())
+		return nil, fmt.Errorf("state is not found for identifier: %s", identifier.String())
 	}
 	return state, nil
 }
